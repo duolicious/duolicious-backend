@@ -1,0 +1,2402 @@
+[
+  [
+    1,
+    1,
+    "Would you prefer a partner who's always honest, even if it sometimes hurts your feelings?",
+    true
+  ],
+  [
+    1,
+    2,
+    "If your long-term partner wanted to maintain a separate bank account, would you feel like they don't trust you enough?",
+    true
+  ],
+  [
+    1,
+    3,
+    "A billionaire offers to pay for the education of an entire impoverished community, but requires the children to undergo genetic modifications to enhance their intelligence and physical abilities. Should this offer be accepted?",
+    false
+  ],
+  [
+    1,
+    4,
+    "You have a specific way of preparing your favorite dish, but one day, you're cooking with a friend who suggests a different ingredient or preparation method. Would you rather stick to the recipe you know than try one which might be worse?",
+    true
+  ],
+  [
+    1,
+    5,
+    "Do you think you have a good sense of your emotional strengths and weaknesses?",
+    true
+  ],
+  [
+    1,
+    6,
+    "Is it appropriate for social media companies to censor political speech?",
+    false
+  ],
+  [
+    1,
+    7,
+    "Do you sometimes feel like you don't have anyone to talk to when you need it?",
+    true
+  ],
+  [
+    1,
+    8,
+    "In Brazil, there's a cultural practice called \"jeitinho brasileiro\" which roughly translates to \"the Brazilian way\". It refers to the art of finding creative solutions to problems and making things happen by bending the rules or ignoring social conventions. Would you break an established rule if you thought it was silly?",
+    true
+  ],
+  [
+    1,
+    9,
+    "Are you currently a student?",
+    false
+  ],
+  [
+    1,
+    10,
+    "Do you consider yourself to be financially stable?",
+    true
+  ],
+  [
+    1,
+    11,
+    "Have you ever been walking in public then realized you needed to go in the complete opposite direction but didn't want to turn around too suddenly because you didn't want people to think you were weird?",
+    true
+  ],
+  [
+    1,
+    12,
+    "Is dating more fun than uncomfortable for you?",
+    false
+  ],
+  [
+    1,
+    13,
+    "If your partner insisted on waiting until marriage to have sex, would that be a deal-breaker?",
+    false
+  ],
+  [
+    1,
+    14,
+    "Someone you're attracted to propositions you for sex. The only problem is, they're married. Do you go ahead with it if their partner would never find out?",
+    false
+  ],
+  [
+    1,
+    15,
+    "If you could choose the sexual orientation of your children, would you?",
+    true
+  ],
+  [
+    1,
+    16,
+    "Is it better for your partner to be in love with you rather than make a conscious choice to commit?",
+    false
+  ],
+  [
+    1,
+    17,
+    "Do you believe that compromise is a crucial element in a healthy relationship?",
+    true
+  ],
+  [
+    1,
+    18,
+    "Is lightning more beautiful than scary?",
+    true
+  ],
+  [
+    1,
+    19,
+    "Is a shared passion for garage sales and flea markets a relationship must-have?",
+    false
+  ],
+  [
+    1,
+    20,
+    "Have you got a bachelor's degree?",
+    true
+  ],
+  [
+    1,
+    21,
+    "Should we offer more incentives for electric vehicles?",
+    true
+  ],
+  [
+    1,
+    22,
+    "Do you believe in climate change?",
+    true
+  ],
+  [
+    1,
+    23,
+    "Do you sometimes have full blown imaginary arguments with people from real life who made you cranky earlier in the day?",
+    true
+  ],
+  [
+    1,
+    24,
+    "Is the last number in this sequence correct? 1, 4, 9, 16, 25, 37.",
+    false
+  ],
+  [
+    1,
+    25,
+    "Do you get ASMR?",
+    true
+  ],
+  [
+    1,
+    26,
+    "Have you ever lived with a mental illness (e.g. depression)?",
+    true
+  ],
+  [
+    1,
+    27,
+    "In the Arabic love story \"Majn\u016bn Layl\u0101\", the poet Qays falls deeply in love with a woman named Layla, but their families forbid their union. Qays becomes so consumed with his love for Layla that he goes \"majn\u016bn\" (meaning \"insane\"). When you fall in love, are your feelings sometimes so strong that you feel overwhelmed?",
+    true
+  ],
+  [
+    1,
+    28,
+    "Do you prefer quiet nights at home over going out to socialize?",
+    true
+  ],
+  [
+    1,
+    29,
+    "Do jokes get funnier when they get more inappropriate?",
+    true
+  ],
+  [
+    1,
+    30,
+    "Do you ever get so wrapped up in your hobbies or interests that you totally tune out the world around you?",
+    true
+  ],
+  [
+    1,
+    31,
+    "Should the government help out with affordable housing to tackle homelessness?",
+    false
+  ],
+  [
+    1,
+    32,
+    "Do you judge people based on the type of car they drive or the neighborhood they live in?",
+    true
+  ],
+  [
+    1,
+    33,
+    "Have you ever read someone's messages over their shoulder on public transport, even just once?",
+    true
+  ],
+  [
+    1,
+    34,
+    "Are you a virgin?",
+    false
+  ],
+  [
+    1,
+    35,
+    "Have you ever gone skinny-dipping?",
+    false
+  ],
+  [
+    1,
+    36,
+    "Do you find entrepreneurs more attractive than 9-to-5 employees?",
+    false
+  ],
+  [
+    1,
+    37,
+    "Do you think it's essential for your partner to be into the same type of books?",
+    false
+  ],
+  [
+    1,
+    38,
+    "During times when you were fighting with loved ones, did you tend to withdraw from interacting with them rather than let them know how you really felt?",
+    true
+  ],
+  [
+    1,
+    39,
+    "Have you ever visited a sex shop?",
+    false
+  ],
+  [
+    1,
+    40,
+    "Is financial stability an important factor in a long-term relationship?",
+    true
+  ],
+  [
+    1,
+    41,
+    "Is having sex every second day too often for you?",
+    false
+  ],
+  [
+    1,
+    42,
+    "Are tighter online privacy regulations the way to go?",
+    false
+  ],
+  [
+    1,
+    43,
+    "Is it ethical for governments to provide financial incentives for people to have fewer children in order to control population growth?",
+    false
+  ],
+  [
+    1,
+    44,
+    "Do you find joy in organizing things?",
+    false
+  ],
+  [
+    1,
+    45,
+    "Is it okay to use emojis in professional communication?",
+    true
+  ],
+  [
+    1,
+    46,
+    "If you *had* to choose between *more* or *less*, would you say you're *more* attractive than most? (Saying you're equally attractive isn't an option!)",
+    false
+  ],
+  [
+    1,
+    47,
+    "Do you like buying shoes?",
+    false
+  ],
+  [
+    1,
+    48,
+    "If you had to choose between donating to charity, or helping your family with finances, would you donate to charity?",
+    false
+  ],
+  [
+    1,
+    49,
+    "Are you saving money for something?",
+    true
+  ],
+  [
+    1,
+    50,
+    "Does each race have some traits which are superior to other races'?",
+    true
+  ],
+  [
+    1,
+    51,
+    "Do you identify strongly with your ethnic heritage?",
+    false
+  ],
+  [
+    1,
+    52,
+    "Did you think that locking ourselves up during COVID-19 was a good call?",
+    false
+  ],
+  [
+    1,
+    53,
+    "Are old things usually better than new ones?",
+    true
+  ],
+  [
+    1,
+    54,
+    "Would you take a pill that makes you instantly fluent in any language but makes you forget your mother tongue?",
+    false
+  ],
+  [
+    1,
+    55,
+    "Should you wait until you're in a serious relationship before disclosing any past criminal history or legal issues?",
+    false
+  ],
+  [
+    1,
+    56,
+    "Do you ever read a text, imagine your reply, then realize hours later that you didn't actually reply?",
+    true
+  ],
+  [
+    1,
+    57,
+    "Do you spend too much time on the computer?",
+    true
+  ],
+  [
+    1,
+    58,
+    "Does seeing someone else puke make you feel nauseous?",
+    false
+  ],
+  [
+    1,
+    59,
+    "Is it wrong for parents to spank their kids?",
+    false
+  ],
+  [
+    1,
+    60,
+    "Do you frequently give into the temptation of checkout line snacks?",
+    false
+  ],
+  [
+    1,
+    61,
+    "If you were running late to a movie, would you expect your friends to wait for you?",
+    false
+  ],
+  [
+    1,
+    62,
+    "Are you a morning person?",
+    false
+  ],
+  [
+    1,
+    63,
+    "Is the ability to read minds a better superpower than invisibility?",
+    true
+  ],
+  [
+    1,
+    64,
+    "Is it important that your partner shares your love of strolling through farmers' markets?",
+    false
+  ],
+  [
+    1,
+    65,
+    "Logically, is it possible to have a world without evil?",
+    false
+  ],
+  [
+    1,
+    66,
+    "Have you ever protested?",
+    true
+  ],
+  [
+    1,
+    67,
+    "Do you have trouble figuring out if you're feeling sad, angry, or just hangry?",
+    false
+  ],
+  [
+    1,
+    68,
+    "Did either of your parents have a high-paying job?",
+    false
+  ],
+  [
+    1,
+    69,
+    "Do you believe that people are inherently selfish and that looking out for yourself is more important than looking out for others?",
+    true
+  ],
+  [
+    1,
+    70,
+    "Is it acceptable to ignore a phone call and then claim you didn't hear it?",
+    false
+  ],
+  [
+    1,
+    71,
+    "Have you ever participated in a religious ritual or ceremony that you didn't fully understand or agree with?",
+    false
+  ],
+  [
+    1,
+    72,
+    "Do you hide your taste in music like it's a dirty secret, ashamed to admit you secretly love a good Nickelback tune?",
+    false
+  ],
+  [
+    1,
+    73,
+    "Do you think most people are trustworthy?",
+    false
+  ],
+  [
+    1,
+    74,
+    "Do the people who know you best think that you're lazy?",
+    true
+  ],
+  [
+    1,
+    75,
+    "Should the minimum wage be increased?",
+    false
+  ],
+  [
+    1,
+    76,
+    "Do you believe that having shared life goals is crucial for a long-lasting relationship?",
+    true
+  ],
+  [
+    1,
+    77,
+    "Do you believe that couples should have a clear understanding of each others' boundaries and deal-breakers?",
+    true
+  ],
+  [
+    1,
+    78,
+    "Is \"work-life\" balance just a phrase that lazy people use?",
+    false
+  ],
+  [
+    1,
+    79,
+    "Should abortion be legal in all circumstances?",
+    true
+  ],
+  [
+    1,
+    80,
+    "A colleague often does something annoying and inconsiderate in your presence. You can easily avoid the colleague. Do you tell the colleague that they're being rude?",
+    false
+  ],
+  [
+    1,
+    81,
+    "Is it okay to use a famous movie quote as your wedding vow?",
+    true
+  ],
+  [
+    1,
+    82,
+    "Are you good at multitasking?",
+    false
+  ],
+  [
+    1,
+    83,
+    "If you went to jail and it was your fault, would you expect your parents to bail you out?",
+    false
+  ],
+  [
+    1,
+    84,
+    "If you could swap lives with any animal, would you choose a ridiculous one instead of a majestic one?",
+    false
+  ],
+  [
+    1,
+    85,
+    "Do you consider it a personal victory when you can make someone genuinely smile?",
+    true
+  ],
+  [
+    1,
+    86,
+    "Would you date someone who has a side hustle as a social media influencer?",
+    false
+  ],
+  [
+    1,
+    87,
+    "Is a dedicated home library with thousands of books a major plus?",
+    false
+  ],
+  [
+    1,
+    88,
+    "Is the \"dad bod\" attractive?",
+    false
+  ],
+  [
+    1,
+    89,
+    "Your mother and father both need a kidney to live. You're the only match in the world. Do you donate to one parent and not the other?",
+    true
+  ],
+  [
+    1,
+    90,
+    "Is it important for you to maintain a sense of individuality and independence in a relationship?",
+    false
+  ],
+  [
+    1,
+    91,
+    "In the past when you've fought with people close to you, did you bring up related issues from previous fights to help demonstrate your point?",
+    false
+  ],
+  [
+    1,
+    92,
+    "Are you career-focused?",
+    false
+  ],
+  [
+    1,
+    93,
+    "Are you kinky?",
+    false
+  ],
+  [
+    1,
+    94,
+    "Is there too much mention of sex in the entertainment industry?",
+    true
+  ],
+  [
+    1,
+    95,
+    "Should every city have a designated \"scream zone\" where people can go to let off steam?",
+    false
+  ],
+  [
+    1,
+    96,
+    "Do you think it's okay to call in \"sick\" to work for a mental health day?",
+    false
+  ],
+  [
+    1,
+    97,
+    "Is stealing from the rich and giving to the poor, Robin Hood style, usually a good idea?",
+    false
+  ],
+  [
+    1,
+    98,
+    "Is it okay to talk about your exes on a first date?",
+    true
+  ],
+  [
+    1,
+    99,
+    "Do you treat strangers or acquaintances with more respect than siblings or close friends?",
+    true
+  ],
+  [
+    1,
+    100,
+    "Do you think epithets like \"bitch\" are inherently sexist?",
+    false
+  ],
+  [
+    1,
+    101,
+    "Are you on a special diet? (e.g. vegan, gluten-free, paleo, etc).",
+    true
+  ],
+  [
+    1,
+    102,
+    "Is it wrong to date a friend's ex-partner?",
+    true
+  ],
+  [
+    1,
+    103,
+    "Would you prefer to date someone close to your own age?",
+    true
+  ],
+  [
+    1,
+    104,
+    "Would you be willing to date someone who lives in a tiny house?",
+    false
+  ],
+  [
+    1,
+    105,
+    "When you were young, did your parents or teachers say you were shy?",
+    false
+  ],
+  [
+    1,
+    106,
+    "Are you content with who you are?",
+    false
+  ],
+  [
+    1,
+    107,
+    "Do you make your bed in the morning?",
+    false
+  ],
+  [
+    1,
+    108,
+    "Is it more interesting to speak with people whose views are very different than your own rather than someone similar to you?",
+    true
+  ],
+  [
+    1,
+    109,
+    "Have you ever felt guilty about not spending enough time with someone you care about?",
+    true
+  ],
+  [
+    1,
+    110,
+    "Are you still jaded because you trusted someone who betrayed you?",
+    true
+  ],
+  [
+    1,
+    111,
+    "Do you take your shoes off when visiting friends' or relatives' homes?",
+    true
+  ],
+  [
+    1,
+    112,
+    "Is someone who turns a blind eye to wrongdoing just as bad as the wrongdoer?",
+    false
+  ],
+  [
+    1,
+    113,
+    "Would you want your partner to be your emergency contact?",
+    true
+  ],
+  [
+    1,
+    114,
+    "Do you think it's possible for a romantic relationship to survive without any arguments?",
+    false
+  ],
+  [
+    1,
+    115,
+    "Did you get good grades in school?",
+    false
+  ],
+  [
+    1,
+    116,
+    "Would you rather hang out with someone who pretends to be humble than someone who's brutally honest about the fact they're arrogant?",
+    false
+  ],
+  [
+    1,
+    117,
+    "Are you good at keeping other people's secrets?",
+    false
+  ],
+  [
+    1,
+    118,
+    "If you agreed with almost all their policies, would it really be that bad to live in a dictatorship?",
+    false
+  ],
+  [
+    1,
+    119,
+    "Could you date someone whose sexual orientation was different from yours?",
+    false
+  ],
+  [
+    1,
+    120,
+    "Should hard drugs (beyond weed) be illegal?",
+    false
+  ],
+  [
+    1,
+    121,
+    "If you witnessed someone else doing something wrong, but you weren't directly involved, would you feel guilty for not intervening?",
+    false
+  ],
+  [
+    1,
+    122,
+    "If you could become invisible, would you use your power to eavesdrop on conversations?",
+    true
+  ],
+  [
+    1,
+    123,
+    "Is it important for your partner to have an Ivy League education?",
+    false
+  ],
+  [
+    1,
+    124,
+    "Does being the center of attention make you feel embarrassed?",
+    true
+  ],
+  [
+    1,
+    125,
+    "Do you believe that a little jealousy in a relationship can be a sign of affection rather than a red flag?",
+    true
+  ],
+  [
+    1,
+    126,
+    "Do you believe your morning routine deserves its own YouTube channel and dedicated fanbase?",
+    false
+  ],
+  [
+    1,
+    127,
+    "You got into a fender-bender and suffered only a few scratches. If you knew you could get away with lying, would you ham it up like a Hollywood actor to milk the insurance company for all it's worth?",
+    false
+  ],
+  [
+    1,
+    128,
+    "If you could have a lifetime supply of any food, would you choose something indulgent rather than healthy?",
+    false
+  ],
+  [
+    1,
+    129,
+    "Would you consider yourself to be the 'glue' that holds your friend group together, making sure everyone stays connected and included?",
+    false
+  ],
+  [
+    1,
+    130,
+    "Is it acceptable to put ketchup on eggs?",
+    true
+  ],
+  [
+    1,
+    131,
+    "Have you ever been in a relationship?",
+    true
+  ],
+  [
+    1,
+    132,
+    "If you had a chance to erase a bad memory, would you do it, even if it might change who you are?",
+    false
+  ],
+  [
+    1,
+    133,
+    "Are you good with other people's kids?",
+    true
+  ],
+  [
+    1,
+    134,
+    "A close friend confides in you that they've been cheating on their partner. Would you keep their secret and prioritize your loyalty to your friend, rather than tell the partner and prioritize honesty and transparency?",
+    false
+  ],
+  [
+    1,
+    135,
+    "Have you ever gone grocery shopping while hungry and ended up buying way too much?",
+    false
+  ],
+  [
+    1,
+    136,
+    "Are you better at focusing on the details rather than the big picture?",
+    true
+  ],
+  [
+    1,
+    137,
+    "Is it ever justifiable to restrict free speech in order to prevent hate speech or discrimination?",
+    false
+  ],
+  [
+    1,
+    138,
+    "Can you see yourself dating a person who grew up in a low-income neighborhood but worked hard to succeed?",
+    true
+  ],
+  [
+    1,
+    139,
+    "Should humans prioritize the preservation of species that have a significant impact on ecosystems, even if they have little direct benefit to humans?",
+    false
+  ],
+  [
+    1,
+    140,
+    "Are you physically stronger than most people of your weight and gender?",
+    true
+  ],
+  [
+    1,
+    141,
+    "You can choose either to date a famous model or a famous scientist. Do you take the model?",
+    false
+  ],
+  [
+    1,
+    142,
+    "Should children who identify as different genders be allowed to undergo hormone replacement therapy before puberty?",
+    false
+  ],
+  [
+    1,
+    143,
+    "Should people disclose any past infidelities or cheating before starting a new relationship?",
+    true
+  ],
+  [
+    1,
+    144,
+    "Does your family approve of your chosen career path?",
+    true
+  ],
+  [
+    1,
+    145,
+    "Do you find non-standard piercings (e.g. in the tongue or septum) attractive?",
+    false
+  ],
+  [
+    1,
+    146,
+    "Is it wrong to ghost people?",
+    true
+  ],
+  [
+    1,
+    147,
+    "Would you rather have a job you hate that pays well than a job you love that pays poorly?",
+    false
+  ],
+  [
+    1,
+    148,
+    "Is it okay to remain friends with your ex-partner after a breakup?",
+    false
+  ],
+  [
+    1,
+    149,
+    "Should we establish a global \"No Pants Day\"?",
+    false
+  ],
+  [
+    1,
+    150,
+    "Would you rather be with your soulmate for the rest of your life than land your dream job?",
+    true
+  ],
+  [
+    1,
+    151,
+    "Is it acceptable to have an imaginary friend as an adult?",
+    false
+  ],
+  [
+    1,
+    152,
+    "Should people be able to have more than one spouse at the same time?",
+    true
+  ],
+  [
+    1,
+    153,
+    "Do you tend to take things more literally than most?",
+    false
+  ],
+  [
+    1,
+    154,
+    "Do you know what it means to be \"based\" and \"red-pilled\"?",
+    true
+  ],
+  [
+    1,
+    155,
+    "Is success more related to luck rather than hard work?",
+    true
+  ],
+  [
+    1,
+    156,
+    "Do you tend to keep your feelings hidden, even from the people you're closest to?",
+    true
+  ],
+  [
+    1,
+    157,
+    "Is love something that needs to be present from the start of a relationship (instead of developing over time)?",
+    false
+  ],
+  [
+    1,
+    158,
+    "Within your circle of friends are you the one who typically initiates activities?",
+    false
+  ],
+  [
+    1,
+    159,
+    "Have you ever been accused of worrying too much about your health?",
+    true
+  ],
+  [
+    1,
+    160,
+    "Would you rather avoid tension than argue your point, even if you think you're right?",
+    true
+  ],
+  [
+    1,
+    161,
+    "If you had to choose between a lifetime supply of steak or a lifetime supply of ice cream, would you go with the ice cream?",
+    false
+  ],
+  [
+    1,
+    162,
+    "Is it alright for a partner to playfully imitate your quirks or habits, even if it could be perceived as mocking?",
+    true
+  ],
+  [
+    1,
+    163,
+    "Is social media ruining the very fabric of our society?!?",
+    true
+  ],
+  [
+    1,
+    164,
+    "Do you ever get goosebumps when listening to music?",
+    true
+  ],
+  [
+    1,
+    165,
+    "Does the location of a tattoo affect its attractiveness?",
+    true
+  ],
+  [
+    1,
+    166,
+    "Are your partners usually around the same age as you?",
+    true
+  ],
+  [
+    1,
+    167,
+    "Should we prohibit or restrict the sale and ownership of firearms?",
+    true
+  ],
+  [
+    1,
+    168,
+    "Is claiming \"anything can be art\" just a fancy way of saying \"I don't understand it, but I don't want to sound dumb\"?",
+    true
+  ],
+  [
+    1,
+    169,
+    "If your partner had a habit of naming inanimate objects, would you be okay with referring to the toaster as \"Sir Toastalot\"?",
+    true
+  ],
+  [
+    1,
+    170,
+    "Do you like living in the city more than the suburbs?",
+    false
+  ],
+  [
+    1,
+    171,
+    "Gotta protect free speech, even if it means some nasty stuff gets said, right?",
+    true
+  ],
+  [
+    1,
+    172,
+    "Was your family known for having the most festive holiday decorations on the block?",
+    false
+  ],
+  [
+    1,
+    173,
+    "Have you ever had sex in public, or would it appeal to you?",
+    false
+  ],
+  [
+    1,
+    174,
+    "Are you all about that self-growth and personal development life?",
+    false
+  ],
+  [
+    1,
+    175,
+    "Imagine you could choose between two partners. The first shows their love for you by surprising you with gifts whereas the second shows their love for you just by spending time with you. Would you prefer the second partner?",
+    true
+  ],
+  [
+    1,
+    176,
+    "Do big crowds freak you out?",
+    true
+  ],
+  [
+    1,
+    177,
+    "Would you rather have someone cook you a fancy dinner than give you a foot massage?",
+    true
+  ],
+  [
+    1,
+    178,
+    "Do you ever forget the time immediately after checking it, check it again and still forget?",
+    true
+  ],
+  [
+    1,
+    179,
+    "If you were at a theme park and saw a child with a disability skip the line, would you think that's fair?",
+    false
+  ],
+  [
+    1,
+    180,
+    "Should there be a national database of police misconduct?",
+    false
+  ],
+  [
+    1,
+    181,
+    "When you're at home, do you wash your hands before you eat?",
+    false
+  ],
+  [
+    1,
+    182,
+    "Have you ever been too drunk to walk straight?",
+    false
+  ],
+  [
+    1,
+    183,
+    "Are you finding yourself right now?",
+    false
+  ],
+  [
+    1,
+    184,
+    "In the traditional Japanese story \"The Crane Wife\", a man unknowingly marries a crane in human form. His wife weaves silk from her own feathers to earn them money, which harms her health. When he finds out, the man asks her to stop, but she argues that she did it out of love. He replies, love shouldn't require sacrifices. Do you agree with him?",
+    true
+  ],
+  [
+    1,
+    185,
+    "Is it okay to eat food that's past its expiration date if it still smells and looks fine?",
+    false
+  ],
+  [
+    1,
+    186,
+    "If you could get a top-secret look at your friend's diary, would you peek?",
+    true
+  ],
+  [
+    1,
+    187,
+    "Should illegal immigrants be allowed into the country?",
+    false
+  ],
+  [
+    1,
+    188,
+    "Is getting drunk or high at least once a week too often for you?",
+    true
+  ],
+  [
+    1,
+    189,
+    "Is recycling important to you?",
+    false
+  ],
+  [
+    1,
+    190,
+    "Do you feel like your worries or fears are holding you back from living your life fully?",
+    true
+  ],
+  [
+    1,
+    191,
+    "Do you find joy in helping others succeed?",
+    true
+  ],
+  [
+    1,
+    192,
+    "Is it okay to use the bathroom without replacing an empty toilet paper roll?",
+    false
+  ],
+  [
+    1,
+    193,
+    "Do you think it's acceptable to wear pajamas to the grocery store?",
+    false
+  ],
+  [
+    1,
+    194,
+    "Is it ever appropriate to give someone a piggyback ride as a first date activity?",
+    false
+  ],
+  [
+    1,
+    195,
+    "Would you describe yourself as the person who checks in on friends and family regularly to make sure they're doing well?",
+    false
+  ],
+  [
+    1,
+    196,
+    "Do you like public displays of affection?",
+    false
+  ],
+  [
+    1,
+    197,
+    "Is it ever okay to let someone win a game, just to boost their confidence?",
+    true
+  ],
+  [
+    1,
+    198,
+    "Are you good at sports?",
+    false
+  ],
+  [
+    1,
+    199,
+    "Do you feel a sense of pride in returning your shopping cart to the designated area?",
+    true
+  ],
+  [
+    1,
+    200,
+    "You won the lottery. Do you spend most of it at once?",
+    false
+  ],
+  [
+    1,
+    201,
+    "Are you the type of person who avoids stepping on ants on the pavement?",
+    true
+  ],
+  [
+    1,
+    202,
+    "Do you read nutritional labels?",
+    true
+  ],
+  [
+    1,
+    203,
+    "Do you dig a partner who challenges you and helps you level up?",
+    true
+  ],
+  [
+    1,
+    204,
+    "Do you believe that the ends justify the means, even if most people would consider the means unethical or immoral?",
+    true
+  ],
+  [
+    1,
+    205,
+    "Do you think the police discriminate against black people or other minorities?",
+    true
+  ],
+  [
+    1,
+    206,
+    "If you had to choose between always telling the truth or always keeping a secret, would you always tell the truth?",
+    true
+  ],
+  [
+    1,
+    207,
+    "Would your ideal partner be able to take some good-natured jokes at their expense?",
+    true
+  ],
+  [
+    1,
+    208,
+    "Have you ever apologized for something you did a long time after everyone else probably forgot about it?",
+    true
+  ],
+  [
+    1,
+    209,
+    "Would you press a button that makes you rich but causes someone, somewhere to lose their job?",
+    false
+  ],
+  [
+    1,
+    210,
+    "You have a partner who used to be your ideal body type when you first got together. But now, they've let themselves go and don't want to change. Would you feel less willing to stay with them?",
+    false
+  ],
+  [
+    1,
+    211,
+    "Can you easily open up to people you're close with?",
+    true
+  ],
+  [
+    1,
+    212,
+    "Can you see yourself falling for someone who goes dumpster diving?",
+    true
+  ],
+  [
+    1,
+    213,
+    "Would you be open to dating someone who can't afford a car?",
+    false
+  ],
+  [
+    1,
+    214,
+    "Do you ever sniff your own armpits?",
+    true
+  ],
+  [
+    1,
+    215,
+    "Do you feel a strange sense of accomplishment when you're able to predict and avert a friend's potential wardrobe malfunction?",
+    false
+  ],
+  [
+    1,
+    216,
+    "Do you sometimes wish you were never born?",
+    true
+  ],
+  [
+    1,
+    217,
+    "Do you quietly judge people based on their taste in fashion or style?",
+    true
+  ],
+  [
+    1,
+    218,
+    "Are you a heavy sleeper?",
+    false
+  ],
+  [
+    1,
+    219,
+    "If your partner wanted to host a weekly \"bad movie night\" where you watch and critique the worst films in cinema history, would you enthusiastically join in?",
+    false
+  ],
+  [
+    1,
+    220,
+    "Do you get hay fever?",
+    true
+  ],
+  [
+    1,
+    221,
+    "Does the idea of spending time with your partner without really doing anything appeal to you?",
+    true
+  ],
+  [
+    1,
+    222,
+    "A close friend tells you they're planning to commit suicide and asks you not to tell anyone. Do you respect their wishes?",
+    true
+  ],
+  [
+    1,
+    223,
+    "Would you still ask your friend for help if you knew you couldn't return the favor?",
+    true
+  ],
+  [
+    1,
+    224,
+    "Do you think that couples should be willing to make significant career sacrifices for the sake of their relationship?",
+    true
+  ],
+  [
+    1,
+    225,
+    "Did you grow up in the same town or city as your extended family?",
+    false
+  ],
+  [
+    1,
+    226,
+    "Have you ever lost sleep over a situation you couldn't change?",
+    false
+  ],
+  [
+    1,
+    227,
+    "Your partner just hurt your feelings pretty badly. Do you need to take a moment before you can tell them?",
+    true
+  ],
+  [
+    1,
+    228,
+    "Have you ever lied or exaggerated your financial situation to impress someone?",
+    false
+  ],
+  [
+    1,
+    229,
+    "Is it okay to text someone while they're in the same room as you?",
+    true
+  ],
+  [
+    1,
+    230,
+    "Do you sometimes enjoy watching people argue?",
+    true
+  ],
+  [
+    1,
+    231,
+    "Is looking after your partner more enjoyable than being looked after by them?",
+    false
+  ],
+  [
+    1,
+    232,
+    "Do you sometimes get annoyed at your own typos?",
+    true
+  ],
+  [
+    1,
+    233,
+    "If you could read minds, would you use your power to cheat on tests or in competitions?",
+    true
+  ],
+  [
+    1,
+    234,
+    "If you forget someone's name, do you admit it and ask again, rather than pretending you remember?",
+    false
+  ],
+  [
+    1,
+    235,
+    "Should engineers be forced to take humanities classes (and vice versa)?",
+    false
+  ],
+  [
+    1,
+    236,
+    "When you're feeling stressed, do you prefer someone to just let you vent rather than help you come up with solutions?",
+    true
+  ],
+  [
+    1,
+    237,
+    "Is being comfortable farting around a partner a sign of true intimacy?",
+    true
+  ],
+  [
+    1,
+    238,
+    "Are you self-assured?",
+    true
+  ],
+  [
+    1,
+    239,
+    "Do you often worry about things that are out of your control?",
+    false
+  ],
+  [
+    1,
+    240,
+    "Are spicy foods your thing?",
+    false
+  ],
+  [
+    1,
+    241,
+    "Is being artistic more attractive than being analytical?",
+    false
+  ],
+  [
+    1,
+    242,
+    "Would you rather spend your free time outdoors, appreciating nature, than indoors with technology?",
+    false
+  ],
+  [
+    1,
+    243,
+    "Are you in favor of more comprehensive sex education in schools?",
+    false
+  ],
+  [
+    1,
+    244,
+    "Is it important for you to pass on your religious or spiritual beliefs to your children?",
+    false
+  ],
+  [
+    1,
+    245,
+    "Are big weddings unnecessary?",
+    true
+  ],
+  [
+    1,
+    246,
+    "Is having sex once a week enough?",
+    true
+  ],
+  [
+    1,
+    247,
+    "If \"some cars are blue\" and \"some blue cars are small\", does it follow that \"some cars are small\"?",
+    false
+  ],
+  [
+    1,
+    248,
+    "The Grand Tour, a tradition popular among the English upper class in the 17th and 18th centuries, involved traveling throughout Europe to visit cultural and historical sites. The tour was seen as a mark of sophistication and worldliness. Do you think being well-traveled is still a sign of sophistication these days?",
+    false
+  ],
+  [
+    1,
+    249,
+    "Would you consider it healthy for a couple to express their emotions openly, even if it sometimes leads to raised voices?",
+    true
+  ],
+  [
+    1,
+    250,
+    "When your pet makes a mess, do you clean it up even if no one else will know?",
+    false
+  ],
+  [
+    1,
+    251,
+    "Do you wash your hands *before* you go to the toilet?",
+    false
+  ],
+  [
+    1,
+    252,
+    "Your partner proposes having an open relationship. Would you give it a go?",
+    false
+  ],
+  [
+    1,
+    253,
+    "Did you attend a prestigious university?",
+    false
+  ],
+  [
+    1,
+    254,
+    "Is it acceptable to wear a cape in everyday life if it makes you feel more confident?",
+    false
+  ],
+  [
+    1,
+    255,
+    "Should every office be required to have a designated \"pillow fight room\" for stress relief?",
+    false
+  ],
+  [
+    1,
+    256,
+    "Should we switch to a four-day workweek?",
+    false
+  ],
+  [
+    1,
+    257,
+    "Should trans people be allowed to use bathrooms of genders other than the one they were assigned at birth?",
+    false
+  ],
+  [
+    1,
+    258,
+    "Do you think a shared love of conspiracy theories can be the glue that holds a relationship together?",
+    true
+  ],
+  [
+    1,
+    259,
+    "Do you have any passive income streams?",
+    true
+  ],
+  [
+    1,
+    260,
+    "Is \"Oops, I was drunk\" ever a valid defense?",
+    false
+  ],
+  [
+    1,
+    261,
+    "Do you believe the moon landing was a hoax?",
+    false
+  ],
+  [
+    1,
+    262,
+    "Should the government subsidize the arts and cultural institutions?",
+    true
+  ],
+  [
+    1,
+    263,
+    "Are you of the puritanical persuasion that deems watching porn to be a one-way ticket to hell?",
+    false
+  ],
+  [
+    1,
+    264,
+    "Do you have any personal experiences with discrimination or prejudice based on your gender, race, etc?",
+    false
+  ],
+  [
+    1,
+    265,
+    "When shopping for groceries, do you tend to buy the same items each time rather than trying new foods and recipes?",
+    true
+  ],
+  [
+    1,
+    266,
+    "Do you want to get married in the next 5 years?",
+    true
+  ],
+  [
+    1,
+    267,
+    "Should you tell someone you like them even if you're not sure they feel the same way?",
+    true
+  ],
+  [
+    1,
+    268,
+    "If you had to choose between cats and dogs, would you prefer dogs?",
+    true
+  ],
+  [
+    1,
+    269,
+    "Have you ever compromised your values or principles to achieve a desired outcome?",
+    false
+  ],
+  [
+    1,
+    270,
+    "Have you ever snitched on someone you work with?",
+    false
+  ],
+  [
+    1,
+    271,
+    "Do you keep your private area trimmed or shaved?",
+    false
+  ],
+  [
+    1,
+    272,
+    "Do you ever kick yourself later for not realizing someone was into you until it was too late?",
+    true
+  ],
+  [
+    1,
+    273,
+    "Do you typically save your money rather than spend it right away?",
+    true
+  ],
+  [
+    1,
+    274,
+    "Your significant other wants you to attend an anime convention with them. Would you rather have a root canal than rub shoulders with the nerds at the convention?",
+    false
+  ],
+  [
+    1,
+    275,
+    "Do you have strong political opinions?",
+    false
+  ],
+  [
+    1,
+    276,
+    "Are you hopeful about the future?",
+    false
+  ],
+  [
+    1,
+    277,
+    "Would you like your partner to have the same ethnicity as you?",
+    false
+  ],
+  [
+    1,
+    278,
+    "Would you rather fight one horse-sized duck instead of a hundred duck-sized horses?",
+    false
+  ],
+  [
+    1,
+    279,
+    "Would you date someone who talks to their plants?",
+    false
+  ],
+  [
+    1,
+    280,
+    "Is a partner's ability to cook a crucial factor in your relationship?",
+    false
+  ],
+  [
+    1,
+    281,
+    "Is it cheating for a partner to masturbate?",
+    false
+  ],
+  [
+    1,
+    282,
+    "Do you support government subsidies for struggling industries?",
+    false
+  ],
+  [
+    1,
+    283,
+    "Would you have sex with someone on the first date if you liked them enough?",
+    false
+  ],
+  [
+    1,
+    284,
+    "Is it acceptable to have a pet rock as your primary emotional support companion?",
+    false
+  ],
+  [
+    1,
+    285,
+    "Would you be willing to live in a world without chocolate for eternal youth?",
+    true
+  ],
+  [
+    1,
+    286,
+    "Would it bother you if your partner never said they loved you, even if they made an effort to show it in other ways?",
+    false
+  ],
+  [
+    1,
+    287,
+    "Would you give up social media for a year to find true love?",
+    true
+  ],
+  [
+    1,
+    288,
+    "Do you think it's important for your partner to be a fan of the same sports team as you?",
+    false
+  ],
+  [
+    1,
+    289,
+    "Would you date someone who chose a lower-paying job to follow their passion?",
+    true
+  ],
+  [
+    1,
+    290,
+    "Could you date an OnlyFans model?",
+    false
+  ],
+  [
+    1,
+    291,
+    "Do you think you have a different level of patience around people you're close to compared to strangers?",
+    true
+  ],
+  [
+    1,
+    292,
+    "Were your parents overly strict with you?",
+    false
+  ],
+  [
+    1,
+    293,
+    "Do you find tattoos attractive?",
+    false
+  ],
+  [
+    1,
+    294,
+    "Is it okay to use a pseudonym when introducing yourself at a social event?",
+    false
+  ],
+  [
+    1,
+    295,
+    "Even if you know you're wrong, does it take you some time to cool down after a fight before you can apologize?",
+    true
+  ],
+  [
+    1,
+    296,
+    "Do you feel that it's important to apologize even if you believe you're not at fault?",
+    false
+  ],
+  [
+    1,
+    297,
+    "Should conservative religious schools (e.g. Christian, Islamic) be required to teach students about evolution or homosexuality even if they believe it contradicts their religion?",
+    false
+  ],
+  [
+    1,
+    298,
+    "If your partner wanted to start a YouTube channel reviewing the world's strangest potato chip flavors, would you become their on-screen taste-tester?",
+    false
+  ],
+  [
+    1,
+    299,
+    "Do you feel like you're more driven than most to prove your worth to others?",
+    false
+  ],
+  [
+    1,
+    300,
+    "Are you better at handling criticism than taking a compliment?",
+    true
+  ],
+  [
+    1,
+    301,
+    "Have you ever picked your nose... As an adult?",
+    true
+  ],
+  [
+    1,
+    302,
+    "You find out that the person you're dating never brushes their teeth. Is that a deal-breaker?",
+    false
+  ],
+  [
+    1,
+    303,
+    "Should schools be allowed to teach creationism alongside evolution?",
+    true
+  ],
+  [
+    1,
+    304,
+    "How do you handle stress: do you prefer to face it head-on rather than finding ways to distract yourself?",
+    true
+  ],
+  [
+    1,
+    305,
+    "Do you ever take a million selfies to get the perfect one?",
+    false
+  ],
+  [
+    1,
+    306,
+    "Would you rather receive a gift from your partner than give a gift from them?",
+    true
+  ],
+  [
+    1,
+    307,
+    "Do you believe that people who are of a certain gender or sexual orientation should be given preferential treatment in certain situations?",
+    false
+  ],
+  [
+    1,
+    308,
+    "Do you have a university degree?",
+    true
+  ],
+  [
+    1,
+    309,
+    "Would you give up some rights to protect your country from terrorism?",
+    false
+  ],
+  [
+    1,
+    310,
+    "In many Indian cultures, social status is still highly valued, and it is common for families to seek out partners of similar backgrounds and social standing. However, in many Western societies, personal compatibility and shared values are often prioritized over social status. Irrespective of other cultures, is your partner's social status important to you?",
+    true
+  ],
+  [
+    1,
+    311,
+    "Should we replace traditional alarm clocks with someone yelling motivational quotes to wake us up?",
+    true
+  ],
+  [
+    1,
+    312,
+    "Is it wrong to use a fake name at Starbucks just for the fun of it?",
+    false
+  ],
+  [
+    1,
+    313,
+    "Even if you like someone, do you want them to chase you to prove their love?",
+    true
+  ],
+  [
+    1,
+    314,
+    "Would you be willing to make compromises and sacrifices for the sake of a long-term relationship?",
+    true
+  ],
+  [
+    1,
+    315,
+    "Is celebrating Valentine's day corny?",
+    false
+  ],
+  [
+    1,
+    316,
+    "When meeting new people, do you tend to gravitate towards those who are similar to you rather than getting to know a broader range of people?",
+    true
+  ],
+  [
+    1,
+    317,
+    "Should schools teach a mandatory course on memes and internet culture?",
+    false
+  ],
+  [
+    1,
+    318,
+    "Should we ban or limit private prisons?",
+    true
+  ],
+  [
+    1,
+    319,
+    "Is it crucial for your partner to share your environmental values?",
+    false
+  ],
+  [
+    1,
+    320,
+    "Would you rather hug a puppy than take a selfie with a celebrity?",
+    true
+  ],
+  [
+    1,
+    321,
+    "So, picture this: you're in line for a sick ride at an amusement park. You start muttering to yourself that your phone might go flying out of your pocket, and suddenly a sweet lady behind you offers to hold onto it for you while you ride. She seems chill and all, but you just met her... Do you trust her with your precious phone?",
+    false
+  ],
+  [
+    1,
+    322,
+    "Is it a moral obligation to learn a few phrases in the local language when visiting a foreign country?",
+    true
+  ],
+  [
+    1,
+    323,
+    "Is building a strong connection over time more important to you than love at first sight?",
+    true
+  ],
+  [
+    1,
+    324,
+    "Is it possible to have a successful long-term relationship with someone you're not initially attracted to?",
+    true
+  ],
+  [
+    1,
+    325,
+    "Have you ever broken a bone from a physical activity?",
+    true
+  ],
+  [
+    1,
+    326,
+    "If you could have any superpower, would it be the ability to fly?",
+    false
+  ],
+  [
+    1,
+    327,
+    "Are you a night owl?",
+    true
+  ],
+  [
+    1,
+    328,
+    "Would you date a \"grammar police\" officer?",
+    true
+  ],
+  [
+    1,
+    329,
+    "Should all escalators be replaced by slides for a more fun commute?",
+    false
+  ],
+  [
+    1,
+    330,
+    "Is it important for your partner to have a good relationship with your family?",
+    false
+  ],
+  [
+    1,
+    331,
+    "Do you believe that a couple's social and economic status can impact the success of their relationship?",
+    true
+  ],
+  [
+    1,
+    332,
+    "Should power structures in society be dismantled or radically reformed?",
+    false
+  ],
+  [
+    1,
+    333,
+    "Should people be allowed to express their religious beliefs in public, even if those beliefs are unpopular or offensive to others?",
+    true
+  ],
+  [
+    1,
+    334,
+    "Would you date a robot if they had a great personality?",
+    false
+  ],
+  [
+    1,
+    335,
+    "Is cultural appropriation always wrong?",
+    false
+  ],
+  [
+    1,
+    336,
+    "Are thunderstorms more fun than scary?",
+    true
+  ],
+  [
+    1,
+    337,
+    "Would you consider starting a side hustle as a professional problem-listener and hug-giver?",
+    false
+  ],
+  [
+    1,
+    338,
+    "Do you enjoy talking with people online more than face-to-face?",
+    true
+  ],
+  [
+    1,
+    339,
+    "Would you date someone who still lives with their parents to save money?",
+    true
+  ],
+  [
+    1,
+    340,
+    "Is there such a thing as being too empathetic?",
+    true
+  ],
+  [
+    1,
+    341,
+    "Do you think people who are over a certain age should be given priority over younger people in job interviews or promotions?",
+    false
+  ],
+  [
+    1,
+    342,
+    "Would you rather have pets than children?",
+    false
+  ],
+  [
+    1,
+    343,
+    "Life is hard and nobody chooses to be born. Does that make it immoral to have kids?",
+    false
+  ],
+  [
+    1,
+    344,
+    "Is saying racist things about your own race just as bad as saying racist things about others?",
+    false
+  ],
+  [
+    1,
+    345,
+    "Is oral sex gross to you?",
+    true
+  ],
+  [
+    1,
+    346,
+    "Does being a florist sound like a good job to you?",
+    false
+  ],
+  [
+    1,
+    347,
+    "Did your family engage in heated debates over board games or trivial matters?",
+    true
+  ],
+  [
+    1,
+    348,
+    "Have you ever had a friend with benefits?",
+    false
+  ],
+  [
+    1,
+    349,
+    "Is it essential for your partner to be supportive of your career and personal goals?",
+    true
+  ],
+  [
+    1,
+    350,
+    "Would you date someone who passionately believes that the earth is actually shaped like a doughnut?",
+    false
+  ],
+  [
+    1,
+    351,
+    "Do you want kids?",
+    true
+  ],
+  [
+    1,
+    352,
+    "Is it okay to secretly monitor your partner's phone or computer activity if you're certain that they're cheating?",
+    false
+  ],
+  [
+    1,
+    353,
+    "If you were at a restaurant and your food took longer than expected, would you expect the restaurant to give you a discount or a free meal?",
+    false
+  ],
+  [
+    1,
+    354,
+    "Is open communication your go-to strategy for resolving conflicts?",
+    false
+  ],
+  [
+    1,
+    355,
+    "Would you still kiss your partner if they were sick, even if they had a runny nose and were coughing up a lung?",
+    false
+  ],
+  [
+    1,
+    356,
+    "Is it natural to feel jealous sometimes, even in a good relationship?",
+    true
+  ],
+  [
+    1,
+    357,
+    "Do you leave your friends on read?",
+    true
+  ],
+  [
+    1,
+    358,
+    "Is using nuclear energy a good idea?",
+    true
+  ],
+  [
+    1,
+    359,
+    "If you were in a job interview and asked about your weaknesses, would you try to spin them into strengths?",
+    true
+  ],
+  [
+    1,
+    360,
+    "If a partner cheats, should they tell the person they're with?",
+    true
+  ],
+  [
+    1,
+    361,
+    "Could you have a relationship with a foreigner who only spoke your language at a basic level?",
+    false
+  ],
+  [
+    1,
+    362,
+    "Do you ever feel like a human GPS, constantly helping people navigate through their personal life dilemmas?",
+    false
+  ],
+  [
+    1,
+    363,
+    "Is it better for the guy to make the first move?",
+    true
+  ],
+  [
+    1,
+    364,
+    "If future genetic tech lets you choose your baby's traits like Build-A-Bear, would you?",
+    true
+  ],
+  [
+    1,
+    365,
+    "Would lots of political conflicts be solved if everyone was more intelligent?",
+    false
+  ],
+  [
+    1,
+    366,
+    "Have you ever blamed a sibling or friend for something you did just to avoid getting in trouble?",
+    false
+  ],
+  [
+    1,
+    367,
+    "Were you part of a band in school?",
+    false
+  ],
+  [
+    1,
+    368,
+    "Do you think we need stronger regulations on prescription drug prices?",
+    false
+  ],
+  [
+    1,
+    369,
+    "Taylor Swift proved \"Look what you made me do\" can be a bop, but is it also a valid excuse for questionable behavior?",
+    false
+  ],
+  [
+    1,
+    370,
+    "Should you always offer to split the bill on a first date?",
+    true
+  ],
+  [
+    1,
+    371,
+    "Is it important for you to hear from people you love that they're proud of you?",
+    false
+  ],
+  [
+    1,
+    372,
+    "Do you believe in more economic regulations to protect consumers and workers?",
+    false
+  ],
+  [
+    1,
+    373,
+    "Should you always offer to pay for a friend's coffee if you invited them out?",
+    true
+  ],
+  [
+    1,
+    374,
+    "Do you avoid touching the toilet seat at all costs when using a public restroom?",
+    false
+  ],
+  [
+    1,
+    375,
+    "Do you think vaccinations should be mandatory even for those with religious objections?",
+    false
+  ],
+  [
+    1,
+    376,
+    "Would you be open to attending a first date at a DIY taxidermy workshop?",
+    true
+  ],
+  [
+    1,
+    377,
+    "Should the criminal justice system focus less on punishment and more on rehabilitation?",
+    true
+  ],
+  [
+    1,
+    378,
+    "Do you think it's ever okay to \"borrow\" a book from a library without checking it out, as long as you plan to return it later?",
+    false
+  ],
+  [
+    1,
+    379,
+    "If your partner wanted to donate sperm or eggs, would you be okay with that?",
+    false
+  ],
+  [
+    1,
+    380,
+    "Do you feel like you're pretty good at reading other people's emotional cues and body language?",
+    true
+  ],
+  [
+    1,
+    381,
+    "Is it cool with you if the government puts people to death as punishment for their crimes?",
+    false
+  ],
+  [
+    1,
+    382,
+    "Have you ever met someone from a dating app in real life?",
+    true
+  ],
+  [
+    1,
+    383,
+    "Do you like spinach?",
+    true
+  ],
+  [
+    1,
+    384,
+    "Do dreams have special meanings?",
+    false
+  ],
+  [
+    1,
+    385,
+    "Do you think that couples should prioritize their careers over starting a family?",
+    false
+  ],
+  [
+    1,
+    386,
+    "Do you naturally step into the role of a caretaker when someone around you is going through a tough time?",
+    false
+  ],
+  [
+    1,
+    387,
+    "Should we allow people to opt for physician-assisted suicide, even in cases where they aren't terminally ill?",
+    false
+  ],
+  [
+    1,
+    388,
+    "Do you think that a partner who shares your taste in music, movies, and other entertainment forms is important?",
+    false
+  ],
+  [
+    1,
+    389,
+    "Is it okay to pretend to be on your phone to avoid making small talk with a stranger?",
+    true
+  ],
+  [
+    1,
+    390,
+    "Do you genuinely enjoy helping others achieve their goals, even if it requires some extra effort on your part?",
+    true
+  ],
+  [
+    1,
+    391,
+    "Do you play it cool and pretend that you don't like someone even when you do?",
+    true
+  ],
+  [
+    1,
+    392,
+    "Did you get bullied in school?",
+    false
+  ],
+  [
+    1,
+    393,
+    "If you could date an artist or a scientist, would you prefer the artist?",
+    false
+  ],
+  [
+    1,
+    394,
+    "If you're feeling a kind of way, do you always know why you're feeling like that?",
+    true
+  ],
+  [
+    1,
+    395,
+    "Would you consider a partner's need for reassurance and validation a natural part of a loving relationship rather than a sign of emotional dependency?",
+    false
+  ],
+  [
+    1,
+    396,
+    "You're at a movie theater and a group of people nearby start making noise and being generally annoying. Do you give them a piece of your mind?",
+    false
+  ],
+  [
+    1,
+    397,
+    "Do you follow a calendar outside of work/college/university?",
+    false
+  ],
+  [
+    1,
+    398,
+    "Is it easy for you to fall asleep?",
+    false
+  ],
+  [
+    1,
+    399,
+    "Does setting boundaries in a relationship take the romance out of it?",
+    true
+  ],
+  [
+    1,
+    400,
+    "If your partner had a child from a previous relationship, would you be willing to take on a parental role in that child's life?",
+    false
+  ]
+]

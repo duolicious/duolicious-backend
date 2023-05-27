@@ -1,0 +1,6 @@
+Flask
+Pillow
+boto3
+flask-cors
+psycopg[pool]
+pydantic[email]

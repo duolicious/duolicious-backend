@@ -1,0 +1,30 @@
+# TODO: add more questions to assess these:
+#    - judging/perceiving
+#    - sensing/intuition
+
+# TODO: Remove questions whose information is below the cut-off for every trait.
+#       Consider adding more traits to cover them.
+
+# TODO: Proper question numbers
+# TODO: Update count_yes, count_no, count_views
+# TODO: Try ordering the questions by "wittiness" or "quirkiness"
+# TODO: Rename traits
+
+# TODO: There should be three services: chat, search, person
+
+# TODO: Proper question numbers
+# TODO: Sign up
+# TODO: Login
+# TODO: Search
+# TODO: Chat
+# TODO: Images in profiles
+# TODO: If someone deletes their account, what happens to conversation histories with other users?
+# TODO: Percentiles for attributes
+# TODO: Image resizing should happen on-device
+# TODO: cron job for deleting expired sessions
+# TODO: cron job for deleting images which don't have database entries
+
+
+
+select *, presence_score / (presence_score + absence_score + 1e-5) as percentage from person_trait_statistic join trait on trait.id=person_trait_statistic.trait_id;
+select * from answer;
