@@ -21,7 +21,7 @@ import * as Font from 'expo-font';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as SplashScreen from 'expo-splash-screen';
 
-import TabBar from './components/tab-bar';
+import { TabBar } from './components/tab-bar';
 import SearchTab from './components/search-tab';
 import { QuizTab } from './components/quiz-tab';
 import ProfileTab from './components/profile-tab';
@@ -34,6 +34,7 @@ import { VisitorsTab } from './components/visitors-tab';
 import { InDepthScreen } from './components/prospect-profile-screen';
 import { sessionToken } from './lib/session-token';
 import { api } from './api/api';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 // TODO: Sign-up cards?
 // TODO: iOS UI testing
@@ -63,6 +64,7 @@ import { api } from './api/api';
 
 SplashScreen.preventAutoHideAsync();
 
+const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 if (
@@ -71,6 +73,23 @@ if (
 ) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
+const HomeTabs = () => {
+  return (
+    <Tab.Navigator
+      backBehavior="history"
+      screenOptions={{ headerShown: false }}
+      tabBar={props => <TabBar {...props} />}
+    >
+      <Tab.Screen name="Q&A" component={QuizTab} />
+      <Tab.Screen name="Search" component={SearchTab} />
+      <Tab.Screen name="Visitors" component={VisitorsTab} />
+      <Tab.Screen name="Inbox" component={InboxTab} />
+      <Tab.Screen name="Profile" component={ProfileTab} />
+    </Tab.Navigator>
+  );
+};
+
 const App = () => {
   const [appState, setAppState] = useState<
     'loading' | 'signed-out' | 'signed-in'
@@ -166,10 +185,11 @@ const App = () => {
         backgroundColor="transparent"
         barStyle="dark-content"
       />
-      <Tab.Navigator
-        backBehavior="history"
-        screenOptions={{ headerShown: false }}
-        tabBar={props => <TabBar {...props} />}
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          presentation: 'modal',
+        }}
       >
         {
           appState !== 'signed-in' ? (
@@ -178,11 +198,7 @@ const App = () => {
             </>
           ) : (
             <>
-              <Tab.Screen name="Search" component={SearchTab} />
-              <Tab.Screen name="Q&A" component={QuizTab} />
-              <Tab.Screen name="Visitors" component={VisitorsTab} />
-              <Tab.Screen name="Inbox" component={InboxTab} />
-              <Tab.Screen name="Profile" component={ProfileTab} />
+              <Tab.Screen name="Home" component={HomeTabs} />
 
               <Tab.Screen name="TODO" component={ProspectProfileScreen} />
 
@@ -192,7 +208,7 @@ const App = () => {
             </>
           )
         }
-      </Tab.Navigator>
+      </Stack.Navigator>
     </NavigationContainer>
   );
 };

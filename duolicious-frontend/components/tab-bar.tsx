@@ -21,10 +21,6 @@ const displayedTabs: Set<string> = new Set([
 ]);
 
 const TabBar = ({state, descriptors, navigation}) => {
-  if (!displayedTabs.has(state.routeNames[state.index])) {
-    return <></>;
-  }
-
   return (
     <View
       style={{
@@ -200,4 +196,6 @@ const TabBar = ({state, descriptors, navigation}) => {
   );
 };
 
-export default TabBar;
+export {
+  TabBar,
+};
