@@ -51,6 +51,8 @@ const fetchNextQuiz = async (): Promise<string> => {
 
   const r = Math.round(getRandomArbitrary(0.0, 5.0));
 
+  // return "Would you date a robot if it had a great personality?"
+
   // return "You're in a relationship with someone who has a history of emotional manipulation and gaslighting, but you've been able to set healthy boundaries and make progress together. A new person comes into your life who seems genuine and empathetic, but you're not sure if they can handle the challenges of being with someone who has been emotionally abused in the past. Do you stick with your current partner or take a chance on the new person?";
 
   if (r === 0) {

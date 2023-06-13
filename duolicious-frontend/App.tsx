@@ -57,6 +57,8 @@ import { api } from './api/api';
 // TODO: Have a sharable personality profile which can be easily accessed
 // TODO: Users should alter their own scores, not the scores of others
 // TODO: Sign-up page should say "Step 1/5"
+// TODO: Add placeholders for profile pictures. The placeholders should appear upon 404
+// TODO: X-Frame-Options: DENY
 
 
 SplashScreen.preventAutoHideAsync();
@@ -99,15 +101,17 @@ const App = () => {
         console.warn(e);
       }
 
-      const existingSessionToken = await sessionToken();
-      if (existingSessionToken === null) {
-        setAppState('signed-out');
-      } else {
-        setAppState(
-          (await api('/check-session-token', {method: 'POST'})).ok ?
-          'signed-in' :
-          'signed-out');
-      }
+      setAppState('signed-in');
+
+      // const existingSessionToken = await sessionToken();
+      // if (existingSessionToken === null) {
+      //   setAppState('signed-out');
+      // } else {
+      //   setAppState(
+      //     (await api('/check-session-token', {method: 'POST'})).ok ?
+      //     'signed-in' :
+      //     'signed-out');
+      // }
     })();
   }, []);
 

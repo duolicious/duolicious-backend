@@ -211,6 +211,7 @@ const QuizCard = ({
         onChangeAnswerPublicly={onChangeAnswerPublicly}
         imageBackgroundStyle={imageBackgroundStyle}
         containerStyle={nonInteractiveContainerStyle}
+        showTutorial={true}
       >
         {children}
       </NonInteractiveQuizCard>
@@ -231,6 +232,7 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
     topic,
     imageBackgroundStyle,
     showAnswerPubliclyCheckBox = true,
+    showTutorial = false,
   } = props;
 
   const adjustedFontSize = (() => {
@@ -241,10 +243,10 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
       Dimensions.get('window').height;
 
     // Window scale factor
-    const w1 = Math.min(1, windowArea / 542750 + 347 / 2171);
+    const w1 = Math.min(1, windowArea / 502750 + 250 / 2171);
 
     // Text length scale factor
-    const w2 = Math.min(1, - children.length / 1000 + 13 / 10);
+    const w2 = Math.min(1, - children.length / 1000 + 12 / 10);
 
     const scaledFontSize = Math.round(defaultFontSize * w1 * w2);
 
@@ -340,7 +342,77 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
                 textAlign: 'center',
               }}
             >
+              {showTutorial && questionNumber === 1 &&
+                <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
+                  👋 Welcome to Duolicious Q&A, where we ask you oodles of
+                  questions—some quirky, some mind-boggling—all in the quest to
+                  unearth your perfect match. Let's start with an easy one:
+                  {'\n\n'}
+                </DefaultText>
+              }
+              {showTutorial && questionNumber === 2 &&
+                <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
+                  Nice! Your answers improve your best matches here{'\u00A0'}☝️,
+                  and also when you search{'\u00A0'}🔎. Keep it up!
+                  {'\n\n'}
+                </DefaultText>
+              }
+              {showTutorial && questionNumber === 3 &&
+                <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
+                  You're on a roll! Next question:
+                  {'\n\n'}
+                </DefaultText>
+              }
+              {showTutorial && questionNumber === 4 &&
+                <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
+                  Some questions might seem silly, but our smartypants
+                  AI told us they're actually useful for picking your matches!
+                  {'\n\n'}
+                </DefaultText>
+              }
+              {showTutorial && questionNumber === 5 &&
+                <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
+                  ...ngl, we've also got some pretty provocative questions in
+                  here too, but we gotta ask so you can filter out peeps with
+                  deviant opinions on pineapple-pizza combos, etc.
+                  {'\n\n'}
+                </DefaultText>
+              }
+              {showTutorial && questionNumber === 6 &&
+                <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
+                  If you want to hide your pineapple-related shame from visitors
+                  to your profile, you can always uncheck "answer
+                  publicly".{'\u00A0'}👇
+                  {'\n\n'}
+                </DefaultText>
+              }
+              {showTutorial && questionNumber === 7 &&
+                <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
+                  You can also skip a question altogether by dragging a card
+                  downwards.
+                  {'\n\n'}
+                </DefaultText>
+              }
+              {showTutorial && questionNumber === 8 &&
+                <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
+                  Looks like you've got the hang of it! We're gonna zip it
+                  and let you swipe!{'\u00A0'}🤐
+                  {'\n\n'}
+                </DefaultText>
+              }
               {children}
+              {showTutorial && questionNumber === 1 &&
+                <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
+                  {'\n\n'}
+                  Drag this card right for "yes" and left for "no"
+                </DefaultText>
+              }
+              {showTutorial && questionNumber === 2 &&
+                <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
+                  {'\n\n'}
+                  (Right is "yes", left is "no")
+                </DefaultText>
+              }
             </DefaultText>
           </View>
           {showAnswerPubliclyCheckBox &&
