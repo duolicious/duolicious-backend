@@ -100,60 +100,12 @@ const FloatingBackButton = (props) => {
   );
 };
 
-const FloatingHideButton = ({navigation}) => {
-  const [isHidden, setIsHidden] = useState(false);
-
-  const onPress = useCallback(() => {
-    setIsHidden(isHidden => !isHidden);
-    navigation.goBack();
-  }, []);
-
-  return (
-    <Pressable
-      style={{
-        borderRadius: 999,
-        zIndex: 999,
-        marginRight: 20,
-        marginBottom: 14,
-        paddingLeft: 15,
-        paddingRight: 15,
-        paddingTop: 12,
-        paddingBottom: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#70f',
-        flexDirection: 'row',
-        shadowOffset: {
-          width: 0,
-          height: 4,
-        },
-        shadowOpacity: 0.5,
-        shadowRadius: 8,
-        elevation: 6,
-        height: 60,
-        width: 60,
-      }}
-      onPress={onPress}
-    >
-      {isHidden && <RotateCcw
-          stroke="white"
-          strokeWidth={3}
-          height={24}
-          width={24}
-        />
-      }
-      {!isHidden && <X
-          stroke="white"
-          strokeWidth={3}
-          height={24}
-          width={24}
-        />
-      }
-    </Pressable>
-  );
-};
-
-const FloatingSendIntroButton = ({navigation}) => {
+const FloatingProfileInteractionButton = ({
+  children,
+  navigation,
+  onPress,
+  backgroundColor,
+}) => {
   const opacity = useRef(new Animated.Value(1)).current;
 
   const fadeOut = useCallback(() => {
@@ -178,11 +130,12 @@ const FloatingSendIntroButton = ({navigation}) => {
         borderRadius: 999,
         zIndex: 999,
         marginLeft: 20,
+        marginRight: 20,
         marginBottom: 14,
       }}
       onPressIn={fadeOut}
       onPressOut={fadeIn}
-      onPress={() => navigation.navigate('Conversation Screen')}
+      onPress={onPress}
     >
       <Animated.View
         style={{
@@ -193,27 +146,75 @@ const FloatingSendIntroButton = ({navigation}) => {
           paddingBottom: 12,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#70f',
+          backgroundColor: backgroundColor,
           opacity: opacity,
           flexDirection: 'row',
           shadowOffset: {
             width: 0,
             height: 4,
           },
-          shadowOpacity: 0.5,
+          shadowOpacity: 0.3,
           shadowRadius: 8,
           elevation: 6,
           height: 60,
           width: 60,
         }}
       >
-        <FontAwesomeIcon
-          icon={faPaperPlane}
-          size={24}
-          style={{color: 'white'}}
-        />
+        {children}
       </Animated.View>
     </Pressable>
+  );
+};
+
+const FloatingHideButton = ({navigation}) => {
+  const [isHidden, setIsHidden] = useState(false);
+
+  const onPress = useCallback(() => {
+    setIsHidden(isHidden => !isHidden);
+    navigation.goBack();
+  }, []);
+
+  return (
+    <FloatingProfileInteractionButton
+      navigation={navigation}
+      onPress={onPress}
+      backgroundColor="white"
+    >
+      {isHidden && <RotateCcw
+          stroke="#70f"
+          strokeWidth={3}
+          height={24}
+          width={24}
+        />
+      }
+      {!isHidden && <X
+          stroke="#70f"
+          strokeWidth={3}
+          height={24}
+          width={24}
+        />
+      }
+    </FloatingProfileInteractionButton>
+  );
+};
+
+const FloatingSendIntroButton = ({navigation}) => {
+  const onPress = useCallback(() => {
+    navigation.navigate('Conversation Screen')
+  }, [navigation]);
+
+  return (
+    <FloatingProfileInteractionButton
+      navigation={navigation}
+      onPress={onPress}
+      backgroundColor="#70f"
+    >
+      <FontAwesomeIcon
+        icon={faPaperPlane}
+        size={24}
+        style={{color: 'white'}}
+      />
+    </FloatingProfileInteractionButton>
   );
 };
 
