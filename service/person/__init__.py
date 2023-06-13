@@ -1,7 +1,7 @@
 import os
 import psycopg
 from database import transaction, fetchall_sets
-from typing import DefaultDict, Optional, Iterable
+from typing import DefaultDict, Optional, Iterable, Tuple
 import service.question as question
 import duotypes as t
 import urllib.request
@@ -170,10 +170,19 @@ WHERE deleted_prospective_duo_session.expiry > NOW()
 RETURNING session_token_hash, person_id
 """
 
+Q_SELECT_ONBOARDEE_PHOTO = """
+SELECT uuid
+FROM onboardee_photo
+WHERE
+    email = %(email)s AND
+    position = %(position)s
+"""
+
 Q_DELETE_ONBOARDEE_PHOTO = """
 DELETE FROM onboardee_photo
-WHERE email = %(email)s AND position = %(position)s
-RETURNING uuid
+WHERE
+    email = %(email)s AND
+    position = %(position)s
 """
 
 Q_COMPLETE_ONBOARDING_1 = """
@@ -414,11 +423,29 @@ def process_image(
 
     return output_bytes
 
-def push_to_object_store(io_bytes: io.BytesIO, key: str):
+def put_object(key: str, io_bytes: io.BytesIO):
     bucket.put_object(Key=key, Body=io_bytes)
 
-def delete_from_object_store(key: str):
+def delete_object(key: str):
     s3.Object(R2_BUCKET_NAME, key).delete()
+
+def put_images_in_object_store(uuid_img: Iterable[Tuple[str, io.BytesIO]]):
+    key_img = [
+        (key, converted_img)
+        for uuid, img in uuid_img
+        for key, converted_img in [
+            (f'original-{uuid}.jpg', process_image(img, output_size=None)),
+            (f'450-{uuid}.jpg', process_image(img, output_size=450)),
+            (f'900-{uuid}.jpg', process_image(img, output_size=900))]
+    ]
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {
+            executor.submit(put_object, key, img)
+            for key, img in key_img}
+
+        for future in as_completed(futures):
+            future.result()
 
 def delete_images_from_object_store(uuids: Iterable[str]):
     keys_to_delete = [
@@ -433,7 +460,7 @@ def delete_images_from_object_store(uuids: Iterable[str]):
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = {
-            executor.submit(delete_from_object_store, key)
+            executor.submit(delete_object, key)
             for key in keys_to_delete}
 
         for future in as_completed(futures):
@@ -622,45 +649,32 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
         with transaction() as tx:
             tx.execute(q_set_onboardee_field, params)
     elif field_name == 'files':
-        pos_img_uuid = [
-            (pos, img, secrets.token_hex(32))
+        pos_uuid_img = [
+            (pos, secrets.token_hex(32), img)
             for pos, img in field_value.items()
         ]
-        img_key = [
-            (converted_img, key)
-            for _, img, uuid in pos_img_uuid
-            for converted_img, key in [
-                (process_image(img, output_size=None), f'original-{uuid}.jpg'),
-                (process_image(img, output_size=450), f'450-{uuid}.jpg'),
-                (process_image(img, output_size=900), f'900-{uuid}.jpg')]
-        ]
-
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {
-                executor.submit(push_to_object_store, img, key)
-                for img, key in img_key}
-
-            for future in as_completed(futures):
-                try:
-                    future.result()
-                except Exception as e:
-                    print('Upload failed with exception:', e)
-                    return '', 500
 
         params = [
             dict(email=s.email, position=pos, uuid=uuid)
-            for pos, _, uuid in pos_img_uuid
+            for pos, uuid, _ in pos_uuid_img
         ]
 
+        # Delete existing onboardee photos, if any exist
+        with transaction() as tx:
+            tx.executemany(Q_SELECT_ONBOARDEE_PHOTO, params, returning=True)
+            previous_onboardee_photos = fetchall_sets(tx)
+
+        delete_images_from_object_store(
+            row['uuid'] for row in previous_onboardee_photos)
+
+        # Create new onboardee photos. Because we:
+        #   1. Create DB entries; then
+        #   2. Create photos,
+        # the DB might refer to DB entries that don't exist. The front end needs
+        # to handle that possibility. Doing it like this makes later deletion
+        # from the object store easier, which is important because storing
+        # objects is expensive.
         q_set_onboardee_field = """
-            WITH
-            previous_onboardee_photo AS (
-                SELECT uuid
-                FROM onboardee_photo
-                WHERE
-                    email = %(email)s AND
-                    position = %(position)s
-            )
             INSERT INTO onboardee_photo (
                 email,
                 position,
@@ -671,15 +685,18 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
                 %(uuid)s
             ) ON CONFLICT (email, position) DO UPDATE SET
                 uuid = EXCLUDED.uuid
-            RETURNING (SELECT uuid FROM previous_onboardee_photo);
             """
 
         with transaction() as tx:
-            tx.executemany(q_set_onboardee_field, params, returning=True)
-            previous_onboardee_photos = fetchall_sets(tx)
+            tx.executemany(q_set_onboardee_field, params)
 
-        delete_images_from_object_store(
-            row['uuid'] for row in previous_onboardee_photos)
+        try:
+            put_images_in_object_store(
+                (uuid, img) for _, uuid, img in pos_uuid_img)
+        except Exception as e:
+            print('Upload failed with exception:', e)
+            return '', 500
+
     else:
         return f'Invalid field name {field_name}', 400
 
@@ -689,12 +706,20 @@ def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo):
         for position in req.files
     ]
 
+    # We do this in two steps to ensure there's never any photos in object
+    # storage which we're not tracking in the DB. However, there might be
+    # entries in the DB which aren't in object storage. The front end deals with
+    # that.
+
     with transaction() as tx:
-        tx.executemany(Q_DELETE_ONBOARDEE_PHOTO, params, returning=True)
+        tx.executemany(Q_SELECT_ONBOARDEE_PHOTO, params, returning=True)
         previous_onboardee_photos = fetchall_sets(tx)
 
     delete_images_from_object_store(
         row['uuid'] for row in previous_onboardee_photos)
+
+    with transaction() as tx:
+        tx.executemany(Q_DELETE_ONBOARDEE_PHOTO, params)
 
 def post_complete_onboarding(s: t.SessionInfo):
     params = dict(email=s.email)
