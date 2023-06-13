@@ -46,6 +46,10 @@ c PATCH /onboardee-info \
   --header "Content-Type: multipart/form-data" \
   -F "3.jpg=@profile-pic.png"
 
+c PATCH /onboardee-info \
+  --header "Content-Type: multipart/form-data" \
+  -F "1.jpg=@profile-pic.png"
+
 c GET "https://user-images.duolicious.app/original-$(q "select uuid from onboardee_photo limit 1").jpg" > /dev/null
 c GET "https://user-images.duolicious.app/900-$(q "select uuid from onboardee_photo limit 1").jpg" > /dev/null
 c GET "https://user-images.duolicious.app/450-$(q "select uuid from onboardee_photo limit 1").jpg" > /dev/null
