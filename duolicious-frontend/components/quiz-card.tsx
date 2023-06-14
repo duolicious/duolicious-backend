@@ -345,15 +345,16 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
               {showTutorial && questionNumber === 1 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
                   👋 Welcome to Duolicious Q&A, where we ask you oodles of
-                  questions—some quirky, some mind-boggling—all in the quest to
-                  unearth your perfect match. Let's start with an easy one:
+                  questions in the quest to unearth your perfect match! Let's
+                  start with an easy one:
                   {'\n\n'}
                 </DefaultText>
               }
               {showTutorial && questionNumber === 2 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  Nice! Your answers improve your best matches here{'\u00A0'}☝️,
-                  and also when you search{'\u00A0'}🔎. Keep it up!
+                  Great answer! We'll use that to improve your best matches
+                  here{'\u00A0'}☝️, and also when you search{'\u00A0'}🔎. Each
+                  answer makes your best matches even better, so keep it up!
                   {'\n\n'}
                 </DefaultText>
               }
@@ -365,8 +366,10 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
               }
               {showTutorial && questionNumber === 4 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  Some questions might seem silly, but our smartypants
-                  AI told us they're actually useful for picking your matches!
+                  All the questions we ask have been carefully graded{'\u00A0'}🧑‍🎓 by our
+                  smartypants AI on how well they help us pick your
+                  matches. Even the silly questions need to
+                  be on the honor roll to grace your eyeballs.
                   {'\n\n'}
                 </DefaultText>
               }
@@ -381,8 +384,9 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
               {showTutorial && questionNumber === 6 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
                   If you want to hide your pineapple-related shame from visitors
-                  to your profile, you can always uncheck "answer
-                  publicly".{'\u00A0'}👇
+                  to your profile, you can uncheck "answer publicly"
+                  below{'\u00A0'}👇. (Don't worry, we still use private answers
+                  to compute compatibility.)
                   {'\n\n'}
                 </DefaultText>
               }
@@ -395,8 +399,8 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
               }
               {showTutorial && questionNumber === 8 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  Looks like you've got the hang of it! We're gonna zip it
-                  and let you swipe!{'\u00A0'}🤐
+                  Looks like you've got the hang of it!  We're gonna zip it
+                  and let you find your match{'\u00A0'}💑. Happy swiping!
                   {'\n\n'}
                 </DefaultText>
               }
@@ -404,13 +408,19 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
               {showTutorial && questionNumber === 1 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
                   {'\n\n'}
-                  Drag this card right for "yes" and left for "no"
+                  Drag this card left for "no", or right for "yes"
                 </DefaultText>
               }
               {showTutorial && questionNumber === 2 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
                   {'\n\n'}
-                  (Right is "yes", left is "no")
+                  (Left is "no", right is "yes")
+                </DefaultText>
+              }
+              {showTutorial && questionNumber === 3 &&
+                <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
+                  {'\n\n'}
+                  (As always, 👈 = no, yes = 👉)
                 </DefaultText>
               }
             </DefaultText>
