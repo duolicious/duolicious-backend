@@ -215,19 +215,19 @@ CREATE TABLE IF NOT EXISTS answer (
 );
 
 CREATE TABLE IF NOT EXISTS trait (
-  id SMALLSERIAL PRIMARY KEY,
-  trait TEXT NOT NULL,
-  UNIQUE (trait)
+    id SMALLSERIAL PRIMARY KEY,
+    trait TEXT NOT NULL,
+    UNIQUE (trait)
 );
 
 CREATE TABLE IF NOT EXISTS person_trait_statistic (
-  person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-  trait_id SMALLINT NOT NULL REFERENCES trait(id) ON DELETE CASCADE,
-  presence_score INT NOT NULL,
-  absence_score INT NOT NULL,
-  CHECK (presence_score >= 0),
-  CHECK (absence_score >= 0),
-  PRIMARY KEY (person_id, trait_id)
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+    trait_id SMALLINT NOT NULL REFERENCES trait(id) ON DELETE CASCADE,
+    presence_score INT NOT NULL,
+    absence_score INT NOT NULL,
+    CHECK (presence_score >= 0),
+    CHECK (absence_score >= 0),
+    PRIMARY KEY (person_id, trait_id)
 );
 
 CREATE TABLE IF NOT EXISTS question_trait_pair (
@@ -393,44 +393,12 @@ CREATE TABLE IF NOT EXISTS search_result (
 -- INDEXES
 --------------------------------------------------------------------------------
 
-CREATE INDEX IF NOT EXISTS idx__trait_id__person_trait_statistic ON person_trait_statistic(trait_id);
-CREATE INDEX IF NOT EXISTS idx__trait_id__question_trait_pair ON question_trait_pair(trait_id);
-
-CREATE INDEX IF NOT EXISTS idx__person_id__answer ON answer(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__person_trait_statistic ON person_trait_statistic(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__photo ON photo(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__question_order ON question_order(person_id);
-
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_question ON search_preference_question(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_gender ON search_preference_gender(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_orientation ON search_preference_orientation(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_age ON search_preference_age(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_distance ON search_preference_distance(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_height ON search_preference_height(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_verified ON search_preference_verified(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_has_profile_picture ON search_preference_has_profile_picture(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_looking_for ON search_preference_looking_for(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_smoking ON search_preference_smoking(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_drinking ON search_preference_drinking(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_drugs ON search_preference_drugs(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_long_distance ON search_preference_long_distance(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_relationship_status ON search_preference_relationship_status(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_has_kids ON search_preference_has_kids(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_wants_kids ON search_preference_wants_kids(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_exercise ON search_preference_exercise(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_religion ON search_preference_religion(person_id);
-CREATE INDEX IF NOT EXISTS idx__person_id__search_preference_star_sign ON search_preference_star_sign(person_id);
-
 CREATE INDEX IF NOT EXISTS idx__question_id__answer ON answer(question_id);
-CREATE INDEX IF NOT EXISTS idx__question_id__question_trait_pair ON question_trait_pair(question_id);
 
 CREATE INDEX IF NOT EXISTS idx__email__duo_session ON duo_session(email);
-CREATE INDEX IF NOT EXISTS idx__email__onboardee_photo ON onboardee_photo(email);
-CREATE INDEX IF NOT EXISTS idx__email__onboardee_search_preference_gender ON onboardee_search_preference_gender(email);
 
 CREATE INDEX IF NOT EXISTS idx__coordinates__location ON location USING GIST(coordinates);
-
-CREATE INDEX IF NOT EXISTS idx__friendly__location ON location USING gist (friendly gist_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx__friendly__location ON location USING GIST(friendly gist_trgm_ops);
 
 --------------------------------------------------------------------------------
 -- DATA
