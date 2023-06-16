@@ -1,0 +1,47 @@
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: us-east1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/deployments/api
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Get the version
+        id: get_version
+        run: echo "::set-output name=VERSION::$(echo ${GITHUB_REF#refs/heads/} | sed 's/\//-/g')"
+        shell: bash
+
+      - name: Get the commit SHA
+        id: get_sha
+        run: echo "::set-output name=SHA::$(echo ${GITHUB_SHA})"
+        shell: bash
+
+      - name: Set the tag
+        id: create_tag
+        run: echo "::set-output name=TAG::$(if [ "${{ steps.get_version.outputs.VERSION }}" = "master" ]; then echo "latest"; else echo "${{ steps.get_sha.outputs.SHA }}"; fi)"
+        shell: bash
+
+      - name: Build Docker Image
+        run: docker build -t ${{ env.IMAGE_NAME }}:${{ steps.create_tag.outputs.TAG }} .
+
+      - name: Push Docker Image to Google Artifact Registry
+        run: |
+          gcloud auth configure-docker us-east-1-docker.pkg.dev
+          docker push ${{ env.IMAGE_NAME }}:${{ steps.create_tag.outputs.TAG }}
+
+      - name: Deploy to Google Cloud Run
+        run: |
+          gcloud run deploy api --image ${{ env.IMAGE_NAME }}:${{ steps.create_tag.outputs.TAG }} --region us-east1 --platform managed
+
