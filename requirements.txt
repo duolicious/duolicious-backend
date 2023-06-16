@@ -3,5 +3,6 @@ Pillow
 boto3
 flask-cors
 gunicorn
+openai
 psycopg[pool]
 pydantic[email]
