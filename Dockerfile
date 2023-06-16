@@ -1,5 +1,5 @@
 # Use the Alpine flavour of the Python image
-FROM python:alpine
+FROM python:latest
 
 # Set working directory
 WORKDIR /app
