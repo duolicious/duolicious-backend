@@ -29,4 +29,4 @@ jobs:
       - name: Push Docker Image to Google Artifact Registry
         run: |
           gcloud auth configure-docker us-east1-docker.pkg.dev
-          docker push ${{ env.IMAGE_NAME }}:${{ steps.create_tag.outputs.TAG }}
+          docker push ${{ env.IMAGE_NAME }}:${{ steps.get_sha.outputs.SHA }}
