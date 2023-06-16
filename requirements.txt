@@ -2,5 +2,6 @@ Flask
 Pillow
 boto3
 flask-cors
+gunicorn
 psycopg[pool]
 pydantic[email]
