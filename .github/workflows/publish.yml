@@ -4,7 +4,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      IMAGE_NAME: us-east1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/deployments/api
+      IMAGE_NAME: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/deployments/api
 
     steps:
       - name: Checkout code
@@ -43,5 +43,5 @@ jobs:
 
       - name: Deploy to Google Cloud Run
         run: |
-          gcloud run deploy api --image ${{ env.IMAGE_NAME }}:${{ steps.create_tag.outputs.TAG }} --region us-east1 --platform managed
+          gcloud run deploy api --image ${{ env.IMAGE_NAME }}:${{ steps.create_tag.outputs.TAG }} --region us-central1 --platform managed
 
