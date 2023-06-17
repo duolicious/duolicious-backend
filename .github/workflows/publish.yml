@@ -17,21 +17,19 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
 
       - id: get_branch
-        run: echo "::set-output name=BRANCH::$(echo ${GITHUB_REF#refs/heads/})"
-        shell: bash
+        run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
       - id: set_image_name
-        run: echo "::set-output name=IMAGE_NAME::us-east1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/api/${{ steps.get_branch.outputs.BRANCH }}"
+        run: echo "IMAGE_NAME=us-east1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/api/${BRANCH}" >> $GITHUB_ENV
 
       - name: Get the commit SHA
         id: get_sha
-        run: echo "::set-output name=SHA::$(echo ${GITHUB_SHA})"
-        shell: bash
+        run: echo "SHA=${GITHUB_SHA}" >> $GITHUB_ENV
 
       - name: Build Docker Image
-        run: docker build -t ${{ steps.set_image_name.outputs.IMAGE_NAME }}:${{ steps.get_sha.outputs.SHA }} .
+        run: docker build -t $IMAGE_NAME:$SHA .
 
       - name: Push Docker Image to Google Artifact Registry
         run: |
           gcloud auth configure-docker us-east1-docker.pkg.dev
-          docker push ${{ steps.set_image_name.outputs.IMAGE_NAME }}:${{ steps.get_sha.outputs.SHA }}
+          docker push $IMAGE_NAME:$SHA
