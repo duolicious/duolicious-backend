@@ -12,9 +12,11 @@ class NormalizedEmailStr(EmailStr):
         return EmailStr.validate(value).lower().strip()
 
 class SessionInfo(BaseModel):
-    email: NormalizedEmailStr
+    email: str
+    session_token_hash: str
     person_id: Optional[int]
     onboarded: bool
+    signed_in: bool
 
     @root_validator(pre=True)
     def set_onboarded(cls, values):
@@ -35,7 +37,6 @@ class PostRequestOtp(BaseModel):
     email: NormalizedEmailStr
 
 class PostCheckOtp(BaseModel):
-    email: NormalizedEmailStr
     otp: constr(regex=r'^\d{6}$')
 
 class PatchOnboardeeInfo(BaseModel):

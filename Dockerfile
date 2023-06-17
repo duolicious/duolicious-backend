@@ -1,4 +1,3 @@
-# Use the Alpine flavour of the Python image
 FROM python:latest
 
 # Set working directory
@@ -11,4 +10,4 @@ COPY . /app
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Start the /app/main.sh script when the container runs
-CMD ["sh", "-c", "/app/main.sh $DUO_ENV"]
+CMD ["sh", "-c", "/app/main.sh"]

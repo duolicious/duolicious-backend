@@ -136,40 +136,26 @@ SELECT
 FROM coalesced
 """
 
-Q_DELETE_OTP = """
-DELETE FROM prospective_duo_session
-WHERE email = %(email)s
-"""
-
-Q_SET_OTP = """
-INSERT INTO prospective_duo_session (
+Q_INSERT_DUO_SESSION = """
+INSERT INTO duo_session (
+    session_token_hash,
     email,
     otp
 ) VALUES (
+    %(session_token_hash)s,
     %(email)s,
     %(otp)s
 )
 """
 
-Q_MAYBE_SET_SESSION_TOKEN_HASH = """
-WITH deleted_prospective_duo_session AS (
-    DELETE FROM prospective_duo_session
-    WHERE email = %(email)s
-    AND otp = %(otp)s
-    RETURNING expiry
-)
-INSERT INTO duo_session (
-    session_token_hash,
-    person_id,
-    email
-)
-SELECT
-    %(session_token_hash)s,
-    (SELECT id FROM person WHERE email = %(email)s),
-    %(email)s
-FROM deleted_prospective_duo_session
-WHERE deleted_prospective_duo_session.expiry > NOW()
-RETURNING session_token_hash, person_id
+Q_MAYBE_SIGN_IN = """
+UPDATE duo_session
+SET signed_in = TRUE
+WHERE
+    session_token_hash = %(session_token_hash)s AND
+    otp = %(otp)s AND
+    otp_expiry > NOW()
+RETURNING person_id
 """
 
 Q_SELECT_ONBOARDEE_PHOTO = """
@@ -491,10 +477,13 @@ def delete_answer(req: t.DeleteAnswer):
 def post_request_otp(req: t.PostRequestOtp):
     email = req.email
     otp = '{:06d}'.format(secrets.randbelow(10**6))
+    session_token = secrets.token_hex(64)
+    session_token_hash = sha512(session_token)
 
     params = dict(
         email=email,
         otp=otp,
+        session_token_hash=session_token_hash,
     )
 
     headers = {
@@ -535,29 +524,25 @@ def post_request_otp(req: t.PostRequestOtp):
     if ENV == 'prod':
         with urllib.request.urlopen(urllib_req) as f:
             pass
+    else:
+        print(f'OTP was: {otp}')
 
     with transaction() as tx:
-        tx.execute(Q_DELETE_OTP, params)
-        tx.execute(Q_SET_OTP, params)
+        tx.execute(Q_INSERT_DUO_SESSION, params)
 
-def post_check_otp(req: t.PostCheckOtp):
-    session_token = secrets.token_hex(64)
-    session_token_hash = sha512(session_token)
+    return dict(session_token=session_token)
 
+def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
     params = dict(
-        email=req.email,
         otp=req.otp,
-        session_token_hash=session_token_hash,
+        session_token_hash=s.session_token_hash,
     )
 
     with transaction() as tx:
-        tx.execute(Q_MAYBE_SET_SESSION_TOKEN_HASH, params)
+        tx.execute(Q_MAYBE_SIGN_IN, params)
         row = tx.fetchone()
         if row:
-            return dict(
-                session_token=session_token,
-                onboarded=row['person_id'] is not None,
-            )
+            return dict(onboarded=row['person_id'] is not None)
         else:
             return 'Invalid OTP', 401
 

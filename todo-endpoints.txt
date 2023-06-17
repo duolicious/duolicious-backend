@@ -1,7 +1,8 @@
-POST /request-otp {} { email } -> ''
+POST /request-otp {} { email } -> {
+  session_token: string
+}
 
-POST /check-otp {} { email, otp } -> {
-  session-token: string
+POST /check-otp {} { otp } -> {
   onboarded: boolean
 }
 

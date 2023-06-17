@@ -38,10 +38,10 @@ def init_db():
 def post_request_otp(req: t.PostRequestOtp):
     return person.post_request_otp(req)
 
-@post('/check-otp')
+@apost('/check-otp', expected_onboarding_status=None, expected_sign_in_status=False)
 @validate(t.PostCheckOtp)
-def post_check_otp(req: t.PostCheckOtp):
-    return person.post_check_otp(req)
+def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
+    return person.post_check_otp(req, s)
 
 @apost('/check-session-token', expected_onboarding_status=None)
 def post_check_session_token(s: t.SessionInfo):

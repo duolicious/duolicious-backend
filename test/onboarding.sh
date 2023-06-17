@@ -5,17 +5,17 @@ cd "$script_dir"
 
 source setup.sh
 
-c POST /request-otp \
-  --header "Content-Type: application/json" \
-  -d '{ "email": "mail@example.com" }'
-
-otp=$(q "SELECT otp FROM prospective_duo_session")
 response=$(
-  c POST /check-otp \
+  c POST /request-otp \
     --header "Content-Type: application/json" \
-    -d '{ "email": "mail@example.com", "otp": "'"$otp"'" }'
+    -d '{ "email": "mail@example.com" }'
 )
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
+
+otp=$(q "SELECT otp FROM duo_session order by otp_expiry desc limit 1")
+c POST /check-otp \
+  --header "Content-Type: application/json" \
+  -d '{ "otp": "'"$otp"'" }'
 
 c PATCH /onboardee-info \
   --header "Content-Type: application/json" \
