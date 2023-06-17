@@ -1,13 +1,18 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 export PYTHONDONTWRITEBYTECODE=true
 
-if [[ "$1" == "prod" ]]
+if [ -z "$PORT" ]
 then
-  gunicorn -w 4 -b 0.0.0.0:5000 main:app
-elif [[ "$1" == "dev" ]]
+  PORT=5000
+fi
+
+if [ "$1" = "prod" ]
 then
-  flask --app main.py --debug run
+  gunicorn -w 4 -b "0.0.0.0:$PORT" main:app
+elif [ "$1" = "dev" ]
+then
+  flask --app main.py --debug run --port "$PORT"
 else
   echo "usage: $0 [prod|dev]"
 fi
