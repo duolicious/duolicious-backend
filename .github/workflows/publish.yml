@@ -1,0 +1,39 @@
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - id: get_branch
+        run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
+      - id: set_image_name
+        run: echo "IMAGE_NAME=us-east1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/api/${BRANCH}" >> $GITHUB_ENV
+
+      - name: Get the commit SHA
+        id: get_sha
+        run: echo "SHA=${GITHUB_SHA}" >> $GITHUB_ENV
+
+      - name: Build Docker Image
+        run: docker build -t $IMAGE_NAME:$SHA .
+
+      - name: Push Docker Image to Google Artifact Registry
+        run: |
+          gcloud auth configure-docker us-east1-docker.pkg.dev
+          docker push $IMAGE_NAME:$SHA
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy api --image $IMAGE_NAME:$SHA --region us-east1

@@ -13,6 +13,8 @@ import io
 import boto3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+ENV = os.environ['DUO_ENV']
+
 EMAIL_KEY = os.environ['DUO_EMAIL_KEY']
 EMAIL_URL = os.environ['DUO_EMAIL_URL']
 
@@ -530,9 +532,9 @@ def post_request_otp(req: t.PostRequestOtp):
         data=json.dumps(data).encode('utf-8')
     )
 
-    # TODO
-    # with urllib.request.urlopen(urllib_req) as f:
-    #     pass
+    if ENV == 'prod':
+        with urllib.request.urlopen(urllib_req) as f:
+            pass
 
     with transaction() as tx:
         tx.execute(Q_DELETE_OTP, params)
