@@ -11,4 +11,4 @@ COPY . /app
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Start the /app/main.sh script when the container runs
-CMD ["sh", "-c", "/app/main.sh $ENV"]
+CMD ["sh", "-c", "/app/main.sh $DUO_ENV"]
