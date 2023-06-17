@@ -36,4 +36,4 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy api --image $IMAGE_NAME:$SHA
+          gcloud run deploy api --image $IMAGE_NAME:$SHA --region us-east1
