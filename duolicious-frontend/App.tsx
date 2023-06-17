@@ -120,17 +120,17 @@ const App = () => {
         console.warn(e);
       }
 
-      setAppState('signed-in');
+      // setAppState('signed-in');
 
-      // const existingSessionToken = await sessionToken();
-      // if (existingSessionToken === null) {
-      //   setAppState('signed-out');
-      // } else {
-      //   setAppState(
-      //     (await api('/check-session-token', {method: 'POST'})).ok ?
-      //     'signed-in' :
-      //     'signed-out');
-      // }
+      const existingSessionToken = await sessionToken();
+      if (existingSessionToken === null) {
+        setAppState('signed-out');
+      } else {
+        setAppState(
+          (await api('/check-session-token', {method: 'POST'})).ok ?
+          'signed-in' :
+          'signed-out');
+      }
     })();
   }, []);
 

@@ -1,0 +1,30 @@
+on: [push]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    name: Publish to Cloudflare Pages
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - run: |
+          npm install
+          npx patch-package
+          npx expo export:web
+          cat > web-build/_headers <<EOF
+            /*
+              X-Frame-Options: DENY
+              Access-Control-Allow-Origin: ${DUO_API_URL}
+          EOF
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
+          DUO_API_URL: https://api-22szm34g7q-ue.a.run.app
+      - uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: a73a8f703a9a1eefac56f84ca6a4c9ac
+          projectName: duolicious
+          directory: web-build

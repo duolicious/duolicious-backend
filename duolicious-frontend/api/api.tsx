@@ -1,7 +1,5 @@
 import {
-  API_SCHEME,
-  API_HOST,
-  API_PORT,
+  API_URL,
 } from '../env/env';
 import * as _ from "lodash";
 import { sessionToken } from '../lib/session-token';
@@ -15,7 +13,7 @@ const api = async (endpoint: string, init?: RequestInit): Promise<Response> => {
     }
   };
 
-  const url = `${API_SCHEME}://${API_HOST}:${API_PORT}${endpoint}`;
+  const url = `${API_URL}/${endpoint}`;
 
   console.log(JSON.stringify(url)); // TODO
 

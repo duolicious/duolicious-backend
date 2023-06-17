@@ -23,12 +23,10 @@ const config: ExpoConfig = {
     eas: {
       projectId: "73076e4e-4594-49a9-9ed1-eac9c3ee05c8"
     },
-    apiScheme: process.env.DUO_API_SCHEME,
-    apiHost: process.env.DUO_API_HOST,
-    apiPort: process.env.DUO_API_PORT
+    apiUrl: process.env.DUO_API_URL,
   },
   ios: {
-    bundleIdentifier: "us.duolicio"
+    bundleIdentifier: "app.duolicious"
   }
 };
 
