@@ -4,12 +4,24 @@ from flask import request, Flask
 from flask_cors import CORS
 import constants
 import duotypes
+import os
+
+ENV = os.environ['DUO_ENV']
+CORS_ORIGINS = os.environ['DUO_CORS_ORIGINS']
 
 app = Flask(__name__)
 
 app.config['MAX_CONTENT_LENGTH'] = constants.MAX_CONTENT_LENGTH;
 
-CORS(app)
+if ENV == 'dev':
+    CORS(app, resources={r"/*": {"origins": "*"}})
+else:
+    CORS(
+        app,
+        resources={
+            r"/*": {"origins": ','.split(CORS_ORIGINS)}
+        }
+    )
 
 Q_GET_SESSION = """
 SELECT person_id, email, signed_in
@@ -21,7 +33,8 @@ WHERE
 
 def return_empty_string(func):
     def go(*args, **kwargs):
-        return func(*args, **kwargs) or ''
+        result = func(*args, **kwargs)
+        return result if result is not None else ''
     go.__name__ = func.__name__
     return go
 
@@ -45,7 +58,7 @@ def validate(RequestType):
                     req = RequestType(j, **f)
             except Exception as e:
                 print(e)
-                return f'Malformed request', 400
+                return f'Bad Request', 400
             return func(req, *args, **kwargs)
         go1.__name__ = func.__name__
         return go1
@@ -92,7 +105,8 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                 expected_sign_in_status == is_signed_in)
 
             if has_expected_onboarding_status and has_expected_sign_in_status:
-                return func(session_info, *args, **kwargs) or ''
+                result = func(session_info, *args, **kwargs)
+                return result if result is not None else ''
             elif not has_expected_onboarding_status:
                 if is_onboarding_complete:
                     return 'You are already onboarded', 403

@@ -148,6 +148,12 @@ INSERT INTO duo_session (
 )
 """
 
+Q_UPDATE_OTP = """
+UPDATE duo_session
+SET otp = %(otp)s
+WHERE session_token_hash = %(session_token_hash)s
+"""
+
 Q_MAYBE_SIGN_IN = """
 UPDATE duo_session
 SET signed_in = TRUE
@@ -313,6 +319,14 @@ DELETE FROM onboardee
 WHERE email = %(email)s
 """
 
+Q_SEARCH_LOCATIONS = """
+SELECT friendly
+FROM location
+WHERE friendly ILIKE %(first_character)s || '%%'
+ORDER BY friendly <-> %(search_string)s
+LIMIT 10
+"""
+
 s3 = boto3.resource('s3',
   endpoint_url = f'https://{R2_ACCT_ID}.r2.cloudflarestorage.com',
   aws_access_key_id = R2_ACCESS_KEY_ID,
@@ -474,17 +488,15 @@ def delete_answer(req: t.DeleteAnswer):
         tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': -1})
         tx.execute(Q_DELETE_ANSWER, params)
 
-def post_request_otp(req: t.PostRequestOtp):
-    email = req.email
-    otp = '{:06d}'.format(secrets.randbelow(10**6))
-    session_token = secrets.token_hex(64)
-    session_token_hash = sha512(session_token)
+def _generate_otp():
+    if ENV == 'dev':
+        return '0' * 6
+    else:
+        return '{:06d}'.format(secrets.randbelow(10**6))
 
-    params = dict(
-        email=email,
-        otp=otp,
-        session_token_hash=session_token_hash,
-    )
+def _send_otp(email: str, otp: str):
+    if ENV == 'dev':
+        return
 
     headers = {
         'accept': 'application/json',
@@ -521,16 +533,40 @@ def post_request_otp(req: t.PostRequestOtp):
         data=json.dumps(data).encode('utf-8')
     )
 
-    if ENV == 'prod':
-        with urllib.request.urlopen(urllib_req) as f:
-            pass
-    else:
-        print(f'OTP was: {otp}')
+    with urllib.request.urlopen(urllib_req) as f:
+        pass
+
+def post_request_otp(req: t.PostRequestOtp):
+    email = req.email
+    otp = _generate_otp()
+    session_token = secrets.token_hex(64)
+    session_token_hash = sha512(session_token)
+
+    params = dict(
+        email=email,
+        otp=otp,
+        session_token_hash=session_token_hash,
+    )
+
+    _send_otp(email, otp)
 
     with transaction() as tx:
         tx.execute(Q_INSERT_DUO_SESSION, params)
 
     return dict(session_token=session_token)
+
+def post_resend_otp(s: t.SessionInfo):
+    otp = _generate_otp()
+
+    params = dict(
+        otp=otp,
+        session_token_hash=s.session_token_hash,
+    )
+
+    _send_otp(s.email, otp)
+
+    with transaction() as tx:
+        tx.execute(Q_UPDATE_OTP, params)
 
 def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
     params = dict(
@@ -545,6 +581,24 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
             return dict(onboarded=row['person_id'] is not None)
         else:
             return 'Invalid OTP', 401
+
+def get_search_locations(q: Optional[str]):
+    if q is None:
+        return []
+
+    normalized_whitespace = ' '.join(q.split())
+
+    if len(normalized_whitespace) < 1:
+        return []
+
+    params = dict(
+        first_character=normalized_whitespace[0],
+        search_string=normalized_whitespace,
+    )
+
+    with transaction() as tx:
+        tx.execute(Q_SEARCH_LOCATIONS, params)
+        return [row['friendly'] for row in tx.fetchall()]
 
 def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
     for field_name, field_value in req.dict().items():
@@ -592,6 +646,8 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
             """
         with transaction() as tx:
             tx.execute(q_set_onboardee_field, params)
+            if tx.rowcount != 1:
+                return 'Unknown location', 400
     elif field_name == 'gender':
         params = dict(
             email=s.email,

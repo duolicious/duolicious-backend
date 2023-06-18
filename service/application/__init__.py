@@ -38,6 +38,10 @@ def init_db():
 def post_request_otp(req: t.PostRequestOtp):
     return person.post_request_otp(req)
 
+@apost('/resend-otp', expected_onboarding_status=None, expected_sign_in_status=False)
+def post_resend_otp(s: t.SessionInfo):
+    return person.post_resend_otp(s)
+
 @apost('/check-otp', expected_onboarding_status=None, expected_sign_in_status=False)
 @validate(t.PostCheckOtp)
 def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
@@ -46,6 +50,10 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
 @apost('/check-session-token', expected_onboarding_status=None)
 def post_check_session_token(s: t.SessionInfo):
     return dict(onboarded=s.onboarded)
+
+@aget('/search-locations', expected_onboarding_status=None, expected_sign_in_status=None)
+def get_search_locations(_):
+    return person.get_search_locations(request.args.get('q'))
 
 @apatch('/onboardee-info', expected_onboarding_status=False)
 @validate(t.PatchOnboardeeInfo)

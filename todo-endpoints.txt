@@ -2,7 +2,13 @@ POST /request-otp {} { email } -> {
   session_token: string
 }
 
-POST /check-otp {} { otp } -> {
+POST /resend-otp {
+  session-token
+} -> ''
+
+POST /check-otp {
+  session-token
+} { otp } -> {
   onboarded: boolean
 }
 
@@ -23,6 +29,10 @@ PATCH /onboardee-info {
   | { photos }
   | { about }
 ) -> ''
+
+GET /search-locations?q=$1 {
+  session-token
+} -> string[]
 
 DELETE /onboardee-info {
 } (

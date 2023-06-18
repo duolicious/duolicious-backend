@@ -10,12 +10,22 @@ response=$(
     --header "Content-Type: application/json" \
     -d '{ "email": "mail@example.com" }'
 )
+
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
 
-otp=$(q "SELECT otp FROM duo_session order by otp_expiry desc limit 1")
+otp1=$(q "SELECT otp FROM duo_session order by otp_expiry desc limit 1")
+[[ -n "$otp1" ]]
+
+c POST /resend-otp
+
+otp2=$(q "SELECT otp FROM duo_session order by otp_expiry desc limit 1")
+[[ -n "$otp2" ]]
+
+[[ "$otp1" != "$otp2" ]]
+
 c POST /check-otp \
   --header "Content-Type: application/json" \
-  -d '{ "otp": "'"$otp"'" }'
+  -d '{ "otp": "'"$otp2"'" }'
 
 c PATCH /onboardee-info \
   --header "Content-Type: application/json" \
@@ -24,6 +34,8 @@ c PATCH /onboardee-info \
 c PATCH /onboardee-info \
   --header "Content-Type: application/json" \
   -d '{ "date_of_birth": "1997-05-30" }'
+
+c GET /search-locations?q=Syd
 
 c PATCH /onboardee-info \
   --header "Content-Type: application/json" \
