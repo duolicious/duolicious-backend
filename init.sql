@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS location (
     city TEXT NOT NULL,
     subdivision TEXT NOT NULL,
     country TEXT NOT NULL,
-    coordinates GEOGRAPHY(Point, 4326),
+    coordinates GEOGRAPHY(Point, 4326) NOT NULL,
     UNIQUE (friendly)
 );
 
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS person (
     email TEXT NOT NULL,
     name TEXT NOT NULL,
     date_of_birth DATE NOT NULL,
-    location_id INT NOT NULL REFERENCES location(id),
+    coordinates GEOGRAPHY(Point, 4326) NOT NULL,
     gender_id SMALLINT NOT NULL REFERENCES gender(id),
     about TEXT NOT NULL,
 
@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS onboardee (
 
     name TEXT,
     date_of_birth DATE,
-    location_id INT REFERENCES location(id),
+    coordinates GEOGRAPHY(Point, 4326),
     gender_id SMALLINT REFERENCES gender(id),
     about TEXT,
 

@@ -150,7 +150,9 @@ INSERT INTO duo_session (
 
 Q_UPDATE_OTP = """
 UPDATE duo_session
-SET otp = %(otp)s
+SET
+    otp = %(otp)s,
+    otp_expiry = NOW() + INTERVAL '1 minute'
 WHERE session_token_hash = %(session_token_hash)s
 """
 
@@ -181,12 +183,22 @@ WHERE
 
 Q_COMPLETE_ONBOARDING_1 = """
 WITH
+onboardee_country AS (
+    SELECT country
+    FROM location
+    ORDER BY location.coordinates <-> (
+        SELECT coordinates
+        FROM onboardee
+        WHERE email = %(email)s
+    )
+    LIMIT 1
+),
 new_person AS (
     INSERT INTO person (
         email,
         name,
         date_of_birth,
-        location_id,
+        coordinates,
         gender_id,
         about,
 
@@ -201,7 +213,7 @@ new_person AS (
         email,
         name,
         date_of_birth,
-        location_id,
+        coordinates,
         gender_id,
         about,
 
@@ -217,9 +229,7 @@ new_person AS (
                         THEN 'Imperial'
                         ELSE 'Metric'
                     END AS name
-                FROM location
-                JOIN onboardee
-                ON location.id = onboardee.location_id
+                FROM onboardee_country
             )
         ),
 
@@ -347,7 +357,7 @@ def init_db():
                 email,
                 name,
                 date_of_birth,
-                location_id,
+                coordinates,
                 gender_id,
                 about,
 
@@ -363,7 +373,7 @@ def init_db():
                 %(email)s,
                 %(name)s,
                 %(date_of_birth)s,
-                (SELECT id FROM location LIMIT 1),
+                (SELECT coordinates FROM location LIMIT 1),
                 (SELECT id FROM gender LIMIT 1),
                 %(about)s,
 
@@ -635,14 +645,14 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
         q_set_onboardee_field = """
             INSERT INTO onboardee (
                 email,
-                location_id
+                coordinates
             ) SELECT
                 %(email)s,
-                id
+                coordinates
             FROM location
             WHERE friendly = %(friendly)s
             ON CONFLICT (email) DO UPDATE SET
-                location_id = EXCLUDED.location_id
+                coordinates = EXCLUDED.coordinates
             """
         with transaction() as tx:
             tx.execute(q_set_onboardee_field, params)

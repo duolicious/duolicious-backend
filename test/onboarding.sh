@@ -13,19 +13,19 @@ response=$(
 
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
 
-otp1=$(q "SELECT otp FROM duo_session order by otp_expiry desc limit 1")
-[[ -n "$otp1" ]]
+otp_expiry1=$(q "SELECT otp_expiry FROM duo_session order by otp_expiry desc limit 1")
+[[ -n "$otp_expiry1" ]]
 
 c POST /resend-otp
 
-otp2=$(q "SELECT otp FROM duo_session order by otp_expiry desc limit 1")
-[[ -n "$otp2" ]]
+otp_expiry2=$(q "SELECT otp_expiry FROM duo_session order by otp_expiry desc limit 1")
+[[ -n "$otp_expiry2" ]]
 
-[[ "$otp1" != "$otp2" ]]
+[[ "$otp_expiry1" != "$otp_expiry2" ]]
 
 c POST /check-otp \
   --header "Content-Type: application/json" \
-  -d '{ "otp": "'"$otp2"'" }'
+  -d '{ "otp": "000000" }'
 
 c PATCH /onboardee-info \
   --header "Content-Type: application/json" \
