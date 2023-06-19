@@ -181,7 +181,7 @@ WHERE
     position = %(position)s
 """
 
-Q_COMPLETE_ONBOARDING_1 = """
+Q_FINISH_ONBOARDING_1 = """
 WITH
 onboardee_country AS (
     SELECT country
@@ -324,7 +324,7 @@ SELECT
     (SELECT COUNT(*) FROM updated_session)
 """
 
-Q_COMPLETE_ONBOARDING_2 = """
+Q_FINISH_ONBOARDING_2 = """
 DELETE FROM onboardee
 WHERE email = %(email)s
 """
@@ -774,12 +774,12 @@ def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo):
     with transaction() as tx:
         tx.executemany(Q_DELETE_ONBOARDEE_PHOTO, params)
 
-def post_complete_onboarding(s: t.SessionInfo):
+def post_finish_onboarding(s: t.SessionInfo):
     params = dict(email=s.email)
 
     with transaction() as tx:
-        tx.execute(Q_COMPLETE_ONBOARDING_1, params)
-        tx.execute(Q_COMPLETE_ONBOARDING_2, params)
+        tx.execute(Q_FINISH_ONBOARDING_1, params)
+        tx.execute(Q_FINISH_ONBOARDING_2, params)
 
 def get_personality(person_id: int):
     params = dict(

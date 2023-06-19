@@ -18,6 +18,10 @@ GET /check-session-token {
   onboarded: boolean
 }
 
+GET /search-locations?q=$1 {
+  session-token
+} -> string[]
+
 PATCH /onboardee-info {
   session-token
 } (
@@ -30,16 +34,12 @@ PATCH /onboardee-info {
   | { about }
 ) -> ''
 
-GET /search-locations?q=$1 {
-  session-token
-} -> string[]
-
 DELETE /onboardee-info {
 } (
   { photo }
 ) -> ''
 
-POST /complete-onboarding {
+POST /finish-onboarding {
   session-token
 }
 

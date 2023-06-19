@@ -87,9 +87,9 @@ c PATCH /onboardee-info \
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 1 ]]
 
 ! c GET /next-questions
-c POST /complete-onboarding
+c POST /finish-onboarding
 
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 0 ]]
 
 c GET /next-questions > /dev/null
-! c POST /complete-onboarding
+! c POST /finish-onboarding

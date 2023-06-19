@@ -65,9 +65,9 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
 def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo):
     return person.delete_onboardee_info(req, s)
 
-@apost('/complete-onboarding', expected_onboarding_status=False)
-def post_complete_onboarding(s: t.SessionInfo):
-    return person.post_complete_onboarding(s)
+@apost('/finish-onboarding', expected_onboarding_status=False)
+def post_finish_onboarding(s: t.SessionInfo):
+    return person.post_finish_onboarding(s)
 
 @aget('/next-questions')
 def get_next_questions(s: t.SessionInfo):
