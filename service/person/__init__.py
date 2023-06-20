@@ -157,13 +157,30 @@ WHERE session_token_hash = %(session_token_hash)s
 """
 
 Q_MAYBE_SIGN_IN = """
-UPDATE duo_session
-SET signed_in = TRUE
-WHERE
-    session_token_hash = %(session_token_hash)s AND
-    otp = %(otp)s AND
-    otp_expiry > NOW()
-RETURNING person_id
+WITH
+updated_session AS (
+    UPDATE duo_session
+    SET signed_in = TRUE
+    WHERE
+        session_token_hash = %(session_token_hash)s AND
+        otp = %(otp)s AND
+        otp_expiry > NOW()
+    RETURNING person_id, email
+),
+existing_person AS (
+    SELECT person_id
+    FROM updated_session
+    WHERE person_id IS NOT NULL
+),
+new_onboardee AS (
+    INSERT INTO onboardee (
+        email
+    )
+    SELECT email
+    FROM updated_session
+    WHERE NOT EXISTS (SELECT 1 FROM existing_person)
+)
+SELECT * FROM updated_session
 """
 
 Q_SELECT_ONBOARDEE_PHOTO = """

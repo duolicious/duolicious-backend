@@ -23,9 +23,17 @@ otp_expiry2=$(q "SELECT otp_expiry FROM duo_session order by otp_expiry desc lim
 
 [[ "$otp_expiry1" != "$otp_expiry2" ]]
 
+! c POST /check-otp \
+  --header "Content-Type: application/json" \
+  -d '{ "otp": "000001" }'
+
+[[ "$(q "select COUNT(*) from onboardee")" -eq 0 ]]
+
 c POST /check-otp \
   --header "Content-Type: application/json" \
   -d '{ "otp": "000000" }'
+
+[[ "$(q "select COUNT(*) from onboardee")" -eq 1 ]]
 
 c PATCH /onboardee-info \
   --header "Content-Type: application/json" \
