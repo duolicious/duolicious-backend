@@ -38,14 +38,26 @@ def init_db():
 def post_request_otp(req: t.PostRequestOtp):
     return person.post_request_otp(req)
 
-@post('/check-otp')
+@apost('/resend-otp', expected_onboarding_status=None, expected_sign_in_status=False)
+def post_resend_otp(s: t.SessionInfo):
+    return person.post_resend_otp(s)
+
+@apost('/check-otp', expected_onboarding_status=None, expected_sign_in_status=False)
 @validate(t.PostCheckOtp)
-def post_check_otp(req: t.PostCheckOtp):
-    return person.post_check_otp(req)
+def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
+    return person.post_check_otp(req, s)
+
+@apost('/sign-out', expected_onboarding_status=None)
+def post_sign_out(s: t.SessionInfo):
+    return person.post_sign_out(s)
 
 @apost('/check-session-token', expected_onboarding_status=None)
 def post_check_session_token(s: t.SessionInfo):
     return dict(onboarded=s.onboarded)
+
+@aget('/search-locations', expected_onboarding_status=None, expected_sign_in_status=None)
+def get_search_locations(_):
+    return person.get_search_locations(request.args.get('q'))
 
 @apatch('/onboardee-info', expected_onboarding_status=False)
 @validate(t.PatchOnboardeeInfo)
@@ -57,9 +69,9 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
 def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo):
     return person.delete_onboardee_info(req, s)
 
-@apost('/complete-onboarding', expected_onboarding_status=False)
-def post_complete_onboarding(s: t.SessionInfo):
-    return person.post_complete_onboarding(s)
+@apost('/finish-onboarding', expected_onboarding_status=False)
+def post_finish_onboarding(s: t.SessionInfo):
+    return person.post_finish_onboarding(s)
 
 @aget('/next-questions')
 def get_next_questions(s: t.SessionInfo):

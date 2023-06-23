@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS location (
     city TEXT NOT NULL,
     subdivision TEXT NOT NULL,
     country TEXT NOT NULL,
-    coordinates GEOGRAPHY(Point, 4326),
+    coordinates GEOGRAPHY(Point, 4326) NOT NULL,
     UNIQUE (friendly)
 );
 
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS person (
     email TEXT NOT NULL,
     name TEXT NOT NULL,
     date_of_birth DATE NOT NULL,
-    location_id INT NOT NULL REFERENCES location(id),
+    coordinates GEOGRAPHY(Point, 4326) NOT NULL,
     gender_id SMALLINT NOT NULL REFERENCES gender(id),
     about TEXT NOT NULL,
 
@@ -141,10 +141,9 @@ CREATE TABLE IF NOT EXISTS person (
 
 CREATE TABLE IF NOT EXISTS onboardee (
     email TEXT NOT NULL,
-
     name TEXT,
     date_of_birth DATE,
-    location_id INT REFERENCES location(id),
+    coordinates GEOGRAPHY(Point, 4326),
     gender_id SMALLINT REFERENCES gender(id),
     about TEXT,
 
@@ -166,18 +165,14 @@ CREATE TABLE IF NOT EXISTS onboardee_photo (
     PRIMARY KEY (email, position)
 );
 
-CREATE TABLE IF NOT EXISTS prospective_duo_session (
-    email TEXT NOT NULL,
-    otp TEXT NOT NULL,
-    expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 minute'),
-    PRIMARY KEY (email)
-);
-
 CREATE TABLE IF NOT EXISTS duo_session (
     session_token_hash TEXT NOT NULL,
     person_id BIGINT REFERENCES person(id) ON DELETE CASCADE,
     email TEXT NOT NULL,
-    expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '6 months'),
+    otp TEXT NOT NULL,
+    signed_in BOOLEAN NOT NULL DEFAULT FALSE,
+    session_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '6 months'),
+    otp_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 minute'),
     PRIMARY KEY (session_token_hash)
 );
 

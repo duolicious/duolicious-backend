@@ -136,40 +136,60 @@ SELECT
 FROM coalesced
 """
 
-Q_DELETE_OTP = """
-DELETE FROM prospective_duo_session
-WHERE email = %(email)s
-"""
-
-Q_SET_OTP = """
-INSERT INTO prospective_duo_session (
+Q_INSERT_DUO_SESSION = """
+INSERT INTO duo_session (
+    session_token_hash,
+    person_id,
     email,
     otp
 ) VALUES (
+    %(session_token_hash)s,
+    (SELECT id FROM person WHERE email = %(email)s),
     %(email)s,
     %(otp)s
 )
 """
 
-Q_MAYBE_SET_SESSION_TOKEN_HASH = """
-WITH deleted_prospective_duo_session AS (
-    DELETE FROM prospective_duo_session
-    WHERE email = %(email)s
-    AND otp = %(otp)s
-    RETURNING expiry
+Q_UPDATE_OTP = """
+UPDATE duo_session
+SET
+    otp = %(otp)s,
+    otp_expiry = NOW() + INTERVAL '1 minute'
+WHERE session_token_hash = %(session_token_hash)s
+"""
+
+Q_MAYBE_SIGN_IN = """
+WITH
+valid_session AS (
+    UPDATE duo_session
+    SET signed_in = TRUE
+    WHERE
+        session_token_hash = %(session_token_hash)s AND
+        otp = %(otp)s AND
+        otp_expiry > NOW()
+    RETURNING person_id, email
+),
+existing_onboardee AS (
+    DELETE FROM onboardee
+    WHERE email IN (SELECT email FROM valid_session)
+    RETURNING email
+),
+existing_person AS (
+    SELECT person_id
+    FROM valid_session
+    WHERE person_id IS NOT NULL
+),
+new_onboardee AS (
+    INSERT INTO onboardee (
+        email
+    )
+    SELECT email
+    FROM valid_session
+    WHERE
+        NOT EXISTS (SELECT 1 FROM existing_person) OR
+        EXISTS (SELECT 1 FROM existing_onboardee)
 )
-INSERT INTO duo_session (
-    session_token_hash,
-    person_id,
-    email
-)
-SELECT
-    %(session_token_hash)s,
-    (SELECT id FROM person WHERE email = %(email)s),
-    %(email)s
-FROM deleted_prospective_duo_session
-WHERE deleted_prospective_duo_session.expiry > NOW()
-RETURNING session_token_hash, person_id
+SELECT * FROM valid_session
 """
 
 Q_SELECT_ONBOARDEE_PHOTO = """
@@ -187,14 +207,44 @@ WHERE
     position = %(position)s
 """
 
-Q_COMPLETE_ONBOARDING_1 = """
+Q_SELECT_ONBOARDEE_PHOTOS_TO_DELETE = """
 WITH
+valid_session AS (
+    SELECT email
+    FROM duo_session
+    WHERE
+        session_token_hash = %(session_token_hash)s AND
+        otp = %(otp)s AND
+        otp_expiry > NOW()
+)
+SELECT uuid
+FROM onboardee_photo
+WHERE email IN (SELECT email from valid_session)
+"""
+
+Q_DELETE_DUO_SESSION = """
+DELETE FROM duo_session
+WHERE session_token_hash = %(session_token_hash)s
+"""
+
+Q_FINISH_ONBOARDING_1 = """
+WITH
+onboardee_country AS (
+    SELECT country
+    FROM location
+    ORDER BY location.coordinates <-> (
+        SELECT coordinates
+        FROM onboardee
+        WHERE email = %(email)s
+    )
+    LIMIT 1
+),
 new_person AS (
     INSERT INTO person (
         email,
         name,
         date_of_birth,
-        location_id,
+        coordinates,
         gender_id,
         about,
 
@@ -209,7 +259,7 @@ new_person AS (
         email,
         name,
         date_of_birth,
-        location_id,
+        coordinates,
         gender_id,
         about,
 
@@ -225,9 +275,7 @@ new_person AS (
                         THEN 'Imperial'
                         ELSE 'Metric'
                     END AS name
-                FROM location
-                JOIN onboardee
-                ON location.id = onboardee.location_id
+                FROM onboardee_country
             )
         ),
 
@@ -322,9 +370,17 @@ SELECT
     (SELECT COUNT(*) FROM updated_session)
 """
 
-Q_COMPLETE_ONBOARDING_2 = """
+Q_FINISH_ONBOARDING_2 = """
 DELETE FROM onboardee
 WHERE email = %(email)s
+"""
+
+Q_SEARCH_LOCATIONS = """
+SELECT friendly
+FROM location
+WHERE friendly ILIKE %(first_character)s || '%%'
+ORDER BY friendly <-> %(search_string)s
+LIMIT 10
 """
 
 s3 = boto3.resource('s3',
@@ -347,7 +403,7 @@ def init_db():
                 email,
                 name,
                 date_of_birth,
-                location_id,
+                coordinates,
                 gender_id,
                 about,
 
@@ -363,7 +419,7 @@ def init_db():
                 %(email)s,
                 %(name)s,
                 %(date_of_birth)s,
-                (SELECT id FROM location LIMIT 1),
+                (SELECT coordinates FROM location LIMIT 1),
                 (SELECT id FROM gender LIMIT 1),
                 %(about)s,
 
@@ -488,14 +544,15 @@ def delete_answer(req: t.DeleteAnswer):
         tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': -1})
         tx.execute(Q_DELETE_ANSWER, params)
 
-def post_request_otp(req: t.PostRequestOtp):
-    email = req.email
-    otp = '{:06d}'.format(secrets.randbelow(10**6))
+def _generate_otp():
+    if ENV == 'dev':
+        return '0' * 6
+    else:
+        return '{:06d}'.format(secrets.randbelow(10**6))
 
-    params = dict(
-        email=email,
-        otp=otp,
-    )
+def _send_otp(email: str, otp: str):
+    if ENV == 'dev':
+        return
 
     headers = {
         'accept': 'application/json',
@@ -532,34 +589,85 @@ def post_request_otp(req: t.PostRequestOtp):
         data=json.dumps(data).encode('utf-8')
     )
 
-    if ENV == 'prod':
-        with urllib.request.urlopen(urllib_req) as f:
-            pass
+    with urllib.request.urlopen(urllib_req) as f:
+        pass
 
-    with transaction() as tx:
-        tx.execute(Q_DELETE_OTP, params)
-        tx.execute(Q_SET_OTP, params)
-
-def post_check_otp(req: t.PostCheckOtp):
+def post_request_otp(req: t.PostRequestOtp):
+    email = req.email
+    otp = _generate_otp()
     session_token = secrets.token_hex(64)
     session_token_hash = sha512(session_token)
 
     params = dict(
-        email=req.email,
-        otp=req.otp,
+        email=email,
+        otp=otp,
         session_token_hash=session_token_hash,
     )
 
+    _send_otp(email, otp)
+
     with transaction() as tx:
-        tx.execute(Q_MAYBE_SET_SESSION_TOKEN_HASH, params)
+        tx.execute(Q_INSERT_DUO_SESSION, params)
+
+    return dict(session_token=session_token)
+
+def post_resend_otp(s: t.SessionInfo):
+    otp = _generate_otp()
+
+    params = dict(
+        otp=otp,
+        session_token_hash=s.session_token_hash,
+    )
+
+    _send_otp(s.email, otp)
+
+    with transaction() as tx:
+        tx.execute(Q_UPDATE_OTP, params)
+
+def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
+    params = dict(
+        otp=req.otp,
+        session_token_hash=s.session_token_hash,
+    )
+
+    with transaction() as tx:
+        tx.execute(Q_SELECT_ONBOARDEE_PHOTOS_TO_DELETE, params)
+        previous_onboardee_photos = tx.fetchall()
+
+    delete_images_from_object_store(
+        row['uuid'] for row in previous_onboardee_photos)
+
+    with transaction() as tx:
+        tx.execute(Q_MAYBE_SIGN_IN, params)
         row = tx.fetchone()
         if row:
-            return dict(
-                session_token=session_token,
-                onboarded=row['person_id'] is not None,
-            )
+            return dict(onboarded=row['person_id'] is not None)
         else:
             return 'Invalid OTP', 401
+
+def post_sign_out(s: t.SessionInfo):
+    params = dict(session_token_hash=s.session_token_hash)
+
+    with transaction() as tx:
+        tx.execute(Q_DELETE_DUO_SESSION, params)
+
+def get_search_locations(q: Optional[str]):
+    if q is None:
+        return []
+
+    normalized_whitespace = ' '.join(q.split())
+
+    if len(normalized_whitespace) < 1:
+        return []
+
+    params = dict(
+        first_character=normalized_whitespace[0],
+        search_string=normalized_whitespace,
+    )
+
+    with transaction() as tx:
+        tx.execute(Q_SEARCH_LOCATIONS, params)
+        return [row['friendly'] for row in tx.fetchall()]
 
 def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
     for field_name, field_value in req.dict().items():
@@ -596,17 +704,19 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
         q_set_onboardee_field = """
             INSERT INTO onboardee (
                 email,
-                location_id
+                coordinates
             ) SELECT
                 %(email)s,
-                id
+                coordinates
             FROM location
             WHERE friendly = %(friendly)s
             ON CONFLICT (email) DO UPDATE SET
-                location_id = EXCLUDED.location_id
+                coordinates = EXCLUDED.coordinates
             """
         with transaction() as tx:
             tx.execute(q_set_onboardee_field, params)
+            if tx.rowcount != 1:
+                return 'Unknown location', 400
     elif field_name == 'gender':
         params = dict(
             email=s.email,
@@ -723,12 +833,12 @@ def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo):
     with transaction() as tx:
         tx.executemany(Q_DELETE_ONBOARDEE_PHOTO, params)
 
-def post_complete_onboarding(s: t.SessionInfo):
+def post_finish_onboarding(s: t.SessionInfo):
     params = dict(email=s.email)
 
     with transaction() as tx:
-        tx.execute(Q_COMPLETE_ONBOARDING_1, params)
-        tx.execute(Q_COMPLETE_ONBOARDING_2, params)
+        tx.execute(Q_FINISH_ONBOARDING_1, params)
+        tx.execute(Q_FINISH_ONBOARDING_2, params)
 
 def get_personality(person_id: int):
     params = dict(
