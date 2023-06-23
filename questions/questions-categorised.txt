@@ -309,7 +309,7 @@
       "category": "interpersonal"
     },
     {
-      "question": "Is \"work-life\" balance just a phrase that lazy people use?",
+      "question": "Is \"work-life balance\" just a phrase that lazy people use?",
       "category": "other"
     },
     {

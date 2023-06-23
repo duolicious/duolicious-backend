@@ -1850,7 +1850,7 @@
     "Is it morally permissible to spank children as a form of discipline?",
     "Would you want a partner who can solve a Rubik's Cube in under a minute, using only their feet?",
     "Do you think it's okay to use people for your own gain as long as you don't physically harm them?",
-    "Is \"work-life\" balance just a phrase that lazy people use?",
+    "Is \"work-life balance\" just a phrase that lazy people use?",
     "Is the last number in this sequence correct? 1, 4, 9, 16, 25, 37.",
     "Was your mom a nice lady?",
     "Do you feel like society should be less judgemental and more understanding towards people who gossip?",
