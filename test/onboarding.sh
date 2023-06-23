@@ -5,17 +5,35 @@ cd "$script_dir"
 
 source setup.sh
 
-c POST /request-otp \
-  --header "Content-Type: application/json" \
-  -d '{ "email": "mail@example.com" }'
-
-otp=$(q "SELECT otp FROM prospective_duo_session")
 response=$(
-  c POST /check-otp \
+  c POST /request-otp \
     --header "Content-Type: application/json" \
-    -d '{ "email": "mail@example.com", "otp": "'"$otp"'" }'
+    -d '{ "email": "mail@example.com" }'
 )
+
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
+
+otp_expiry1=$(q "SELECT otp_expiry FROM duo_session order by otp_expiry desc limit 1")
+[[ -n "$otp_expiry1" ]]
+
+c POST /resend-otp
+
+otp_expiry2=$(q "SELECT otp_expiry FROM duo_session order by otp_expiry desc limit 1")
+[[ -n "$otp_expiry2" ]]
+
+[[ "$otp_expiry1" != "$otp_expiry2" ]]
+
+! c POST /check-otp \
+  --header "Content-Type: application/json" \
+  -d '{ "otp": "000001" }'
+
+[[ "$(q "select COUNT(*) from onboardee")" -eq 0 ]]
+
+c POST /check-otp \
+  --header "Content-Type: application/json" \
+  -d '{ "otp": "000000" }'
+
+[[ "$(q "select COUNT(*) from onboardee")" -eq 1 ]]
 
 c PATCH /onboardee-info \
   --header "Content-Type: application/json" \
@@ -24,6 +42,8 @@ c PATCH /onboardee-info \
 c PATCH /onboardee-info \
   --header "Content-Type: application/json" \
   -d '{ "date_of_birth": "1997-05-30" }'
+
+c GET /search-locations?q=Syd
 
 c PATCH /onboardee-info \
   --header "Content-Type: application/json" \
@@ -75,9 +95,44 @@ c PATCH /onboardee-info \
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 1 ]]
 
 ! c GET /next-questions
-c POST /complete-onboarding
+c POST /finish-onboarding
 
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 0 ]]
 
 c GET /next-questions > /dev/null
-! c POST /complete-onboarding
+! c POST /finish-onboarding
+
+# Test signing out works
+c POST /sign-out
+
+[[ "$(q "select count(*) from duo_session where person_id is null")" -eq 0 ]]
+
+! c GET /search-locations?q=Syd
+
+# Can we sign back in?
+
+response=$(
+  c POST /request-otp \
+    --header "Content-Type: application/json" \
+    -d '{ "email": "mail@example.com" }'
+)
+
+SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
+
+! c POST /check-otp \
+  --header "Content-Type: application/json" \
+  -d '{ "otp": "000001" }'
+
+! c GET /search-locations?q=Syd
+
+[[ "$(q "select COUNT(*) from onboardee")" -eq 0 ]]
+
+response=$(
+  c POST /check-otp \
+    --header "Content-Type: application/json" \
+    -d '{ "otp": "000000" }'
+)
+
+[[ "$(echo "$response" | jq -r '.onboarded')" = true ]]
+
+c GET /search-locations?q=Syd

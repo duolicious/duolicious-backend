@@ -1,7 +1,14 @@
-POST /request-otp {} { email } -> ''
+POST /request-otp {} { email } -> {
+  session_token: string
+}
 
-POST /check-otp {} { email, otp } -> {
-  session-token: string
+POST /resend-otp {
+  session-token
+} -> ''
+
+POST /check-otp {
+  session-token
+} { otp } -> {
   onboarded: boolean
 }
 
@@ -10,6 +17,10 @@ GET /check-session-token {
 } {} -> {
   onboarded: boolean
 }
+
+GET /search-locations?q=$1 {
+  session-token
+} -> string[]
 
 PATCH /onboardee-info {
   session-token
@@ -28,7 +39,7 @@ DELETE /onboardee-info {
   { photo }
 ) -> ''
 
-POST /complete-onboarding {
+POST /finish-onboarding {
   session-token
 }
 
@@ -207,4 +218,8 @@ GET /prospect-personality {
 } {
   section: 'mbti' | 'big-5' | 'attachment' | 'politics' | 'other'
 } -> {
+}
+
+POST /sign-out {
+  session-token
 }

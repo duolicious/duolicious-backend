@@ -6,8 +6,8 @@ import os
 
 _valid_isolation_levels = [
     'SERIALIZABLE',
-    'READ COMMITTED',
     'REPEATABLE READ'
+    'READ COMMITTED',
 ]
 
 DB_HOST = os.environ['DUO_DB_HOST']
