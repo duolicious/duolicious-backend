@@ -7,21 +7,13 @@ import duotypes
 import os
 
 ENV = os.environ['DUO_ENV']
-CORS_ORIGINS = os.environ['DUO_CORS_ORIGINS']
+CORS_ORIGINS = os.environ.get('DUO_CORS_ORIGINS', '*')
 
 app = Flask(__name__)
 
 app.config['MAX_CONTENT_LENGTH'] = constants.MAX_CONTENT_LENGTH;
 
-if ENV == 'dev':
-    CORS(app, resources={r"/*": {"origins": "*"}})
-else:
-    CORS(
-        app,
-        resources={
-            r"/*": {"origins": ','.split(CORS_ORIGINS)}
-        }
-    )
+CORS(app, origins=CORS_ORIGINS.split(','))
 
 Q_GET_SESSION = """
 SELECT person_id, email, signed_in
