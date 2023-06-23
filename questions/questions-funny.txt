@@ -1318,7 +1318,7 @@
     "Would you date someone who didn't share the same beliefs as you?",
     "Are you in favor of more comprehensive sex education in schools?",
     "Would you tell your best friend if their partner was cheating, even if it could hurt your friendship?",
-    "Should we allow genetically modified organisms (GMOs) in our food supply?",
+    "Should we allow genetically modified organisms in our food supply?",
     "Are you a vegetarian or vegan?",
     "Is it wrong to hunt for sport?",
     "Should you wait until you're in a serious relationship before disclosing any past criminal history or legal issues?",

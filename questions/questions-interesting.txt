@@ -1305,7 +1305,7 @@
     "Would your ideal partner be sexually experienced?",
     "Are old things usually better than new ones?",
     "Do you own cryptocurrency?",
-    "Should we allow genetically modified organisms (GMOs) in our food supply?",
+    "Should we allow genetically modified organisms in our food supply?",
     "In your dictionary, does a 'mysterious' partner mean 'untrustworthy'?",
     "Have you ever sexted someone?",
     "Do you live with your parents?",

@@ -3017,7 +3017,7 @@
       "category": "interpersonal"
     },
     {
-      "question": "Should we allow genetically modified organisms (GMOs) in our food supply?",
+      "question": "Should we allow genetically modified organisms in our food supply?",
       "category": "values"
     },
     {
