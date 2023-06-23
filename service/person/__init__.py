@@ -158,6 +158,22 @@ SET
 WHERE session_token_hash = %(session_token_hash)s
 """
 
+Q_MAYBE_DELETE_ONBOARDEE = """
+WITH
+valid_session AS (
+    UPDATE duo_session
+    SET signed_in = TRUE
+    WHERE
+        session_token_hash = %(session_token_hash)s AND
+        otp = %(otp)s AND
+        otp_expiry > NOW()
+    RETURNING email
+)
+DELETE FROM onboardee
+WHERE email IN (SELECT email FROM valid_session)
+RETURNING email
+"""
+
 Q_MAYBE_SIGN_IN = """
 WITH
 valid_session AS (
@@ -168,11 +184,6 @@ valid_session AS (
         otp = %(otp)s AND
         otp_expiry > NOW()
     RETURNING person_id, email
-),
-existing_onboardee AS (
-    DELETE FROM onboardee
-    WHERE email IN (SELECT email FROM valid_session)
-    RETURNING email
 ),
 existing_person AS (
     SELECT person_id
@@ -185,9 +196,7 @@ new_onboardee AS (
     )
     SELECT email
     FROM valid_session
-    WHERE
-        NOT EXISTS (SELECT 1 FROM existing_person) OR
-        EXISTS (SELECT 1 FROM existing_onboardee)
+    WHERE NOT EXISTS (SELECT 1 FROM existing_person)
 )
 SELECT * FROM valid_session
 """
@@ -638,6 +647,7 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
         row['uuid'] for row in previous_onboardee_photos)
 
     with transaction() as tx:
+        tx.execute(Q_MAYBE_DELETE_ONBOARDEE, params)
         tx.execute(Q_MAYBE_SIGN_IN, params)
         row = tx.fetchone()
         if row:
