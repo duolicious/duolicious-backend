@@ -139,10 +139,12 @@ FROM coalesced
 Q_INSERT_DUO_SESSION = """
 INSERT INTO duo_session (
     session_token_hash,
+    person_id,
     email,
     otp
 ) VALUES (
     %(session_token_hash)s,
+    (SELECT id FROM person WHERE email = %(email)s),
     %(email)s,
     %(otp)s
 )
@@ -158,7 +160,7 @@ WHERE session_token_hash = %(session_token_hash)s
 
 Q_MAYBE_SIGN_IN = """
 WITH
-updated_session AS (
+valid_session AS (
     UPDATE duo_session
     SET signed_in = TRUE
     WHERE
@@ -167,9 +169,14 @@ updated_session AS (
         otp_expiry > NOW()
     RETURNING person_id, email
 ),
+existing_onboardee AS (
+    DELETE FROM onboardee
+    WHERE email IN (SELECT email FROM valid_session)
+    RETURNING email
+),
 existing_person AS (
     SELECT person_id
-    FROM updated_session
+    FROM valid_session
     WHERE person_id IS NOT NULL
 ),
 new_onboardee AS (
@@ -177,10 +184,12 @@ new_onboardee AS (
         email
     )
     SELECT email
-    FROM updated_session
-    WHERE NOT EXISTS (SELECT 1 FROM existing_person)
+    FROM valid_session
+    WHERE
+        NOT EXISTS (SELECT 1 FROM existing_person) OR
+        EXISTS (SELECT 1 FROM existing_onboardee)
 )
-SELECT * FROM updated_session
+SELECT * FROM valid_session
 """
 
 Q_SELECT_ONBOARDEE_PHOTO = """
@@ -196,6 +205,26 @@ DELETE FROM onboardee_photo
 WHERE
     email = %(email)s AND
     position = %(position)s
+"""
+
+Q_SELECT_ONBOARDEE_PHOTOS_TO_DELETE = """
+WITH
+valid_session AS (
+    SELECT email
+    FROM duo_session
+    WHERE
+        session_token_hash = %(session_token_hash)s AND
+        otp = %(otp)s AND
+        otp_expiry > NOW()
+)
+SELECT uuid
+FROM onboardee_photo
+WHERE email IN (SELECT email from valid_session)
+"""
+
+Q_DELETE_DUO_SESSION = """
+DELETE FROM duo_session
+WHERE session_token_hash = %(session_token_hash)s
 """
 
 Q_FINISH_ONBOARDING_1 = """
@@ -602,12 +631,25 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
     )
 
     with transaction() as tx:
+        tx.execute(Q_SELECT_ONBOARDEE_PHOTOS_TO_DELETE, params)
+        previous_onboardee_photos = tx.fetchall()
+
+    delete_images_from_object_store(
+        row['uuid'] for row in previous_onboardee_photos)
+
+    with transaction() as tx:
         tx.execute(Q_MAYBE_SIGN_IN, params)
         row = tx.fetchone()
         if row:
             return dict(onboarded=row['person_id'] is not None)
         else:
             return 'Invalid OTP', 401
+
+def post_sign_out(s: t.SessionInfo):
+    params = dict(session_token_hash=s.session_token_hash)
+
+    with transaction() as tx:
+        tx.execute(Q_DELETE_DUO_SESSION, params)
 
 def get_search_locations(q: Optional[str]):
     if q is None:

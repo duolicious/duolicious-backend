@@ -45,8 +45,8 @@ class PatchOnboardeeInfo(BaseModel):
     location: Optional[constr(min_length=1)]
     gender: Optional[constr(min_length=1)]
     other_peoples_genders: Optional[conlist(constr(min_length=1), min_items=1)]
-    files: Optional[Dict[conint(ge=1, le=6), Image.Image]]
-    about: Optional[str]
+    files: Optional[Dict[conint(ge=1, le=7), Image.Image]]
+    about: Optional[constr(min_length=1, max_length=10000)]
 
     @validator('date_of_birth')
     def age_must_be_18_or_up(cls, date_of_birth):
@@ -124,4 +124,4 @@ class PatchOnboardeeInfo(BaseModel):
         arbitrary_types_allowed = True
 
 class DeleteOnboardeeInfo(BaseModel):
-    files: List[conint(ge=1, le=6)]
+    files: List[conint(ge=1, le=7)]

@@ -1,6 +1,20 @@
 #!/bin/sh
 
+set -e
+
 export PYTHONDONTWRITEBYTECODE=true
+
+if [ "${DUO_USE_VENV:-true}" = true ] && [ -d venv/ ]
+then
+  export PATH=$(readlink -e venv/bin):$PATH
+fi
+
+if [ "${DUO_USE_VENV:-true}" = true ] && [ ! -d venv/ ]
+then
+  python3 -m venv venv/
+  export PATH=$(readlink -e venv/bin):$PATH
+  python3 -m pip install -r requirements.txt
+fi
 
 if [ -z "$PORT" ]
 then

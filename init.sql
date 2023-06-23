@@ -141,7 +141,6 @@ CREATE TABLE IF NOT EXISTS person (
 
 CREATE TABLE IF NOT EXISTS onboardee (
     email TEXT NOT NULL,
-
     name TEXT,
     date_of_birth DATE,
     coordinates GEOGRAPHY(Point, 4326),

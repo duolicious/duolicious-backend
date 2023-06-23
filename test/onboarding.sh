@@ -101,3 +101,38 @@ c POST /finish-onboarding
 
 c GET /next-questions > /dev/null
 ! c POST /finish-onboarding
+
+# Test signing out works
+c POST /sign-out
+
+[[ "$(q "select count(*) from duo_session where person_id is null")" -eq 0 ]]
+
+! c GET /search-locations?q=Syd
+
+# Can we sign back in?
+
+response=$(
+  c POST /request-otp \
+    --header "Content-Type: application/json" \
+    -d '{ "email": "mail@example.com" }'
+)
+
+SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
+
+! c POST /check-otp \
+  --header "Content-Type: application/json" \
+  -d '{ "otp": "000001" }'
+
+! c GET /search-locations?q=Syd
+
+[[ "$(q "select COUNT(*) from onboardee")" -eq 0 ]]
+
+response=$(
+  c POST /check-otp \
+    --header "Content-Type: application/json" \
+    -d '{ "otp": "000000" }'
+)
+
+[[ "$(echo "$response" | jq -r '.onboarded')" = true ]]
+
+c GET /search-locations?q=Syd

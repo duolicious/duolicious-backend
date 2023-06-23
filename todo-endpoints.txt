@@ -219,3 +219,7 @@ GET /prospect-personality {
   section: 'mbti' | 'big-5' | 'attachment' | 'politics' | 'other'
 } -> {
 }
+
+POST /sign-out {
+  session-token
+}
