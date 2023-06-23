@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import {
   useCallback,
+  useState,
 } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ButtonForOption } from './button/option';
@@ -26,7 +27,9 @@ import {
 } from '../data/option-groups';
 import { Images } from './images';
 import { DefaultText } from './default-text';
-import { sessionToken } from '../lib/session-token';
+import { sessionToken } from '../session-token/session-token';
+import { api } from '../api/api';
+import { setAppState } from '../App';
 
 const Stack = createNativeStackNavigator();
 
@@ -67,6 +70,8 @@ const ProfileTab_ = ({navigation}) => {
 };
 
 const About = ({navigation}) => {
+  const [isLoadingSignOut, setIsLoadingSignOut] = useState(false);
+
   const Button_ = (props) => {
     return <ButtonForOption
       navigation={navigation}
@@ -75,11 +80,13 @@ const About = ({navigation}) => {
     />;
   }
 
-  const signOut = useCallback(() => {
-    // TODO: Ask server to invalidate the token
-    // TODO: Loading indicator
-    sessionToken(null); // TODO: This happens asynchronously
-    navigation.navigate('Welcome');
+  const signOut = useCallback(async () => {
+    setIsLoadingSignOut(true);
+    if ((await api('post', '/sign-out')).ok) {
+      await sessionToken(null);
+      setAppState('signed-out');
+    }
+    setIsLoadingSignOut(false);
   }, [navigation]);
 
   return (
@@ -117,7 +124,7 @@ const About = ({navigation}) => {
       }
 
       <Title>Sign Out</Title>
-      <ButtonForOption onPress={signOut} label="Sign Out" setting=""/>
+      <ButtonForOption onPress={signOut} label="Sign Out" setting="" loading={isLoadingSignOut}/>
 
       <Title>Deactivate Your Account</Title>
       <Button_ optionGroups={deactivationOptionGroups} setting="" showSkipButton={false}/>

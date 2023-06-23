@@ -2,11 +2,30 @@ import {
   View,
 } from 'react-native';
 import {
-  useState,
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useRef,
+  useState
 } from 'react';
 import DropDownPicker from 'react-native-dropdown-picker';
+import { DefaultText } from '../components/default-text';
 
-const DatePicker = ({...props}) => {
+
+interface DatePickerProps {
+  input: any;
+  setIsLoading: (isLoading: boolean) => void;
+  onSubmitSuccess: () => void;
+}
+
+const DatePicker = forwardRef((
+  {
+    input,
+    setIsLoading,
+    onSubmitSuccess
+  }: DatePickerProps,
+  ref: any
+) => {
   const [isDayOpen, setIsDayOpen] = useState(false);
   const [isMonthOpen, setIsMonthOpen] = useState(false);
   const [isYearOpen, setIsYearOpen] = useState(false);
@@ -15,6 +34,8 @@ const DatePicker = ({...props}) => {
   const [month, setMonth] = useState(null);
   const [year, setYear] = useState(null);
 
+  const [isInvalid, setIsInvalid] = useState(false);
+
   const maxDay = year !== null && month !== null ?
     new Date(year, month, 0).getDate() :
     31;
@@ -22,6 +43,39 @@ const DatePicker = ({...props}) => {
     const n = (i + 1).toString();
     return {label: n, value: n};
   });
+
+  const submit = useCallback(async () => {
+    setIsLoading(true);
+
+    const dateString = (
+      String(year) + '-' +
+      String(month).padStart(2, '0') + '-' +
+      String(day).padStart(2, '0')
+    );
+
+    const ok = await input.date.submit(dateString);
+    setIsInvalid(!ok);
+    ok && onSubmitSuccess();
+
+    setIsLoading(false);
+  }, [year, month, day]);
+
+  useImperativeHandle(ref, () => ({ submit }), [submit]);
+
+  const setOpenDay = useCallback((value: any) => {
+    setIsInvalid(false);
+    setIsDayOpen(value);
+  }, []);
+
+  const setOpenMonth = useCallback((value: any) => {
+    setIsInvalid(false);
+    setIsMonthOpen(value);
+  }, []);
+
+  const setOpenYear = useCallback((value: any) => {
+    setIsInvalid(false);
+    setIsYearOpen(value);
+  }, []);
 
   const months = [
     {label: 'January', value: 1},
@@ -61,51 +115,65 @@ const DatePicker = ({...props}) => {
   };
 
   return (
-    <View
-      style={{
-        marginLeft: 20,
-        marginRight: 20,
-        flexDirection: 'row',
-      }}
-    >
-      <View style={{flex: 1}}>
-        <DropDownPicker
-          {...dropdownStyleProps}
-          open={isDayOpen}
-          value={day}
-          items={days}
-          setOpen={setIsDayOpen}
-          setValue={setDay}
-          placeholder="Day"
-        />
+    <>
+      <View
+        style={{
+          marginLeft: 20,
+          marginRight: 20,
+          flexDirection: 'row',
+        }}
+      >
+        <View style={{flex: 1}}>
+          <DropDownPicker
+            {...dropdownStyleProps}
+            open={isDayOpen}
+            value={day}
+            items={days}
+            setOpen={setOpenDay}
+            setValue={setDay}
+            placeholder="Day"
+          />
+        </View>
+        <View style={{width: 10}}/>
+        <View style={{flex: 1}}>
+          <DropDownPicker
+            {...dropdownStyleProps}
+            open={isMonthOpen}
+            value={month}
+            items={months}
+            setOpen={setOpenMonth}
+            setValue={setMonth}
+            placeholder="Month"
+          />
+        </View>
+        <View style={{width: 10}}/>
+        <View style={{flex: 1}}>
+          <DropDownPicker
+            {...dropdownStyleProps}
+            open={isYearOpen}
+            value={year}
+            items={years}
+            setOpen={setOpenYear}
+            setValue={setYear}
+            placeholder="Year"
+          />
+        </View>
       </View>
-      <View style={{width: 10}}/>
-      <View style={{flex: 1}}>
-        <DropDownPicker
-          {...dropdownStyleProps}
-          open={isMonthOpen}
-          value={month}
-          items={months}
-          setOpen={setIsMonthOpen}
-          setValue={setMonth}
-          placeholder="Month"
-        />
-      </View>
-      <View style={{width: 10}}/>
-      <View style={{flex: 1}}>
-        <DropDownPicker
-          {...dropdownStyleProps}
-          open={isYearOpen}
-          value={year}
-          items={years}
-          setOpen={setIsYearOpen}
-          setValue={setYear}
-          placeholder="Year"
-        />
-      </View>
-    </View>
+      <DefaultText
+        style={{
+          zIndex: -1,
+          elevation: -1,
+          textAlign: 'center',
+          color: 'white',
+          marginTop: 5,
+          opacity: isInvalid ? 1 : 0
+        }}
+      >
+        That doesn't look like a valid date of birth 🤨
+      </DefaultText>
+    </>
   );
-};
+});
 
 export {
   DatePicker,

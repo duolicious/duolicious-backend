@@ -11,6 +11,10 @@ import {
 import { DefaultText } from './default-text';
 
 const CheckChip = ({label, ...props}) => {
+  const {
+    onChange = () => {}
+  } = props;
+
   const [checked, setChecked] = useState(props.initialCheckedState ?? false);
 
   const checkedContainerStyle = {
@@ -26,7 +30,10 @@ const CheckChip = ({label, ...props}) => {
   };
 
   const onPress_ = useCallback(() => {
-    setChecked(checked => !checked);
+    setChecked(checked => {
+      onChange(!checked);
+      return !checked;
+    });
   }, []);
 
   return (

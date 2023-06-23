@@ -1,69 +1,111 @@
 import {
+  forwardRef,
+  useCallback,
   useState,
 } from 'react';
 import {
+  ActivityIndicator,
+  Dimensions,
+  Pressable,
+  ScrollView,
   View,
 } from 'react-native';
-import {
-  AutocompleteDropdown,
-  TAutocompleteDropdownItem,
-} from 'react-native-autocomplete-dropdown';
+import debounce from 'lodash/debounce';
+import { DefaultText } from './default-text';
+import { DefaultTextInput } from './default-text-input';
+import { japi } from '../api/api';
 
-const LocationSelector = () => {
-  const dataSet: TAutocompleteDropdownItem[] = [
-    { id: '1', title: 'New York, USA'},
-    { id: '2', title: 'Sydney, Australia'},
-    { id: '3', title: 'Paris, France'},
-    { id: '4', title: 'Llanfairpwllgwyngyll, Wales'},
-    { id: '5', title: 'Fuerstenfeldbruck, Germany'},
-  ];
+const LocationSelector = ({onChangeText}) => {
+  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState(null);
+  const [text, setText] = useState("");
+  const [displayResults, setDisplayResults] = useState(false);
 
-  const [
-    selectedItem,
-    setSelectedItem,
-  ] = useState<TAutocompleteDropdownItem | undefined>(undefined);
+  const getSuggestions = useCallback(debounce(async (q: string) => {
+    let json;
+    try {
+      const response = await japi(
+        'get',
+        '/search-locations?q=' + encodeURIComponent(q),
+      );
+      json = response.json;
+    } catch {
+      setItems(null);
+    }
+
+    setItems(json);
+    setLoading(false);
+  }, 500), []);
+
+  const onChangeTextDebounced = useCallback(async (q) => {
+    onChangeText(q);
+    setText(q);
+    setLoading(true);
+    setDisplayResults(true);
+    getSuggestions(q);
+  }, [getSuggestions]);
+
+  const Item = useCallback(({text}) => {
+    return (
+      <Pressable onPress={() => {
+        setDisplayResults(false);
+        onChangeText(text);
+        setText(text);
+      }}>
+        <DefaultText style={{padding: 15}}>{text}</DefaultText>
+      </Pressable>
+    );
+  }, []);
 
   return (
-    <AutocompleteDropdown
-      showChevron={false}
-      showClear={false}
-      useFilter={false}
-      clearOnFocus={false}
-      closeOnBlur={false}
-      closeOnSubmit={false}
-      initialValue={selectedItem}
-      onSelectItem={setSelectedItem}
-      dataSet={dataSet}
-      textInputProps={{
-        placeholder: 'Type a location...',
-        autoCorrect: false,
-        autoCapitalize: 'none',
-        style: {
-          backgroundColor: 'white',
-          color: 'black',
-          fontFamily: 'MontserratRegular',
-          borderRadius: 10,
-          fontSize: 14,
-          borderColor: '#ccc',
-          borderWidth: 1,
-        },
-      }}
-      inputContainerStyle={{
-        backgroundColor: 'transparent',
-      }}
-      suggestionsListTextStyle={{
-        fontFamily: 'MontserratRegular',
-      }}
-      containerStyle={{
-        marginTop: 0,
-        marginBottom: 0,
-        marginRight: 20,
-        marginLeft: 20,
-      }}
-      debounce={1000}
-      inputHeight={50}
-      direction="down"
-    />
+    <>
+      <DefaultTextInput
+        placeholder="Type a location..."
+        value={text}
+        onChangeText={onChangeTextDebounced}
+      />
+      <View
+        style={{
+          marginTop: 5,
+          marginLeft: 20,
+          marginRight: 20,
+          paddingTop: 5,
+          paddingBottom: 5,
+        }}
+      >
+        {displayResults &&
+          <ScrollView
+            style={{
+              position: 'absolute',
+              width: '100%',
+              top: 0,
+              borderRadius: 10,
+              backgroundColor: 'white',
+              maxHeight: Dimensions.get('screen').height * 0.25,
+              shadowOffset: {
+                width: 0,
+                height: 2,
+              },
+              shadowOpacity: 0.4,
+              shadowRadius: 6,
+              elevation: 8,
+            }}
+          >
+            {loading &&
+              <ActivityIndicator size="large" color="#70f" style={{ padding: 5 }}/>
+            }
+            {!loading && items &&
+              items.map((item) => <Item key={item} text={item}/>)
+            }
+            {!loading && !items?.length &&
+              <DefaultText style={{ padding: 15, textAlign: 'center'}} >
+                No results
+              </DefaultText>
+            }
+          </ScrollView>
+        }
+      </View>
+    </>
   );
 };
 

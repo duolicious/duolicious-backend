@@ -1,5 +1,10 @@
+import * as _ from "lodash";
+import { mapi, japi } from '../api/api';
+import { setAppState } from '../App';
+
 type OptionGroupButtons = {
   buttons: string[],
+  submit: (input: string) => Promise<boolean>
   initialSelectedIndex?: number,
 };
 
@@ -7,28 +12,59 @@ type OptionGroupVerification = 'verification';
 
 type OptionGroupDeletion = 'deletion';
 
-type OptionGroupLocationSelector = 'location-selector';
+type OptionGroupLocationSelector = {
+  locationSelector: {
+    submit: (input: string) => Promise<boolean>
+  }
+};
 
-type OptionGroupGivenName = 'given-name';
+type OptionGroupGivenName = {
+  givenName: {
+    submit: (input: string) => Promise<boolean>
+  }
+};
 
-type OptionGroupDate = 'date';
+type OptionGroupDate = {
+  date: {
+    submit: (input: string) => Promise<boolean>
+  }
+};
 
-type OptionGroupPhotos = 'photos';
+type OptionGroupPhotos = {
+  photos: {
+    submit: (filename: string, pathOrBase64: string) => Promise<boolean>
+    delete: (filename: string) => Promise<boolean>
+  }
+};
 
-type OptionGroupTextLong = 'text-long';
+type OptionGroupTextLong = {
+  textLong: {
+    submit: (input: string) => Promise<boolean>
+    invalidMsg?: string
+  }
+};
 
 type OptionGroupTextShort = 'text-short';
 
-type OptionGroupOtp = 'otp';
+type OptionGroupOtp = {
+  otp: {
+    submit: (input: string) => Promise<boolean>
+  }
+};
 
 type OptionGroupCheckChips = {
   checkChips: {
     label: string
     checked: boolean
-  }[]
+  }[],
+  submit: (input: string[]) => Promise<boolean>
 };
 
-type OptionGroupNone = 'none';
+type OptionGroupNone = {
+  none: {
+    submit: () => Promise<boolean>
+  }
+};
 
 type OptionGroupSlider = {
   slider: {
@@ -72,6 +108,20 @@ type OptionGroup = {
   scrollView?: boolean,
 };
 
+
+const hasExactKeys = (obj, keys) => {
+    // If the number of keys in the object and the keys array don't match, return false
+    if (Object.keys(obj).length !== keys.length) return false;
+
+    // Check whether each key in the keys array exists in the object
+    for (let i = 0; i < keys.length; i++) {
+        if (!obj.hasOwnProperty(keys[i])) return false;
+    }
+
+    // If all keys are found, return true
+    return true;
+}
+
 const isOptionGroupButtons = (x: any): x is OptionGroupButtons => {
   return (x as OptionGroupButtons)?.buttons !== undefined;
 }
@@ -85,31 +135,31 @@ const isOptionGroupDeletion = (x: any): x is OptionGroupDeletion => {
 }
 
 const isOptionGroupLocationSelector = (x: any): x is OptionGroupLocationSelector => {
-  return x === 'location-selector';
+  return hasExactKeys(x, ['locationSelector']);
 }
 
 const isOptionGroupSlider = (x: any): x is OptionGroupSlider => {
-  return JSON.stringify(Object.keys(x)) === JSON.stringify(['slider']);
+  return hasExactKeys(x, ['slider']);
 };
 
 const isOptionGroupRangeSlider = (x: any): x is OptionGroupRangeSlider => {
-  return JSON.stringify(Object.keys(x)) === JSON.stringify(['rangeSlider']);
+  return hasExactKeys(x, ['rangeSlider']);
 }
 
 const isOptionGroupGivenName = (x: any): x is OptionGroupGivenName => {
-  return x === 'given-name';
+  return hasExactKeys(x, ['givenName']);
 }
 
 const isOptionGroupDate = (x: any): x is OptionGroupDate => {
-  return x === 'date';
+  return hasExactKeys(x, ['date']);
 }
 
 const isOptionGroupPhotos = (x: any): x is OptionGroupPhotos => {
-  return x === 'photos';
+  return hasExactKeys(x, ['photos']);
 }
 
 const isOptionGroupTextLong = (x: any): x is OptionGroupTextLong => {
-  return x === 'text-long';
+  return hasExactKeys(x, ['textLong']);
 }
 
 const isOptionGroupTextShort = (x: any): x is OptionGroupTextShort => {
@@ -117,15 +167,15 @@ const isOptionGroupTextShort = (x: any): x is OptionGroupTextShort => {
 }
 
 const isOptionGroupOtp = (x: any): x is OptionGroupOtp => {
-  return x === 'otp';
+  return hasExactKeys(x, ['otp']);
 }
 
 const isOptionGroupNone = (x: any): x is OptionGroupNone => {
-  return x === 'none';
+  return hasExactKeys(x, ['none']);
 }
 
 const isOptionGroupCheckChips = (x: any): x is OptionGroupCheckChips => {
-  return JSON.stringify(Object.keys(x)) === JSON.stringify(['checkChips']);
+  return hasExactKeys(x, ['checkChips', 'submit']);
 }
 
 const genders = [
@@ -144,6 +194,7 @@ const genderOptionGroup: OptionGroup = {
   description: "What's your gender?",
   input: {
     buttons: genders,
+    submit: async (input) => true
   }
 };
 
@@ -152,13 +203,18 @@ const otherPeoplesGendersOptionGroup: OptionGroup = {
   description: "What are the genders of the people you'd like to meet?",
   input: {
     checkChips: genders.map((g) => ({checked: true, label: g})),
+    submit: async (inputs: string[]) => true
   }
 };
 
 const locationOptionGroup: OptionGroup = {
   title: 'Location',
   description: "What city do you live in?",
-  input: 'location-selector',
+  input: {
+    locationSelector: {
+      submit: async (input: string) => true
+    }
+  },
   scrollView: false,
 };
 
@@ -175,6 +231,7 @@ const orientationOptionGroup: OptionGroup = {
       'Pansexual',
       'Other',
     ],
+    submit: async (input: string) => true
   },
 };
 
@@ -187,6 +244,7 @@ const lookingForOptionGroup: OptionGroup = {
       'Short-term dating',
       'Friends',
     ],
+    submit: async (input: string) => true
   }
 };
 
@@ -227,6 +285,7 @@ const basicsOptionGroups: OptionGroup[] = [
     description: 'Do you smoke?',
     input: {
       buttons: ['Yes', 'No'],
+      submit: async (input: string) => true
     },
   },
   {
@@ -234,6 +293,7 @@ const basicsOptionGroups: OptionGroup[] = [
     description: 'How often do you drink?',
     input: {
       buttons: ['Often', 'Sometimes', 'Never'],
+      submit: async (input: string) => true
     },
   },
   {
@@ -241,6 +301,7 @@ const basicsOptionGroups: OptionGroup[] = [
     description: 'Do you do drugs?',
     input: {
       buttons: ['Yes', 'No'],
+      submit: async (input: string) => true
     },
   },
   {
@@ -248,6 +309,7 @@ const basicsOptionGroups: OptionGroup[] = [
     description: 'Are you willing to enter a long-distance relationship?',
     input: {
       buttons: ['Yes', 'No'],
+      submit: async (input: string) => true
     },
   },
   {
@@ -263,6 +325,7 @@ const basicsOptionGroups: OptionGroup[] = [
         'Widowed',
         'Other',
       ],
+      submit: async (input: string) => true
     }
   },
   {
@@ -270,6 +333,7 @@ const basicsOptionGroups: OptionGroup[] = [
     description: 'Do you have kids?',
     input: {
       buttons: ['Yes', 'No'],
+      submit: async (input: string) => true
     },
   },
   {
@@ -277,6 +341,7 @@ const basicsOptionGroups: OptionGroup[] = [
     description: 'Do you want kids?',
     input: {
       buttons: ['Yes', 'No'],
+      submit: async (input: string) => true
     },
   },
   {
@@ -288,6 +353,7 @@ const basicsOptionGroups: OptionGroup[] = [
         'Sometimes',
         'Never',
       ],
+      submit: async (input: string) => true
     },
   },
   {
@@ -304,6 +370,7 @@ const basicsOptionGroups: OptionGroup[] = [
         'Muslim',
         'Other',
       ],
+      submit: async (input: string) => true
     },
   },
   {
@@ -324,6 +391,7 @@ const basicsOptionGroups: OptionGroup[] = [
         'Taurus',
         'Virgo',
       ],
+      submit: async (input: string) => true
     },
   },
 ];
@@ -334,6 +402,7 @@ const generalSettingsOptionGroups: OptionGroup[] = [
     description: "Do you use the metric system, or the imperial system?",
     input: {
       buttons: ['Metric', 'Imperial'],
+      submit: async (input: string) => true
     }
   },
 ];
@@ -350,6 +419,7 @@ const notificationSettingsOptionGroups: OptionGroup[] = [
         'Weekly',
         'Never'
       ],
+      submit: async (input: string) => true
     }
   },
   {
@@ -363,6 +433,7 @@ const notificationSettingsOptionGroups: OptionGroup[] = [
         'Weekly',
         'Never'
       ],
+      submit: async (input: string) => true
     }
   },
   {
@@ -376,6 +447,7 @@ const notificationSettingsOptionGroups: OptionGroup[] = [
         'Weekly',
         'Never'
       ],
+      submit: async (input: string) => true
     }
   },
 ];
@@ -392,7 +464,11 @@ const deactivationOptionGroups: OptionGroup[] = [
   {
     title: 'Deactivate Your Account',
     description: 'Are you sure you want to deactivate your account? This will hide you from other users and log you out. The next time you sign in, your account will be reactivated. Press "continue" to deactivate your account.',
-    input: 'none',
+    input: {
+      none: {
+        submit: async () => true
+      }
+    }
   },
 ];
 
@@ -400,36 +476,136 @@ const createAccountOptionGroups: OptionGroup[] = [
   {
     title: "Password",
     description: "Enter the one-time password you just received to create an account or sign in",
-    input: 'otp',
+    input: {
+      otp: {
+        submit: async (input) => {
+          const response = await japi('post', '/check-otp', { otp: input });
+          if (response?.json?.onboarded) {
+            setAppState('signed-in');
+          }
+          return response.ok;
+        }
+      }
+    },
   },
   {
-    title: "First Name",
-    description: "What's your first name?",
-    input: 'given-name',
-  },
-  {
-    title: 'Birth Date',
-    description: "What's your birth date?",
-    input: 'date',
+    title: 'Step 1 of 7: Birth Date',
+    description: "When were you born?",
+    input: {
+      date: {
+        submit: async (input) => (await japi(
+          'patch',
+          '/onboardee-info',
+          { date_of_birth: input }
+        )).ok
+      }
+    },
     scrollView: false,
   },
-  locationOptionGroup,
-  genderOptionGroup,
-  otherPeoplesGendersOptionGroup,
+  _.merge(
+    {},
+    locationOptionGroup,
+    {
+      title: 'Step 2 of 7: ' + locationOptionGroup.title,
+      input: {
+        locationSelector: {
+          submit: async (input) => (await japi(
+            'patch',
+            '/onboardee-info',
+            { location: input }
+          )).ok
+        }
+      }
+    },
+  ),
+  _.merge(
+    {},
+    genderOptionGroup,
+    {
+      title: 'Step 3 of 7: ' + genderOptionGroup.title,
+      input: {
+        submit: async (input) => (await japi(
+          'patch',
+          '/onboardee-info',
+          { gender: input }
+        )).ok
+      }
+    },
+  ),
+  _.merge(
+    {},
+    otherPeoplesGendersOptionGroup,
+    {
+      title: 'Step 4 of 7: ' + otherPeoplesGendersOptionGroup.title,
+      input: {
+        submit: async (input) => (await japi(
+          'patch',
+          '/onboardee-info',
+          { other_peoples_genders: input }
+        )).ok
+      }
+    },
+  ),
   {
-    title: 'Photos',
-    description: 'Profiles with photos are promoted in search results, but you can add these later.',
-    input: 'photos',
+    title: "Step 5 of 7: First Name",
+    description: "What's your first name?",
+    input: {
+      givenName: {
+        submit: async (input) => (await japi(
+          'patch',
+          '/onboardee-info',
+          { name: input }
+        )).ok
+      }
+    },
   },
   {
-    title: 'About',
+    title: 'Step 6 of 7: Photos',
+    description: 'Profiles with photos are promoted in search results, but you can add these later.',
+    input: {
+      photos: {
+        submit: async (filename, pathOrBase64) => (await mapi(
+          'patch',
+          '/onboardee-info',
+          filename,
+          pathOrBase64
+        )).ok,
+        delete: async (filename) => (await japi(
+          'delete',
+          '/onboardee-info',
+          { files: [filename] }
+        )).ok
+      }
+    }
+  },
+  {
+    title: 'Step 7 of 7: About',
     description: 'Tell us about yourself...',
-    input: 'text-long',
+    input: {
+      textLong: {
+        submit: async (input) => (await japi(
+          'patch',
+          '/onboardee-info',
+          { about: input }
+        )).ok,
+        invalidMsg: "Gotta write something",
+      }
+    }
   },
   {
     title: "Your Profile Looks Delicious! 😋",
     description: "If you want to sweeten it even more, you can always add more info via the \"Profile\" tab, once you've signed in. But for now, you're ready to get started!",
-    input: 'none',
+    input: {
+      none: {
+        submit: async () => {
+          const response = await japi('post', '/finish-onboarding');
+          if (response.ok) {
+            setAppState('signed-in');
+          };
+          return response.ok;
+        }
+      }
+    }
   },
 ];
 
@@ -437,12 +613,20 @@ const contactOptionGroups: OptionGroup[] = [
   {
     title: 'Contact Us',
     description: "Our mission at Duolicious is to help its users meet like-minded people. You can help us achieve that by contacting us here to provide feedback, report abuse, or submit any other concerns or queries you have.",
-    input: 'text-long',
+    input: {
+      textLong: {
+        submit: async () => true
+      }
+    }
   },
   {
     title: 'Message Sent!',
     description: "Thanks for getting in touch. We'll get back to you as soon as possible.",
-    input: 'none',
+    input: {
+      none: {
+        submit: async () => true
+      }
+    }
   }
 ];
 
@@ -455,7 +639,8 @@ const searchBasicsOptionGroups: OptionGroup[] = [
           isOptionGroupCheckChips(otherPeoplesGendersOptionGroup.input) ?
             otherPeoplesGendersOptionGroup.input.checkChips : []),
         {checked: true, label: 'Accept Unanswered'}
-      ]
+      ],
+      submit: async (input: string[]) => true
     },
     title: "Gender",
     description: "Which genders would you like to see in search results?",
@@ -474,6 +659,7 @@ const searchBasicsOptionGroups: OptionGroup[] = [
         {checked: true, label: 'Other'},
         {checked: true, label: 'Accept Unanswered'},
       ],
+      submit: async (input: string[]) => true
     },
   },
   {
@@ -517,6 +703,7 @@ const searchBasicsOptionGroups: OptionGroup[] = [
     description: "Do you want people in search results to be verified?",
     input: {
       buttons: ['Yes', 'No'],
+      submit: async (input: string) => true
     },
   },
   {
@@ -524,6 +711,7 @@ const searchBasicsOptionGroups: OptionGroup[] = [
     description: "Do you want people in search results to have a profile picture?",
     input: {
       buttons: ['Yes', 'No'],
+      submit: async (input: string) => true
     },
   },
   {
@@ -535,7 +723,8 @@ const searchBasicsOptionGroups: OptionGroup[] = [
         {checked: true, label: 'Short-term dating'},
         {checked: true, label: 'Friends'},
         {checked: true, label: 'Accept Unanswered'}
-      ]
+      ],
+      submit: async (input: string[]) => true
     },
   },
   {
@@ -546,7 +735,8 @@ const searchBasicsOptionGroups: OptionGroup[] = [
         {checked: true, label: 'Yes'},
         {checked: true, label: 'No'},
         {checked: true, label: 'Accept Unanswered'}
-      ]
+      ],
+      submit: async (input: string[]) => true
     },
   },
   {
@@ -558,7 +748,8 @@ const searchBasicsOptionGroups: OptionGroup[] = [
         {checked: true, label: 'Sometimes'},
         {checked: true, label: 'Never'},
         {checked: true, label: 'Accept Unanswered'}
-      ]
+      ],
+      submit: async (input: string[]) => true
     },
   },
   {
@@ -569,7 +760,8 @@ const searchBasicsOptionGroups: OptionGroup[] = [
         {checked: true, label: 'Yes'},
         {checked: true, label: 'No'},
         {checked: true, label: 'Accept Unanswered'}
-      ]
+      ],
+      submit: async (input: string[]) => true
     },
   },
   {
@@ -580,7 +772,8 @@ const searchBasicsOptionGroups: OptionGroup[] = [
         {checked: true, label: 'Yes'},
         {checked: true, label: 'No'},
         {checked: true, label: 'Accept Unanswered'}
-      ]
+      ],
+      submit: async (input: string[]) => true
     },
   },
   {
@@ -596,7 +789,8 @@ const searchBasicsOptionGroups: OptionGroup[] = [
         {checked: true, label: 'Widowed'},
         {checked: true, label: 'Other'},
         {checked: true, label: 'Accept Unanswered'}
-      ]
+      ],
+      submit: async (input: string[]) => true
     },
   },
   {
@@ -607,7 +801,8 @@ const searchBasicsOptionGroups: OptionGroup[] = [
         {checked: true, label: 'Yes'},
         {checked: true, label: 'No'},
         {checked: true, label: 'Accept Unanswered'}
-      ]
+      ],
+      submit: async (input: string[]) => true
     },
   },
   {
@@ -618,7 +813,8 @@ const searchBasicsOptionGroups: OptionGroup[] = [
         {checked: true, label: 'Yes'},
         {checked: true, label: 'No'},
         {checked: true, label: 'Accept Unanswered'}
-      ]
+      ],
+      submit: async (input: string[]) => true
     },
   },
   {
@@ -630,7 +826,8 @@ const searchBasicsOptionGroups: OptionGroup[] = [
         {checked: true, label: 'Sometimes'},
         {checked: true, label: 'Never'},
         {checked: true, label: 'Accept Unanswered'},
-      ]
+      ],
+      submit: async (input: string[]) => true
     },
   },
   {
@@ -648,6 +845,7 @@ const searchBasicsOptionGroups: OptionGroup[] = [
         {checked: true, label: 'Other'},
         {checked: true, label: 'Accept Unanswered'},
       ],
+      submit: async (input: string[]) => true
     },
   },
   {
@@ -669,6 +867,7 @@ const searchBasicsOptionGroups: OptionGroup[] = [
         {checked: true, label: 'Virgo'},
         {checked: true, label: 'Accept Unanswered'},
       ],
+      submit: async (input: string[]) => true
     },
   },
 ];
@@ -684,6 +883,7 @@ const searchInteractionsOptionGroups: OptionGroup[] = [
         {checked: true, label: 'Profiles I Messaged'},
         {checked: true, label: "Profiles I Haven't Interacted With Yet"},
       ],
+      submit: async (input: string[]) => true
     },
   },
 ];
@@ -694,6 +894,7 @@ const searchTwoWayFiltersOptionGroups: OptionGroup[] = [
     description: "Would you like your profile to be hidden from others users who are filtered-out by your search settings?",
     input: {
       buttons: ['Yes', 'No'],
+      submit: async (input: string) => true
     },
   },
 ];
@@ -703,6 +904,7 @@ const hideMeFromStrangersOptionGroup: OptionGroup = {
   description: "If you'd rather be the one who makes the first move, you can show your profile only to people who you've messaged. With this option set to 'Yes', people won't be able to see you anywhere in Duolicious until you message them.",
   input: {
     buttons: ['Yes', 'No'],
+    submit: async (input: string) => true
   },
 };
 
@@ -712,6 +914,7 @@ const privacySettingsOptionGroups: OptionGroup[] = [
     description: "Would you like your location to appear on your profile? Note that if you set this option to 'No', other people will still be able to filter your profile by distance when searching.",
     input: {
       buttons: ['Yes', 'No'],
+      submit: async (input: string) => true
     },
   },
   {
@@ -719,6 +922,7 @@ const privacySettingsOptionGroups: OptionGroup[] = [
     description: "Would you like your age to appear on your profile? Note that if you set this option to 'No', other people will still be able to filter your profile by age when searching.",
     input: {
       buttons: ['Yes', 'No'],
+      submit: async (input: string) => true
     },
   },
   {
@@ -726,6 +930,7 @@ const privacySettingsOptionGroups: OptionGroup[] = [
     description: "Would you like others to see when you visit their profile?",
     input: {
       buttons: ['Yes', 'No'],
+      submit: async (input: string) => true
     },
   },
   hideMeFromStrangersOptionGroup,
@@ -761,4 +966,5 @@ export {
   privacySettingsOptionGroups,
   contactOptionGroups,
   hideMeFromStrangersOptionGroup,
+  OptionGroupOtp,
 };

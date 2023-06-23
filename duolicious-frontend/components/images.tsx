@@ -1,10 +1,13 @@
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   View,
 } from 'react-native';
 import {
+  forwardRef,
   useCallback,
+  useRef,
   useState,
 } from 'react';
 import * as ImagePicker from 'expo-image-picker';
@@ -15,19 +18,54 @@ import { faCircleXmark } from '@fortawesome/free-solid-svg-icons/faCircleXmark'
 // TODO: Image picker is shit and doesn't allow cropping on web
 // TODO: Image picker is shit and lets you upload any file type on web
 
-const Images = () => {
+const Images = ({input, setIsLoading, setIsInvalid}) => {
+  const isLoading1 = useRef(false);
+  const isLoading2 = useRef(false);
+
+  const isInvalid1 = useRef(false);
+  const isInvalid2 = useRef(false);
+
+  const setIsLoading_ = useCallback(() => setIsLoading(
+    isLoading1.current ||
+    isLoading2.current
+  ), []);
+
+  const setIsInvalid_ = useCallback(() => setIsInvalid(
+    isInvalid1.current ||
+    isInvalid2.current
+  ), []);
+
+  const setIsLoading1 = useCallback(
+    x => { isLoading1.current = x; setIsLoading_() }, []);
+  const setIsLoading2 = useCallback(
+    x => { isLoading2.current = x; setIsLoading_() }, []);
+
+  const setIsInvalid1 = useCallback(
+    x => { isInvalid1.current = x; setIsInvalid_() }, []);
+  const setIsInvalid2 = useCallback(
+    x => { isInvalid2.current = x; setIsInvalid_() }, []);
+
   return (
     <View>
-      <View>
-        <PrimaryImage/>
-        <SecondaryImages/>
-      </View>
+      <PrimaryImage
+        input={input}
+        fileNumber={1}
+        setIsLoading={setIsLoading1}
+        setIsInvalid={setIsInvalid1}
+      />
+      <SecondaryImages
+        input={input}
+        firstFileNumber={2}
+        setIsLoading={setIsLoading2}
+        setIsInvalid={setIsInvalid2}
+      />
     </View>
   );
 };
 
-const ImagePlaceholder = () => {
+const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid}) => {
   const [image, setImage] = useState(null);
+  const [isLoading_, setIsLoading_] = useState(false);
 
   const addImage = useCallback(async () => {
     // No permissions request is necessary for launching the image library
@@ -39,13 +77,37 @@ const ImagePlaceholder = () => {
       selectionLimit: 1,
     });
 
-    if (!result.canceled && result.assets[0].width && result.assets[0].height) {
-      setImage(result.assets[0].uri);
+    if (result.canceled) return;
+    if (!result.assets[0].width) return;
+    if (!result.assets[0].height) return;
+
+    const uri = result.assets[0].uri;
+
+    setIsLoading(true);
+    setIsLoading_(true);
+
+    if (await input.photos.submit(String(fileNumber), uri)) {
+      setImage(uri);
+      setIsLoading(false);
+      setIsLoading_(false);
+      setIsInvalid(false);
+    } else {
+      setIsInvalid(true);
     }
   }, []);
 
-  const removeImage = useCallback(() => {
-    setImage(null);
+  const removeImage = useCallback(async () => {
+    setIsLoading(true);
+    setIsLoading_(true);
+
+    if (await input.photos.delete(fileNumber)) {
+      setImage(null);
+      setIsLoading(false);
+      setIsLoading_(false);
+      setIsInvalid(false);
+    } else {
+      setIsInvalid(true);
+    }
   }, []);
 
   const Image_ = ({uri}) => {
@@ -101,40 +163,123 @@ const ImagePlaceholder = () => {
           aspectRatio: 1,
         }}
       >
-        {image === null && <AddIcon/>}
-        {image !== null && <Image_ uri={image}/>}
+        { isLoading_ && <Loading/>}
+        {!isLoading_ && image === null && <AddIcon/>}
+        {!isLoading_ && image !== null && <Image_ uri={image}/>}
       </Pressable>
     </View>
   );
 };
 
-const PrimaryImage = () => {
-  return <ImagePlaceholder/>
+const PrimaryImage = ({input, fileNumber, setIsLoading, setIsInvalid}) => {
+  return <UserImage {...{input, fileNumber, setIsLoading, setIsInvalid}}/>
 };
 
-const SecondaryImages = () => {
-  const Image_ = () => {
-    return <ImagePlaceholder/>
-  };
+const Row = ({input, firstFileNumber, setIsLoading, setIsInvalid}) => {
+  const isLoading1 = useRef(false);
+  const isLoading2 = useRef(false);
+  const isLoading3 = useRef(false);
 
-  const Row = () => {
-    return (
-      <View
-        style={{
-          flexDirection: 'row',
-        }}
-      >
-        <Image_/>
-        <Image_/>
-        <Image_/>
-      </View>
-    );
-  };
+  const isInvalid1 = useRef(false);
+  const isInvalid2 = useRef(false);
+  const isInvalid3 = useRef(false);
+
+  const setIsLoading_ = useCallback(() => setIsLoading(
+    isLoading1.current ||
+    isLoading2.current ||
+    isLoading3.current
+  ), []);
+  const setIsInvalid_ = useCallback(() => setIsInvalid(
+    isInvalid1.current ||
+    isInvalid2.current ||
+    isInvalid3.current
+  ), []);
+
+  const setIsLoading1 = useCallback(
+    x => { isLoading1.current = x; setIsLoading_() }, []);
+  const setIsLoading2 = useCallback(
+    x => { isLoading2.current = x; setIsLoading_() }, []);
+  const setIsLoading3 = useCallback(
+    x => { isLoading3.current = x; setIsLoading_() }, []);
+
+  const setIsInvalid1 = useCallback(
+    x => { isInvalid1.current = x; setIsInvalid_() }, []);
+  const setIsInvalid2 = useCallback(
+    x => { isInvalid2.current = x; setIsInvalid_() }, []);
+  const setIsInvalid3 = useCallback(
+    x => { isInvalid3.current = x; setIsInvalid_() }, []);
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+      }}
+    >
+      <UserImage
+        input={input}
+        fileNumber={firstFileNumber + 0}
+        setIsLoading={setIsLoading1}
+        setIsInvalid={setIsInvalid1}
+      />
+      <UserImage
+        input={input}
+        fileNumber={firstFileNumber + 1}
+        setIsLoading={setIsLoading2}
+        setIsInvalid={setIsInvalid2}
+      />
+      <UserImage
+        input={input}
+        fileNumber={firstFileNumber + 2}
+        setIsLoading={setIsLoading3}
+        setIsInvalid={setIsInvalid3}
+      />
+    </View>
+  );
+};
+
+const SecondaryImages = (
+  {input, firstFileNumber, setIsLoading, setIsInvalid}
+) => {
+  const isLoading1 = useRef(false);
+  const isLoading2 = useRef(false);
+
+  const isInvalid1 = useRef(false);
+  const isInvalid2 = useRef(false);
+
+  const setIsLoading_ = useCallback(() => setIsLoading(
+    isLoading1.current ||
+    isLoading2.current
+  ), []);
+
+  const setIsInvalid_ = useCallback(() => setIsInvalid(
+    isInvalid1.current ||
+    isInvalid2.current
+  ), []);
+
+  const setIsLoading1 = useCallback(
+    x => { isLoading1.current = x; setIsLoading_() }, []);
+  const setIsLoading2 = useCallback(
+    x => { isLoading2.current = x; setIsLoading_() }, []);
+
+  const setIsInvalid1 = useCallback(
+    x => { isInvalid1.current = x; setIsInvalid_() }, []);
+  const setIsInvalid2 = useCallback(
+    x => { isInvalid2.current = x; setIsInvalid_() }, []);
 
   return (
     <View>
-      <Row/>
-      <Row/>
+      <Row
+        input={input}
+        firstFileNumber={firstFileNumber + 0}
+        setIsLoading={setIsLoading1}
+        setIsInvalid={setIsInvalid1}
+      />
+      <Row
+        input={input}
+        firstFileNumber={firstFileNumber + 1}
+        setIsLoading={setIsLoading2}
+        setIsInvalid={setIsInvalid2}
+      />
     </View>
   );
 };
@@ -149,6 +294,12 @@ const AddIcon = () => {
       name="add"/>
   );
 };
+
+const Loading = () => {
+  return (
+    <ActivityIndicator size="large" color="#70f"/>
+  );
+}
 
 export {
   Images,

@@ -37,7 +37,6 @@
     "react": "18.1.0",
     "react-dom": "18.1.0",
     "react-native": "0.70.8",
-    "react-native-autocomplete-dropdown": "^2.1.0",
     "react-native-dropdown-picker": "^5.4.4",
     "react-native-feather": "^1.1.2",
     "react-native-image-zoom-viewer": "^3.0.1",

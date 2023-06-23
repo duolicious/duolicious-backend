@@ -13,6 +13,7 @@ import { OtpInput } from './otp-input';
 import { createAccountOptionGroups } from '../data/option-groups';
 import { OptionScreen } from './option-screen';
 import { japi } from '../api/api';
+import { sessionToken } from '../session-token/session-token';
 
 // TODO: Pressing enter at enter field should continue
 // TODO: You should use the same pattern as for the profile options
@@ -29,20 +30,18 @@ const WelcomeScreen = () => {
     >
       <Stack.Screen name="Welcome Screen" component={WelcomeScreen_} />
 
-      <Stack.Screen name="Create Account Screen" component={OptionScreen} />
-
-      <Stack.Screen name="Welcome Back Screen" component={WelcomeBackScreen} />
+      <Stack.Screen name="Create Account Or Sign In Screen" component={OptionScreen} />
     </Stack.Navigator>
   );
 };
 
 const WelcomeScreen_ = ({navigation}) => {
   const [email, setEmail] = useState("");
-  const [buttonIsLoading, setButtonIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [emailNotSent, setEmailNotSent] = useState(false);
 
-  const onPressCreateAccountOrSignIn = async () => {
-    setButtonIsLoading(true);
+  const submit = async () => {
+    setIsLoading(true);
 
     const response = await japi(
       'post',
@@ -50,11 +49,13 @@ const WelcomeScreen_ = ({navigation}) => {
       { email: email }
     );
 
-    setButtonIsLoading(false);
+    setIsLoading(false);
 
     if (response.ok) {
+      await sessionToken(response.json.session_token);
+
       navigation.navigate(
-        'Create Account Screen',
+        'Create Account Or Sign In Screen',
         {
           optionGroups: createAccountOptionGroups,
           showSkipButton: false,
@@ -127,6 +128,7 @@ const WelcomeScreen_ = ({navigation}) => {
             autoComplete="email"
             value={email}
             onChangeText={setEmail}
+            onSubmitEditing={submit}
           />
           <DefaultText
             style={{
@@ -151,102 +153,15 @@ const WelcomeScreen_ = ({navigation}) => {
           }}
         >
           <ButtonWithCenteredText
-            onPress={onPressCreateAccountOrSignIn}
+            onPress={submit}
             borderWidth={0}
             secondary={true}
-            loading={buttonIsLoading}
+            loading={isLoading}
           >
             Create Account or Sign In
           </ButtonWithCenteredText>
         </View>
       </View>
-    </View>
-  );
-};
-
-const WelcomeBackScreen = ({navigation}) => {
-  const [isCodeIncorrect, setIsCodeIncorrect] = useState(false);
-
-  const onPressSignIn = () => {
-    navigation.reset({
-      index: 0,
-      routes: [{name: 'Q&A'}],
-    });
-  };
-
-  return (
-    <View
-      style={{
-        width: '100%',
-        height: '100%',
-        backgroundColor: '#70f',
-        justifyContent: 'center',
-      }}
-    >
-      <DefaultText
-        style={{
-          textAlign: 'center',
-          alignSelf: 'center',
-          color: 'white',
-          fontSize: 20,
-        }}
-      >
-        Welcome back,
-      </DefaultText>
-      <DefaultText
-        style={{
-          textAlign: 'center',
-          alignSelf: 'center',
-          color: 'white',
-          fontSize: 60,
-        }}
-      >
-        Rahim!
-      </DefaultText>
-      <DefaultText
-        style={{
-          textAlign: 'center',
-          marginTop: 60,
-          marginBottom: 20,
-          alignSelf: 'center',
-          color: 'white',
-        }}
-      >
-        To sign in, enter the one-time code you just received
-      </DefaultText>
-      <OtpInput codeLength={6}/>
-      <DefaultText
-        style={{
-          textAlign: 'center',
-          color: '#faa',
-          fontWeight: '600',
-          height: 30,
-        }}
-      >
-        {isCodeIncorrect ? 'Incorrect code' : ''}
-      </DefaultText>
-      <ButtonWithCenteredText
-        containerStyle={{
-          marginTop: 0,
-          marginLeft: 20,
-          marginRight: 20,
-        }}
-        fontSize={14}
-      >
-        Resend code
-      </ButtonWithCenteredText>
-      <ButtonWithCenteredText
-        containerStyle={{
-          marginTop: 40,
-          marginLeft: 20,
-          marginRight: 20,
-        }}
-        borderColor="black"
-        secondary={true}
-        onPress={onPressSignIn}
-      >
-        Sign in
-      </ButtonWithCenteredText>
     </View>
   );
 };

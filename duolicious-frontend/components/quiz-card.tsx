@@ -344,17 +344,18 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
             >
               {showTutorial && questionNumber === 1 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  👋 Welcome to Duolicious Q&A, where we ask you oodles of
-                  questions in the quest to unearth your perfect match! Let's
-                  start with an easy one:
+                  👋 Welcome to Duolicious Q&A, where we pick your brain and
+                  probe your psyche, all in the quest to unearth your perfect
+                  match! Let's start with an easy one:
                   {'\n\n'}
                 </DefaultText>
               }
               {showTutorial && questionNumber === 2 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  Great answer! We'll use that to improve your best matches
-                  here{'\u00A0'}☝️, and also when you search{'\u00A0'}🔎. Each
-                  answer makes your best matches even better, so keep it up!
+                  Amazing answer! The best we've ever seen, in fact.  We'll use
+                  that answer to improve your best matches here{'\u00A0'}☝️, and
+                  when you search{'\u00A0'}🔎. Each answer makes your best
+                  matches even better, so keep swiping!
                   {'\n\n'}
                 </DefaultText>
               }
@@ -366,41 +367,34 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
               }
               {showTutorial && questionNumber === 4 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  All the questions we ask have been carefully graded{'\u00A0'}🧑‍🎓 by our
-                  smartypants AI on how well they help us pick your
-                  matches. Even the silly questions need to
-                  be on the honor roll to grace your eyeballs.
+                  We only ask questions which our smartypants AI said are good
+                  for figuring out your match. Even the questions that seem
+                  silly are all part of our genius scheme find the folks who get
+                  you (and filter-out the ones who don't).
                   {'\n\n'}
                 </DefaultText>
               }
               {showTutorial && questionNumber === 5 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  ...ngl, we've also got some pretty provocative questions in
-                  here too, but we gotta ask so you can filter out peeps with
-                  deviant opinions on pineapple-pizza combos, etc.
+                  ...But. If a question is too silly or controversial for you
+                  then you can always skip a question by dragging a card
+                  downwards.
                   {'\n\n'}
                 </DefaultText>
               }
               {showTutorial && questionNumber === 6 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  If you want to hide your pineapple-related shame from visitors
-                  to your profile, you can uncheck "answer publicly"
-                  below{'\u00A0'}👇. (Don't worry, we still use private answers
-                  to compute compatibility.)
+                  If you've got an extra-spicy hot take (e.g. about pineapple on
+                  pizza), you can also answer privately. Just uncheck "answer
+                  publicly". We'll keep your answer hidden, but still use it to
+                  sort the pineapple haters from the pineapple havers.
                   {'\n\n'}
                 </DefaultText>
               }
               {showTutorial && questionNumber === 7 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  You can also skip a question altogether by dragging a card
-                  downwards.
-                  {'\n\n'}
-                </DefaultText>
-              }
-              {showTutorial && questionNumber === 8 &&
-                <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  Looks like you've got the hang of it!  We're gonna zip it
-                  and let you find your match{'\u00A0'}💑. Happy swiping!
+                  Nice! Looks like you've got the hang of it.  We're gonna zip
+                  it and let you find your match{'\u00A0'}💑. Happy swiping!
                   {'\n\n'}
                 </DefaultText>
               }

@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   Animated,
   Pressable,
   View,
@@ -22,6 +23,7 @@ const ButtonForOption = (props) => {
     buttonBorderWidth,
     navigationScreen,
     navigation,
+    loading = false
   } = props;
 
   if ((label === undefined) === (optionGroups === undefined)) {
@@ -111,14 +113,26 @@ const ButtonForOption = (props) => {
           {setting === undefined && noSettingText}
           {setting !== undefined && setting}
         </DefaultText>
-        <Ionicons
-          style={{
-            position: 'absolute',
-            right: 5,
-            fontSize: 20,
-          }}
-          name="chevron-forward"
-        />
+        {loading &&
+          <ActivityIndicator
+            style={{
+              position: 'absolute',
+              right: 15,
+            }}
+            size="small"
+            color="#70f"
+          />
+        }
+        {!loading &&
+          <Ionicons
+            style={{
+              position: 'absolute',
+              right: 5,
+              fontSize: 20,
+            }}
+            name="chevron-forward"
+          />
+        }
       </Animated.View>
     </Pressable>
   );

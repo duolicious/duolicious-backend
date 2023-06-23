@@ -12,6 +12,8 @@ import { DefaultText } from './default-text';
 
 type Props = {
   codeLength: number,
+  submit: () => void,
+  onChangeOtp: (string: string) => void
 };
 
 const clamp = (min: number, max: number) => (x: number) => {
@@ -106,6 +108,9 @@ const OtpInput = (props: Props) => {
 
     // Move focus
     moveFocusToIndex(joinedInputValues.length);
+
+    // Provide OTP to callback
+    props.onChangeOtp(updatedDigits.join(''));
   };
 
   const onFocus = (i: number) => () => {
@@ -133,6 +138,7 @@ const OtpInput = (props: Props) => {
             onBlur={onBlur(i)}
             onChangeText={onChangeText(i)}
             onKeyPress={onKeyPress(i)}
+            onSubmitEditing={props.submit}
             value={digitState.digit}
             style={{
               width: 35,

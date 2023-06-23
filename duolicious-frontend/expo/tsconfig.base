@@ -8,4 +8,5 @@
   "resolveJsonModule": true
   "skipLibCheck": true
   "target": "ESNext"
+  "allowSyntheticDefaultImports": true
 }
