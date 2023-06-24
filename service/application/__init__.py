@@ -75,17 +75,21 @@ def post_finish_onboarding(s: t.SessionInfo):
 
 @aget('/next-questions')
 def get_next_questions(s: t.SessionInfo):
-    return question.get_next_questions(s, request.args.get('n', 10))
+    return question.get_next_questions(
+        s,
+        request.args.get('n', 10),
+        request.args.get('o', 0),
+    )
 
-@put('/answer')
+@aput('/answer')
 @validate(t.PutAnswer)
-def put_answer(req: t.PutAnswer):
-    return person.put_answer(req)
+def put_answer(req: t.PutAnswer, s: t.SessionInfo):
+    return person.put_answer(req, s)
 
-@delete('/answer')
+@adelete('/answer')
 @validate(t.DeleteAnswer)
-def delete_answer(req: t.DeleteAnswer):
-    return person.delete_answer(req)
+def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
+    return person.delete_answer(req, s)
 
 @get('/personality/<int:person_id>')
 def get_personality(person_id):

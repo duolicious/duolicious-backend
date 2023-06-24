@@ -53,8 +53,10 @@ existing_answer AS (
         question_id,
         answer
     FROM answer
-    WHERE person_id = %(person_id)s
-    AND question_id = %(question_id)s
+    WHERE
+        person_id = %(person_id)s AND
+        question_id = %(question_id)s AND
+        answer IS NOT NULL
 ),
 score AS (
     SELECT
@@ -392,53 +394,7 @@ s3 = boto3.resource('s3',
 bucket = s3.Bucket(R2_BUCKET_NAME)
 
 def init_db():
-    with transaction() as tx:
-        tx.execute("SELECT COUNT(*) FROM person")
-        if tx.fetchone()['count'] != 0:
-            return
-
-        tx.execute(
-            """
-            INSERT INTO person (
-                email,
-                name,
-                date_of_birth,
-                coordinates,
-                gender_id,
-                about,
-
-                verified,
-
-                unit_id,
-
-                chats_notification,
-                intros_notification,
-                visitors_notification
-            )
-            VALUES (
-                %(email)s,
-                %(name)s,
-                %(date_of_birth)s,
-                (SELECT coordinates FROM location LIMIT 1),
-                (SELECT id FROM gender LIMIT 1),
-                %(about)s,
-
-                (SELECT id FROM yes_no LIMIT 1),
-
-                (SELECT id FROM unit LIMIT 1),
-
-                (SELECT id FROM immediacy LIMIT 1),
-                (SELECT id FROM immediacy LIMIT 1),
-                (SELECT id FROM immediacy LIMIT 1)
-            )
-            """,
-            dict(
-                email='ch.na.ha+testingasdf@gmail.com',
-                name='Rahim',
-                date_of_birth='1999-05-30',
-                about="I'm a reasonable person copypasta",
-            )
-        )
+    pass
 
 def process_image(
         image: Image.Image,
@@ -528,8 +484,11 @@ def delete_images_from_object_store(uuids: Iterable[str]):
                 print(f'Failed to delete object:', e)
 
 
-def put_answer(req: t.PutAnswer):
-    params = req.dict()
+def put_answer(req: t.PutAnswer, s: t.SessionInfo):
+    params = dict(**req.dict(), person_id=s.person_id)
+
+    # TODO: Increment yes/no count
+    # TODO: Increment views
 
     with transaction() as tx:
         tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': -1})
@@ -537,8 +496,8 @@ def put_answer(req: t.PutAnswer):
         tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': +1})
 
 
-def delete_answer(req: t.DeleteAnswer):
-    params = req.dict()
+def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
+    params = dict(**req.dict(), person_id=s.person_id)
 
     with transaction() as tx:
         tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': -1})

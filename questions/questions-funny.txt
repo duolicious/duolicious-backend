@@ -564,7 +564,7 @@
     "Would you trust a blind date arranged by a close friend?",
     "Do you think it's important to have separate friend groups in a relationship?",
     "If someone at a party is clearly over-served, would you mind your own business rather than stepping in to help them out?",
-    "Do you believe that \"alone time\" is an essential ingredient in a successful relationship?",
+    "Do you believe that alone time is an essential ingredient in a successful relationship?",
     "Do you think you've had sex with an above-average number of people?",
     "Do you have a habit of being fashionably late more often than the average Joe?",
     "If you had the power to time travel, would you risk messing up the timeline?",

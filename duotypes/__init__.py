@@ -24,13 +24,11 @@ class SessionInfo(BaseModel):
         return values
 
 class PutAnswer(BaseModel):
-    person_id: int
     question_id: int
-    answer: bool
+    answer: Optional[bool]
     public: bool
 
 class DeleteAnswer(BaseModel):
-    person_id: int
     question_id: int
 
 class PostRequestOtp(BaseModel):

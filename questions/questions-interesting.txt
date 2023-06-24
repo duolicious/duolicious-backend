@@ -229,7 +229,7 @@
     "Should you choose your partner based solely on your own feelings, regardless of your family's approval?",
     "Does a partner's income matter much (e.g. if you're going to share rent, bills, etc)?",
     "Is it ever justifiable to restrict free speech in order to prevent hate speech or discrimination?",
-    "Do you believe that \"alone time\" is an essential ingredient in a successful relationship?",
+    "Do you believe that alone time is an essential ingredient in a successful relationship?",
     "All things being equal, do you find well-dressed people more attractive?",
     "Your partner just hurt your feelings pretty badly. Do you need to take a moment before you can tell them?",
     "Is claiming \"anything can be art\" just a fancy way of saying \"I don't understand it, but I don't want to sound dumb\"?",

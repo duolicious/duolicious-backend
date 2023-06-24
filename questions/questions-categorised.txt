@@ -6441,7 +6441,7 @@
       "category": "interpersonal"
     },
     {
-      "question": "Do you believe that \"alone time\" is an essential ingredient in a successful relationship?",
+      "question": "Do you believe that alone time is an essential ingredient in a successful relationship?",
       "category": "interpersonal"
     },
     {

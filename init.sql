@@ -204,7 +204,7 @@ CREATE TABLE IF NOT EXISTS question_order (
 CREATE TABLE IF NOT EXISTS answer (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
     question_id SMALLINT NOT NULL REFERENCES question(id) ON DELETE CASCADE,
-    answer BOOLEAN NOT NULL,
+    answer BOOLEAN,
     public_ BOOLEAN NOT NULL,
     PRIMARY KEY (person_id, question_id)
 );
