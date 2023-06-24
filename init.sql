@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS orientation (
     UNIQUE (name)
 );
 
--- TODO: SELECT friendly FROM location ILIKE 'p%' ORDER BY friendly <-> 'Población' LIMIT 5;
 -- TODO: SELECT * FROM location WHERE ST_DWithin(coordinates, ST_SetSRID(ST_MakePoint(151.21, -33.867778), 4326)::geography, 10000) LIMIT 1;
 CREATE TABLE IF NOT EXISTS location (
     id SERIAL PRIMARY KEY,
@@ -474,7 +473,6 @@ INSERT INTO yes_no (name) VALUES ('No') ON CONFLICT (name) DO NOTHING;
 -- TODO: SEARCH PREFERENCE DATA
 -- TODO: make primary and foreign keys non-null where possible
 -- TODO: Store trait descriptions
--- TODO: Answers should have an individualised order
 -- TODO: Trait descriptions should be in the database
 -- TODO: Periodically delete expired tokens
 -- TODO: Periodically move inactive accounts

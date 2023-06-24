@@ -23,7 +23,7 @@ class SessionInfo(BaseModel):
         values['onboarded'] = values.get('person_id') is not None
         return values
 
-class PutAnswer(BaseModel):
+class PostAnswer(BaseModel):
     question_id: int
     answer: Optional[bool]
     public: bool
@@ -123,3 +123,6 @@ class PatchOnboardeeInfo(BaseModel):
 
 class DeleteOnboardeeInfo(BaseModel):
     files: List[conint(ge=1, le=7)]
+
+class PostViewQuestion(BaseModel):
+    question_id: int

@@ -58,6 +58,10 @@ GET /next-questions {
   }
 ]
 
+POST /view-question {
+  session-token
+} { question_id } -> ''
+
 POST /answer {
   session-token
 } {

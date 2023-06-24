@@ -48,6 +48,12 @@ LIMIT %(n)s
 OFFSET %(o)s
 """
 
+Q_INCREMENT_VIEWS = """
+UPDATE question
+SET count_views = count_views + 1
+WHERE id = %(question_id)s
+"""
+
 def init_db():
     with open(_categorised_question_json_file) as f:
         categorised_questions = json.load(f)
@@ -139,3 +145,8 @@ def get_next_questions(s: t.SessionInfo, n: int, o: int):
     with transaction() as tx:
         tx.execute(Q_GET_NEXT_QUESTIONS, params)
         return tx.fetchall()
+
+def post_view_question(req: t.PostViewQuestion):
+    params = dict(question_id=req.question_id)
+    with transaction('READ COMMITTED') as tx:
+        tx.execute(Q_INCREMENT_VIEWS, params)

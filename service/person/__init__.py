@@ -29,6 +29,15 @@ WHERE person_id = %(person_id)s
 AND question_id = %(question_id)s
 """
 
+Q_INCREMENT_YES_NO_COUNT = """
+UPDATE question
+SET
+    count_yes = count_yes + %(increment_yes)s,
+    count_no = count_no + %(increment_no)s
+WHERE
+    id = %(question_id)s
+"""
+
 Q_SET_ANSWER = """
 INSERT INTO answer (
     person_id,
@@ -484,11 +493,18 @@ def delete_images_from_object_store(uuids: Iterable[str]):
                 print(f'Failed to delete object:', e)
 
 
-def put_answer(req: t.PutAnswer, s: t.SessionInfo):
-    params = dict(**req.dict(), person_id=s.person_id)
+def post_answer(req: t.PostAnswer, s: t.SessionInfo):
+    params = dict(
+        **req.dict(),
+        person_id=s.person_id,
+        increment_yes=1 if req.answer is True else 0,
+        increment_no=1 if req.answer is False else 0,
+    )
 
     # TODO: Increment yes/no count
     # TODO: Increment views
+    with transaction('READ COMMITTED') as tx:
+        tx.execute(Q_INCREMENT_YES_NO_COUNT, params)
 
     with transaction() as tx:
         tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': -1})
@@ -809,28 +825,3 @@ def get_personality(person_id: int):
             row['trait']: row['percentage']
             for row in tx.execute(Q_SELECT_PERSONALITY, params).fetchall()
         }
-
-
-# TODO
-# with transaction() as tx:
-#     tx.execute(
-#         """
-#         select
-#             person_id,
-#             question_id,
-#             question,
-#             answer
-#         from answer
-#         join question
-#         on question_id = question.id
-#         """,
-#     )
-# 
-#     import json
-#     j_str = json.dumps(tx.fetchall(), indent=2)
-#     with open(
-#             '/home/christian/duolicious-backend/answers.json',
-#             'w',
-#             encoding="utf-8"
-#     ) as f:
-#         f.write(j_str)

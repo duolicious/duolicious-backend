@@ -5,6 +5,11 @@ cd "$script_dir"
 
 source setup.sh
 
+q "delete from duo_session"
+q "delete from person"
+q "delete from onboardee"
+q "update question set count_yes = 0, count_no = 0, count_views = 0"
+
 response=$(
   c POST /request-otp \
     --header "Content-Type: application/json" \
@@ -136,3 +141,28 @@ response=$(
 [[ "$(echo "$response" | jq -r '.onboarded')" = true ]]
 
 c GET /search-locations?q=Syd
+
+c POST /view-question \
+  --header "Content-Type: application/json" \
+  -d '{ "question_id": 1000 }'
+c POST /view-question \
+  --header "Content-Type: application/json" \
+  -d '{ "question_id": 1000 }'
+c POST /view-question \
+  --header "Content-Type: application/json" \
+  -d '{ "question_id": 1002 }'
+
+c POST /answer \
+  --header "Content-Type: application/json" \
+  -d '{ "question_id": 1001, "answer": true, "public": false }'
+
+c POST /answer \
+  --header "Content-Type: application/json" \
+  -d '{ "question_id": 1002, "answer": false, "public": false }'
+
+[[ "$(q "select count_yes   from question where id = 1001")" -eq 1 ]]
+[[ "$(q "select count_no    from question where id = 1001")" -eq 0 ]]
+[[ "$(q "select count_views from question where id = 1001")" -eq 2 ]]
+[[ "$(q "select count_yes   from question where id = 1002")" -eq 0 ]]
+[[ "$(q "select count_no    from question where id = 1002")" -eq 1 ]]
+[[ "$(q "select count_views from question where id = 1002")" -eq 1 ]]
