@@ -28,10 +28,7 @@ def init_db():
         init_sql_file = f.read()
 
     with transaction() as tx:
-        try:
-            tx.execute(init_sql_file)
-        except psycopg.errors.DuplicateTable as e:
-            print(e)
+        tx.execute(init_sql_file)
 
 @post('/request-otp')
 @validate(t.PostRequestOtp)

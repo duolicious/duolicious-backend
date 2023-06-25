@@ -23,10 +23,17 @@ fi
 
 if [ "$DUO_ENV" = "prod" ]
 then
-  gunicorn -w 4 -b "0.0.0.0:$PORT" main:app
+  exec gunicorn \
+    --workers 4 \
+    --bind "0.0.0.0:$PORT" \
+    --timeout 120 \
+    main:app
 elif [ "$DUO_ENV" = "dev" ]
 then
-  flask --app main.py --debug run --port "$PORT"
+  exec flask \
+    --app main.py \
+    --debug run \
+    --port "$PORT"
 else
   echo "The environment variable DUO_ENV must be set and have the value 'env' or 'prod'"
 fi
