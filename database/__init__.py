@@ -6,7 +6,7 @@ import os
 
 _valid_isolation_levels = [
     'SERIALIZABLE',
-    'REPEATABLE READ'
+    'REPEATABLE READ',
     'READ COMMITTED',
 ]
 

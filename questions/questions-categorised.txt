@@ -309,7 +309,7 @@
       "category": "interpersonal"
     },
     {
-      "question": "Is \"work-life\" balance just a phrase that lazy people use?",
+      "question": "Is \"work-life balance\" just a phrase that lazy people use?",
       "category": "other"
     },
     {
@@ -3017,7 +3017,7 @@
       "category": "interpersonal"
     },
     {
-      "question": "Should we allow genetically modified organisms (GMOs) in our food supply?",
+      "question": "Should we allow genetically modified organisms in our food supply?",
       "category": "values"
     },
     {
@@ -6441,7 +6441,7 @@
       "category": "interpersonal"
     },
     {
-      "question": "Do you believe that \"alone time\" is an essential ingredient in a successful relationship?",
+      "question": "Do you believe that alone time is an essential ingredient in a successful relationship?",
       "category": "interpersonal"
     },
     {

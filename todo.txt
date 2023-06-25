@@ -23,6 +23,8 @@
 # TODO: Image resizing should happen on-device
 # TODO: cron job for deleting expired sessions
 # TODO: cron job for deleting images which don't have database entries
+# TODO: Cloudflare takes too long to allocate servers when nobody's visited. Cloud Run might have the same problem
+# TODO: Use longer friendly names
 
 
 select *, presence_score / (presence_score + absence_score + 1e-5) as percentage from person_trait_statistic join trait on trait.id=person_trait_statistic.trait_id;
