@@ -105,6 +105,7 @@ def init_db():
                 )
             )
 
+    with transaction() as tx:
         tx.execute('SELECT COUNT(*) FROM question_trait_pair')
         if tx.fetchone()['count'] == 0:
             tx.executemany(
