@@ -29,6 +29,15 @@ WHERE person_id = %(person_id)s
 AND question_id = %(question_id)s
 """
 
+Q_INCREMENT_YES_NO_COUNT = """
+UPDATE question
+SET
+    count_yes = count_yes + %(increment_yes)s,
+    count_no = count_no + %(increment_no)s
+WHERE
+    id = %(question_id)s
+"""
+
 Q_SET_ANSWER = """
 INSERT INTO answer (
     person_id,
@@ -53,8 +62,10 @@ existing_answer AS (
         question_id,
         answer
     FROM answer
-    WHERE person_id = %(person_id)s
-    AND question_id = %(question_id)s
+    WHERE
+        person_id = %(person_id)s AND
+        question_id = %(question_id)s AND
+        answer IS NOT NULL
 ),
 score AS (
     SELECT
@@ -401,53 +412,7 @@ s3 = boto3.resource('s3',
 bucket = s3.Bucket(R2_BUCKET_NAME)
 
 def init_db():
-    with transaction() as tx:
-        tx.execute("SELECT COUNT(*) FROM person")
-        if tx.fetchone()['count'] != 0:
-            return
-
-        tx.execute(
-            """
-            INSERT INTO person (
-                email,
-                name,
-                date_of_birth,
-                coordinates,
-                gender_id,
-                about,
-
-                verified,
-
-                unit_id,
-
-                chats_notification,
-                intros_notification,
-                visitors_notification
-            )
-            VALUES (
-                %(email)s,
-                %(name)s,
-                %(date_of_birth)s,
-                (SELECT coordinates FROM location LIMIT 1),
-                (SELECT id FROM gender LIMIT 1),
-                %(about)s,
-
-                (SELECT id FROM yes_no LIMIT 1),
-
-                (SELECT id FROM unit LIMIT 1),
-
-                (SELECT id FROM immediacy LIMIT 1),
-                (SELECT id FROM immediacy LIMIT 1),
-                (SELECT id FROM immediacy LIMIT 1)
-            )
-            """,
-            dict(
-                email='user.1@gmail.com',
-                name='Rahim',
-                date_of_birth='1999-05-30',
-                about="I'm a reasonable person copypasta",
-            )
-        )
+    pass
 
 def process_image(
         image: Image.Image,
@@ -537,8 +502,18 @@ def delete_images_from_object_store(uuids: Iterable[str]):
                 print(f'Failed to delete object:', e)
 
 
-def put_answer(req: t.PutAnswer):
-    params = req.dict()
+def post_answer(req: t.PostAnswer, s: t.SessionInfo):
+    params = dict(
+        **req.dict(),
+        person_id=s.person_id,
+        increment_yes=1 if req.answer is True else 0,
+        increment_no=1 if req.answer is False else 0,
+    )
+
+    # TODO: Increment yes/no count
+    # TODO: Increment views
+    with transaction('READ COMMITTED') as tx:
+        tx.execute(Q_INCREMENT_YES_NO_COUNT, params)
 
     with transaction() as tx:
         tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': -1})
@@ -546,8 +521,8 @@ def put_answer(req: t.PutAnswer):
         tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': +1})
 
 
-def delete_answer(req: t.DeleteAnswer):
-    params = req.dict()
+def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
+    params = dict(**req.dict(), person_id=s.person_id)
 
     with transaction() as tx:
         tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': -1})
@@ -860,28 +835,3 @@ def get_personality(person_id: int):
             row['trait']: row['percentage']
             for row in tx.execute(Q_SELECT_PERSONALITY, params).fetchall()
         }
-
-
-# TODO
-# with transaction() as tx:
-#     tx.execute(
-#         """
-#         select
-#             person_id,
-#             question_id,
-#             question,
-#             answer
-#         from answer
-#         join question
-#         on question_id = question.id
-#         """,
-#     )
-# 
-#     import json
-#     j_str = json.dumps(tx.fetchall(), indent=2)
-#     with open(
-#             '/home/adrhb/duolicious-backend/answers.json',
-#             'w',
-#             encoding="utf-8"
-#     ) as f:
-#         f.write(j_str)

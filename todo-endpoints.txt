@@ -43,6 +43,39 @@ POST /finish-onboarding {
   session-token
 }
 
+POST /sign-out {
+  session-token
+}
+
+GET /next-questions {
+  session-token
+} { n, o } -> [
+  {
+    question-id,
+    question-number
+    topic
+    question-text
+  }
+]
+
+POST /view-question {
+  session-token
+} { question_id } -> ''
+
+POST /answer {
+  session-token
+} {
+  question-id
+  answer
+  public
+}
+
+DELETE /answer {
+  session-token
+} {
+  question-id
+}
+
 GET /search {
   session-token
 } {
@@ -87,31 +120,6 @@ GET /search-filter-questions {
     accept-unanswered?
   }
 ]
-
-GET /next-questions {
-  session-token
-} -> [
-  {
-    question-id,
-    question-number
-    topic
-    question-text
-  }
-]
-
-POST /answer {
-  session-token
-} {
-  question-id
-  answer
-  public
-}
-
-DELETE /answer {
-  session-token
-} {
-  question-id
-}
 
 GET /visitors {
   session-token
@@ -165,7 +173,7 @@ POST /deactivate {
   session-token
 }
 
-POST /delete {
+POST /delete-account {
   session-token
 }
 
@@ -218,8 +226,4 @@ GET /prospect-personality {
 } {
   section: 'mbti' | 'big-5' | 'attachment' | 'politics' | 'other'
 } -> {
-}
-
-POST /sign-out {
-  session-token
 }

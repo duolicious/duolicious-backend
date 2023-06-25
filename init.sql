@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS orientation (
     UNIQUE (name)
 );
 
--- TODO: SELECT friendly FROM location ILIKE 'p%' ORDER BY friendly <-> 'Población' LIMIT 5;
 -- TODO: SELECT * FROM location WHERE ST_DWithin(coordinates, ST_SetSRID(ST_MakePoint(151.21, -33.867778), 4326)::geography, 10000) LIMIT 1;
 CREATE TABLE IF NOT EXISTS location (
     id SERIAL PRIMARY KEY,
@@ -172,7 +171,7 @@ CREATE TABLE IF NOT EXISTS duo_session (
     otp TEXT NOT NULL,
     signed_in BOOLEAN NOT NULL DEFAULT FALSE,
     session_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '6 months'),
-    otp_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 minute'),
+    otp_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '3 minutes'),
     PRIMARY KEY (session_token_hash)
 );
 
@@ -204,7 +203,7 @@ CREATE TABLE IF NOT EXISTS question_order (
 CREATE TABLE IF NOT EXISTS answer (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
     question_id SMALLINT NOT NULL REFERENCES question(id) ON DELETE CASCADE,
-    answer BOOLEAN NOT NULL,
+    answer BOOLEAN,
     public_ BOOLEAN NOT NULL,
     PRIMARY KEY (person_id, question_id)
 );
@@ -474,7 +473,6 @@ INSERT INTO yes_no (name) VALUES ('No') ON CONFLICT (name) DO NOTHING;
 -- TODO: SEARCH PREFERENCE DATA
 -- TODO: make primary and foreign keys non-null where possible
 -- TODO: Store trait descriptions
--- TODO: Answers should have an individualised order
 -- TODO: Trait descriptions should be in the database
 -- TODO: Periodically delete expired tokens
 -- TODO: Periodically move inactive accounts
