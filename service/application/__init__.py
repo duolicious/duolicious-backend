@@ -28,10 +28,7 @@ def init_db():
         init_sql_file = f.read()
 
     with transaction() as tx:
-        try:
-            tx.execute(init_sql_file)
-        except psycopg.errors.DuplicateTable as e:
-            print(e)
+        tx.execute(init_sql_file)
 
 @post('/request-otp')
 @validate(t.PostRequestOtp)
@@ -100,7 +97,19 @@ def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
 def get_personality(person_id):
     return person.get_personality(person_id)
 
-init_db()
-location.init_db()
-question.init_db()
-person.init_db()
+
+for init_func in [
+    init_db,
+    location.init_db,
+    question.init_db,
+    person.init_db,
+]:
+    try:
+        init_func()
+    except Exception as e:
+        print(
+            "This exception is probably because more than one worker is "
+            "trying to initialise the DB at once. Chances are, one of them "
+            "will succeed. So you can probably ignore it:",
+            e
+        )

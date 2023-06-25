@@ -144,10 +144,10 @@ c GET /search-locations?q=Syd
 
 c POST /view-question \
   --header "Content-Type: application/json" \
-  -d '{ "question_id": 1000 }'
+  -d '{ "question_id": 1001 }'
 c POST /view-question \
   --header "Content-Type: application/json" \
-  -d '{ "question_id": 1000 }'
+  -d '{ "question_id": 1001 }'
 c POST /view-question \
   --header "Content-Type: application/json" \
   -d '{ "question_id": 1002 }'
