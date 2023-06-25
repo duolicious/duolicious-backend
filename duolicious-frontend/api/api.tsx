@@ -15,33 +15,55 @@ const api = async (
   endpoint: string,
   init?: RequestInit
 ): Promise<ApiResponse> => {
-  const existingSessionToken = await sessionToken();
+  let response, json;
 
-  const sessionInit = existingSessionToken === null ? {} : {
-    headers: {
-      'Authorization': `Bearer ${existingSessionToken}`
+  while (true) {
+    [response, json] = [undefined, undefined];
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const existingSessionToken = await sessionToken();
+
+    const url = `${API_URL}${endpoint}`;
+
+    const init_ = _.merge(
+      { method: method.toUpperCase() },
+      (
+        existingSessionToken ? {
+          headers: {
+            'Authorization': `Bearer ${existingSessionToken}`
+          }
+        } :
+          {}
+      ),
+      { signal: controller.signal },
+      init,
+    );
+
+    try {
+      response = await fetch(url, init_);
+      break;
+    } catch (error) {
+      // TODO: There should be a message in the UI saying "you're offline" or something
+      console.log(`Waiting 3 seconds and trying again; Caught error while fetching ${url}`, error);
+
+      // wait for 3 seconds before the next retry
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    } finally {
+      // cancel the timeout whether there was an error or not
+      clearTimeout(timeoutId);
     }
-  };
+  }
 
-  const url = `${API_URL}${endpoint}`;
-
-  const init_ = _.merge(
-    { method: method.toUpperCase() },
-    sessionInit,
-    init,
-  );
-
-  let response;
-  let json;
-
-  try { response = await fetch(url, init_); } catch { }
-  try { json = await response.json(); } catch { }
+  try { json = await response.json(); } catch {}
 
   return {
     ok: response?.ok ?? false,
     json: json,
   }
 };
+
 
 const japi = async (
   method: string,

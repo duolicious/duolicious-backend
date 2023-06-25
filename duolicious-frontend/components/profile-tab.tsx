@@ -29,7 +29,7 @@ import { Images } from './images';
 import { DefaultText } from './default-text';
 import { sessionToken } from '../session-token/session-token';
 import { api } from '../api/api';
-import { setAppState } from '../App';
+import { setIsSignedIn } from '../App';
 
 const Stack = createNativeStackNavigator();
 
@@ -84,7 +84,7 @@ const About = ({navigation}) => {
     setIsLoadingSignOut(true);
     if ((await api('post', '/sign-out')).ok) {
       await sessionToken(null);
-      setAppState('signed-out');
+      setIsSignedIn(false);
     }
     setIsLoadingSignOut(false);
   }, [navigation]);

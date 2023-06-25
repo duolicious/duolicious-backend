@@ -1,12 +1,16 @@
 import {
+  Animated,
+  ActivityIndicator,
   LayoutAnimation,
   Platform,
   StatusBar,
+  Text,
   UIManager,
 } from 'react-native';
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -59,6 +63,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 // TODO: Sign-up page should say "Step 1/5"
 // TODO: Add placeholders for profile pictures. The placeholders should appear upon 404
 // TODO: X-Frame-Options: DENY
+// TODO: Try minifying the app
 
 
 SplashScreen.preventAutoHideAsync();
@@ -89,60 +94,107 @@ const HomeTabs = () => {
   );
 };
 
-let appState;
-let setAppState;
+const WebSplashScreen = ({loading}) => {
+  const [isFaded, setIsFaded] = useState(false);
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!loading) {
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }).start(() => setIsFaded(true));
+    }
+  }, [loading]);
+
+  if (Platform.OS !== 'web' || isFaded) {
+    return <></>;
+  } else {
+    return (
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          alignItems: 'center',
+          flexDirection: 'column',
+          justifyContent: 'space-around',
+          backgroundColor: '#70f',
+          opacity: opacity,
+          zIndex: 999,
+        }}
+      >
+        <ActivityIndicator size={60} color="white"/>
+      </Animated.View>
+    );
+  }
+};
+
+let isSignedIn;
+let setIsSignedIn;
 
 const App = () => {
-  [appState, setAppState] = useState<
-    'loading' | 'signed-out' | 'signed-in'
-  >('loading');
+  const [isLoading, setIsLoading] = useState(true);
+  [isSignedIn, setIsSignedIn] = useState(false);
+
+  const loadFonts = useCallback(async () => {
+    await Font.loadAsync({
+      Trueno: require('./assets/fonts/TruenoRound.otf'),
+      TruenoBold: require('./assets/fonts/TruenoRoundBd.otf'),
+
+      MontserratBlack: require('./assets/fonts/montserrat/static/Montserrat-Black.ttf'),
+      MontserratBold: require('./assets/fonts/montserrat/static/Montserrat-Bold.ttf'),
+      MontserratExtraBold: require('./assets/fonts/montserrat/static/Montserrat-ExtraBold.ttf'),
+      MontserratExtraLight: require('./assets/fonts/montserrat/static/Montserrat-ExtraLight.ttf'),
+      MontserratLight: require('./assets/fonts/montserrat/static/Montserrat-Light.ttf'),
+      MontserratMedium: require('./assets/fonts/montserrat/static/Montserrat-Medium.ttf'),
+      MontserratRegular: require('./assets/fonts/montserrat/static/Montserrat-Regular.ttf'),
+      MontserratSemiBold: require('./assets/fonts/montserrat/static/Montserrat-SemiBold.ttf'),
+      MontserratThin: require('./assets/fonts/montserrat/static/Montserrat-Thin.ttf'),
+    });
+  }, []);
+
+  const lockScreenOrientation = useCallback(async () => {
+    try {
+      if (Platform.OS === 'ios' || Platform.OS === 'android') {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  }, []);
+
+  const fetchSignInState = useCallback(async () => {
+    const existingSessionToken = await sessionToken();
+    if (existingSessionToken === null) {
+      setIsSignedIn(false);
+    } else {
+      setIsSignedIn(
+        (await japi('post', '/check-session-token'))?.json?.onboarded ?? false
+      );
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
-      try {
-        await Font.loadAsync({
-          Trueno: require('./assets/fonts/TruenoRound.otf'),
-          TruenoBold: require('./assets/fonts/TruenoRoundBd.otf'),
+      await Promise.all([
+        loadFonts(),
+        lockScreenOrientation(),
+        fetchSignInState(),
+      ]);
 
-          MontserratBlack: require('./assets/fonts/montserrat/static/Montserrat-Black.ttf'),
-          MontserratBold: require('./assets/fonts/montserrat/static/Montserrat-Bold.ttf'),
-          MontserratExtraBold: require('./assets/fonts/montserrat/static/Montserrat-ExtraBold.ttf'),
-          MontserratExtraLight: require('./assets/fonts/montserrat/static/Montserrat-ExtraLight.ttf'),
-          MontserratLight: require('./assets/fonts/montserrat/static/Montserrat-Light.ttf'),
-          MontserratMedium: require('./assets/fonts/montserrat/static/Montserrat-Medium.ttf'),
-          MontserratRegular: require('./assets/fonts/montserrat/static/Montserrat-Regular.ttf'),
-          MontserratSemiBold: require('./assets/fonts/montserrat/static/Montserrat-SemiBold.ttf'),
-          MontserratThin: require('./assets/fonts/montserrat/static/Montserrat-Thin.ttf'),
-        });
-
-        if (Platform.OS === 'ios' || Platform.OS === 'android') {
-          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
-        }
-      } catch (e) {
-        console.warn(e);
-      }
-
-      const existingSessionToken = await sessionToken();
-      if (existingSessionToken === null) {
-        setAppState('signed-out');
-      } else {
-        setAppState(
-          (await japi('post', '/check-session-token'))?.json?.onboarded ?
-          'signed-in' :
-          'signed-out');
-      }
+      setIsLoading(false);
     })();
   }, []);
 
   const onLayoutRootView = useCallback(async () => {
-    if (appState !== 'loading') {
+    if (!isLoading) {
       await SplashScreen.hideAsync();
     }
-  }, [appState !== 'loading']);
-
-  if (appState === 'loading') {
-    return null;
-  }
+  }, [isLoading]);
 
   const linking = {
     prefixes: [],
@@ -166,55 +218,60 @@ const App = () => {
   };
 
   return (
-    <NavigationContainer
-      linking={linking}
-      theme={{
-        ...DefaultTheme,
-        colors: {
-          ...DefaultTheme.colors,
-          background: 'white',
-        },
-      }}
-      onReady={onLayoutRootView}
-      documentTitle={{
-        formatter: () => "Duolicious"
-      }}
-    >
-      <StatusBar
-        translucent={true}
-        backgroundColor="transparent"
-        barStyle="dark-content"
-      />
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          presentation: 'modal',
-        }}
-      >
-        {
-          appState !== 'signed-in' ? (
-            <>
-              <Tab.Screen name="Welcome" component={WelcomeScreen} />
-            </>
-          ) : (
-            <>
-              <Tab.Screen name="Home" component={HomeTabs} />
+    <>
+      {!isLoading &&
+        <NavigationContainer
+          linking={linking}
+          theme={{
+            ...DefaultTheme,
+            colors: {
+              ...DefaultTheme.colors,
+              background: 'white',
+            },
+          }}
+          onReady={onLayoutRootView}
+          documentTitle={{
+            formatter: () => "Duolicious"
+          }}
+        >
+          <StatusBar
+            translucent={true}
+            backgroundColor="transparent"
+            barStyle="dark-content"
+          />
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              presentation: 'modal',
+            }}
+          >
+            {
+              isSignedIn ? (
+                <>
+                  <Tab.Screen name="Home" component={HomeTabs} />
 
-              <Tab.Screen name="TODO" component={ProspectProfileScreen} />
+                  <Tab.Screen name="TODO" component={ProspectProfileScreen} />
 
-              <Tab.Screen name="Conversation Screen" component={ConversationScreen} />
-              <Tab.Screen name="Gallery Screen" component={GalleryScreen} />
-              <Tab.Screen name="Prospect Profile Screen" component={ProspectProfileScreen} />
-            </>
-          )
-        }
-      </Stack.Navigator>
-    </NavigationContainer>
+                  <Tab.Screen name="Conversation Screen" component={ConversationScreen} />
+                  <Tab.Screen name="Gallery Screen" component={GalleryScreen} />
+                  <Tab.Screen name="Prospect Profile Screen" component={ProspectProfileScreen} />
+                </>
+              ) : (
+                <>
+                  <Tab.Screen name="Welcome" component={WelcomeScreen} />
+                </>
+              )
+            }
+          </Stack.Navigator>
+        </NavigationContainer>
+      }
+      <WebSplashScreen loading={isLoading}/>
+    </>
   );
 };
 
 export default App;
 export {
-  appState,
-  setAppState
+  isSignedIn,
+  setIsSignedIn
 };

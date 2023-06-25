@@ -34,6 +34,7 @@ const ButtonWithCenteredText = ({children, ...rest}) => {
   const animatedOpacity = useRef(new Animated.Value(1)).current;
 
   const fade = (callback?: () => void) => {
+    animatedOpacity.stopAnimation();
     animatedOpacity.setValue(opacityLo);
     callback && callback();
   };
@@ -49,8 +50,11 @@ const ButtonWithCenteredText = ({children, ...rest}) => {
 
   class Api {
     isEnabled(value: boolean) {
+      const previousValue = isEnabledRef.current;
+
       isEnabledRef.current = value;
 
+      if (value === previousValue) return;
       if (value) {
         unfade();
       } else {

@@ -1,6 +1,6 @@
 import * as _ from "lodash";
 import { mapi, japi } from '../api/api';
-import { setAppState } from '../App';
+import { setIsSignedIn } from '../App';
 
 type OptionGroupButtons = {
   buttons: string[],
@@ -481,7 +481,7 @@ const createAccountOptionGroups: OptionGroup[] = [
         submit: async (input) => {
           const response = await japi('post', '/check-otp', { otp: input });
           if (response?.json?.onboarded) {
-            setAppState('signed-in');
+            setIsSignedIn(true);
           }
           return response.ok;
         }
@@ -600,7 +600,7 @@ const createAccountOptionGroups: OptionGroup[] = [
         submit: async () => {
           const response = await japi('post', '/finish-onboarding');
           if (response.ok) {
-            setAppState('signed-in');
+            setIsSignedIn(true);
           };
           return response.ok;
         }

@@ -23,10 +23,16 @@ const QuizTab = ({navigation}) => {
     inputElementsRef.current.setIsUndoEnabled(
       !!(stackRef.current && stackRef.current.canUndo())
     );
+
+    inputElementsRef.current.setIsSwipeEnabled(
+      !!(stackRef.current && stackRef.current.canSwipe())
+    );
   };
 
   const onSwipe = (direction: string) => {
     if (inputElementsRef.current === undefined) return;
+    if (stackRef.current === undefined) return;
+    if (!stackRef.current.canSwipe()) return;
 
     if (direction === 'left' ) inputElementsRef.current.doNoPressAnimation();
     if (direction === 'right') inputElementsRef.current.doYesPressAnimation();
@@ -68,9 +74,13 @@ const UndoNoYesSkip = (props) => {
 
   class Api {
     setIsUndoEnabled(value: boolean) {
-      if (undoButtonRef.current) {
-        undoButtonRef.current.isEnabled(value);
-      }
+      if (undoButtonRef.current) undoButtonRef.current.isEnabled(value);
+    }
+
+    setIsSwipeEnabled(value: boolean) {
+      if (noButtonRef.current) noButtonRef.current.isEnabled(value);
+      if (yesButtonRef.current) yesButtonRef.current.isEnabled(value);
+      if (skipButtonRef.current) skipButtonRef.current.isEnabled(value);
     }
 
     doYesPressAnimation() {

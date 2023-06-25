@@ -23,6 +23,8 @@ import { DonutChart } from './donut-chart';
 import { DefaultText } from './default-text';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBarSpacer } from './status-bar-spacer';
+import { api, japi } from '../api/api';
+import * as _ from "lodash";
 
 const QuizCardMemo = memo(QuizCard);
 
@@ -32,7 +34,40 @@ declare interface ApiInterface {
   skip(): Promise<void>
   undo(): Promise<void>
   canUndo(): boolean
+  canSwipe(): boolean
 }
+
+class PromiseQueue {
+  private taskQueue: Array<() => Promise<any>>;
+
+  constructor() {
+    this.taskQueue = [];
+  }
+
+  async addTask(task: () => Promise<any>): Promise<void> {
+    // Add task to the queue
+    this.taskQueue.push(task);
+
+    // If there's more than one task in the queue, the previous tasks are still
+    // running So we just return and let them finish
+    if (this.taskQueue.length > 1) return;
+
+    // Process all tasks
+    while (this.taskQueue.length > 0) {
+      const currentTask = this.taskQueue[0];
+      await currentTask();
+      this.taskQueue.shift();
+    }
+  }
+}
+
+
+// Operations on the cards need to finish in order. If we send two http request
+// at roughly the same time, the server will see them in an arbitrary order. So
+// if the user undoes then re-answers a question in short succession, their
+// re-answer might be deleted. So we use a queue to make sure that doesn't
+// happen.
+const apiQueue = new PromiseQueue();
 
 const getRandomArbitrary = (min: number, max: number) => {
   return Math.random() * (max - min) + min;
@@ -46,33 +81,22 @@ const delay = async (ms: number) => {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const fetchNextQuiz = async (): Promise<string> => {
-  await delay(getRandomInt(3000)); // Simulate network delay TODO
+const fetchNextQuestions = async (n: number = 10, o: number = 0): Promise<{
+  id: number,
+  question: string,
+  topic: string,
+  yesPercentage: string,
+  noPercentage: string
+}[]> => {
+  const response = await api('GET', `/next-questions?n=${n}&o=${o}`);
 
-  const r = Math.round(getRandomArbitrary(0.0, 5.0));
-
-  // return "Would you date a robot if it had a great personality?"
-
-  // return "You're in a relationship with someone who has a history of emotional manipulation and gaslighting, but you've been able to set healthy boundaries and make progress together. A new person comes into your life who seems genuine and empathetic, but you're not sure if they can handle the challenges of being with someone who has been emotionally abused in the past. Do you stick with your current partner or take a chance on the new person?";
-
-  if (r === 0) {
-    return 'Are you a Trump fan?';
-  } else if (r === 1) {
-    return 'Do you think feminism has had a positive effect on society?';
-  } else if (r === 2) {
-    return 'No one chooses their country of birth, so it’s foolish to be proud of it. ' +
-    'No one chooses their country of birth, so it’s foolish to be proud of it. ' +
-    'No one chooses their country of birth, so it’s foolish to be proud of it. ' +
-    'No one chooses their country of birth, so it’s foolish to be proud of it. ' +
-    'No one chooses their country of birth, so it’s foolish to be proud of it.' +
-    'Do you agree?';
-  } else if (r === 3) {
-    return 'Do you like to watch scary movies?';
-  } else if (r === 4) {
-    return "Do you subscribe to the philosophy that responsibility's cool, but there's more things in life, like getting your dick rode all fuckin' night?";
-  } else {
-    return 'Do you like the taste of beer?';
-  }
+  return response.json.map(q => ({
+    id: q.id,
+    question: q.question,
+    topic: q.topic,
+    yesPercentage: Math.round(q.count_yes / (q.count_yes + q.count_no + 1e-5)).toString(),
+    noPercentage:  Math.round(q.count_no  / (q.count_yes + q.count_no + 1e-5)).toString(),
+  }));
 };
 
 var matchPercentage = 0; // TODO Delete me
@@ -126,19 +150,19 @@ const fetchNBestProspects = async (n: number): Promise<ProspectState[]> => {
 };
 
 type StackState = {
-  serverHasMoreCards: boolean
   cards: CardState[]
   prospects: ProspectState[]
   topCardIndex: number
+  questionNumbers: Set<number>
 };
 
 type CardState = {
   isFetched: boolean
-  questionNumber: number
+  questionNumber: number | undefined
   questionText: string | undefined
   topic: string | undefined
-  noPercentage: number
-  yesPercentage: number
+  noPercentage: string | undefined
+  yesPercentage: string | undefined
   style: {
     transform: [
       { rotate: string },
@@ -169,12 +193,12 @@ type ProspectState = {
 
 const initialState: StackState = {
   topCardIndex: 0,
-  serverHasMoreCards: true,
   cards: [],
   prospects: [],
+  questionNumbers: new Set<number>(),
 };
 
-const unfetchedCard = (questionNumber: number): CardState => {
+const unfetchedCard = (): CardState => {
   const scale = new Animated.Value(0);
 
   const interpolatedScale = scale.interpolate({
@@ -184,11 +208,11 @@ const unfetchedCard = (questionNumber: number): CardState => {
 
   return {
     isFetched: false,
-    questionNumber: questionNumber,
+    questionNumber: undefined,
     questionText: undefined,
     topic: undefined,
-    noPercentage: getRandomInt(100),
-    yesPercentage: getRandomInt(100),
+    noPercentage: getRandomInt(100).toString(),
+    yesPercentage: getRandomInt(100).toString(),
     answerPublicly: true,
     swipeDirection: undefined,
     style: {
@@ -204,43 +228,64 @@ const unfetchedCard = (questionNumber: number): CardState => {
   };
 };
 
-const fetchCardContents = async (card: CardState): Promise<CardState> => {
-  return card.isFetched ?
-    card :
-    {
-      ...card,
-      questionText: await fetchNextQuiz(),
-      topic: 'Ethics',
-      isFetched: true,
-    };
-};
-
 const numRemainingCards = (state: StackState): number => {
   return state.cards.length - state.topCardIndex;
 };
 
-const addNextCardInPlace = async (
+const addNextCardsInPlace = async (
   state: StackState,
   onAddCallback?: () => void,
-  onFetchCallback?: () => void
-) => {
+  onFetchCallback?: () => void,
+  onTopCardChangedCallback?: () => void,
+): Promise<void> => {
+  const targetStackSize = 15
+  const targetStackSizeSlack = 5;
+
   const numRemainingCards_ = numRemainingCards(state);
   const bottomCardIndex = state.cards.length - 1;
   const bottomCard = state.cards[bottomCardIndex];
-  const nextQuestionNumber =
-    state.cards.length === 0 ?
-    1 :
-    bottomCard.questionNumber + 1;
 
-  state.cards.push(unfetchedCard(nextQuestionNumber));
+  if (numRemainingCards_ + targetStackSizeSlack > targetStackSize) {
+    return;
+  }
+
+  const numCardsToAdd = (targetStackSize + targetStackSizeSlack) - numRemainingCards_;
+
+  const unfetchedCards = Array(numCardsToAdd)
+    .fill(undefined)
+    .map(unfetchedCard);
+  state.cards.push(...unfetchedCards);
 
   numRemainingCards_ < 2 && onAddCallback && onAddCallback();
 
-  const newBottomCardIndex = state.cards.length - 1;
-  state.cards[newBottomCardIndex] = await fetchCardContents(
-    state.cards[newBottomCardIndex]
-  );
+  const nextQuestions = await fetchNextQuestions(
+    unfetchedCards.length, numRemainingCards_);
+
+  // Pop the unfetched cards off the stack in case the server is running out of
+  // questions and can't give us enough cards to meet the target.
+  unfetchedCards.forEach(() => state.cards.pop());
+
+  _.zip(unfetchedCards, nextQuestions).forEach(([u, q]) => {
+    if (!state.questionNumbers.has(q.id)) {
+      state.questionNumbers.add(q.id);
+
+      u.questionNumber = q.id;
+      u.questionText = q.question;
+      u.topic = q.topic;
+      u.yesPercentage = q.yesPercentage;
+      u.noPercentage = q.noPercentage;
+      u.isFetched = true;
+    }
+  });
+
+  const fetchedCards = unfetchedCards.filter(c => c.isFetched);
+  state.cards.push(...fetchedCards);
+
   numRemainingCards_ < 2 && onFetchCallback && onFetchCallback();
+
+  numRemainingCards_ === 0 &&
+    onTopCardChangedCallback &&
+    onTopCardChangedCallback();
 };
 
 const addNextProspectsInPlace = async (
@@ -504,13 +549,13 @@ const Prospects = ({
 const ProspectsMemo = memo(Prospects);
 
 const QuizCardStack_ = ({
-  serverHasMoreCards,
   card1,
   card2,
   card3,
   triggerRender,
   onSwipe,
   onCardLeftScreen,
+  onMountQuizCard,
 }) => {
   const stackContainerStyle = useRef<StyleProp<ViewStyle>>({
     flexGrow: 1,
@@ -519,56 +564,53 @@ const QuizCardStack_ = ({
     maxWidth: 600,
   }).current;
 
+  const cards: CardState[] = [card1, card2, card3].filter(Boolean);
+
+  const onScreenCards = cards.filter(c => c.isFetched && !c.swipeDirection);
+
   return (
     <View style={stackContainerStyle}>
-      {!serverHasMoreCards && <NoMoreCards/>}
+      {!onScreenCards.length && <NoMoreCards/>}
       {
-        [
-          card1,
-          card2,
-          card3,
-        ].map((card, i) => {
-            if (card === undefined) {
-              return;
+        cards.map((card, i) => {
+          Animated.timing(card.scale, {
+            toValue: 1.0,
+            duration: 500,
+            useNativeDriver: false,
+          }).start();
+
+          card.onChangeAnswerPublicly = card.onChangeAnswerPublicly ?? (
+            (answerPublicly: boolean) => {
+              card.answerPublicly = answerPublicly;
+              triggerRender();
             }
+          );
 
-            Animated.timing(card.scale, {
-              toValue: 1.0,
-              duration: 500,
-              useNativeDriver: false,
-            }).start();
-
-            card.onChangeAnswerPublicly = card.onChangeAnswerPublicly ?? (
-              (answerPublicly: boolean) => {
-                card.answerPublicly = answerPublicly;
-                triggerRender();
-              }
-            );
-
-            if (card.isFetched) {
-              return <QuizCardMemo
-                key={`${card.questionNumber}-quiz-card`}
-                initialPosition={card.swipeDirection}
-                preventSwipe={card.preventSwipe}
-                innerRef={card.ref}
-                onSwipe={onSwipe}
-                onCardLeftScreen={onCardLeftScreen}
-                nonInteractiveContainerStyle={card.style}
-                questionNumber={card.questionNumber}
-                topic={card.topic}
-                noPercentage={card.noPercentage}
-                yesPercentage={card.yesPercentage}
-                answerPubliclyValue={card.answerPublicly}
-                onChangeAnswerPublicly={card.onChangeAnswerPublicly}
-              >
-                {card.questionText}
-              </QuizCardMemo>
-            } else {
-              return <SkeletonQuizCard
-                key={`${card.questionNumber}-skeleton-quiz-card`}
-                innerStyle={card.style}
-              />
-            }
+          if (card.isFetched) {
+            return <QuizCardMemo
+              key={`${card.questionNumber}-quiz-card`}
+              initialPosition={card.swipeDirection}
+              preventSwipe={card.preventSwipe}
+              innerRef={card.ref}
+              onSwipe={onSwipe}
+              onCardLeftScreen={onCardLeftScreen}
+              nonInteractiveContainerStyle={card.style}
+              questionNumber={card.questionNumber}
+              topic={card.topic}
+              noPercentage={card.noPercentage}
+              yesPercentage={card.yesPercentage}
+              answerPubliclyValue={card.answerPublicly}
+              onChangeAnswerPublicly={card.onChangeAnswerPublicly}
+              onMount={onMountQuizCard}
+            >
+              {card.questionText}
+            </QuizCardMemo>
+          } else {
+            return <SkeletonQuizCard
+              key={`${i}-skeleton-quiz-card`}
+              innerStyle={card.style}
+            />
+          }
         })
       }
     </View>
@@ -619,6 +661,14 @@ const QuizCardStack = (props) => {
 
       previouslySwipedCard.ref.current.restoreCard();
 
+      apiQueue.addTask(
+        async () => await japi(
+          'delete',
+          '/answer',
+          { question_id: previouslySwipedCard.questionNumber }
+        )
+      );
+
       if (
         previouslySwipedCard.swipeDirection === 'left' ||
         previouslySwipedCard.swipeDirection === 'right'
@@ -641,20 +691,48 @@ const QuizCardStack = (props) => {
     canUndo() {
       return stateRef.topCardIndex > 0;
     }
+    canSwipe() {
+      return stateRef.topCardIndex < stateRef.cards.length;
+    }
   }
 
   innerRef.current = new Api();
 
   const onSwipe_ = useCallback(async (direction: Direction) => {
-    addNextCardInPlace(stateRef, undefined, triggerRender);
-    // TODO: This should happen after  the server has received and processes the swipe
-    if (direction === 'left' || direction === 'right') {
-      addNextProspectsInPlace(stateRef, triggerRender);
-    }
-
     const swipedCard = stateRef.cards[stateRef.topCardIndex];
 
     swipedCard.swipeDirection = direction;
+
+    apiQueue.addTask(
+      async () => {
+        const answer = (() => {
+          if (direction === 'left') return false;
+          if (direction === 'right') return true;
+          if (direction === 'down') return null;
+        })();
+
+        await japi(
+          'post',
+          '/answer',
+          {
+            question_id: swipedCard.questionNumber,
+            answer: answer,
+            public: swipedCard.answerPublicly
+          }
+        );
+
+        addNextCardsInPlace(
+          stateRef,
+          undefined,
+          triggerRender,
+          onTopCardChanged
+        );
+
+        if (direction === 'left' || direction === 'right') {
+          addNextProspectsInPlace(stateRef, triggerRender);
+        }
+      }
+    );
 
     stateRef.topCardIndex++;
 
@@ -670,16 +748,16 @@ const QuizCardStack = (props) => {
   useEffect(() => {
     addNextProspectsInPlace(stateRef, triggerRender, 3);
 
-    addNextCardInPlace(stateRef, triggerRender, triggerRender);
-    addNextCardInPlace(stateRef, triggerRender, triggerRender);
+    addNextCardsInPlace(
+      stateRef,
+      triggerRender,
+      triggerRender,
+      onTopCardChanged
+    );
+  }, []);
 
-    onTopCardChanged && onTopCardChanged();
-
-    // Maintain a buffer to 10 questions, in addition to the two visible cards
-    // on the top of the stack
-    for (var i = 0; i < 10; i++) {
-      addNextCardInPlace(stateRef);
-    }
+  const onMountQuizCard = useCallback((questionNumber: number) => {
+    japi('post', '/view-question', { question_id: questionNumber });
   }, []);
 
   return (
@@ -692,13 +770,13 @@ const QuizCardStack = (props) => {
         prospect4={stateRef.prospects[stateRef.prospects.length - 4]}
       />
       <QuizCardStackMemo
-        serverHasMoreCards={stateRef.serverHasMoreCards}
         card1={stateRef.cards[stateRef.topCardIndex + 1]}
         card2={stateRef.cards[stateRef.topCardIndex + 0]}
         card3={stateRef.cards[stateRef.topCardIndex - 1]}
         triggerRender={triggerRender}
         onSwipe={onSwipe_}
         onCardLeftScreen={onCardLeftScreen}
+        onMountQuizCard={onMountQuizCard}
       />
     </>
   );

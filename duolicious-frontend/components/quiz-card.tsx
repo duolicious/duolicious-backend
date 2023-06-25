@@ -10,6 +10,7 @@ import {
 import {
   memo,
   useCallback,
+  useEffect,
   useState,
 } from 'react';
 import CheckBox from './check-box';
@@ -184,8 +185,11 @@ const QuizCard = ({
     onChangeAnswerPublicly,
     imageBackgroundStyle,
     nonInteractiveContainerStyle,
+    onMount,
     ...rest
   } = props;
+
+  useEffect(() => onMount(questionNumber), []);
 
   return (
     <TinderCard
@@ -377,8 +381,8 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
               {showTutorial && questionNumber === 5 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
                   ...But. If a question is too silly or controversial for you
-                  then you can always skip a question by dragging a card
-                  downwards.
+                  (or you just don't have strong feelings about it), then you
+                  can always skip a question by dragging a card downwards.
                   {'\n\n'}
                 </DefaultText>
               }
@@ -762,10 +766,10 @@ const NoMoreCards = () => {
           fontFamily: 'TruenoBold',
           fontSize: 22,
           textAlign: 'center',
-          padding: 20,
+          padding: '20%',
         }}
       >
-        You've answered all the questions! 😮
+        Those are all the questions we've got for now
       </DefaultText>
     </View>
   );
