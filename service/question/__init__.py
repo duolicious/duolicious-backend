@@ -71,10 +71,18 @@ def init_db():
                 """
                 INSERT INTO question (
                     question,
-                    topic
+                    topic,
+                    presence_given_yes,
+                    presence_given_no,
+                    absence_given_yes,
+                    absence_given_no
                 ) VALUES (
                     %(question)s,
-                    %(topic)s
+                    %(topic)s,
+                    ARRAY[]::INT[],
+                    ARRAY[]::INT[],
+                    ARRAY[]::INT[],
+                    ARRAY[]::INT[]
                 )
                 """,
                 [
@@ -106,8 +114,31 @@ def init_db():
             )
 
     with transaction() as tx:
-        tx.execute('SELECT COUNT(*) FROM question_trait_pair')
-        if tx.fetchone()['count'] == 0:
+        tx.execute(
+            """
+            SELECT COUNT(*)
+            FROM question
+            WHERE presence_given_yes = ARRAY[]::INT[]
+            """
+        )
+        if tx.fetchone()['count'] > 0:
+            tx.execute(
+                """
+                CREATE TEMPORARY TABLE question_trait_pair (
+                    question_id SMALLSERIAL NOT NULL,
+                    trait_id SMALLSERIAL NOT NULL,
+                    presence_given_yes SMALLINT NOT NULL,
+                    presence_given_no SMALLINT NOT NULL,
+                    absence_given_yes SMALLINT NOT NULL,
+                    absence_given_no SMALLINT NOT NULL,
+                    CHECK (presence_given_yes >= 0),
+                    CHECK (presence_given_no >= 0),
+                    CHECK (absence_given_yes >= 0),
+                    CHECK (absence_given_no >= 0),
+                    PRIMARY KEY (question_id, trait_id)
+                )
+                """
+            )
             tx.executemany(
                 """
                 INSERT INTO question_trait_pair (
@@ -131,19 +162,43 @@ def init_db():
                     dict(
                         question=question.question,
                         trait=question.trait,
-                        presence_given_yes=round(1000 * question.presence_given_yes() ** 2),
-                        presence_given_no=round(1000 * question.presence_given_no() ** 2),
-                        absence_given_yes=round(1000 * question.absence_given_yes() ** 2),
-                        absence_given_no=round(1000 * question.absence_given_no() ** 2),
+                        presence_given_yes=round(
+                            1000 * question.presence_given_yes() ** 2) if question.information() > 0.25 else 0,
+                        presence_given_no=round(
+                            1000 * question.presence_given_no()  ** 2) if question.information() > 0.25 else 0,
+                        absence_given_yes=round(
+                            1000 * question.absence_given_yes()  ** 2) if question.information() > 0.25 else 0,
+                        absence_given_no=round(
+                            1000 * question.absence_given_no()   ** 2) if question.information() > 0.25 else 0,
                     )
                     for question in archetypeised_questions.archetypeised
-                    if question.information() > 0.25
                 ]
+            )
+            tx.execute(
+                """
+                UPDATE question
+                SET
+                    presence_given_yes = vector.pgy,
+                    presence_given_no  = vector.pgn,
+                    absence_given_yes  = vector.agy,
+                    absence_given_no   = vector.agn
+                FROM (
+                    SELECT
+                        question_id,
+                        ARRAY_AGG(presence_given_yes ORDER BY trait_id) AS pgy,
+                        ARRAY_AGG(presence_given_no  ORDER BY trait_id) AS pgn,
+                        ARRAY_AGG(absence_given_yes  ORDER BY trait_id) AS agy,
+                        ARRAY_AGG(absence_given_no   ORDER BY trait_id) AS agn
+                    FROM question_trait_pair
+                    GROUP BY question_id
+                ) AS vector
+                WHERE vector.question_id = question.id
+                """
             )
 
 def get_next_questions(s: t.SessionInfo, n: int, o: int):
     params = dict(person_id=s.person_id, n=n, o=o)
-    with transaction() as tx:
+    with transaction('READ COMMITTED') as tx:
         tx.execute(Q_GET_NEXT_QUESTIONS, params)
         return tx.fetchall()
 

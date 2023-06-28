@@ -19,6 +19,8 @@ c () {
   local method=$1
   local endpoint=$2
 
+  local response_file=/tmp/response.$RANDOM
+
   if [[ ! "$endpoint" == http* ]];
   then
     endpoint=http://localhost:5000"$endpoint"
@@ -39,14 +41,17 @@ c () {
     curl \
       -s \
       -w "%{http_code}" \
-      -o /tmp/response \
+      -o "$response_file" \
       -X "$method" \
       "$endpoint" \
       "${args[@]}"
   )
-  cat /tmp/response
+  cat "$response_file"
+  rm "$response_file"
   [ "$status_code" -ge 200 -a "$status_code" -lt 300 ]
 }
+
+jc () { c "$@" --header "Content-Type: application/json"; }
 
 q () {
   PGPASSWORD=password psql \
@@ -57,7 +62,3 @@ q () {
     | grep -v '^$' \
     | trim
 }
-
-set -xe
-
-

@@ -1,8 +1,6 @@
 import os
-import psycopg
 from database import transaction, fetchall_sets
-from typing import DefaultDict, Optional, Iterable, Tuple
-import service.question as question
+from typing import Optional, Iterable, Tuple
 import duotypes as t
 import urllib.request
 import json
@@ -23,106 +21,123 @@ R2_ACCESS_KEY_ID = os.environ['DUO_R2_ACCESS_KEY_ID']
 R2_ACCESS_KEY_SECRET = os.environ['DUO_R2_ACCESS_KEY_SECRET']
 R2_BUCKET_NAME = os.environ['DUO_R2_BUCKET_NAME']
 
-Q_DELETE_ANSWER = """
-DELETE FROM answer
-WHERE person_id = %(person_id)s
-AND question_id = %(question_id)s
-"""
-
-Q_INCREMENT_YES_NO_COUNT = """
-UPDATE question
-SET
-    count_yes = count_yes + %(increment_yes)s,
-    count_no = count_no + %(increment_no)s
-WHERE
-    id = %(question_id)s
-"""
-
-Q_SET_ANSWER = """
-INSERT INTO answer (
-    person_id,
-    question_id,
-    answer,
-    public_
-) VALUES (
-    %(person_id)s,
-    %(question_id)s,
-    %(answer)s,
-    %(public)s
-) ON CONFLICT (person_id, question_id) DO UPDATE SET
-    answer  = EXCLUDED.answer,
-    public_ = EXCLUDED.public_
-"""
-
-Q_SET_PERSON_TRAIT_STATISTIC = """
+Q_UPDATE_ANSWER = """
 WITH
-existing_answer AS (
+previous_answer AS (
     SELECT
-        person_id,
         question_id,
-        answer
+        answer,
+        - CAST(answer IS NOT NULL AS INT) AS count_answers
     FROM answer
     WHERE
         person_id = %(person_id)s AND
-        question_id = %(question_id)s AND
-        answer IS NOT NULL
+        question_id = COALESCE(
+            %(question_id_to_insert)s,
+            %(question_id_to_delete)s
+        )
 ),
-score AS (
-    SELECT
+deleted_answer AS (
+    DELETE FROM answer
+    WHERE person_id = %(person_id)s
+    AND question_id = %(question_id_to_delete)s
+),
+new_answer AS (
+    INSERT INTO answer (
         person_id,
-        trait_id,
+        question_id,
+        answer,
+        public_
+    )
+    SELECT
+        %(person_id)s,
+        %(question_id_to_insert)s,
+        %(answer)s,
+        %(public)s
+    WHERE %(question_id_to_insert)s::SMALLINT IS NOT NULL
+    ON CONFLICT (person_id, question_id) DO UPDATE SET
+        answer  = EXCLUDED.answer,
+        public_ = EXCLUDED.public_
+    RETURNING
+        question_id,
+        answer,
+        CAST(answer IS NOT NULL AS INT) AS count_answers
+),
+updated_answer AS (
+    SELECT * FROM previous_answer
+    UNION ALL
+    SELECT * FROM new_answer
+),
+scores_to_sum AS (
+    SELECT
+        updated_answer.count_answers *
         CASE
-        WHEN existing_answer.answer = TRUE
-            THEN presence_given_yes
-            ELSE presence_given_no
+            WHEN updated_answer.answer = TRUE  THEN presence_given_yes
+            WHEN updated_answer.answer = FALSE THEN presence_given_no
+            ELSE array_numbers_like(presence_given_no, 0)
         END AS presence_score,
+        updated_answer.count_answers *
         CASE
-        WHEN existing_answer.answer = TRUE
-            THEN absence_given_yes
-            ELSE absence_given_no
-        END AS absence_score
-    FROM question_trait_pair
-    JOIN existing_answer
-    ON existing_answer.question_id = question_trait_pair.question_id
+            WHEN updated_answer.answer = TRUE  THEN absence_given_yes
+            WHEN updated_answer.answer = FALSE THEN absence_given_no
+            ELSE array_numbers_like(absence_given_no, 0)
+        END AS absence_score,
+        updated_answer.count_answers AS count_answers
+    FROM question
+    JOIN updated_answer
+    ON question.id = updated_answer.question_id
+    UNION ALL
+    SELECT presence_score, absence_score, count_answers
+    FROM person
+    WHERE id = %(person_id)s
 ),
-score_delta_magnitude AS (
+summed_scores AS (
     SELECT
-        person_id,
-        trait_id,
-        presence_score - LEAST(presence_score, absence_score) AS presence_delta_magnitude,
-        absence_score  - LEAST(presence_score, absence_score) AS absence_delta_magnitude
-    FROM score
+        SUM(presence_score) AS presence_score,
+        SUM(absence_score) AS absence_score,
+        SUM(count_answers)::SMALLINT AS count_answers
+    FROM scores_to_sum
 ),
-score_delta AS (
+with_presence_percentage AS (
     SELECT
-        person_id,
-        trait_id,
-        %(weight)s * presence_delta_magnitude AS presence_delta,
-        %(weight)s * absence_delta_magnitude  AS absence_delta
-    FROM score_delta_magnitude
+        array_plug_null(
+            presence_score / (presence_score + absence_score),
+            0.5
+        ) AS presence_percentage,
+        *
+    FROM summed_scores
 ),
-new_scores AS (
+with_personality AS (
     SELECT
-        sd.person_id,
-        sd.trait_id,
-        COALESCE(pts.presence_score, 0) + sd.presence_delta,
-        COALESCE(pts.absence_score, 0)  + sd.absence_delta
-    FROM score_delta sd
-    LEFT JOIN person_trait_statistic pts
-    ON
-        sd.person_id = pts.person_id AND
-        sd.trait_id  = pts.trait_id
+        -- TODO: personality_weight(count_answers) *
+        -- TODO: array_normalize
+        (
+            (
+                (2 * presence_percentage) -
+                array_numbers_like(presence_percentage, 1)
+            ) || ARRAY[1e-5]
+        )
+        -- TODO: )
+        AS personality,
+        *
+    FROM with_presence_percentage
 )
-INSERT INTO person_trait_statistic (
-    person_id,
-    trait_id,
-    presence_score,
-    absence_score
-)
-SELECT * FROM new_scores
-ON CONFLICT (person_id, trait_id) DO UPDATE SET
-    presence_score = EXCLUDED.presence_score,
-    absence_score  = EXCLUDED.absence_score
+UPDATE person
+SET
+    personality    = with_personality.personality,
+    presence_score = with_personality.presence_score,
+    absence_score  = with_personality.absence_score,
+    count_answers  = with_personality.count_answers
+FROM with_personality
+WHERE person.id = %(person_id)s
+"""
+
+Q_ADD_YES_NO_COUNT = """
+UPDATE question
+SET
+    count_yes = count_yes + %(add_yes)s,
+    count_no = count_no + %(add_no)s
+WHERE
+    id = %(question_id)s
 """
 
 Q_SELECT_PERSONALITY = """
@@ -247,7 +262,7 @@ DELETE FROM duo_session
 WHERE session_token_hash = %(session_token_hash)s
 """
 
-Q_FINISH_ONBOARDING_1 = """
+Q_FINISH_ONBOARDING = """
 WITH
 onboardee_country AS (
     SELECT country
@@ -319,7 +334,6 @@ new_photo AS (
     FROM onboardee_photo
     JOIN new_person
     ON onboardee_photo.email = new_person.email
-    RETURNING person_id
 ),
 new_search_preference_gender AS (
     INSERT INTO search_preference_gender (
@@ -332,7 +346,6 @@ new_search_preference_gender AS (
     FROM onboardee_search_preference_gender
     JOIN new_person
     ON onboardee_search_preference_gender.email = new_person.email
-    RETURNING person_id
 ),
 new_question_order_map AS (
     WITH
@@ -373,24 +386,13 @@ new_question_order AS (
         new_question_order_map.dst_position
     FROM new_person
     CROSS JOIN new_question_order_map
-    RETURNING person_id
 ),
 updated_session AS (
     UPDATE duo_session
     SET person_id = new_person.id
     FROM new_person
     WHERE duo_session.email = new_person.email
-    RETURNING person_id
 )
-SELECT
-    (SELECT COUNT(*) FROM new_person) +
-    (SELECT COUNT(*) FROM new_photo) +
-    (SELECT COUNT(*) FROM new_search_preference_gender) +
-    (SELECT COUNT(*) FROM new_question_order) +
-    (SELECT COUNT(*) FROM updated_session)
-"""
-
-Q_FINISH_ONBOARDING_2 = """
 DELETE FROM onboardee
 WHERE email = %(email)s
 """
@@ -503,30 +505,37 @@ def delete_images_from_object_store(uuids: Iterable[str]):
 
 
 def post_answer(req: t.PostAnswer, s: t.SessionInfo):
-    params = dict(
-        **req.dict(),
-        person_id=s.person_id,
-        increment_yes=1 if req.answer is True else 0,
-        increment_no=1 if req.answer is False else 0,
+    params_add_yes_no_count = dict(
+        question_id=req.question_id,
+        add_yes=1 if req.answer is True else 0,
+        add_no=1 if req.answer is False else 0,
     )
 
-    # TODO: Increment yes/no count
-    # TODO: Increment views
+    params_update_answer = dict(
+        person_id=s.person_id,
+        question_id_to_delete=None,
+        question_id_to_insert=req.question_id,
+        answer=req.answer,
+        public=req.public,
+    )
+
     with transaction('READ COMMITTED') as tx:
-        tx.execute(Q_INCREMENT_YES_NO_COUNT, params)
+        tx.execute(Q_ADD_YES_NO_COUNT, params_add_yes_no_count)
 
-    with transaction() as tx:
-        tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': -1})
-        tx.execute(Q_SET_ANSWER, params)
-        tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': +1})
-
+    with transaction('REPEATABLE READ') as tx: # TODO
+        tx.execute(Q_UPDATE_ANSWER, params_update_answer)
 
 def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
-    params = dict(**req.dict(), person_id=s.person_id)
+    params = dict(
+        person_id=s.person_id,
+        question_id_to_delete=req.question_id,
+        question_id_to_insert=None,
+        answer=None,
+        public=None,
+    )
 
-    with transaction() as tx:
-        tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': -1})
-        tx.execute(Q_DELETE_ANSWER, params)
+    with transaction('REPEATABLE READ') as tx:
+        tx.execute(Q_UPDATE_ANSWER, params)
 
 def _generate_otp():
     if ENV == 'dev':
@@ -633,7 +642,7 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
 def post_sign_out(s: t.SessionInfo):
     params = dict(session_token_hash=s.session_token_hash)
 
-    with transaction() as tx:
+    with transaction('READ COMMITTED') as tx:
         tx.execute(Q_DELETE_DUO_SESSION, params)
 
 def get_search_locations(q: Optional[str]):
@@ -650,7 +659,7 @@ def get_search_locations(q: Optional[str]):
         search_string=normalized_whitespace,
     )
 
-    with transaction() as tx:
+    with transaction('READ COMMITTED') as tx:
         tx.execute(Q_SEARCH_LOCATIONS, params)
         return [row['friendly'] for row in tx.fetchall()]
 
@@ -822,8 +831,7 @@ def post_finish_onboarding(s: t.SessionInfo):
     params = dict(email=s.email)
 
     with transaction() as tx:
-        tx.execute(Q_FINISH_ONBOARDING_1, params)
-        tx.execute(Q_FINISH_ONBOARDING_2, params)
+        tx.execute(Q_FINISH_ONBOARDING, params)
 
 def get_personality(person_id: int):
     params = dict(
@@ -831,7 +839,5 @@ def get_personality(person_id: int):
     )
 
     with transaction('READ COMMITTED') as tx:
-        return {
-            row['trait']: row['percentage']
-            for row in tx.execute(Q_SELECT_PERSONALITY, params).fetchall()
-        }
+        tx.execute(Q_SELECT_PERSONALITY, params)
+        return {row['trait']: row['percentage'] for row in tx.fetchall()}

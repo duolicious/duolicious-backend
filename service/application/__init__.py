@@ -1,7 +1,12 @@
 import os
 from flask import request
 import duotypes as t
-from service import person, question, location
+from service import (
+    location,
+    person,
+    question,
+    search,
+)
 from database import transaction
 import psycopg
 from service.application.decorators import (
@@ -92,6 +97,14 @@ def post_answer(req: t.PostAnswer, s: t.SessionInfo):
 @validate(t.DeleteAnswer)
 def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
     return person.delete_answer(req, s)
+
+@aget('/search')
+def get_search(s: t.SessionInfo):
+    return search.get_search(
+        s,
+        request.args.get('n', 10),
+        request.args.get('o', 0),
+    )
 
 @get('/personality/<int:person_id>')
 def get_personality(person_id):

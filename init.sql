@@ -4,6 +4,134 @@
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS vector;
+
+--------------------------------------------------------------------------------
+-- FUNCTIONS
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION array_add(a1 INT[], a2 INT[])
+RETURNS INT[] AS $$
+    SELECT ARRAY(
+        SELECT COALESCE(ua1, 0) + COALESCE(ua2, 0)
+        FROM UNNEST(a1, a2) AS u(ua1, ua2)
+    );
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION array_div(a1 INT[], a2 INT[])
+RETURNS FLOAT8[] AS $$
+    SELECT ARRAY(
+        SELECT ua1::FLOAT8 / NULLIF(ua2, 0)
+        FROM UNNEST(a1, a2) AS u(ua1, ua2)
+    );
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION array_full(dimensions INT, fill_value INT)
+RETURNS INT[] AS $$
+    SELECT ARRAY(SELECT fill_value FROM generate_series(1, dimensions));
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION array_l2_norm(a FLOAT8[])
+RETURNS FLOAT8 AS $$
+    SELECT SQRT(SUM(a_i * a_i)) FROM unnest(a) AS a_i;
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION array_mul(s INT, a INT[])
+RETURNS INT[] AS $$
+    SELECT ARRAY (SELECT ua * s FROM UNNEST(a) AS ua);
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION array_mul(s FLOAT8, a FLOAT8[])
+RETURNS FLOAT8[] AS $$
+    SELECT ARRAY (SELECT ua * s FROM UNNEST(a) AS ua);
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION array_normalize(a FLOAT8[])
+RETURNS FLOAT8[] AS $$
+    SELECT array_mul(1.0 / array_l2_norm(a), a);
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION array_numbers_like(a INT[], n INT)
+RETURNS INT[] AS $$
+    SELECT ARRAY (SELECT n FROM UNNEST(a) AS ua);
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION array_numbers_like(a FLOAT8[], n FLOAT8)
+RETURNS FLOAT8[] AS $$
+    SELECT ARRAY (SELECT n FROM UNNEST(a) AS ua);
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION array_plug_null(a FLOAT8[], n FLOAT8)
+RETURNS FLOAT8[] AS $$
+    SELECT ARRAY (SELECT COALESCE(ua, n) FROM UNNEST(a) AS ua);
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION array_sub(a1 FLOAT8[], a2 FLOAT8[])
+RETURNS FLOAT8[] AS $$
+    SELECT ARRAY(SELECT ua1 - ua2 FROM UNNEST(a1, a2) AS u(ua1, ua2));
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION array_sub(a1 INT[], a2 INT[])
+RETURNS INT[] AS $$
+    SELECT ARRAY(SELECT ua1 - ua2 FROM UNNEST(a1, a2) AS u(ua1, ua2));
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION personality_weight(count_answers SMALLINT)
+RETURNS FLOAT8 AS $$
+    SELECT GREATEST(0, LEAST(LOG(count_answers + 1) / LOG(251), 1));
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+CREATE OR REPLACE AGGREGATE SUM(INT[]) (
+    SFUNC = array_add,
+    STYPE = INT[]
+);
+
+DROP OPERATOR IF EXISTS *(FLOAT8, FLOAT8[]);
+CREATE OPERATOR * (
+    PROCEDURE = array_mul,
+    LEFTARG = FLOAT8,
+    RIGHTARG = FLOAT8[],
+    COMMUTATOR = *
+);
+
+DROP OPERATOR IF EXISTS *(INT, INT[]);
+CREATE OPERATOR * (
+    PROCEDURE = array_mul,
+    LEFTARG = INT,
+    RIGHTARG = INT[],
+    COMMUTATOR = *
+);
+
+DROP OPERATOR IF EXISTS +(INT[], INT[]);
+CREATE OPERATOR + (
+    PROCEDURE = array_add,
+    LEFTARG = INT[],
+    RIGHTARG = INT[],
+    COMMUTATOR = +
+);
+
+DROP OPERATOR IF EXISTS -(INT[], INT[]);
+CREATE OPERATOR - (
+    PROCEDURE = array_sub,
+    LEFTARG = INT[],
+    RIGHTARG = INT[],
+    COMMUTATOR = -
+);
+
+DROP OPERATOR IF EXISTS -(FLOAT8[], FLOAT8[]);
+CREATE OPERATOR - (
+    PROCEDURE = array_sub,
+    LEFTARG = FLOAT8[],
+    RIGHTARG = FLOAT8[],
+    COMMUTATOR = -
+);
+
+DROP OPERATOR IF EXISTS /(INT[], INT[]);
+CREATE OPERATOR / (
+    PROCEDURE = array_div,
+    LEFTARG = INT[],
+    RIGHTARG = INT[]
+);
 
 --------------------------------------------------------------------------------
 -- BASICS
@@ -94,6 +222,15 @@ CREATE TABLE IF NOT EXISTS person (
     coordinates GEOGRAPHY(Point, 4326) NOT NULL,
     gender_id SMALLINT NOT NULL REFERENCES gender(id),
     about TEXT NOT NULL,
+
+    -- TODO: CREATE INDEX ON person USING ivfflat (personality2 vector_ip_ops) WITH (lists = 100);
+    -- There's 47 `trait`s. In principle, it's possible for someone to have a
+    -- score of 0 for each trait. We add an extra, constant, non-zero dimension
+    -- to avoid that.
+    personality VECTOR(48) NOT NULL DEFAULT array_full(48, 0),
+    presence_score INT[] NOT NULL DEFAULT array_full(47, 0),
+    absence_score INT[] NOT NULL DEFAULT array_full(47, 0),
+    count_answers SMALLINT NOT NULL DEFAULT 0,
 
     -- Verification
     verified SMALLINT NOT NULL REFERENCES yes_no(id),
@@ -186,6 +323,10 @@ CREATE TABLE IF NOT EXISTS question (
     id SMALLSERIAL PRIMARY KEY,
     question TEXT NOT NULL,
     topic TEXT NOT NULL,
+    presence_given_yes INT[] NOT NULL,
+    presence_given_no INT[] NOT NULL,
+    absence_given_yes INT[] NOT NULL,
+    absence_given_no INT[] NOT NULL,
     count_yes BIGINT NOT NULL DEFAULT 0,
     count_no BIGINT NOT NULL DEFAULT 0,
     count_views BIGINT NOT NULL DEFAULT 0,
@@ -212,30 +353,6 @@ CREATE TABLE IF NOT EXISTS trait (
     id SMALLSERIAL PRIMARY KEY,
     trait TEXT NOT NULL,
     UNIQUE (trait)
-);
-
-CREATE TABLE IF NOT EXISTS person_trait_statistic (
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-    trait_id SMALLINT NOT NULL REFERENCES trait(id) ON DELETE CASCADE,
-    presence_score INT NOT NULL,
-    absence_score INT NOT NULL,
-    CHECK (presence_score >= 0),
-    CHECK (absence_score >= 0),
-    PRIMARY KEY (person_id, trait_id)
-);
-
-CREATE TABLE IF NOT EXISTS question_trait_pair (
-    question_id SMALLSERIAL NOT NULL REFERENCES question(id) ON DELETE CASCADE,
-    trait_id SMALLSERIAL NOT NULL REFERENCES trait(id) ON DELETE CASCADE,
-    presence_given_yes SMALLINT NOT NULL,
-    presence_given_no SMALLINT NOT NULL,
-    absence_given_yes SMALLINT NOT NULL,
-    absence_given_no SMALLINT NOT NULL,
-    CHECK (presence_given_yes >= 0),
-    CHECK (presence_given_no >= 0),
-    CHECK (absence_given_yes >= 0),
-    CHECK (absence_given_no >= 0),
-    PRIMARY KEY (question_id, trait_id)
 );
 
 --------------------------------------------------------------------------------

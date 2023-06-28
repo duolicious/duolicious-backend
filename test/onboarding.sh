@@ -5,16 +5,14 @@ cd "$script_dir"
 
 source setup.sh
 
+set -xe
+
 q "delete from duo_session"
 q "delete from person"
 q "delete from onboardee"
 q "update question set count_yes = 0, count_no = 0, count_views = 0"
 
-response=$(
-  c POST /request-otp \
-    --header "Content-Type: application/json" \
-    -d '{ "email": "mail@example.com" }'
-)
+response=$(jc POST /request-otp -d '{ "email": "mail@example.com" }')
 
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
 
@@ -28,39 +26,20 @@ otp_expiry2=$(q "SELECT otp_expiry FROM duo_session order by otp_expiry desc lim
 
 [[ "$otp_expiry1" != "$otp_expiry2" ]]
 
-! c POST /check-otp \
-  --header "Content-Type: application/json" \
-  -d '{ "otp": "000001" }'
+! jc POST /check-otp -d '{ "otp": "000001" }'
 
 [[ "$(q "select COUNT(*) from onboardee")" -eq 0 ]]
 
-c POST /check-otp \
-  --header "Content-Type: application/json" \
-  -d '{ "otp": "000000" }'
+jc POST /check-otp -d '{ "otp": "000000" }'
 
 [[ "$(q "select COUNT(*) from onboardee")" -eq 1 ]]
 
-c PATCH /onboardee-info \
-  --header "Content-Type: application/json" \
-  -d '{ "name": "Jeff" }'
-
-c PATCH /onboardee-info \
-  --header "Content-Type: application/json" \
-  -d '{ "date_of_birth": "1997-05-30" }'
-
+jc PATCH /onboardee-info -d '{ "name": "Jeff" }'
+jc PATCH /onboardee-info -d '{ "date_of_birth": "1997-05-30" }'
 c GET /search-locations?q=Syd
-
-c PATCH /onboardee-info \
-  --header "Content-Type: application/json" \
-  -d '{ "location": "Sydney, Australia" }'
-
-c PATCH /onboardee-info \
-  --header "Content-Type: application/json" \
-  -d '{ "gender": "Man" }'
-
-c PATCH /onboardee-info \
-  --header "Content-Type: application/json" \
-  -d '{ "other_peoples_genders": ["Woman"] }'
+jc PATCH /onboardee-info -d '{ "location": "Sydney, Australia" }'
+jc PATCH /onboardee-info -d '{ "gender": "Man" }'
+jc PATCH /onboardee-info -d '{ "other_peoples_genders": ["Woman"] }'
 
 c PATCH /onboardee-info \
   --header "Content-Type: multipart/form-data" \
@@ -81,21 +60,15 @@ c GET "https://user-images.duolicious.app/450-$(q "select uuid from onboardee_ph
 
 [[ "$(q "select COUNT(*) from onboardee_photo")" -eq 3 ]]
 
-c DELETE /onboardee-info \
-  --header "Content-Type: application/json" \
-  -d '{ "files": [2, 6] }'
+jc DELETE /onboardee-info -d '{ "files": [2, 6] }'
 
 [[ "$(q "select COUNT(*) from onboardee_photo")" -eq 2 ]]
 
-c DELETE /onboardee-info \
-  --header "Content-Type: application/json" \
-  -d '{ "files": [1, 3] }'
+jc DELETE /onboardee-info -d '{ "files": [1, 3] }'
 
 [[ "$(q "select COUNT(*) from onboardee_photo")" -eq 0 ]]
 
-c PATCH /onboardee-info \
-  --header "Content-Type: application/json" \
-  -d '{ "about": "Im a reasonable person" }'
+jc PATCH /onboardee-info -d '{ "about": "Im a reasonable person" }'
 
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 1 ]]
 
@@ -116,49 +89,30 @@ c POST /sign-out
 
 # Can we sign back in?
 
-response=$(
-  c POST /request-otp \
-    --header "Content-Type: application/json" \
-    -d '{ "email": "mail@example.com" }'
-)
+response=$(jc POST /request-otp -d '{ "email": "mail@example.com" }')
 
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
 
-! c POST /check-otp \
-  --header "Content-Type: application/json" \
-  -d '{ "otp": "000001" }'
+! jc POST /check-otp -d '{ "otp": "000001" }'
 
 ! c GET /search-locations?q=Syd
 
 [[ "$(q "select COUNT(*) from onboardee")" -eq 0 ]]
 
 response=$(
-  c POST /check-otp \
-    --header "Content-Type: application/json" \
-    -d '{ "otp": "000000" }'
+  jc POST /check-otp -d '{ "otp": "000000" }'
 )
 
 [[ "$(echo "$response" | jq -r '.onboarded')" = true ]]
 
 c GET /search-locations?q=Syd
 
-c POST /view-question \
-  --header "Content-Type: application/json" \
-  -d '{ "question_id": 1001 }'
-c POST /view-question \
-  --header "Content-Type: application/json" \
-  -d '{ "question_id": 1001 }'
-c POST /view-question \
-  --header "Content-Type: application/json" \
-  -d '{ "question_id": 1002 }'
+jc POST /view-question -d '{ "question_id": 1001 }'
+jc POST /view-question -d '{ "question_id": 1001 }'
+jc POST /view-question -d '{ "question_id": 1002 }'
 
-c POST /answer \
-  --header "Content-Type: application/json" \
-  -d '{ "question_id": 1001, "answer": true, "public": false }'
-
-c POST /answer \
-  --header "Content-Type: application/json" \
-  -d '{ "question_id": 1002, "answer": false, "public": false }'
+jc POST /answer -d '{ "question_id": 1001, "answer": true, "public": false }'
+jc POST /answer -d '{ "question_id": 1002, "answer": false, "public": false }'
 
 [[ "$(q "select count_yes   from question where id = 1001")" -eq 1 ]]
 [[ "$(q "select count_no    from question where id = 1001")" -eq 0 ]]
