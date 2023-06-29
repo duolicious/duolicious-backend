@@ -32,7 +32,7 @@ _conninfo = _create_conn_string(_db_params)
 pool = ConnectionPool(_conninfo)
 
 def transaction(
-    isolation_level='SERIALIZABLE'
+    isolation_level='REPEATABLE READ'
 ) -> ContextManager[psycopg.Cursor[Any]]:
     @contextmanager
     def generator_function():
