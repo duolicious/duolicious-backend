@@ -548,12 +548,12 @@ RETURNS personality_vectors AS $$
     )
 
     # TODO: multiply personality
-    personality_weight = numpy.log(count_answers + 1) / numpy.log(251)
+    personality_weight = (numpy.log(count_answers + 1) / numpy.log(501)) ** 0.25
     personality_weight = personality_weight.clip(0, 1)
 
     personality = 2 * trait_percentages - 1
     personality = numpy.concatenate([personality, [1e-5]])
-    personality = personality / numpy.linalg.norm(personality)
+    personality /= numpy.linalg.norm(personality)
 
     return (
         personality,
