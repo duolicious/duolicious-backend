@@ -163,13 +163,13 @@ def init_db():
                         question=question.question,
                         trait=question.trait,
                         presence_given_yes=round(
-                            1000 * question.presence_given_yes() ** 2) if question.information() > 0.25 else 0,
+                            1000 * question.presence_given_yes()),
                         presence_given_no=round(
-                            1000 * question.presence_given_no()  ** 2) if question.information() > 0.25 else 0,
+                            1000 * question.presence_given_no()),
                         absence_given_yes=round(
-                            1000 * question.absence_given_yes()  ** 2) if question.information() > 0.25 else 0,
+                            1000 * question.absence_given_yes()),
                         absence_given_no=round(
-                            1000 * question.absence_given_no()   ** 2) if question.information() > 0.25 else 0,
+                            1000 * question.absence_given_no()),
                     )
                     for question in archetypeised_questions.archetypeised
                 ]

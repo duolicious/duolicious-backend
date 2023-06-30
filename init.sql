@@ -525,13 +525,17 @@ RETURNS personality_vectors AS $$
     count_answers  = cur_count_answers
 
     if new_presence_score and new_absence_score:
-        presence_score += new_presence_score
-        absence_score  += new_absence_score
+        excess = numpy.minimum(new_presence_score, new_absence_score)
+
+        presence_score += new_presence_score - excess
+        absence_score  += new_absence_score  - excess
         count_answers  += 1
 
     if old_presence_score and old_absence_score:
-        presence_score -= old_presence_score
-        absence_score  -= old_absence_score
+        excess = numpy.minimum(old_presence_score, old_absence_score)
+
+        presence_score -= old_presence_score - excess
+        absence_score  -= old_absence_score  - excess
         count_answers  -= 1
 
     numerator = presence_score
