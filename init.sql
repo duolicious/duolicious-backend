@@ -511,26 +511,28 @@ CREATE TYPE personality_vectors AS (
 CREATE OR REPLACE FUNCTION compute_personality_vectors(
     new_presence_score INT[],
     new_absence_score INT[],
-    previous_presence_score INT[],
-    previous_absence_score INT[],
-    current_presence_score INT[],
-    current_absence_score INT[],
-    current_count_answers SMALLINT
+    old_presence_score INT[],
+    old_absence_score INT[],
+    cur_presence_score INT[],
+    cur_absence_score INT[],
+    cur_count_answers SMALLINT
 )
 RETURNS personality_vectors AS $$
     import numpy
 
-    presence_score = numpy.array(current_presence_score)
-    absence_score  = numpy.array(current_absence_score)
-    count_answers  = current_count_answers
+    presence_score = numpy.array(cur_presence_score)
+    absence_score  = numpy.array(cur_absence_score)
+    count_answers  = cur_count_answers
 
-    if new_presence_score: presence_score += new_presence_score
-    if new_absence_score:  absence_score  += new_absence_score
-    if new_presence_score: count_answers  += 1
+    if new_presence_score and new_absence_score:
+        presence_score += new_presence_score
+        absence_score  += new_absence_score
+        count_answers  += 1
 
-    if previous_presence_score: presence_score -= previous_presence_score
-    if previous_absence_score:  absence_score  -= previous_absence_score
-    if previous_presence_score: count_answers  -= 1
+    if old_presence_score and old_absence_score:
+        presence_score -= old_presence_score
+        absence_score  -= old_absence_score
+        count_answers  -= 1
 
     numerator = presence_score
     denominator = presence_score + absence_score
@@ -556,6 +558,24 @@ RETURNS personality_vectors AS $$
         count_answers,
     )
 $$ LANGUAGE plpython3u IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+-- TODO: SELECT t2.id, t2.trait_id, 100 * t2.ratio
+-- TODO: FROM (SELECT id, (trait_ratio(presence_score, absence_score, 0)).* FROM person AS t1) AS t2;
+CREATE OR REPLACE FUNCTION trait_ratio(
+    presence_score INT[],
+    absence_score INT[],
+    score_threshold INT DEFAULT 1000
+)
+RETURNS TABLE(trait_id SMALLINT, ratio FLOAT4) AS $$
+    SELECT
+        ROW_NUMBER() OVER() AS trait_id,
+        CASE
+            WHEN (a + b) >= GREATEST(1, score_threshold)
+            THEN a::FLOAT4 / (a + b)
+            ELSE NULL
+        END AS percentage
+    FROM UNNEST(presence_score, absence_score) as t(a, b);
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
 
 -- TODO: INDEXES FOR SEARCH PREFERENCES
 -- TODO: SEARCH PREFERENCE DATA

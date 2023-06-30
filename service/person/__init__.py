@@ -23,7 +23,7 @@ R2_BUCKET_NAME = os.environ['DUO_R2_BUCKET_NAME']
 
 Q_UPDATE_ANSWER = """
 WITH
-previous_answer AS (
+old_answer AS (
     SELECT question_id, answer
     FROM answer
     WHERE
@@ -62,27 +62,27 @@ new_answer AS (
 updated_personality_vectors AS (
     SELECT
         (compute_personality_vectors(
-            na.presence_score,
-            na.absence_score,
-            pa.presence_score,
-            pa.absence_score,
-            p.presence_score,
-            p.absence_score,
-            p.count_answers
+            new_vectors.presence_score,
+            new_vectors.absence_score,
+            old_vectors.presence_score,
+            old_vectors.absence_score,
+            cur_vectors.presence_score,
+            cur_vectors.absence_score,
+            cur_vectors.count_answers
         )).*
     FROM (
         SELECT (answer_score_vectors(question_id, answer)).*
         FROM new_answer
         LIMIT 1
-    ) AS na FULL OUTER JOIN (
+    ) AS new_vectors FULL OUTER JOIN (
         SELECT (answer_score_vectors(question_id, answer)).*
-        FROM previous_answer
+        FROM old_answer
         LIMIT 1
-    ) AS pa ON TRUE FULL OUTER JOIN (
+    ) AS old_vectors ON TRUE FULL OUTER JOIN (
         SELECT presence_score, absence_score, count_answers
         FROM person where id = %(person_id)s
         LIMIT 1
-    ) AS p ON TRUE
+    ) AS cur_vectors ON TRUE
 )
 UPDATE person
 SET
