@@ -24,10 +24,7 @@ R2_BUCKET_NAME = os.environ['DUO_R2_BUCKET_NAME']
 Q_UPDATE_ANSWER = """
 WITH
 previous_answer AS (
-    SELECT
-        question_id,
-        answer,
-        - CAST(answer IS NOT NULL AS INT) AS count_answers
+    SELECT question_id, answer
     FROM answer
     WHERE
         person_id = %(person_id)s AND
@@ -38,8 +35,9 @@ previous_answer AS (
 ),
 deleted_answer AS (
     DELETE FROM answer
-    WHERE person_id = %(person_id)s
-    AND question_id = %(question_id_to_delete)s
+    WHERE
+        person_id = %(person_id)s AND
+        question_id = %(question_id_to_delete)s
 ),
 new_answer AS (
     INSERT INTO answer (
@@ -59,75 +57,40 @@ new_answer AS (
         public_ = EXCLUDED.public_
     RETURNING
         question_id,
-        answer,
-        CAST(answer IS NOT NULL AS INT) AS count_answers
+        answer
 ),
-updated_answer AS (
-    SELECT * FROM previous_answer
-    UNION ALL
-    SELECT * FROM new_answer
-),
-scores_to_sum AS (
+updated_personality_vectors AS (
     SELECT
-        updated_answer.count_answers *
-        CASE
-            WHEN updated_answer.answer = TRUE  THEN presence_given_yes
-            WHEN updated_answer.answer = FALSE THEN presence_given_no
-            ELSE array_numbers_like(presence_given_no, 0)
-        END AS presence_score,
-        updated_answer.count_answers *
-        CASE
-            WHEN updated_answer.answer = TRUE  THEN absence_given_yes
-            WHEN updated_answer.answer = FALSE THEN absence_given_no
-            ELSE array_numbers_like(absence_given_no, 0)
-        END AS absence_score,
-        updated_answer.count_answers AS count_answers
-    FROM question
-    JOIN updated_answer
-    ON question.id = updated_answer.question_id
-    UNION ALL
-    SELECT presence_score, absence_score, count_answers
-    FROM person
-    WHERE id = %(person_id)s
-),
-summed_scores AS (
-    SELECT
-        SUM(presence_score) AS presence_score,
-        SUM(absence_score) AS absence_score,
-        SUM(count_answers)::SMALLINT AS count_answers
-    FROM scores_to_sum
-),
-with_presence_percentage AS (
-    SELECT
-        array_plug_null(
-            presence_score / (presence_score + absence_score),
-            0.5
-        ) AS presence_percentage,
-        *
-    FROM summed_scores
-),
-with_personality AS (
-    SELECT
-        -- TODO: personality_weight(count_answers) *
-        -- TODO: array_normalize
-        (
-            (
-                (2 * presence_percentage) -
-                array_numbers_like(presence_percentage, 1)
-            ) || ARRAY[1e-5]
-        )
-        -- TODO: )
-        AS personality,
-        *
-    FROM with_presence_percentage
+        (compute_personality_vectors(
+            na.presence_score,
+            na.absence_score,
+            pa.presence_score,
+            pa.absence_score,
+            p.presence_score,
+            p.absence_score,
+            p.count_answers
+        )).*
+    FROM (
+        SELECT (answer_score_vectors(question_id, answer)).*
+        FROM new_answer
+        LIMIT 1
+    ) AS na FULL OUTER JOIN (
+        SELECT (answer_score_vectors(question_id, answer)).*
+        FROM previous_answer
+        LIMIT 1
+    ) AS pa ON TRUE FULL OUTER JOIN (
+        SELECT presence_score, absence_score, count_answers
+        FROM person where id = %(person_id)s
+        LIMIT 1
+    ) AS p ON TRUE
 )
 UPDATE person
 SET
-    personality    = with_personality.personality,
-    presence_score = with_personality.presence_score,
-    absence_score  = with_personality.absence_score,
-    count_answers  = with_personality.count_answers
-FROM with_personality
+    personality    = updated_personality_vectors.personality,
+    presence_score = updated_personality_vectors.presence_score,
+    absence_score  = updated_personality_vectors.absence_score,
+    count_answers  = updated_personality_vectors.count_answers
+FROM updated_personality_vectors
 WHERE person.id = %(person_id)s
 """
 
@@ -522,7 +485,7 @@ def post_answer(req: t.PostAnswer, s: t.SessionInfo):
     with transaction('READ COMMITTED') as tx:
         tx.execute(Q_ADD_YES_NO_COUNT, params_add_yes_no_count)
 
-    with transaction('REPEATABLE READ') as tx: # TODO
+    with transaction() as tx:
         tx.execute(Q_UPDATE_ANSWER, params_update_answer)
 
 def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
@@ -534,7 +497,7 @@ def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
         public=None,
     )
 
-    with transaction('REPEATABLE READ') as tx:
+    with transaction() as tx:
         tx.execute(Q_UPDATE_ANSWER, params)
 
 def _generate_otp():

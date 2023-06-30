@@ -29,7 +29,7 @@ rand_bool () {
 }
 
 answer_100_questions () {
-  for question_id in {1..1000}
+  for question_id in {1..100}
   do
     local json=$(cat << EOF
 {

@@ -3,135 +3,18 @@
 --------------------------------------------------------------------------------
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS plpython3u;
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS vector;
 
 --------------------------------------------------------------------------------
--- FUNCTIONS
+-- FUNCTIONS (1)
 --------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION array_add(a1 INT[], a2 INT[])
-RETURNS INT[] AS $$
-    SELECT ARRAY(
-        SELECT COALESCE(ua1, 0) + COALESCE(ua2, 0)
-        FROM UNNEST(a1, a2) AS u(ua1, ua2)
-    );
-$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
-
-CREATE OR REPLACE FUNCTION array_div(a1 INT[], a2 INT[])
-RETURNS FLOAT8[] AS $$
-    SELECT ARRAY(
-        SELECT ua1::FLOAT8 / NULLIF(ua2, 0)
-        FROM UNNEST(a1, a2) AS u(ua1, ua2)
-    );
-$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
 
 CREATE OR REPLACE FUNCTION array_full(dimensions INT, fill_value INT)
 RETURNS INT[] AS $$
     SELECT ARRAY(SELECT fill_value FROM generate_series(1, dimensions));
 $$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
-
-CREATE OR REPLACE FUNCTION array_l2_norm(a FLOAT8[])
-RETURNS FLOAT8 AS $$
-    SELECT SQRT(SUM(a_i * a_i)) FROM unnest(a) AS a_i;
-$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
-
-CREATE OR REPLACE FUNCTION array_mul(s INT, a INT[])
-RETURNS INT[] AS $$
-    SELECT ARRAY (SELECT ua * s FROM UNNEST(a) AS ua);
-$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
-
-CREATE OR REPLACE FUNCTION array_mul(s FLOAT8, a FLOAT8[])
-RETURNS FLOAT8[] AS $$
-    SELECT ARRAY (SELECT ua * s FROM UNNEST(a) AS ua);
-$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
-
-CREATE OR REPLACE FUNCTION array_normalize(a FLOAT8[])
-RETURNS FLOAT8[] AS $$
-    SELECT array_mul(1.0 / array_l2_norm(a), a);
-$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
-
-CREATE OR REPLACE FUNCTION array_numbers_like(a INT[], n INT)
-RETURNS INT[] AS $$
-    SELECT ARRAY (SELECT n FROM UNNEST(a) AS ua);
-$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
-
-CREATE OR REPLACE FUNCTION array_numbers_like(a FLOAT8[], n FLOAT8)
-RETURNS FLOAT8[] AS $$
-    SELECT ARRAY (SELECT n FROM UNNEST(a) AS ua);
-$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
-
-CREATE OR REPLACE FUNCTION array_plug_null(a FLOAT8[], n FLOAT8)
-RETURNS FLOAT8[] AS $$
-    SELECT ARRAY (SELECT COALESCE(ua, n) FROM UNNEST(a) AS ua);
-$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
-
-CREATE OR REPLACE FUNCTION array_sub(a1 FLOAT8[], a2 FLOAT8[])
-RETURNS FLOAT8[] AS $$
-    SELECT ARRAY(SELECT ua1 - ua2 FROM UNNEST(a1, a2) AS u(ua1, ua2));
-$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
-
-CREATE OR REPLACE FUNCTION array_sub(a1 INT[], a2 INT[])
-RETURNS INT[] AS $$
-    SELECT ARRAY(SELECT ua1 - ua2 FROM UNNEST(a1, a2) AS u(ua1, ua2));
-$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
-
-CREATE OR REPLACE FUNCTION personality_weight(count_answers SMALLINT)
-RETURNS FLOAT8 AS $$
-    SELECT GREATEST(0, LEAST(LOG(count_answers + 1) / LOG(251), 1));
-$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
-
-CREATE OR REPLACE AGGREGATE SUM(INT[]) (
-    SFUNC = array_add,
-    STYPE = INT[]
-);
-
-DROP OPERATOR IF EXISTS *(FLOAT8, FLOAT8[]);
-CREATE OPERATOR * (
-    PROCEDURE = array_mul,
-    LEFTARG = FLOAT8,
-    RIGHTARG = FLOAT8[],
-    COMMUTATOR = *
-);
-
-DROP OPERATOR IF EXISTS *(INT, INT[]);
-CREATE OPERATOR * (
-    PROCEDURE = array_mul,
-    LEFTARG = INT,
-    RIGHTARG = INT[],
-    COMMUTATOR = *
-);
-
-DROP OPERATOR IF EXISTS +(INT[], INT[]);
-CREATE OPERATOR + (
-    PROCEDURE = array_add,
-    LEFTARG = INT[],
-    RIGHTARG = INT[],
-    COMMUTATOR = +
-);
-
-DROP OPERATOR IF EXISTS -(INT[], INT[]);
-CREATE OPERATOR - (
-    PROCEDURE = array_sub,
-    LEFTARG = INT[],
-    RIGHTARG = INT[],
-    COMMUTATOR = -
-);
-
-DROP OPERATOR IF EXISTS -(FLOAT8[], FLOAT8[]);
-CREATE OPERATOR - (
-    PROCEDURE = array_sub,
-    LEFTARG = FLOAT8[],
-    RIGHTARG = FLOAT8[],
-    COMMUTATOR = -
-);
-
-DROP OPERATOR IF EXISTS /(INT[], INT[]);
-CREATE OPERATOR / (
-    PROCEDURE = array_div,
-    LEFTARG = INT[],
-    RIGHTARG = INT[]
-);
 
 --------------------------------------------------------------------------------
 -- BASICS
@@ -585,6 +468,94 @@ INSERT INTO frequency (name) VALUES ('Never') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO yes_no (name) VALUES ('Yes') ON CONFLICT (name) DO NOTHING;
 INSERT INTO yes_no (name) VALUES ('No') ON CONFLICT (name) DO NOTHING;
+
+--------------------------------------------------------------------------------
+-- FUNCTIONS (2)
+--------------------------------------------------------------------------------
+
+DROP TYPE IF EXISTS answer_score_vectors CASCADE;
+CREATE TYPE answer_score_vectors AS (
+    presence_score INT[],
+    absence_score INT[]
+);
+
+CREATE OR REPLACE FUNCTION answer_score_vectors(
+    question_id INT,
+    answer BOOLEAN
+)
+RETURNS answer_score_vectors AS $$
+    SELECT
+        CASE
+            WHEN answer = TRUE  THEN presence_given_yes
+            WHEN answer = FALSE THEN presence_given_no
+            ELSE NULL
+        END AS presence_score,
+        CASE
+            WHEN answer = TRUE  THEN absence_given_yes
+            WHEN answer = FALSE THEN absence_given_no
+            ELSE NULL
+        END AS absence_score
+    FROM question
+    WHERE id = question_id
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+
+DROP TYPE IF EXISTS personality_vectors CASCADE;
+CREATE TYPE personality_vectors AS (
+    personality FLOAT4[],
+    presence_score INT[],
+    absence_score INT[],
+    count_answers SMALLINT
+);
+
+CREATE OR REPLACE FUNCTION compute_personality_vectors(
+    new_presence_score INT[],
+    new_absence_score INT[],
+    previous_presence_score INT[],
+    previous_absence_score INT[],
+    current_presence_score INT[],
+    current_absence_score INT[],
+    current_count_answers SMALLINT
+)
+RETURNS personality_vectors AS $$
+    import numpy
+
+    presence_score = numpy.array(current_presence_score)
+    absence_score  = numpy.array(current_absence_score)
+    count_answers  = current_count_answers
+
+    if new_presence_score: presence_score += new_presence_score
+    if new_absence_score:  absence_score  += new_absence_score
+    if new_presence_score: count_answers  += 1
+
+    if previous_presence_score: presence_score -= previous_presence_score
+    if previous_absence_score:  absence_score  -= previous_absence_score
+    if previous_presence_score: count_answers  -= 1
+
+    numerator = presence_score
+    denominator = presence_score + absence_score
+    trait_percentages = numpy.divide(
+        numerator,
+        denominator,
+        out=numpy.full_like(numerator, 0.5, dtype=numpy.float64),
+        where=denominator != 0
+    )
+
+    # TODO: multiply personality
+    personality_weight = numpy.log(count_answers + 1) / numpy.log(251)
+    personality_weight = personality_weight.clip(0, 1)
+
+    personality = 2 * trait_percentages - 1
+    personality = numpy.concatenate([personality, [1e-5]])
+    personality = personality / numpy.linalg.norm(personality)
+
+    return (
+        personality,
+        presence_score,
+        absence_score,
+        count_answers,
+    )
+$$ LANGUAGE plpython3u IMMUTABLE LEAKPROOF PARALLEL SAFE;
 
 -- TODO: INDEXES FOR SEARCH PREFERENCES
 -- TODO: SEARCH PREFERENCE DATA
