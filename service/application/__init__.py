@@ -57,9 +57,13 @@ def post_sign_out(s: t.SessionInfo):
 def post_check_session_token(s: t.SessionInfo):
     return dict(onboarded=s.onboarded)
 
+@apost('/active')
+def post_active(s: t.SessionInfo):
+    return person.post_active(s)
+
 @aget('/search-locations', expected_onboarding_status=None, expected_sign_in_status=None)
 def get_search_locations(_):
-    return person.get_search_locations(request.args.get('q'))
+    return person.get_search_locations(q=request.args.get('q'))
 
 @apatch('/onboardee-info', expected_onboarding_status=False)
 @validate(t.PatchOnboardeeInfo)
@@ -78,9 +82,9 @@ def post_finish_onboarding(s: t.SessionInfo):
 @aget('/next-questions')
 def get_next_questions(s: t.SessionInfo):
     return question.get_next_questions(
-        s,
-        request.args.get('n', 10),
-        request.args.get('o', 0),
+        s=s,
+        n=request.args.get('n', '10'),
+        o=request.args.get('o', '0'),
     )
 
 @apost('/view-question')
@@ -101,9 +105,9 @@ def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
 @aget('/search')
 def get_search(s: t.SessionInfo):
     return search.get_search(
-        s,
-        request.args.get('n', 10),
-        request.args.get('o', 0),
+        s=s,
+        n=request.args.get('n'),
+        o=request.args.get('o')
     )
 
 @get('/personality/<int:person_id>')

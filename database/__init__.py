@@ -41,6 +41,7 @@ def transaction(
                 conn.cursor(row_factory=psycopg.rows.dict_row) as cur
         ):
             if isolation_level.upper() in _valid_isolation_levels:
+                cur.execute("SET LOCAL statement_timeout = 5000")
                 cur.execute(
                     f'SET TRANSACTION ISOLATION LEVEL {isolation_level}'
                 )

@@ -196,8 +196,13 @@ def init_db():
                 """
             )
 
-def get_next_questions(s: t.SessionInfo, n: int, o: int):
-    params = dict(person_id=s.person_id, n=n, o=o)
+def get_next_questions(s: t.SessionInfo, n: str, o: str):
+    params = dict(
+        person_id=s.person_id,
+        n=int(n),
+        o=int(o)
+    )
+
     with transaction('READ COMMITTED') as tx:
         tx.execute(Q_GET_NEXT_QUESTIONS, params)
         return tx.fetchall()

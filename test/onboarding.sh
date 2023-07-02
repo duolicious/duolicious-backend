@@ -39,7 +39,7 @@ jc PATCH /onboardee-info -d '{ "date_of_birth": "1997-05-30" }'
 c GET /search-locations?q=Syd
 jc PATCH /onboardee-info -d '{ "location": "Sydney, Australia" }'
 jc PATCH /onboardee-info -d '{ "gender": "Man" }'
-jc PATCH /onboardee-info -d '{ "other_peoples_genders": ["Woman"] }'
+jc PATCH /onboardee-info -d '{ "other_peoples_genders": ["Man", "Woman", "Other"] }'
 
 c PATCH /onboardee-info \
   --header "Content-Type: multipart/form-data" \

@@ -16,6 +16,11 @@ RETURNS INT[] AS $$
     SELECT ARRAY(SELECT fill_value FROM generate_series(1, dimensions));
 $$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
 
+CREATE OR REPLACE FUNCTION clamp(lo FLOAT, hi FLOAT, val FLOAT)
+RETURNS FLOAT AS $$
+    SELECT LEAST(hi, GREATEST(lo, val));
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
 --------------------------------------------------------------------------------
 -- BASICS
 --------------------------------------------------------------------------------
@@ -32,7 +37,6 @@ CREATE TABLE IF NOT EXISTS orientation (
     UNIQUE (name)
 );
 
--- TODO: SELECT * FROM location WHERE ST_DWithin(coordinates, ST_SetSRID(ST_MakePoint(151.21, -33.867778), 4326)::geography, 10000) LIMIT 1;
 CREATE TABLE IF NOT EXISTS location (
     id SERIAL PRIMARY KEY,
     friendly TEXT NOT NULL,
@@ -50,6 +54,18 @@ CREATE TABLE IF NOT EXISTS looking_for (
 );
 
 CREATE TABLE IF NOT EXISTS yes_no (
+    id SMALLSERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    UNIQUE (name)
+);
+
+CREATE TABLE IF NOT EXISTS yes_no_optional (
+    id SMALLSERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    UNIQUE (name)
+);
+
+CREATE TABLE IF NOT EXISTS yes_no_maybe (
     id SMALLSERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     UNIQUE (name)
@@ -95,15 +111,16 @@ CREATE TABLE IF NOT EXISTS immediacy (
 -- MAIN TABLES
 --------------------------------------------------------------------------------
 
+CREATE SEQUENCE IF NOT EXISTS person_id START 1;
 CREATE TABLE IF NOT EXISTS person (
-    id BIGSERIAL PRIMARY KEY,
+    id INT DEFAULT nextval('person_id'),
 
     -- Required during sign-up
     email TEXT NOT NULL,
     name TEXT NOT NULL,
     date_of_birth DATE NOT NULL,
     coordinates GEOGRAPHY(Point, 4326) NOT NULL,
-    gender_id SMALLINT NOT NULL REFERENCES gender(id),
+    gender_id SMALLINT REFERENCES gender(id) NOT NULL,
     about TEXT NOT NULL,
 
     -- TODO: CREATE INDEX ON person USING ivfflat (personality2 vector_ip_ops) WITH (lists = 100);
@@ -116,56 +133,65 @@ CREATE TABLE IF NOT EXISTS person (
     count_answers SMALLINT NOT NULL DEFAULT 0,
 
     -- Verification
-    verified SMALLINT NOT NULL REFERENCES yes_no(id),
+    verified_id SMALLINT REFERENCES yes_no(id) NOT NULL DEFAULT 2,
+    has_profile_picture_id SMALLINT REFERENCES yes_no(id) NOT NULL DEFAULT 2,
 
     -- Basics
-    orientation_id SMALLINT REFERENCES orientation(id),
+    orientation_id SMALLINT REFERENCES orientation(id) NOT NULL DEFAULT 1,
     occupation TEXT,
     height_cm SMALLINT,
-    looking_for_id SMALLINT REFERENCES looking_for(id),
-    smoking_id SMALLINT REFERENCES yes_no(id),
-    drinking_id SMALLINT REFERENCES frequency(id),
-    drugs_id SMALLINT REFERENCES yes_no(id),
-    long_distance SMALLINT REFERENCES yes_no(id),
-    relationship_status_id SMALLINT REFERENCES relationship_status(id),
-    has_kids_id SMALLINT REFERENCES yes_no(id),
-    wants_kids_id SMALLINT REFERENCES yes_no(id),
-    exercise_id SMALLINT REFERENCES frequency(id),
-    religion_id SMALLINT REFERENCES religion(id),
-    star_sign_id SMALLINT REFERENCES star_sign(id),
+    looking_for_id SMALLINT REFERENCES looking_for(id) NOT NULL DEFAULT 1,
+    smoking_id SMALLINT REFERENCES yes_no_optional(id) NOT NULL DEFAULT 1,
+    drinking_id SMALLINT REFERENCES frequency(id) NOT NULL DEFAULT 1,
+    drugs_id SMALLINT REFERENCES yes_no_optional(id) NOT NULL DEFAULT 1,
+    long_distance_id SMALLINT REFERENCES yes_no_optional(id) NOT NULL DEFAULT 1,
+    relationship_status_id SMALLINT REFERENCES relationship_status(id) NOT NULL DEFAULT 1,
+    has_kids_id SMALLINT REFERENCES yes_no_maybe(id) NOT NULL DEFAULT 1,
+    wants_kids_id SMALLINT REFERENCES yes_no_maybe(id) NOT NULL DEFAULT 1,
+    exercise_id SMALLINT REFERENCES frequency(id) NOT NULL DEFAULT 1,
+    religion_id SMALLINT REFERENCES religion(id) NOT NULL DEFAULT 1,
+    star_sign_id SMALLINT REFERENCES star_sign(id) NOT NULL DEFAULT 1,
 
     -- General Settings
     unit_id SMALLINT REFERENCES unit(id) NOT NULL,
 
     -- Notification Settings
-    chats_notification SMALLINT REFERENCES immediacy(id) NOT NULL,
-    intros_notification SMALLINT REFERENCES immediacy(id) NOT NULL,
-    visitors_notification SMALLINT REFERENCES immediacy(id) NOT NULL,
+    chats_notification SMALLINT REFERENCES immediacy(id) NOT NULL DEFAULT 1,
+    intros_notification SMALLINT REFERENCES immediacy(id) NOT NULL DEFAULT 2,
+    visitors_notification SMALLINT REFERENCES immediacy(id) NOT NULL DEFAULT 3,
 
     -- Privacy Settings
     show_my_location BOOLEAN NOT NULL DEFAULT TRUE,
     show_my_age BOOLEAN NOT NULL DEFAULT TRUE,
     private_browsing BOOLEAN NOT NULL DEFAULT FALSE,
     hide_me_from_strangers BOOLEAN NOT NULL DEFAULT FALSE,
-    two_way_filters BOOLEAN NOT NULL DEFAULT FALSE,
 
     -- Bookkeeping
     sign_up_time TIMESTAMP NOT NULL DEFAULT NOW(),
-    sign_in_time TIMESTAMP NOT NULL DEFAULT NOW(),
     sign_in_count INT NOT NULL DEFAULT 1,
+    last_active_time TIMESTAMP NOT NULL DEFAULT NOW(),
 
-    -- Constraints
-    UNIQUE (email)
-);
+    -- Whether the user deactivated their account via the settings
+    activated BOOLEAN NOT NULL DEFAULT TRUE,
+
+    -- Primary keys and constraints
+    PRIMARY KEY (id)
+) PARTITION BY RANGE (id);
+CREATE TABLE IF NOT EXISTS person_visible_in_search_true
+    PARTITION OF person FOR VALUES FROM (1) TO (MAXVALUE);
+CREATE TABLE IF NOT EXISTS person_visible_in_search_false
+    PARTITION OF person FOR VALUES FROM (MINVALUE) TO (0);
 
 CREATE TABLE IF NOT EXISTS onboardee (
     email TEXT NOT NULL,
+
     name TEXT,
     date_of_birth DATE,
     coordinates GEOGRAPHY(Point, 4326),
     gender_id SMALLINT REFERENCES gender(id),
     about TEXT,
 
+    -- Bookkeeping
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
     PRIMARY KEY (email)
@@ -186,7 +212,7 @@ CREATE TABLE IF NOT EXISTS onboardee_photo (
 
 CREATE TABLE IF NOT EXISTS duo_session (
     session_token_hash TEXT NOT NULL,
-    person_id BIGINT REFERENCES person(id) ON DELETE CASCADE,
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     email TEXT NOT NULL,
     otp TEXT NOT NULL,
     signed_in BOOLEAN NOT NULL DEFAULT FALSE,
@@ -196,14 +222,14 @@ CREATE TABLE IF NOT EXISTS duo_session (
 );
 
 CREATE TABLE IF NOT EXISTS photo (
-    person_id BIGSERIAL NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     position SMALLINT NOT NULL,
     uuid TEXT NOT NULL,
     PRIMARY KEY (person_id, position)
 );
 
 CREATE TABLE IF NOT EXISTS question (
-    id SMALLSERIAL PRIMARY KEY,
+    id SMALLSERIAL,
     question TEXT NOT NULL,
     topic TEXT NOT NULL,
     presence_given_yes INT[] NOT NULL,
@@ -214,19 +240,20 @@ CREATE TABLE IF NOT EXISTS question (
     count_no BIGINT NOT NULL DEFAULT 0,
     count_views BIGINT NOT NULL DEFAULT 0,
     visible BOOLEAN DEFAULT TRUE,
-    UNIQUE(question)
+    UNIQUE (question),
+    PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS question_order (
-    person_id BIGINT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-    question_id SMALLINT NOT NULL REFERENCES question(id) ON DELETE CASCADE,
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    question_id SMALLINT NOT NULL REFERENCES question(id) ON DELETE CASCADE ON UPDATE CASCADE,
     position SMALLINT NOT NULL,
     PRIMARY KEY (person_id, question_id)
 );
 
 CREATE TABLE IF NOT EXISTS answer (
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-    question_id SMALLINT NOT NULL REFERENCES question(id) ON DELETE CASCADE,
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    question_id SMALLINT NOT NULL REFERENCES question(id) ON DELETE CASCADE ON UPDATE CASCADE,
     answer BOOLEAN,
     public_ BOOLEAN NOT NULL,
     PRIMARY KEY (person_id, question_id)
@@ -242,8 +269,8 @@ CREATE TABLE IF NOT EXISTS trait (
 -- TABLES TO CONNECT PEOPLE TO THEIR SEARCH PREFERENCES
 --------------------------------------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS search_preference_question (
-    person_id INT REFERENCES person(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS search_preference_answer (
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     question_id SMALLINT REFERENCES question(id) ON DELETE CASCADE,
     answer BOOLEAN NOT NULL,
     accept_unanswered BOOLEAN NOT NULL,
@@ -251,141 +278,134 @@ CREATE TABLE IF NOT EXISTS search_preference_question (
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_gender (
-    person_id INT REFERENCES person(id) ON DELETE CASCADE,
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     gender_id SMALLINT REFERENCES gender(id) ON DELETE CASCADE,
     PRIMARY KEY (person_id, gender_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_orientation (
-    person_id INT REFERENCES person(id) ON DELETE CASCADE,
-    orientation_id SMALLINT REFERENCES gender(id) ON DELETE CASCADE,
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    orientation_id SMALLINT REFERENCES orientation(id) ON DELETE CASCADE,
     PRIMARY KEY (person_id, orientation_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_age (
-    person_id INT REFERENCES person(id) ON DELETE CASCADE,
-    min_age SMALLINT NOT NULL,
-    max_age SMALLINT NOT NULL,
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    min_age SMALLINT,
+    max_age SMALLINT,
     PRIMARY KEY (person_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_distance (
-    person_id INT REFERENCES person(id) ON DELETE CASCADE,
-    distance SMALLINT NOT NULL,
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    distance SMALLINT,
     PRIMARY KEY (person_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_height (
-    person_id INT REFERENCES person(id) ON DELETE CASCADE,
-    min_height SMALLINT NOT NULL,
-    max_height SMALLINT NOT NULL,
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    min_height_cm SMALLINT,
+    max_height_cm SMALLINT,
     PRIMARY KEY (person_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_verified (
-    id BIGINT PRIMARY KEY,
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-    yes_no_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    UNIQUE NULLS NOT DISTINCT (person_id, yes_no_id)
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    verified_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
+    PRIMARY KEY (person_id, verified_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_has_profile_picture (
-    id BIGINT PRIMARY KEY,
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-    yes_no_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    UNIQUE NULLS NOT DISTINCT (person_id, yes_no_id)
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    has_profile_picture_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
+    PRIMARY KEY (person_id, has_profile_picture_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_looking_for (
-    id BIGINT PRIMARY KEY,
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     looking_for_id SMALLINT REFERENCES looking_for(id) ON DELETE CASCADE,
-    UNIQUE NULLS NOT DISTINCT (person_id, looking_for_id)
+    PRIMARY KEY (person_id, looking_for_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_smoking (
-    id BIGINT PRIMARY KEY,
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-    yes_no_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    UNIQUE NULLS NOT DISTINCT (person_id, yes_no_id)
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    smoking_id SMALLINT REFERENCES yes_no_optional(id) ON DELETE CASCADE,
+    PRIMARY KEY (person_id, smoking_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_drinking (
-    id BIGINT PRIMARY KEY,
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-    frequency_id SMALLINT REFERENCES frequency(id) ON DELETE CASCADE,
-    UNIQUE NULLS NOT DISTINCT (person_id, frequency_id)
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    drinking_id SMALLINT REFERENCES frequency(id) ON DELETE CASCADE,
+    PRIMARY KEY (person_id, drinking_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_drugs (
-    id BIGINT PRIMARY KEY,
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-    yes_no_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    UNIQUE NULLS NOT DISTINCT (person_id, yes_no_id)
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    drugs_id SMALLINT REFERENCES yes_no_optional(id) ON DELETE CASCADE,
+    PRIMARY KEY (person_id, drugs_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_long_distance (
-    id BIGINT PRIMARY KEY,
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-    yes_no_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    UNIQUE NULLS NOT DISTINCT (person_id, yes_no_id)
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    long_distance_id SMALLINT REFERENCES yes_no_optional(id) ON DELETE CASCADE,
+    PRIMARY KEY (person_id, long_distance_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_relationship_status (
-    id BIGINT PRIMARY KEY,
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     relationship_status_id SMALLINT REFERENCES relationship_status(id) ON DELETE CASCADE,
-    UNIQUE NULLS NOT DISTINCT (person_id, relationship_status_id)
+    PRIMARY KEY (person_id, relationship_status_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_has_kids (
-    id BIGINT PRIMARY KEY,
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-    yes_no_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    UNIQUE NULLS NOT DISTINCT (person_id, yes_no_id)
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    has_kids_id SMALLINT REFERENCES yes_no_maybe(id) ON DELETE CASCADE,
+    PRIMARY KEY (person_id, has_kids_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_wants_kids (
-    id BIGINT PRIMARY KEY,
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-    yes_no_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    UNIQUE NULLS NOT DISTINCT (person_id, yes_no_id)
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    wants_kids_id SMALLINT REFERENCES yes_no_maybe(id) ON DELETE CASCADE,
+    PRIMARY KEY (person_id, wants_kids_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_exercise (
-    id BIGINT PRIMARY KEY,
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-    frequency_id SMALLINT REFERENCES frequency(id) ON DELETE CASCADE,
-    UNIQUE NULLS NOT DISTINCT (person_id, frequency_id)
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    exercise_id SMALLINT REFERENCES frequency(id) ON DELETE CASCADE,
+    PRIMARY KEY (person_id, exercise_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_religion (
-    id BIGINT PRIMARY KEY,
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     religion_id SMALLINT REFERENCES religion(id) ON DELETE CASCADE,
-    UNIQUE NULLS NOT DISTINCT (person_id, religion_id)
+    PRIMARY KEY (person_id, religion_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_star_sign (
-    id BIGINT PRIMARY KEY,
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     star_sign_id SMALLINT REFERENCES star_sign(id) ON DELETE CASCADE,
-    UNIQUE NULLS NOT DISTINCT (person_id, star_sign_id)
+    PRIMARY KEY (person_id, star_sign_id)
 );
 
 --------------------------------------------------------------------------------
 -- SEARCH RESULT CACHE
 --------------------------------------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS search_result (
-    searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE,
-    prospect_person_id INT REFERENCES person(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS search_cache (
+    searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    prospect_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    profile_photo_uuid TEXT,
+    name TEXT NOT NULL,
+    age SMALLINT,
+    match_percentage SMALLINT,
     PRIMARY KEY (searcher_person_id, prospect_person_id)
 );
 
 --------------------------------------------------------------------------------
 -- INDEXES
 --------------------------------------------------------------------------------
+
+CREATE INDEX IF NOT EXISTS idx__email__person ON person(email);
 
 CREATE INDEX IF NOT EXISTS idx__question_id__answer ON answer(question_id);
 
@@ -398,6 +418,7 @@ CREATE INDEX IF NOT EXISTS idx__friendly__location ON location USING GIST(friend
 -- DATA
 --------------------------------------------------------------------------------
 
+INSERT INTO gender (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Man') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Woman') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Agender') ON CONFLICT (name) DO NOTHING;
@@ -408,6 +429,7 @@ INSERT INTO gender (name) VALUES ('Trans woman') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Trans man') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
+INSERT INTO orientation (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientation (name) VALUES ('Straight') ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientation (name) VALUES ('Gay') ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientation (name) VALUES ('Lesbian') ON CONFLICT (name) DO NOTHING;
@@ -418,10 +440,12 @@ INSERT INTO orientation (name) VALUES ('Pansexual') ON CONFLICT (name) DO NOTHIN
 INSERT INTO orientation (name) VALUES ('Queer') ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientation (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
+INSERT INTO looking_for (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO looking_for (name) VALUES ('Long-term dating') ON CONFLICT (name) DO NOTHING;
 INSERT INTO looking_for (name) VALUES ('Short-term dating') ON CONFLICT (name) DO NOTHING;
 INSERT INTO looking_for (name) VALUES ('Friends') ON CONFLICT (name) DO NOTHING;
 
+INSERT INTO relationship_status (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Single') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Seeing someone') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Engaged') ON CONFLICT (name) DO NOTHING;
@@ -430,6 +454,7 @@ INSERT INTO relationship_status (name) VALUES ('Divorced') ON CONFLICT (name) DO
 INSERT INTO relationship_status (name) VALUES ('Widowed') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
+INSERT INTO religion (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO religion (name) VALUES ('Agnostic') ON CONFLICT (name) DO NOTHING;
 INSERT INTO religion (name) VALUES ('Atheist') ON CONFLICT (name) DO NOTHING;
 INSERT INTO religion (name) VALUES ('Buddhist') ON CONFLICT (name) DO NOTHING;
@@ -440,6 +465,7 @@ INSERT INTO religion (name) VALUES ('Muslim') ON CONFLICT (name) DO NOTHING;
 INSERT INTO religion (name) VALUES ('Zoroastrianism') ON CONFLICT (name) DO NOTHING;
 INSERT INTO religion (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
+INSERT INTO star_sign (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO star_sign (name) VALUES ('Aquarius') ON CONFLICT (name) DO NOTHING;
 INSERT INTO star_sign (name) VALUES ('Aries') ON CONFLICT (name) DO NOTHING;
 INSERT INTO star_sign (name) VALUES ('Cancer') ON CONFLICT (name) DO NOTHING;
@@ -462,12 +488,22 @@ INSERT INTO immediacy (name) VALUES ('Every 3 Days') ON CONFLICT (name) DO NOTHI
 INSERT INTO immediacy (name) VALUES ('Weekly') ON CONFLICT (name) DO NOTHING;
 INSERT INTO immediacy (name) VALUES ('Never') ON CONFLICT (name) DO NOTHING;
 
+INSERT INTO frequency (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO frequency (name) VALUES ('Often') ON CONFLICT (name) DO NOTHING;
 INSERT INTO frequency (name) VALUES ('Sometimes') ON CONFLICT (name) DO NOTHING;
 INSERT INTO frequency (name) VALUES ('Never') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO yes_no (name) VALUES ('Yes') ON CONFLICT (name) DO NOTHING;
 INSERT INTO yes_no (name) VALUES ('No') ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO yes_no_optional (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
+INSERT INTO yes_no_optional (name) VALUES ('Yes') ON CONFLICT (name) DO NOTHING;
+INSERT INTO yes_no_optional (name) VALUES ('No') ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO yes_no_maybe (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
+INSERT INTO yes_no_maybe (name) VALUES ('Yes') ON CONFLICT (name) DO NOTHING;
+INSERT INTO yes_no_maybe (name) VALUES ('No') ON CONFLICT (name) DO NOTHING;
+INSERT INTO yes_no_maybe (name) VALUES ('Maybe') ON CONFLICT (name) DO NOTHING;
 
 --------------------------------------------------------------------------------
 -- FUNCTIONS (2)
@@ -564,7 +600,7 @@ RETURNS personality_vectors AS $$
 $$ LANGUAGE plpython3u IMMUTABLE LEAKPROOF PARALLEL SAFE;
 
 -- TODO: SELECT t2.id, t2.trait_id, 100 * t2.ratio
--- TODO: FROM (SELECT id, (trait_ratio(presence_score, absence_score, 0)).* FROM person AS t1) AS t2;
+--       FROM (SELECT id, (trait_ratio(presence_score, absence_score, 0)).* FROM person AS t1) AS t2;
 CREATE OR REPLACE FUNCTION trait_ratio(
     presence_score INT[],
     absence_score INT[],
@@ -581,10 +617,6 @@ RETURNS TABLE(trait_id SMALLINT, ratio FLOAT4) AS $$
     FROM UNNEST(presence_score, absence_score) as t(a, b);
 $$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
 
--- TODO: INDEXES FOR SEARCH PREFERENCES
--- TODO: SEARCH PREFERENCE DATA
--- TODO: make primary and foreign keys non-null where possible
--- TODO: Store trait descriptions
 -- TODO: Trait descriptions should be in the database
 -- TODO: Periodically delete expired tokens
 -- TODO: Periodically move inactive accounts
