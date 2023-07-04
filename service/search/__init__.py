@@ -9,7 +9,6 @@ from typing import Tuple, Optional
 #      * distance
 #      * min_height, max_height
 # TODO Put photo-less people last in search results
-# TODO Add a position column to the cache so you don't need to use limit and offset
 
 def _q_uncached_search_1():
     return """
@@ -262,6 +261,7 @@ def _q_uncached_search_2_extended_fragment():
 ), updated_search_cache AS (
     INSERT INTO search_cache (
         searcher_person_id,
+        position,
         prospect_person_id,
         profile_photo_uuid,
         name,
@@ -270,6 +270,7 @@ def _q_uncached_search_2_extended_fragment():
     )
     SELECT
         %(searcher_person_id)s,
+        ROW_NUMBER() OVER () AS position,
         *
     FROM
         prospects_with_details
@@ -303,14 +304,12 @@ SELECT
 FROM
     search_cache
 WHERE
-    searcher_person_id = %(searcher_person_id)s
+    searcher_person_id = %(searcher_person_id)s AND
+    position > %(o)s AND
+    position < %(o)s + %(n)s
 ORDER BY
     match_percentage
 DESC
-LIMIT
-    %(n)s
-OFFSET
-    %(o)s
 """
 
 def _uncached_search_results(

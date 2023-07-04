@@ -393,12 +393,13 @@ CREATE TABLE IF NOT EXISTS search_preference_star_sign (
 
 CREATE TABLE IF NOT EXISTS search_cache (
     searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    position SMALLINT,
     prospect_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     profile_photo_uuid TEXT,
     name TEXT NOT NULL,
     age SMALLINT,
-    match_percentage SMALLINT,
-    PRIMARY KEY (searcher_person_id, prospect_person_id)
+    match_percentage SMALLINT NOT NULL,
+    PRIMARY KEY (searcher_person_id, position)
 );
 
 --------------------------------------------------------------------------------
