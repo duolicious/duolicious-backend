@@ -8,6 +8,8 @@ from typing import Tuple, Optional
 #      * min_age, max_age
 #      * distance
 #      * min_height, max_height
+# TODO Put photo-less people last in search results
+# TODO Add a position column to the cache so you don't need to use limit and offset
 
 def _q_uncached_search_1():
     return """
@@ -48,7 +50,7 @@ WITH searcher AS (
     FROM
         person
     WHERE
-        id > 0 -- Implies person is visible in search
+        id >= 1 -- Implies person is visible in search
     AND
         id != %(searcher_person_id)s
 """ + ("""
@@ -101,12 +103,14 @@ def _q_uncached_search_2_extended_fragment():
             WHERE
                 preference.person_id = %(searcher_person_id)s AND
                 preference.gender_id = prospect.gender_id
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_orientation AS preference
             WHERE
                 preference.person_id      = %(searcher_person_id)s AND
                 preference.orientation_id = prospect.orientation_id
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_age AS preference
@@ -114,91 +118,106 @@ def _q_uncached_search_2_extended_fragment():
                 preference.person_id = %(searcher_person_id)s AND
                 COALESCE(preference.min_age, 0)   <= prospect.age AND
                 COALESCE(preference.max_age, 999) >= prospect.age
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_verified AS preference
             WHERE
                 preference.person_id   = %(searcher_person_id)s AND
                 preference.verified_id = prospect.verified_id
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
-            FROM search_preference_height AS preference
+            FROM search_preference_height_cm AS preference
             WHERE
                 preference.person_id = %(searcher_person_id)s AND
                 COALESCE(preference.min_height_cm, 0)   <= COALESCE(prospect.height_cm, 0) AND
                 COALESCE(preference.max_height_cm, 999) >= COALESCE(prospect.height_cm, 999)
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_has_profile_picture AS preference
             WHERE
                 preference.person_id              = %(searcher_person_id)s AND
                 preference.has_profile_picture_id = prospect.has_profile_picture_id
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_looking_for AS preference
             WHERE
                 preference.person_id      = %(searcher_person_id)s AND
                 preference.looking_for_id = prospect.looking_for_id
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_smoking AS preference
             WHERE
                 preference.person_id  = %(searcher_person_id)s AND
                 preference.smoking_id = prospect.smoking_id
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_drinking AS preference
             WHERE
                 preference.person_id  = %(searcher_person_id)s AND
                 preference.drinking_id = prospect.drinking_id
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_drugs AS preference
             WHERE
                 preference.person_id = %(searcher_person_id)s AND
                 preference.drugs_id  = prospect.drugs_id
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_long_distance AS preference
             WHERE
                 preference.person_id         = %(searcher_person_id)s AND
                 preference.long_distance_id  = prospect.long_distance_id
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_relationship_status AS preference
             WHERE
                 preference.person_id               = %(searcher_person_id)s AND
                 preference.relationship_status_id  = prospect.relationship_status_id
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_has_kids AS preference
             WHERE
                 preference.person_id   = %(searcher_person_id)s AND
                 preference.has_kids_id = prospect.has_kids_id
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_wants_kids AS preference
             WHERE
                 preference.person_id     = %(searcher_person_id)s AND
                 preference.wants_kids_id = prospect.wants_kids_id
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_exercise AS preference
             WHERE
                 preference.person_id   = %(searcher_person_id)s AND
                 preference.exercise_id = prospect.exercise_id
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_religion AS preference
             WHERE
                 preference.person_id   = %(searcher_person_id)s AND
                 preference.religion_id = prospect.religion_id
+            LIMIT 1
         ) AND EXISTS (
             SELECT 1
             FROM search_preference_star_sign AS preference
             WHERE
                 preference.person_id    = %(searcher_person_id)s AND
                 preference.star_sign_id = prospect.star_sign_id
+            LIMIT 1
         )
 ), prospects_third_pass AS (
     SELECT
@@ -223,6 +242,7 @@ def _q_uncached_search_2_extended_fragment():
                 -- Contrary because the answer doesn't exist but should
                 ans.answer IS NULL AND
                 pref.accept_unanswered = FALSE
+            LIMIT 1
         )
 ), prospects_with_details AS (
     SELECT
@@ -282,11 +302,11 @@ SELECT
     match_percentage
 FROM
     search_cache
+WHERE
+    searcher_person_id = %(searcher_person_id)s
 ORDER BY
     match_percentage
 DESC
-WHERE
-    searcher_person_id = %(searcher_person_id)s
 LIMIT
     %(n)s
 OFFSET
@@ -340,8 +360,7 @@ def _cached_search_results(searcher_person_id: int, no: Tuple[int, int]):
 
     with transaction() as tx:
         q_cached_search = _q_cached_search()
-        tx.execute(q_cached_search, params)
-        return tx.fetchall()
+        return tx.execute(q_cached_search, params).fetchall()
 
 def get_search(s: t.SessionInfo, n: Optional[str], o: Optional[str]):
     n_: Optional[int] = n if n is None else int(n)

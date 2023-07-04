@@ -333,7 +333,7 @@ onboardee_country AS (
     SELECT new_person.id, NULL
     FROM new_person
 ), p5 AS (
-    INSERT INTO search_preference_height (person_id, min_height_cm, max_height_cm)
+    INSERT INTO search_preference_height_cm (person_id, min_height_cm, max_height_cm)
     SELECT new_person.id, NULL, NULL
     FROM new_person
 ), p6 AS (

@@ -46,6 +46,12 @@ c () {
       "$endpoint" \
       "${args[@]}"
   )
+  local rc=$?
+  if [[ $rc -ne 0 ]]
+  then
+    echo "curl failed with $rc" >&2
+    return "$rc"
+  fi
   cat "$response_file"
   rm "$response_file"
   [ "$status_code" -ge 200 -a "$status_code" -lt 300 ]

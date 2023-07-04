@@ -35,7 +35,7 @@ DROP TABLE IF EXISTS search_preference_exercise CASCADE;
 DROP TABLE IF EXISTS search_preference_gender CASCADE;
 DROP TABLE IF EXISTS search_preference_has_kids CASCADE;
 DROP TABLE IF EXISTS search_preference_has_profile_picture CASCADE;
-DROP TABLE IF EXISTS search_preference_height CASCADE;
+DROP TABLE IF EXISTS search_preference_height_cm CASCADE;
 DROP TABLE IF EXISTS search_preference_long_distance CASCADE;
 DROP TABLE IF EXISTS search_preference_looking_for CASCADE;
 DROP TABLE IF EXISTS search_preference_orientation CASCADE;

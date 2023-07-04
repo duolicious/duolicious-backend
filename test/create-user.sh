@@ -5,6 +5,8 @@ cd "$script_dir"
 
 source setup.sh
 
+set -e
+
 rand_bool_or_null () {
   local rand=$(($RANDOM % 3))
 
@@ -28,8 +30,8 @@ rand_bool () {
   fi
 }
 
-answer_100_questions () {
-  for question_id in {1..100}
+answer_questions () {
+  for question_id in $(seq 1 $1)
   do
     local json=$(cat << EOF
 {
@@ -45,6 +47,7 @@ EOF
 
 main () {
   local username=$1
+  local num_questions=${2:-100}
 
   local response=$(jc POST /request-otp -d '{ "email": "'"$username"'@example.com" }')
 
@@ -55,13 +58,13 @@ main () {
   jc PATCH /onboardee-info -d '{ "date_of_birth": "1997-05-30" }'
   jc PATCH /onboardee-info -d '{ "location": "Sydney, Australia" }'
   jc PATCH /onboardee-info -d '{ "gender": "Other" }'
-  jc PATCH /onboardee-info -d '{ "other_peoples_genders": ["Other"] }'
+  jc PATCH /onboardee-info -d '{ "other_peoples_genders": ["Man", "Woman", "Agender", "Intersex", "Non-binary", "Transgender", "Trans woman", "Trans man", "Other"] }'
   jc PATCH /onboardee-info -d '{ "about": "Im a reasonable person" }'
   c POST /finish-onboarding
 
-  answer_100_questions
+  answer_questions "$num_questions"
 
   echo "Created $username"
 }
 
-main "$1"
+main "$@"

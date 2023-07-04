@@ -302,7 +302,7 @@ CREATE TABLE IF NOT EXISTS search_preference_distance (
     PRIMARY KEY (person_id)
 );
 
-CREATE TABLE IF NOT EXISTS search_preference_height (
+CREATE TABLE IF NOT EXISTS search_preference_height_cm (
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     min_height_cm SMALLINT,
     max_height_cm SMALLINT,
@@ -405,20 +405,19 @@ CREATE TABLE IF NOT EXISTS search_cache (
 -- INDEXES
 --------------------------------------------------------------------------------
 
-CREATE INDEX IF NOT EXISTS idx__email__person ON person(email);
+CREATE INDEX IF NOT EXISTS idx__person__email ON person(email);
 
-CREATE INDEX IF NOT EXISTS idx__question_id__answer ON answer(question_id);
+CREATE INDEX IF NOT EXISTS idx__answer__question_id ON answer(question_id);
 
-CREATE INDEX IF NOT EXISTS idx__email__duo_session ON duo_session(email);
+CREATE INDEX IF NOT EXISTS idx__duo_session__email ON duo_session(email);
 
-CREATE INDEX IF NOT EXISTS idx__coordinates__location ON location USING GIST(coordinates);
-CREATE INDEX IF NOT EXISTS idx__friendly__location ON location USING GIST(friendly gist_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx__location__coordinates ON location USING GIST(coordinates);
+CREATE INDEX IF NOT EXISTS idx__location__friendly ON location USING GIST(friendly gist_trgm_ops);
 
 --------------------------------------------------------------------------------
 -- DATA
 --------------------------------------------------------------------------------
 
-INSERT INTO gender (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Man') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Woman') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Agender') ON CONFLICT (name) DO NOTHING;
