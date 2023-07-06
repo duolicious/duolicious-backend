@@ -60,11 +60,13 @@ c () {
 jc () { c "$@" --header "Content-Type: application/json"; }
 
 q () {
-  PGPASSWORD=password psql \
-    -U postgres \
-    -d postgres \
+  PGPASSWORD="$DUO_DB_PASS" psql \
+    -U "$DUO_DB_USER" \
+    -d "$DUO_DB_NAME" \
     -c "$1;" \
-    -t -h localhost -p 5432 \
+    -t \
+    -h "$DUO_DB_HOST" \
+    -p "$DUO_DB_PORT" \
     | grep -v '^$' \
     | trim
 }

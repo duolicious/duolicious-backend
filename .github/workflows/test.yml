@@ -1,0 +1,17 @@
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Out Code
+        uses: actions/checkout@v3
+
+      - name: Run tests
+        run: ./test.sh
+        env:
+          DUO_R2_ACCESS_KEY_ID: ${{ secrets.DUO_R2_ACCESS_KEY_ID }}
+          DUO_R2_ACCESS_KEY_SECRET: ${{ secrets.DUO_R2_ACCESS_KEY_SECRET }}
+          DUO_R2_ACCT_ID: ${{ secrets.DUO_R2_ACCT_ID }}
+          DUO_R2_BUCKET_NAME: ${{ secrets.DUO_R2_BUCKET_NAME }}

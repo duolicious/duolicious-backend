@@ -110,6 +110,10 @@ def get_search(s: t.SessionInfo):
         o=request.args.get('o')
     )
 
+@get('/health')
+def get_health():
+    return 'status: ok'
+
 @get('/personality/<int:person_id>')
 def get_personality(person_id):
     return person.get_personality(person_id)

@@ -33,6 +33,7 @@ then
   exec flask \
     --app main.py \
     --debug run \
+    --host 0.0.0.0 \
     --port "$PORT"
 else
   echo "The environment variable DUO_ENV must be set and have the value 'env' or 'prod'"

@@ -345,20 +345,20 @@ onboardee_country AS (
     FROM new_person, looking_for
 ), p9 AS (
     INSERT INTO search_preference_smoking (person_id, smoking_id)
-    SELECT new_person.id, optional_yes_no.id
-    FROM new_person, optional_yes_no
+    SELECT new_person.id, yes_no_optional.id
+    FROM new_person, yes_no_optional
 ), p10 AS (
     INSERT INTO search_preference_drinking (person_id, drinking_id)
     SELECT new_person.id, frequency.id
     FROM new_person, frequency
 ), p11 AS (
     INSERT INTO search_preference_drugs (person_id, drugs_id)
-    SELECT new_person.id, optional_yes_no.id
-    FROM new_person, optional_yes_no
+    SELECT new_person.id, yes_no_optional.id
+    FROM new_person, yes_no_optional
 ), p12 AS (
     INSERT INTO search_preference_long_distance (person_id, long_distance_id)
-    SELECT new_person.id, optional_yes_no.id
-    FROM new_person, optional_yes_no
+    SELECT new_person.id, yes_no_optional.id
+    FROM new_person, yes_no_optional
 ), p13 AS (
     INSERT INTO search_preference_relationship_status (person_id, relationship_status_id)
     SELECT new_person.id, relationship_status.id
