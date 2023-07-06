@@ -1,15 +1,10 @@
 from typing import Any, DefaultDict, Dict, List, Optional
-from pydantic import BaseModel, EmailStr, constr, conlist, validator, model_validator, conint
+from pydantic import BaseModel, EmailStr, constr, conlist, field_validator, model_validator, conint
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from PIL import Image
 import constants
 import io
-
-class NormalizedEmailStr(EmailStr):
-    @classmethod
-    def validate(cls, value: EmailStr) -> EmailStr:
-        return EmailStr.validate(value).lower().strip()
 
 class SessionInfo(BaseModel):
     email: str
@@ -32,7 +27,12 @@ class DeleteAnswer(BaseModel):
     question_id: int
 
 class PostRequestOtp(BaseModel):
-    email: NormalizedEmailStr
+    email: EmailStr
+
+    @field_validator('email', mode='before')
+    def validate_email(cls, value):
+        return EmailStr._validate(value.lower().strip(), None)
+
 
 class PostCheckOtp(BaseModel):
     otp: constr(pattern=r'^\d{6}$')
@@ -46,7 +46,7 @@ class PatchOnboardeeInfo(BaseModel):
     files: Optional[Dict[conint(ge=1, le=7), Image.Image]] = None
     about: Optional[constr(min_length=1, max_length=10000)] = None
 
-    @validator('date_of_birth')
+    @field_validator('date_of_birth')
     def age_must_be_18_or_up(cls, date_of_birth):
         if date_of_birth is None:
             return date_of_birth
@@ -57,7 +57,7 @@ class PatchOnboardeeInfo(BaseModel):
             raise ValueError(f'Age must be 18 or up.')
         return date_of_birth
 
-    @validator('files', pre=True)
+    @field_validator('files', mode='before')
     def file_names(cls, files):
         if files is None:
             return files

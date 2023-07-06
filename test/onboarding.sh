@@ -12,7 +12,7 @@ q "delete from person"
 q "delete from onboardee"
 q "update question set count_yes = 0, count_no = 0, count_views = 0"
 
-response=$(jc POST /request-otp -d '{ "email": "mail@example.com" }')
+response=$(jc POST /request-otp -d '{ "email": "MAIL@example.com" }')
 
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
 
