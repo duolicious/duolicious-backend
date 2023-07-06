@@ -8,7 +8,6 @@ from typing import Tuple, Optional
 #      * min_age, max_age
 #      * distance
 #      * min_height, max_height
-# TODO Put photo-less people last in search results
 
 def _q_uncached_search_1():
     return """
@@ -30,9 +29,9 @@ WHERE
 
 def _q_uncached_search_2(
     use_distance: bool,
-    is_q_and_a_search: bool
+    is_quiz_search: bool
 ) -> str:
-    return """
+    return f"""
 WITH searcher AS (
     SELECT
         coordinates,
@@ -41,60 +40,72 @@ WITH searcher AS (
         person
     WHERE
         person.id = %(searcher_person_id)s
+    LIMIT 1
 ), prospects_first_pass AS (
     SELECT
-        *,
-        EXTRACT(YEAR FROM AGE(date_of_birth)) AS age,
+        person_id AS prospect_person_id,
         personality <#> (SELECT personality FROM searcher) AS negative_dot_prod
     FROM
-        person
+        {"search_for_quiz_prospects" if
+        is_quiz_search else
+        "search_for_standard_prospects"}
     WHERE
-        id >= 1 -- Implies person is visible in search
-    AND
-        id != %(searcher_person_id)s
-""" + ("""
+        person_id != %(searcher_person_id)s
+{'''
     AND
         ST_DWithin(
             coordinates,
             (SELECT coordinates FROM searcher),
             %(distance)s
         )
-""" if use_distance else "") + """
+''' if use_distance else ""
+}
     ORDER BY
         negative_dot_prod
     LIMIT
+        {1 if is_quiz_search else 1000}
 """ + (
-        _q_uncached_search_2_q_and_a_fragment() if
-        is_q_and_a_search else
-        _q_uncached_search_2_extended_fragment()
+        _q_uncached_search_2_quiz_fragment() if
+        is_quiz_search else
+        _q_uncached_search_2_standard_fragment()
 )
 
-def _q_uncached_search_2_q_and_a_fragment():
+def _q_uncached_search_2_quiz_fragment():
     return """
-        1
 )
 SELECT
-    id AS prospect_person_id,
+    prospect_person_id,
     (
         SELECT uuid
         FROM photo
         WHERE
-            person_id = prospect.id AND
-            position = 1
+            person_id = prospect_person_id
+        ORDER BY
+            position
+        LIMIT 1
     ) AS profile_photo_uuid,
     CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2)::SMALLINT AS match_percentage
 FROM
     prospects_first_pass AS prospect
 """
 
-def _q_uncached_search_2_extended_fragment():
+def _q_uncached_search_2_standard_fragment():
     return """
-        1000
+), joined_prospects AS (
+    SELECT
+        *,
+        EXTRACT(YEAR FROM AGE(date_of_birth)) AS age
+    FROM
+        person
+    JOIN
+        prospects_first_pass
+    ON
+        person.id = prospect_person_id
 ), prospects_second_pass AS (
     SELECT
         *
     FROM
-        prospects_first_pass AS prospect
+        joined_prospects AS prospect
     WHERE
         EXISTS (
             SELECT 1
@@ -230,7 +241,7 @@ def _q_uncached_search_2_extended_fragment():
             FROM search_preference_answer pref
             LEFT JOIN answer ans
             ON
-                ans.person_id = prospect.id AND
+                ans.person_id = prospect_person_id AND
                 ans.question_id = pref.question_id AND
                 pref.person_id = %(searcher_person_id)s
             WHERE
@@ -250,8 +261,10 @@ def _q_uncached_search_2_extended_fragment():
             SELECT uuid
             FROM photo
             WHERE
-                person_id = prospect.id AND
-                position = 1
+                person_id = prospect_person_id
+            ORDER BY
+                position
+            LIMIT 1
         ) AS profile_photo_uuid,
         name,
         CASE WHEN show_my_age THEN age ELSE NULL END AS age,
@@ -270,10 +283,16 @@ def _q_uncached_search_2_extended_fragment():
     )
     SELECT
         %(searcher_person_id)s,
-        ROW_NUMBER() OVER () AS position,
+        ROW_NUMBER() OVER (
+            ORDER BY
+                (profile_photo_uuid IS NOT NULL) DESC,
+                match_percentage DESC
+        ) AS position,
         *
     FROM
         prospects_with_details
+    ORDER BY
+        position
     RETURNING *
 )
 SELECT
@@ -284,13 +303,8 @@ SELECT
     match_percentage
 FROM
     updated_search_cache
-ORDER BY
-    match_percentage
-DESC
 LIMIT
     %(n)s
-OFFSET
-    %(o)s
 """
 
 def _q_cached_search():
@@ -308,7 +322,7 @@ WHERE
     position > %(o)s AND
     position < %(o)s + %(n)s
 ORDER BY
-    match_percentage
+    position
 DESC
 """
 
@@ -327,10 +341,10 @@ def _uncached_search_results(
         row = tx.fetchone()
         distance = row['distance']
 
-        is_q_and_a_search = no is None
+        is_quiz_search = no is None
         q_uncached_search_2 = _q_uncached_search_2(
             use_distance=distance is not None,
-            is_q_and_a_search=is_q_and_a_search,
+            is_quiz_search=is_quiz_search,
         )
         if no is None:
             params_2 = dict(
@@ -373,9 +387,9 @@ def get_search(s: t.SessionInfo, n: Optional[str], o: Optional[str]):
     no = None if (n_ is None or o_ is None) else (n_, o_)
 
     is_regular_search_first_page = o_ == 0
-    is_q_and_a_search = no is None
+    is_quiz_search = no is None
 
-    if is_regular_search_first_page or is_q_and_a_search:
+    if is_regular_search_first_page or is_quiz_search:
         return _uncached_search_results(
             searcher_person_id=s.person_id,
             no=no,

@@ -11,6 +11,11 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- FUNCTIONS (1)
 --------------------------------------------------------------------------------
 
+CREATE OR REPLACE FUNCTION array_full(dimensions INT, fill_value FLOAT4)
+RETURNS FLOAT4[] AS $$
+    SELECT ARRAY(SELECT fill_value FROM generate_series(1, dimensions));
+$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
 CREATE OR REPLACE FUNCTION array_full(dimensions INT, fill_value INT)
 RETURNS INT[] AS $$
     SELECT ARRAY(SELECT fill_value FROM generate_series(1, dimensions));
@@ -111,9 +116,8 @@ CREATE TABLE IF NOT EXISTS immediacy (
 -- MAIN TABLES
 --------------------------------------------------------------------------------
 
-CREATE SEQUENCE IF NOT EXISTS person_id START 1;
 CREATE TABLE IF NOT EXISTS person (
-    id INT DEFAULT nextval('person_id'),
+    id SERIAL,
 
     -- Required during sign-up
     email TEXT NOT NULL,
@@ -175,12 +179,9 @@ CREATE TABLE IF NOT EXISTS person (
     activated BOOLEAN NOT NULL DEFAULT TRUE,
 
     -- Primary keys and constraints
+    UNIQUE (email),
     PRIMARY KEY (id)
-) PARTITION BY RANGE (id);
-CREATE TABLE IF NOT EXISTS person_visible_in_search_true
-    PARTITION OF person FOR VALUES FROM (1) TO (MAXVALUE);
-CREATE TABLE IF NOT EXISTS person_visible_in_search_false
-    PARTITION OF person FOR VALUES FROM (MINVALUE) TO (0);
+);
 
 CREATE TABLE IF NOT EXISTS onboardee (
     email TEXT NOT NULL,
@@ -388,8 +389,24 @@ CREATE TABLE IF NOT EXISTS search_preference_star_sign (
 );
 
 --------------------------------------------------------------------------------
--- SEARCH RESULT CACHE
+-- TABLES TO SPEED UP SEARCHING
 --------------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS search_for_quiz_prospects (
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    coordinates GEOGRAPHY(Point, 4326) NOT NULL,
+    personality VECTOR(48) NOT NULL,
+
+    PRIMARY KEY (person_id)
+);
+
+CREATE TABLE IF NOT EXISTS search_for_standard_prospects (
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    coordinates GEOGRAPHY(Point, 4326) NOT NULL,
+    personality VECTOR(48) NOT NULL,
+
+    PRIMARY KEY (person_id)
+);
 
 CREATE TABLE IF NOT EXISTS search_cache (
     searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -406,13 +423,13 @@ CREATE TABLE IF NOT EXISTS search_cache (
 -- INDEXES
 --------------------------------------------------------------------------------
 
-CREATE INDEX IF NOT EXISTS idx__person__email ON person(email);
+CREATE INDEX IF NOT EXISTS idx__search_for_quiz_prospects__coordinates ON search_for_quiz_prospects USING GIST(coordinates);
+CREATE INDEX IF NOT EXISTS idx__search_for_standard_prospects__coordinates ON search_for_standard_prospects USING GIST(coordinates);
 
 CREATE INDEX IF NOT EXISTS idx__answer__question_id ON answer(question_id);
 
 CREATE INDEX IF NOT EXISTS idx__duo_session__email ON duo_session(email);
 
-CREATE INDEX IF NOT EXISTS idx__location__coordinates ON location USING GIST(coordinates);
 CREATE INDEX IF NOT EXISTS idx__location__friendly ON location USING GIST(friendly gist_trgm_ops);
 
 --------------------------------------------------------------------------------
@@ -616,6 +633,51 @@ RETURNS TABLE(trait_id SMALLINT, ratio FLOAT4) AS $$
         END AS percentage
     FROM UNNEST(presence_score, absence_score) as t(a, b);
 $$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
+
+--------------------------------------------------------------------------------
+-- TRIGGERS
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION insert_update_search_tables()
+RETURNS TRIGGER AS $$
+DECLARE
+    visible_in_search BOOLEAN;
+BEGIN
+    visible_in_search := NEW.activated;
+
+    IF (visible_in_search = TRUE) THEN
+        IF (NEW.has_profile_picture_id = 1) THEN
+            INSERT INTO search_for_quiz_prospects (person_id, coordinates, personality)
+            VALUES (NEW.id, NEW.coordinates, NEW.personality)
+            ON CONFLICT (person_id)
+            DO UPDATE SET
+                coordinates = EXCLUDED.coordinates,
+                personality = EXCLUDED.personality;
+        END IF;
+
+        INSERT INTO search_for_standard_prospects (person_id, coordinates, personality)
+        VALUES (NEW.id, NEW.coordinates, NEW.personality)
+        ON CONFLICT (person_id)
+        DO UPDATE SET
+            coordinates = EXCLUDED.coordinates,
+            personality = EXCLUDED.personality;
+    ELSE
+        DELETE FROM search_for_quiz_prospects
+        WHERE person_id = NEW.id;
+
+        DELETE FROM search_for_standard_prospects
+        WHERE person_id = NEW.id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER insert_update_search_tables
+AFTER INSERT OR UPDATE
+ON person
+FOR EACH ROW
+EXECUTE FUNCTION insert_update_search_tables();
 
 -- TODO: Trait descriptions should be in the database
 -- TODO: Periodically delete expired tokens

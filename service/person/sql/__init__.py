@@ -150,11 +150,6 @@ WITH valid_session AS (
     SET
         last_active_time = NOW(),
         activated = TRUE,
-        id = CASE
-                 WHEN hide_me_from_strangers
-                 THEN - ABS(id)
-                 ELSE + ABS(id)
-             END,
         sign_in_count = sign_in_count + 1
     FROM valid_session
     WHERE person.id = person_id

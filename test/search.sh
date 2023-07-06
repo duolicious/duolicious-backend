@@ -7,6 +7,8 @@ source setup.sh
 
 set -xe
 
+# TODO: Set search preferences via API calls instead of queries
+
 setup () {
   q "delete from duo_session"
   q "delete from person"
@@ -167,8 +169,12 @@ test_search_cache () {
   assert_search_names      '' 10 1
 }
 
-test_q_and_a_search () {
+test_quiz_search () {
   setup
+
+  q "
+  update person
+  set has_profile_picture_id = (select id from yes_no where name = 'Yes')"
 
   q "
   update person set personality = array_full(48, 1)
@@ -183,7 +189,120 @@ test_q_and_a_search () {
   [[ "$response1" != "$response2" ]]
 }
 
-test_q_and_a_search
+test_deactivated () {
+  setup
+
+  assert_search_names 'user1 user2' 10 0
+
+  q "
+  update person
+  set activated = FALSE
+  where email = 'user1@example.com'"
+
+  assert_search_names 'user2' 10 0
+
+  q "
+  update person
+  set activated = TRUE
+  where email = 'user1@example.com'"
+
+  assert_search_names 'user1 user2' 10 0
+}
+
+test_photos_promoted () {
+  setup
+  ./create-user.sh user3 0
+  ./create-user.sh user4 0
+
+  assert_search_names 'user1 user2 user3 user4' 10 0
+
+  q "
+  update person
+  set personality = array_full(48, 9e-2)
+  where email IN ('searcher@example.com', 'user1@example.com')"
+  q "
+  update person
+  set personality = array_full(48, 8e-2)
+  where email IN ('user2@example.com')"
+  q "
+  update person
+  set personality = array_full(48, 7e-2)
+  where email IN ('user3@example.com')"
+  q "
+  update person
+  set personality = array_full(48, 6e-2)
+  where email IN ('user4@example.com')"
+
+  response1=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
+
+  q "
+  insert into photo (person_id, position, uuid)
+  SELECT
+    (select id from person where email = 'user3@example.com'),
+    1,
+    'my-uuid'"
+  q "
+  insert into photo (person_id, position, uuid)
+  select
+    (select id from person where email = 'user4@example.com'),
+    1,
+    'my-uuid'"
+
+  response2=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
+
+  [[ "$response1" = "user1 user2 user3 user4" ]]
+  [[ "$response2" = "user3 user4 user1 user2" ]]
+}
+
+test_quiz_filters () {
+  setup
+  ./create-user.sh user3 2
+
+  # Gotta set answers to something non-null. ./create-user.sh sometimes gives
+  # null answers
+  q "update answer set answer = false"
+
+  q "
+  insert into search_preference_answer (
+    person_id,
+    question_id,
+    answer,
+    accept_unanswered
+  )
+  select
+    (select id from person where email = 'searcher@example.com'),
+    (select question_id from answer order by question_id limit 1 offset 0),
+    (select answer      from answer order by question_id limit 1 offset 0),
+    false
+  "
+  q "
+  insert into search_preference_answer (
+    person_id,
+    question_id,
+    answer,
+    accept_unanswered
+  )
+  select
+    (select id from person where email = 'searcher@example.com'),
+    (select question_id from answer order by question_id limit 1 offset 1),
+    (select answer      from answer order by question_id limit 1 offset 1),
+    false
+  "
+
+  assert_search_names 'user3'
+
+  q "update search_preference_answer set accept_unanswered = true"
+
+  assert_search_names 'user1 user2 user3'
+}
+
+test_quiz_filters
+
+test_photos_promoted
+
+test_deactivated
+
+test_quiz_search
 
 test_search_cache
 
