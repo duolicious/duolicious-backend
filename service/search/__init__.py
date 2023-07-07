@@ -87,6 +87,25 @@ SELECT
     CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2)::SMALLINT AS match_percentage
 FROM
     prospects_first_pass AS prospect
+WHERE
+    NOT EXISTS (
+        SELECT 1
+        FROM
+            blocked
+        WHERE
+            subject_person_id = %(searcher_person_id)s AND
+            object_person_id  = prospect_person_id
+        OR
+            subject_person_id = prospect_person_id AND
+            object_person_id  = %(searcher_person_id)s
+    ) AND NOT EXISTS (
+        SELECT 1
+        FROM
+            person
+        WHERE
+            id = prospect_person_id AND
+            hide_me_from_strangers = TRUE
+    )
 """
 
 def _q_uncached_search_2_standard_fragment():
@@ -227,6 +246,58 @@ def _q_uncached_search_2_standard_fragment():
             WHERE
                 preference.person_id    = %(searcher_person_id)s AND
                 preference.star_sign_id = prospect.star_sign_id
+            LIMIT 1
+        ) AND NOT EXISTS (
+            SELECT 1
+            FROM search_preference_messaged AS preference
+            JOIN messaged
+            ON
+                preference.person_id       = %(searcher_person_id)s AND
+                preference.messaged_id     = 2 AND
+                messaged.subject_person_id = %(searcher_person_id)s AND
+                messaged.object_person_id  = prospect_person_id
+            LIMIT 1
+        ) AND NOT EXISTS (
+            SELECT 1
+            FROM search_preference_hidden AS preference
+            JOIN hidden
+            ON
+                preference.person_id     = %(searcher_person_id)s AND
+                preference.hidden_id     = 2 AND
+                hidden.subject_person_id = %(searcher_person_id)s AND
+                hidden.object_person_id  = prospect_person_id
+            LIMIT 1
+        ) AND NOT EXISTS (
+            SELECT 1
+            FROM search_preference_blocked AS preference
+            JOIN blocked
+            ON
+                preference.person_id      = %(searcher_person_id)s AND
+                preference.blocked_id     = 2 AND
+                blocked.subject_person_id = %(searcher_person_id)s AND
+                blocked.object_person_id  = prospect_person_id
+            LIMIT 1
+        ) AND NOT EXISTS (
+            SELECT 1
+            FROM blocked
+            WHERE
+                blocked.subject_person_id = prospect_person_id AND
+                blocked.object_person_id  = %(searcher_person_id)s
+            LIMIT 1
+        ) AND EXISTS (
+            (
+                SELECT 1 WHERE NOT prospect.hide_me_from_strangers
+            ) UNION ALL (
+                SELECT 1
+                FROM search_preference_messaged AS preference
+                JOIN messaged
+                ON
+                    messaged.subject_person_id = prospect_person_id AND
+                    messaged.object_person_id = %(searcher_person_id)s
+                WHERE
+                    prospect.hide_me_from_strangers
+                LIMIT 1
+            )
             LIMIT 1
         )
 ), prospects_third_pass AS (

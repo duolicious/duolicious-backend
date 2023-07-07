@@ -8,6 +8,7 @@ source setup.sh
 set -xe
 
 # TODO: Set search preferences via API calls instead of queries
+# TODO: Performance testing. Should only need 1000 users...
 
 setup () {
   q "delete from duo_session"
@@ -172,21 +173,43 @@ test_search_cache () {
 test_quiz_search () {
   setup
 
+  searcher_id=$(q "select id from person where email = 'searcher@example.com'")
+  user1_id=$(q "select id from person where email = 'user1@example.com'")
+  user2_id=$(q "select id from person where email = 'user2@example.com'")
+
   q "
   update person
   set has_profile_picture_id = (select id from yes_no where name = 'Yes')"
 
+  # user1 has the higher match percentage
   q "
   update person set personality = array_full(48, 1)
-  where email IN ('searcher@example.com', 'user1@example.com')"
+  where id IN (${searcher_id}, ${user1_id})"
   response1=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
+  [[ "$response1" = "$user1_id" ]]
 
+  # user1 has the lower match percentage
   q "
   update person set personality = array_full(48, -1)
-  where email = 'user1@example.com'"
+  where id = ${user1_id}"
   response2=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
+  [[ "$response2" = "$user2_id" ]]
 
-  [[ "$response1" != "$response2" ]]
+  # user2 has the highest match percentage but user2 is blocked by searcher
+  q "
+  insert into blocked (subject_person_id, object_person_id)
+  values (${searcher_id}, ${user2_id})"
+  response3=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
+  [[ "$response3" = "" ]]
+
+  # user2 has the highest match percentage but searcher is blocked by user2
+  q "
+  update blocked
+  set
+    subject_person_id = object_person_id,
+    object_person_id  = subject_person_id"
+  response4=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
+  [[ "$response4" = "" ]]
 }
 
 test_deactivated () {
@@ -296,13 +319,103 @@ test_quiz_filters () {
   assert_search_names 'user1 user2 user3'
 }
 
+test_interaction_in_standard_search () {
+  local interaction_name=$1
+
+  setup
+
+  # searcher messaged/blocked/etc'd user1
+  q "
+  insert into ${interaction_name} (subject_person_id, object_person_id)
+  values (
+    (select id from person where email = 'searcher@example.com'),
+    (select id from person where email = 'user1@example.com')
+  )
+  "
+
+  q "
+  update search_preference_${interaction_name}
+  set
+    ${interaction_name}_id = 1
+  where
+    person_id = (select id from person where email = 'searcher@example.com')"
+
+  assert_search_names 'user1 user2'
+
+  q "
+  update search_preference_${interaction_name}
+  set
+    ${interaction_name}_id = 2
+  where
+    person_id = (select id from person where email = 'searcher@example.com')"
+
+  assert_search_names 'user2'
+}
+
+test_hide_me_from_strangers () {
+  setup
+
+  # user1 asks to be hidden from strangers
+  q "
+  update person
+  set hide_me_from_strangers = true
+  where id = (select id from person where email = 'user1@example.com')
+  "
+
+  # searcher (a stranger to user1) can only see user2 in standard searches
+  assert_search_names 'user2'
+  # searcher (a stranger to user1) can only see user2 in quiz searches
+
+  # searcher (a stranger to user1) can only see user2 in standard searches
+  # user1 messaged the searcher
+  q "
+  insert into messaged (subject_person_id, object_person_id)
+  values (
+    (select id from person where email = 'user1@example.com'),
+    (select id from person where email = 'searcher@example.com')
+  )
+  "
+
+  # user1 is no longer a stranger to searcher
+  assert_search_names 'user1 user2'
+}
+
+test_interaction_in_standard_search_blocked_symmetry() {
+  setup
+
+  # Everyone wants to see people they blocked
+  q "update search_preference_blocked set blocked_id = 1"
+
+  # Searcher can see everyone
+  assert_search_names 'user1 user2'
+
+  # But then... user1 blocks searcher :'(
+  q "
+  insert into blocked (subject_person_id, object_person_id)
+  values (
+    (select id from person where email = 'user1@example.com'),
+    (select id from person where email = 'searcher@example.com')
+  )
+  "
+
+  # Searcher can no longer see user1 </3
+  assert_search_names 'user2'
+}
+
+test_quiz_search
+
+test_hide_me_from_strangers
+
+test_interaction_in_standard_search messaged
+test_interaction_in_standard_search blocked
+test_interaction_in_standard_search_blocked_symmetry
+test_interaction_in_standard_search hidden
+
 test_quiz_filters
 
 test_photos_promoted
 
 test_deactivated
-
-test_quiz_search
 
 test_search_cache
 

@@ -388,6 +388,42 @@ CREATE TABLE IF NOT EXISTS search_preference_star_sign (
     PRIMARY KEY (person_id, star_sign_id)
 );
 
+CREATE TABLE IF NOT EXISTS search_preference_messaged (
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    messaged_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
+    PRIMARY KEY (person_id)
+);
+
+CREATE TABLE IF NOT EXISTS search_preference_hidden (
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    hidden_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
+    PRIMARY KEY (person_id)
+);
+
+CREATE TABLE IF NOT EXISTS search_preference_blocked (
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    blocked_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
+    PRIMARY KEY (person_id)
+);
+
+CREATE TABLE IF NOT EXISTS messaged (
+    subject_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    object_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    PRIMARY KEY (subject_person_id, object_person_id)
+);
+
+CREATE TABLE IF NOT EXISTS hidden (
+    subject_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    object_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    PRIMARY KEY (subject_person_id, object_person_id)
+);
+
+CREATE TABLE IF NOT EXISTS blocked (
+    subject_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    object_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    PRIMARY KEY (subject_person_id, object_person_id)
+);
+
 --------------------------------------------------------------------------------
 -- TABLES TO SPEED UP SEARCHING
 --------------------------------------------------------------------------------
