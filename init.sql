@@ -444,7 +444,7 @@ CREATE TABLE IF NOT EXISTS search_for_standard_prospects (
     PRIMARY KEY (person_id)
 );
 
-CREATE TABLE IF NOT EXISTS search_cache (
+CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     position SMALLINT,
     prospect_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -678,11 +678,15 @@ CREATE OR REPLACE FUNCTION insert_update_search_tables()
 RETURNS TRIGGER AS $$
 DECLARE
     visible_in_search BOOLEAN;
+    visible_in_quiz_search BOOLEAN;
 BEGIN
     visible_in_search := NEW.activated;
+    visible_in_quiz_search := (
+        NEW.has_profile_picture_id = 1 AND
+        NEW.hide_me_from_strangers = FALSE);
 
     IF (visible_in_search = TRUE) THEN
-        IF (NEW.has_profile_picture_id = 1) THEN
+        IF (visible_in_quiz_search) THEN
             INSERT INTO search_for_quiz_prospects (person_id, coordinates, personality)
             VALUES (NEW.id, NEW.coordinates, NEW.personality)
             ON CONFLICT (person_id)

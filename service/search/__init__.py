@@ -98,19 +98,13 @@ WHERE
         OR
             subject_person_id = prospect_person_id AND
             object_person_id  = %(searcher_person_id)s
-    ) AND NOT EXISTS (
-        SELECT 1
-        FROM
-            person
-        WHERE
-            id = prospect_person_id AND
-            hide_me_from_strangers = TRUE
+        LIMIT 1
     )
 """
 
 def _q_uncached_search_2_standard_fragment():
     return """
-), joined_prospects AS (
+), joined_prospects AS MATERIALIZED (
     SELECT
         *,
         EXTRACT(YEAR FROM AGE(date_of_birth)) AS age
@@ -133,14 +127,17 @@ def _q_uncached_search_2_standard_fragment():
                 preference.person_id = %(searcher_person_id)s AND
                 preference.gender_id = prospect.gender_id
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND
+        EXISTS (
             SELECT 1
             FROM search_preference_orientation AS preference
             WHERE
                 preference.person_id      = %(searcher_person_id)s AND
                 preference.orientation_id = prospect.orientation_id
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_age AS preference
             WHERE
@@ -148,14 +145,16 @@ def _q_uncached_search_2_standard_fragment():
                 COALESCE(preference.min_age, 0)   <= prospect.age AND
                 COALESCE(preference.max_age, 999) >= prospect.age
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_verified AS preference
             WHERE
                 preference.person_id   = %(searcher_person_id)s AND
                 preference.verified_id = prospect.verified_id
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_height_cm AS preference
             WHERE
@@ -163,91 +162,104 @@ def _q_uncached_search_2_standard_fragment():
                 COALESCE(preference.min_height_cm, 0)   <= COALESCE(prospect.height_cm, 0) AND
                 COALESCE(preference.max_height_cm, 999) >= COALESCE(prospect.height_cm, 999)
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_has_profile_picture AS preference
             WHERE
                 preference.person_id              = %(searcher_person_id)s AND
                 preference.has_profile_picture_id = prospect.has_profile_picture_id
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_looking_for AS preference
             WHERE
                 preference.person_id      = %(searcher_person_id)s AND
                 preference.looking_for_id = prospect.looking_for_id
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_smoking AS preference
             WHERE
                 preference.person_id  = %(searcher_person_id)s AND
                 preference.smoking_id = prospect.smoking_id
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_drinking AS preference
             WHERE
                 preference.person_id  = %(searcher_person_id)s AND
                 preference.drinking_id = prospect.drinking_id
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_drugs AS preference
             WHERE
                 preference.person_id = %(searcher_person_id)s AND
                 preference.drugs_id  = prospect.drugs_id
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_long_distance AS preference
             WHERE
                 preference.person_id         = %(searcher_person_id)s AND
                 preference.long_distance_id  = prospect.long_distance_id
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_relationship_status AS preference
             WHERE
                 preference.person_id               = %(searcher_person_id)s AND
                 preference.relationship_status_id  = prospect.relationship_status_id
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_has_kids AS preference
             WHERE
                 preference.person_id   = %(searcher_person_id)s AND
                 preference.has_kids_id = prospect.has_kids_id
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_wants_kids AS preference
             WHERE
                 preference.person_id     = %(searcher_person_id)s AND
                 preference.wants_kids_id = prospect.wants_kids_id
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_exercise AS preference
             WHERE
                 preference.person_id   = %(searcher_person_id)s AND
                 preference.exercise_id = prospect.exercise_id
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_religion AS preference
             WHERE
                 preference.person_id   = %(searcher_person_id)s AND
                 preference.religion_id = prospect.religion_id
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             SELECT 1
             FROM search_preference_star_sign AS preference
             WHERE
                 preference.person_id    = %(searcher_person_id)s AND
                 preference.star_sign_id = prospect.star_sign_id
             LIMIT 1
-        ) AND NOT EXISTS (
+        )
+    AND NOT EXISTS (
             SELECT 1
             FROM search_preference_messaged AS preference
             JOIN messaged
@@ -257,7 +269,8 @@ def _q_uncached_search_2_standard_fragment():
                 messaged.subject_person_id = %(searcher_person_id)s AND
                 messaged.object_person_id  = prospect_person_id
             LIMIT 1
-        ) AND NOT EXISTS (
+        )
+    AND NOT EXISTS (
             SELECT 1
             FROM search_preference_hidden AS preference
             JOIN hidden
@@ -267,7 +280,8 @@ def _q_uncached_search_2_standard_fragment():
                 hidden.subject_person_id = %(searcher_person_id)s AND
                 hidden.object_person_id  = prospect_person_id
             LIMIT 1
-        ) AND NOT EXISTS (
+        )
+    AND NOT EXISTS (
             SELECT 1
             FROM search_preference_blocked AS preference
             JOIN blocked
@@ -277,14 +291,16 @@ def _q_uncached_search_2_standard_fragment():
                 blocked.subject_person_id = %(searcher_person_id)s AND
                 blocked.object_person_id  = prospect_person_id
             LIMIT 1
-        ) AND NOT EXISTS (
+        )
+    AND NOT EXISTS (
             SELECT 1
             FROM blocked
             WHERE
                 blocked.subject_person_id = prospect_person_id AND
                 blocked.object_person_id  = %(searcher_person_id)s
             LIMIT 1
-        ) AND EXISTS (
+        )
+    AND EXISTS (
             (
                 SELECT 1 WHERE NOT prospect.hide_me_from_strangers
             ) UNION ALL (
@@ -362,8 +378,6 @@ def _q_uncached_search_2_standard_fragment():
         *
     FROM
         prospects_with_details
-    ORDER BY
-        position
     RETURNING *
 )
 SELECT
@@ -374,6 +388,8 @@ SELECT
     match_percentage
 FROM
     updated_search_cache
+ORDER BY
+    position
 LIMIT
     %(n)s
 """
@@ -390,8 +406,8 @@ FROM
     search_cache
 WHERE
     searcher_person_id = %(searcher_person_id)s AND
-    position > %(o)s AND
-    position < %(o)s + %(n)s
+    position >  %(o)s AND
+    position <= %(o)s + %(n)s
 ORDER BY
     position
 DESC
@@ -401,7 +417,7 @@ def _uncached_search_results(
     searcher_person_id: int,
     no: Optional[Tuple[int, int]]
 ):
-    with transaction() as tx:
+    with transaction('READ COMMITTED') as tx:
         q_uncached_search_1 = _q_uncached_search_1()
         params_1 = dict(
             searcher_person_id=searcher_person_id,
@@ -442,7 +458,7 @@ def _cached_search_results(searcher_person_id: int, no: Tuple[int, int]):
         o=o
     )
 
-    with transaction() as tx:
+    with transaction('READ COMMITTED') as tx:
         q_cached_search = _q_cached_search()
         return tx.execute(q_cached_search, params).fetchall()
 
