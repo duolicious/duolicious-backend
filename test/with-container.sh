@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-cd "$script_dir"
-
 set -e
 
 docker-compose up -d
@@ -38,9 +35,7 @@ export DUO_DB_USER=postgres
 export DUO_DB_PASS=password
 
 # Run tests
-./test/onboarding.sh
-./test/create-user.sh user1 10
-./test/search.sh
+"$@"
 
 docker-compose kill || true
 docker-compose down || true

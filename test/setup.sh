@@ -70,3 +70,28 @@ q () {
     | grep -v '^$' \
     | trim
 }
+
+rand_image () {
+  local characters=({a..z} {A..Z} {0..9})
+
+  # Generate a random index for letter
+  local index=$(($RANDOM % ${#characters[@]}))
+
+  # Generate a random color for the background
+  local rand_color=$(
+    printf "%02x%02x%02x\n" \
+      $(($RANDOM % 256)) \
+      $(($RANDOM % 256)) \
+      $(($RANDOM % 256))
+  )
+
+  local filename=/tmp/${RANDOM}.png
+
+  # Create an image with a random letter, a random background color, and a shadow
+  convert -size 400x400 xc:"#${rand_color}" -gravity center -pointsize 320 \
+      -fill black -annotate +10+10 "${characters[$index]}" \
+      -fill white -annotate +0+0 "${characters[$index]}" \
+      "$filename"
+
+  echo "$filename"
+}

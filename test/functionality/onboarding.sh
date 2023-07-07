@@ -3,7 +3,7 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 
-source setup.sh
+source ../setup.sh
 
 set -xe
 
@@ -11,6 +11,12 @@ q "delete from duo_session"
 q "delete from person"
 q "delete from onboardee"
 q "update question set count_yes = 0, count_no = 0, count_views = 0"
+
+img1=$(rand_image)
+img2=$(rand_image)
+img3=$(rand_image)
+
+trap "rm $img1 $img2 $img3" EXIT
 
 response=$(jc POST /request-otp -d '{ "email": "MAIL@example.com" }')
 
@@ -43,16 +49,16 @@ jc PATCH /onboardee-info -d '{ "other_peoples_genders": ["Man", "Woman", "Other"
 
 c PATCH /onboardee-info \
   --header "Content-Type: multipart/form-data" \
-  -F "1.jpg=@profile-pic.png" \
-  -F "2.jpg=@profile-pic.png"
+  -F "1.jpg=@${img1}" \
+  -F "2.jpg=@${img2}"
 
 c PATCH /onboardee-info \
   --header "Content-Type: multipart/form-data" \
-  -F "3.jpg=@profile-pic.png"
+  -F "3.jpg=@${img3}"
 
 c PATCH /onboardee-info \
   --header "Content-Type: multipart/form-data" \
-  -F "1.jpg=@profile-pic.png"
+  -F "1.jpg=@${img1}"
 
 c GET "https://test-user-images.duolicious.app/original-$(q "select uuid from onboardee_photo limit 1").jpg" > /dev/null
 c GET "https://test-user-images.duolicious.app/900-$(q "select uuid from onboardee_photo limit 1").jpg" > /dev/null
