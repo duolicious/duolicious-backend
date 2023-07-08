@@ -14,9 +14,6 @@ init_funcs = [
 
 print('Initializing DB...')
 for i, init_func in enumerate(init_funcs, start=1):
-    try:
-        print(f'  * {i} of {len(init_funcs)}')
-        init_func()
-    except Exception as e:
-        print("Exception while attempting to initialize DB:", e)
+    print(f'  * {i} of {len(init_funcs)}')
+    init_func()
 print('Finished initializing DB')
