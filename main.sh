@@ -1,4 +1,7 @@
-#!/bin/sh
+#!/bin/bash
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+cd "$script_dir"
 
 set -e
 
@@ -23,6 +26,7 @@ fi
 
 if [ "$DUO_ENV" = "prod" ]
 then
+  python3 -m database.init
   exec gunicorn \
     --workers 4 \
     --bind "0.0.0.0:$PORT" \
@@ -30,6 +34,7 @@ then
     main:app
 elif [ "$DUO_ENV" = "dev" ]
 then
+  python3 -m database.init
   exec flask \
     --app main.py \
     --debug run \
