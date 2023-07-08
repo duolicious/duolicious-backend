@@ -1,0 +1,38 @@
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: postgres.Dockerfile
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+
+  api:
+    build:
+      context: .
+      dockerfile: api.Dockerfile
+    depends_on:
+      - postgres
+    ports:
+      - "5000:5000"
+    environment:
+      DUO_ENV: dev
+      DUO_EMAIL_KEY: ''
+      DUO_EMAIL_URL: ''
+      DUO_DB_HOST: postgres
+      DUO_DB_PORT: 5432
+      DUO_DB_NAME: postgres
+      DUO_DB_USER: postgres
+      DUO_DB_PASS: password
+      DUO_CORS_ORIGINS: '*'
+      DUO_R2_BUCKET_NAME: ${DUO_R2_BUCKET_NAME}
+      DUO_R2_ACCT_ID: ${DUO_R2_ACCT_ID}
+      DUO_R2_ACCESS_KEY_ID: ${DUO_R2_ACCESS_KEY_ID}
+      DUO_R2_ACCESS_KEY_SECRET: ${DUO_R2_ACCESS_KEY_SECRET}
+
+networks:
+  default:
+    driver: bridge
