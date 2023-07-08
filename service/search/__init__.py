@@ -1,0 +1,488 @@
+import duotypes as t
+from database import transaction
+from typing import Tuple, Optional
+
+# TODO localisation for dates, times, distances
+# TODO wire-up /active
+# TODO Preferences which can be null need to be properly encoded by UI:
+#      * min_age, max_age
+#      * distance
+#      * min_height, max_height
+
+def _q_uncached_search_1():
+    return """
+WITH deleted_search_cache AS (
+    DELETE FROM search_cache
+    WHERE searcher_person_id = %(searcher_person_id)s
+)
+SELECT
+    distance
+FROM
+    person
+JOIN
+    search_preference_distance
+ON
+    person.id = person_id
+WHERE
+    person.id = %(searcher_person_id)s
+"""
+
+def _q_uncached_search_2(
+    use_distance: bool,
+    is_quiz_search: bool
+) -> str:
+    return f"""
+WITH searcher AS (
+    SELECT
+        coordinates,
+        personality
+    FROM
+        person
+    WHERE
+        person.id = %(searcher_person_id)s
+    LIMIT 1
+), prospects_first_pass AS (
+    SELECT
+        person_id AS prospect_person_id,
+        personality <#> (SELECT personality FROM searcher) AS negative_dot_prod
+    FROM
+        {"search_for_quiz_prospects" if
+        is_quiz_search else
+        "search_for_standard_prospects"}
+    WHERE
+        person_id != %(searcher_person_id)s
+{'''
+    AND
+        ST_DWithin(
+            coordinates,
+            (SELECT coordinates FROM searcher),
+            %(distance)s
+        )
+''' if use_distance else ""
+}
+    ORDER BY
+        negative_dot_prod
+    LIMIT
+        {1 if is_quiz_search else 1000}
+""" + (
+        _q_uncached_search_2_quiz_fragment() if
+        is_quiz_search else
+        _q_uncached_search_2_standard_fragment()
+)
+
+def _q_uncached_search_2_quiz_fragment():
+    return """
+)
+SELECT
+    prospect_person_id,
+    (
+        SELECT uuid
+        FROM photo
+        WHERE
+            person_id = prospect_person_id
+        ORDER BY
+            position
+        LIMIT 1
+    ) AS profile_photo_uuid,
+    CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2)::SMALLINT AS match_percentage
+FROM
+    prospects_first_pass AS prospect
+WHERE
+    NOT EXISTS (
+        SELECT 1
+        FROM
+            blocked
+        WHERE
+            subject_person_id = %(searcher_person_id)s AND
+            object_person_id  = prospect_person_id
+        OR
+            subject_person_id = prospect_person_id AND
+            object_person_id  = %(searcher_person_id)s
+        LIMIT 1
+    )
+"""
+
+def _q_uncached_search_2_standard_fragment():
+    return """
+), joined_prospects AS MATERIALIZED (
+    SELECT
+        *,
+        EXTRACT(YEAR FROM AGE(date_of_birth)) AS age
+    FROM
+        person
+    JOIN
+        prospects_first_pass
+    ON
+        person.id = prospect_person_id
+), prospects_second_pass AS (
+    SELECT
+        *
+    FROM
+        joined_prospects AS prospect
+    WHERE
+        EXISTS (
+            SELECT 1
+            FROM search_preference_gender AS preference
+            WHERE
+                preference.person_id = %(searcher_person_id)s AND
+                preference.gender_id = prospect.gender_id
+            LIMIT 1
+        )
+    AND
+        EXISTS (
+            SELECT 1
+            FROM search_preference_orientation AS preference
+            WHERE
+                preference.person_id      = %(searcher_person_id)s AND
+                preference.orientation_id = prospect.orientation_id
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_age AS preference
+            WHERE
+                preference.person_id = %(searcher_person_id)s AND
+                COALESCE(preference.min_age, 0)   <= prospect.age AND
+                COALESCE(preference.max_age, 999) >= prospect.age
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_verified AS preference
+            WHERE
+                preference.person_id   = %(searcher_person_id)s AND
+                preference.verified_id = prospect.verified_id
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_height_cm AS preference
+            WHERE
+                preference.person_id = %(searcher_person_id)s AND
+                COALESCE(preference.min_height_cm, 0)   <= COALESCE(prospect.height_cm, 0) AND
+                COALESCE(preference.max_height_cm, 999) >= COALESCE(prospect.height_cm, 999)
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_has_profile_picture AS preference
+            WHERE
+                preference.person_id              = %(searcher_person_id)s AND
+                preference.has_profile_picture_id = prospect.has_profile_picture_id
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_looking_for AS preference
+            WHERE
+                preference.person_id      = %(searcher_person_id)s AND
+                preference.looking_for_id = prospect.looking_for_id
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_smoking AS preference
+            WHERE
+                preference.person_id  = %(searcher_person_id)s AND
+                preference.smoking_id = prospect.smoking_id
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_drinking AS preference
+            WHERE
+                preference.person_id  = %(searcher_person_id)s AND
+                preference.drinking_id = prospect.drinking_id
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_drugs AS preference
+            WHERE
+                preference.person_id = %(searcher_person_id)s AND
+                preference.drugs_id  = prospect.drugs_id
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_long_distance AS preference
+            WHERE
+                preference.person_id         = %(searcher_person_id)s AND
+                preference.long_distance_id  = prospect.long_distance_id
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_relationship_status AS preference
+            WHERE
+                preference.person_id               = %(searcher_person_id)s AND
+                preference.relationship_status_id  = prospect.relationship_status_id
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_has_kids AS preference
+            WHERE
+                preference.person_id   = %(searcher_person_id)s AND
+                preference.has_kids_id = prospect.has_kids_id
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_wants_kids AS preference
+            WHERE
+                preference.person_id     = %(searcher_person_id)s AND
+                preference.wants_kids_id = prospect.wants_kids_id
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_exercise AS preference
+            WHERE
+                preference.person_id   = %(searcher_person_id)s AND
+                preference.exercise_id = prospect.exercise_id
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_religion AS preference
+            WHERE
+                preference.person_id   = %(searcher_person_id)s AND
+                preference.religion_id = prospect.religion_id
+            LIMIT 1
+        )
+    AND EXISTS (
+            SELECT 1
+            FROM search_preference_star_sign AS preference
+            WHERE
+                preference.person_id    = %(searcher_person_id)s AND
+                preference.star_sign_id = prospect.star_sign_id
+            LIMIT 1
+        )
+    AND NOT EXISTS (
+            SELECT 1
+            FROM search_preference_messaged AS preference
+            JOIN messaged
+            ON
+                preference.person_id       = %(searcher_person_id)s AND
+                preference.messaged_id     = 2 AND
+                messaged.subject_person_id = %(searcher_person_id)s AND
+                messaged.object_person_id  = prospect_person_id
+            LIMIT 1
+        )
+    AND NOT EXISTS (
+            SELECT 1
+            FROM search_preference_hidden AS preference
+            JOIN hidden
+            ON
+                preference.person_id     = %(searcher_person_id)s AND
+                preference.hidden_id     = 2 AND
+                hidden.subject_person_id = %(searcher_person_id)s AND
+                hidden.object_person_id  = prospect_person_id
+            LIMIT 1
+        )
+    AND NOT EXISTS (
+            SELECT 1
+            FROM search_preference_blocked AS preference
+            JOIN blocked
+            ON
+                preference.person_id      = %(searcher_person_id)s AND
+                preference.blocked_id     = 2 AND
+                blocked.subject_person_id = %(searcher_person_id)s AND
+                blocked.object_person_id  = prospect_person_id
+            LIMIT 1
+        )
+    AND NOT EXISTS (
+            SELECT 1
+            FROM blocked
+            WHERE
+                blocked.subject_person_id = prospect_person_id AND
+                blocked.object_person_id  = %(searcher_person_id)s
+            LIMIT 1
+        )
+    AND EXISTS (
+            (
+                SELECT 1 WHERE NOT prospect.hide_me_from_strangers
+            ) UNION ALL (
+                SELECT 1
+                FROM search_preference_messaged AS preference
+                JOIN messaged
+                ON
+                    messaged.subject_person_id = prospect_person_id AND
+                    messaged.object_person_id = %(searcher_person_id)s
+                WHERE
+                    prospect.hide_me_from_strangers
+                LIMIT 1
+            )
+            LIMIT 1
+        )
+), prospects_third_pass AS (
+    SELECT
+        *
+    FROM
+        prospects_second_pass AS prospect
+    WHERE
+        -- NOT EXISTS an answer contrary to the searcher's preference...
+        NOT EXISTS (
+            SELECT 1
+            FROM search_preference_answer pref
+            LEFT JOIN answer ans
+            ON
+                ans.person_id = prospect_person_id AND
+                ans.question_id = pref.question_id AND
+                pref.person_id = %(searcher_person_id)s
+            WHERE
+                -- Contrary because the answer exists and is wrong
+                ans.answer IS NOT NULL AND
+                ans.answer != pref.answer
+            OR
+                -- Contrary because the answer doesn't exist but should
+                ans.answer IS NULL AND
+                pref.accept_unanswered = FALSE
+            LIMIT 1
+        )
+), prospects_with_details AS (
+    SELECT
+        id AS prospect_person_id,
+        (
+            SELECT uuid
+            FROM photo
+            WHERE
+                person_id = prospect_person_id
+            ORDER BY
+                position
+            LIMIT 1
+        ) AS profile_photo_uuid,
+        name,
+        CASE WHEN show_my_age THEN age ELSE NULL END AS age,
+    CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2)::SMALLINT AS match_percentage
+    FROM
+        prospects_third_pass AS prospect
+), updated_search_cache AS (
+    INSERT INTO search_cache (
+        searcher_person_id,
+        position,
+        prospect_person_id,
+        profile_photo_uuid,
+        name,
+        age,
+        match_percentage
+    )
+    SELECT
+        %(searcher_person_id)s,
+        ROW_NUMBER() OVER (
+            ORDER BY
+                (profile_photo_uuid IS NOT NULL) DESC,
+                match_percentage DESC
+        ) AS position,
+        *
+    FROM
+        prospects_with_details
+    RETURNING *
+)
+SELECT
+    prospect_person_id,
+    profile_photo_uuid,
+    name,
+    age,
+    match_percentage
+FROM
+    updated_search_cache
+ORDER BY
+    position
+LIMIT
+    %(n)s
+"""
+
+def _q_cached_search():
+    return """
+SELECT
+    prospect_person_id,
+    profile_photo_uuid,
+    name,
+    age,
+    match_percentage
+FROM
+    search_cache
+WHERE
+    searcher_person_id = %(searcher_person_id)s AND
+    position >  %(o)s AND
+    position <= %(o)s + %(n)s
+ORDER BY
+    position
+DESC
+"""
+
+def _uncached_search_results(
+    searcher_person_id: int,
+    no: Optional[Tuple[int, int]]
+):
+    with transaction('READ COMMITTED') as tx:
+        q_uncached_search_1 = _q_uncached_search_1()
+        params_1 = dict(
+            searcher_person_id=searcher_person_id,
+        )
+
+        tx.execute(q_uncached_search_1, params_1)
+
+        row = tx.fetchone()
+        distance = row['distance']
+
+        is_quiz_search = no is None
+        q_uncached_search_2 = _q_uncached_search_2(
+            use_distance=distance is not None,
+            is_quiz_search=is_quiz_search,
+        )
+        if no is None:
+            params_2 = dict(
+                searcher_person_id=searcher_person_id,
+                distance=distance,
+            )
+        else:
+            n, o = no
+            params_2 = dict(
+                searcher_person_id=searcher_person_id,
+                distance=distance,
+                n=n,
+                o=o,
+            )
+
+        return tx.execute(q_uncached_search_2, params_2).fetchall()
+
+def _cached_search_results(searcher_person_id: int, no: Tuple[int, int]):
+    n, o = no
+
+    params = dict(
+        searcher_person_id=searcher_person_id,
+        n=n,
+        o=o
+    )
+
+    with transaction('READ COMMITTED') as tx:
+        q_cached_search = _q_cached_search()
+        return tx.execute(q_cached_search, params).fetchall()
+
+def get_search(s: t.SessionInfo, n: Optional[str], o: Optional[str]):
+    n_: Optional[int] = n if n is None else int(n)
+    o_: Optional[int] = o if o is None else int(o)
+
+    if n_ is not None and not n_ >= 0:
+        raise ValueError('n must be >= 0')
+    if o_ is not None and not o_ >= 0:
+        raise ValueError('o must be >= 0')
+
+    no = None if (n_ is None or o_ is None) else (n_, o_)
+
+    is_regular_search_first_page = o_ == 0
+    is_quiz_search = no is None
+
+    if is_regular_search_first_page or is_quiz_search:
+        return _uncached_search_results(
+            searcher_person_id=s.person_id,
+            no=no,
+        )
+    else:
+        return _cached_search_results(
+            searcher_person_id=s.person_id,
+            no=no,
+        )

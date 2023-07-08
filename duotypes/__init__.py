@@ -1,15 +1,10 @@
 from typing import Any, DefaultDict, Dict, List, Optional
-from pydantic import BaseModel, EmailStr, constr, conlist, validator, root_validator, conint
+from pydantic import BaseModel, EmailStr, constr, conlist, field_validator, model_validator, conint
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from PIL import Image
 import constants
 import io
-
-class NormalizedEmailStr(EmailStr):
-    @classmethod
-    def validate(cls, value: EmailStr) -> EmailStr:
-        return EmailStr.validate(value).lower().strip()
 
 class SessionInfo(BaseModel):
     email: str
@@ -18,7 +13,7 @@ class SessionInfo(BaseModel):
     onboarded: bool
     signed_in: bool
 
-    @root_validator(pre=True)
+    @model_validator(mode='before')
     def set_onboarded(cls, values):
         values['onboarded'] = values.get('person_id') is not None
         return values
@@ -32,21 +27,26 @@ class DeleteAnswer(BaseModel):
     question_id: int
 
 class PostRequestOtp(BaseModel):
-    email: NormalizedEmailStr
+    email: EmailStr
+
+    @field_validator('email', mode='before')
+    def validate_email(cls, value):
+        return EmailStr._validate(value.lower().strip(), None)
+
 
 class PostCheckOtp(BaseModel):
-    otp: constr(regex=r'^\d{6}$')
+    otp: constr(pattern=r'^\d{6}$')
 
 class PatchOnboardeeInfo(BaseModel):
-    name: Optional[constr(min_length=1, max_length=64, strip_whitespace=True)]
-    date_of_birth: Optional[str]
-    location: Optional[constr(min_length=1)]
-    gender: Optional[constr(min_length=1)]
-    other_peoples_genders: Optional[conlist(constr(min_length=1), min_items=1)]
-    files: Optional[Dict[conint(ge=1, le=7), Image.Image]]
-    about: Optional[constr(min_length=1, max_length=10000)]
+    name: Optional[constr(min_length=1, max_length=64, strip_whitespace=True)] = None
+    date_of_birth: Optional[str] = None
+    location: Optional[constr(min_length=1)] = None
+    gender: Optional[constr(min_length=1)] = None
+    other_peoples_genders: Optional[conlist(constr(min_length=1), min_length=1)] = None
+    files: Optional[Dict[conint(ge=1, le=7), Image.Image]] = None
+    about: Optional[constr(min_length=1, max_length=10000)] = None
 
-    @validator('date_of_birth')
+    @field_validator('date_of_birth')
     def age_must_be_18_or_up(cls, date_of_birth):
         if date_of_birth is None:
             return date_of_birth
@@ -55,9 +55,9 @@ class PatchOnboardeeInfo(BaseModel):
         age = relativedelta(today, date_of_birth_date).years
         if age < 18:
             raise ValueError(f'Age must be 18 or up.')
-        return date_of_birth_date
+        return date_of_birth
 
-    @validator('files', pre=True)
+    @field_validator('files', mode='before')
     def file_names(cls, files):
         if files is None:
             return files
@@ -112,7 +112,7 @@ class PatchOnboardeeInfo(BaseModel):
 
         return order_to_image
 
-    @root_validator
+    @model_validator(mode='before')
     def check_at_least_one(cls, values):
         if len(values) == 0:
             raise ValueError('At least one value must be set')

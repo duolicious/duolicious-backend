@@ -1,8 +1,6 @@
 import os
-import psycopg
 from database import transaction, fetchall_sets
-from typing import DefaultDict, Optional, Iterable, Tuple
-import service.question as question
+from typing import Optional, Iterable, Tuple
 import duotypes as t
 import urllib.request
 import json
@@ -12,6 +10,7 @@ from PIL import Image
 import io
 import boto3
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from service.person.sql import *
 
 ENV = os.environ['DUO_ENV']
 
@@ -23,390 +22,11 @@ R2_ACCESS_KEY_ID = os.environ['DUO_R2_ACCESS_KEY_ID']
 R2_ACCESS_KEY_SECRET = os.environ['DUO_R2_ACCESS_KEY_SECRET']
 R2_BUCKET_NAME = os.environ['DUO_R2_BUCKET_NAME']
 
-Q_DELETE_ANSWER = """
-DELETE FROM answer
-WHERE person_id = %(person_id)s
-AND question_id = %(question_id)s
-"""
-
-Q_INCREMENT_YES_NO_COUNT = """
-UPDATE question
-SET
-    count_yes = count_yes + %(increment_yes)s,
-    count_no = count_no + %(increment_no)s
-WHERE
-    id = %(question_id)s
-"""
-
-Q_SET_ANSWER = """
-INSERT INTO answer (
-    person_id,
-    question_id,
-    answer,
-    public_
-) VALUES (
-    %(person_id)s,
-    %(question_id)s,
-    %(answer)s,
-    %(public)s
-) ON CONFLICT (person_id, question_id) DO UPDATE SET
-    answer  = EXCLUDED.answer,
-    public_ = EXCLUDED.public_
-"""
-
-Q_SET_PERSON_TRAIT_STATISTIC = """
-WITH
-existing_answer AS (
-    SELECT
-        person_id,
-        question_id,
-        answer
-    FROM answer
-    WHERE
-        person_id = %(person_id)s AND
-        question_id = %(question_id)s AND
-        answer IS NOT NULL
-),
-score AS (
-    SELECT
-        person_id,
-        trait_id,
-        CASE
-        WHEN existing_answer.answer = TRUE
-            THEN presence_given_yes
-            ELSE presence_given_no
-        END AS presence_score,
-        CASE
-        WHEN existing_answer.answer = TRUE
-            THEN absence_given_yes
-            ELSE absence_given_no
-        END AS absence_score
-    FROM question_trait_pair
-    JOIN existing_answer
-    ON existing_answer.question_id = question_trait_pair.question_id
-),
-score_delta_magnitude AS (
-    SELECT
-        person_id,
-        trait_id,
-        presence_score - LEAST(presence_score, absence_score) AS presence_delta_magnitude,
-        absence_score  - LEAST(presence_score, absence_score) AS absence_delta_magnitude
-    FROM score
-),
-score_delta AS (
-    SELECT
-        person_id,
-        trait_id,
-        %(weight)s * presence_delta_magnitude AS presence_delta,
-        %(weight)s * absence_delta_magnitude  AS absence_delta
-    FROM score_delta_magnitude
-),
-new_scores AS (
-    SELECT
-        sd.person_id,
-        sd.trait_id,
-        COALESCE(pts.presence_score, 0) + sd.presence_delta,
-        COALESCE(pts.absence_score, 0)  + sd.absence_delta
-    FROM score_delta sd
-    LEFT JOIN person_trait_statistic pts
-    ON
-        sd.person_id = pts.person_id AND
-        sd.trait_id  = pts.trait_id
-)
-INSERT INTO person_trait_statistic (
-    person_id,
-    trait_id,
-    presence_score,
-    absence_score
-)
-SELECT * FROM new_scores
-ON CONFLICT (person_id, trait_id) DO UPDATE SET
-    presence_score = EXCLUDED.presence_score,
-    absence_score  = EXCLUDED.absence_score
-"""
-
-Q_SELECT_PERSONALITY = """
-WITH
-coalesced AS (
-    SELECT
-        trait,
-        COALESCE(presence_score, 0) AS presence_score,
-        COALESCE(absence_score, 0) AS absence_score
-    FROM trait
-    LEFT JOIN person_trait_statistic
-    ON trait.id = person_trait_statistic.trait_id
-    WHERE person_id = %(person_id)s
-)
-SELECT
-    trait,
-    CASE
-    WHEN presence_score + absence_score < 1000
-        THEN NULL
-        ELSE round(100 * presence_score / (presence_score + absence_score))::int
-    END AS percentage
-FROM coalesced
-"""
-
-Q_INSERT_DUO_SESSION = """
-INSERT INTO duo_session (
-    session_token_hash,
-    person_id,
-    email,
-    otp
-) VALUES (
-    %(session_token_hash)s,
-    (SELECT id FROM person WHERE email = %(email)s),
-    %(email)s,
-    %(otp)s
-)
-"""
-
-Q_UPDATE_OTP = """
-UPDATE duo_session
-SET
-    otp = %(otp)s,
-    otp_expiry = NOW() + INTERVAL '1 minute'
-WHERE session_token_hash = %(session_token_hash)s
-"""
-
-Q_MAYBE_DELETE_ONBOARDEE = """
-WITH
-valid_session AS (
-    UPDATE duo_session
-    SET signed_in = TRUE
-    WHERE
-        session_token_hash = %(session_token_hash)s AND
-        otp = %(otp)s AND
-        otp_expiry > NOW()
-    RETURNING email
-)
-DELETE FROM onboardee
-WHERE email IN (SELECT email FROM valid_session)
-RETURNING email
-"""
-
-Q_MAYBE_SIGN_IN = """
-WITH
-valid_session AS (
-    UPDATE duo_session
-    SET signed_in = TRUE
-    WHERE
-        session_token_hash = %(session_token_hash)s AND
-        otp = %(otp)s AND
-        otp_expiry > NOW()
-    RETURNING person_id, email
-),
-existing_person AS (
-    SELECT person_id
-    FROM valid_session
-    WHERE person_id IS NOT NULL
-),
-new_onboardee AS (
-    INSERT INTO onboardee (
-        email
-    )
-    SELECT email
-    FROM valid_session
-    WHERE NOT EXISTS (SELECT 1 FROM existing_person)
-)
-SELECT * FROM valid_session
-"""
-
-Q_SELECT_ONBOARDEE_PHOTO = """
-SELECT uuid
-FROM onboardee_photo
-WHERE
-    email = %(email)s AND
-    position = %(position)s
-"""
-
-Q_DELETE_ONBOARDEE_PHOTO = """
-DELETE FROM onboardee_photo
-WHERE
-    email = %(email)s AND
-    position = %(position)s
-"""
-
-Q_SELECT_ONBOARDEE_PHOTOS_TO_DELETE = """
-WITH
-valid_session AS (
-    SELECT email
-    FROM duo_session
-    WHERE
-        session_token_hash = %(session_token_hash)s AND
-        otp = %(otp)s AND
-        otp_expiry > NOW()
-)
-SELECT uuid
-FROM onboardee_photo
-WHERE email IN (SELECT email from valid_session)
-"""
-
-Q_DELETE_DUO_SESSION = """
-DELETE FROM duo_session
-WHERE session_token_hash = %(session_token_hash)s
-"""
-
-Q_FINISH_ONBOARDING_1 = """
-WITH
-onboardee_country AS (
-    SELECT country
-    FROM location
-    ORDER BY location.coordinates <-> (
-        SELECT coordinates
-        FROM onboardee
-        WHERE email = %(email)s
-    )
-    LIMIT 1
-),
-new_person AS (
-    INSERT INTO person (
-        email,
-        name,
-        date_of_birth,
-        coordinates,
-        gender_id,
-        about,
-
-        verified,
-
-        unit_id,
-
-        chats_notification,
-        intros_notification,
-        visitors_notification
-    ) SELECT
-        email,
-        name,
-        date_of_birth,
-        coordinates,
-        gender_id,
-        about,
-
-        (SELECT id FROM yes_no WHERE name = 'No'),
-
-        (
-            SELECT id
-            FROM unit
-            WHERE name IN (
-                SELECT
-                    CASE
-                    WHEN country = 'United States'
-                        THEN 'Imperial'
-                        ELSE 'Metric'
-                    END AS name
-                FROM onboardee_country
-            )
-        ),
-
-        (SELECT id FROM immediacy WHERE name = 'Immediately'),
-        (SELECT id FROM immediacy WHERE name = 'Immediately'),
-        (SELECT id FROM immediacy WHERE name = 'Daily')
-    FROM onboardee
-    WHERE email = %(email)s
-    RETURNING id, email
-),
-new_photo AS (
-    INSERT INTO photo (
-        person_id,
-        position,
-        uuid
-    )
-    SELECT
-        new_person.id,
-        position,
-        uuid
-    FROM onboardee_photo
-    JOIN new_person
-    ON onboardee_photo.email = new_person.email
-    RETURNING person_id
-),
-new_search_preference_gender AS (
-    INSERT INTO search_preference_gender (
-        person_id,
-        gender_id
-    )
-    SELECT
-        new_person.id,
-        gender_id
-    FROM onboardee_search_preference_gender
-    JOIN new_person
-    ON onboardee_search_preference_gender.email = new_person.email
-    RETURNING person_id
-),
-new_question_order_map AS (
-    WITH
-    row_to_shuffle AS (
-      SELECT id
-      FROM question
-      WHERE id > 50
-      ORDER BY RANDOM()
-      LIMIT (SELECT ROUND(0.2 * COUNT(*)) FROM question)
-    ),
-    shuffled_src_to_dst_position AS (
-      SELECT
-        a.id AS src_position,
-        b.id AS dst_position
-      FROM (SELECT *, ROW_NUMBER() OVER(ORDER BY RANDOM()) FROM row_to_shuffle) AS a
-      JOIN (SELECT *, ROW_NUMBER() OVER(ORDER BY RANDOM()) FROM row_to_shuffle) AS b
-      ON a.row_number = b.row_number
-    ),
-    identity_src_to_dst_position AS (
-      SELECT
-        id AS src_position,
-        id AS dst_position
-      FROM question
-      WHERE id NOT IN (SELECT src_position FROM shuffled_src_to_dst_position)
-    )
-    (SELECT * FROM identity_src_to_dst_position)
-    UNION
-    (SELECT * FROM shuffled_src_to_dst_position)
-),
-new_question_order AS (
-    INSERT INTO question_order (
-        person_id,
-        question_id,
-        position
-    ) SELECT
-        new_person.id,
-        new_question_order_map.src_position,
-        new_question_order_map.dst_position
-    FROM new_person
-    CROSS JOIN new_question_order_map
-    RETURNING person_id
-),
-updated_session AS (
-    UPDATE duo_session
-    SET person_id = new_person.id
-    FROM new_person
-    WHERE duo_session.email = new_person.email
-    RETURNING person_id
-)
-SELECT
-    (SELECT COUNT(*) FROM new_person) +
-    (SELECT COUNT(*) FROM new_photo) +
-    (SELECT COUNT(*) FROM new_search_preference_gender) +
-    (SELECT COUNT(*) FROM new_question_order) +
-    (SELECT COUNT(*) FROM updated_session)
-"""
-
-Q_FINISH_ONBOARDING_2 = """
-DELETE FROM onboardee
-WHERE email = %(email)s
-"""
-
-Q_SEARCH_LOCATIONS = """
-SELECT friendly
-FROM location
-WHERE friendly ILIKE %(first_character)s || '%%'
-ORDER BY friendly <-> %(search_string)s
-LIMIT 10
-"""
-
-s3 = boto3.resource('s3',
-  endpoint_url = f'https://{R2_ACCT_ID}.r2.cloudflarestorage.com',
-  aws_access_key_id = R2_ACCESS_KEY_ID,
-  aws_secret_access_key = R2_ACCESS_KEY_SECRET,
+s3 = boto3.resource(
+    's3',
+    endpoint_url = f'https://{R2_ACCT_ID}.r2.cloudflarestorage.com',
+    aws_access_key_id = R2_ACCESS_KEY_ID,
+    aws_secret_access_key = R2_ACCESS_KEY_SECRET,
 )
 
 bucket = s3.Bucket(R2_BUCKET_NAME)
@@ -415,8 +35,8 @@ def init_db():
     pass
 
 def process_image(
-        image: Image.Image,
-        output_size: Optional[int] = None
+    image: Image.Image,
+    output_size: Optional[int] = None
 ) -> io.BytesIO:
     output_bytes = io.BytesIO()
 
@@ -467,8 +87,9 @@ def put_images_in_object_store(uuid_img: Iterable[Tuple[str, io.BytesIO]]):
         for uuid, img in uuid_img
         for key, converted_img in [
             (f'original-{uuid}.jpg', process_image(img, output_size=None)),
+            (f'900-{uuid}.jpg', process_image(img, output_size=900)),
             (f'450-{uuid}.jpg', process_image(img, output_size=450)),
-            (f'900-{uuid}.jpg', process_image(img, output_size=900))]
+        ]
     ]
 
     with ThreadPoolExecutor(max_workers=5) as executor:
@@ -485,8 +106,9 @@ def delete_images_from_object_store(uuids: Iterable[str]):
         for uuid in uuids
         for key_to_delete in [
             f'original-{uuid}.jpg',
+            f'900-{uuid}.jpg',
             f'450-{uuid}.jpg',
-            f'900-{uuid}.jpg']
+        ]
         if uuid is not None
     ]
 
@@ -503,30 +125,37 @@ def delete_images_from_object_store(uuids: Iterable[str]):
 
 
 def post_answer(req: t.PostAnswer, s: t.SessionInfo):
-    params = dict(
-        **req.dict(),
-        person_id=s.person_id,
-        increment_yes=1 if req.answer is True else 0,
-        increment_no=1 if req.answer is False else 0,
+    params_add_yes_no_count = dict(
+        question_id=req.question_id,
+        add_yes=1 if req.answer is True else 0,
+        add_no=1 if req.answer is False else 0,
     )
 
-    # TODO: Increment yes/no count
-    # TODO: Increment views
+    params_update_answer = dict(
+        person_id=s.person_id,
+        question_id_to_delete=None,
+        question_id_to_insert=req.question_id,
+        answer=req.answer,
+        public=req.public,
+    )
+
     with transaction('READ COMMITTED') as tx:
-        tx.execute(Q_INCREMENT_YES_NO_COUNT, params)
+        tx.execute(Q_ADD_YES_NO_COUNT, params_add_yes_no_count)
 
     with transaction() as tx:
-        tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': -1})
-        tx.execute(Q_SET_ANSWER, params)
-        tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': +1})
-
+        tx.execute(Q_UPDATE_ANSWER, params_update_answer)
 
 def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
-    params = dict(**req.dict(), person_id=s.person_id)
+    params = dict(
+        person_id=s.person_id,
+        question_id_to_delete=req.question_id,
+        question_id_to_insert=None,
+        answer=None,
+        public=None,
+    )
 
     with transaction() as tx:
-        tx.execute(Q_SET_PERSON_TRAIT_STATISTIC, params | {'weight': -1})
-        tx.execute(Q_DELETE_ANSWER, params)
+        tx.execute(Q_UPDATE_ANSWER, params)
 
 def _generate_otp():
     if ENV == 'dev':
@@ -633,8 +262,14 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
 def post_sign_out(s: t.SessionInfo):
     params = dict(session_token_hash=s.session_token_hash)
 
-    with transaction() as tx:
+    with transaction('READ COMMITTED') as tx:
         tx.execute(Q_DELETE_DUO_SESSION, params)
+
+def post_active(s: t.SessionInfo):
+    params = dict(person_id=s.person_id)
+
+    with transaction('READ COMMITTED') as tx:
+            tx.execute(Q_UPDATE_ACTIVE, params)
 
 def get_search_locations(q: Optional[str]):
     if q is None:
@@ -650,7 +285,7 @@ def get_search_locations(q: Optional[str]):
         search_string=normalized_whitespace,
     )
 
-    with transaction() as tx:
+    with transaction('READ COMMITTED') as tx:
         tx.execute(Q_SEARCH_LOCATIONS, params)
         return [row['friendly'] for row in tx.fetchall()]
 
@@ -756,7 +391,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
             for pos, uuid, _ in pos_uuid_img
         ]
 
-        # Delete existing onboardee photos, if any exist
+        # Delete existing onboardee photos in the given position, if any exist
         with transaction() as tx:
             tx.executemany(Q_SELECT_ONBOARDEE_PHOTO, params, returning=True)
             previous_onboardee_photos = fetchall_sets(tx)
@@ -822,8 +457,7 @@ def post_finish_onboarding(s: t.SessionInfo):
     params = dict(email=s.email)
 
     with transaction() as tx:
-        tx.execute(Q_FINISH_ONBOARDING_1, params)
-        tx.execute(Q_FINISH_ONBOARDING_2, params)
+        tx.execute(Q_FINISH_ONBOARDING, params)
 
 def get_personality(person_id: int):
     params = dict(
@@ -831,7 +465,5 @@ def get_personality(person_id: int):
     )
 
     with transaction('READ COMMITTED') as tx:
-        return {
-            row['trait']: row['percentage']
-            for row in tx.execute(Q_SELECT_PERSONALITY, params).fetchall()
-        }
+        tx.execute(Q_SELECT_PERSONALITY, params)
+        return {row['trait']: row['percentage'] for row in tx.fetchall()}

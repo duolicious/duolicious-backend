@@ -27,7 +27,7 @@ jobs:
         run: echo "SHA=${GITHUB_SHA}" >> $GITHUB_ENV
 
       - name: Build Docker Image
-        run: docker build -t $IMAGE_NAME:$SHA .
+        run: docker build -t $IMAGE_NAME:$SHA -f api.Dockerfile .
 
       - name: Push Docker Image to Google Artifact Registry
         run: |
