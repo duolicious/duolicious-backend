@@ -2,7 +2,6 @@ import os
 from flask import request
 import duotypes as t
 from service import (
-    location,
     person,
     question,
     search,
@@ -117,20 +116,3 @@ def get_health():
 @get('/personality/<int:person_id>')
 def get_personality(person_id):
     return person.get_personality(person_id)
-
-
-for init_func in [
-    init_db,
-    location.init_db,
-    question.init_db,
-    person.init_db,
-]:
-    try:
-        init_func()
-    except Exception as e:
-        print(
-            "This exception is probably because more than one worker is "
-            "trying to initialise the DB at once. Chances are, one of them "
-            "will succeed. So you can probably ignore it:",
-            e
-        )
