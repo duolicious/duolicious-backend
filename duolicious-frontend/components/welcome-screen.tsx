@@ -41,6 +41,7 @@ const WelcomeScreen_ = ({navigation}) => {
   const [emailNotSent, setEmailNotSent] = useState(false);
 
   const submit = async () => {
+    setEmailNotSent(false);
     setIsLoading(true);
 
     const response = await japi(

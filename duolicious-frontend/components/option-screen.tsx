@@ -191,6 +191,7 @@ const GivenName = forwardRef((props: InputProps, ref) => {
   }, []);
 
   const submit = useCallback(async () => {
+    setIsInvalid(false);
     props.setIsLoading(true);
 
     const ok = await props.input.givenName.submit(inputValueRef?.current);
@@ -235,6 +236,7 @@ const Otp = forwardRef((props: InputProps, ref) => {
   }, []);
 
   const submit = useCallback(async () => {
+    setIsInvalid(false);
     props.setIsLoading(true);
 
     const ok = await props.input.otp.submit(inputValueRef?.current);
@@ -290,6 +292,7 @@ const LocationSelector = forwardRef((props: InputProps, ref) => {
   }, []);
 
   const submit = useCallback(async () => {
+    setIsInvalid(false);
     props.setIsLoading(true);
 
     const ok = await props.input.locationSelector.submit(inputValueRef?.current);
@@ -385,6 +388,7 @@ const TextLong = forwardRef((props: InputProps, ref) => {
   }, []);
 
   const submit = useCallback(async () => {
+    setIsInvalid(false);
     props.setIsLoading(true);
 
     const ok = await props.input.textLong.submit(inputValueRef?.current);
@@ -455,6 +459,7 @@ const CheckChips = forwardRef((props: InputProps, ref) => {
   ));
 
   const submit = useCallback(async () => {
+    setIsInvalid(false);
     props.setIsLoading(true);
 
     const ok = await props.input.submit([...inputValueRef.current]);

@@ -85,6 +85,7 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid}) => {
 
     setIsLoading(true);
     setIsLoading_(true);
+    setIsInvalid(false);
 
     if (await input.photos.submit(String(fileNumber), uri)) {
       setImage(uri);
@@ -92,6 +93,8 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid}) => {
       setIsLoading_(false);
       setIsInvalid(false);
     } else {
+      setIsLoading(false);
+      setIsLoading_(false);
       setIsInvalid(true);
     }
   }, []);
@@ -99,6 +102,7 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid}) => {
   const removeImage = useCallback(async () => {
     setIsLoading(true);
     setIsLoading_(true);
+    setIsInvalid(false);
 
     if (await input.photos.delete(fileNumber)) {
       setImage(null);
@@ -106,6 +110,8 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid}) => {
       setIsLoading_(false);
       setIsInvalid(false);
     } else {
+      setIsLoading(false);
+      setIsLoading_(false);
       setIsInvalid(true);
     }
   }, []);
@@ -132,7 +138,7 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid}) => {
             borderRadius: 999,
             backgroundColor: 'white',
           }}
-          onPress={image === null ? undefined : removeImage}
+          onPress={(image === null || isLoading_) ? undefined : removeImage}
         >
           <FontAwesomeIcon
             icon={faCircleXmark}
@@ -152,7 +158,7 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid}) => {
       }}
     >
       <Pressable
-        onPress={addImage}
+        onPress={isLoading_ ? undefined : addImage}
         style={{
           borderRadius: 5,
           backgroundColor: '#eee',
@@ -180,19 +186,10 @@ const Row = ({input, firstFileNumber, setIsLoading, setIsInvalid}) => {
   const isLoading2 = useRef(false);
   const isLoading3 = useRef(false);
 
-  const isInvalid1 = useRef(false);
-  const isInvalid2 = useRef(false);
-  const isInvalid3 = useRef(false);
-
   const setIsLoading_ = useCallback(() => setIsLoading(
     isLoading1.current ||
     isLoading2.current ||
     isLoading3.current
-  ), []);
-  const setIsInvalid_ = useCallback(() => setIsInvalid(
-    isInvalid1.current ||
-    isInvalid2.current ||
-    isInvalid3.current
   ), []);
 
   const setIsLoading1 = useCallback(
@@ -201,13 +198,6 @@ const Row = ({input, firstFileNumber, setIsLoading, setIsInvalid}) => {
     x => { isLoading2.current = x; setIsLoading_() }, []);
   const setIsLoading3 = useCallback(
     x => { isLoading3.current = x; setIsLoading_() }, []);
-
-  const setIsInvalid1 = useCallback(
-    x => { isInvalid1.current = x; setIsInvalid_() }, []);
-  const setIsInvalid2 = useCallback(
-    x => { isInvalid2.current = x; setIsInvalid_() }, []);
-  const setIsInvalid3 = useCallback(
-    x => { isInvalid3.current = x; setIsInvalid_() }, []);
 
   return (
     <View
@@ -219,19 +209,19 @@ const Row = ({input, firstFileNumber, setIsLoading, setIsInvalid}) => {
         input={input}
         fileNumber={firstFileNumber + 0}
         setIsLoading={setIsLoading1}
-        setIsInvalid={setIsInvalid1}
+        setIsInvalid={setIsInvalid}
       />
       <UserImage
         input={input}
         fileNumber={firstFileNumber + 1}
         setIsLoading={setIsLoading2}
-        setIsInvalid={setIsInvalid2}
+        setIsInvalid={setIsInvalid}
       />
       <UserImage
         input={input}
         fileNumber={firstFileNumber + 2}
         setIsLoading={setIsLoading3}
-        setIsInvalid={setIsInvalid3}
+        setIsInvalid={setIsInvalid}
       />
     </View>
   );
@@ -243,17 +233,9 @@ const SecondaryImages = (
   const isLoading1 = useRef(false);
   const isLoading2 = useRef(false);
 
-  const isInvalid1 = useRef(false);
-  const isInvalid2 = useRef(false);
-
   const setIsLoading_ = useCallback(() => setIsLoading(
     isLoading1.current ||
     isLoading2.current
-  ), []);
-
-  const setIsInvalid_ = useCallback(() => setIsInvalid(
-    isInvalid1.current ||
-    isInvalid2.current
   ), []);
 
   const setIsLoading1 = useCallback(
@@ -261,24 +243,19 @@ const SecondaryImages = (
   const setIsLoading2 = useCallback(
     x => { isLoading2.current = x; setIsLoading_() }, []);
 
-  const setIsInvalid1 = useCallback(
-    x => { isInvalid1.current = x; setIsInvalid_() }, []);
-  const setIsInvalid2 = useCallback(
-    x => { isInvalid2.current = x; setIsInvalid_() }, []);
-
   return (
     <View>
       <Row
         input={input}
         firstFileNumber={firstFileNumber + 0}
         setIsLoading={setIsLoading1}
-        setIsInvalid={setIsInvalid1}
+        setIsInvalid={setIsInvalid}
       />
       <Row
         input={input}
         firstFileNumber={firstFileNumber + 1}
         setIsLoading={setIsLoading2}
-        setIsInvalid={setIsInvalid2}
+        setIsInvalid={setIsInvalid}
       />
     </View>
   );
