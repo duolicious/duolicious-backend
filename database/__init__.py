@@ -10,43 +10,45 @@ _valid_isolation_levels = [
     'READ COMMITTED',
 ]
 
+_default_isolation_level = 'REPEATABLE READ'
+
 DB_HOST = os.environ['DUO_DB_HOST']
 DB_PORT = os.environ['DUO_DB_PORT']
 DB_NAME = os.environ['DUO_DB_NAME']
 DB_USER = os.environ['DUO_DB_USER']
 DB_PASS = os.environ['DUO_DB_PASS']
 
-def _create_conn_string(params_dict):
-    return " ".join([f"{key}={value}" for key, value in params_dict.items()])
-
-_db_params = dict(
-    host=DB_HOST,
-    port=DB_PORT,
-    dbname=DB_NAME,
-    user=DB_USER,
-    password=DB_PASS,
+_conninfo = (
+    f" host={DB_HOST}"
+    f" port={DB_PORT}"
+    f" dbname={DB_NAME}"
+    f" user={DB_USER}"
+    f" password={DB_PASS}"
+    f" options='-c idle_session_timeout=0 -c statement_timeout=5000'"
 )
-
-_conninfo = _create_conn_string(_db_params)
 
 pool = ConnectionPool(_conninfo)
 
 def transaction(
-    isolation_level='REPEATABLE READ'
+    isolation_level=_default_isolation_level
 ) -> ContextManager[psycopg.Cursor[Any]]:
+    if isolation_level.upper() not in _valid_isolation_levels:
+        raise ValueError(isolation_level)
+
     @contextmanager
     def generator_function():
         with (
-                pool.connection() as conn,
-                conn.cursor(row_factory=psycopg.rows.dict_row) as cur
+            pool.connection() as conn,
+            conn.cursor(row_factory=psycopg.rows.dict_row) as cur
         ):
-            if isolation_level.upper() in _valid_isolation_levels:
-                cur.execute("SET LOCAL statement_timeout = 5000")
+            try:
                 cur.execute(
                     f'SET TRANSACTION ISOLATION LEVEL {isolation_level}'
                 )
-            else:
-                raise ValueError(isolation_level)
+            except psycopg.OperationalError as e:
+                print('Error while starting transaction:', e)
+                pool.check()
+
             yield cur
 
     return generator_function()
