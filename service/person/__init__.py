@@ -40,6 +40,41 @@ def process_image(
 ) -> io.BytesIO:
     output_bytes = io.BytesIO()
 
+    # Rotate the image according to EXIF data
+    try:
+        exif = image.getexif()
+        orientation = exif[274] # 274 is the exif code for the orientation tag
+    except:
+        orientation = None
+
+    if orientation is None:
+        pass
+    elif orientation == 1:
+        # Normal, no changes needed
+        pass
+    elif orientation == 2:
+        # Mirrored horizontally
+        pass
+    elif orientation == 3:
+        # Rotated 180 degrees
+        image = image.rotate(180, expand=True)
+    elif orientation == 4:
+        # Mirrored vertically
+        pass
+    elif orientation == 5:
+        # Transposed
+        image = image.rotate(-90, expand=True)
+    elif orientation == 6:
+        # Rotated -90 degrees
+        image = image.rotate(-90, expand=True)
+    elif orientation == 7:
+        # Transverse
+        image = image.rotate(90, expand=True)
+    elif orientation == 8:
+        # Rotated 90 degrees
+        image = image.rotate(90, expand=True)
+
+    # Crop the image to be square
     if output_size is not None:
         # Get the dimensions of the image
         width, height = image.size
@@ -56,9 +91,10 @@ def process_image(
         # Crop the image to be square
         image = image.crop((left, top, right, bottom))
 
-        if output_size != min_dim:
-            # Scale the image to the desired size
-            image = image.resize((output_size, output_size))
+    # Resize the image
+    if output_size is not None and output_size != min_dim:
+        # Scale the image to the desired size
+        image = image.resize((output_size, output_size))
 
     image = image.convert('RGB')
 
