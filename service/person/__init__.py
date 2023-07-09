@@ -91,9 +91,8 @@ def process_image(
         # Crop the image to be square
         image = image.crop((left, top, right, bottom))
 
-    # Resize the image
+    # Scale the image to the desired size
     if output_size is not None and output_size != min_dim:
-        # Scale the image to the desired size
         image = image.resize((output_size, output_size))
 
     image = image.convert('RGB')
