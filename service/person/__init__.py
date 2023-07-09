@@ -252,10 +252,10 @@ def post_request_otp(req: t.PostRequestOtp):
         session_token_hash=session_token_hash,
     )
 
-    _send_otp(email, otp)
-
     with transaction() as tx:
         tx.execute(Q_INSERT_DUO_SESSION, params)
+
+    _send_otp(email, otp)
 
     return dict(session_token=session_token)
 
