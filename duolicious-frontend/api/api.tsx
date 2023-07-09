@@ -16,12 +16,13 @@ const api = async (
   init?: RequestInit
 ): Promise<ApiResponse> => {
   let response, json;
+  let numRetries = 0;
 
   while (true) {
     [response, json] = [undefined, undefined];
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     const existingSessionToken = await sessionToken();
 
@@ -45,11 +46,12 @@ const api = async (
       response = await fetch(url, init_);
       break;
     } catch (error) {
-      // TODO: There should be a message in the UI saying "you're offline" or something
-      console.log(`Waiting 3 seconds and trying again; Caught error while fetching ${url}`, error);
+      const timeoutSeconds = Math.pow(2, Math.min(6, numRetries++));
 
-      // wait for 3 seconds before the next retry
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // TODO: There should be a message in the UI saying "you're offline" or something
+      console.log(`Waiting ${timeoutSeconds} seconds and trying again; Caught error while fetching ${url}`, error);
+
+      await new Promise(resolve => setTimeout(resolve, timeoutSeconds * 1000));
     } finally {
       // cancel the timeout whether there was an error or not
       clearTimeout(timeoutId);

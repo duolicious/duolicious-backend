@@ -348,41 +348,36 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
             >
               {showTutorial && questionNumber === 1 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  👋 Welcome to Duolicious Q&A, where we pick your brain and
-                  probe your psyche, all in the quest to unearth your perfect
-                  match! Let's start with an easy one:
+                  👋 Welcome to Duolicious Q&A, where we pick your brain in the
+                  quest to unearth your perfect match! Let's start with an easy
+                  one:
                   {'\n\n'}
                 </DefaultText>
               }
               {showTutorial && questionNumber === 2 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  Amazing answer! The best we've ever seen, in fact.  We'll use
-                  that answer to improve your best matches here{'\u00A0'}☝️, and
-                  when you search{'\u00A0'}🔎. Each answer makes your best
-                  matches even better, so keep swiping!
+                  Best. Answer. Ever! We'll use that to improve your matches
+                  here{'\u00A0'}☝️, and when you search{'\u00A0'}🔎.
                   {'\n\n'}
                 </DefaultText>
               }
               {showTutorial && questionNumber === 3 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  You're on a roll! Next question:
+                  You're on a roll! Next question...
                   {'\n\n'}
                 </DefaultText>
               }
               {showTutorial && questionNumber === 4 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  We only ask questions which our smartypants AI said are good
-                  for figuring out your match. Even the questions that seem
-                  silly are all part of our genius scheme find the folks who get
-                  you (and filter-out the ones who don't).
+                  Some questions seem pretty silly, but we promise they help us
+                  figure out who's right for you. Our smartypants AI told us so.
                   {'\n\n'}
                 </DefaultText>
               }
               {showTutorial && questionNumber === 5 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  ...But. If a question is too silly or controversial for you
-                  (or you just don't have strong feelings about it), then you
-                  can always skip a question by dragging a card downwards.
+                  ...But if a question is too silly (or controversial, or you're
+                  just on the fence), then you can always skip by swiping down.
                   {'\n\n'}
                 </DefaultText>
               }

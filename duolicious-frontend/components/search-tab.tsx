@@ -20,6 +20,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { QAndADevice } from './q-and-a-device';
 import { Notice } from './notice';
 import { DefaultFlatList } from './default-flat-list';
+import { japi } from '../api/api';
 
 function getRandomInt(max) {
   return Math.floor(Math.random() * max);
@@ -51,17 +52,20 @@ const SearchScreen = ({navigation}) => {
 
 const ProfileCardMemo = memo(ProfileCard);
 
-// TODO
-const fetchPage = async (n: number): Promise<number[]> => {
-  // await delay(500 + getRandomInt(1000))
-  await delay(2000);
+type PageItem = {
+  prospect_person_id: number
+  profile_photo_uuid: string
+  name: string
+  age: number
+  match_percentage: number
+};
 
-  if (n > 10 || n <= 0) {
-    return [];
-  }
+const fetchPage = async (pageNumber: number): Promise<PageItem[]> => {
+  const resultsPerPage = 10;
+  const offset = resultsPerPage * (pageNumber - 1);
+  const response = await japi('get', `/search?n=${resultsPerPage}&o=${offset}`);
 
-  const a = [...Array(10)];
-  return a.map((_, i) => (i + 1) + a.length * n - a.length);
+  return response.ok ? response.json : [];
 };
 
 const SearchScreen_ = ({navigation}) => {
@@ -99,16 +103,18 @@ const SearchScreen_ = ({navigation}) => {
     );
   }, []);
 
-  const [itemContainerStyle, _] = useState({width: '50%'});
-  const itemOnPress = useCallback(() => {
-    return navigation.navigate('Prospect Profile Screen')
-  }, []);
+  const itemContainerStyle = useRef({width: '50%'}).current;
 
   const renderItem = useCallback((x: any) => {
+    const item: PageItem = x.item;
     return (
       <ProfileCardMemo
+        userName={item.name}
+        userAge={item.age}
+        imageUuid={item.profile_photo_uuid}
+        userId={item.prospect_person_id}
+        matchPercentage={item.match_percentage}
         containerStyle={itemContainerStyle}
-        onPress={itemOnPress}
       />
     );
   }, []);

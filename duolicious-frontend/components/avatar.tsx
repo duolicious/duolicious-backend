@@ -1,9 +1,16 @@
 import {
+  useCallback,
+  useRef,
+} from 'react';
+import {
   ImageBackground,
   Pressable,
   View,
 } from 'react-native';
 import { DefaultText } from './default-text';
+import {
+  IMAGES_URL,
+} from '../env/env';
 
 function getRandomInt(max) {
   return Math.floor(Math.random() * max);
@@ -11,7 +18,8 @@ function getRandomInt(max) {
 
 const Avatar = ({percentage, ...props}) => {
   const {
-    userId = getRandomInt(99),
+    userId,
+    uuid,
     navigation,
     size,
     shadow = false,
@@ -28,25 +36,32 @@ const Avatar = ({percentage, ...props}) => {
   } : {};
 
   const Element = navigation ? Pressable : View;
+  const elementStyle = useRef({
+    height: 90,
+    width: 90,
+    ...props.style,
+  }).current;
+
+  const onPress = useCallback(() => {
+    return navigation && navigation.navigate(
+      'Prospect Profile Screen',
+      { userId }
+    );
+  }, [navigation]);
 
   return (
     <Element
-      onPress={() => navigation && navigation.navigate('Prospect Profile Screen')}
-      style={{
-        height: 90,
-        width: 90,
-        ...props.style,
-      }}
+      onPress={onPress}
+      style={elementStyle}
     >
       <ImageBackground
-        source={{
-          uri: `https://randomuser.me/api/portraits/men/${userId}.jpg`
-        }}
+        source={{uri: `${IMAGES_URL}/450-${uuid}.jpg`}}
         style={{
           aspectRatio: 1,
           margin: 2,
           borderRadius: 999,
           borderColor: 'white',
+          backgroundColor: 'white',
           borderWidth: 2,
           overflow: 'hidden',
           ...shadowStyle,

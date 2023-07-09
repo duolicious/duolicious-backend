@@ -311,7 +311,7 @@ const Columns = ({children, ...rest}) => {
   );
 };
 
-const ProspectProfileScreen = ({navigation}) => {
+const ProspectProfileScreen = ({navigation, route}) => {
   const navigationRef = useRef(undefined);
 
   return (

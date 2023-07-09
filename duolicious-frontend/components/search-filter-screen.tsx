@@ -18,7 +18,6 @@ import { Title } from './title';
 import {
   searchBasicsOptionGroups,
   searchInteractionsOptionGroups,
-  searchTwoWayFiltersOptionGroups,
 } from '../data/option-groups';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { OptionScreen } from './option-screen';
@@ -124,12 +123,6 @@ const SearchFilterScreen_ = ({navigation}) => {
         {
           searchInteractionsOptionGroups.map((_, i) => {
             return <Button_ key={i} optionGroups={searchInteractionsOptionGroups.slice(i)}/>
-          })
-        }
-        <Title>Two-Way Filters</Title>
-        {
-          searchTwoWayFiltersOptionGroups.map((_, i) => {
-            return <Button_ key={i} optionGroups={searchTwoWayFiltersOptionGroups.slice(i)}/>
           })
         }
       </ScrollView>

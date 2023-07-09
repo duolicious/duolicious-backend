@@ -12,7 +12,6 @@ import {
   useState,
 } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { LinearGradient } from 'expo-linear-gradient';
 import { TopNavBar } from './top-nav-bar';
 import { InboxItem } from './inbox-item';
 import { DefaultText } from './default-text';

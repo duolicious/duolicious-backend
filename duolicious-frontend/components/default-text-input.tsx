@@ -10,8 +10,6 @@ const DefaultTextInput = (props) => {
       ref={innerRef}
       placeholderTextColor="#888"
       cursorColor="#70f"
-      inputMode="numeric"
-      keyboardType="number-pad"
       style={{
         backgroundColor: 'white',
         padding: 10,

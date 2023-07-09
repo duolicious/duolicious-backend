@@ -457,8 +457,6 @@ const CheckChips = forwardRef((props: InputProps, ref) => {
   const submit = useCallback(async () => {
     props.setIsLoading(true);
 
-    console.log(inputValueRef.current); // TODO
-
     const ok = await props.input.submit([...inputValueRef.current]);
     setIsInvalid(!ok);
     ok && props.onSubmitSuccess();

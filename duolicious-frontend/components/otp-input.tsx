@@ -140,6 +140,8 @@ const OtpInput = (props: Props) => {
             onKeyPress={onKeyPress(i)}
             onSubmitEditing={props.submit}
             value={digitState.digit}
+            inputMode="numeric"
+            keyboardType="number-pad"
             style={{
               width: 35,
               margin: 5,

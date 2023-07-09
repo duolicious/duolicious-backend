@@ -245,6 +245,7 @@ const DefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>) => {
     props.ListHeaderComponent,
     props.hideListHeaderComponentWhenEmpty,
     isFetchingOnPressState[dataKey],
+    data,
   ]);
 
   const ListFooterComponent = useCallback(() => {

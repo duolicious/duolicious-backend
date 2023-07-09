@@ -874,24 +874,24 @@ const searchBasicsOptionGroups: OptionGroup[] = [
 
 const searchInteractionsOptionGroups: OptionGroup[] = [
   {
-    title: 'Interactions',
-    description: "Which profiles would you like to see, based on how you've interacted with them so far?",
+    title: "People You've Messaged",
+    description: "Would you like search results to include people you already messaged?",
     input: {
-      checkChips: [
-        {checked: true, label: 'Profiles I Already Visited'},
-        {checked: false, label: 'Profiles I Hid'},
-        {checked: true, label: 'Profiles I Messaged'},
-        {checked: true, label: "Profiles I Haven't Interacted With Yet"},
-      ],
-      submit: async (input: string[]) => true
+      buttons: ['Yes', 'No'],
+      submit: async (input: string) => true
     },
   },
-];
-
-const searchTwoWayFiltersOptionGroups: OptionGroup[] = [
   {
-    title: 'Two-Way Filters',
-    description: "Would you like your profile to be hidden from others users who are filtered-out by your search settings?",
+    title: "People You've Hidden",
+    description: "Would you like search results to include people you hidden?",
+    input: {
+      buttons: ['Yes', 'No'],
+      submit: async (input: string) => true
+    },
+  },
+  {
+    title: "People You've Blocked",
+    description: "Would you like to include people you blocked?",
     input: {
       buttons: ['Yes', 'No'],
       submit: async (input: string) => true
@@ -934,7 +934,6 @@ const privacySettingsOptionGroups: OptionGroup[] = [
     },
   },
   hideMeFromStrangersOptionGroup,
-  ...searchTwoWayFiltersOptionGroups,
 ];
 
 export {
@@ -959,7 +958,6 @@ export {
   verificationOptionGroups,
   searchBasicsOptionGroups,
   searchInteractionsOptionGroups,
-  searchTwoWayFiltersOptionGroups,
   createAccountOptionGroups,
   generalSettingsOptionGroups,
   notificationSettingsOptionGroups,

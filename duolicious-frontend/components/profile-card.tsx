@@ -10,25 +10,34 @@ import {
 } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Skeleton } from '@rneui/themed';
-import { VerificationBadge } from './verification-badge';
 import { DefaultText } from './default-text';
 import { Avatar } from './avatar';
+import {
+  IMAGES_URL,
+} from '../env/env';
+import { useNavigation } from '@react-navigation/native';
 
 function getRandomInt(max) {
   return Math.floor(Math.random() * max);
 }
 
-const ProfileCard = (props) => {
+const ProfileCard = ({userName, userAge, matchPercentage, imageUuid, userId, ...rest}) => {
+  const navigation = useNavigation<any>();
+
+  const itemOnPress = useCallback(() => {
+    return navigation.navigate('Prospect Profile Screen', { userId })
+  }, [navigation, userId]);
+
   return (
     <View
       style={{
         paddingTop: 5,
         paddingLeft: 5,
-        ...props.containerStyle,
+        ...rest.containerStyle,
       }}
     >
       <Pressable
-        onPress={props.onPress}
+        onPress={itemOnPress}
         style={{
           aspectRatio: 1,
         }}
@@ -39,29 +48,34 @@ const ProfileCard = (props) => {
             height: '100%',
             borderRadius: 5,
             overflow: 'hidden',
-            ...props.innerStyle,
+            ...rest.innerStyle,
           }}
         >
-          <Skeleton
-            style={{
-              position: 'absolute',
-              zIndex: -999,
-              width: '100%',
-              height: '100%',
-              borderRadius: 0,
-            }}
-          />
+          {imageUuid &&
+            <Skeleton
+              style={{
+                position: 'absolute',
+                zIndex: -999,
+                width: '100%',
+                height: '100%',
+                borderRadius: 0,
+              }}
+            />
+          }
           <ImageBackground
-            source={{uri: `https://randomuser.me/api/portraits/men/${getRandomInt(99)}.jpg`}}
+            source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
             style={{
               width: '100%',
+              backgroundColor: imageUuid ? undefined : '#ccc',
               height: undefined,
               aspectRatio: 1,
             }}
           >
             <LinearGradient
               colors={[
-                'rgba(0, 0, 0, 0.2)',
+                imageUuid ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
+                'transparent',
+                'transparent',
                 'transparent',
                 'transparent',
                 'rgba(0, 0, 0, 0.2)',
@@ -69,10 +83,23 @@ const ProfileCard = (props) => {
               ]}
               style={{
                 height: '100%',
+                justifyContent: 'center',
+                alignItems: 'center',
               }}
-            />
+              >
+              {!imageUuid &&
+                <DefaultText style={{fontSize: 100, color: '#eee'}}>
+                  {userName[0] ?? ''}
+                </DefaultText>
+              }
+            </LinearGradient>
           </ImageBackground>
-          <UserDetails containerStyle={props.userDetailsContainerStyle}/>
+          <UserDetails
+            userName={userName}
+            userAge={userAge}
+            matchPercentage={matchPercentage}
+            containerStyle={rest.userDetailsContainerStyle}
+          />
         </View>
       </Pressable>
     </View>
@@ -127,10 +154,10 @@ const ProspectProfileCard = (props) => {
   );
 };
 
-const UserDetails = (props) => {
+const UserDetails = ({userName, userAge, matchPercentage, ...rest}) => {
   const {
     containerStyle,
-  } = props;
+  } = rest;
 
   return (
     <View
@@ -154,19 +181,17 @@ const UserDetails = (props) => {
           color: 'white',
           overflow: 'hidden',
         }}>
-          Rahim, 19
+          {userName}{userAge && `, ${userAge}`}
         </DefaultText>
-        <VerificationBadge/>
       </View>
       <DefaultText
         style={{
-          marginTop: -5,
           fontWeight: '500',
           color: 'white',
           alignSelf: 'flex-start',
         }}
       >
-        99% Match
+        {matchPercentage}% Match
       </DefaultText>
     </View>
   );

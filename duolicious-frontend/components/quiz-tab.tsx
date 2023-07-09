@@ -6,7 +6,6 @@ import {
 } from 'react';
 import { ButtonWithCenteredText } from './button/centered-text';
 import { QuizCardStack } from './quiz-card-stack';
-import { ProspectProfileScreen } from './prospect-profile-screen';
 import { X, Check, FastForward, RotateCcw } from "react-native-feather";
 
 const QuizTab = ({navigation}) => {
