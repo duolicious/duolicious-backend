@@ -15,7 +15,6 @@ import { QAndADevice } from './q-and-a-device';
 const displayedTabs: Set<string> = new Set([
   "Q&A",
   "Search",
-  "Visitors",
   "Inbox",
   "Profile",
 ]);
@@ -94,8 +93,6 @@ const TabBar = ({state, descriptors, navigation}) => {
 
           const searchIcon =
             isFocused ? 'search' : 'search-outline';
-          const visitorsIcon =
-            isFocused ? 'people' : 'people-outline';
           const inboxIcon =
             isFocused ? 'chatbubbles' : 'chatbubbles-outline';
           const profileIcon =
@@ -143,27 +140,11 @@ const TabBar = ({state, descriptors, navigation}) => {
                   {label === 'Search' &&
                     <Ionicons style={{...iconStyle}} name={searchIcon}/>
                   }
-                  {label === 'Visitors' &&
-                    <Ionicons style={{...iconStyle}} name={visitorsIcon}/>
-                  }
                   {label === 'Inbox' &&
                     <Ionicons style={{...iconStyle}} name={inboxIcon}/>
                   }
                   {label === 'Profile' &&
                     <Ionicons style={{...iconStyle}} name={profileIcon}/>
-                  }
-                  {label === 'Visitors' &&
-                    <View
-                      style={{
-                        position: 'absolute',
-                        top: 3,
-                        right: -13,
-                        height: 10,
-                        width: 10,
-                        backgroundColor: '#70f',
-                        borderRadius: 999,
-                      }}
-                    />
                   }
                   {label === 'Inbox' &&
                     <View

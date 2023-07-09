@@ -33,7 +33,6 @@ import InboxTab from './components/inbox-tab';
 import { ConversationScreen } from './components/conversation-screen';
 import { GalleryScreen, ProspectProfileScreen } from './components/prospect-profile-screen';
 import { WelcomeScreen } from './components/welcome-screen';
-import { VisitorsTab } from './components/visitors-tab';
 import { InDepthScreen } from './components/prospect-profile-screen';
 import { sessionToken } from './session-token/session-token';
 import { japi } from './api/api';
@@ -87,7 +86,6 @@ const HomeTabs = () => {
     >
       <Tab.Screen name="Q&A" component={QuizTab} />
       <Tab.Screen name="Search" component={SearchTab} />
-      <Tab.Screen name="Visitors" component={VisitorsTab} />
       <Tab.Screen name="Inbox" component={InboxTab} />
       <Tab.Screen name="Profile" component={ProfileTab} />
     </Tab.Navigator>
@@ -204,7 +202,6 @@ const App = () => {
       const validPaths = [
         '/Q%26A',
         '/Search',
-        '/Visitors',
         '/Inbox',
         '/Profile',
       ];

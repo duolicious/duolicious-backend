@@ -16,6 +16,7 @@ import {
   IMAGES_URL,
 } from '../env/env';
 import { useNavigation } from '@react-navigation/native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 function getRandomInt(max) {
   return Math.floor(Math.random() * max);
@@ -88,9 +89,10 @@ const ProfileCard = ({userName, userAge, matchPercentage, imageUuid, userId, ...
               }}
               >
               {!imageUuid &&
-                <DefaultText style={{fontSize: 100, color: '#eee'}}>
-                  {userName[0] ?? ''}
-                </DefaultText>
+                <Ionicons
+                  style={{fontSize: 100, color: '#eee'}}
+                  name={'person'}
+                />
               }
             </LinearGradient>
           </ImageBackground>

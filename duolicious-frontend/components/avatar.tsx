@@ -11,6 +11,7 @@ import { DefaultText } from './default-text';
 import {
   IMAGES_URL,
 } from '../env/env';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 function getRandomInt(max) {
   return Math.floor(Math.random() * max);
@@ -19,7 +20,7 @@ function getRandomInt(max) {
 const Avatar = ({percentage, ...props}) => {
   const {
     userId,
-    uuid,
+    imageUuid,
     navigation,
     size,
     shadow = false,
@@ -55,18 +56,27 @@ const Avatar = ({percentage, ...props}) => {
       style={elementStyle}
     >
       <ImageBackground
-        source={{uri: `${IMAGES_URL}/450-${uuid}.jpg`}}
+        source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
         style={{
           aspectRatio: 1,
           margin: 2,
           borderRadius: 999,
           borderColor: 'white',
-          backgroundColor: 'white',
+          backgroundColor: imageUuid ? 'white' : '#f1e5ff',
           borderWidth: 2,
           overflow: 'hidden',
+          justifyContent: 'center',
+          alignItems: 'center',
           ...shadowStyle,
         }}
-      />
+      >
+        {!imageUuid &&
+          <Ionicons
+            style={{fontSize: 40, color: 'rgba(119, 0, 255, 0.2)'}}
+            name={'person'}
+          />
+        }
+      </ImageBackground>
       <View
         style={{
           position: 'absolute',

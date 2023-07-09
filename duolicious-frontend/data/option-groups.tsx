@@ -436,20 +436,6 @@ const notificationSettingsOptionGroups: OptionGroup[] = [
       submit: async (input: string) => true
     }
   },
-  {
-    title: 'Visitors',
-    description: "When do you want to be notified if someone visits your profile? (\"Daily\" still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
-    input: {
-      buttons: [
-        'Immediately',
-        'Daily',
-        'Every 3 Days',
-        'Weekly',
-        'Never'
-      ],
-      submit: async (input: string) => true
-    }
-  },
 ];
 
 const deletionOptionGroups: OptionGroup[] = [
@@ -920,14 +906,6 @@ const privacySettingsOptionGroups: OptionGroup[] = [
   {
     title: 'Show My Age',
     description: "Would you like your age to appear on your profile? Note that if you set this option to 'No', other people will still be able to filter your profile by age when searching.",
-    input: {
-      buttons: ['Yes', 'No'],
-      submit: async (input: string) => true
-    },
-  },
-  {
-    title: 'Private Browsing',
-    description: "Would you like others to see when you visit their profile?",
     input: {
       buttons: ['Yes', 'No'],
       submit: async (input: string) => true

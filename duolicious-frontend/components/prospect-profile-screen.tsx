@@ -35,7 +35,6 @@ import { faSmoking } from '@fortawesome/free-solid-svg-icons/faSmoking'
 import { faPersonHalfDress } from '@fortawesome/free-solid-svg-icons/faPersonHalfDress'
 import { faVenusMars } from '@fortawesome/free-solid-svg-icons/faVenusMars'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
-import { LinearGradient } from 'expo-linear-gradient';
 import { RotateCcw, X } from "react-native-feather";
 
 const Stack = createNativeStackNavigator();
