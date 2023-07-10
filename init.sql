@@ -579,7 +579,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES ('Fitness Foc
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Honesty');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Humility');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Independence');
-INSERT INTO trait (name, description, min_label, max_label) VALUES ('individualism/collectivism');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Individualism/Collectivism');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('introverted/extroverted');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('isolationism/internationalism');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('judging/perceiving');

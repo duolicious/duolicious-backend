@@ -208,7 +208,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend your Big Five personality traits say you're low in neuroticism",
     ),
     Trait(
-        trait="individualism/collectivism",
+        trait="Individualism/Collectivism",
         prompt_phrase="Pretend that you prefer collectivism over individualism. In other words, pretend you prioritize collective good and social cohesion over individual rights and freedoms",
         anti_prompt_phrase="Pretend you prefer individualism over collectivism. In other words, pretend you prioritize individual rights and freedoms over collective good and social cohesion",
     ),
