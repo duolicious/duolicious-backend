@@ -583,7 +583,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES ('Individuali
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Introversion/Extraversion');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Isolationism/Internationalism');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Judging/Perceiving');
-INSERT INTO trait (name, description, min_label, max_label) VALUES ('libertarianism/authoritarianism');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Libertarianism/Authoritarianism');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('love-focus');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('loyalty');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('maturity');

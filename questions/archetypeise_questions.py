@@ -213,7 +213,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you prefer individualism over collectivism. In other words, pretend you prioritize individual rights and freedoms over collective good and social cohesion",
     ),
     Trait(
-        trait="libertarianism/authoritarianism",
+        trait="Libertarianism/Authoritarianism",
         prompt_phrase="Pretend you lean more towards authoritarianism than libertarianism",
         anti_prompt_phrase="Pretend you lean more towards libertarianism than authoritarianism",
     ),
