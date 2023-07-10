@@ -233,7 +233,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you prioritize national security and public safety over individual freedoms and civil liberties",
     ),
     Trait(
-        trait="non-interventionism/interventionism",
+        trait="Non-interventionism/Interventionism",
         prompt_phrase="Pretend you have a preference for an active foreign policy with military and diplomatic interventions (versus a non-interventionist approach that emphasizes diplomacy and trade). That is, pretend you prefer interventionism over non-interventionism",
         anti_prompt_phrase="Pretend you have a preference for a non-interventionist approach that emphasizes diplomacy and trade (versus an active foreign policy with military and diplomatic interventions). That is, pretend you prefer non-interventionism over interventionism",
     ),
