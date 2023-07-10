@@ -298,7 +298,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend not particularly interested in sex",
     ),
     Trait(
-        trait="thriftiness",
+        trait="Thriftiness",
         prompt_phrase="Pretend you are particularly thrifty",
         anti_prompt_phrase="Pretend you do not particularly value thriftiness",
     ),

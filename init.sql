@@ -603,7 +603,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES ('Sensing/Int
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Sex Focus');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Stability of Self-image');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Thinking/Feeling');
-INSERT INTO trait (name, description, min_label, max_label) VALUES ('thriftiness');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Thriftiness');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('thrill-seeking');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('traditionalism about love');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('trust');
