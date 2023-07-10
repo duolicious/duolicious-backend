@@ -398,7 +398,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you are not particularly wholesome. For example, you have a bit of a potty mouth, you like tattoos, and you do not see anything wrong with drugs. Despite how unwholesome you are, you are about as boring/exciting as everyone else; You are just not especially proper"
     ),
     Trait(
-        trait="traditionalism about love",
+        trait="Traditionalism about Love",
         prompt_phrase="Pretend you are someone who is old-fashioned when it comes to love and romance. Your political views are entirely normal though",
         anti_prompt_phrase="Pretend you are someone who is not old-fashioned when it comes to love and romance. Your political views are entirely normal though",
     ),

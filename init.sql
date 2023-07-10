@@ -605,7 +605,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES ('Stability o
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Thinking/Feeling');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Thriftiness');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Thrill-seeking');
-INSERT INTO trait (name, description, min_label, max_label) VALUES ('traditionalism about love');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Traditionalism about Love');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('trust');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('wholesomeness');
 
