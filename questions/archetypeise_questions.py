@@ -283,7 +283,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you are not a particularly rational person",
     ),
     Trait(
-        trait="religiosity",
+        trait="Religiosity",
         prompt_phrase="Pretend you are particularly religious",
         anti_prompt_phrase="Pretend you are non-religious",
     ),
