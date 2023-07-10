@@ -328,7 +328,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you do not place a strong emphasis on family in your life",
     ),
     Trait(
-        trait="loyalty",
+        trait="Loyalty",
         prompt_phrase="Pretend you are extremely loyal to those close to you",
         anti_prompt_phrase="Pretend you struggle with maintaining loyalty to others",
     ),
