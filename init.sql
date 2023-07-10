@@ -600,7 +600,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES ('Security/Fr
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Self-acceptance');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Self-esteem');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Sensing/Intuition');
-INSERT INTO trait (name, description, min_label, max_label) VALUES ('sex-focus');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Sex Focus');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('stability of self-image');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('thinking/feeling');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('thriftiness');

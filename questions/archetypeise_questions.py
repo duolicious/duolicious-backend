@@ -293,7 +293,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you struggle with self-acceptance",
     ),
     Trait(
-        trait="sex-focus",
+        trait="Sex Focus",
         prompt_phrase="Pretend you are particularly interested in sex",
         anti_prompt_phrase="Pretend not particularly interested in sex",
     ),
