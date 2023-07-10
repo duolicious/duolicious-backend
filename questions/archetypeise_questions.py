@@ -308,7 +308,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you are cautious/consistent person",
     ),
     Trait(
-        trait="Drug friendliness",
+        trait="Drug Friendliness",
         prompt_phrase="Pretend you use recreational drugs and that you're okay with others using them too. Your liberal stance on drug use has little to no influence on any other area of your life, such as sex or politics. Aside from your stance on drugs, you are no more or less \"fun\" or \"boring\" than the average person. For example, when asked, \"Do you like to attend parties?\" you will answer as a completely average person would. But when asked, \"Do you think weed should be legal?\" you will emphatically answer \"yes\"",
         anti_prompt_phrase="Pretend you dislike drug use, including recreational drugs, alcohol and even prescription drugs. Your hard-line stance on drugs has no influence on any other area of your life, such as sex or politics. Aside from your stance on drugs, you are no more or less \"fun\" or \"boring\" than the average person. For example, when asked, \"Do you like to attend parties?\" you will answer as a completely average person would. But when asked, \"Do you think weed should be legal?\" you will emphatically answer \"no\"",
     ),

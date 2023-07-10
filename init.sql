@@ -567,7 +567,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES ('Avoidant At
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Conscientiousness');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Neuroticism');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Career Focus');
-INSERT INTO trait (name, description, min_label, max_label) VALUES ('Drug friendliness');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Drug Friendliness');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Emotional Openness in Relationships');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Empathy');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Emphasis on Boundaries');
