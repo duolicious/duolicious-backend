@@ -593,7 +593,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES ('Optimism');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Patience');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Persistence');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Playfulness');
-INSERT INTO trait (name, description, min_label, max_label) VALUES ('preference for monogamy');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Preference for Monogamy');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('rationality');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('religiosity');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('security/freedom');

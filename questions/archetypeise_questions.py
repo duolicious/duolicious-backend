@@ -333,7 +333,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you struggle with maintaining loyalty to others",
     ),
     Trait(
-        trait="preference for monogamy",
+        trait="Preference for Monogamy",
         prompt_phrase="Pretend you strongly prefer monogamous relationships",
         anti_prompt_phrase="Pretend you do not prioritize monogamy in your relationships",
     ),
