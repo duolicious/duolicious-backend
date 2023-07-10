@@ -183,7 +183,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend your MBTI says are more of a thinking type than a feeling type",
     ),
     Trait(
-        trait="sensing/intuition",
+        trait="Sensing/Intuition",
         prompt_phrase="Pretend your MBTI says you are more of an intuitive type than a sensing type",
         anti_prompt_phrase="Pretend your MBTI says you are more of a sensing type than an intuitive type",
     ),
