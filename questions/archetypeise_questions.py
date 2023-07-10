@@ -303,7 +303,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you do not particularly value thriftiness",
     ),
     Trait(
-        trait="thrill-seeking",
+        trait="Thrill-seeking",
         prompt_phrase="Pretend you are particularly thrill-seeking",
         anti_prompt_phrase="Pretend you are cautious/consistent person",
     ),
