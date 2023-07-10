@@ -288,7 +288,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you are non-religious",
     ),
     Trait(
-        trait="self-acceptance",
+        trait="Self-acceptance",
         prompt_phrase="Pretend you have high self-acceptance",
         anti_prompt_phrase="Pretend you struggle with self-acceptance",
     ),
