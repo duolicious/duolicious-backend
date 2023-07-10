@@ -343,7 +343,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you struggle to trust others and are often suspicious of their intentions",
     ),
     Trait(
-        trait="self-esteem",
+        trait="Self-esteem",
         prompt_phrase="Pretend you have high self-esteem",
         anti_prompt_phrase="Pretend you have low self-esteem",
     ),
