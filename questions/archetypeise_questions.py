@@ -273,7 +273,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you are a person who scored low on a psychometric test for persistence",
     ),
     Trait(
-        trait="playfulness",
+        trait="Playfulness",
         prompt_phrase="Pretend you are particularly playful",
         anti_prompt_phrase="Pretend you are a serious person",
     ),
