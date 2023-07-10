@@ -338,7 +338,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you do not prioritize monogamy in your relationships",
     ),
     Trait(
-        trait="trust",
+        trait="Trust",
         prompt_phrase="Pretend you easily trust others and believe in their goodness",
         anti_prompt_phrase="Pretend you struggle to trust others and are often suspicious of their intentions",
     ),
