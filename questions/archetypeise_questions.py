@@ -278,7 +278,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you are a serious person",
     ),
     Trait(
-        trait="rationality",
+        trait="Rationality",
         prompt_phrase="Pretend you are a particularly rational person",
         anti_prompt_phrase="Pretend you are not a particularly rational person",
     ),
