@@ -358,7 +358,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend to be a normal person aged between 18 and 30"
     ),
     Trait(
-        trait="optimism",
+        trait="Optimism",
         prompt_phrase="Pretend to be a person aged between 18 and 30 who's a bit more optimistic than most",
         anti_prompt_phrase="Pretend to be a normal person aged between 18 and 30",
     ),
