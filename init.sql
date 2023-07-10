@@ -590,7 +590,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES ('Maturity');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Non-interventionism/Interventionism');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Openness to Experience');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Optimism');
-INSERT INTO trait (name, description, min_label, max_label) VALUES ('patience');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Patience');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('persistence');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('playfulness');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('preference for monogamy');

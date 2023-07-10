@@ -263,7 +263,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you do not particularly value your independence",
     ),
     Trait(
-        trait="patience",
+        trait="Patience",
         prompt_phrase="Pretend you are particularly patient",
         anti_prompt_phrase="Pretend you are not particularly patient",
     ),
