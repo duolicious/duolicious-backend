@@ -268,7 +268,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you are not particularly patient",
     ),
     Trait(
-        trait="persistence",
+        trait="Persistence",
         prompt_phrase="Pretend you are a person who scored highly on a psychometric test for persistence",
         anti_prompt_phrase="Pretend you are a person who scored low on a psychometric test for persistence",
     ),
