@@ -1,5 +1,5 @@
 # TODO: add more questions to assess these:
-#    - judging/perceiving
+#    - Judging/Perceiving
 #    - sensing/intuition
 
 # TODO: Remove questions whose information is below the cut-off for every trait.
