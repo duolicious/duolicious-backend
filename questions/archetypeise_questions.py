@@ -178,7 +178,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you're an introverted person",
     ),
     Trait(
-        trait="thinking/feeling",
+        trait="Thinking/Feeling",
         prompt_phrase="Pretend your MBTI says you are more of a feeling type than a thinking type",
         anti_prompt_phrase="Pretend your MBTI says are more of a thinking type than a feeling type",
     ),
