@@ -97,23 +97,6 @@ def init_db():
     archetypeised_questions = load_questions(_archetypeised_question_json_file)
 
     with transaction() as tx:
-        tx.execute('SELECT COUNT(*) FROM trait')
-        if tx.fetchone()['count'] == 0:
-            tx.executemany(
-                """
-                INSERT INTO trait (name)
-                VALUES (%s)
-                ON CONFLICT DO NOTHING;
-                """,
-                list(
-                    set(
-                        (question.trait,)
-                        for question in archetypeised_questions.archetypeised
-                    )
-                )
-            )
-
-    with transaction() as tx:
         tx.execute(
             """
             SELECT COUNT(*)
@@ -151,7 +134,7 @@ def init_db():
                 )
                 VALUES (
                     (SELECT id FROM question WHERE question = %(question)s),
-                    (SELECT id FROM trait WHERE trait = %(trait)s),
+                    (SELECT id FROM trait WHERE name = %(trait)s),
                     %(presence_given_yes)s,
                     %(presence_given_no)s,
                     %(absence_given_yes)s,
