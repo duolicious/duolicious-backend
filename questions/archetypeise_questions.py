@@ -173,7 +173,7 @@ class Trait(NamedTuple):
 
 TRAITS = [
     Trait(
-        trait="introverted/extroverted",
+        trait="Introversion/Extraversion",
         prompt_phrase="Pretend you're an extraverted person",
         anti_prompt_phrase="Pretend you're an introverted person",
     ),
