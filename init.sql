@@ -596,7 +596,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES ('Playfulness
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Preference for Monogamy');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Rationality');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Religiosity');
-INSERT INTO trait (name, description, min_label, max_label) VALUES ('security/freedom');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Security/Freedom');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('self-acceptance');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('self-esteem');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('sensing/intuition');

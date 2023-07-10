@@ -228,7 +228,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you lean more towards isolationism than internationalism. In other words, pretend your political stance favors national self-reliance and limited global engagement (over active participation in international affairs)",
     ),
     Trait(
-        trait="security/freedom",
+        trait="Security/Freedom",
         prompt_phrase="Pretend you prioritize individual freedoms and civil liberties over national security and public safety",
         anti_prompt_phrase="Pretend you prioritize national security and public safety over individual freedoms and civil liberties",
     ),
