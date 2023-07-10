@@ -253,7 +253,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you're somebody who isn't particularly honest. Your default behavior isn't necessarily to lie. You're just not an especially honest person",
     ),
     Trait(
-        trait="humility",
+        trait="Humility",
         prompt_phrase="Pretend you are particularly humble",
         anti_prompt_phrase="Pretend you're particularly proud or arrogant",
     ),

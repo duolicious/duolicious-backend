@@ -577,7 +577,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES ('Equity/Meri
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Family Focus');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Fitness Focus');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Honesty');
-INSERT INTO trait (name, description, min_label, max_label) VALUES ('humility');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Humility');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('independence');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('individualism/collectivism');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('introverted/extroverted');
