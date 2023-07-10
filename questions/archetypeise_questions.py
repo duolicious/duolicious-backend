@@ -388,7 +388,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you are someone on a dating site who isn't particularly interested in finding a long-term relationship. You might be more interested in sex or short-term relationships"
     ),
     Trait(
-        trait="maturity",
+        trait="Maturity",
         prompt_phrase="Pretend you are a grown-up. You might have a full-time job, a mortgage, kids, and so forth",
         anti_prompt_phrase="Pretend you are in your late teens or early 20's",
     ),

@@ -586,7 +586,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES ('Judging/Per
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Libertarianism/Authoritarianism');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Love Focus');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('Loyalty');
-INSERT INTO trait (name, description, min_label, max_label) VALUES ('maturity');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Maturity');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('non-interventionism/interventionism');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('openness to experience');
 INSERT INTO trait (name, description, min_label, max_label) VALUES ('optimism');
