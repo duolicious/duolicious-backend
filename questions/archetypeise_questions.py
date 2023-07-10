@@ -393,7 +393,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you are in your late teens or early 20's",
     ),
     Trait(
-        trait="wholesomeness",
+        trait="Wholesomeness",
         prompt_phrase="Pretend you are wholesome. For example, you avoid swearing, you do not have any tattoos, and you do not do drugs. You are not distinctly boring or exciting; But when you have fun it's in a wholesome way",
         anti_prompt_phrase="Pretend you are not particularly wholesome. For example, you have a bit of a potty mouth, you like tattoos, and you do not see anything wrong with drugs. Despite how unwholesome you are, you are about as boring/exciting as everyone else; You are just not especially proper"
     ),
