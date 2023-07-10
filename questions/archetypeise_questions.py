@@ -383,7 +383,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you are someone who, if formally tested by a psychologist, would be found to have a particularly STABLE SELF-IMAGE",
     ),
     Trait(
-        trait="love-focus",
+        trait="Love Focus",
         prompt_phrase="Pretend you are someone who is single and wants to find love (as opposed to sex or a short-term relationship)",
         anti_prompt_phrase="Pretend you are someone on a dating site who isn't particularly interested in finding a long-term relationship. You might be more interested in sex or short-term relationships"
     ),
