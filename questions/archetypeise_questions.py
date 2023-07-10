@@ -223,7 +223,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you prefer environmentalism over anthropocentrism. In other words, pretend you prioritize preserving the environment and non-human species (over human-centered resource utilization and economic development)",
     ),
     Trait(
-        trait="isolationism/internationalism",
+        trait="Isolationism/Internationalism",
         prompt_phrase="Pretend you lean more towards internationalism than isolationism. In other words, pretend your political stance favors global engagement and active participation in international affairs (over national self-reliance)",
         anti_prompt_phrase="Pretend you lean more towards isolationism than internationalism. In other words, pretend your political stance favors national self-reliance and limited global engagement (over active participation in international affairs)",
     ),
