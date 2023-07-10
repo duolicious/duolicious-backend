@@ -262,8 +262,11 @@ CREATE TABLE IF NOT EXISTS answer (
 
 CREATE TABLE IF NOT EXISTS trait (
     id SMALLSERIAL PRIMARY KEY,
-    trait TEXT NOT NULL,
-    UNIQUE (trait)
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    min_label TEXT,
+    max_label TEXT,
+    UNIQUE (name)
 );
 
 --------------------------------------------------------------------------------
@@ -557,6 +560,54 @@ INSERT INTO yes_no_maybe (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTH
 INSERT INTO yes_no_maybe (name) VALUES ('Yes') ON CONFLICT (name) DO NOTHING;
 INSERT INTO yes_no_maybe (name) VALUES ('No') ON CONFLICT (name) DO NOTHING;
 INSERT INTO yes_no_maybe (name) VALUES ('Maybe') ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Agreeableness');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Anxious Attachment');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Avoidant Attachment');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Conscientiousness');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Neuroticism');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Career Focus');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Drug friendliness');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Emotional Openness in Relationships');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Empathy');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Emphasis on Boundaries');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Environmentalism/Anthropocentrism');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Equanimity');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Equity/Meritocracy');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Family Focus');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Fitness Focus');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('Honesty');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('humility');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('independence');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('individualism/collectivism');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('introverted/extroverted');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('isolationism/internationalism');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('judging/perceiving');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('libertarianism/authoritarianism');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('love-focus');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('loyalty');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('maturity');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('non-interventionism/interventionism');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('openness to experience');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('optimism');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('patience');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('persistence');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('playfulness');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('preference for monogamy');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('rationality');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('religiosity');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('security/freedom');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('self-acceptance');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('self-esteem');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('sensing/intuition');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('sex-focus');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('stability of self-image');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('thinking/feeling');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('thriftiness');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('thrill-seeking');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('traditionalism about love');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('trust');
+INSERT INTO trait (name, description, min_label, max_label) VALUES ('wholesomeness');
 
 --------------------------------------------------------------------------------
 -- FUNCTIONS (2)

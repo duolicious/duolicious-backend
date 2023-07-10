@@ -193,17 +193,17 @@ TRAITS = [
         anti_prompt_phrase="Pretend your MBTI says you are more of a judging type than a perceiving type",
     ),
     Trait(
-        trait="anti-conscientious/conscientious",
+        trait="Conscientiousness",
         prompt_phrase="Pretend your Big Five personality traits say you're high in conscientiousness",
         anti_prompt_phrase="Pretend your Big Five personality traits say you're low in conscientiousness",
     ),
     Trait(
-        trait="anti-agreeable/agreeable",
+        trait="Agreeableness",
         prompt_phrase="Pretend your Big Five personality traits say you're high in agreeableness",
         anti_prompt_phrase="Pretend your Big Five personality traits say you're low in agreeableness",
     ),
     Trait(
-        trait="anti-neurotic/neurotic",
+        trait="Neuroticism",
         prompt_phrase="Pretend your Big Five personality traits say you're high in neuroticism",
         anti_prompt_phrase="Pretend your Big Five personality traits say you're low in neuroticism",
     ),
@@ -218,7 +218,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you lean more towards libertarianism than authoritarianism",
     ),
     Trait(
-        trait="environmentalism/anthropocentrism",
+        trait="Environmentalism/Anthropocentrism",
         prompt_phrase="Pretend you prefer anthropocentrism over environmentalism. In other words, pretend you prioritize human-centered resource utilization and economic development (over preserving the environment and non-human species)",
         anti_prompt_phrase="Pretend you prefer environmentalism over anthropocentrism. In other words, pretend you prioritize preserving the environment and non-human species (over human-centered resource utilization and economic development)",
     ),
@@ -238,17 +238,17 @@ TRAITS = [
         anti_prompt_phrase="Pretend you have a preference for a non-interventionist approach that emphasizes diplomacy and trade (versus an active foreign policy with military and diplomatic interventions). That is, pretend you prefer non-interventionism over interventionism",
     ),
     Trait(
-        trait="equity/meritocracy",
+        trait="Equity/Meritocracy",
         prompt_phrase="Pretend you value meritocracy more than equity",
         anti_prompt_phrase="Pretend you value equity more than meritocracy",
     ),
     Trait(
-        trait="empathy",
+        trait="Empathy",
         prompt_phrase="Pretend you're highly empathetic",
         anti_prompt_phrase="Pretend you're not particularly empathetic",
     ),
     Trait(
-        trait="honesty",
+        trait="Honesty",
         prompt_phrase="Pretend you are a particularly honest person",
         anti_prompt_phrase="Pretend you're somebody who isn't particularly honest. Your default behavior isn't necessarily to lie. You're just not an especially honest person",
     ),
@@ -308,22 +308,22 @@ TRAITS = [
         anti_prompt_phrase="Pretend you are cautious/consistent person",
     ),
     Trait(
-        trait="drug-friendliness",
+        trait="Drug friendliness",
         prompt_phrase="Pretend you use recreational drugs and that you're okay with others using them too. Your liberal stance on drug use has little to no influence on any other area of your life, such as sex or politics. Aside from your stance on drugs, you are no more or less \"fun\" or \"boring\" than the average person. For example, when asked, \"Do you like to attend parties?\" you will answer as a completely average person would. But when asked, \"Do you think weed should be legal?\" you will emphatically answer \"yes\"",
         anti_prompt_phrase="Pretend you dislike drug use, including recreational drugs, alcohol and even prescription drugs. Your hard-line stance on drugs has no influence on any other area of your life, such as sex or politics. Aside from your stance on drugs, you are no more or less \"fun\" or \"boring\" than the average person. For example, when asked, \"Do you like to attend parties?\" you will answer as a completely average person would. But when asked, \"Do you think weed should be legal?\" you will emphatically answer \"no\"",
     ),
     Trait(
-        trait="emotional openness in relationships",
+        trait="Emotional Openness in Relationships",
         prompt_phrase="Pretend you are very open and expressive with your feelings in relationships",
         anti_prompt_phrase="Pretend you struggle with expressing your emotions in relationships",
     ),
     Trait(
-        trait="equanimity",
+        trait="Equanimity",
         prompt_phrase="Pretend you maintain calmness and composure, especially in difficult situations",
         anti_prompt_phrase="Pretend you easily lose your calmness and composure in difficult situations",
     ),
     Trait(
-        trait="family-focus",
+        trait="Family Focus",
         prompt_phrase="Pretend you place the utmost importance on family",
         anti_prompt_phrase="Pretend you do not place a strong emphasis on family in your life",
     ),
@@ -348,12 +348,12 @@ TRAITS = [
         anti_prompt_phrase="Pretend you have low self-esteem",
     ),
     Trait(
-        trait="anti-anxious attachment/anxious attachment",
+        trait="Anxious Attachment",
         prompt_phrase="Pretend to have an anxious attachment style. Those with an anxious attachment style often worry about their relationships. They may feel insecure about their partner's feelings for them and fear rejection or abandonment. These individuals may require constant reassurance and can exhibit 'clingy' behaviors. An anxious attachment style often stems from inconsistent caregiving in childhood, where the caregiver sometimes responded to the child's needs and sometimes didn't, resulting in confusion and anxiety about whether they could rely on their caregiver or not. Your age is between 18 and 30",
         anti_prompt_phrase="Pretend to be a normal person aged between 18 and 30"
     ),
     Trait(
-        trait="anti-avoidant attachment/avoidant attachment",
+        trait="Avoidant Attachment",
         prompt_phrase="Pretend to have an avoidant attachment style. Individuals with an avoidant attachment style tend to be emotionally distant in relationships. They may seem independent and self-reliant, preferring not to rely on others or show their vulnerability. They might find it difficult to show their feelings and often do not seek comfort from others when they're upset. This pattern often stems from a childhood where emotional needs were not met or outright ignored",
         anti_prompt_phrase="Pretend to be a normal person aged between 18 and 30"
     ),
@@ -363,17 +363,17 @@ TRAITS = [
         anti_prompt_phrase="Pretend to be a normal person aged between 18 and 30",
     ),
     Trait(
-        trait="career-focus",
+        trait="Career Focus",
         prompt_phrase="Pretend you value your career more than other aspects of your life, such as leisure, recreation, socialising, and so forth. You are not a caricature of such a person; You would not kick puppies for the mere sake of advancing your career. You represent a real person, perhaps in their late 20s or early 30s, who I might meet in the central business district of a big city, who takes their career seriously",
         anti_prompt_phrase="Pretend to be a normal person aged between 18 and 30",
     ),
     Trait(
-        trait="emphasis on boundaries",
+        trait="Emphasis on Boundaries",
         prompt_phrase="Pretend that you value PERSONAL BOUNDARIES somewhat more than most people do. You're good at asserting your personal boundaries in a healthy way and you respect other people's boundaries too. Aside from your healthy boundaries, you are no more or less \"fun\" or \"boring\" than the average person. For example, when asked, \"Do you like to attend parties?\" you will answer as a completely average person would. But when asked, \"Is it okay for your partner to snoop through your phone?\" you will emphatically answer \"no\"",
         anti_prompt_phrase="Pretend that you value PERSONAL BOUNDARIES somewhat less than most people do. You have boundaries, like everyone does, but you're not especially eager to assert them, and you're somewhat less respectful of others' boundaries too. Aside from your healthy boundaries, you are no more or less \"fun\" or \"boring\" than the average person. For example, when asked, \"Do you like to attend parties?\" you will answer as a completely average person would. But when asked, \"Is it okay for your partner to snoop through your phone?\" you'll lean more towards \"yes\" than most people would"
     ),
     Trait(
-        trait="fitness-focus",
+        trait="Fitness Focus",
         prompt_phrase="Pretend that physical fitness and maintaining an active lifestyle are important to you. It doesn't affect other aspects of your life. Health and fitness are just more important to you than they are to most people",
         anti_prompt_phrase="Pretend you don't emphasize physical fitness and an active lifestyle. You're not the world's most sedentary person or totally lazy. In fact, you're quite normal. You just have other priorities",
     ),

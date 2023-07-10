@@ -101,7 +101,7 @@ def init_db():
         if tx.fetchone()['count'] == 0:
             tx.executemany(
                 """
-                INSERT INTO trait (trait)
+                INSERT INTO trait (name)
                 VALUES (%s)
                 ON CONFLICT DO NOTHING;
                 """,
