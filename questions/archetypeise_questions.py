@@ -403,7 +403,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you are someone who is not old-fashioned when it comes to love and romance. Your political views are entirely normal though",
     ),
     Trait(
-        trait="openness to experience",
+        trait="Openness to Experience",
         prompt_phrase="Pretend your Big Five personality traits say you're high in openness to experience",
         anti_prompt_phrase="Pretend your Big Five personality traits say you're low in openness to experience",
     ),
