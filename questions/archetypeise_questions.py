@@ -258,7 +258,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you're particularly proud or arrogant",
     ),
     Trait(
-        trait="independence",
+        trait="Independence",
         prompt_phrase="Pretend you are particularly independent",
         anti_prompt_phrase="Pretend you do not particularly value your independence",
     ),
