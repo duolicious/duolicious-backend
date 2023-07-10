@@ -378,7 +378,7 @@ TRAITS = [
         anti_prompt_phrase="Pretend you don't emphasize physical fitness and an active lifestyle. You're not the world's most sedentary person or totally lazy. In fact, you're quite normal. You just have other priorities",
     ),
     Trait(
-        trait="stability of self-image",
+        trait="Stability of Self-image",
         prompt_phrase="Pretend you are someone who, if formally tested by a psychologist, would be found to have an UNSTABLE SELF-IMAGE",
         anti_prompt_phrase="Pretend you are someone who, if formally tested by a psychologist, would be found to have a particularly STABLE SELF-IMAGE",
     ),
