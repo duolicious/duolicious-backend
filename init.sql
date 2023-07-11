@@ -566,283 +566,283 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Captures an individual''s range of social behaviors, from demonstrating empathy, cooperation, and consideration for others to expressing assertiveness and independence in social situations.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Anxious Attachment',
     'Measures the extent to which a person seeks reassurance and fears abandonment in close relationships. If a person scores low on this and the "avoidant" scale, they''re said to be "securely" attached. Secure attachment is associated with longer, more stable relationships.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Avoidant Attachment',
     'Measures the preference for emotional distance and self-reliance in relationships. If a person scores low on this and the "anxious" scale, they''re said to be "securely" attached. Secure attachment is associated with longer, more stable relationships.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Conscientiousness',
     'Represents an individual''s approach to organization, reliability, and goal-setting, encompassing both highly structured and responsible behavior as well as a more flexible and spontaneous approach.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Neuroticism',
     'Depicts the diversity in how people experience and cope with emotions, spanning the range from calmness and emotional steadiness to sensitivity and emotional responsiveness.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Career Focus',
     'This trait reflects the importance you place on your career. Those scoring high value their career and tend to prioritize it, while those scoring low might prioritize other aspects of life over their career.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Drug Friendliness',
     'This trait measures your openness to drug use. High scores could indicate a liberal attitude towards drugs or personal use, while low scores may represent a more conservative view or no personal use of drugs.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Emotional Openness in Relationships',
     'This trait measures how comfortable you are with expressing emotions in a relationship. High scores mean you are open to discussing your feelings, while low scores might indicate a more reserved emotional style.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Empathy',
     'This trait indicates how well you understand and share the feelings of others. High empathy means you easily connect with others'' emotions, while low empathy might indicate a more logical, detached approach.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Emphasis on Boundaries',
     'This trait signifies a person''s tendency to define, communicate, and respect personal limits and spaces. People who score high on this trait believe in the importance of setting clear personal boundaries in their relationships.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Environmentalism/Anthropocentrism',
     'Measures prioritization of preserving the environment and non-human species versus human-centered resource utilization and economic development.',
     'Environmentalism',
     'Anthropocentrism'
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Equanimity',
     'This trait pertains to a person''s ability to maintain calm and composure, especially during stressful situations. Individuals who score high on this trait are able to keep their cool and think clearly, regardless of the circumstances.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Equity/Meritocracy',
     'Measures a person''s preference for a system that rewards individuals based on their abilities and achievements versus a system that prioritizes fairness and equal opportunities for everyone.',
     'Equity',
     'Meritocracy'
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Family Focus',
     'This trait is about how much a person values family relationships and commitments. Individuals who score high on this trait often place their family as a top priority and enjoy spending quality time with their loved ones.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Fitness Focus',
     'This trait indicates the importance a person places on maintaining physical fitness and living a healthy lifestyle. Those with high scores for this trait are likely to enjoy activities like regular exercise, eating balanced meals, and living an overall active lifestyle.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Honesty',
     'This trait describes a person''s tendency to speak the truth, behave transparently, and avoid deception. Individuals who score high on this trait value truthfulness and believe in being straightforward in their communications.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Humility',
     'This trait reflects a person''s ability to remain modest and unpretentious, even in the face of success. Those who score high on this trait believe in acknowledging the role of others in their achievements and avoiding arrogance.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Independence',
     'Do you take charge of your own life and make decisions without leaning on others? This trait measures your self-reliance and ability to handle things on your own.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Individualism/Collectivism',
     'This trait measures a person''s preference for individual rights and freedoms versus collective good and social cohesion.',
     'Individualism',
     'Collectivism'
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Introversion/Extraversion',
     'Measures a person''s preference for engaging with the world, ranging from drawing energy from social interactions and being action-oriented (Extraversion), to finding energy in solitude and focusing on thoughts and feelings (Introversion).',
     'Introversion',
     'Extraversion'
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Isolationism/Internationalism',
     'This trait measures preference for national self-reliance and limited global engagement versus active participation in international affairs and cooperation.',
     'Isolationism',
     'Internationalism'
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Judging/Perceiving',
     'This trait shows how you handle the world around you. Do you like to have a plan and stick to it, or do you prefer to stay open and flexible, ready for whatever comes your way?',
     'Judging',
     'Perceiving'
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Libertarianism/Authoritarianism',
     'This trait measures the preference for individual liberties and minimal government intervention, versus strong central authority and extensive government control.',
     'Libertarianism',
     'Authoritarianism'
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Love Focus',
     'How central is love in your life? This trait captures the importance you place on romantic relationships and the effort you''re willing to put into finding and maintaining them.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Loyalty',
     'This trait shows us how committed you are. When you make a promise, do you keep it?',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Maturity',
     'A measure of how much a person takes responsibility for their actions, understands the world around them, and is ready to deal with complex issues. It is not about age, but about mindset and experience.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Non-interventionism/Interventionism',
     'Measures a person''s preference for an active foreign policy with military and diplomatic interventions versus a non-interventionist approach that emphasizes diplomacy and trade.',
     'Non-interventionism',
     'Interventionism'
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Openness to Experience',
     'Represents a person''s willingness to explore new ideas, activities, and experiences. People high in this trait tend to be imaginative, creative, and curious. Those lower might appreciate routine, predictability, and familiar surroundings.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Optimism',
     'This trait defines how much you expect the best things in life, maintain a positive outlook, and see the good in people. Those on the lower end might have a more realistic or cautious approach to life.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Patience',
     'Measures your ability to stay calm and tolerant when facing challenges',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Persistence',
     'Indicates how much you''re willing to stick with tasks, goals or beliefs, even in the face of adversity. Those lower in this trait might be more flexible, adaptive, and ready to pivot when needed.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Playfulness',
     'This trait measures your tendency to seek joy, humor, and fun in life. High scores often enjoy spontaneity, games, and laughter. Those scoring lower might appreciate seriousness, focus, and quiet reflection.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Preference for Monogamy',
     'This trait measures your inclination towards having one partner at a time. A low score doesn''t necessarily mean a preference for multiple partners simultaneously, but might reflect a desire for serial monogamy, or simply being open to different relationship structures.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Rationality',
     'This trait determines the extent to which you prefer using logical reasoning and objective analysis over emotional intuition. Both approaches have their advantages, and neither is inherently better or worse than the other.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Religiosity',
     'This trait measures the extent to which religious beliefs influence your life. It doesn''t indicate which religion you follow, or how devout you are, just the importance religion holds for you. It includes both traditionally religious and spiritual orientations.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Security/Freedom',
     'Measures how much a person values national security and public safety versus individual freedoms and civil liberties.',
     'Security',
     'Freedom'
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Self-acceptance',
     'This trait measures your level of acceptance and appreciation for who you are as an individual. It doesn''t mean being complacent or avoiding personal growth, but rather denotes a healthy self-perception and an acceptance of one''s strengths and weaknesses.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Self-esteem',
     'This trait signifies your overall subjective emotional evaluation of your own worth. High self-esteem doesn''t mean arrogance but refers to a positive, balanced view of oneself. Low self-esteem doesn''t necessarily indicate lack of confidence but may reflect humility or a more critical self-view.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Sensing/Intuition',
     'This trait suggests whether you lean more towards a concrete, practical approach to information (sensing) or you lean towards interpreting and adding meaning, focusing on the bigger picture (intuition). It''s not about being pragmatic vs. imaginative, but more about the primary way you perceive and interact with the world.',
     'Sensing',
     'Intuition'
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Sex Focus',
     'This trait measures how much a person prioritises sex over love',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Stability of Self-image',
     'This trait assesses how consistent a person''s self-perception is. If you score high, you typically have a strong and steady sense of who you are, while a low score indicates that your self-image may change based on circumstances, moods, or new experiences.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Thinking/Feeling',
     'This trait measures your inclination towards logical reasoning or emotional perception. A high score suggests a strong focus on logic and objectivity, while a low score suggests a propensity for decisions based on feelings and values.',
     'Thinking',
     'Feeling'
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Thriftiness',
     'This trait reflects how careful you are with your resources, especially financial ones. High scorers tend to be frugal and prioritize saving, while low scorers may be more inclined to spend on experiences or items that bring them joy or satisfaction.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Thrill-seeking',
     'This trait measures a person''s desire for excitement and adventure. If you score high, you''re likely to enjoy taking risks and exploring new experiences. A lower score indicates a preference for routine, comfort, and safety.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Traditionalism about Love',
     'This trait gauges how much a person values traditional beliefs and practices about love and relationships. A high score indicates a preference for traditional courtship and relationship roles, while a low score might suggest an openness to modern or non-traditional expressions of love.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Trust',
     'This trait represents a person''s propensity to trust others. A high scorer generally assumes that people are well-intentioned and reliable, while a low scorer tends to be more cautious and requires more evidence to trust others.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Wholesomeness',
     'This trait measures a person''s inclination towards innocence, kindness, and a general appreciation for the simple things in life. High scorers are typically viewed as pure-hearted and genuine.',
     NULL,
     NULL
-);
+) ON CONFLICT (name) DO NOTHING;
 
 --------------------------------------------------------------------------------
 -- FUNCTIONS (2)
@@ -938,8 +938,6 @@ RETURNS personality_vectors AS $$
     )
 $$ LANGUAGE plpython3u IMMUTABLE LEAKPROOF PARALLEL SAFE;
 
--- TODO: SELECT t2.id, t2.trait_id, 100 * t2.ratio
---       FROM (SELECT id, (trait_ratio(presence_score, absence_score, 0)).* FROM person AS t1) AS t2;
 CREATE OR REPLACE FUNCTION trait_ratio(
     presence_score INT[],
     absence_score INT[],

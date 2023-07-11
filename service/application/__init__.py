@@ -113,6 +113,10 @@ def get_search(s: t.SessionInfo):
 def get_health():
     return 'status: ok'
 
-@get('/personality/<int:person_id>')
-def get_personality(person_id):
-    return person.get_personality(person_id)
+@aget('/me')
+def get_me_by_session(s: t.SessionInfo):
+    return person.get_me(s.person_id)
+
+@get('/me/<int:person_id>')
+def get_me_by_id(person_id):
+    return person.get_me(person_id)

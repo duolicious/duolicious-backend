@@ -77,26 +77,36 @@ WHERE
     id = %(question_id)s
 """
 
-Q_SELECT_PERSONALITY = """
-WITH
-coalesced AS (
-    SELECT
-        trait,
-        COALESCE(presence_score, 0) AS presence_score,
-        COALESCE(absence_score, 0) AS absence_score
-    FROM trait
-    LEFT JOIN person_trait_statistic
-    ON trait.id = person_trait_statistic.trait_id
-    WHERE person_id = %(person_id)s
-)
+Q_SELECT_ME_1 = """
+SELECT id, name
+FROM person
+WHERE id = %(person_id)s
+"""
+
+Q_SELECT_ME_2 = """
 SELECT
-    trait,
-    CASE
-        WHEN presence_score + absence_score < 1000
-        THEN NULL
-        ELSE round(100 * presence_score / (presence_score + absence_score))::int
-    END AS percentage
-FROM coalesced
+    trait.id AS trait_id,
+    trait.name,
+    trait.min_label,
+    trait.max_label,
+    trait.description,
+    ROUND(100 * t2.ratio)::SMALLINT AS percentage,
+    COALESCE(t2.ratio, -1) AS position
+FROM (
+    SELECT
+        (trait_ratio(presence_score, absence_score, 4000)).*
+    FROM
+        person
+    WHERE
+        id = %(person_id)s
+) AS t2
+JOIN
+    trait
+ON
+    t2.trait_id = trait.id
+ORDER BY
+    position
+DESC
 """
 
 Q_INSERT_DUO_SESSION = """
