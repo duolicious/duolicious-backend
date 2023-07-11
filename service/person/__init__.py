@@ -494,11 +494,30 @@ def post_finish_onboarding(s: t.SessionInfo):
     with transaction() as tx:
         tx.execute(Q_FINISH_ONBOARDING, params)
 
-def get_personality(person_id: int):
-    params = dict(
-        person_id=person_id,
-    )
+def get_me(person_id: int):
+    params = dict(person_id=person_id)
 
     with transaction('READ COMMITTED') as tx:
-        tx.execute(Q_SELECT_PERSONALITY, params)
-        return {row['trait']: row['percentage'] for row in tx.fetchall()}
+        person = \
+            tx.execute(Q_SELECT_ME_1, params).fetchone()
+        personality = \
+            tx.execute(Q_SELECT_ME_2, params).fetchall()
+
+        try:
+            return {
+                'name': person['name'],
+                'person_id': person['id'],
+                'personality': [
+                    {
+                        'trait_id': trait['trait_id'],
+                        'name': trait['name'],
+                        'min_label': trait['min_label'],
+                        'max_label': trait['max_label'],
+                        'description': trait['description'],
+                        'percentage': trait['percentage'],
+                    }
+                    for trait in personality
+                ]
+            }
+        except:
+            return '', 404
