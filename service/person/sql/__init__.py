@@ -94,7 +94,7 @@ SELECT
     COALESCE(t2.ratio, -1) AS position
 FROM (
     SELECT
-        (trait_ratio(presence_score, absence_score, 4000)).*
+        (trait_ratio(presence_score, absence_score, 5000)).*
     FROM
         person
     WHERE
