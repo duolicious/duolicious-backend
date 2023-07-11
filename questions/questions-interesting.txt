@@ -1145,7 +1145,7 @@
     "Are you debt-free, or do you have loans and debts to manage?",
     "Do you think aliens have already visited Earth and are just really good at blending in?",
     "In a relationship, do you worry more than you chill?",
-    "Would you be upset if your partner read your diary or personal journal without asking?",
+    "Would you be upset if your partner read your diary without asking?",
     "Would you still kiss your partner if they were sick, even if they had a runny nose and were coughing up a lung?",
     "During Prohibition in the United States, many people defied the ban on alcohol by frequenting speakeasies or participating in illegal bootlegging. This widespread disregard for the law eventually contributed to its repeal. Do you think it's okay to break laws you disagree with?",
     "Do you have a favorite \"get-stuff-done\" playlist?",

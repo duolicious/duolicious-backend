@@ -119,7 +119,11 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
 def make_decorator(flask_decorator):
     def go2(*args, **kwargs):
         def go1(func):
-            return flask_decorator(*args, **kwargs)(return_empty_string(func))
+            return flask_decorator(
+                *args,
+                strict_slashes=False,
+                **kwargs,
+            )(return_empty_string(func))
         return go1
     return go2
 
@@ -131,11 +135,16 @@ def make_auth_decorator(flask_decorator):
             **kwargs
     ):
         def go1(func):
-            return flask_decorator(*args, **kwargs)(
+            return flask_decorator(
+                *args,
+                strict_slashes=False,
+                **kwargs,
+            )(
                 require_auth(
                     expected_onboarding_status,
                     expected_sign_in_status
-                )(return_empty_string(func)))
+                )(return_empty_string(func))
+            )
         return go1
     return go2
 
