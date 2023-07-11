@@ -6569,7 +6569,7 @@
       "category": "interpersonal"
     },
     {
-      "question": "Would you be upset if your partner read your diary or personal journal without asking?",
+      "question": "Would you be upset if your partner read your diary without asking?",
       "category": "interpersonal"
     },
     {

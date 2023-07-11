@@ -1731,7 +1731,7 @@
     "Do you think that your life goals and relationships are two separate entities?",
     "Does the idea of sharing your personal life details with your partner make you uncomfortable?",
     "Your female friend tells you she's pursuing a career in a typically male-dominated field. Would you fully support her decision?",
-    "Would you be upset if your partner read your diary or personal journal without asking?",
+    "Would you be upset if your partner read your diary without asking?",
     "Do you see sharing your weaknesses with your partner as a potential threat?",
     "Do you believe it's essential to discuss personal boundaries before moving in together?",
     "Do you believe it's impossible to love someone else unless you love yourself?",
