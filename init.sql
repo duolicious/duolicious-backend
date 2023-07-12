@@ -569,13 +569,13 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Anxious Attachment',
-    'Measures the extent to which a person seeks reassurance and fears abandonment in close relationships. If a person scores low on this and the "avoidant" scale, they''re said to be "securely" attached. Secure attachment is associated with longer, more stable relationships.',
+    'Measures the extent to which a person seeks reassurance and fears abandonment in close relationships. If a person scores low on this and the "Avoidant Attachment" scale, they''re said to be "securely" attached. Secure attachment is associated with longer, more stable relationships.',
     NULL,
     NULL
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Avoidant Attachment',
-    'Measures the preference for emotional distance and self-reliance in relationships. If a person scores low on this and the "anxious" scale, they''re said to be "securely" attached. Secure attachment is associated with longer, more stable relationships.',
+    'Measures the preference for emotional distance and self-reliance in relationships. If a person scores low on this and the "Anxious Attachment" scale, they''re said to be "securely" attached. Secure attachment is associated with longer, more stable relationships.',
     NULL,
     NULL
 ) ON CONFLICT (name) DO NOTHING;
@@ -677,7 +677,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Introversion/Extraversion',
-    'Measures a person''s preference for engaging with the world, ranging from drawing energy from social interactions and being action-oriented (Extraversion), to finding energy in solitude and focusing on thoughts and feelings (Introversion).',
+    'Measures a person''s preference for engaging with the world, ranging from drawing energy from social interactions and being action-oriented (Extraversion) to finding energy in solitude and focusing on thoughts and feelings (Introversion).',
     'Introversion',
     'Extraversion'
 ) ON CONFLICT (name) DO NOTHING;
@@ -689,7 +689,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Judging/Perceiving',
-    'This trait shows how you handle the world around you. Do you like to have a plan and stick to it, or do you prefer to stay open and flexible, ready for whatever comes your way?',
+    'This trait captures someone''s approach to organizing and structuring their life, ranging from preferring a planned, orderly, and decisive lifestyle (Judging), to embracing spontaneity, flexibility, and adaptability (Perceiving).',
     'Judging',
     'Perceiving'
 ) ON CONFLICT (name) DO NOTHING;
@@ -791,7 +791,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Sensing/Intuition',
-    'This trait suggests whether you lean more towards a concrete, practical approach to information (sensing) or you lean towards interpreting and adding meaning, focusing on the bigger picture (intuition). It''s not about being pragmatic vs. imaginative, but more about the primary way you perceive and interact with the world.',
+    'This trait represents someone''s preferred way of processing information, covering the spectrum from focusing on concrete, tangible details and experiences (Sensing), to exploring abstract concepts, patterns, and possibilities (Intuition).',
     'Sensing',
     'Intuition'
 ) ON CONFLICT (name) DO NOTHING;
@@ -809,7 +809,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Thinking/Feeling',
-    'This trait measures your inclination towards logical reasoning or emotional perception. A high score suggests a strong focus on logic and objectivity, while a low score suggests a propensity for decisions based on feelings and values.',
+    'This trait reflects a person''s decision-making style, encompassing both logical, objective analysis and rationality (Thinking), as well as empathy, values, and consideration for others'' emotions (Feeling).'
     'Thinking',
     'Feeling'
 ) ON CONFLICT (name) DO NOTHING;
