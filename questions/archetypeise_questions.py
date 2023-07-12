@@ -559,7 +559,7 @@ if __name__ == '__main__':
     new_archetypeised_questions = [
             question
             for question in questions.archetypeised
-            if question.trait != 'traditionalism']
+            if question.trait != 'Optimism']
 
     # new_archetypeised_questions = [
     #     question

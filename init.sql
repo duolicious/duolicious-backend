@@ -730,12 +730,6 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
     NULL
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
-    'Optimism',
-    'This trait defines how much you expect the best things in life, maintain a positive outlook, and see the good in people. Those on the lower end might have a more realistic or cautious approach to life.',
-    NULL,
-    NULL
-) ON CONFLICT (name) DO NOTHING;
-INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Patience',
     'Measures your ability to stay calm and tolerant when facing challenges',
     NULL,
