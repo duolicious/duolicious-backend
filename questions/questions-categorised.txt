@@ -681,10 +681,6 @@
       "category": "other"
     },
     {
-      "question": "Gotta protect free speech, even if it means some nasty stuff gets said, right?",
-      "category": "values"
-    },
-    {
       "question": "Was your family known for having the most festive holiday decorations on the block?",
       "category": "other"
     },
@@ -1221,16 +1217,8 @@
       "category": "interpersonal"
     },
     {
-      "question": "Would you rather receive a gift from your partner than give a gift from them?",
-      "category": "interpersonal"
-    },
-    {
       "question": "Do you believe that people who are of a certain gender or sexual orientation should be given preferential treatment in certain situations?",
       "category": "values"
-    },
-    {
-      "question": "Do you have a university degree?",
-      "category": "other"
     },
     {
       "question": "Would you give up some rights to protect your country from terrorism?",
@@ -2009,10 +1997,6 @@
       "category": "interpersonal"
     },
     {
-      "question": "Are you in favor of a universal basic income?",
-      "category": "values"
-    },
-    {
       "question": "Is it always harassment to continue pursuing someone after they've said no once?",
       "category": "interpersonal"
     },
@@ -2106,10 +2090,6 @@
     },
     {
       "question": "Are you a quiet person?",
-      "category": "interpersonal"
-    },
-    {
-      "question": "Would you rather have a partner who texts you sweet nothings all day or one who plans elaborate surprises?",
       "category": "interpersonal"
     },
     {
@@ -2543,10 +2523,6 @@
     {
       "question": "It's the holidays and your family invites you for dinner. They often criticize your political or religious views, which really bothers you. Do you decide to ignore it and go anyway?",
       "category": "values"
-    },
-    {
-      "question": "Do you find puns and dad jokes endearing in a partner?",
-      "category": "interpersonal"
     },
     {
       "question": "Do you like discussing politics?",
@@ -3026,10 +3002,6 @@
     },
     {
       "question": "Have you ever left a mean comment on social media?",
-      "category": "interpersonal"
-    },
-    {
-      "question": "Would you date a person who uses a flip phone in 2023?",
       "category": "interpersonal"
     },
     {
@@ -5045,10 +5017,6 @@
       "category": "other"
     },
     {
-      "question": "If you receive too much change from a cashier, do you point out the mistake and return the extra money?",
-      "category": "values"
-    },
-    {
       "question": "Do you often dwell on worst-case scenarios or potential disasters?",
       "category": "interpersonal"
     },
@@ -6065,10 +6033,6 @@
       "category": "other"
     },
     {
-      "question": "Memes?",
-      "category": "other"
-    },
-    {
       "question": "Did your family have a \"time-out\" spot for misbehaving?",
       "category": "interpersonal"
     },
@@ -6253,10 +6217,6 @@
       "category": "other"
     },
     {
-      "question": "Are you cool with making defamation legal to protect free speech?",
-      "category": "values"
-    },
-    {
       "question": "Do you believe in \"when in Rome, do as the Romans do,\" even if it goes against your personal beliefs?",
       "category": "values"
     },
@@ -6429,15 +6389,7 @@
       "category": "interpersonal"
     },
     {
-      "question": "Do you think surprise visits to your workplace by your partner should be a no-no?",
-      "category": "interpersonal"
-    },
-    {
       "question": "Would you mind if your partner read a message on your phone popping up without asking you?",
-      "category": "interpersonal"
-    },
-    {
-      "question": "Do you like the idea of having 'me time' even in a committed relationship?",
       "category": "interpersonal"
     },
     {
@@ -6454,10 +6406,6 @@
     },
     {
       "question": "Is it crucial for you to have your own personal space in a living arrangement, like a 'man cave' or 'she shed'?",
-      "category": "interpersonal"
-    },
-    {
-      "question": "Do you think it's necessary to have your own private time and space to unwind, even when in a committed relationship?",
       "category": "interpersonal"
     },
     {
@@ -6537,10 +6485,6 @@
       "category": "interpersonal"
     },
     {
-      "question": "Do you think it's important to discuss and agree on privacy settings and boundaries on social media in a relationship?",
-      "category": "interpersonal"
-    },
-    {
       "question": "Would you feel upset if your partner decided to adopt a pet without your approval?",
       "category": "interpersonal"
     },
@@ -6586,10 +6530,6 @@
     },
     {
       "question": "Do you think it's important to knock before entering someone's room, even if they're your partner?",
-      "category": "interpersonal"
-    },
-    {
-      "question": "Should each person in a couple have their own \"me time\" regularly?",
       "category": "interpersonal"
     },
     {
@@ -7439,10 +7379,6 @@
     {
       "question": "Do you think it's romantic to share a last name with your partner?",
       "category": "values"
-    },
-    {
-      "question": "Would you be excited to go to a pottery or sculpture class on a date?",
-      "category": "interpersonal"
     },
     {
       "question": "Have you ever participated in a Dungeons and Dragons campaign?",
