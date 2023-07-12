@@ -803,7 +803,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Thinking/Feeling',
-    'This trait reflects a person''s decision-making style, encompassing both logical, objective analysis and rationality (Thinking), as well as empathy, values, and consideration for others'' emotions (Feeling).'
+    'This trait reflects a person''s decision-making style, encompassing both logical, objective analysis and rationality (Thinking), as well as empathy, values, and consideration for others'' emotions (Feeling).',
     'Thinking',
     'Feeling'
 ) ON CONFLICT (name) DO NOTHING;
