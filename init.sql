@@ -128,12 +128,12 @@ CREATE TABLE IF NOT EXISTS person (
     about TEXT NOT NULL,
 
     -- TODO: CREATE INDEX ON person USING ivfflat (personality2 vector_ip_ops) WITH (lists = 100);
-    -- There's 47 `trait`s. In principle, it's possible for someone to have a
+    -- There's 46 `trait`s. In principle, it's possible for someone to have a
     -- score of 0 for each trait. We add an extra, constant, non-zero dimension
     -- to avoid that.
-    personality VECTOR(48) NOT NULL DEFAULT array_full(48, 0),
-    presence_score INT[] NOT NULL DEFAULT array_full(47, 0),
-    absence_score INT[] NOT NULL DEFAULT array_full(47, 0),
+    personality VECTOR(47) NOT NULL DEFAULT array_full(47, 0),
+    presence_score INT[] NOT NULL DEFAULT array_full(46, 0),
+    absence_score INT[] NOT NULL DEFAULT array_full(46, 0),
     count_answers SMALLINT NOT NULL DEFAULT 0,
 
     -- Verification
@@ -434,7 +434,7 @@ CREATE TABLE IF NOT EXISTS blocked (
 CREATE TABLE IF NOT EXISTS search_for_quiz_prospects (
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     coordinates GEOGRAPHY(Point, 4326) NOT NULL,
-    personality VECTOR(48) NOT NULL,
+    personality VECTOR(47) NOT NULL,
 
     PRIMARY KEY (person_id)
 );
@@ -442,7 +442,7 @@ CREATE TABLE IF NOT EXISTS search_for_quiz_prospects (
 CREATE TABLE IF NOT EXISTS search_for_standard_prospects (
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     coordinates GEOGRAPHY(Point, 4326) NOT NULL,
-    personality VECTOR(48) NOT NULL,
+    personality VECTOR(47) NOT NULL,
 
     PRIMARY KEY (person_id)
 );
@@ -916,7 +916,9 @@ RETURNS personality_vectors AS $$
         where=denominator != 0
     )
 
-    personality_weight = (numpy.log(count_answers + 1) / numpy.log(501)) ** 0.25
+    ll = lambda x: numpy.log(numpy.log(x + 1) + 1)
+
+    personality_weight = ll(count_answers) / ll(250)
     personality_weight = personality_weight.clip(0, 1)
 
     personality = 2 * trait_percentages - 1
@@ -935,7 +937,7 @@ $$ LANGUAGE plpython3u IMMUTABLE LEAKPROOF PARALLEL SAFE;
 CREATE OR REPLACE FUNCTION trait_ratio(
     presence_score INT[],
     absence_score INT[],
-    score_threshold INT DEFAULT 1000
+    score_threshold INT
 )
 RETURNS TABLE(trait_id SMALLINT, ratio FLOAT4) AS $$
     SELECT
