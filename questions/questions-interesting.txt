@@ -354,7 +354,7 @@
     "Should all escalators be replaced by slides for a more fun commute?",
     "Does the phrase 'You complete me' sound more daunting than romantic to you?",
     "When deciding stuff, do you follow your gut more than your brain?",
-    "Have you ever made a spontaneous, last-minute trip or adventure?",
+    "Have you ever gone on a spontaneous, last-minute trip?",
     "Do you often spend more time than necessary on tasks because you want to make sure they are done perfectly?",
     "Is it important for you to hear from people you love that they're proud of you?",
     "When meeting new people, do you tend to gravitate towards those who are similar to you rather than getting to know a broader range of people?",

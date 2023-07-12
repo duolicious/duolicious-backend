@@ -5221,7 +5221,7 @@
       "category": "other"
     },
     {
-      "question": "Have you ever made a spontaneous, last-minute trip or adventure?",
+      "question": "Have you ever gone on a spontaneous, last-minute trip?",
       "category": "interpersonal"
     },
     {

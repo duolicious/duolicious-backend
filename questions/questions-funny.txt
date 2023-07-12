@@ -280,7 +280,7 @@
     "Is getting approached by someone who's into you usually more uncomfortable than flattering?",
     "Do you believe the first rule of Fight Club should be discussed openly?",
     "Do you sometimes change your mind so fast that it surprises even you?",
-    "Have you ever made a spontaneous, last-minute trip or adventure?",
+    "Have you ever gone on a spontaneous, last-minute trip?",
     "Do you often find yourself oscillating between loving and hating your favorite celebrities?",
     "Have you ever tried to make an ex jealous?",
     "Do you sometimes open your presents before your actual birthday?",
