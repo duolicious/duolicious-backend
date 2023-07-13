@@ -789,10 +789,6 @@
       "category": "other"
     },
     {
-      "question": "Do you feel a sense of pride in returning your shopping cart to the designated area?",
-      "category": "values"
-    },
-    {
       "question": "You won the lottery. Do you spend most of it at once?",
       "category": "values"
     },
@@ -1723,10 +1719,6 @@
     {
       "question": "Do you often spend more time than necessary on tasks because you want to make sure they are done perfectly?",
       "category": "interpersonal"
-    },
-    {
-      "question": "Is comedy just drama with a laugh track?",
-      "category": "other"
     },
     {
       "question": "Are there people in your life who are so bossy that you feel like doing the opposite of what they ask even though you know you shouldn't?",
@@ -7777,10 +7769,6 @@
       "category": "other"
     },
     {
-      "question": "Do you mind dating someone who can't distinguish between \"your\" and \"you're\"?",
-      "category": "interpersonal"
-    },
-    {
       "question": "Would you consider dating someone who's never heard of Reddit?",
       "category": "interpersonal"
     },
@@ -7803,10 +7791,6 @@
     {
       "question": "Do you think not liking guacamole is a character flaw?",
       "category": "other"
-    },
-    {
-      "question": "Could you forgive someone who never puts their shopping cart back in the right place?",
-      "category": "values"
     },
     {
       "question": "Would you discuss your turn-ons before you know their middle name?",
@@ -7867,10 +7851,6 @@
     {
       "question": "Your date wants to move in after three weeks. Sound like a dream come true?",
       "category": "interpersonal"
-    },
-    {
-      "question": "Do you wish for a partner who knows Hogwarts Houses are way more than just fiction?",
-      "category": "values"
     },
     {
       "question": "Are you on a mission to find someone who appreciates your shower thoughts?",
@@ -8035,6 +8015,10 @@
     {
       "question": "Is your idea of living on the edge, planning only 3 days ahead instead of a week?",
       "category": "other"
+    },
+    {
+      "question": "Would you date someone who can't distinguish between \"your\" and \"you're\"?",
+      "category": "interpersonal"
     }
   ],
   "uncategorised": []
