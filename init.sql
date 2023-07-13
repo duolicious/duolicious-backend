@@ -162,7 +162,6 @@ CREATE TABLE IF NOT EXISTS person (
     -- Notification Settings
     chats_notification SMALLINT REFERENCES immediacy(id) NOT NULL DEFAULT 1,
     intros_notification SMALLINT REFERENCES immediacy(id) NOT NULL DEFAULT 2,
-    visitors_notification SMALLINT REFERENCES immediacy(id) NOT NULL DEFAULT 3,
 
     -- Privacy Settings
     show_my_location BOOLEAN NOT NULL DEFAULT TRUE,
