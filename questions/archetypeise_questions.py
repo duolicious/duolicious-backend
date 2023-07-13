@@ -358,11 +358,6 @@ TRAITS = [
         anti_prompt_phrase="Pretend to be a normal person aged between 18 and 30"
     ),
     Trait(
-        trait="Optimism",
-        prompt_phrase="Pretend to be a person aged between 18 and 30 who's a bit more optimistic than most",
-        anti_prompt_phrase="Pretend to be a normal person aged between 18 and 30",
-    ),
-    Trait(
         trait="Career Focus",
         prompt_phrase="Pretend you value your career more than other aspects of your life, such as leisure, recreation, socialising, and so forth. You are not a caricature of such a person; You would not kick puppies for the mere sake of advancing your career. You represent a real person, perhaps in their late 20s or early 30s, who I might meet in the central business district of a big city, who takes their career seriously",
         anti_prompt_phrase="Pretend to be a normal person aged between 18 and 30",
@@ -446,7 +441,7 @@ def archetypeise_batch_for_one_trait_once(
     while not completion:
         try:
             completion = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4",
                 messages=[
                     {
                         "role": "user",
@@ -553,30 +548,6 @@ if __name__ == '__main__':
     if not QUESTION_PATH:
         print('invalid question path', file=sys.stderr)
         exit()
-
-    questions = load_questions(QUESTION_PATH)
-
-    new_archetypeised_questions = [
-            question
-            for question in questions.archetypeised
-            if question.trait != 'Optimism']
-
-    # new_archetypeised_questions = [
-    #     question
-    #     for question in questions.archetypeised
-    #     if question.question not in questions_to_delete
-    # ]
-    # new_unarchetypeised_questions = list(set([
-    #     question.question
-    #     for question in questions.archetypeised
-    # ]))
-
-    questions.archetypeised[:] = new_archetypeised_questions[:]
-    # questions.unarchetypeised[:] = new_unarchetypeised_questions[:]
-
-    questions.save(QUESTION_PATH)
-
-    exit()
 
     openai.organization = open('/home/christian/.openai-org-id').read().strip()
     openai.api_key = open('/home/christian/.openai-key').read().strip()
