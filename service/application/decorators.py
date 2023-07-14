@@ -69,9 +69,9 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
 
             session_token_hash = sha512(session_token)
             params = dict(session_token_hash=session_token_hash)
+            row = None
             with transaction() as tx:
-                tx.execute(Q_GET_SESSION, params)
-                row = tx.fetchone()
+                row = tx.execute(Q_GET_SESSION, params).fetchone()
 
             if row:
                 session_info = duotypes.SessionInfo(
