@@ -44,12 +44,14 @@ CREATE TABLE IF NOT EXISTS orientation (
 
 CREATE TABLE IF NOT EXISTS location (
     id SERIAL PRIMARY KEY,
-    friendly TEXT NOT NULL,
+    short_friendly TEXT NOT NULL,
+    long_friendly TEXT NOT NULL,
     city TEXT NOT NULL,
     subdivision TEXT NOT NULL,
     country TEXT NOT NULL,
     coordinates GEOGRAPHY(Point, 4326) NOT NULL,
-    UNIQUE (friendly)
+    UNIQUE (short_friendly),
+    UNIQUE (long_friendly)
 );
 
 CREATE TABLE IF NOT EXISTS looking_for (
@@ -466,7 +468,7 @@ CREATE INDEX IF NOT EXISTS idx__answer__question_id ON answer(question_id);
 
 CREATE INDEX IF NOT EXISTS idx__duo_session__email ON duo_session(email);
 
-CREATE INDEX IF NOT EXISTS idx__location__friendly ON location USING GIST(friendly gist_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx__location__long_friendly ON location USING GIST(long_friendly gist_trgm_ops);
 
 --------------------------------------------------------------------------------
 -- DATA

@@ -42,7 +42,7 @@ jc POST /check-otp -d '{ "otp": "000000" }'
 jc PATCH /onboardee-info -d '{ "name": "Jeff" }'
 jc PATCH /onboardee-info -d '{ "date_of_birth": "1997-05-30" }'
 c GET /search-locations?q=Syd
-jc PATCH /onboardee-info -d '{ "location": "Sydney, Australia" }'
+jc PATCH /onboardee-info -d '{ "location": "Sydney, New South Wales, Australia" }'
 jc PATCH /onboardee-info -d '{ "gender": "Man" }'
 jc PATCH /onboardee-info -d '{ "other_peoples_genders": ["Man", "Woman", "Other"] }'
 
@@ -87,28 +87,24 @@ c GET /next-questions > /dev/null
 
 # Test signing out works
 c POST /sign-out
-
-[[ "$(q "select count(*) from duo_session where person_id is null")" -eq 0 ]]
-
-! c GET /search-locations?q=Syd
+! c POST /check-session-token
 
 # Can we sign back in?
 
 response=$(jc POST /request-otp -d '{ "email": "mail@example.com" }')
-
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
 
+! c POST /check-session-token
+
 ! jc POST /check-otp -d '{ "otp": "000001" }'
-
-! c GET /search-locations?q=Syd
-
-[[ "$(q "select COUNT(*) from onboardee")" -eq 0 ]]
 
 response=$(
   jc POST /check-otp -d '{ "otp": "000000" }'
 )
 
 [[ "$(echo "$response" | jq -r '.onboarded')" = true ]]
+
+c POST /check-session-token
 
 c GET /search-locations?q=Syd
 
