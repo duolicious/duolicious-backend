@@ -113,10 +113,6 @@ response=$(
 
 c GET /search-locations?q=Syd
 
-jc POST /view-question -d '{ "question_id": 1001 }'
-jc POST /view-question -d '{ "question_id": 1001 }'
-jc POST /view-question -d '{ "question_id": 1002 }'
-
 jc POST /answer -d '{ "question_id": 1001, "answer": true, "public": false }'
 jc POST /answer -d '{ "question_id": 1002, "answer": false, "public": false }'
 

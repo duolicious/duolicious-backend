@@ -86,11 +86,6 @@ def get_next_questions(s: t.SessionInfo):
         o=request.args.get('o', '0'),
     )
 
-@apost('/view-question')
-@validate(t.PostViewQuestion)
-def post_view_question(req: t.PostViewQuestion, _):
-    return question.post_view_question(req)
-
 @apost('/answer')
 @validate(t.PostAnswer)
 def post_answer(req: t.PostAnswer, s: t.SessionInfo):

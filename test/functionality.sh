@@ -8,3 +8,4 @@ set -e
 ./functionality/onboarding.sh
 ./functionality/create-user.sh user1 10
 ./functionality/search.sh
+./functionality/health.sh
