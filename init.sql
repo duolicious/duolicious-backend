@@ -238,8 +238,6 @@ CREATE TABLE IF NOT EXISTS question (
     absence_given_no INT[] NOT NULL,
     count_yes BIGINT NOT NULL DEFAULT 0,
     count_no BIGINT NOT NULL DEFAULT 0,
-    count_views BIGINT NOT NULL DEFAULT 0,
-    visible BOOLEAN DEFAULT TRUE,
     UNIQUE (question),
     PRIMARY KEY (id)
 );
