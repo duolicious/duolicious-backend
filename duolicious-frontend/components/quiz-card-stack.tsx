@@ -25,6 +25,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBarSpacer } from './status-bar-spacer';
 import { api, japi } from '../api/api';
 import * as _ from "lodash";
+import { markTraitDataDirty } from './traits-tab';
 
 const QuizCardMemo = memo(QuizCard);
 
@@ -673,6 +674,7 @@ const QuizCardStack = (props) => {
             previousSwipeDirection === 'right'
           ) {
             removeNextProspectInPlace(stateRef, triggerRender);
+            markTraitDataDirty();
           }
         }
       );
@@ -724,6 +726,7 @@ const QuizCardStack = (props) => {
 
         if (direction === 'left' || direction === 'right') {
           await addNextProspectsInPlace(stateRef, triggerRender);
+          markTraitDataDirty();
         }
 
         addNextCardsInPlace(

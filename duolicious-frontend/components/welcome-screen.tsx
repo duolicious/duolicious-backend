@@ -15,7 +15,6 @@ import { OptionScreen } from './option-screen';
 import { japi } from '../api/api';
 import { sessionToken } from '../session-token/session-token';
 
-// TODO: Pressing enter at enter field should continue
 // TODO: You should use the same pattern as for the profile options
 
 const Stack = createNativeStackNavigator();

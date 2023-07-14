@@ -16,6 +16,7 @@ const displayedTabs: Set<string> = new Set([
   "Q&A",
   "Search",
   "Inbox",
+  "Traits",
   "Profile",
 ]);
 
@@ -143,9 +144,6 @@ const TabBar = ({state, descriptors, navigation}) => {
                   {label === 'Inbox' &&
                     <Ionicons style={{...iconStyle}} name={inboxIcon}/>
                   }
-                  {label === 'Profile' &&
-                    <Ionicons style={{...iconStyle}} name={profileIcon}/>
-                  }
                   {label === 'Inbox' &&
                     <View
                       style={{
@@ -158,6 +156,27 @@ const TabBar = ({state, descriptors, navigation}) => {
                         borderRadius: 999,
                       }}
                     />
+                  }
+                  {label === 'Traits' &&
+                    <View
+                      style={{
+                        height: 20,
+                        overflow: 'visible',
+                      }}
+                    >
+                      <DefaultText
+                        style={{
+                          fontSize: 22,
+                          marginTop: -6,
+                          fontWeight: isFocused ? '700' : undefined,
+                        }}
+                      >
+                        Ψ
+                      </DefaultText>
+                    </View>
+                  }
+                  {label === 'Profile' &&
+                    <Ionicons style={{...iconStyle}} name={profileIcon}/>
                   }
                 </View>
                 <DefaultText

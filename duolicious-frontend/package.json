@@ -44,7 +44,8 @@
     "react-native-web": "~0.18.9",
     "react-tinder-card": "^1.6.2",
     "ts-node": "^10.9.1",
-    "typescript": "^4.9.4"
+    "typescript": "^4.9.4",
+    "expo-clipboard": "~4.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9"

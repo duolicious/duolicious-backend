@@ -392,8 +392,8 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
               }
               {showTutorial && questionNumber === 7 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  Nice! Looks like you've got the hang of it.  We're gonna zip
-                  it and let you find your match{'\u00A0'}💑. Happy swiping!
+                  Looks like you've got the hang of it.  We're gonna zip it and
+                  let you find your match{'\u00A0'}💑. Happy swiping!
                   {'\n\n'}
                 </DefaultText>
               }
