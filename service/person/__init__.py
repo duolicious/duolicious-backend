@@ -306,24 +306,6 @@ def post_active(s: t.SessionInfo):
     with transaction('READ COMMITTED') as tx:
             tx.execute(Q_UPDATE_ACTIVE, params)
 
-def get_search_locations(q: Optional[str]):
-    if q is None:
-        return []
-
-    normalized_whitespace = ' '.join(q.split())
-
-    if len(normalized_whitespace) < 1:
-        return []
-
-    params = dict(
-        first_character=normalized_whitespace[0],
-        search_string=normalized_whitespace,
-    )
-
-    with transaction('READ COMMITTED') as tx:
-        tx.execute(Q_SEARCH_LOCATIONS, params)
-        return [row['friendly'] for row in tx.fetchall()]
-
 def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
     for field_name, field_value in req.dict().items():
         if field_value:
@@ -353,7 +335,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
     elif field_name == 'location':
         params = dict(
             email=s.email,
-            friendly=field_value
+            long_friendly=field_value
         )
 
         q_set_onboardee_field = """
@@ -364,7 +346,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
                 %(email)s,
                 coordinates
             FROM location
-            WHERE friendly = %(friendly)s
+            WHERE long_friendly = %(long_friendly)s
             ON CONFLICT (email) DO UPDATE SET
                 coordinates = EXCLUDED.coordinates
             """

@@ -42,7 +42,7 @@ jc POST /check-otp -d '{ "otp": "000000" }'
 jc PATCH /onboardee-info -d '{ "name": "Jeff" }'
 jc PATCH /onboardee-info -d '{ "date_of_birth": "1997-05-30" }'
 c GET /search-locations?q=Syd
-jc PATCH /onboardee-info -d '{ "location": "Sydney, Australia" }'
+jc PATCH /onboardee-info -d '{ "location": "Sydney, New South Wales, Australia" }'
 jc PATCH /onboardee-info -d '{ "gender": "Man" }'
 jc PATCH /onboardee-info -d '{ "other_peoples_genders": ["Man", "Woman", "Other"] }'
 
