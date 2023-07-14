@@ -171,33 +171,33 @@ POST /delete-account {
   session-token
 }
 
-GET /prospect-profile {
+GET /prospect-profile/<person-id> {
   session-token
-} {
-  person-id
 } -> {
   pictures: [url-1, ..., url-n],
-  name
+  name: string
   age: string | undefined
-  location
-  match-percentage
+  location: string | undefined
+  match-percentage: number
   summary: { gender: , ..., profession: }
   about: "I'm a reasonable..."
 }
 
-POST /prospect-block-and-report {
+GET /prospect-personality/<person-id>/('mbti' | 'big-5' | 'attachment' | 'politics' | 'other') {
   session-token
-} {
-  person-id
+} -> {
+  ...
 }
 
-POST /prospect-hide {
+POST /prospect-block-and-report/<person-id> {
   session-token
-} {
-  person-id
 }
 
-GET /prospect-answers {
+POST /prospect-hide/<person-id> {
+  session-token
+}
+
+GET /prospect-answers/<person-id> {
   session-token
 } {
   page-number
@@ -214,10 +214,3 @@ GET /prospect-answers {
     public
   }
 ]
-
-GET /prospect-personality {
-  session-token
-} {
-  section: 'mbti' | 'big-5' | 'attachment' | 'politics' | 'other'
-} -> {
-}
