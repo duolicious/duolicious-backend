@@ -12,7 +12,7 @@ POST /check-otp {
   onboarded: boolean
 }
 
-GET /check-session-token {
+POST /check-session-token {
   session-token
 } {} -> {
   onboarded: boolean
@@ -120,12 +120,6 @@ GET /search-filter-questions {
     accept-unanswered?
   }
 ]
-
-GET /visitors {
-  session-token
-} {
-  page-number
-}
 
 GET /inbox-chats {
   session-token

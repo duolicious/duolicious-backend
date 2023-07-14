@@ -2,6 +2,7 @@ import os
 from flask import request
 import duotypes as t
 from service import (
+    location,
     person,
     question,
     search,
@@ -62,7 +63,7 @@ def post_active(s: t.SessionInfo):
 
 @aget('/search-locations', expected_onboarding_status=None, expected_sign_in_status=None)
 def get_search_locations(_):
-    return person.get_search_locations(q=request.args.get('q'))
+    return location.get_search_locations(q=request.args.get('q'))
 
 @apatch('/onboardee-info', expected_onboarding_status=False)
 @validate(t.PatchOnboardeeInfo)

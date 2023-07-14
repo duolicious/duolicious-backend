@@ -68,7 +68,7 @@ main () {
   jc POST /check-otp -d '{ "otp": "000000" }' > /dev/null
   jc PATCH /onboardee-info -d '{ "name": "'"$username"'" }'
   jc PATCH /onboardee-info -d '{ "date_of_birth": "1997-05-30" }'
-  jc PATCH /onboardee-info -d '{ "location": "Sydney, Australia" }'
+  jc PATCH /onboardee-info -d '{ "location": "New York, New York, United States" }'
   jc PATCH /onboardee-info -d '{ "gender": "Other" }'
   jc PATCH /onboardee-info -d '{ "other_peoples_genders": ["Man", "Woman", "Agender", "Intersex", "Non-binary", "Transgender", "Trans woman", "Trans man", "Other"] }'
   jc PATCH /onboardee-info -d '{ "about": "Im a reasonable person" }'

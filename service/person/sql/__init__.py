@@ -412,11 +412,3 @@ onboardee_country AS (
 DELETE FROM onboardee
 WHERE email = %(email)s
 """
-
-Q_SEARCH_LOCATIONS = """
-SELECT friendly
-FROM location
-WHERE friendly ILIKE %(first_character)s || '%%'
-ORDER BY friendly <-> %(search_string)s
-LIMIT 10
-"""
