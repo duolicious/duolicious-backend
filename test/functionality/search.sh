@@ -155,7 +155,7 @@ test_search_cache () {
 
   # Ensure `user1` is ranked first in search results
   q "
-  update person set personality = array_full(48, 1)
+  update person set personality = array_full(47, 1)
   where email IN ('searcher@example.com', 'user1@example.com')"
 
   assert_search_names ''            10 1
@@ -183,14 +183,14 @@ test_quiz_search () {
 
   # user1 has the higher match percentage
   q "
-  update person set personality = array_full(48, 1)
+  update person set personality = array_full(47, 1)
   where id IN (${searcher_id}, ${user1_id})"
   response1=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response1" = "$user1_id" ]]
 
   # user1 has the lower match percentage
   q "
-  update person set personality = array_full(48, -1)
+  update person set personality = array_full(47, -1)
   where id = ${user1_id}"
   response2=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response2" = "$user2_id" ]]
@@ -241,19 +241,19 @@ test_photos_promoted () {
 
   q "
   update person
-  set personality = array_full(48, 9e-2)
+  set personality = array_full(47, 9e-2)
   where email IN ('searcher@example.com', 'user1@example.com')"
   q "
   update person
-  set personality = array_full(48, 8e-2)
+  set personality = array_full(47, 8e-2)
   where email IN ('user2@example.com')"
   q "
   update person
-  set personality = array_full(48, 7e-2)
+  set personality = array_full(47, 7e-2)
   where email IN ('user3@example.com')"
   q "
   update person
-  set personality = array_full(48, 6e-2)
+  set personality = array_full(47, 6e-2)
   where email IN ('user4@example.com')"
 
   response1=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')

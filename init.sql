@@ -128,12 +128,12 @@ CREATE TABLE IF NOT EXISTS person (
     about TEXT NOT NULL,
 
     -- TODO: CREATE INDEX ON person USING ivfflat (personality2 vector_ip_ops) WITH (lists = 100);
-    -- There's 47 `trait`s. In principle, it's possible for someone to have a
+    -- There's 46 `trait`s. In principle, it's possible for someone to have a
     -- score of 0 for each trait. We add an extra, constant, non-zero dimension
     -- to avoid that.
-    personality VECTOR(48) NOT NULL DEFAULT array_full(48, 0),
-    presence_score INT[] NOT NULL DEFAULT array_full(47, 0),
-    absence_score INT[] NOT NULL DEFAULT array_full(47, 0),
+    personality VECTOR(47) NOT NULL DEFAULT array_full(47, 0),
+    presence_score INT[] NOT NULL DEFAULT array_full(46, 0),
+    absence_score INT[] NOT NULL DEFAULT array_full(46, 0),
     count_answers SMALLINT NOT NULL DEFAULT 0,
 
     -- Verification
@@ -162,7 +162,6 @@ CREATE TABLE IF NOT EXISTS person (
     -- Notification Settings
     chats_notification SMALLINT REFERENCES immediacy(id) NOT NULL DEFAULT 1,
     intros_notification SMALLINT REFERENCES immediacy(id) NOT NULL DEFAULT 2,
-    visitors_notification SMALLINT REFERENCES immediacy(id) NOT NULL DEFAULT 3,
 
     -- Privacy Settings
     show_my_location BOOLEAN NOT NULL DEFAULT TRUE,
@@ -434,7 +433,7 @@ CREATE TABLE IF NOT EXISTS blocked (
 CREATE TABLE IF NOT EXISTS search_for_quiz_prospects (
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     coordinates GEOGRAPHY(Point, 4326) NOT NULL,
-    personality VECTOR(48) NOT NULL,
+    personality VECTOR(47) NOT NULL,
 
     PRIMARY KEY (person_id)
 );
@@ -442,7 +441,7 @@ CREATE TABLE IF NOT EXISTS search_for_quiz_prospects (
 CREATE TABLE IF NOT EXISTS search_for_standard_prospects (
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     coordinates GEOGRAPHY(Point, 4326) NOT NULL,
-    personality VECTOR(48) NOT NULL,
+    personality VECTOR(47) NOT NULL,
 
     PRIMARY KEY (person_id)
 );
@@ -569,13 +568,13 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Anxious Attachment',
-    'Measures the extent to which a person seeks reassurance and fears abandonment in close relationships. If a person scores low on this and the "avoidant" scale, they''re said to be "securely" attached. Secure attachment is associated with longer, more stable relationships.',
+    'Measures the extent to which a person seeks reassurance and fears abandonment in close relationships. If a person scores low on this and the "Avoidant Attachment" scale, they''re said to be "securely" attached. Secure attachment is associated with longer, more stable relationships.',
     NULL,
     NULL
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Avoidant Attachment',
-    'Measures the preference for emotional distance and self-reliance in relationships. If a person scores low on this and the "anxious" scale, they''re said to be "securely" attached. Secure attachment is associated with longer, more stable relationships.',
+    'Measures the preference for emotional distance and self-reliance in relationships. If a person scores low on this and the "Anxious Attachment" scale, they''re said to be "securely" attached. Secure attachment is associated with longer, more stable relationships.',
     NULL,
     NULL
 ) ON CONFLICT (name) DO NOTHING;
@@ -677,7 +676,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Introversion/Extraversion',
-    'Measures a person''s preference for engaging with the world, ranging from drawing energy from social interactions and being action-oriented (Extraversion), to finding energy in solitude and focusing on thoughts and feelings (Introversion).',
+    'Measures a person''s preference for engaging with the world, ranging from drawing energy from social interactions and being action-oriented (Extraversion) to finding energy in solitude and focusing on thoughts and feelings (Introversion).',
     'Introversion',
     'Extraversion'
 ) ON CONFLICT (name) DO NOTHING;
@@ -689,7 +688,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Judging/Perceiving',
-    'This trait shows how you handle the world around you. Do you like to have a plan and stick to it, or do you prefer to stay open and flexible, ready for whatever comes your way?',
+    'This trait captures someone''s approach to organizing and structuring their life, ranging from preferring a planned, orderly, and decisive lifestyle (Judging), to embracing spontaneity, flexibility, and adaptability (Perceiving).',
     'Judging',
     'Perceiving'
 ) ON CONFLICT (name) DO NOTHING;
@@ -730,14 +729,8 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
     NULL
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
-    'Optimism',
-    'This trait defines how much you expect the best things in life, maintain a positive outlook, and see the good in people. Those on the lower end might have a more realistic or cautious approach to life.',
-    NULL,
-    NULL
-) ON CONFLICT (name) DO NOTHING;
-INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Patience',
-    'Measures your ability to stay calm and tolerant when facing challenges',
+    'Measures your ability to stay calm and tolerant when facing challenges.',
     NULL,
     NULL
 ) ON CONFLICT (name) DO NOTHING;
@@ -791,7 +784,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Sensing/Intuition',
-    'This trait suggests whether you lean more towards a concrete, practical approach to information (sensing) or you lean towards interpreting and adding meaning, focusing on the bigger picture (intuition). It''s not about being pragmatic vs. imaginative, but more about the primary way you perceive and interact with the world.',
+    'This trait represents someone''s preferred way of processing information, covering the spectrum from focusing on concrete, tangible details and experiences (Sensing), to exploring abstract concepts, patterns, and possibilities (Intuition).',
     'Sensing',
     'Intuition'
 ) ON CONFLICT (name) DO NOTHING;
@@ -809,7 +802,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Thinking/Feeling',
-    'This trait measures your inclination towards logical reasoning or emotional perception. A high score suggests a strong focus on logic and objectivity, while a low score suggests a propensity for decisions based on feelings and values.',
+    'This trait reflects a person''s decision-making style, encompassing both logical, objective analysis and rationality (Thinking), as well as empathy, values, and consideration for others'' emotions (Feeling).',
     'Thinking',
     'Feeling'
 ) ON CONFLICT (name) DO NOTHING;
@@ -922,7 +915,9 @@ RETURNS personality_vectors AS $$
         where=denominator != 0
     )
 
-    personality_weight = (numpy.log(count_answers + 1) / numpy.log(501)) ** 0.25
+    ll = lambda x: numpy.log(numpy.log(x + 1) + 1)
+
+    personality_weight = ll(count_answers) / ll(250)
     personality_weight = personality_weight.clip(0, 1)
 
     personality = 2 * trait_percentages - 1
@@ -941,7 +936,7 @@ $$ LANGUAGE plpython3u IMMUTABLE LEAKPROOF PARALLEL SAFE;
 CREATE OR REPLACE FUNCTION trait_ratio(
     presence_score INT[],
     absence_score INT[],
-    score_threshold INT DEFAULT 1000
+    score_threshold INT
 )
 RETURNS TABLE(trait_id SMALLINT, ratio FLOAT4) AS $$
     SELECT
