@@ -11,6 +11,7 @@ from multiprocessing import Pool
 import itertools
 import functools
 from dataclasses import dataclass
+import time
 
 class Props(NamedTuple):
     ppgy: float
@@ -452,6 +453,8 @@ def archetypeise_batch_for_one_trait_once(
                 max_tokens=8 * len(questions),
                 stop=['}']
             )
+        except openai.error.RateLimitError as e:
+            time.sleep(1)
         except Exception as e:
             print(str(e))
 
