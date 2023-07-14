@@ -730,7 +730,7 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Patience',
-    'Measures your ability to stay calm and tolerant when facing challenges',
+    'Measures your ability to stay calm and tolerant when facing challenges.',
     NULL,
     NULL
 ) ON CONFLICT (name) DO NOTHING;

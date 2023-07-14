@@ -255,7 +255,7 @@ TRAITS = [
     Trait(
         trait="Humility",
         prompt_phrase="Pretend you are particularly humble",
-        anti_prompt_phrase="Pretend you're particularly proud or arrogant",
+        anti_prompt_phrase="Pretend you are not particularly humble",
     ),
     Trait(
         trait="Independence",

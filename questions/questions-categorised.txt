@@ -5945,7 +5945,7 @@
       "category": "interpersonal"
     },
     {
-      "question": "Imagine you have 7 white socks and 9 black socks in a drawer, and you're completely in the dark. If you only pull out 3 socks, are you sure to have a pair whose colors match?",
+      "question": "Imagine you only have 7 white socks and 9 black socks in a drawer, and you're completely in the dark. If you only pull out 3 socks, are you sure to have a pair whose colors match?",
       "category": "other"
     },
     {
