@@ -7697,7 +7697,7 @@
       "category": "other"
     },
     {
-      "question": "If your date's ringtone was the 'Baby Shark' song, would you reconsider a second date?",
+      "question": "If your date's ringtone was the 'Baby Shark' song, would you still go on a second date?",
       "category": "interpersonal"
     },
     {
