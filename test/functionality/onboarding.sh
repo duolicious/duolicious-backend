@@ -87,7 +87,7 @@ c GET /next-questions > /dev/null
 
 # Test signing out works
 c POST /sign-out
-!c POST /check-session-token
+! c POST /check-session-token
 
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 0 ]]
 
