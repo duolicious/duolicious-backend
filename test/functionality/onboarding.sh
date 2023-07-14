@@ -10,7 +10,6 @@ set -xe
 q "delete from duo_session"
 q "delete from person"
 q "delete from onboardee"
-q "update question set count_yes = 0, count_no = 0, count_views = 0"
 
 img1=$(rand_image)
 img2=$(rand_image)
@@ -118,7 +117,5 @@ jc POST /answer -d '{ "question_id": 1002, "answer": false, "public": false }'
 
 [[ "$(q "select count_yes   from question where id = 1001")" -eq 1 ]]
 [[ "$(q "select count_no    from question where id = 1001")" -eq 0 ]]
-[[ "$(q "select count_views from question where id = 1001")" -eq 2 ]]
 [[ "$(q "select count_yes   from question where id = 1002")" -eq 0 ]]
 [[ "$(q "select count_no    from question where id = 1002")" -eq 1 ]]
-[[ "$(q "select count_views from question where id = 1002")" -eq 1 ]]

@@ -41,7 +41,6 @@ FROM question
 JOIN personal_question_order
 ON question.id = personal_question_order.question_id
 WHERE
-    question.visible = TRUE AND
     question_id NOT IN (SELECT question_id FROM answered_questions)
 ORDER BY personal_question_order.position
 LIMIT %(n)s
