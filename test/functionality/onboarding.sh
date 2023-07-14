@@ -87,6 +87,7 @@ c GET /next-questions > /dev/null
 
 # Test signing out works
 c POST /sign-out
+!c POST /check-session-token
 
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 0 ]]
 
@@ -95,8 +96,8 @@ c POST /sign-out
 # Can we sign back in?
 
 response=$(jc POST /request-otp -d '{ "email": "mail@example.com" }')
-
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
+c POST /check-session-token
 
 ! jc POST /check-otp -d '{ "otp": "000001" }'
 
