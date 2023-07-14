@@ -5,7 +5,7 @@ cd "$script_dir"
 
 set -e
 
-./functionality/onboarding.sh
-./functionality/create-user.sh user1 10
-./functionality/search.sh
-./functionality/health.sh
+for t in ./functionality/*.sh
+do
+  "$t"
+done

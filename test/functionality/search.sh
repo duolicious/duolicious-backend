@@ -3,7 +3,7 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 
-source ../setup.sh
+source ../util/setup.sh
 
 set -xe
 
@@ -15,9 +15,9 @@ setup () {
   q "delete from person"
   q "delete from onboardee"
 
-  ./create-user.sh searcher 0
-  ./create-user.sh user1 0
-  ./create-user.sh user2 0
+  ../util/create-user.sh searcher 0
+  ../util/create-user.sh user1 0
+  ../util/create-user.sh user2 0
 
   local response=$(jc POST /request-otp -d '{ "email": "searcher@example.com" }')
   SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
@@ -233,8 +233,8 @@ test_deactivated () {
 
 test_photos_promoted () {
   setup
-  ./create-user.sh user3 0
-  ./create-user.sh user4 0
+  ../util/create-user.sh user3 0
+  ../util/create-user.sh user4 0
 
   assert_search_names 'user1 user2 user3 user4' 10 0
 
@@ -278,9 +278,9 @@ test_photos_promoted () {
 
 test_quiz_filters () {
   setup
-  ./create-user.sh user3 2
+  ../util/create-user.sh user3 2
 
-  # Gotta set answers to something non-null. ./create-user.sh sometimes gives
+  # Gotta set answers to something non-null. ../util/create-user.sh sometimes gives
   # null answers
   q "update answer set answer = false"
 

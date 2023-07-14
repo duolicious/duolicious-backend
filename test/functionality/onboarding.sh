@@ -3,13 +3,14 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 
-source ../setup.sh
+source ../util/setup.sh
 
 set -xe
 
 q "delete from duo_session"
 q "delete from person"
 q "delete from onboardee"
+q "update question set count_yes = 0, count_no = 0"
 
 img1=$(rand_image)
 img2=$(rand_image)
