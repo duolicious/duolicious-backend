@@ -283,7 +283,7 @@ onboardee_country AS (
     row_to_shuffle AS (
       SELECT id
       FROM question
-      WHERE id > 50
+      WHERE id > 100
       ORDER BY RANDOM()
       LIMIT (SELECT ROUND(0.2 * COUNT(*)) FROM question)
     ), shuffled_src_to_dst_position AS (

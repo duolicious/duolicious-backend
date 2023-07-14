@@ -1,4 +1,0 @@
-Pretend you're the typical OkCupid user, looking at the questions/answers on someone else's profile. Which question would you rather see the answer to? Answer only by writing the number 1 or 2, without punctuation (e.g. quotes, periods):
-
-1. {a}
-2. {b}
