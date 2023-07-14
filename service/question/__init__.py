@@ -41,17 +41,10 @@ FROM question
 JOIN personal_question_order
 ON question.id = personal_question_order.question_id
 WHERE
-    question.visible = TRUE AND
     question_id NOT IN (SELECT question_id FROM answered_questions)
 ORDER BY personal_question_order.position
 LIMIT %(n)s
 OFFSET %(o)s
-"""
-
-Q_INCREMENT_VIEWS = """
-UPDATE question
-SET count_views = count_views + 1
-WHERE id = %(question_id)s
 """
 
 def init_db():
@@ -189,8 +182,3 @@ def get_next_questions(s: t.SessionInfo, n: str, o: str):
     with transaction('READ COMMITTED') as tx:
         tx.execute(Q_GET_NEXT_QUESTIONS, params)
         return tx.fetchall()
-
-def post_view_question(req: t.PostViewQuestion):
-    params = dict(question_id=req.question_id)
-    with transaction('READ COMMITTED') as tx:
-        tx.execute(Q_INCREMENT_VIEWS, params)

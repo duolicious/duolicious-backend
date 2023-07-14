@@ -14,7 +14,6 @@ setup () {
   q "delete from duo_session"
   q "delete from person"
   q "delete from onboardee"
-  q "update question set count_yes = 0, count_no = 0, count_views = 0"
 
   ./create-user.sh searcher 0
   ./create-user.sh user1 0

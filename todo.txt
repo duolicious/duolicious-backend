@@ -6,7 +6,7 @@
 #       Consider adding more traits to cover them.
 
 # TODO: Proper question numbers
-# TODO: Update count_yes, count_no, count_views
+# TODO: Update count_yes, count_no
 # TODO: Try ordering the questions by "wittiness" or "quirkiness"
 # TODO: Rename traits
 
