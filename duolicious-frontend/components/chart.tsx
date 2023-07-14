@@ -20,48 +20,20 @@ const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
     dimensionName,
     minLabel,
     maxLabel,
-    showScoreBumper = true,
   } = props;
 
   const compact = name1 === null && !name2;
 
   const [expanded, setExpanded] = useState(false);
-  const [bump, setBump] = useState<number>(0.0);
 
   const { opacity, scaleXY } = LayoutAnimation.Properties;
   const { easeInEaseOut, linear } = LayoutAnimation.Types;
 
   const animatedBackgroundColor = useRef(new Animated.Value(1)).current;
-  const animatedBumpOpacity = useRef(new Animated.Value(0)).current;
-  const animatedBumpScale = useRef(new Animated.Value(0)).current;
 
   const backgroundColor = animatedBackgroundColor.interpolate({
     inputRange: [0, 1],
     outputRange: ['rgba(222,222,222, 1)', 'rgba(255,255,255, 1)'],
-    extrapolate: 'clamp',
-  });
-
-  const bumpLeftOpacity = animatedBumpOpacity.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 0.2],
-    extrapolate: 'clamp',
-  });
-
-  const bumpRightOpacity = animatedBumpOpacity.interpolate({
-    inputRange: [-1, 0],
-    outputRange: [0.2, 1],
-    extrapolate: 'clamp',
-  });
-
-  const bumpLeftScale = animatedBumpScale.interpolate({
-    inputRange: [-1, 1],
-    outputRange: [1.3, 0.7],
-    extrapolate: 'clamp',
-  });
-
-  const bumpRightScale = animatedBumpScale.interpolate({
-    inputRange: [-1, 1],
-    outputRange: [0.7, 1.3],
     extrapolate: 'clamp',
   });
 
@@ -102,77 +74,6 @@ const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
     if (minLabel || maxLabel) return clamp(2 * Math.abs(percentage - 50), 0, 100);
     return percentage;
   };
-
-  const bumpEqualsZero = useCallback((bump: number) => {
-    return Math.abs(bump) < 1e-5;
-  }, []);
-
-  const canBumpUp =
-    bump < +1e-5 && ((percentage2 ?? 0) + bump) < (1 - 1e-5);
-
-  const canBumpDown =
-    bump > -1e-5 && ((percentage2 ?? 0) + bump) > ((dimensionName ? 0 : -1) + 1e-5);
-
-  useEffect(() => {
-    const animatedValueOpacity = (() => {
-      if (canBumpUp && canBumpDown) return 0;
-      return canBumpUp ? 1 : -1;
-    })();
-    const animatedValueScale = (() => {
-      if (bumpEqualsZero(bump)) return 0;
-      return bump > 1e-5 ? 1 : -1;
-    })();
-
-    Animated.parallel([
-      Animated.timing(animatedBumpOpacity, {
-        toValue: animatedValueOpacity,
-        duration: 100,
-        useNativeDriver: false,
-      }),
-      Animated.timing(animatedBumpScale, {
-        toValue: animatedValueScale,
-        duration: 100,
-        useNativeDriver: false,
-      }),
-    ]).start();
-  }, [canBumpUp, canBumpDown, bump]);
-
-  const bumpX = useCallback((currentBump: number, bumpSize: number) => {
-    LayoutAnimation.configureNext({
-      duration: 100,
-      create: { type: linear, property: opacity },
-      update: { type: easeInEaseOut, property: scaleXY },
-      delete: { type: linear, property: opacity }
-    });
-
-    if (bumpEqualsZero(currentBump)) {
-      let bumpResult = (percentage2 ?? 0) + bumpSize;
-      bumpResult = clamp(bumpResult, dimensionName ? 0 : -1, 1);
-      return bumpResult - (percentage2 ?? 0);
-    } else if (currentBump > 0) {
-      if (bumpSize > 1e-5) {
-        return currentBump;
-      } else {
-        return 0;
-      }
-    } else if (currentBump < 0) {
-      if (bumpSize < 1e-5) {
-        return currentBump;
-      } else {
-        return 0;
-      }
-    } else {
-      return 0; // Should never happen
-    }
-  }, [percentage2, dimensionName]);
-
-  const bumpLeft  = useCallback(() => {
-    setBump((bump) => bumpX(bump, -10));
-  }, [bumpX]);
-
-  const bumpRight = useCallback(() => {
-    setBump((bump) => bumpX(bump, +10));
-  }, [bumpX]);
 
   const minLabel_ = minLabel ? `100%` : '0%';
   const maxLabel_ = maxLabel ? `100%` : '100%';
@@ -368,23 +269,12 @@ const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
           <Tick color="#ddd" position={50}/>
           <Tick color="#ddd" position={100}/>
 
-          {!bumpEqualsZero(bump) &&
-            <Tick
-              color="#666"
-              position={percentage2}
-              label={name2}
-              labelPercentage={
-                `${labelPercentage(percentage2) ?? 0}` +
-                (bump < 0 && dimensionName ? ' - ' : ' + ') +
-                `${bump}`}
-              extraHeight={20}/>
-          }
           <Tick
             color="#666"
             position={percentage2}
-            label={bumpEqualsZero(bump) ? name2 : ""}
+            label={name2}
             labelPercentage={labelPercentage(percentage2)}
-            extraHeight={bumpEqualsZero(bump) ? 20 : 0}/>
+            extraHeight={20}/>
           <Tick
             color="#70f"
             position={percentage1}
@@ -403,61 +293,7 @@ const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
               }}
             >
               {children}
-
-              {showScoreBumper && <>
-                  {children && '\n\n'}Duolicious whips-up this score using three
-                  ingredients: Rahim's Q&A answers, your score-bumps, and our
-                  smartypants AI. (We use a few tricks to improve accuracy and
-                  fairness, so bumps will take some time to influence Rahim's
-                  score.)
-                </>
-              }
             </DefaultText>
-            {showScoreBumper &&
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-around',
-                }}
-              >
-                <Pressable onPress={bumpLeft} style={{padding: 20}}>
-                  <Animated.View style={{
-                    opacity: bumpLeftOpacity,
-                    transform: [ { scale: bumpLeftScale } ]
-                  }}>
-                    <ArrowLeft
-                      stroke="#70f"
-                      strokeWidth={4}
-                      width={30}
-                      height={30}
-                    />
-                  </Animated.View>
-                </Pressable>
-                <DefaultText
-                  style={{
-                    fontFamily: 'TruenoBold',
-                    color: '#70f',
-                    textAlign: 'center',
-                  }}
-                >
-                  Bump Rahim's Score
-                </DefaultText>
-                <Pressable onPress={bumpRight} style={{padding: 20}}>
-                  <Animated.View style={{
-                    opacity: bumpRightOpacity,
-                    transform: [ { scale: bumpRightScale } ]
-                  }}>
-                    <ArrowRight
-                      stroke="#70f"
-                      strokeWidth={4}
-                      width={30}
-                      height={30}
-                    />
-                  </Animated.View>
-                </Pressable>
-              </View>
-            }
           </>
         }
         {(!(minLabel && maxLabel) || expanded) &&

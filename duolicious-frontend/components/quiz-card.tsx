@@ -383,10 +383,10 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
               }
               {showTutorial && questionNumber === 6 &&
                 <DefaultText style={{fontSize: adjustedFontSize * 0.8}}>
-                  If you've got an extra-spicy hot take (e.g. about pineapple on
-                  pizza), you can also answer privately. Just uncheck "answer
-                  publicly". We'll keep your answer hidden, but still use it to
-                  sort the pineapple haters from the pineapple havers.
+                  If you've got an extra-spicy hot take, you can also answer
+                  privately. Just uncheck "answer publicly". We'll keep your
+                  answer hidden, but still use it to sort the folders from the
+                  scrunchers.
                   {'\n\n'}
                 </DefaultText>
               }
