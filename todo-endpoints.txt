@@ -47,6 +47,10 @@ POST /sign-out {
   session-token
 }
 
+POST /active {
+  session-token
+}
+
 GET /next-questions {
   session-token
 } { n, o } -> [
