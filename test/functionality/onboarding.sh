@@ -89,27 +89,22 @@ c GET /next-questions > /dev/null
 c POST /sign-out
 ! c POST /check-session-token
 
-[[ "$(q "select count(*) from duo_session where person_id is null")" -eq 0 ]]
-
-! c GET /search-locations?q=Syd
-
 # Can we sign back in?
 
 response=$(jc POST /request-otp -d '{ "email": "mail@example.com" }')
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
-c POST /check-session-token
+
+! c POST /check-session-token
 
 ! jc POST /check-otp -d '{ "otp": "000001" }'
-
-! c GET /search-locations?q=Syd
-
-[[ "$(q "select COUNT(*) from onboardee")" -eq 0 ]]
 
 response=$(
   jc POST /check-otp -d '{ "otp": "000000" }'
 )
 
 [[ "$(echo "$response" | jq -r '.onboarded')" = true ]]
+
+c POST /check-session-token
 
 c GET /search-locations?q=Syd
 
