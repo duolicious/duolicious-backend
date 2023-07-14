@@ -550,7 +550,6 @@ const QuizCardStack_ = ({
   triggerRender,
   onSwipe,
   onCardLeftScreen,
-  onMountQuizCard,
 }) => {
   const stackContainerStyle = useRef<StyleProp<ViewStyle>>({
     flexGrow: 1,
@@ -596,7 +595,6 @@ const QuizCardStack_ = ({
               yesPercentage={card.yesPercentage}
               answerPubliclyValue={card.answerPublicly}
               onChangeAnswerPublicly={card.onChangeAnswerPublicly}
-              onMount={onMountQuizCard}
             >
               {card.questionText}
             </QuizCardMemo>
@@ -760,10 +758,6 @@ const QuizCardStack = (props) => {
     );
   }, []);
 
-  const onMountQuizCard = useCallback((questionNumber: number) => {
-    japi('post', '/view-question', { question_id: questionNumber });
-  }, []);
-
   return (
     <>
       <ProspectsMemo
@@ -781,7 +775,6 @@ const QuizCardStack = (props) => {
         triggerRender={triggerRender}
         onSwipe={onSwipe_}
         onCardLeftScreen={onCardLeftScreen}
-        onMountQuizCard={onMountQuizCard}
       />
     </>
   );

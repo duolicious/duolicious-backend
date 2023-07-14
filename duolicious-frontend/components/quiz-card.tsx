@@ -185,11 +185,8 @@ const QuizCard = ({
     onChangeAnswerPublicly,
     imageBackgroundStyle,
     nonInteractiveContainerStyle,
-    onMount,
     ...rest
   } = props;
-
-  useEffect(() => onMount(questionNumber), []);
 
   return (
     <TinderCard
