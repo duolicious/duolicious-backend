@@ -114,5 +114,9 @@ def get_me_by_session(s: t.SessionInfo):
     return person.get_me(s.person_id)
 
 @get('/me/<int:person_id>')
-def get_me_by_id(person_id):
+def get_me_by_id(person_id: int):
     return person.get_me(person_id)
+
+@aget('/prospect-profile/<int:prospect_person_id>')
+def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
+    return person.get_prospect_profile(s, prospect_person_id)

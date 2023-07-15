@@ -54,7 +54,6 @@ DROP TABLE IF EXISTS search_preference_relationship_status CASCADE;
 DROP TABLE IF EXISTS search_preference_religion CASCADE;
 DROP TABLE IF EXISTS search_preference_smoking CASCADE;
 DROP TABLE IF EXISTS search_preference_star_sign CASCADE;
-DROP TABLE IF EXISTS search_preference_verified CASCADE;
 DROP TABLE IF EXISTS search_preference_wants_kids CASCADE;
 DROP TABLE IF EXISTS star_sign CASCADE;
 DROP TABLE IF EXISTS trait CASCADE;

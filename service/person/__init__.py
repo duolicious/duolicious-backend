@@ -503,3 +503,17 @@ def get_me(person_id: int):
             }
         except:
             return '', 404
+
+def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
+    params = dict(
+        person_id=s.person_id,
+        prospect_person_id=prospect_person_id,
+    )
+
+    with transaction() as tx:
+        row = tx.execute(Q_SELECT_PROSPECT_PROFILE, params).fetchone()
+        if row:
+            return row
+        else:
+            return '', 404
+    return '', 500

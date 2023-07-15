@@ -47,10 +47,6 @@ POST /sign-out {
   session-token
 }
 
-POST /active {
-  session-token
-}
-
 GET /next-questions {
   session-token
 } { n, o } -> [
@@ -90,6 +86,64 @@ GET /search {
     match-percentage
   }
 ]
+
+GET /me {
+} {} -> {
+  // Personality traits
+}
+
+GET /me/<person-id> {
+} {} -> {
+  // Personality traits
+}
+
+GET /prospect-profile/<person-id> {
+  session-token
+} -> {
+  pictures: [url-1, ..., url-n],
+  name: string
+  age: string | undefined
+  location: string | undefined
+  match-percentage: number
+  summary: { gender: , ..., profession: }
+  about: "I'm a reasonable..."
+}
+
+GET /prospect-personality/<person-id>/('mbti' | 'big-5' | 'attachment' | 'politics' | 'other') {
+  session-token
+} -> {
+  ...
+}
+
+POST /prospect-block-and-report/<person-id> {
+  session-token
+}
+
+POST /prospect-hide/<person-id> {
+  session-token
+}
+
+GET /prospect-answers/<person-id> {
+  session-token
+} {
+  page-number
+  agreement: 'all' | 'agree' | 'disagree' | 'unanswered'
+  topic
+} -> [
+  {
+    question-id
+    question-number
+    question-topic
+    question-text
+    prospect-answer
+    answer
+    public
+  }
+]
+
+POST /active {
+  session-token
+}
 
 POST /search-filter {
   session-token
@@ -170,47 +224,3 @@ POST /deactivate {
 POST /delete-account {
   session-token
 }
-
-GET /prospect-profile/<person-id> {
-  session-token
-} -> {
-  pictures: [url-1, ..., url-n],
-  name: string
-  age: string | undefined
-  location: string | undefined
-  match-percentage: number
-  summary: { gender: , ..., profession: }
-  about: "I'm a reasonable..."
-}
-
-GET /prospect-personality/<person-id>/('mbti' | 'big-5' | 'attachment' | 'politics' | 'other') {
-  session-token
-} -> {
-  ...
-}
-
-POST /prospect-block-and-report/<person-id> {
-  session-token
-}
-
-POST /prospect-hide/<person-id> {
-  session-token
-}
-
-GET /prospect-answers/<person-id> {
-  session-token
-} {
-  page-number
-  agreement: 'all' | 'agree' | 'disagree' | 'unanswered'
-  topic
-} -> [
-  {
-    question-id
-    question-number
-    question-topic
-    question-text
-    prospect-answer
-    answer
-    public
-  }
-]

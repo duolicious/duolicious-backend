@@ -139,7 +139,6 @@ CREATE TABLE IF NOT EXISTS person (
     count_answers SMALLINT NOT NULL DEFAULT 0,
 
     -- Verification
-    verified_id SMALLINT REFERENCES yes_no(id) NOT NULL DEFAULT 2,
     has_profile_picture_id SMALLINT REFERENCES yes_no(id) NOT NULL DEFAULT 2,
 
     -- Basics
@@ -310,12 +309,6 @@ CREATE TABLE IF NOT EXISTS search_preference_height_cm (
     min_height_cm SMALLINT,
     max_height_cm SMALLINT,
     PRIMARY KEY (person_id)
-);
-
-CREATE TABLE IF NOT EXISTS search_preference_verified (
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    verified_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    PRIMARY KEY (person_id, verified_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_has_profile_picture (
