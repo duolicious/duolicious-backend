@@ -3,13 +3,14 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 
-source ../setup.sh
+source ../util/setup.sh
 
 set -xe
 
 q "delete from duo_session"
 q "delete from person"
 q "delete from onboardee"
+q "update question set count_yes = 0, count_no = 0"
 
 img1=$(rand_image)
 img2=$(rand_image)
@@ -78,7 +79,8 @@ jc PATCH /onboardee-info -d '{ "about": "Im a reasonable person" }'
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 1 ]]
 
 ! c GET /next-questions
-c POST /finish-onboarding
+response=$(c POST /finish-onboarding)
+[[ "$(echo "$response" | jq -r .units)" = Metric ]]
 
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 0 ]]
 
@@ -103,8 +105,10 @@ response=$(
 )
 
 [[ "$(echo "$response" | jq -r '.onboarded')" = true ]]
+[[ "$(echo "$response" | jq -r '.units')"     = Metric ]]
 
-c POST /check-session-token
+response=$(c POST /check-session-token)
+[[ "$(echo "$response" | jq -r '.units')" = Metric ]]
 
 c GET /search-locations?q=Syd
 

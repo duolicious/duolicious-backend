@@ -3,7 +3,7 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 
-source ../setup.sh
+source ../util/setup.sh
 
 set -xe
 
@@ -15,9 +15,9 @@ setup () {
   q "delete from person"
   q "delete from onboardee"
 
-  ./create-user.sh searcher 0
-  ./create-user.sh user1 0
-  ./create-user.sh user2 0
+  ../util/create-user.sh searcher 0
+  ../util/create-user.sh user1 0
+  ../util/create-user.sh user2 0
 
   local response=$(jc POST /request-otp -d '{ "email": "searcher@example.com" }')
   SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
@@ -172,9 +172,9 @@ test_search_cache () {
 test_quiz_search () {
   setup
 
-  searcher_id=$(q "select id from person where email = 'searcher@example.com'")
-  user1_id=$(q "select id from person where email = 'user1@example.com'")
-  user2_id=$(q "select id from person where email = 'user2@example.com'")
+  local searcher_id=$(q "select id from person where email = 'searcher@example.com'")
+  local user1_id=$(q "select id from person where email = 'user1@example.com'")
+  local user2_id=$(q "select id from person where email = 'user2@example.com'")
 
   q "
   update person
@@ -233,8 +233,8 @@ test_deactivated () {
 
 test_photos_promoted () {
   setup
-  ./create-user.sh user3 0
-  ./create-user.sh user4 0
+  ../util/create-user.sh user3 0
+  ../util/create-user.sh user4 0
 
   assert_search_names 'user1 user2 user3 user4' 10 0
 
@@ -278,9 +278,9 @@ test_photos_promoted () {
 
 test_quiz_filters () {
   setup
-  ./create-user.sh user3 2
+  ../util/create-user.sh user3 2
 
-  # Gotta set answers to something non-null. ./create-user.sh sometimes gives
+  # Gotta set answers to something non-null. ../util/create-user.sh sometimes gives
   # null answers
   q "update answer set answer = false"
 
@@ -320,17 +320,27 @@ test_quiz_filters () {
 
 test_interaction_in_standard_search () {
   local interaction_name=$1
+  local do_endpoint=$2
+  local undo_endpoint=$3
 
   setup
 
+  local user1_id=$(q "select id from person where email = 'user1@example.com'")
+  local user2_id=$(q "select id from person where email = 'user2@example.com'")
+
   # searcher messaged/blocked/etc'd user1
-  q "
-  insert into ${interaction_name} (subject_person_id, object_person_id)
-  values (
-    (select id from person where email = 'searcher@example.com'),
-    (select id from person where email = 'user1@example.com')
-  )
-  "
+  if [[ -n "${do_endpoint}" ]]
+  then
+    c POST "${do_endpoint}/${user1_id}"
+  else
+    q "
+    insert into ${interaction_name} (subject_person_id, object_person_id)
+    values (
+      (select id from person where email = 'searcher@example.com'),
+      (select id from person where email = 'user1@example.com')
+    )
+    "
+  fi
 
   q "
   update search_preference_${interaction_name}
@@ -349,6 +359,12 @@ test_interaction_in_standard_search () {
     person_id = (select id from person where email = 'searcher@example.com')"
 
   assert_search_names 'user2'
+
+  if [[ -n "${undo_endpoint}" ]]
+  then
+    c POST "${undo_endpoint}/${user1_id}"
+    assert_search_names 'user1 user2'
+  fi
 }
 
 test_hide_me_from_strangers () {
@@ -406,9 +422,9 @@ test_quiz_search
 test_hide_me_from_strangers
 
 test_interaction_in_standard_search messaged
-test_interaction_in_standard_search blocked
+test_interaction_in_standard_search blocked /block /unblock
 test_interaction_in_standard_search_blocked_symmetry
-test_interaction_in_standard_search hidden
+test_interaction_in_standard_search hidden /hide /unhide
 
 test_quiz_filters
 
@@ -421,15 +437,14 @@ test_search_cache
 test_basic gender Man
 test_basic orientation Straight
 test_basic_age
-test_basic verified 'Yes' yes_no
 test_basic_height
 test_basic has_profile_picture 'Yes' yes_no
-test_basic looking_for 'Long-term dating'
+test_basic looking_for 'Long-term Dating'
 test_basic smoking 'Yes' yes_no_optional
 test_basic drinking 'Often' frequency
 test_basic drugs 'No' yes_no_optional
 test_basic long_distance 'Yes' yes_no_optional
-test_basic relationship_status 'Seeing someone'
+test_basic relationship_status 'Seeing Someone'
 test_basic has_kids 'Yes' yes_no_optional
 test_basic wants_kids 'No' yes_no_optional
 test_basic exercise 'Never' frequency

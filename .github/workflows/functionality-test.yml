@@ -9,7 +9,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run tests
-        run: ./test/with-container.sh ./test/functionality.sh
+        run: ./test/util/with-container.sh ./test/functionality.sh
         env:
           DUO_R2_ACCESS_KEY_ID: ${{ secrets.DUO_R2_ACCESS_KEY_ID }}
           DUO_R2_ACCESS_KEY_SECRET: ${{ secrets.DUO_R2_ACCESS_KEY_SECRET }}
