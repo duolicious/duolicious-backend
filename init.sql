@@ -473,8 +473,8 @@ INSERT INTO gender (name) VALUES ('Agender') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Intersex') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Non-binary') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Transgender') ON CONFLICT (name) DO NOTHING;
-INSERT INTO gender (name) VALUES ('Trans woman') ON CONFLICT (name) DO NOTHING;
-INSERT INTO gender (name) VALUES ('Trans man') ON CONFLICT (name) DO NOTHING;
+INSERT INTO gender (name) VALUES ('Trans Woman') ON CONFLICT (name) DO NOTHING;
+INSERT INTO gender (name) VALUES ('Trans Man') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO orientation (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
@@ -489,13 +489,13 @@ INSERT INTO orientation (name) VALUES ('Queer') ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientation (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO looking_for (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
-INSERT INTO looking_for (name) VALUES ('Long-term dating') ON CONFLICT (name) DO NOTHING;
-INSERT INTO looking_for (name) VALUES ('Short-term dating') ON CONFLICT (name) DO NOTHING;
+INSERT INTO looking_for (name) VALUES ('Long-term Dating') ON CONFLICT (name) DO NOTHING;
+INSERT INTO looking_for (name) VALUES ('Short-term Dating') ON CONFLICT (name) DO NOTHING;
 INSERT INTO looking_for (name) VALUES ('Friends') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO relationship_status (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Single') ON CONFLICT (name) DO NOTHING;
-INSERT INTO relationship_status (name) VALUES ('Seeing someone') ON CONFLICT (name) DO NOTHING;
+INSERT INTO relationship_status (name) VALUES ('Seeing Someone') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Engaged') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Married') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Divorced') ON CONFLICT (name) DO NOTHING;
