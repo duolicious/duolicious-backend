@@ -163,7 +163,7 @@ WITH valid_session AS (
         sign_in_count = sign_in_count + 1
     FROM valid_session
     WHERE person.id = person_id
-    RETURNING person.id
+    RETURNING person.id, person.unit_id
 ), new_onboardee AS (
     INSERT INTO onboardee (
         email
@@ -172,7 +172,16 @@ WITH valid_session AS (
     FROM valid_session
     WHERE NOT EXISTS (SELECT 1 FROM existing_person)
 )
-SELECT * FROM valid_session
+SELECT
+    person_id,
+    email,
+    (SELECT name FROM unit where id = existing_person.unit_id) AS units
+FROM
+    valid_session
+LEFT JOIN
+    existing_person
+ON
+    valid_session.person_id = existing_person.id
 """
 
 Q_SELECT_ONBOARDEE_PHOTO = """
@@ -264,7 +273,7 @@ onboardee_country AS (
         ) AS unit_id
     FROM onboardee
     WHERE email = %(email)s
-    RETURNING id, email
+    RETURNING id, email, unit_id
 ), new_photo AS (
     INSERT INTO photo (
         person_id,
@@ -404,9 +413,14 @@ onboardee_country AS (
     SELECT new_person.id, yes_no.id
     FROM new_person, yes_no
     WHERE yes_no.name = 'No'
+), deleted_onboardee AS (
+    DELETE FROM onboardee
+    WHERE email = %(email)s
 )
-DELETE FROM onboardee
-WHERE email = %(email)s
+SELECT
+    (SELECT name FROM unit WHERE unit.id = new_person.unit_id) AS units
+FROM
+    new_person
 """
 
 Q_SELECT_PROSPECT_PROFILE = """
@@ -472,4 +486,13 @@ FROM
     person AS p
 WHERE
     id = %(prospect_person_id)s
+"""
+
+Q_SELECT_UNITS = """
+SELECT
+    (SELECT name FROM unit WHERE unit.id = person.unit_id) AS units
+FROM
+    person
+WHERE
+    id = %(person_id)s
 """

@@ -290,7 +290,10 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
         tx.execute(Q_MAYBE_SIGN_IN, params)
         row = tx.fetchone()
         if row:
-            return dict(onboarded=row['person_id'] is not None)
+            return dict(
+                onboarded=row['person_id'] is not None,
+                units=row['units'],
+            )
         else:
             return 'Invalid OTP', 401
 
@@ -299,6 +302,16 @@ def post_sign_out(s: t.SessionInfo):
 
     with transaction('READ COMMITTED') as tx:
         tx.execute(Q_DELETE_DUO_SESSION, params)
+
+def post_check_session_token(s: t.SessionInfo):
+    params = dict(person_id=s.person_id)
+
+    with transaction() as tx:
+        row = tx.execute(Q_SELECT_UNITS, params).fetchone()
+        return dict(
+            onboarded=s.onboarded,
+            units=row['units'],
+        )
 
 def post_active(s: t.SessionInfo):
     params = dict(person_id=s.person_id)
@@ -474,7 +487,9 @@ def post_finish_onboarding(s: t.SessionInfo):
     params = dict(email=s.email)
 
     with transaction() as tx:
-        tx.execute(Q_FINISH_ONBOARDING, params)
+        row = tx.execute(Q_FINISH_ONBOARDING, params).fetchone()
+        if row:
+            return dict(units=row['units'])
 
 def get_me(person_id: int):
     params = dict(person_id=person_id)

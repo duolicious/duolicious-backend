@@ -10,12 +10,14 @@ POST /check-otp {
   session-token
 } { otp } -> {
   onboarded: boolean
+  units: 'Imperial' | 'Metric'
 }
 
 POST /check-session-token {
   session-token
 } {} -> {
   onboarded: boolean
+  units: 'Imperial' | 'Metric'
 }
 
 GET /search-locations?q=$1 {
@@ -41,6 +43,8 @@ DELETE /onboardee-info {
 
 POST /finish-onboarding {
   session-token
+} -> {
+  units: 'Imperial' | 'Metric'
 }
 
 POST /sign-out {

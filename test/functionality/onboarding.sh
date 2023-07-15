@@ -79,7 +79,8 @@ jc PATCH /onboardee-info -d '{ "about": "Im a reasonable person" }'
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 1 ]]
 
 ! c GET /next-questions
-c POST /finish-onboarding
+response=$(c POST /finish-onboarding)
+[[ "$(echo "$response" | jq -r .units)" = Metric ]]
 
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 0 ]]
 
@@ -104,8 +105,10 @@ response=$(
 )
 
 [[ "$(echo "$response" | jq -r '.onboarded')" = true ]]
+[[ "$(echo "$response" | jq -r '.units')"     = Metric ]]
 
-c POST /check-session-token
+response=$(c POST /check-session-token)
+[[ "$(echo "$response" | jq -r '.units')" = Metric ]]
 
 c GET /search-locations?q=Syd
 

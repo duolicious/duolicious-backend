@@ -55,7 +55,7 @@ def post_sign_out(s: t.SessionInfo):
 
 @apost('/check-session-token', expected_onboarding_status=None)
 def post_check_session_token(s: t.SessionInfo):
-    return dict(onboarded=s.onboarded)
+    return person.post_check_session_token(s)
 
 @apost('/active')
 def post_active(s: t.SessionInfo):
