@@ -55,7 +55,7 @@ def post_sign_out(s: t.SessionInfo):
 
 @apost('/check-session-token', expected_onboarding_status=None)
 def post_check_session_token(s: t.SessionInfo):
-    return dict(onboarded=s.onboarded)
+    return person.post_check_session_token(s)
 
 @apost('/active')
 def post_active(s: t.SessionInfo):
@@ -114,5 +114,25 @@ def get_me_by_session(s: t.SessionInfo):
     return person.get_me(s.person_id)
 
 @get('/me/<int:person_id>')
-def get_me_by_id(person_id):
+def get_me_by_id(person_id: int):
     return person.get_me(person_id)
+
+@aget('/prospect-profile/<int:prospect_person_id>')
+def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
+    return person.get_prospect_profile(s, prospect_person_id)
+
+@apost('/block/<int:prospect_person_id>')
+def post_block(s: t.SessionInfo, prospect_person_id: int):
+    return person.post_block(s, prospect_person_id)
+
+@apost('/unblock/<int:prospect_person_id>')
+def post_unblock(s: t.SessionInfo, prospect_person_id: int):
+    return person.post_unblock(s, prospect_person_id)
+
+@apost('/hide/<int:prospect_person_id>')
+def post_hide(s: t.SessionInfo, prospect_person_id: int):
+    return person.post_hide(s, prospect_person_id)
+
+@apost('/unhide/<int:prospect_person_id>')
+def post_unhide(s: t.SessionInfo, prospect_person_id: int):
+    return person.post_unhide(s, prospect_person_id)

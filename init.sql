@@ -139,7 +139,6 @@ CREATE TABLE IF NOT EXISTS person (
     count_answers SMALLINT NOT NULL DEFAULT 0,
 
     -- Verification
-    verified_id SMALLINT REFERENCES yes_no(id) NOT NULL DEFAULT 2,
     has_profile_picture_id SMALLINT REFERENCES yes_no(id) NOT NULL DEFAULT 2,
 
     -- Basics
@@ -312,12 +311,6 @@ CREATE TABLE IF NOT EXISTS search_preference_height_cm (
     PRIMARY KEY (person_id)
 );
 
-CREATE TABLE IF NOT EXISTS search_preference_verified (
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    verified_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    PRIMARY KEY (person_id, verified_id)
-);
-
 CREATE TABLE IF NOT EXISTS search_preference_has_profile_picture (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     has_profile_picture_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
@@ -480,8 +473,8 @@ INSERT INTO gender (name) VALUES ('Agender') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Intersex') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Non-binary') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Transgender') ON CONFLICT (name) DO NOTHING;
-INSERT INTO gender (name) VALUES ('Trans woman') ON CONFLICT (name) DO NOTHING;
-INSERT INTO gender (name) VALUES ('Trans man') ON CONFLICT (name) DO NOTHING;
+INSERT INTO gender (name) VALUES ('Trans Woman') ON CONFLICT (name) DO NOTHING;
+INSERT INTO gender (name) VALUES ('Trans Man') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO orientation (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
@@ -496,13 +489,13 @@ INSERT INTO orientation (name) VALUES ('Queer') ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientation (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO looking_for (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
-INSERT INTO looking_for (name) VALUES ('Long-term dating') ON CONFLICT (name) DO NOTHING;
-INSERT INTO looking_for (name) VALUES ('Short-term dating') ON CONFLICT (name) DO NOTHING;
+INSERT INTO looking_for (name) VALUES ('Long-term Dating') ON CONFLICT (name) DO NOTHING;
+INSERT INTO looking_for (name) VALUES ('Short-term Dating') ON CONFLICT (name) DO NOTHING;
 INSERT INTO looking_for (name) VALUES ('Friends') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO relationship_status (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Single') ON CONFLICT (name) DO NOTHING;
-INSERT INTO relationship_status (name) VALUES ('Seeing someone') ON CONFLICT (name) DO NOTHING;
+INSERT INTO relationship_status (name) VALUES ('Seeing Someone') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Engaged') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Married') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Divorced') ON CONFLICT (name) DO NOTHING;

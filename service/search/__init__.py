@@ -148,14 +148,6 @@ def _q_uncached_search_2_standard_fragment():
         )
     AND EXISTS (
             SELECT 1
-            FROM search_preference_verified AS preference
-            WHERE
-                preference.person_id   = %(searcher_person_id)s AND
-                preference.verified_id = prospect.verified_id
-            LIMIT 1
-        )
-    AND EXISTS (
-            SELECT 1
             FROM search_preference_height_cm AS preference
             WHERE
                 preference.person_id = %(searcher_person_id)s AND

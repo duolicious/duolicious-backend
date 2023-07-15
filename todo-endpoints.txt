@@ -10,12 +10,14 @@ POST /check-otp {
   session-token
 } { otp } -> {
   onboarded: boolean
+  units: 'Imperial' | 'Metric'
 }
 
 POST /check-session-token {
   session-token
 } {} -> {
   onboarded: boolean
+  units: 'Imperial' | 'Metric'
 }
 
 GET /search-locations?q=$1 {
@@ -41,13 +43,11 @@ DELETE /onboardee-info {
 
 POST /finish-onboarding {
   session-token
+} -> {
+  units: 'Imperial' | 'Metric'
 }
 
 POST /sign-out {
-  session-token
-}
-
-POST /active {
   session-token
 }
 
@@ -90,6 +90,62 @@ GET /search {
     match-percentage
   }
 ]
+
+GET /me {
+} {} -> {
+  // Personality traits
+}
+
+GET /me/<person-id> {
+} {} -> {
+  // Personality traits
+}
+
+GET /prospect-profile/<person-id> {
+  session-token
+} -> {
+  pictures: [url-1, ..., url-n],
+  name: string
+  age: string | undefined
+  location: string | undefined
+  match-percentage: number
+  summary: { gender: , ..., profession: }
+  about: "I'm a reasonable..."
+}
+
+GET /prospect-personality/<person-id>/('mbti' | 'big-5' | 'attachment' | 'politics' | 'other') {
+  session-token
+} -> {
+  ...
+}
+
+POST /block/<person-id> { session-token }
+POST /unblock/<person-id> { session-token }
+
+POST /hide/<person-id> { session-token }
+POST /unhide/<person-id> { session-token }
+
+GET /prospect-answers/<person-id> {
+  session-token
+} {
+  page-number
+  agreement: 'all' | 'agree' | 'disagree' | 'unanswered'
+  topic
+} -> [
+  {
+    question-id
+    question-number
+    question-topic
+    question-text
+    prospect-answer
+    answer
+    public
+  }
+]
+
+POST /active {
+  session-token
+}
 
 POST /search-filter {
   session-token
@@ -169,55 +225,4 @@ POST /deactivate {
 
 POST /delete-account {
   session-token
-}
-
-GET /prospect-profile {
-  session-token
-} {
-  person-id
-} -> {
-  pictures: [url-1, ..., url-n],
-  name
-  age: string | undefined
-  location
-  match-percentage
-  summary: { gender: , ..., profession: }
-  about: "I'm a reasonable..."
-}
-
-POST /prospect-block-and-report {
-  session-token
-} {
-  person-id
-}
-
-POST /prospect-hide {
-  session-token
-} {
-  person-id
-}
-
-GET /prospect-answers {
-  session-token
-} {
-  page-number
-  agreement: 'all' | 'agree' | 'disagree' | 'unanswered'
-  topic
-} -> [
-  {
-    question-id
-    question-number
-    question-topic
-    question-text
-    prospect-answer
-    answer
-    public
-  }
-]
-
-GET /prospect-personality {
-  session-token
-} {
-  section: 'mbti' | 'big-5' | 'attachment' | 'politics' | 'other'
-} -> {
 }

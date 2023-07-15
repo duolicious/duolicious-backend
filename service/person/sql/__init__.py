@@ -163,7 +163,7 @@ WITH valid_session AS (
         sign_in_count = sign_in_count + 1
     FROM valid_session
     WHERE person.id = person_id
-    RETURNING person.id
+    RETURNING person.id, person.unit_id
 ), new_onboardee AS (
     INSERT INTO onboardee (
         email
@@ -172,7 +172,16 @@ WITH valid_session AS (
     FROM valid_session
     WHERE NOT EXISTS (SELECT 1 FROM existing_person)
 )
-SELECT * FROM valid_session
+SELECT
+    person_id,
+    email,
+    (SELECT name FROM unit where id = existing_person.unit_id) AS units
+FROM
+    valid_session
+LEFT JOIN
+    existing_person
+ON
+    valid_session.person_id = existing_person.id
 """
 
 Q_SELECT_ONBOARDEE_PHOTO = """
@@ -221,7 +230,7 @@ WITH
 onboardee_country AS (
     SELECT country
     FROM location
-    ORDER BY location.coordinates <-> (
+    ORDER BY coordinates <-> (
         SELECT coordinates
         FROM onboardee
         WHERE email = %(email)s
@@ -264,7 +273,7 @@ onboardee_country AS (
         ) AS unit_id
     FROM onboardee
     WHERE email = %(email)s
-    RETURNING id, email
+    RETURNING id, email, unit_id
 ), new_photo AS (
     INSERT INTO photo (
         person_id,
@@ -342,73 +351,184 @@ onboardee_country AS (
     SELECT new_person.id, NULL, NULL
     FROM new_person
 ), p6 AS (
-    INSERT INTO search_preference_verified (person_id, verified_id)
-    SELECT new_person.id, yes_no.id
-    FROM new_person, yes_no
-), p7 AS (
     INSERT INTO search_preference_has_profile_picture (person_id, has_profile_picture_id)
     SELECT new_person.id, yes_no.id
     FROM new_person, yes_no
-), p8 AS (
+), p7 AS (
     INSERT INTO search_preference_looking_for (person_id, looking_for_id)
     SELECT new_person.id, looking_for.id
     FROM new_person, looking_for
-), p9 AS (
+), p8 AS (
     INSERT INTO search_preference_smoking (person_id, smoking_id)
     SELECT new_person.id, yes_no_optional.id
     FROM new_person, yes_no_optional
-), p10 AS (
+), p9 AS (
     INSERT INTO search_preference_drinking (person_id, drinking_id)
     SELECT new_person.id, frequency.id
     FROM new_person, frequency
-), p11 AS (
+), p10 AS (
     INSERT INTO search_preference_drugs (person_id, drugs_id)
     SELECT new_person.id, yes_no_optional.id
     FROM new_person, yes_no_optional
-), p12 AS (
+), p11 AS (
     INSERT INTO search_preference_long_distance (person_id, long_distance_id)
     SELECT new_person.id, yes_no_optional.id
     FROM new_person, yes_no_optional
-), p13 AS (
+), p12 AS (
     INSERT INTO search_preference_relationship_status (person_id, relationship_status_id)
     SELECT new_person.id, relationship_status.id
     FROM new_person, relationship_status
-), p14 AS (
+), p13 AS (
     INSERT INTO search_preference_has_kids (person_id, has_kids_id)
     SELECT new_person.id, yes_no_maybe.id
     FROM new_person, yes_no_maybe
-), p15 AS (
+), p14 AS (
     INSERT INTO search_preference_wants_kids (person_id, wants_kids_id)
     SELECT new_person.id, yes_no_maybe.id
     FROM new_person, yes_no_maybe
-), p16 AS (
+), p15 AS (
     INSERT INTO search_preference_exercise (person_id, exercise_id)
     SELECT new_person.id, frequency.id
     FROM new_person, frequency
-), p17 AS (
+), p16 AS (
     INSERT INTO search_preference_religion (person_id, religion_id)
     SELECT new_person.id, religion.id
     FROM new_person, religion
-), p18 AS (
+), p17 AS (
     INSERT INTO search_preference_star_sign (person_id, star_sign_id)
     SELECT new_person.id, star_sign.id
     FROM new_person, star_sign
-), p19 AS (
+), p18 AS (
     INSERT INTO search_preference_messaged (person_id, messaged_id)
     SELECT new_person.id, yes_no.id
     FROM new_person, yes_no
     WHERE yes_no.name = 'Yes'
-), p20 AS (
+), p19 AS (
     INSERT INTO search_preference_hidden (person_id, hidden_id)
     SELECT new_person.id, yes_no.id
     FROM new_person, yes_no
     WHERE yes_no.name = 'No'
-), p21 AS (
+), p20 AS (
     INSERT INTO search_preference_blocked (person_id, blocked_id)
     SELECT new_person.id, yes_no.id
     FROM new_person, yes_no
     WHERE yes_no.name = 'No'
+), deleted_onboardee AS (
+    DELETE FROM onboardee
+    WHERE email = %(email)s
 )
-DELETE FROM onboardee
-WHERE email = %(email)s
+SELECT
+    (SELECT name FROM unit WHERE unit.id = new_person.unit_id) AS units
+FROM
+    new_person
+"""
+
+Q_SELECT_PROSPECT_PROFILE = """
+WITH negative_dot_prod AS (
+    SELECT (
+        SELECT personality FROM person WHERE id = %(person_id)s
+    ) <#> (
+        SELECT personality FROM person WHERE id = %(prospect_person_id)s
+    ) AS negative_dot_prod
+), match_percentage AS (
+    SELECT
+        CLAMP(
+            0,
+            99,
+            100 * (1 - negative_dot_prod.negative_dot_prod) / 2
+        )::SMALLINT AS match_percentage
+    FROM
+        negative_dot_prod
+)
+SELECT
+    ARRAY(
+        SELECT uuid
+        FROM photo
+        WHERE person_id = %(prospect_person_id)s
+        ORDER BY position
+    ) AS photo_uuids,
+    name,
+    (
+        SELECT EXTRACT(YEAR FROM AGE(p.date_of_birth))::SMALLINT
+        WHERE p.show_my_age
+    ) AS age,
+    (
+        SELECT short_friendly
+        FROM location
+        WHERE p.show_my_location
+        ORDER BY coordinates <-> p.coordinates
+        LIMIT 1
+    ) AS location,
+    (
+        SELECT match_percentage
+        FROM match_percentage
+    ) AS match_percentage,
+    about,
+    count_answers,
+    EXISTS (SELECT 1 FROM hidden  WHERE subject_person_id = %(person_id)s AND object_person_id = %(prospect_person_id)s) AS is_hidden,
+    EXISTS (SELECT 1 FROM blocked WHERE subject_person_id = %(person_id)s AND object_person_id = %(prospect_person_id)s) AS is_blocked,
+
+    -- Basics
+    occupation,
+    height_cm,
+    (SELECT name FROM gender              WHERE id = p.gender_id              AND name != 'Unanswered') AS gender,
+    (SELECT name FROM orientation         WHERE id = p.orientation_id         AND name != 'Unanswered') AS orientation,
+    (SELECT name FROM looking_for         WHERE id = p.looking_for_id         AND name != 'Unanswered') AS looking_for,
+    (SELECT name FROM yes_no_optional     WHERE id = p.smoking_id             AND name != 'Unanswered') AS smoking,
+    (SELECT name FROM frequency           WHERE id = p.drinking_id            AND name != 'Unanswered') AS drinking,
+    (SELECT name FROM yes_no_optional     WHERE id = p.drugs_id               AND name != 'Unanswered') AS drugs,
+    (SELECT name FROM yes_no_optional     WHERE id = p.long_distance_id       AND name != 'Unanswered') AS long_distance,
+    (SELECT name FROM relationship_status WHERE id = p.relationship_status_id AND name != 'Unanswered') AS relationship_status,
+    (SELECT name FROM yes_no_maybe        WHERE id = p.has_kids_id            AND name != 'Unanswered') AS has_kids,
+    (SELECT name FROM yes_no_maybe        WHERE id = p.wants_kids_id          AND name != 'Unanswered') AS wants_kids,
+    (SELECT name FROM frequency           WHERE id = p.exercise_id            AND name != 'Unanswered') AS exercise,
+    (SELECT name FROM religion            WHERE id = p.religion_id            AND name != 'Unanswered') AS religion,
+    (SELECT name FROM star_sign           WHERE id = p.star_sign_id           AND name != 'Unanswered') AS star_sign
+FROM
+    person AS p
+WHERE
+    id = %(prospect_person_id)s
+"""
+
+Q_SELECT_UNITS = """
+SELECT
+    (SELECT name FROM unit WHERE unit.id = person.unit_id) AS units
+FROM
+    person
+WHERE
+    id = %(person_id)s
+"""
+
+Q_INSERT_BLOCKED = """
+INSERT INTO blocked (
+    subject_person_id,
+    object_person_id
+) VALUES (
+    %(subject_person_id)s,
+    %(object_person_id)s
+) ON CONFLICT DO NOTHING
+"""
+
+Q_DELETE_BLOCKED = """
+DELETE FROM blocked
+WHERE
+    subject_person_id = %(subject_person_id)s AND
+    object_person_id = %(object_person_id)s
+"""
+
+Q_INSERT_HIDDEN = """
+INSERT INTO hidden (
+    subject_person_id,
+    object_person_id
+) VALUES (
+    %(subject_person_id)s,
+    %(object_person_id)s
+) ON CONFLICT DO NOTHING
+"""
+
+Q_DELETE_HIDDEN = """
+DELETE FROM hidden
+WHERE
+    subject_person_id = %(subject_person_id)s AND
+    object_person_id = %(object_person_id)s
 """

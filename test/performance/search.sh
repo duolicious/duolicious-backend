@@ -3,10 +3,14 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 
-source ../setup.sh
+source ../util/setup.sh
+
+q "delete from duo_session"
+q "delete from person"
+q "delete from onboardee"
 
 # TODO: Replace me with a database that's 1000 times bigger
-time bash -c 'seq 1000 | parallel -j16 ../functionality/create-user.sh "user{}" 0 0'
+time bash -c 'seq 1000 | parallel -j16 ../util/create-user.sh "user{}" 0 0'
 
 # Make prospects appear in `search_for_quiz_prospects`
 q "update person set has_profile_picture_id = 1"
