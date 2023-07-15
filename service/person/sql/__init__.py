@@ -432,7 +432,7 @@ SELECT
         FROM photo
         WHERE person_id = %(prospect_person_id)s
         ORDER BY position
-    ) AS photos,
+    ) AS photo_uuids,
     name,
     (
         SELECT EXTRACT(YEAR FROM AGE(p.date_of_birth))::SMALLINT
@@ -450,10 +450,12 @@ SELECT
         FROM match_percentage
     ) AS match_percentage,
     about,
+    count_answers,
 
     -- Basics
     occupation,
     height_cm,
+    (SELECT name FROM gender              WHERE id = p.gender_id              AND name != 'Unanswered') AS gender,
     (SELECT name FROM orientation         WHERE id = p.orientation_id         AND name != 'Unanswered') AS orientation,
     (SELECT name FROM looking_for         WHERE id = p.looking_for_id         AND name != 'Unanswered') AS looking_for,
     (SELECT name FROM yes_no_optional     WHERE id = p.smoking_id             AND name != 'Unanswered') AS smoking,
@@ -463,7 +465,7 @@ SELECT
     (SELECT name FROM relationship_status WHERE id = p.relationship_status_id AND name != 'Unanswered') AS relationship_status,
     (SELECT name FROM yes_no_maybe        WHERE id = p.has_kids_id            AND name != 'Unanswered') AS has_kids,
     (SELECT name FROM yes_no_maybe        WHERE id = p.wants_kids_id          AND name != 'Unanswered') AS wants_kids,
-    (SELECT name FROM frequency           WHERE id = p.exercise_id            AND name != 'Unanswered') AS exercise_id,
+    (SELECT name FROM frequency           WHERE id = p.exercise_id            AND name != 'Unanswered') AS exercise,
     (SELECT name FROM religion            WHERE id = p.religion_id            AND name != 'Unanswered') AS religion,
     (SELECT name FROM star_sign           WHERE id = p.star_sign_id           AND name != 'Unanswered') AS star_sign
 FROM
