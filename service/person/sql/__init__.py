@@ -496,3 +496,37 @@ FROM
 WHERE
     id = %(person_id)s
 """
+
+Q_INSERT_BLOCKED = """
+INSERT INTO blocked (
+    subject_person_id,
+    object_person_id
+) VALUES (
+    %(subject_person_id)s,
+    %(object_person_id)s
+) ON CONFLICT DO NOTHING
+"""
+
+Q_DELETE_BLOCKED = """
+DELETE FROM blocked
+WHERE
+    subject_person_id = %(subject_person_id)s AND
+    object_person_id = %(object_person_id)s
+"""
+
+Q_INSERT_HIDDEN = """
+INSERT INTO hidden (
+    subject_person_id,
+    object_person_id
+) VALUES (
+    %(subject_person_id)s,
+    %(object_person_id)s
+) ON CONFLICT DO NOTHING
+"""
+
+Q_DELETE_HIDDEN = """
+DELETE FROM hidden
+WHERE
+    subject_person_id = %(subject_person_id)s AND
+    object_person_id = %(object_person_id)s
+"""

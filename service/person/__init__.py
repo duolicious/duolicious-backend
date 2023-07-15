@@ -532,3 +532,39 @@ def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
         else:
             return '', 404
     return '', 500
+
+def post_block(s: t.SessionInfo, prospect_person_id: int):
+    params = dict(
+        subject_person_id=s.person_id,
+        object_person_id=prospect_person_id,
+    )
+
+    with transaction() as tx:
+        tx.execute(Q_INSERT_BLOCKED, params)
+
+def post_unblock(s: t.SessionInfo, prospect_person_id: int):
+    params = dict(
+        subject_person_id=s.person_id,
+        object_person_id=prospect_person_id,
+    )
+
+    with transaction() as tx:
+        tx.execute(Q_DELETE_BLOCKED, params)
+
+def post_hide(s: t.SessionInfo, prospect_person_id: int):
+    params = dict(
+        subject_person_id=s.person_id,
+        object_person_id=prospect_person_id,
+    )
+
+    with transaction() as tx:
+        tx.execute(Q_INSERT_HIDDEN, params)
+
+def post_unhide(s: t.SessionInfo, prospect_person_id: int):
+    params = dict(
+        subject_person_id=s.person_id,
+        object_person_id=prospect_person_id,
+    )
+
+    with transaction() as tx:
+        tx.execute(Q_DELETE_HIDDEN, params)

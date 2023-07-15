@@ -120,3 +120,19 @@ def get_me_by_id(person_id: int):
 @aget('/prospect-profile/<int:prospect_person_id>')
 def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
     return person.get_prospect_profile(s, prospect_person_id)
+
+@apost('/block/<int:prospect_person_id>')
+def post_block(s: t.SessionInfo, prospect_person_id: int):
+    return person.post_block(s, prospect_person_id)
+
+@apost('/unblock/<int:prospect_person_id>')
+def post_unblock(s: t.SessionInfo, prospect_person_id: int):
+    return person.post_unblock(s, prospect_person_id)
+
+@apost('/hide/<int:prospect_person_id>')
+def post_hide(s: t.SessionInfo, prospect_person_id: int):
+    return person.post_hide(s, prospect_person_id)
+
+@apost('/unhide/<int:prospect_person_id>')
+def post_unhide(s: t.SessionInfo, prospect_person_id: int):
+    return person.post_unhide(s, prospect_person_id)

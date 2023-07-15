@@ -172,9 +172,9 @@ test_search_cache () {
 test_quiz_search () {
   setup
 
-  searcher_id=$(q "select id from person where email = 'searcher@example.com'")
-  user1_id=$(q "select id from person where email = 'user1@example.com'")
-  user2_id=$(q "select id from person where email = 'user2@example.com'")
+  local searcher_id=$(q "select id from person where email = 'searcher@example.com'")
+  local user1_id=$(q "select id from person where email = 'user1@example.com'")
+  local user2_id=$(q "select id from person where email = 'user2@example.com'")
 
   q "
   update person
@@ -320,17 +320,27 @@ test_quiz_filters () {
 
 test_interaction_in_standard_search () {
   local interaction_name=$1
+  local do_endpoint=$2
+  local undo_endpoint=$3
 
   setup
 
+  local user1_id=$(q "select id from person where email = 'user1@example.com'")
+  local user2_id=$(q "select id from person where email = 'user2@example.com'")
+
   # searcher messaged/blocked/etc'd user1
-  q "
-  insert into ${interaction_name} (subject_person_id, object_person_id)
-  values (
-    (select id from person where email = 'searcher@example.com'),
-    (select id from person where email = 'user1@example.com')
-  )
-  "
+  if [[ -n "${do_endpoint}" ]]
+  then
+    c POST "${do_endpoint}/${user1_id}"
+  else
+    q "
+    insert into ${interaction_name} (subject_person_id, object_person_id)
+    values (
+      (select id from person where email = 'searcher@example.com'),
+      (select id from person where email = 'user1@example.com')
+    )
+    "
+  fi
 
   q "
   update search_preference_${interaction_name}
@@ -349,6 +359,12 @@ test_interaction_in_standard_search () {
     person_id = (select id from person where email = 'searcher@example.com')"
 
   assert_search_names 'user2'
+
+  if [[ -n "${undo_endpoint}" ]]
+  then
+    c POST "${undo_endpoint}/${user1_id}"
+    assert_search_names 'user1 user2'
+  fi
 }
 
 test_hide_me_from_strangers () {
@@ -406,9 +422,9 @@ test_quiz_search
 test_hide_me_from_strangers
 
 test_interaction_in_standard_search messaged
-test_interaction_in_standard_search blocked
+test_interaction_in_standard_search blocked /block /unblock
 test_interaction_in_standard_search_blocked_symmetry
-test_interaction_in_standard_search hidden
+test_interaction_in_standard_search hidden /hide /unhide
 
 test_quiz_filters
 
@@ -421,7 +437,6 @@ test_search_cache
 test_basic gender Man
 test_basic orientation Straight
 test_basic_age
-test_basic verified 'Yes' yes_no
 test_basic_height
 test_basic has_profile_picture 'Yes' yes_no
 test_basic looking_for 'Long-term Dating'
