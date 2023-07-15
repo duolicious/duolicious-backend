@@ -465,6 +465,8 @@ SELECT
     ) AS match_percentage,
     about,
     count_answers,
+    EXISTS (SELECT 1 FROM hidden  WHERE subject_person_id = %(person_id)s AND object_person_id = %(prospect_person_id)s) AS is_hidden,
+    EXISTS (SELECT 1 FROM blocked WHERE subject_person_id = %(person_id)s AND object_person_id = %(prospect_person_id)s) AS is_blocked,
 
     -- Basics
     occupation,

@@ -308,10 +308,11 @@ def post_check_session_token(s: t.SessionInfo):
 
     with transaction() as tx:
         row = tx.execute(Q_SELECT_UNITS, params).fetchone()
-        return dict(
-            onboarded=s.onboarded,
-            units=row['units'],
-        )
+        if row:
+            return dict(
+                onboarded=s.onboarded,
+                units=row['units'],
+            )
 
 def post_active(s: t.SessionInfo):
     params = dict(person_id=s.person_id)
