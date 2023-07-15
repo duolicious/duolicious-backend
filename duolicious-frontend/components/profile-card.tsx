@@ -22,6 +22,59 @@ function getRandomInt(max) {
   return Math.floor(Math.random() * max);
 }
 
+const ImageOrSkeleton = ({resolution, imageUuid}) => {
+  return (
+    <>
+      {imageUuid !== undefined &&
+        <Skeleton
+          style={{
+            position: 'absolute',
+            zIndex: -999,
+            width: '100%',
+            height: '100%',
+            borderRadius: 0,
+          }}
+        />
+      }
+      <ImageBackground
+        source={imageUuid && {
+          uri: `${IMAGES_URL}/${resolution}-${imageUuid}.jpg`
+        }}
+        style={{
+          width: '100%',
+          backgroundColor: imageUuid ? undefined : '#ccc',
+          height: undefined,
+          aspectRatio: 1,
+        }}
+      >
+        <LinearGradient
+          colors={[
+            imageUuid ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
+            'transparent',
+            'transparent',
+            'transparent',
+            'transparent',
+            'rgba(0, 0, 0, 0.2)',
+            'rgba(0, 0, 0, 0.4)',
+          ]}
+          style={{
+            height: '100%',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          >
+          {imageUuid === null &&
+            <Ionicons
+              style={{fontSize: 100, color: '#eee'}}
+              name={'person'}
+            />
+          }
+        </LinearGradient>
+      </ImageBackground>
+    </>
+  );
+};
+
 const ProfileCard = ({userName, userAge, matchPercentage, imageUuid, userId, ...rest}) => {
   const navigation = useNavigation<any>();
 
@@ -52,50 +105,7 @@ const ProfileCard = ({userName, userAge, matchPercentage, imageUuid, userId, ...
             ...rest.innerStyle,
           }}
         >
-          {imageUuid &&
-            <Skeleton
-              style={{
-                position: 'absolute',
-                zIndex: -999,
-                width: '100%',
-                height: '100%',
-                borderRadius: 0,
-              }}
-            />
-          }
-          <ImageBackground
-            source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
-            style={{
-              width: '100%',
-              backgroundColor: imageUuid ? undefined : '#ccc',
-              height: undefined,
-              aspectRatio: 1,
-            }}
-          >
-            <LinearGradient
-              colors={[
-                imageUuid ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
-                'transparent',
-                'transparent',
-                'transparent',
-                'transparent',
-                'rgba(0, 0, 0, 0.2)',
-                'rgba(0, 0, 0, 0.4)',
-              ]}
-              style={{
-                height: '100%',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-              >
-              {!imageUuid &&
-                <Ionicons
-                  style={{fontSize: 100, color: '#eee'}}
-                  name={'person'}
-                />
-              }
-            </LinearGradient>
-          </ImageBackground>
+          <ImageOrSkeleton resolution={450} imageUuid={imageUuid}/>
           <UserDetails
             userName={userName}
             userAge={userAge}
@@ -108,36 +118,13 @@ const ProfileCard = ({userName, userAge, matchPercentage, imageUuid, userId, ...
   );
 };
 
-const ProspectProfileCard = (props) => {
+const ProspectProfileCard = ({onPress, imageUuid, numMorePics = 0}) => {
   return (
     <Pressable
-      onPress={props.onPress}
-      style={{
-        width: '100%',
-        ...props.containerStyle,
-      }}
+      onPress={onPress}
+      style={{ width: '100%' }}
     >
-      <ImageBackground
-        source={{uri: `https://randomuser.me/api/portraits/men/${getRandomInt(99)}.jpg`}}
-        style={{
-          width: '100%',
-          height: undefined,
-          aspectRatio: 1,
-        }}
-      >
-        <LinearGradient
-          colors={[
-            'rgba(0, 0, 0, 0.2)',
-            'transparent',
-            'transparent',
-            'rgba(0, 0, 0, 0.2)',
-            'rgba(0, 0, 0, 0.4)',
-          ]}
-          style={{
-            height: '100%',
-          }}
-        />
-      </ImageBackground>
+      <ImageOrSkeleton resolution={900} imageUuid={imageUuid}/>
       <DefaultText
         style={{
           position: 'absolute',
@@ -148,9 +135,10 @@ const ProspectProfileCard = (props) => {
           borderRadius: 999,
           backgroundColor: 'rgba(255, 255, 255, 0.8)',
           fontWeight: '500',
+          opacity: numMorePics === 0 ? 0 : 1,
         }}
       >
-        +3 More Pics
+        +{numMorePics} More Pic{numMorePics === 1 ? '' : 's'}
       </DefaultText>
     </Pressable>
   );

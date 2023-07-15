@@ -126,13 +126,20 @@ const WebSplashScreen = ({loading}) => {
   }
 };
 
-let isSignedIn, setIsSignedIn;
-let referrerId, setReferrerId;
+let isSignedIn: boolean;
+let setIsSignedIn: React.Dispatch<React.SetStateAction<typeof isSignedIn>>;
+
+let referrerId: string | undefined;
+let setReferrerId: React.Dispatch<React.SetStateAction<typeof referrerId>>;
+
+let units: 'Metric' | 'Imperial';
+let setUnits: React.Dispatch<React.SetStateAction<typeof units>>;
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   [referrerId, setReferrerId] = useState<string | undefined>();
   [isSignedIn, setIsSignedIn] = useState(false);
+  [units, setUnits] = useState('Metric');
 
   const loadFonts = useCallback(async () => {
     await Font.loadAsync({
@@ -166,9 +173,13 @@ const App = () => {
     if (existingSessionToken === null) {
       setIsSignedIn(false);
     } else {
-      setIsSignedIn(
-        (await japi('post', '/check-session-token'))?.json?.onboarded ?? false
-      );
+      const response = await japi('post', '/check-session-token');
+      if (response.ok) {
+        setIsSignedIn(Boolean(response?.json?.onboarded));
+        setUnits(response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric');
+      } else {
+        setIsSignedIn(false);
+      }
     }
   }, []);
 
@@ -249,6 +260,7 @@ const App = () => {
 export default App;
 export {
   isSignedIn,
-  setIsSignedIn,
   referrerId,
+  setIsSignedIn,
+  units,
 };

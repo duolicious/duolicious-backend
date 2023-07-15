@@ -192,7 +192,7 @@ const fetchPersonalityPage = (m: number) => async (n: number): Promise<any[]> =>
   return [];
 };
 
-const InDepthScreen = (navigationRef) => ({navigation}) => {
+const InDepthScreen = (navigationRef, userId) => ({navigation}) => {
   if (navigationRef)
     navigationRef.current = navigation;
 

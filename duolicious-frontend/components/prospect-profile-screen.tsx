@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import {
   useCallback,
+  useEffect,
   useRef,
   useState,
 } from 'react';
@@ -23,6 +24,9 @@ import { Shadow } from './shadow';
 import { InDepthScreen } from './in-depth-screen';
 import { SendIntroButtonSpacer } from './send-intro-button-spacer';
 import { ButtonWithCenteredText } from './button/centered-text';
+import { api } from '../api/api';
+import { cmToFeetInchesStr } from '../units/units';
+import { units } from '../App';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
@@ -36,6 +40,7 @@ import { faPersonHalfDress } from '@fortawesome/free-solid-svg-icons/faPersonHal
 import { faVenusMars } from '@fortawesome/free-solid-svg-icons/faVenusMars'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { RotateCcw, X } from "react-native-feather";
+import { IMAGES_URL } from '../env/env';
 
 const Stack = createNativeStackNavigator();
 
@@ -59,8 +64,10 @@ const reasonablePersonN = (n: number) => {
   return [...Array(n).keys()].map(reasonablePerson1).join('').trim();
 };
 
-const goToGallery = (navigation) => () => {
-  navigation.navigate('Gallery Screen');
+const goToGallery = (navigation, imageUuids) => () => {
+  if ((imageUuids ?? []).length > 0) {
+    navigation.navigate('Gallery Screen', { imageUuids } );
+  }
 };
 
 const FloatingBackButton = (props) => {
@@ -165,13 +172,23 @@ const FloatingProfileInteractionButton = ({
   );
 };
 
-const FloatingHideButton = ({navigation}) => {
-  const [isHidden, setIsHidden] = useState(false);
+const FloatingHideButton = ({navigation, userId, isHidden}) => {
+  const [isHiddenState, setIsHiddenState] = useState<
+    boolean | undefined
+  >(isHidden);
+
+  useEffect(() => {
+    setIsHiddenState(isHidden);
+  }, [isHidden]);
 
   const onPress = useCallback(() => {
-    setIsHidden(isHidden => !isHidden);
-    navigation.goBack();
-  }, []);
+    setIsHiddenState(!isHiddenState);
+
+    if (isHiddenState === true ) api('post', `/unhide/${userId}`);
+    if (isHiddenState === false) api('post', `/hide/${userId}`);
+
+    if (isHiddenState === false) navigation.goBack();
+  }, [isHiddenState]);
 
   return (
     <FloatingProfileInteractionButton
@@ -179,14 +196,14 @@ const FloatingHideButton = ({navigation}) => {
       onPress={onPress}
       backgroundColor="white"
     >
-      {isHidden && <RotateCcw
+      {isHiddenState === true && <RotateCcw
           stroke="#70f"
           strokeWidth={3}
           height={24}
           width={24}
         />
       }
-      {!isHidden && <X
+      {isHiddenState === false && <X
           stroke="#70f"
           strokeWidth={3}
           height={24}
@@ -197,7 +214,7 @@ const FloatingHideButton = ({navigation}) => {
   );
 };
 
-const FloatingSendIntroButton = ({navigation}) => {
+const FloatingSendIntroButton = ({navigation, userId}) => {
   const onPress = useCallback(() => {
     navigation.navigate('Conversation Screen')
   }, [navigation]);
@@ -217,7 +234,7 @@ const FloatingSendIntroButton = ({navigation}) => {
   );
 };
 
-const SeeQAndAButton = ({navigation, name}) => {
+const SeeQAndAButton = ({navigation, name, countAnswers}) => {
   const containerStyle = useRef({
     marginTop: 40,
     marginLeft: 10,
@@ -248,7 +265,11 @@ const SeeQAndAButton = ({navigation, name}) => {
     navigation.navigate('In-Depth');
   }, []);
 
-  const determiner = name.endsWith('s') ? "'" : "'s";
+  const determiner = String(name).endsWith('s') ? "'" : "'s";
+
+  if (!countAnswers) {
+    return <></>;
+  }
 
   return (
     <ButtonWithCenteredText
@@ -256,26 +277,34 @@ const SeeQAndAButton = ({navigation, name}) => {
       textStyle={textStyle}
       onPress={onPress}
       extraChildren={extraChildren}
+      loading={name === undefined}
     >
-      {name}{determiner} Q&A Answers (342)
+      {name}{determiner} Q&A Answers ({countAnswers})
     </ButtonWithCenteredText>
   );
 };
 
-const BlockButton = () => {
-  const [blocked, setBlocked] = useState(false);
+const BlockButton = ({name, userId, isBlocked}) => {
+  const [isBlockedState, setIsBlockedState] = useState(false);
 
-  const toggleBlocked = () => {
-    setBlocked(blocked => !blocked);
-  };
+  useEffect(() => {
+    setIsBlockedState(isBlocked);
+  }, [isBlocked]);
 
-  const text = blocked
-    ? 'You have blocked and reported Rahim. Press to unblock Rahim.' :
-    'Block and report Rahim';
+  const onPress = useCallback(() => {
+    setIsBlockedState(!isBlockedState);
+
+    if (isBlockedState === true ) api('post', `/unblock/${userId}`);
+    if (isBlockedState === false) api('post', `/block/${userId}`);
+  }, [isBlockedState]);
+
+  const text = isBlockedState
+    ? `You have blocked and reported ${name}. Press to unblock ${name}.` :
+    `Block and report ${name}`;
 
   return (
     <Pressable
-      onPress={toggleBlocked}
+      onPress={onPress}
       style={{
         marginTop: 20,
         marginBottom: 20,
@@ -289,7 +318,7 @@ const BlockButton = () => {
           overflow: 'hidden',
         }}
       >
-        {text}
+        {name === undefined ? '...' : text}
       </DefaultText>
     </Pressable>
   );
@@ -312,6 +341,7 @@ const Columns = ({children, ...rest}) => {
 
 const ProspectProfileScreen = ({navigation, route}) => {
   const navigationRef = useRef(undefined);
+  const userId = route.params.userId;
 
   return (
     <>
@@ -322,8 +352,8 @@ const ProspectProfileScreen = ({navigation, route}) => {
           animation: 'slide_from_right',
         }}
       >
-        <Stack.Screen name="Prospect Profile" component={Content(navigationRef)} />
-        <Stack.Screen name="In-Depth" component={InDepthScreen(navigationRef)} />
+        <Stack.Screen name="Prospect Profile" component={Content(navigationRef, userId)} />
+        <Stack.Screen name="In-Depth" component={InDepthScreen(navigationRef, userId)} />
       </Stack.Navigator>
       <View
         style={{
@@ -342,23 +372,86 @@ const ProspectProfileScreen = ({navigation, route}) => {
   );
 };
 
-const Content = (navigationRef) => ({navigation, ...props}) => {
+type UserData = {
+  name: string,
+  about: string,
+  gender: string,
+  match_percentage: number,
+  count_answers: number,
+  photo_uuids: string[],
+  age: number | null,
+  location: string | null
+  drinking: string | null,
+  drugs: string | null,
+  exercise: string | null,
+  has_kids: string | null,
+  height_cm: number | null,
+  long_distance: string | null,
+  looking_for: string | null,
+  occupation: string | null,
+  orientation: string | null,
+  relationship_status: string | null,
+  religion: string | null,
+  smoking: string | null,
+  star_sign: string | null,
+  wants_kids: string | null,
+  is_hidden: boolean,
+  is_blocked: boolean,
+};
+
+const Content = (navigationRef, userId) => ({navigation, ...props}) => {
   navigationRef.current = navigation;
+
+  const [data, setData] = useState<UserData | undefined>(undefined);
+
+  useEffect(() => {
+    setData(undefined);
+    (async () => {
+      const response = await api('get', `/prospect-profile/${userId}`);
+      setData(response?.json);
+    })();
+  }, [userId]);
+
+  const imageUuid = data === undefined ?
+    undefined :
+    data.photo_uuids.length === 0 ?
+    null :
+    data.photo_uuids[0];
+
+  const imageUuids = data?.photo_uuids === undefined ?
+    undefined :
+    data.photo_uuids;
+
+  const numMorePics = Math.max(0, (imageUuids ?? []).length - 1);
 
   return (
     <>
       <ScrollView
         contentContainerStyle={{
+          width: '100%',
           maxWidth: 600,
           alignSelf: 'center',
         }}
       >
         <ProspectProfileCard
-          onPress={goToGallery(navigation)}
+          onPress={goToGallery(navigation, imageUuids)}
+          imageUuid={imageUuid}
+          numMorePics={numMorePics}
         />
-        <ProspectUserDetails navigation={navigation}/>
+        <ProspectUserDetails
+          navigation={navigation}
+          userId={userId}
+          name={data?.name}
+          age={data?.age}
+          matchPercentage={data?.match_percentage}
+          userLocation={data?.location}
+        />
         <Shadow/>
-        <Body navigation={navigation}/>
+        <Body
+          navigation={navigation}
+          userId={userId}
+          data={data}
+        />
         <SendIntroButtonSpacer/>
       </ScrollView>
       <View
@@ -375,14 +468,25 @@ const Content = (navigationRef) => ({navigation, ...props}) => {
         }}
         pointerEvents="box-none"
       >
-        <FloatingHideButton navigation={navigation} />
-        <FloatingSendIntroButton navigation={navigation} />
+        <FloatingHideButton navigation={navigation} userId={userId} isHidden={data?.is_hidden}/>
+        <FloatingSendIntroButton navigation={navigation} userId={userId} />
       </View>
     </>
   );
 };
 
-const ProspectUserDetails = ({navigation}) => {
+const ProspectUserDetails = ({
+  navigation,
+  userId,
+  name,
+  age,
+  matchPercentage,
+  userLocation,
+}) => {
+  const onPressDonutChart = useCallback(() => {
+    navigation.navigate('In-Depth', { userId });
+  }, [userId]);
+
   return (
     <View
       style={{
@@ -403,19 +507,23 @@ const ProspectUserDetails = ({navigation}) => {
             fontSize: 24,
           }}
         >
-          Rahim, 19
+          {[
+            name,
+            age,
+          ].filter(Boolean).join(', ')}
         </DefaultText>
-        <DefaultText>Paris, France</DefaultText>
+        <DefaultText>{userLocation ?? ''}</DefaultText>
       </View>
       <DonutChart
-        percentage={50}
-        onPress={() => navigation.navigate('In-Depth')}
+        percentage={matchPercentage}
+        onPress={onPressDonutChart}
       >
         <DefaultText
           style={{
             paddingBottom: 5,
             fontWeight: '500',
             fontSize: 10,
+            opacity: matchPercentage === undefined ? 0 : 1,
           }}
         >
           See Why ›
@@ -488,7 +596,15 @@ const Basics = ({children}) => {
 
 
 
-const Body = ({navigation}) => {
+const Body = ({
+  navigation,
+  userId,
+  data,
+}: {
+  navigation: any,
+  userId: number,
+  data: UserData | undefined,
+}) => {
   return (
     <>
       <View
@@ -500,32 +616,81 @@ const Body = ({navigation}) => {
       >
         <Title>Summary</Title>
         <Basics>
-          <Basic icon={faVenusMars}>Man</Basic>
-          <Basic icon="person">Gay</Basic>
-          <Basic icon="heart">Single</Basic>
-          <Basic icon="people">Doesn't have kids</Basic>
-          <Basic icon="people">Doesn't want kids</Basic>
-          <Basic icon="eye">Looking for friends</Basic>
-          <Basic icon={faSmoking}>Doesn't smoke</Basic>
-          <Basic icon="wine">Doesn't drink</Basic>
-          <Basic icon={faPills}>Doesn't do drugs</Basic>
-          <Basic icon="school">MIT</Basic>
-          <Basic icon={faHandsPraying}>Christian</Basic>
-          <Basic icon={faRulerVertical}>179 cm</Basic>
-          <Basic icon="briefcase">Professional Walnut Milker</Basic>
+          {data?.gender &&
+            <Basic icon={faVenusMars}>{data.gender}</Basic>}
+
+          {data?.orientation &&
+            <Basic icon="person">{data.orientation}</Basic>}
+
+          {data?.relationship_status &&
+            <Basic icon="heart">{data.relationship_status}</Basic>}
+
+          {data?.occupation &&
+            <Basic icon="briefcase">{data.occupation}</Basic>}
+
+          {data?.has_kids === 'Yes' &&
+            <Basic icon="people">Has Kids</Basic>}
+          {data?.has_kids === 'No' &&
+            <Basic icon="people">Doesn't have Kids</Basic>}
+
+          {data?.wants_kids === 'Yes' &&
+            <Basic icon="people">Wants Kids</Basic>}
+          {data?.wants_kids === 'No' &&
+            <Basic icon="people">Doesn't want Kids</Basic>}
+
+          {data?.looking_for &&
+            <Basic icon="eye">Looking for {data.looking_for}</Basic>}
+
+          {data?.smoking === 'Yes' &&
+            <Basic icon={faSmoking}>Smokes</Basic>}
+          {data?.smoking === 'No' &&
+            <Basic icon={faSmoking}>Doesn't Smoke</Basic>}
+
+          {data?.drinking &&
+            <Basic icon="wine">{data.drinking} drinks</Basic>}
+
+          {data?.drugs === 'Yes' &&
+            <Basic icon={faPills}>Does Drugs</Basic>}
+          {data?.drugs === 'No' &&
+            <Basic icon={faPills}>Doesn't do Drugs</Basic>}
+
+          {data?.religion &&
+            <Basic icon={faHandsPraying}>{data.religion}</Basic>}
+
+          {data?.long_distance === 'Yes' &&
+            <Basic icon="globe">Open to Long Distance</Basic>}
+          {data?.long_distance === 'No' &&
+            <Basic icon="globe">Not Open to Long Distance</Basic>}
+
+          {data?.star_sign &&
+            <Basic icon="star">{data.star_sign}</Basic>}
+
+          {data?.exercise &&
+            <Basic icon="barbell">{data.exercise} Exercises</Basic>}
+
+          {data?.height_cm && units === 'Metric' &&
+            <Basic icon={faRulerVertical}>{data.height_cm} cm</Basic>}
+          {data?.height_cm && units === 'Imperial' &&
+            <Basic icon={faRulerVertical}>{cmToFeetInchesStr(data.height_cm)}</Basic>}
         </Basics>
-        <Title>About Rahim</Title>
+        <Title>About {data?.name ?? '...'}</Title>
         <DefaultText>
-          {reasonablePersonN(2)}
+          {data?.about ?? '...'}
         </DefaultText>
-        <SeeQAndAButton navigation={navigation} name="Rahim"/>
-        <BlockButton/>
+        <SeeQAndAButton
+          navigation={navigation}
+          name={data?.name}
+          countAnswers={data?.count_answers}
+        />
+        <BlockButton name={data?.name} userId={userId} isBlocked={data?.is_blocked} />
       </View>
     </>
   );
 };
 
-const GalleryScreen = ({navigation}) => {
+const GalleryScreen = ({navigation, route}) => {
+  const imageUuids = route.params.imageUuids;
+
   return (
     <>
       <View
@@ -537,14 +702,11 @@ const GalleryScreen = ({navigation}) => {
         }}
       >
         <ImageViewer
-          imageUrls={[
-            {
-              url: `https://randomuser.me/api/portraits/men/${getRandomInt(99)}.jpg`,
-            },
-            {
-              url: `https://randomuser.me/api/portraits/men/${getRandomInt(99)}.jpg`,
-            },
-          ]}
+          imageUrls={
+            imageUuids.map(imageUuid => ({
+              url: `${IMAGES_URL}/original-${imageUuid}.jpg`
+            })
+          )}
           saveToLocalByLongPress={false}
         />
       </View>
