@@ -267,6 +267,12 @@ CREATE TABLE IF NOT EXISTS trait (
     UNIQUE (name)
 );
 
+CREATE TABLE IF NOT EXISTS trait_topic (
+    trait_id SMALLINT NOT NULL REFERENCES trait(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    name TEXT,
+    PRIMARY KEY (trait_id, name)
+);
+
 --------------------------------------------------------------------------------
 -- TABLES TO CONNECT PEOPLE TO THEIR SEARCH PREFERENCES
 --------------------------------------------------------------------------------
@@ -829,6 +835,94 @@ INSERT INTO trait (name, description, min_label, max_label) VALUES (
     NULL,
     NULL
 ) ON CONFLICT (name) DO NOTHING;
+
+
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'MBTI' FROM trait WHERE name = 'Introversion/Extraversion'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'MBTI' FROM trait WHERE name = 'Thinking/Feeling'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'MBTI' FROM trait WHERE name = 'Sensing/Intuition'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'MBTI' FROM trait WHERE name = 'Judging/Perceiving'
+ON CONFLICT DO NOTHING;
+
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'Big 5' FROM trait WHERE name = 'Openness to Experience'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'Big 5' FROM trait WHERE name = 'Conscientiousness'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'Big 5' FROM trait WHERE name = 'Introversion/Extraversion'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'Big 5' FROM trait WHERE name = 'Agreeableness'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'Big 5' FROM trait WHERE name = 'Neuroticism'
+ON CONFLICT DO NOTHING;
+
+
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'Politics' FROM trait WHERE name = 'Individualism/Collectivism'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'Politics' FROM trait WHERE name = 'Libertarianism/Authoritarianism'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'Politics' FROM trait WHERE name = 'Environmentalism/Anthropocentrism'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'Politics' FROM trait WHERE name = 'Isolationism/Internationalism'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'Politics' FROM trait WHERE name = 'Security/Freedom'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'Politics' FROM trait WHERE name = 'Non-interventionism/Interventionism'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'Politics' FROM trait WHERE name = 'Equity/Meritocracy'
+ON CONFLICT DO NOTHING;
+
+
+
+INSERT INTO trait_topic
+SELECT
+    trait.id,
+    'Other'
+FROM
+    trait
+WHERE
+    id NOT IN (
+        SELECT
+            trait_id
+        FROM
+            trait_topic
+        WHERE
+            name IN ('MBTI', 'Big 5', 'Attachment', 'Politics')
+    )
+ON CONFLICT DO NOTHING;
 
 --------------------------------------------------------------------------------
 -- FUNCTIONS (2)

@@ -77,36 +77,46 @@ WHERE
     id = %(question_id)s
 """
 
-Q_SELECT_ME_1 = """
-SELECT id, name
-FROM person
-WHERE id = %(person_id)s
-"""
-
-Q_SELECT_ME_2 = """
+Q_SELECT_PERSONALITY = """
 SELECT
-    trait.id AS trait_id,
-    trait.name,
-    trait.min_label,
-    trait.max_label,
-    trait.description,
-    ROUND(100 * t2.ratio)::SMALLINT AS percentage,
-    COALESCE(t2.ratio, -1) AS position
+    *
 FROM (
-    SELECT
-        (trait_ratio(presence_score, absence_score, 5000)).*
-    FROM
-        person
-    WHERE
-        id = %(person_id)s
-) AS t2
-JOIN
-    trait
-ON
-    t2.trait_id = trait.id
+    SELECT DISTINCT ON (person_id, trait_id)
+        t2.id AS person_id,
+        t2.name AS person_name,
+        t2.trait_id AS trait_id,
+        ROUND(100 * t2.ratio)::SMALLINT AS percentage,
+        COALESCE(t2.ratio , -1) * (%(topic)s IS NULL)::INT AS position,
+        trait.name AS trait_name,
+        trait.min_label,
+        trait.max_label,
+        trait.description
+    FROM (
+        SELECT
+            id,
+            name,
+            (trait_ratio(presence_score, absence_score, 5000)).*
+        FROM
+            person
+        WHERE
+            id = ANY(%(person_ids)s)
+    ) AS t2
+    JOIN
+        trait
+    ON
+        t2.trait_id = trait.id
+    JOIN
+        trait_topic
+    ON
+        trait_topic.trait_id = t2.trait_id AND
+        (
+            trait_topic.name = %(topic)s OR
+            %(topic)s IS NULL
+        )
+) AS t1
 ORDER BY
-    position
-DESC
+    t1.position DESC,
+    t1.trait_name ASC
 """
 
 Q_INSERT_DUO_SESSION = """

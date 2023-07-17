@@ -493,32 +493,32 @@ def post_finish_onboarding(s: t.SessionInfo):
             return dict(units=row['units'])
 
 def get_me(person_id: int):
-    params = dict(person_id=person_id)
+    params = dict(
+        person_ids=[person_id],
+        topic=None,
+    )
 
     with transaction('READ COMMITTED') as tx:
-        person = \
-            tx.execute(Q_SELECT_ME_1, params).fetchone()
-        personality = \
-            tx.execute(Q_SELECT_ME_2, params).fetchall()
+        personality = tx.execute(Q_SELECT_PERSONALITY, params).fetchall()
 
-        try:
-            return {
-                'name': person['name'],
-                'person_id': person['id'],
-                'personality': [
-                    {
-                        'trait_id': trait['trait_id'],
-                        'name': trait['name'],
-                        'min_label': trait['min_label'],
-                        'max_label': trait['max_label'],
-                        'description': trait['description'],
-                        'percentage': trait['percentage'],
-                    }
-                    for trait in personality
-                ]
-            }
-        except:
-            return '', 404
+    try:
+        return {
+            'name': personality[0]['person_name'],
+            'person_id': person_id,
+            'personality': [
+                {
+                    'trait_id': trait['trait_id'],
+                    'name': trait['trait_name'],
+                    'min_label': trait['min_label'],
+                    'max_label': trait['max_label'],
+                    'description': trait['description'],
+                    'percentage': trait['percentage'],
+                }
+                for trait in personality
+            ]
+        }
+    except:
+        return '', 404
 
 def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
     params = dict(
@@ -526,7 +526,7 @@ def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
         prospect_person_id=prospect_person_id,
     )
 
-    with transaction() as tx:
+    with transaction('READ COMMITTED') as tx:
         row = tx.execute(Q_SELECT_PROSPECT_PROFILE, params).fetchone()
         if row:
             return row
@@ -569,3 +569,69 @@ def post_unhide(s: t.SessionInfo, prospect_person_id: int):
 
     with transaction() as tx:
         tx.execute(Q_DELETE_HIDDEN, params)
+
+def get_personality_comparison(
+    s: t.SessionInfo,
+    prospect_person_id: int,
+    topic: str
+):
+    url_topic_to_db_topic = {
+        'mbti': 'MBTI',
+        'big5': 'Big 5',
+        'attachment': 'Attachment',
+        'politics': 'Politics',
+        'other': 'Other',
+    }
+
+    if topic not in url_topic_to_db_topic:
+        return 'Topic not found', 404
+
+    db_topic = url_topic_to_db_topic[topic]
+
+    params = dict(
+        person_ids=[s.person_id, prospect_person_id],
+        topic=db_topic,
+    )
+
+    with transaction('READ COMMITTED') as tx:
+        rows = tx.execute(Q_SELECT_PERSONALITY, params).fetchall()
+
+    you_rows = [
+            row for row in rows if row['person_id'] == s.person_id]
+    prospect_rows = [
+            row for row in rows if row['person_id'] == prospect_person_id]
+
+    def rows_to_personality(you_row, prospect_row):
+        assert you_row['trait_name'] == prospect_row['trait_name']
+        assert you_row['min_label'] == prospect_row['min_label']
+        assert you_row['max_label'] == prospect_row['max_label']
+        assert you_row['description'] == prospect_row['description']
+
+        return {
+            'name1': 'You',
+            'percentage1': you_row['percentage'],
+
+            'name2': prospect_row['person_name'],
+            'percentage2': prospect_row['percentage'],
+
+            'name': (
+                you_row['trait_name'] if
+                topic != 'big5' else
+                you_row['trait_name'].replace(
+                    'Introversion/Extraversion',
+                    'Extraversion'
+                )
+            ),
+            'min_label': you_row['min_label'] if topic != 'big5' else None,
+            'max_label': you_row['max_label'] if topic != 'big5' else None,
+
+            'description': you_row['description'],
+        }
+
+    try:
+        return [
+            rows_to_personality(you_row, prospect_row)
+            for you_row, prospect_row in zip(you_rows, prospect_rows)
+        ]
+    except:
+        return '', 404

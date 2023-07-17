@@ -136,3 +136,15 @@ def post_hide(s: t.SessionInfo, prospect_person_id: int):
 @apost('/unhide/<int:prospect_person_id>')
 def post_unhide(s: t.SessionInfo, prospect_person_id: int):
     return person.post_unhide(s, prospect_person_id)
+
+@aget(
+    '/personality-comparison'
+    '/<int:prospect_person_id>'
+    '/<any(mbti, big5, attachment, politics, other):topic>'
+)
+def get_personality_comparison(
+    s: t.SessionInfo,
+    prospect_person_id: int,
+    topic: str
+):
+    return person.get_personality_comparison(s, prospect_person_id, topic)

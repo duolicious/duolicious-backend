@@ -113,19 +113,19 @@ GET /prospect-profile/<person-id> {
   about: "I'm a reasonable..."
 }
 
-GET /prospect-personality/<person-id>/('mbti' | 'big-5' | 'attachment' | 'politics' | 'other') {
-  session-token
-} -> {
-  ...
-}
-
 POST /block/<person-id> { session-token }
 POST /unblock/<person-id> { session-token }
 
 POST /hide/<person-id> { session-token }
 POST /unhide/<person-id> { session-token }
 
-GET /prospect-answers/<person-id> {
+GET /personality-comparison/<person-id>/('mbti' | 'big5' | 'attachment' | 'politics' | 'other') {
+  session-token
+} -> {
+  ...
+}
+
+GET /answer-comparison/<person-id> {
   session-token
 } {
   page-number
