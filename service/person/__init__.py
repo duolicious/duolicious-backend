@@ -578,7 +578,7 @@ def get_personality_comparison(
     url_topic_to_db_topic = {
         'mbti': 'MBTI',
         'big5': 'Big 5',
-        'attachment': 'Attachment',
+        'attachment': 'Attachment Style',
         'politics': 'Politics',
         'other': 'Other',
     }

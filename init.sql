@@ -855,6 +855,7 @@ SELECT id, 'MBTI' FROM trait WHERE name = 'Judging/Perceiving'
 ON CONFLICT DO NOTHING;
 
 
+
 INSERT INTO trait_topic (trait_id, name)
 SELECT id, 'Big 5' FROM trait WHERE name = 'Openness to Experience'
 ON CONFLICT DO NOTHING;
@@ -873,6 +874,16 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO trait_topic (trait_id, name)
 SELECT id, 'Big 5' FROM trait WHERE name = 'Neuroticism'
+ON CONFLICT DO NOTHING;
+
+
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'Attachment Style' FROM trait WHERE name = 'Anxious Attachment'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO trait_topic (trait_id, name)
+SELECT id, 'Attachment Style' FROM trait WHERE name = 'Avoidant Attachment'
 ON CONFLICT DO NOTHING;
 
 
