@@ -138,13 +138,24 @@ def post_unhide(s: t.SessionInfo, prospect_person_id: int):
     return person.post_unhide(s, prospect_person_id)
 
 @aget(
-    '/personality-comparison'
+    '/compare-personalities'
     '/<int:prospect_person_id>'
     '/<any(mbti, big5, attachment, politics, other):topic>'
 )
-def get_personality_comparison(
+def get_compare_personalities(
     s: t.SessionInfo,
     prospect_person_id: int,
     topic: str
 ):
-    return person.get_personality_comparison(s, prospect_person_id, topic)
+    return person.get_compare_personalities(s, prospect_person_id, topic)
+
+@aget('/compare-answers/<int:prospect_person_id>')
+def get_compare_answers(s: t.SessionInfo, prospect_person_id: int):
+    return person.get_compare_answers(
+        s,
+        prospect_person_id,
+        agreement=request.args.get('agreement'),
+        topic=request.args.get('topic'),
+        n=request.args.get('n', '10'),
+        o=request.args.get('o', '0'),
+    )

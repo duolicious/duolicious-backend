@@ -570,7 +570,7 @@ def post_unhide(s: t.SessionInfo, prospect_person_id: int):
     with transaction() as tx:
         tx.execute(Q_DELETE_HIDDEN, params)
 
-def get_personality_comparison(
+def get_compare_personalities(
     s: t.SessionInfo,
     prospect_person_id: int,
     topic: str
@@ -635,3 +635,42 @@ def get_personality_comparison(
         ]
     except:
         return '', 404
+
+def get_compare_answers(
+    s: t.SessionInfo,
+    prospect_person_id: int,
+    agreement: Optional[str],
+    topic: Optional[str],
+    n: Optional[str],
+    o: Optional[str],
+):
+    valid_agreements = ['all', 'agree', 'disagree', 'unanswered']
+    valid_topics = ['all', 'values', 'sex', 'interpersonal', 'other']
+
+    if agreement not in valid_agreements:
+        return 'Invalid agreement', 400
+
+    if topic not in valid_topics:
+        return 'Invalid topic', 400
+
+    try:
+        n_int = int(n)
+    except:
+        return 'Invalid n', 400
+
+    try:
+        o_int = int(o)
+    except:
+        return 'Invalid o', 400
+
+    params = dict(
+        person_id=s.person_id,
+        prospect_person_id=prospect_person_id,
+        agreement=agreement.capitalize(),
+        topic=topic.capitalize(),
+        n=n,
+        o=o,
+    )
+
+    with transaction('READ COMMITTED') as tx:
+        return tx.execute(Q_ANSWER_COMPARISON, params).fetchall()

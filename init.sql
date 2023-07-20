@@ -255,6 +255,7 @@ CREATE TABLE IF NOT EXISTS answer (
     question_id SMALLINT NOT NULL REFERENCES question(id) ON DELETE CASCADE ON UPDATE CASCADE,
     answer BOOLEAN,
     public_ BOOLEAN NOT NULL,
+
     PRIMARY KEY (person_id, question_id)
 );
 
@@ -464,6 +465,7 @@ CREATE INDEX IF NOT EXISTS idx__search_for_quiz_prospects__coordinates ON search
 CREATE INDEX IF NOT EXISTS idx__search_for_standard_prospects__coordinates ON search_for_standard_prospects USING GIST(coordinates);
 
 CREATE INDEX IF NOT EXISTS idx__answer__question_id ON answer(question_id);
+CREATE INDEX IF NOT EXISTS idx__answer__person_id_public_answer ON answer(person_id, public_, answer);
 
 CREATE INDEX IF NOT EXISTS idx__duo_session__email ON duo_session(email);
 

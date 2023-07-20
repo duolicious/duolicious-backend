@@ -1,8 +1,11 @@
 from contextlib import contextmanager
 from psycopg_pool import ConnectionPool
-import psycopg
 from typing import Any, ContextManager
 import os
+import psycopg
+import random
+import threading
+import time
 
 DB_HOST = os.environ['DUO_DB_HOST']
 DB_PORT = os.environ['DUO_DB_PORT']
@@ -32,7 +35,7 @@ _conninfo = psycopg.conninfo.make_conninfo(
     ),
 )
 
-pool = ConnectionPool(_conninfo)
+pool = ConnectionPool(_conninfo, min_size=2, max_size=2)
 
 def transaction(
     isolation_level=_default_transaction_isolation
@@ -46,15 +49,11 @@ def transaction(
             pool.connection() as conn,
             conn.cursor(row_factory=psycopg.rows.dict_row) as cur
         ):
-            try:
-                if isolation_level != _default_transaction_isolation:
-                    cur.execute(
-                        f'SET TRANSACTION ISOLATION LEVEL {isolation_level}'
-                    )
-                yield cur
-            except psycopg.OperationalError as e:
-                print('Error while starting transaction:', e)
-                pool.check()
+            if isolation_level != _default_transaction_isolation:
+                cur.execute(
+                    f'SET TRANSACTION ISOLATION LEVEL {isolation_level}'
+                )
+            yield cur
 
     return generator_function()
 
@@ -66,3 +65,10 @@ def fetchall_sets(tx: psycopg.Cursor[Any]):
         if nextset is None:
             break
     return result
+
+def check_connections_repeatedly():
+    while True:
+        pool.check()
+        time.sleep(60 + random.randint(-30, 30))
+
+threading.Thread(target=check_connections_repeatedly, daemon=True).start()

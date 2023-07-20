@@ -542,3 +542,63 @@ WHERE
     subject_person_id = %(subject_person_id)s AND
     object_person_id = %(object_person_id)s
 """
+
+Q_ANSWER_COMPARISON = """
+WITH prospect_name AS(
+    SELECT name FROM person WHERE id = %(prospect_person_id)s
+), person_name AS(
+    SELECT name FROM person WHERE id = %(person_id)s
+)
+SELECT
+    prospect_answer.person_id AS prospect_person_id,
+    (SELECT name FROM prospect_name) AS prospect_name,
+    prospect_answer.answer AS prospect_answer,
+    person_answer.person_id AS person_id,
+    (SELECT name FROM person_name) AS person_name,
+    person_answer.answer AS person_answer,
+    person_answer.public_ AS person_public_,
+    question.id AS question_id,
+    question.question AS question,
+    question.topic AS topic
+FROM (
+    SELECT
+        person_id,
+        question_id,
+        answer.answer
+    FROM
+        answer
+    JOIN
+        question ON
+        question.id = answer.question_id AND
+        (question.topic = %(topic)s OR %(topic)s = 'All') AND
+        answer.person_id = %(prospect_person_id)s AND
+        answer.public_ = TRUE AND
+        answer.answer IS NOT NULL
+) AS prospect_answer
+JOIN
+    question ON
+    question.id = prospect_answer.question_id
+LEFT JOIN
+    answer AS person_answer ON
+    person_answer.person_id = %(person_id)s AND
+    person_answer.question_id = prospect_answer.question_id
+WHERE
+    (
+        %(agreement)s != 'Agree' OR
+        person_answer.answer IS NOT NULL AND
+        prospect_answer.answer IS NOT NULL AND
+        person_answer.answer = prospect_answer.answer
+    ) AND (
+        %(agreement)s != 'Disagree' OR
+        person_answer.answer IS NOT NULL AND
+        prospect_answer.answer IS NOT NULL AND
+        person_answer.answer != prospect_answer.answer
+    ) AND (
+        %(agreement)s != 'Unanswered' OR
+        person_answer.answer IS NULL
+    )
+ORDER BY
+    question.id
+LIMIT %(n)s
+OFFSET %(o)s
+"""

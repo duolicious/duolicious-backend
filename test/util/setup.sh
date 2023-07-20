@@ -71,6 +71,10 @@ q () {
     | trim
 }
 
+j_assert_length () {
+  [[ "$(echo "$1" | jq length)" -eq "$2" ]]
+}
+
 rand_image () {
   local characters=({a..z} {A..Z} {0..9})
 

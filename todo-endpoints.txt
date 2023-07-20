@@ -119,13 +119,13 @@ POST /unblock/<person-id> { session-token }
 POST /hide/<person-id> { session-token }
 POST /unhide/<person-id> { session-token }
 
-GET /personality-comparison/<person-id>/('mbti' | 'big5' | 'attachment' | 'politics' | 'other') {
+GET /compare-personalities/<person-id>/('mbti' | 'big5' | 'attachment' | 'politics' | 'other') {
   session-token
 } -> {
   ...
 }
 
-GET /answer-comparison/<person-id> {
+GET /compare-answers/<person-id> {
   session-token
 } {
   page-number
@@ -142,10 +142,6 @@ GET /answer-comparison/<person-id> {
     public
   }
 ]
-
-POST /active {
-  session-token
-}
 
 POST /search-filter {
   session-token
@@ -224,5 +220,9 @@ POST /deactivate {
 }
 
 POST /delete-account {
+  session-token
+}
+
+POST /active {
   session-token
 }
