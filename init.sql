@@ -218,7 +218,7 @@ CREATE TABLE IF NOT EXISTS duo_session (
     otp TEXT NOT NULL,
     signed_in BOOLEAN NOT NULL DEFAULT FALSE,
     session_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '6 months'),
-    otp_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '3 minutes'),
+    otp_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '10 minutes'),
     PRIMARY KEY (session_token_hash)
 );
 
