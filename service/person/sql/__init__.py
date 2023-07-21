@@ -137,7 +137,7 @@ Q_UPDATE_OTP = """
 UPDATE duo_session
 SET
     otp = %(otp)s,
-    otp_expiry = NOW() + INTERVAL '1 minute'
+    otp_expiry = NOW() + INTERVAL '10 minutes'
 WHERE session_token_hash = %(session_token_hash)s
 """
 
