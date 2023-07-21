@@ -113,19 +113,19 @@ GET /prospect-profile/<person-id> {
   about: "I'm a reasonable..."
 }
 
-GET /prospect-personality/<person-id>/('mbti' | 'big-5' | 'attachment' | 'politics' | 'other') {
-  session-token
-} -> {
-  ...
-}
-
 POST /block/<person-id> { session-token }
 POST /unblock/<person-id> { session-token }
 
 POST /hide/<person-id> { session-token }
 POST /unhide/<person-id> { session-token }
 
-GET /prospect-answers/<person-id> {
+GET /compare-personalities/<person-id>/('mbti' | 'big5' | 'attachment' | 'politics' | 'other') {
+  session-token
+} -> {
+  ...
+}
+
+GET /compare-answers/<person-id> {
   session-token
 } {
   page-number
@@ -142,10 +142,6 @@ GET /prospect-answers/<person-id> {
     public
   }
 ]
-
-POST /active {
-  session-token
-}
 
 POST /search-filter {
   session-token
@@ -224,5 +220,9 @@ POST /deactivate {
 }
 
 POST /delete-account {
+  session-token
+}
+
+POST /active {
   session-token
 }
