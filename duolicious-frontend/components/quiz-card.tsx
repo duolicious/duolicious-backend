@@ -20,10 +20,9 @@ import { StackActions } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Check, FastForward } from "react-native-feather";
 import { Skeleton } from '@rneui/themed';
-
-function getRandomInt(max) {
-  return Math.floor(Math.random() * max);
-}
+import { japi } from '../api/api';
+import { quizQueue } from '../api/queue';
+import { markTraitDataDirty } from './traits-tab';
 
 const cardBorders = {
   borderRadius: 10,
@@ -512,40 +511,103 @@ const AnswerIconGroup = ({answer, enabled}) => {
         flexDirection: 'row',
       }}
     >
-      <AnswerIcon answer="no" selected={answer === "no"} enabled={enabled}/>
+      <AnswerIcon answer="no" selected={answer === false} enabled={enabled}/>
       <DefaultText> </DefaultText>
-      <AnswerIcon answer="yes" selected={answer=== "yes"} enabled={enabled}/>
+      <AnswerIcon answer="yes" selected={answer === true} enabled={enabled}/>
     </View>
   );
 };
 
-const nextAnswer = (thisAnswer: string | undefined) => {
-  if (thisAnswer === "yes") return "no";
-  if (thisAnswer === "no") return undefined;
-  if (thisAnswer === undefined) return "yes"
+const nextAnswer = (thisAnswer: boolean | null) => {
+  if (thisAnswer === true) return false;
+  if (thisAnswer === false) return null;
+  if (thisAnswer === null) return true;
 };
 
-const AnsweredQuizCard = ({children, questionNumber, topic, user1, answer1, user2, answer2}) => {
-  const [answer2State, setAnswer2State] = useState(answer2);
+const AnsweredQuizCard = ({
+  children,
+  questionNumber,
+  topic,
+  user1,
+  answer1,
+  user2,
+  answer2,
+  answer2Publicly,
+}) => {
+  type CardState = {
+    answer: boolean | null,
+    public_: boolean,
+  }
+
+  const [state, setState] = useState<CardState>({
+    answer: answer2,
+    public_: answer2Publicly
+  });
 
   const textColor = useCallback(() => {
-    if (answer2State === undefined)
+    if (state.answer === null)
       return '#666';
-    if (answer1 === answer2State) {
+    if (answer1 === state.answer) {
       return '#5a5';
     } else {
       return '#e57';
     }
-  }, [answer2State])();
+  }, [state.answer])();
 
-  const onPress = useCallback(() => {
-    setAnswer2State(answer => nextAnswer(answer));
-  }, []);
+  const onPressAnswerIconGroup = useCallback(async () => {
+    setState((state: CardState): CardState => {
+      const nextAnswer_ = nextAnswer(state.answer);
+
+      quizQueue.addTask(async () => {
+        await japi(
+          'post',
+          '/answer',
+          {
+            question_id: questionNumber,
+            answer: nextAnswer_,
+            public: state.public_,
+          }
+        );
+
+        markTraitDataDirty();
+      });
+
+      return {
+        ...state,
+        answer: nextAnswer_,
+      };
+    });
+  }, [setState]);
+
+  const onChangeAnswerPublicly = useCallback((public_: boolean) => {
+    setState((state: CardState): CardState => {
+      quizQueue.addTask(async () =>
+        japi(
+          'post',
+          '/answer',
+          {
+            question_id: questionNumber,
+            answer: state.answer,
+            public: public_,
+          }
+        )
+      );
+
+      return {
+        ...state,
+        public_: public_,
+      };
+    });
+  }, [setState]);
 
   const extraChildren = (
     <View
       style={{
         width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        paddingBottom: 20,
         paddingLeft: 20,
         paddingRight: 20,
       }}
@@ -555,49 +617,35 @@ const AnsweredQuizCard = ({children, questionNumber, topic, user1, answer1, user
           alignItems: 'center',
           justifyContent: 'center',
           flexDirection: 'row',
-          paddingBottom: 20,
+          marginRight: 30,
         }}
       >
-        <View
-          style={{
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'row',
-            marginRight: 30,
-          }}
-        >
-          <DefaultText
-            style={{
-              fontWeight: '500',
-              color: textColor
-            }}
-          >{user1}: </DefaultText>
-          <AnswerIconGroup answer={answer1} enabled={false}/>
-        </View>
-        <View
-          style={{
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'row',
-          }}
-        >
-          <DefaultText
-            style={{
-              fontWeight: '500',
-              color: '#666'
-            }}
-          >{user2}: </DefaultText>
-          <Pressable onPress={onPress}>
-            <AnswerIconGroup answer={answer2State} enabled={true}/>
-          </Pressable>
-        </View>
+        <DefaultText style={{ fontWeight: '500', color: textColor }} >
+          {user1}:{' '}
+        </DefaultText>
+        <AnswerIconGroup answer={answer1} enabled={false}/>
+      </View>
+      <View
+        style={{
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'row',
+        }}
+      >
+        <DefaultText style={{ fontWeight: '500', color: '#666' }}>
+          {user2}:{' '}
+        </DefaultText>
+        <Pressable onPress={onPressAnswerIconGroup}>
+          <AnswerIconGroup answer={state.answer} enabled={true}/>
+        </Pressable>
       </View>
     </View>
   );
 
   return (
     <NonInteractiveQuizCard
-      answerPubliclyInitialValue={true}
+      answerPubliclyInitialValue={answer2Publicly}
+      onChangeAnswerPublicly={onChangeAnswerPublicly}
       questionNumber={questionNumber}
       topic={topic}
       containerStyle={{

@@ -62,6 +62,7 @@ type OptionGroupCheckChips = {
 
 type OptionGroupNone = {
   none: {
+    description?: string,
     submit: () => Promise<boolean>
   }
 };
@@ -474,8 +475,49 @@ const createAccountOptionGroups: OptionGroup[] = [
       }
     },
   },
+  _.merge(
+    {},
+    otherPeoplesGendersOptionGroup,
+    {
+      title: 'Step 1 of 7: ' + otherPeoplesGendersOptionGroup.title,
+      input: {
+        submit: async (input) => (await japi(
+          'patch',
+          '/onboardee-info',
+          { other_peoples_genders: input }
+        )).ok
+      }
+    },
+  ),
+  _.merge(
+    {},
+    genderOptionGroup,
+    {
+      title: 'Step 2 of 7: ' + genderOptionGroup.title,
+      input: {
+        submit: async (input) => (await japi(
+          'patch',
+          '/onboardee-info',
+          { gender: input }
+        )).ok
+      }
+    },
+  ),
   {
-    title: 'Step 1 of 7: Birth Date',
+    title: "Step 3 of 7: First Name",
+    description: "What's your first name?",
+    input: {
+      givenName: {
+        submit: async (input) => (await japi(
+          'patch',
+          '/onboardee-info',
+          { name: input }
+        )).ok
+      }
+    },
+  },
+  {
+    title: 'Step 4 of 7: Birth Date',
     description: "When were you born?",
     input: {
       date: {
@@ -492,7 +534,7 @@ const createAccountOptionGroups: OptionGroup[] = [
     {},
     locationOptionGroup,
     {
-      title: 'Step 2 of 7: ' + locationOptionGroup.title,
+      title: 'Step 5 of 7: ' + locationOptionGroup.title,
       input: {
         locationSelector: {
           submit: async (input) => (await japi(
@@ -504,47 +546,6 @@ const createAccountOptionGroups: OptionGroup[] = [
       }
     },
   ),
-  _.merge(
-    {},
-    genderOptionGroup,
-    {
-      title: 'Step 3 of 7: ' + genderOptionGroup.title,
-      input: {
-        submit: async (input) => (await japi(
-          'patch',
-          '/onboardee-info',
-          { gender: input }
-        )).ok
-      }
-    },
-  ),
-  _.merge(
-    {},
-    otherPeoplesGendersOptionGroup,
-    {
-      title: 'Step 4 of 7: ' + otherPeoplesGendersOptionGroup.title,
-      input: {
-        submit: async (input) => (await japi(
-          'patch',
-          '/onboardee-info',
-          { other_peoples_genders: input }
-        )).ok
-      }
-    },
-  ),
-  {
-    title: "Step 5 of 7: First Name",
-    description: "What's your first name?",
-    input: {
-      givenName: {
-        submit: async (input) => (await japi(
-          'patch',
-          '/onboardee-info',
-          { name: input }
-        )).ok
-      }
-    },
-  },
   {
     title: 'Step 6 of 7: Photos',
     description: 'Profiles with photos are promoted in search results, but you can add these later.',
@@ -579,10 +580,11 @@ const createAccountOptionGroups: OptionGroup[] = [
     }
   },
   {
-    title: "Your Profile Looks Delicious! 😋",
-    description: "If you want to sweeten it even more, you can always add more info via the \"Profile\" tab, once you've signed in. But for now, you're ready to get started!",
+    title: "You're Looking Like A Snack 😋",
+    description: "",
     input: {
       none: {
+        description: "You're ready to go! You can always sweeten your profile even more once you're signed in...",
         submit: async () => {
           const response = await japi('post', '/finish-onboarding');
           if (response.ok) {

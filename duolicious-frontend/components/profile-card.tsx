@@ -75,11 +75,17 @@ const ImageOrSkeleton = ({resolution, imageUuid}) => {
   );
 };
 
-const ProfileCard = ({userName, userAge, matchPercentage, imageUuid, userId, ...rest}) => {
+const ProfileCard = ({name, age, matchPercentage, imageUuid, userId, ...rest}) => {
   const navigation = useNavigation<any>();
 
   const itemOnPress = useCallback(() => {
-    return navigation.navigate('Prospect Profile Screen', { userId })
+    return navigation.navigate(
+      'Prospect Profile Screen',
+      {
+        screen: 'Prospect Profile',
+        params: { userId },
+      }
+    );
   }, [navigation, userId]);
 
   return (
@@ -107,8 +113,8 @@ const ProfileCard = ({userName, userAge, matchPercentage, imageUuid, userId, ...
         >
           <ImageOrSkeleton resolution={450} imageUuid={imageUuid}/>
           <UserDetails
-            userName={userName}
-            userAge={userAge}
+            name={name}
+            age={age}
             matchPercentage={matchPercentage}
             containerStyle={rest.userDetailsContainerStyle}
           />
@@ -144,7 +150,7 @@ const ProspectProfileCard = ({onPress, imageUuid, numMorePics = 0}) => {
   );
 };
 
-const UserDetails = ({userName, userAge, matchPercentage, ...rest}) => {
+const UserDetails = ({name, age, matchPercentage, ...rest}) => {
   const {
     containerStyle,
   } = rest;
@@ -171,7 +177,7 @@ const UserDetails = ({userName, userAge, matchPercentage, ...rest}) => {
           color: 'white',
           overflow: 'hidden',
         }}>
-          {userName}{userAge && `, ${userAge}`}
+          {name}{age && `, ${age}`}
         </DefaultText>
       </View>
       <DefaultText

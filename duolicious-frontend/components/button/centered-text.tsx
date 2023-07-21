@@ -84,12 +84,15 @@ const ButtonWithCenteredText = ({children, ...rest}) => {
       onPressOut={
         () => isEnabledRef.current && unfade()}
       onPress={
-        () => isEnabledRef.current && onPress && onPress()}
+        () => isEnabledRef.current && !loading && onPress && onPress()}
     >
       <Animated.View
         style={{
           width: '100%',
-          height: '100%',
+          height: (
+            'height' in (containerStyle ?? {}) &&
+            containerStyle?.height === undefined
+          ) ? undefined : '100%',
           borderRadius: 999,
           borderColor: borderColor === undefined ? '#ccc' : borderColor,
           borderWidth: borderWidth === undefined ? (secondary ? 1 : 0) : borderWidth,

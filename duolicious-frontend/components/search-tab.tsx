@@ -22,14 +22,6 @@ import { Notice } from './notice';
 import { DefaultFlatList } from './default-flat-list';
 import { japi } from '../api/api';
 
-function getRandomInt(max) {
-  return Math.floor(Math.random() * max);
-}
-
-const delay = async (ms: number) => {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 const listContainerStyle = {
   paddingRight: 5,
 };
@@ -69,21 +61,56 @@ const fetchPage = async (pageNumber: number): Promise<PageItem[]> => {
 };
 
 const SearchScreen_ = ({navigation}) => {
-  const opacity = useRef(new Animated.Value(1)).current;
+  const listRef = useRef(undefined);
 
-  const onPressIn = useCallback(() => {
-    opacity.setValue(0.2);
+  const TopNavBarButton = ({onPress, iconName, style}) => {
+    const opacity = useRef(new Animated.Value(1)).current;
+
+    const onPressIn = useCallback(() => {
+      opacity.setValue(0.2);
+    }, []);
+
+    const onPressOut = useCallback(() => {
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: false,
+      }).start();
+    }, []);
+
+    return (
+      <Pressable
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        onPress={onPress}
+        style={{
+          position: 'absolute',
+          top: 0,
+          height: '100%',
+          alignItems: 'center',
+          justifyContent: 'center',
+          ...style,
+        }}
+      >
+        <Animated.View style={{opacity: opacity}}>
+          <Ionicons
+            style={{
+              color: '#333',
+              fontSize: 30,
+            }}
+            name={iconName}
+          />
+        </Animated.View>
+      </Pressable>
+    );
+  };
+
+  const onPressRefresh = useCallback(() => {
+    const refresh = listRef?.current?.refresh;
+    refresh && refresh();
   }, []);
 
-  const onPressOut = useCallback(() => {
-    Animated.timing(opacity, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-  }, []);
-
-  const onPress = useCallback(() => {
+  const onPressOptions = useCallback(() => {
     navigation.navigate('Search Filter Screen');
   }, []);
 
@@ -109,8 +136,8 @@ const SearchScreen_ = ({navigation}) => {
     const item: PageItem = x.item;
     return (
       <ProfileCardMemo
-        userName={item.name}
-        userAge={item.age}
+        name={item.name}
+        age={item.age}
         imageUuid={item.profile_photo_uuid}
         userId={item.prospect_person_id}
         matchPercentage={item.match_percentage}
@@ -122,31 +149,21 @@ const SearchScreen_ = ({navigation}) => {
   return (
     <>
       <DuoliciousTopNavBar>
-        <Pressable
-          onPressIn={onPressIn}
-          onPressOut={onPressOut}
-          onPress={onPress}
-          style={{
-            position: 'absolute',
-            right: 15,
-            top: 0,
-            height: '100%',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Animated.View style={{opacity: opacity}}>
-            <Ionicons
-              style={{
-                color: '#333',
-                fontSize: 30,
-              }}
-              name="options"
-            />
-          </Animated.View>
-        </Pressable>
+        {Platform.OS === 'web' &&
+          <TopNavBarButton
+            onPress={onPressRefresh}
+            iconName="refresh"
+            style={{left: 15}}
+          />
+        }
+          <TopNavBarButton
+            onPress={onPressOptions}
+            iconName="options"
+            style={{right: 15}}
+          />
       </DuoliciousTopNavBar>
       <DefaultFlatList
+        ref={listRef}
         emptyText={
           "No matches found. Try adjusting your search filters to include " +
           "more people."

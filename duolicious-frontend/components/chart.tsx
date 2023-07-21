@@ -293,6 +293,23 @@ const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
               }}
             >
               {children}
+              {!(minLabel && maxLabel) && percentage1 !== undefined &&
+                <>
+                  {'\n\n'}
+                  A score of {percentage1}% means that
+                  about {100 - percentage1}% people on Duolicious scored higher
+                  than that, and about {percentage1}% scored lower.
+                </>
+              }
+              {(minLabel && maxLabel) &&
+                <>
+                  {'\n\n'}
+                  A score can be 100% {minLabel.toLowerCase()}, 100% {
+                  maxLabel.toLowerCase()}, or something in between. People who
+                  score 0% have a roughly equal preference for {
+                  minLabel.toLowerCase()} and {maxLabel.toLowerCase()}.
+                </>
+              }
             </DefaultText>
           </>
         }

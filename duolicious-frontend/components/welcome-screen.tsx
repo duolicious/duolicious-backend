@@ -3,6 +3,7 @@ import {
   View,
 } from 'react-native';
 import {
+  useCallback,
   useState,
 } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -39,14 +40,18 @@ const WelcomeScreen_ = ({navigation}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [emailNotSent, setEmailNotSent] = useState(false);
 
-  const submit = async () => {
+  const submit = async (suffix?: string) => {
+    const suffix_ = suffix ?? '';
+    const email_ = email + (email.endsWith(suffix_) ? '': suffix_);
+
     setEmailNotSent(false);
     setIsLoading(true);
+    setEmail(email_);
 
     const response = await japi(
       'post',
       '/request-otp',
-      { email: email }
+      { email: email_ }
     );
 
     setIsLoading(false);
@@ -70,6 +75,28 @@ const WelcomeScreen_ = ({navigation}) => {
       setEmailNotSent(true);
     }
   };
+
+  const SuffixButton = useCallback(({suffix}) => (
+    <ButtonWithCenteredText
+      onPress={() => !isLoading && submit(suffix)}
+      borderWidth={0}
+      secondary={true}
+      containerStyle={{
+        marginTop: 5,
+        marginBottom: 5,
+        margin: 5,
+        height: undefined,
+      }}
+      backgroundColor="rgb(228, 204, 255)"
+      textStyle={{
+        padding: 10,
+        fontSize: 12,
+        color: '#70f',
+      }}
+    >
+      {suffix}
+    </ButtonWithCenteredText>
+  ), [isLoading, submit]);
 
   return (
     <View
@@ -128,7 +155,7 @@ const WelcomeScreen_ = ({navigation}) => {
             autoComplete="email"
             value={email}
             onChangeText={setEmail}
-            onSubmitEditing={submit}
+            onSubmitEditing={() => submit()}
           />
           <DefaultText
             style={{
@@ -142,6 +169,21 @@ const WelcomeScreen_ = ({navigation}) => {
           >
             We couldn't send an email there. Try again.
           </DefaultText>
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              marginLeft: 20,
+              marginRight: 20,
+            }}
+          >
+            <SuffixButton suffix="@gmail.com"/>
+            <SuffixButton suffix="@yahoo.com"/>
+            <SuffixButton suffix="@hotmail.com"/>
+            <SuffixButton suffix="@outlook.com"/>
+            <SuffixButton suffix="@live.com"/>
+            <SuffixButton suffix="@aol.com"/>
+          </View>
         </View>
         <View
           style={{
@@ -153,7 +195,7 @@ const WelcomeScreen_ = ({navigation}) => {
           }}
         >
           <ButtonWithCenteredText
-            onPress={submit}
+            onPress={() => submit()}
             borderWidth={0}
             secondary={true}
             loading={isLoading}

@@ -7,9 +7,11 @@ import {
   ViewStyle,
 } from 'react-native';
 import {
+  forwardRef,
   isValidElement,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useRef,
   useState,
 } from 'react';
@@ -37,6 +39,7 @@ type DefaultFlatListProps<ItemT> =
     FlatListProps<ItemT> & {
       emptyText: string,
       endText?: string,
+      endTextStyle?: StyleProp<ViewStyle>,
       fetchPage: (pageNumber: number) => Promise<ItemT[]>,
       firstPage?: number,
       initialNumberOfPages?: number
@@ -69,7 +72,7 @@ const ActivityIndicator_ = () => {
   );
 }
 
-const DefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>) => {
+const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, ref) => {
   const flatList = useRef(null);
   const [datas, setDatas] = useState<{[dataKey: string]: ItemT[]} >({});
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -152,7 +155,15 @@ const DefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>) => {
   const onRefresh_ = useCallback(async () => {
     setIsRefreshing(true);
 
-    lastFetchedPageNumbers.current[dataKey] = 0;
+    setDatas(datas => {
+      const newDatas = {...datas};
+      newDatas[dataKey] = undefined;
+      return newDatas;
+    });
+
+    lastFetchedPageNumbers.current[dataKey] = undefined;
+    lastFetchedPages.current[dataKey] = undefined;
+
     await fetchNextPage();
 
     setIsRefreshing(false);
@@ -177,11 +188,14 @@ const DefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>) => {
     if (props.endText) {
       return (
         <Notice
-          style={{
-            marginTop: 5,
-            marginBottom: 5,
-            marginRight: 0,
-          }}
+          style={[
+            {
+              marginTop: 5,
+              marginBottom: 5,
+              marginRight: 0,
+            },
+            props.endTextStyle,
+          ]}
         >
           <DefaultText style={{color: '#70f'}} >
             {props.endText}
@@ -298,6 +312,8 @@ const DefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>) => {
     contentContainerStyle.current = [style, props.contentContainerStyle];
   }
 
+  useImperativeHandle(ref, () => ({ refresh: onRefresh }), []);
+
   useEffect(() => {
     if (
       data === undefined ||
@@ -349,7 +365,7 @@ const DefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>) => {
       />
     );
   }
-};
+});
 
 export {
   DefaultFlatList,

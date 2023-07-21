@@ -1,11 +1,9 @@
 import {
   ActivityIndicator,
   Animated,
-  LayoutAnimation,
   Linking,
   Platform,
   StatusBar,
-  Text,
   UIManager,
 } from 'react-native';
 import {
@@ -17,8 +15,6 @@ import {
 import {
   DefaultTheme,
   NavigationContainer,
-  getPathFromState,
-  getStateFromPath,
 } from '@react-navigation/native';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -35,7 +31,6 @@ import { TraitsTab } from './components/traits-tab';
 import { ConversationScreen } from './components/conversation-screen';
 import { GalleryScreen, ProspectProfileScreen } from './components/prospect-profile-screen';
 import { WelcomeScreen } from './components/welcome-screen';
-import { InDepthScreen } from './components/prospect-profile-screen';
 import { sessionToken } from './session-token/session-token';
 import { japi } from './api/api';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -57,6 +52,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 // TODO: X-Frame-Options: DENY
 // TODO: Try minifying the app
 // TODO: Quiz card stack doesn't update after logging out
+// TODO: What happens if you leave the app to get the OTP from your emails?
 
 
 SplashScreen.preventAutoHideAsync();
@@ -184,7 +180,10 @@ const App = () => {
   }, []);
 
   const updateReferrerId = useCallback(async () => {
-    setReferrerId((await Linking.getInitialURL()).match(/\/me\/(\d+)$/)?.at(1));
+    const initialUrl = await Linking.getInitialURL();
+    const match = initialUrl.match(/\/me\/(\d+)$/);
+    const referrerId_ = match ? match[1] : undefined;
+    setReferrerId(referrerId_);
   }, []);
 
   useEffect(() => {

@@ -164,7 +164,6 @@ const TraitsTab = () => {
             percentage1={trait.percentage ?? undefined}
             name2={undefined}
             percentage2={undefined}
-            showScoreBumper={false}
           >
             {trait.description}
           </Chart>

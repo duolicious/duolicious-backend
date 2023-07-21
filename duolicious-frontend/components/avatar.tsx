@@ -46,9 +46,12 @@ const Avatar = ({percentage, ...props}) => {
   const onPress = useCallback(() => {
     return navigation && navigation.navigate(
       'Prospect Profile Screen',
-      { userId }
+      {
+        screen: 'Prospect Profile',
+        params: { userId },
+      }
     );
-  }, [navigation]);
+  }, [navigation, userId]);
 
   return (
     <Element

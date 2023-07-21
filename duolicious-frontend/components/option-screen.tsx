@@ -547,7 +547,20 @@ const None = forwardRef((props: InputProps, ref) => {
 
   useImperativeHandle(ref, () => ({ submit }), []);
 
-  return <></>;
+  return (
+    <DefaultText
+      style={{
+        color: 'white',
+        textAlign: 'center',
+        paddingLeft: 20,
+        paddingRight: 20,
+        paddingTop: 20,
+        fontSize: 16,
+      }}
+    >
+      {props.input.none.description}
+    </DefaultText>
+  );
 });
 
 const InputElement = forwardRef((props: InputProps, ref) => {

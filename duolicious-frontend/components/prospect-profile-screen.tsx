@@ -22,7 +22,6 @@ import { DonutChart } from './donut-chart';
 import { Title } from './title';
 import { Shadow } from './shadow';
 import { InDepthScreen } from './in-depth-screen';
-import { SendIntroButtonSpacer } from './send-intro-button-spacer';
 import { ButtonWithCenteredText } from './button/centered-text';
 import { api } from '../api/api';
 import { cmToFeetInchesStr } from '../units/units';
@@ -46,22 +45,6 @@ const Stack = createNativeStackNavigator();
 
 const isIconDefinition = (x: any): x is IconDefinition => {
   return x.iconName !== undefined;
-};
-
-function getRandomInt(max) {
-  return Math.floor(Math.random() * max);
-}
-
-const reasonablePerson1 = () => {
-  return `I'm a reasonable person. A very reasonable person. My existence is characterized by suffering and if I wanted to sick my internet trolls on Channel 4 then there'd be nothing but broken windows and riots. Wouldn't that be fun?
-
-Look the fuck out.
-
-`;
-};
-
-const reasonablePersonN = (n: number) => {
-  return [...Array(n).keys()].map(reasonablePerson1).join('').trim();
 };
 
 const goToGallery = (navigation, imageUuids) => () => {
@@ -138,6 +121,7 @@ const FloatingProfileInteractionButton = ({
         marginLeft: 20,
         marginRight: 20,
         marginBottom: 14,
+        marginTop: 14,
       }}
       onPressIn={fadeOut}
       onPressOut={fadeIn}
@@ -234,7 +218,7 @@ const FloatingSendIntroButton = ({navigation, userId}) => {
   );
 };
 
-const SeeQAndAButton = ({navigation, name, countAnswers}) => {
+const SeeQAndAButton = ({navigation, userId, name, countAnswers}) => {
   const containerStyle = useRef({
     marginTop: 40,
     marginLeft: 10,
@@ -262,8 +246,8 @@ const SeeQAndAButton = ({navigation, name, countAnswers}) => {
   ).current;
 
   const onPress = useCallback(() => {
-    navigation.navigate('In-Depth');
-  }, []);
+    navigation.navigate('In-Depth', { userId, name });
+  }, [userId, name]);
 
   const determiner = String(name).endsWith('s') ? "'" : "'s";
 
@@ -306,15 +290,14 @@ const BlockButton = ({name, userId, isBlocked}) => {
     <Pressable
       onPress={onPress}
       style={{
-        marginTop: 20,
-        marginBottom: 20,
+        marginTop: 100,
+        marginBottom: 100,
+        alignSelf: 'center',
       }}
     >
       <DefaultText
         style={{
-          padding: 20,
           color: '#777',
-          textAlign: 'center',
           overflow: 'hidden',
         }}
       >
@@ -352,8 +335,8 @@ const ProspectProfileScreen = ({navigation, route}) => {
           animation: 'slide_from_right',
         }}
       >
-        <Stack.Screen name="Prospect Profile" component={Content(navigationRef, userId)} />
-        <Stack.Screen name="In-Depth" component={InDepthScreen(navigationRef, userId)} />
+        <Stack.Screen name="Prospect Profile" component={Content(navigationRef)} />
+        <Stack.Screen name="In-Depth" component={InDepthScreen(navigationRef)} />
       </Stack.Navigator>
       <View
         style={{
@@ -399,8 +382,10 @@ type UserData = {
   is_blocked: boolean,
 };
 
-const Content = (navigationRef, userId) => ({navigation, ...props}) => {
+const Content = (navigationRef) => ({navigation, route, ...props}) => {
   navigationRef.current = navigation;
+
+  const userId = route.params.userId;
 
   const [data, setData] = useState<UserData | undefined>(undefined);
 
@@ -431,6 +416,7 @@ const Content = (navigationRef, userId) => ({navigation, ...props}) => {
           width: '100%',
           maxWidth: 600,
           alignSelf: 'center',
+          paddingBottom: 100,
         }}
       >
         <ProspectProfileCard
@@ -452,7 +438,6 @@ const Content = (navigationRef, userId) => ({navigation, ...props}) => {
           userId={userId}
           data={data}
         />
-        <SendIntroButtonSpacer/>
       </ScrollView>
       <View
         style={{
@@ -468,8 +453,14 @@ const Content = (navigationRef, userId) => ({navigation, ...props}) => {
         }}
         pointerEvents="box-none"
       >
-        <FloatingHideButton navigation={navigation} userId={userId} isHidden={data?.is_hidden}/>
-        <FloatingSendIntroButton navigation={navigation} userId={userId} />
+        <View
+          style={{
+            flexDirection: 'row',
+          }}
+        >
+          <FloatingHideButton navigation={navigation} userId={userId} isHidden={data?.is_hidden}/>
+          <FloatingSendIntroButton navigation={navigation} userId={userId} />
+        </View>
       </View>
     </>
   );
@@ -484,8 +475,8 @@ const ProspectUserDetails = ({
   userLocation,
 }) => {
   const onPressDonutChart = useCallback(() => {
-    navigation.navigate('In-Depth', { userId });
-  }, [userId]);
+    navigation.navigate('In-Depth', { userId, name });
+  }, [userId, name]);
 
   return (
     <View
@@ -679,6 +670,7 @@ const Body = ({
         </DefaultText>
         <SeeQAndAButton
           navigation={navigation}
+          userId={userId}
           name={data?.name}
           countAnswers={data?.count_answers}
         />
