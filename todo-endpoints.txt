@@ -9,6 +9,7 @@ POST /resend-otp {
 POST /check-otp {
   session-token
 } { otp } -> {
+  person_id: number | null
   onboarded: boolean
   units: 'Imperial' | 'Metric'
 }
@@ -16,6 +17,7 @@ POST /check-otp {
 POST /check-session-token {
   session-token
 } {} -> {
+  person_id: number | null
   onboarded: boolean
   units: 'Imperial' | 'Metric'
 }
@@ -44,6 +46,7 @@ DELETE /onboardee-info {
 POST /finish-onboarding {
   session-token
 } -> {
+  person_id: number
   units: 'Imperial' | 'Metric'
 }
 

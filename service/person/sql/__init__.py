@@ -428,6 +428,7 @@ onboardee_country AS (
     WHERE email = %(email)s
 )
 SELECT
+    id AS person_id,
     (SELECT name FROM unit WHERE unit.id = new_person.unit_id) AS units
 FROM
     new_person
