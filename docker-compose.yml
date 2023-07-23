@@ -16,7 +16,6 @@ services:
       dockerfile: chat.Dockerfile
     ports:
       - "5443:5443"
-      - "5222:5222"
     environment:
       DUO_API_HOST: http://api:5000
 

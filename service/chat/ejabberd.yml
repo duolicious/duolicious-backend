@@ -25,94 +25,13 @@ auth_method: [external]
 extauth_program: /home/ejabberd/auth.sh
 auth_use_cache: false
 
-certfiles:
-  - /home/ejabberd/conf/server.pem
-
-ca_file: "/home/ejabberd/conf/cacert.pem"
-
-## When using let's encrypt to generate certificates
-##certfiles:
-##  - /etc/letsencrypt/live/localhost/fullchain.pem
-##  - /etc/letsencrypt/live/localhost/privkey.pem
-##
-##ca_file: "/etc/letsencrypt/live/localhost/fullchain.pem"
-
 listen:
-  -
-    port: 5222
-    ip: "::"
-    module: ejabberd_c2s
-    max_stanza_size: 262144
-    shaper: c2s_shaper
-    access: c2s
-    starttls_required: true
-  -
-    port: 5443
+  - port: 5443
     ip: "::"
     module: ejabberd_http
     tls: false
     request_handlers:
-      "/ws": ejabberd_http_ws
-
-s2s_use_starttls: optional
-
-acl:
-  local:
-    user_regexp: ""
-  loopback:
-    ip:
-      - 127.0.0.0/8
-      - ::1/128
-      - ::FFFF:127.0.0.1/128
-  admin:
-    user:
-      - "admin@localhost"
-
-access_rules:
-  local:
-    allow: local
-  c2s:
-    deny: blocked
-    allow: all
-  announce:
-    allow: admin
-  configure:
-    allow: admin
-  muc_create:
-    allow: local
-  pubsub_createnode:
-    allow: local
-  trusted_network:
-    allow: loopback
-
-api_permissions:
-  "console commands":
-    from:
-      - ejabberd_ctl
-    who: all
-    what: "*"
-  "admin access":
-    who:
-      access:
-        allow:
-          acl: loopback
-          acl: admin
-      oauth:
-        scope: "ejabberd:admin"
-        access:
-          allow:
-            acl: loopback
-            acl: admin
-    what:
-      - "*"
-      - "!stop"
-      - "!start"
-  "public commands":
-    who:
-      ip: 127.0.0.1/8
-    what:
-      - status
-      - connected_users_number
+      /: ejabberd_http_ws
 
 shaper:
   normal: 1000
@@ -130,27 +49,15 @@ shaper_rules:
 
 max_fsm_queue: 10000
 
-acme:
-   contact: "mailto:example-admin@example.com"
-   ca_url: "https://acme-staging-v02.api.letsencrypt.org/directory"
-
 modules:
   mod_adhoc: {}
   mod_admin_extra: {}
-  mod_announce:
-    access: announce
-  mod_avatar: {}
   mod_blocking: {}
-  mod_bosh: {}
   mod_caps: {}
   mod_carboncopy: {}
   mod_client_state: {}
   mod_configure: {}
-  mod_disco: {}
   mod_fail2ban: {}
-  mod_http_api: {}
-  mod_http_upload:
-    put_url: https://@HOST@:5443/upload
   mod_last: {}
   mod_mam:
     ## Mnesia is limited to 2GB, better to use an SQL backend
@@ -159,7 +66,6 @@ modules:
     ## db_type: sql
     assume_mam_usage: true
     default: never
-  mod_mqtt: {}
   mod_muc:
     access:
       - allow
@@ -172,15 +78,10 @@ modules:
     default_room_options:
       allow_subscription: true  # enable MucSub
       mam: false
-  mod_muc_admin: {}
   mod_offline:
     access_max_user_messages: max_user_offline_messages
   mod_ping: {}
   mod_privacy: {}
-  mod_private: {}
-  mod_proxy65:
-    access: local
-    max_connections: 5
   mod_pubsub:
     access_createnode: pubsub_createnode
     plugins:
@@ -192,22 +93,10 @@ modules:
         access_model: whitelist
   mod_push: {}
   mod_push_keepalive: {}
-  mod_register:
-    ## Only accept registration requests from the "trusted"
-    ## network (see access_rules section above).
-    ## Think twice before enabling registration from any
-    ## address. See the Jabber SPAM Manifesto for details:
-    ## https://github.com/ge0rg/jabber-spam-fighting-manifesto
-    ip_access: trusted_network
   mod_roster:
     versioning: true
-  mod_sip: {}
-  mod_s2s_dialback: {}
-  mod_shared_roster: {}
   mod_stream_mgmt:
     resend_on_timeout: if_offline
-  mod_vcard: {}
-  mod_vcard_xupdate: {}
   mod_version:
     show_os: false
 
