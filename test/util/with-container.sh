@@ -4,7 +4,7 @@ set -e
 
 docker-compose up -d
 
-# Wait for API to start
+echo 'Waiting for the API to start...'
 timeout=60
 while true
 do
