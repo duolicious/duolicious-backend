@@ -19,7 +19,7 @@ check_auth () {
       --post-data='' \
       --header="Authorization: Bearer $pass" \
       --output-document=- \
-      "${DUO_API_HOST}/check-session-token" | \
+      "${DUO_API_HOST}/check-session-token" 2>/dev/null | \
       jq .person_id 2>/dev/null
   )
 
