@@ -31,12 +31,12 @@ then
     --workers 4 \
     --bind "0.0.0.0:$PORT" \
     --timeout 0 \
-    main:app
+    service.application:app
 elif [ "$DUO_ENV" = "dev" ]
 then
   python3 -m database.init
   exec flask \
-    --app main.py \
+    --app service.application:app \
     --debug run \
     --host 0.0.0.0 \
     --port "$PORT"

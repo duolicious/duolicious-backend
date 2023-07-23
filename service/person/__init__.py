@@ -310,6 +310,7 @@ def post_check_session_token(s: t.SessionInfo):
         row = tx.execute(Q_SELECT_UNITS, params).fetchone()
         if row:
             return dict(
+                person_id=s.person_id,
                 onboarded=s.onboarded,
                 units=row['units'],
             )

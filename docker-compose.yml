@@ -10,14 +10,27 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_DB: postgres
 
+  chat:
+    build:
+      context: .
+      dockerfile: chat.Dockerfile
+    ports:
+      - "5443:5443"
+      - "5222:5222"
+    environment:
+      DUO_API_HOST: http://api:5000
+
   api:
     build:
       context: .
       dockerfile: api.Dockerfile
     depends_on:
       - postgres
+      - chat
     ports:
       - "5000:5000"
+    volumes:
+      - .:/app:ro
     environment:
       DUO_ENV: dev
       DUO_EMAIL_KEY: ''

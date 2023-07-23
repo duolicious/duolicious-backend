@@ -19,11 +19,9 @@ hosts:
 
 loglevel: 4
 log_rotate_size: 10485760
+log_rotate_date: ""
 log_rotate_count: 1
-
-auth_method: [external]
-extauth_program: /home/ejabberd/auth.sh
-auth_use_cache: false
+log_rate_limit: 100
 
 certfiles:
   - /home/ejabberd/conf/server.pem
@@ -47,12 +45,83 @@ listen:
     access: c2s
     starttls_required: true
   -
+    port: 5269
+    ip: "::"
+    module: ejabberd_s2s_in
+    max_stanza_size: 524288
+  -
     port: 5443
     ip: "::"
     module: ejabberd_http
-    tls: false
+    tls: true
     request_handlers:
+      "/admin": ejabberd_web_admin
+      "/api": mod_http_api
+      "/bosh": mod_bosh
+      "/captcha": ejabberd_captcha
+      "/upload": mod_http_upload
       "/ws": ejabberd_http_ws
+      "/oauth": ejabberd_oauth
+  -
+    port: 5280
+    ip: "::"
+    module: ejabberd_http
+    request_handlers:
+      "/admin": ejabberd_web_admin
+  -
+    port: 1883
+    ip: "::"
+    module: mod_mqtt
+    backlog: 1000
+  ##
+  ## https://docs.ejabberd.im/admin/configuration/#stun-and-turn
+  ## ejabberd_stun: Handles STUN Binding requests
+  ##
+  ##-
+  ##  port: 3478
+  ##  ip: "0.0.0.0"
+  ##  transport: udp
+  ##  module: ejabberd_stun
+  ##  use_turn: true
+  ##  turn_ip: "{{ IP }}"
+  ##  auth_type: user
+  ##  auth_realm: "example.com"
+  ##-
+  ##  port: 3478
+  ##  ip: "0.0.0.0"
+  ##  module: ejabberd_stun
+  ##  use_turn: true
+  ##  turn_ip: "{{ IP }}"
+  ##  auth_type: user
+  ##  auth_realm: "example.com"
+  ##- 
+  ##  port: 5349
+  ##  ip: "0.0.0.0"
+  ##  module: ejabberd_stun
+  ##  certfile: "/home/ejabberd/conf/server.pem"
+  ##  tls: true
+  ##  use_turn: true
+  ##  turn_ip: "{{ IP }}"
+  ##  auth_type: user
+  ##  auth_realm: "example.com"
+  ##
+  ## https://docs.ejabberd.im/admin/configuration/#sip
+  ## To handle SIP (VOIP) requests:
+  ##
+  ##-
+  ##  port: 5060
+  ##  ip: "0.0.0.0"
+  ##  transport: udp
+  ##  module: ejabberd_sip
+  ##-
+  ##  port: 5060
+  ##  ip: "0.0.0.0"
+  ##  module: ejabberd_sip
+  ##-
+  ##  port: 5061
+  ##  ip: "0.0.0.0"
+  ##  module: ejabberd_sip
+  ##  tls: true
 
 s2s_use_starttls: optional
 
