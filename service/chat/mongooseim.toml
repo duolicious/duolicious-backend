@@ -1,0 +1,141 @@
+[general]
+  loglevel = "warning"
+  hosts = ["duolicious.app"]
+  host_types = []
+  default_server_domain = "duolicious.app"
+  registration_timeout = "infinity"
+  language = "en"
+  max_fsm_queue = 1000
+
+[[listen.http]]
+  ip_address = "0.0.0.0"
+  port = 5443
+  transport.num_acceptors = 10
+  transport.max_connections = 1024
+
+  [[listen.http.handlers.mod_websockets]]
+    host = "_"
+    path = "/"
+
+[auth.external]
+  program = "/usr/lib/mongooseim/etc/auth.sh"
+  instances = 2
+
+[services.service_admin_extra]
+
+[services.service_mongoose_system_metrics]
+
+[modules.mod_adhoc]
+
+[modules.mod_disco]
+  users_can_see_hidden_services = false
+
+[modules.mod_stream_management]
+
+[modules.mod_register]
+  ip_access = [
+    {address = "127.0.0.0/8", policy = "allow"},
+    {address = "0.0.0.0/0", policy = "deny"}
+  ]
+  access = "register"
+
+[modules.mod_presence]
+
+[modules.mod_sic]
+
+[modules.mod_carboncopy]
+
+[shaper.normal]
+  max_rate = 1000
+
+[shaper.fast]
+  max_rate = 50_000
+
+[shaper.mam_shaper]
+  max_rate = 1
+
+[shaper.mam_global_shaper]
+  max_rate = 1000
+
+[acl]
+  local = [{}]
+
+[access]
+  max_user_sessions = [
+    {acl = "all", value = 10}
+  ]
+
+  max_user_offline_messages = [
+    {acl = "admin", value = 5000},
+    {acl = "all", value = 100}
+  ]
+
+  local = [
+    {acl = "local", value = "allow"}
+  ]
+
+  c2s = [
+    {acl = "blocked", value = "deny"},
+    {acl = "all", value = "allow"}
+  ]
+
+  c2s_shaper = [
+    {acl = "admin", value = "none"},
+    {acl = "all", value = "normal"}
+  ]
+
+  s2s_shaper = [
+    {acl = "all", value = "fast"}
+  ]
+
+  muc_admin = [
+    {acl = "admin", value = "allow"}
+  ]
+
+  muc_create = [
+    {acl = "local", value = "allow"}
+  ]
+
+  muc = [
+    {acl = "all", value = "allow"}
+  ]
+
+  register = [
+    {acl = "all", value = "allow"}
+  ]
+
+  mam_set_prefs = [
+    {acl = "all", value = "default"}
+  ]
+
+  mam_get_prefs = [
+    {acl = "all", value = "default"}
+  ]
+
+  mam_lookup_messages = [
+    {acl = "all", value = "default"}
+  ]
+
+  mam_set_prefs_shaper = [
+    {acl = "all", value = "mam_shaper"}
+  ]
+
+  mam_get_prefs_shaper = [
+    {acl = "all", value = "mam_shaper"}
+  ]
+
+  mam_lookup_messages_shaper = [
+    {acl = "all", value = "mam_shaper"}
+  ]
+
+  mam_set_prefs_global_shaper = [
+    {acl = "all", value = "mam_global_shaper"}
+  ]
+
+  mam_get_prefs_global_shaper = [
+    {acl = "all", value = "mam_global_shaper"}
+  ]
+
+  mam_lookup_messages_global_shaper = [
+    {acl = "all", value = "mam_global_shaper"}
+  ]

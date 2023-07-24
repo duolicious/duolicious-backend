@@ -3,24 +3,23 @@
 if [ -z "${DUO_API_HOST}" ]
 then
   echo "DUO_API_HOST must be set" >&2
-  kill -SIGTERM $(pgrep ejabberd)
   exit 1
 fi
 
-deny  () { printf '\x00\x02\x00\x00'; }
-allow () { printf '\x00\x02\x00\x01'; }
+deny  () { printf '\000\002\000\000'; }
+allow () { printf '\000\002\000\001'; }
 
 check_auth () {
   user="$1"
   pass="$2"
 
   person_id=$(
-    wget \
-      --post-data='' \
-      --header="Authorization: Bearer $pass" \
-      --output-document=- \
-      "${DUO_API_HOST}/check-session-token" 2>/dev/null | \
-      jq .person_id 2>/dev/null
+    curl \
+      -s \
+      -X POST \
+      --header "Authorization: Bearer $pass" \
+      "${DUO_API_HOST}/check-session-token" 2>/dev/null \
+      | jq .person_id 2>/dev/null
   )
 
   if [ "$person_id" = "$user" ]
@@ -40,6 +39,18 @@ do
       | tr -d ' '
   )
 
+  case $input_length in
+    ''|*[!0-9]*)
+      # Not a number; something probably went wrong. Kill this script and hope
+      # mongooseim recovers.
+      exit 2
+      ;;
+    *)
+      # A number
+      ;;
+  esac
+
+
   if [ "$input_length" -le 0 ]
   then
     deny
@@ -56,19 +67,10 @@ EOF
     auth)
       check_auth "$user" "$pass"
       ;;
-    setpass)
-      deny
-      ;;
     isuser)
       allow
       ;;
-    tryregister)
-      deny
-      ;;
-    removeuser)
-      deny
-      ;;
-    removeuser3)
+    *)
       deny
       ;;
   esac
