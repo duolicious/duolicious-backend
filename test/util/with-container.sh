@@ -30,7 +30,6 @@ done
 
 export DUO_DB_HOST=localhost
 export DUO_DB_PORT=5433
-export DUO_DB_NAME=postgres
 export DUO_DB_USER=postgres
 export DUO_DB_PASS=password
 

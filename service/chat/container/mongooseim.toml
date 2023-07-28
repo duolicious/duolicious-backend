@@ -1,11 +1,27 @@
 [general]
-  loglevel = "warning"
+  # loglevel = "warning"
+  loglevel = "all"
   hosts = ["duolicious.app"]
   host_types = []
   default_server_domain = "duolicious.app"
   registration_timeout = "infinity"
   language = "en"
   max_fsm_queue = 1000
+  rdbms_server_type = "pgsql"
+
+[outgoing_pools.rdbms.default]
+  scope = "global"
+  workers = 5
+
+  [outgoing_pools.rdbms.default.connection]
+    driver = "pgsql"
+    keepalive_interval = 30
+
+    host     = "$DUO_DB_HOST"
+    port     =  $DUO_DB_PORT
+    database = "duo_chat"
+    username = "$DUO_DB_USER"
+    password = "$DUO_DB_PASS"
 
 [[listen.http]]
   ip_address = "0.0.0.0"
@@ -32,18 +48,13 @@
 
 [modules.mod_stream_management]
 
-[modules.mod_register]
-  ip_access = [
-    {address = "127.0.0.0/8", policy = "allow"},
-    {address = "0.0.0.0/0", policy = "deny"}
-  ]
-  access = "register"
-
 [modules.mod_presence]
 
 [modules.mod_sic]
 
 [modules.mod_carboncopy]
+
+[modules.mod_mam.pm]
 
 [shaper.normal]
   max_rate = 1000

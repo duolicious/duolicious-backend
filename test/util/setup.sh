@@ -62,7 +62,7 @@ jc () { c "$@" --header "Content-Type: application/json"; }
 q () {
   PGPASSWORD="$DUO_DB_PASS" psql \
     -U "$DUO_DB_USER" \
-    -d "$DUO_DB_NAME" \
+    -d duo_api \
     -c "$1;" \
     -t \
     -h "$DUO_DB_HOST" \

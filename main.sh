@@ -6,6 +6,7 @@ cd "$script_dir"
 set -e
 
 export PYTHONDONTWRITEBYTECODE=true
+export PYTHONPATH=.
 
 if [ "${DUO_USE_VENV:-true}" = true ] && [ -d venv/ ]
 then
@@ -26,7 +27,7 @@ fi
 
 if [ "$DUO_ENV" = "prod" ]
 then
-  python3 -m database.init
+  python3 database/init.py
   exec gunicorn \
     --workers 4 \
     --bind "0.0.0.0:$PORT" \
@@ -34,7 +35,7 @@ then
     service.application:app
 elif [ "$DUO_ENV" = "dev" ]
 then
-  python3 -m database.init
+  python3 database/init.py
   exec flask \
     --app service.application:app \
     --debug run \
