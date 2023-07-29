@@ -223,7 +223,3 @@ POST /deactivate {
 POST /delete-account {
   session-token
 }
-
-POST /active {
-  session-token
-}

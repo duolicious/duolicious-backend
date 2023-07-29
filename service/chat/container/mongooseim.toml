@@ -51,6 +51,9 @@
 
 [modules.mod_presence]
 
+[modules.mod_last]
+  backend = "rdbms"
+
 [modules.mod_sic]
 
 [modules.mod_carboncopy]
