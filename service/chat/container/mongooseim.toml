@@ -47,12 +47,19 @@
   users_can_see_hidden_services = false
 
 [modules.mod_stream_management]
+  buffer_max = 10000
 
 [modules.mod_presence]
 
 [modules.mod_sic]
 
 [modules.mod_carboncopy]
+
+[modules.mod_inbox]
+  backend = "rdbms_async"
+  boxes = ["chats"]
+
+[modules.mod_offline_stub]
 
 [modules.mod_mam.pm]
 
