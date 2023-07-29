@@ -146,6 +146,19 @@ GET /compare-answers/<person-id> {
   }
 ]
 
+GET /inbox-info {
+  session-token
+} {
+  [person-id]
+} -> [
+  {
+    person_id: string
+    name: string
+    matchPercentage: number
+    imageUuid: string | null
+  }
+]
+
 POST /search-filter {
   session-token
 } (
@@ -175,21 +188,6 @@ GET /search-filter-questions {
     accept-unanswered?
   }
 ]
-
-GET /inbox-chats {
-  session-token
-} {
-  page-number
-}
-
-GET /inbox-intros {
-  session-token
-} {
-  order: 'latest' | 'intros
-  page-number
-}
-
-[chat scene missing]
 
 GET /profile-info {
   session-token

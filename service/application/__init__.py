@@ -159,3 +159,10 @@ def get_compare_answers(s: t.SessionInfo, prospect_person_id: int):
         n=request.args.get('n', '10'),
         o=request.args.get('o', '0'),
     )
+
+@aget('/inbox-info')
+def get_inbox_info(s: t.SessionInfo):
+    return person.get_inbox_info(
+        s=s,
+        prospect_person_ids=request.args.getlist('prospect-person-id'),
+    )
