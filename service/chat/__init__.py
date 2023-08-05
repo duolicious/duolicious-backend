@@ -50,7 +50,18 @@ def get_message_attrs(message_str):
     return None, None, message_str
 
 def normalize_message(message_str):
-    return re.sub(r'[^a-z0-9]', '', message_str.lower())
+    message_str = message_str.lower()
+
+    # Remove consecutive, trailing, and preceding whitespace
+    message_str = ' '.join(message_str.split())
+
+    # Remove everything but non-alphanumeric characters and spaces
+    message_str = re.sub(r'[^a-z0-9 ]', '', message_str)
+
+    # Remove characters 3 or more times. e.g. "Heeyyyyy :)" -> "Heeyy :)"
+    message_str = re.sub(r'(.)\1{2,}', r'\1\1', message_str)
+
+    return message_str
 
 def is_message_unique(message_str):
     normalized = normalize_message(message_str)
