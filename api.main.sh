@@ -8,16 +8,16 @@ set -e
 export PYTHONDONTWRITEBYTECODE=true
 export PYTHONPATH=.
 
-if [ "${DUO_USE_VENV:-true}" = true ] && [ -d venv/ ]
+if [ "${DUO_USE_VENV:-true}" = true ] && [ -d venv/api/ ]
 then
-  export PATH=$(readlink -e venv/bin):$PATH
+  export PATH=$(readlink -e venv/api/bin):$PATH
 fi
 
-if [ "${DUO_USE_VENV:-true}" = true ] && [ ! -d venv/ ]
+if [ "${DUO_USE_VENV:-true}" = true ] && [ ! -d venv/api/ ]
 then
-  python3 -m venv venv/
-  export PATH=$(readlink -e venv/bin):$PATH
-  python3 -m pip install -r requirements.txt
+  python3 -m venv venv/api/
+  export PATH=$(readlink -e venv/api/bin):$PATH
+  python3 -m pip install -r api.requirements.txt
 fi
 
 if [ -z "$PORT" ]

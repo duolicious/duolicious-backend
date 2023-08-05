@@ -1,6 +1,5 @@
 [general]
-  # loglevel = "warning"
-  loglevel = "all"
+  loglevel = "warning"
   hosts = ["duolicious.app"]
   host_types = []
   default_server_domain = "duolicious.app"
@@ -19,13 +18,13 @@
 
     host     = "$DUO_DB_HOST"
     port     =  $DUO_DB_PORT
-    database = "duo_chat"
+    database = "$DUO_DB_NAME"
     username = "$DUO_DB_USER"
     password = "$DUO_DB_PASS"
 
 [[listen.http]]
   ip_address = "0.0.0.0"
-  port = 5443
+  port = 5442
   transport.num_acceptors = 10
   transport.max_connections = 1024
 

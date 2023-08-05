@@ -1,5 +1,5 @@
 def create_dbs():
-    # All this stuff just to run `CREATE DATABASE IF NOT EXISTS duo_api`
+    # All this stuff just to run `CREATE DATABASE IF NOT EXISTS DB_NAME`
     import os
     import psycopg
     import time
@@ -8,6 +8,7 @@ def create_dbs():
     DB_PORT = os.environ['DUO_DB_PORT']
     DB_USER = os.environ['DUO_DB_USER']
     DB_PASS = os.environ['DUO_DB_PASS']
+    DB_NAME = os.environ['DUO_DB_NAME']
 
     _conninfo = psycopg.conninfo.make_conninfo(
         host=DB_HOST,
@@ -27,14 +28,14 @@ def create_dbs():
 
     for _ in range(10):
         try:
-            create_db("duo_api")
+            create_db(DB_NAME)
             break
         except psycopg.OperationalError as e:
             print('Creating database(s) failed; waiting and trying again:', e)
             time.sleep(1)
 
 def init_db():
-    # Now duo_api exists, we do do the rest of the init.
+    # Now DB_NAME exists, we do do the rest of the init.
     from service import (
         application,
         location,

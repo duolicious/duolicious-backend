@@ -9,7 +9,7 @@ import time
 
 DB_HOST = os.environ['DUO_DB_HOST']
 DB_PORT = os.environ['DUO_DB_PORT']
-DB_NAME = 'duo_api'
+DB_NAME = os.environ['DUO_DB_NAME']
 DB_USER = os.environ['DUO_DB_USER']
 DB_PASS = os.environ['DUO_DB_PASS']
 

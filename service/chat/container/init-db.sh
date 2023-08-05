@@ -23,5 +23,12 @@ PGPASSWORD=$DUO_DB_PASS psql \
   -p "$DUO_DB_PORT" \
   -f /usr/lib/mongooseim/lib/mongooseim-6.1.0-5-gabdcd0b48/priv/pg.sql
 
+PGPASSWORD=$DUO_DB_PASS psql \
+  -h "$DUO_DB_HOST" \
+  -U "$DUO_DB_USER" \
+  -d duo_chat \
+  -p "$DUO_DB_PORT" \
+  -c "CREATE TABLE IF NOT EXISTS intro_hash(hash TEXT PRIMARY KEY);"
+
 envsubst < /mongooseim.template.toml > /tmp/out.toml
 mv /tmp/out.toml /usr/lib/mongooseim/etc/mongooseim.toml
