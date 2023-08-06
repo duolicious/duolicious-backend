@@ -1,5 +1,5 @@
 [general]
-  loglevel = "warning"
+  loglevel = "all"
   hosts = ["duolicious.app"]
   host_types = []
   default_server_domain = "duolicious.app"
