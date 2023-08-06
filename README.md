@@ -12,5 +12,5 @@ Install these:
 Then run this:
 
 ```bash
-./test/with-container.sh ./test/functionality.sh
+./test/util/with-container.sh ./test/functionality.sh
 ```

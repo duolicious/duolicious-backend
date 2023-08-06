@@ -4,7 +4,7 @@ set -e
 
 docker-compose up -d
 
-# Wait for API to start
+echo 'Waiting for the API to start...'
 timeout=60
 while true
 do
@@ -30,7 +30,6 @@ done
 
 export DUO_DB_HOST=localhost
 export DUO_DB_PORT=5433
-export DUO_DB_NAME=postgres
 export DUO_DB_USER=postgres
 export DUO_DB_PASS=password
 

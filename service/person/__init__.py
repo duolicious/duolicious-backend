@@ -291,6 +291,7 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
         row = tx.fetchone()
         if row:
             return dict(
+                person_id=row['person_id'],
                 onboarded=row['person_id'] is not None,
                 units=row['units'],
             )
@@ -310,6 +311,7 @@ def post_check_session_token(s: t.SessionInfo):
         row = tx.execute(Q_SELECT_UNITS, params).fetchone()
         if row:
             return dict(
+                person_id=s.person_id,
                 onboarded=s.onboarded,
                 units=row['units'],
             )
@@ -485,12 +487,12 @@ def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo):
         tx.executemany(Q_DELETE_ONBOARDEE_PHOTO, params)
 
 def post_finish_onboarding(s: t.SessionInfo):
-    params = dict(email=s.email)
+    params = dict(
+        email=s.email
+    )
 
     with transaction() as tx:
-        row = tx.execute(Q_FINISH_ONBOARDING, params).fetchone()
-        if row:
-            return dict(units=row['units'])
+        return tx.execute(Q_FINISH_ONBOARDING, params).fetchone()
 
 def get_me(person_id: int):
     params = dict(
@@ -674,3 +676,12 @@ def get_compare_answers(
 
     with transaction('READ COMMITTED') as tx:
         return tx.execute(Q_ANSWER_COMPARISON, params).fetchall()
+
+def get_inbox_info(s: t.SessionInfo, prospect_person_ids: Iterable[int]):
+    params = dict(
+        person_id=s.person_id,
+        prospect_person_ids=prospect_person_ids,
+    )
+
+    with transaction('READ COMMITTED') as tx:
+        return tx.execute(Q_INBOX_INFO, params).fetchall()
