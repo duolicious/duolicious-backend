@@ -49,6 +49,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
+      - "5442:5442"
       - "5443:5443"
     volumes:
       - ./service/chat/__init__.py:/app/service/chat/__init__.py:ro

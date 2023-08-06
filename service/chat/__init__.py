@@ -113,7 +113,7 @@ async def proxy(local_ws, path):
         for task in pending:
             task.cancel()
 
-start_server = websockets.serve(proxy, '0.0.0.0', 5443)
+start_server = websockets.serve(proxy, '0.0.0.0', 5443, subprotcols=['xmpp'])
 
 asyncio.get_event_loop().run_until_complete(start_server)
 asyncio.get_event_loop().run_forever()
