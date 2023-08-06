@@ -101,14 +101,9 @@ async def forward(src, dst):
         await dst.send(message)
 
 async def proxy(local_ws, path):
-    if local_ws.request_headers.get('Sec-WebSocket-Key'):
-        remote_ws_uri = 'wss://127.0.0.1:5442'
-    else:
-        remote_ws_uri = 'ws://127.0.0.1:5442'
-
     async with websockets.connect(
-        remote_ws_uri,
-        extra_headers=local_ws.request_headers
+        'ws://127.0.0.1:5442',
+        ssl=False,
     ) as remote_ws:
         l2r_task = asyncio.ensure_future(process(local_ws, remote_ws))
         r2l_task = asyncio.ensure_future(forward(remote_ws, local_ws))
