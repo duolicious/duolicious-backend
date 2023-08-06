@@ -88,10 +88,6 @@ def process_duo_message(message_str):
 
     return None, to_dst
 
-async def forward(src, dst):
-    async for message in src:
-        await dst.send(message)
-
 async def process(src, dst):
     async for message in src:
         to_src, to_dst = process_duo_message(message)
@@ -100,8 +96,15 @@ async def process(src, dst):
         if to_src:
             await src.send(to_src)
 
+async def forward(src, dst):
+    async for message in src:
+        await dst.send(message)
+
 async def proxy(local_ws, path):
-    async with websockets.connect('ws://127.0.0.1:5442') as remote_ws:
+    async with websockets.connect(
+        'ws://127.0.0.1:5442',
+        extra_headers=local_ws.request_headers
+    ) as remote_ws:
         l2r_task = asyncio.ensure_future(process(local_ws, remote_ws))
         r2l_task = asyncio.ensure_future(forward(remote_ws, local_ws))
 
