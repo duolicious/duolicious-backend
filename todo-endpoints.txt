@@ -9,6 +9,7 @@ POST /resend-otp {
 POST /check-otp {
   session-token
 } { otp } -> {
+  person_id: number | null
   onboarded: boolean
   units: 'Imperial' | 'Metric'
 }
@@ -16,6 +17,7 @@ POST /check-otp {
 POST /check-session-token {
   session-token
 } {} -> {
+  person_id: number | null
   onboarded: boolean
   units: 'Imperial' | 'Metric'
 }
@@ -44,6 +46,7 @@ DELETE /onboardee-info {
 POST /finish-onboarding {
   session-token
 } -> {
+  person_id: number
   units: 'Imperial' | 'Metric'
 }
 
@@ -143,6 +146,19 @@ GET /compare-answers/<person-id> {
   }
 ]
 
+GET /inbox-info {
+  session-token
+} {
+  [person-id]
+} -> [
+  {
+    person_id: string
+    name: string
+    matchPercentage: number
+    imageUuid: string | null
+  }
+]
+
 POST /search-filter {
   session-token
 } (
@@ -172,21 +188,6 @@ GET /search-filter-questions {
     accept-unanswered?
   }
 ]
-
-GET /inbox-chats {
-  session-token
-} {
-  page-number
-}
-
-GET /inbox-intros {
-  session-token
-} {
-  order: 'latest' | 'intros
-  page-number
-}
-
-[chat scene missing]
 
 GET /profile-info {
   session-token
@@ -220,9 +221,5 @@ POST /deactivate {
 }
 
 POST /delete-account {
-  session-token
-}
-
-POST /active {
   session-token
 }

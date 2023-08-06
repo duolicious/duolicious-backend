@@ -428,6 +428,7 @@ onboardee_country AS (
     WHERE email = %(email)s
 )
 SELECT
+    id AS person_id,
     (SELECT name FROM unit WHERE unit.id = new_person.unit_id) AS units
 FROM
     new_person
@@ -601,4 +602,38 @@ ORDER BY
     question.id
 LIMIT %(n)s
 OFFSET %(o)s
+"""
+
+Q_INBOX_INFO = """
+SELECT
+    id AS person_id,
+    name,
+    CLAMP(
+        0,
+        99,
+        100 * (
+            1 - (
+                SELECT (
+                    SELECT personality FROM person WHERE id = %(person_id)s
+                ) <#> (
+                    prospect.personality
+                )
+            )
+        ) / 2
+    )::SMALLINT AS match_percentage,
+    (
+        SELECT
+            uuid
+        FROM
+            photo
+        WHERE
+            person_id = prospect.id
+        ORDER BY
+            position
+        LIMIT 1
+    ) AS image_uuid
+FROM
+    person AS prospect
+WHERE
+    id = ANY(%(prospect_person_ids)s)
 """
