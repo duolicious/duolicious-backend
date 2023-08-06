@@ -174,7 +174,7 @@ const Header = ({
 };
 
 const fetchAnswersPage = (
-  userId: number,
+  personId: number,
   agreement: string,
   topic: string,
 ) => async (
@@ -185,7 +185,7 @@ const fetchAnswersPage = (
 
   const response = await api(
     'get',
-    `/compare-answers/${userId}` +
+    `/compare-answers/${personId}` +
     `?topic=${topic}` +
     `&agreement=${agreement}` +
     `&n=${resultsPerPage}` +
@@ -200,12 +200,12 @@ const fetchAnswersPage = (
   }));
 };
 
-const fetchPersonalityPage = (userId: number, m: number) => async (n: number): Promise<any[]> => {
+const fetchPersonalityPage = (personId: number, m: number) => async (n: number): Promise<any[]> => {
   const topics = ['mbti', 'big5', 'attachment', 'politics', 'other'];
   const topic = topics[m];
 
   if (n === 1) {
-    const response = await api('get', `/compare-personalities/${userId}/${topic}`);
+    const response = await api('get', `/compare-personalities/${personId}/${topic}`);
 
     if (response.json === undefined) return undefined;
 
@@ -221,7 +221,7 @@ const InDepthScreen = (navigationRef) => ({navigation, route}) => {
   if (navigationRef)
     navigationRef.current = navigation;
 
-  const userId = route.params.userId;
+  const personId = route.params.personId;
   const name = route.params.name ?? '';
 
   const [idx1, setIdx1] = useState(0);
@@ -269,9 +269,9 @@ const InDepthScreen = (navigationRef) => ({navigation, route}) => {
     }}
     fetchPage={
       idx1 === 1 ?
-      fetchPersonalityPage(userId, idx4) :
+      fetchPersonalityPage(personId, idx4) :
       fetchAnswersPage(
-        userId,
+        personId,
         ['all', 'agree', 'disagree', 'unanswered'][idx2],
         ['all', 'values', 'sex', 'interpersonal', 'other'][idx3],
       )

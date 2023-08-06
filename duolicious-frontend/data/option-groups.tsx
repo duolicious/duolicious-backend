@@ -1,6 +1,7 @@
 import * as _ from "lodash";
 import { mapi, japi } from '../api/api';
-import { setIsSignedIn } from '../App';
+import { setSignedInUser } from '../App';
+import { sessionToken } from '../kv-storage/session-token';
 
 type OptionGroupButtons = {
   buttons: string[],
@@ -466,10 +467,21 @@ const createAccountOptionGroups: OptionGroup[] = [
     input: {
       otp: {
         submit: async (input) => {
+          const existingSessionToken = await sessionToken();
           const response = await japi('post', '/check-otp', { otp: input });
-          if (response?.json?.onboarded) {
-            setIsSignedIn(true);
+
+          if (
+            response.ok &&
+            Boolean(response?.json?.onboarded) &&
+            typeof existingSessionToken === 'string'
+          ) {
+            setSignedInUser((signedInUser) => ({
+              personId: response?.json?.person_id,
+              units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
+              sessionToken: existingSessionToken,
+            }));
           }
+
           return response.ok;
         }
       }
@@ -588,7 +600,11 @@ const createAccountOptionGroups: OptionGroup[] = [
         submit: async () => {
           const response = await japi('post', '/finish-onboarding');
           if (response.ok) {
-            setIsSignedIn(true);
+            setSignedInUser((signedInUser) => ({
+              ...signedInUser,
+              personId: response?.json?.person_id,
+              units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
+            }));
           };
           return response.ok;
         }

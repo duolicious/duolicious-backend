@@ -37,7 +37,7 @@ const loadMoreStyle = {
 type DefaultFlatListProps<ItemT> =
   Omit<
     FlatListProps<ItemT> & {
-      emptyText: string,
+      emptyText?: string,
       endText?: string,
       endTextStyle?: StyleProp<ViewStyle>,
       fetchPage: (pageNumber: number) => Promise<ItemT[]>,
@@ -73,7 +73,7 @@ const ActivityIndicator_ = () => {
 }
 
 const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, ref) => {
-  const flatList = useRef(null);
+  const flatList = useRef<any>(null);
   const [datas, setDatas] = useState<{[dataKey: string]: ItemT[]} >({});
   const [isRefreshing, setIsRefreshing] = useState(false);
   const lastFetchedPageNumbers = useRef<{[dataKey: string]: number} >({});
@@ -130,9 +130,9 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
       if (pageNumberToFetch === firstPage) {
         newDatas[dataKey] = page;
       } else if (props.inverted) {
-        newDatas[dataKey] = [...page, ...newDatas[dataKey]];
+        newDatas[dataKey] = [...page, ...(newDatas[dataKey] ?? [])];
       } else {
-        newDatas[dataKey] = [...newDatas[dataKey], ...page];
+        newDatas[dataKey] = [...(newDatas[dataKey] ?? []), ...page];
       }
       return newDatas;
     })
@@ -152,22 +152,21 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
     });
   }, [fetchNextPage]);
 
-  const onRefresh_ = useCallback(async () => {
+  const onRefresh_ = useCallback(() => {
+    if (isRefreshing) return;
+
     setIsRefreshing(true);
 
-    setDatas(datas => {
-      const newDatas = {...datas};
-      newDatas[dataKey] = undefined;
-      return newDatas;
-    });
+    const newDatas = {...datas};
+    delete newDatas[dataKey];
 
-    lastFetchedPageNumbers.current[dataKey] = undefined;
-    lastFetchedPages.current[dataKey] = undefined;
+    delete lastFetchedPageNumbers.current[dataKey];
+    delete lastFetchedPages.current[dataKey];
 
-    await fetchNextPage();
+    setDatas(newDatas);
 
     setIsRefreshing(false);
-  }, [fetchNextPage, dataKey]);
+  }, [setIsRefreshing, isRefreshing, datas, dataKey]);
   const onRefresh = props.disableRefresh === true ? undefined : onRefresh_;
 
   const ListEmptyComponent = useCallback(() => {
@@ -300,10 +299,11 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
     scrollToEndNTimes.current[dataKey] = 1;
     setDatas(datas => {
       const newDatas = {...datas};
-      newDatas[dataKey] = [...newDatas[dataKey], item];
+      newDatas[dataKey] = [...(newDatas[dataKey] ?? []), item];
       return newDatas;
     });
   }, [dataKey]);
+
   if (props.innerRef) {
     props.innerRef.current = { append };
   }
@@ -312,7 +312,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
     contentContainerStyle.current = [style, props.contentContainerStyle];
   }
 
-  useImperativeHandle(ref, () => ({ refresh: onRefresh }), []);
+  useImperativeHandle(ref, () => ({ refresh: onRefresh }), [onRefresh]);
 
   useEffect(() => {
     if (

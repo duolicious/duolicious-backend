@@ -25,7 +25,7 @@ import { InDepthScreen } from './in-depth-screen';
 import { ButtonWithCenteredText } from './button/centered-text';
 import { api } from '../api/api';
 import { cmToFeetInchesStr } from '../units/units';
-import { units } from '../App';
+import { signedInUser } from '../App';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
@@ -156,7 +156,7 @@ const FloatingProfileInteractionButton = ({
   );
 };
 
-const FloatingHideButton = ({navigation, userId, isHidden}) => {
+const FloatingHideButton = ({navigation, personId, isHidden}) => {
   const [isHiddenState, setIsHiddenState] = useState<
     boolean | undefined
   >(isHidden);
@@ -166,13 +166,15 @@ const FloatingHideButton = ({navigation, userId, isHidden}) => {
   }, [isHidden]);
 
   const onPress = useCallback(() => {
+    if (personId === undefined) return;
+
     setIsHiddenState(!isHiddenState);
 
-    if (isHiddenState === true ) api('post', `/unhide/${userId}`);
-    if (isHiddenState === false) api('post', `/hide/${userId}`);
+    if (isHiddenState === true ) api('post', `/unhide/${personId}`);
+    if (isHiddenState === false) api('post', `/hide/${personId}`);
 
     if (isHiddenState === false) navigation.goBack();
-  }, [isHiddenState]);
+  }, [isHiddenState, personId]);
 
   return (
     <FloatingProfileInteractionButton
@@ -198,10 +200,12 @@ const FloatingHideButton = ({navigation, userId, isHidden}) => {
   );
 };
 
-const FloatingSendIntroButton = ({navigation, userId}) => {
+const FloatingSendIntroButton = ({navigation, personId, name, imageUuid}) => {
   const onPress = useCallback(() => {
-    navigation.navigate('Conversation Screen')
-  }, [navigation]);
+    if (personId === undefined) return;
+
+    navigation.navigate('Conversation Screen', { personId, name, imageUuid });
+  }, [navigation, personId, name, imageUuid]);
 
   return (
     <FloatingProfileInteractionButton
@@ -209,16 +213,18 @@ const FloatingSendIntroButton = ({navigation, userId}) => {
       onPress={onPress}
       backgroundColor="#70f"
     >
-      <FontAwesomeIcon
-        icon={faPaperPlane}
-        size={24}
-        style={{color: 'white'}}
-      />
+      {personId !== undefined &&
+        <FontAwesomeIcon
+          icon={faPaperPlane}
+          size={24}
+          style={{color: 'white'}}
+        />
+      }
     </FloatingProfileInteractionButton>
   );
 };
 
-const SeeQAndAButton = ({navigation, userId, name, countAnswers}) => {
+const SeeQAndAButton = ({navigation, personId, name, countAnswers}) => {
   const containerStyle = useRef({
     marginTop: 40,
     marginLeft: 10,
@@ -246,8 +252,8 @@ const SeeQAndAButton = ({navigation, userId, name, countAnswers}) => {
   ).current;
 
   const onPress = useCallback(() => {
-    navigation.navigate('In-Depth', { userId, name });
-  }, [userId, name]);
+    navigation.navigate('In-Depth', { personId, name });
+  }, [personId, name]);
 
   const determiner = String(name).endsWith('s') ? "'" : "'s";
 
@@ -268,7 +274,7 @@ const SeeQAndAButton = ({navigation, userId, name, countAnswers}) => {
   );
 };
 
-const BlockButton = ({name, userId, isBlocked}) => {
+const BlockButton = ({name, personId, isBlocked}) => {
   const [isBlockedState, setIsBlockedState] = useState(false);
 
   useEffect(() => {
@@ -278,8 +284,8 @@ const BlockButton = ({name, userId, isBlocked}) => {
   const onPress = useCallback(() => {
     setIsBlockedState(!isBlockedState);
 
-    if (isBlockedState === true ) api('post', `/unblock/${userId}`);
-    if (isBlockedState === false) api('post', `/block/${userId}`);
+    if (isBlockedState === true ) api('post', `/unblock/${personId}`);
+    if (isBlockedState === false) api('post', `/block/${personId}`);
   }, [isBlockedState]);
 
   const text = isBlockedState
@@ -324,7 +330,7 @@ const Columns = ({children, ...rest}) => {
 
 const ProspectProfileScreen = ({navigation, route}) => {
   const navigationRef = useRef(undefined);
-  const userId = route.params.userId;
+  const personId = route.params.personId;
 
   return (
     <>
@@ -385,17 +391,17 @@ type UserData = {
 const Content = (navigationRef) => ({navigation, route, ...props}) => {
   navigationRef.current = navigation;
 
-  const userId = route.params.userId;
+  const personId = route.params.personId;
 
   const [data, setData] = useState<UserData | undefined>(undefined);
 
   useEffect(() => {
     setData(undefined);
     (async () => {
-      const response = await api('get', `/prospect-profile/${userId}`);
+      const response = await api('get', `/prospect-profile/${personId}`);
       setData(response?.json);
     })();
-  }, [userId]);
+  }, [personId]);
 
   const imageUuid = data === undefined ?
     undefined :
@@ -426,7 +432,7 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
         />
         <ProspectUserDetails
           navigation={navigation}
-          userId={userId}
+          personId={personId}
           name={data?.name}
           age={data?.age}
           matchPercentage={data?.match_percentage}
@@ -435,7 +441,7 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
         <Shadow/>
         <Body
           navigation={navigation}
-          userId={userId}
+          personId={personId}
           data={data}
         />
       </ScrollView>
@@ -458,8 +464,17 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
             flexDirection: 'row',
           }}
         >
-          <FloatingHideButton navigation={navigation} userId={userId} isHidden={data?.is_hidden}/>
-          <FloatingSendIntroButton navigation={navigation} userId={userId} />
+          <FloatingHideButton
+            navigation={navigation}
+            personId={personId}
+            isHidden={data?.is_hidden}
+          />
+          <FloatingSendIntroButton
+            navigation={navigation}
+            personId={personId}
+            name={data?.name}
+            imageUuid={imageUuid}
+          />
         </View>
       </View>
     </>
@@ -468,15 +483,18 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
 
 const ProspectUserDetails = ({
   navigation,
-  userId,
+  personId,
   name,
   age,
   matchPercentage,
   userLocation,
 }) => {
   const onPressDonutChart = useCallback(() => {
-    navigation.navigate('In-Depth', { userId, name });
-  }, [userId, name]);
+    if (personId === undefined) return;
+    if (name === undefined) return;
+
+    navigation.navigate('In-Depth', { personId, name });
+  }, [personId, name]);
 
   return (
     <View
@@ -589,11 +607,11 @@ const Basics = ({children}) => {
 
 const Body = ({
   navigation,
-  userId,
+  personId,
   data,
 }: {
   navigation: any,
-  userId: number,
+  personId: number,
   data: UserData | undefined,
 }) => {
   return (
@@ -659,9 +677,9 @@ const Body = ({
           {data?.exercise &&
             <Basic icon="barbell">{data.exercise} Exercises</Basic>}
 
-          {data?.height_cm && units === 'Metric' &&
+          {data?.height_cm && signedInUser.units === 'Metric' &&
             <Basic icon={faRulerVertical}>{data.height_cm} cm</Basic>}
-          {data?.height_cm && units === 'Imperial' &&
+          {data?.height_cm && signedInUser.units === 'Imperial' &&
             <Basic icon={faRulerVertical}>{cmToFeetInchesStr(data.height_cm)}</Basic>}
         </Basics>
         <Title>About {data?.name ?? '...'}</Title>
@@ -670,11 +688,11 @@ const Body = ({
         </DefaultText>
         <SeeQAndAButton
           navigation={navigation}
-          userId={userId}
+          personId={personId}
           name={data?.name}
           countAnswers={data?.count_answers}
         />
-        <BlockButton name={data?.name} userId={userId} isBlocked={data?.is_blocked} />
+        <BlockButton name={data?.name} personId={personId} isBlocked={data?.is_blocked} />
       </View>
     </>
   );

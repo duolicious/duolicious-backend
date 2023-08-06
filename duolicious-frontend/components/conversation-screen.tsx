@@ -1,8 +1,12 @@
 import {
+  ActivityIndicator,
   Animated,
   Image,
+  ImageBackground,
+  ListRenderItemInfo,
   Pressable,
   ScrollView,
+  Text,
   TextInput,
   View,
 } from 'react-native';
@@ -19,98 +23,82 @@ import { DefaultText } from './default-text';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { DefaultFlatList } from './default-flat-list';
+import {
+  Inbox,
+  Message,
+  MessageStatus,
+  fetchConversation,
+  onReceiveMessage,
+  sendMessage,
+  setInbox,
+} from '../xmpp/xmpp';
+import {
+  IMAGES_URL,
+} from '../env/env';
+import { getRandomString } from '../random/string';
 
-function getRandomInt(max) {
-  return Math.floor(Math.random() * max);
-}
+// TODO: Re-add the ability to load old messages past the first page
 
-type Message = {
-  text: string;
-  fromCurrentUser: boolean;
-  state?: "Read" | "Delivered"
-};
+const ConversationScreen = ({navigation, route}) => {
+  const [messageFetchTimeout, setMessageFetchTimeout] = useState(false);
+  const [messages, setMessages] = useState<Message[] | null>(null);
+  const [lastMessageStatus, setLastMessageStatus] = useState<
+    MessageStatus | null
+  >(null);
 
-const messages: Message[] = [
-  {text: "hey bb, do u want fuk? 😊", fromCurrentUser: false},
-  {text:
-    "Certainly, my good fellow! I, indeed, would like what you colloquially " +
-    "refer to as \"fuk\". For clarity, I would like to engage with sexual " +
-    "intercourse with you, for this is a dating site! And that's what we " +
-    "good men on dating sites do! Yes indeed! ",
-    fromCurrentUser: true
-  },
-  {
-    text: "ur place or mine? 😊",
-    fromCurrentUser: true
-  },
-  {
-    text: "Let us perform the act in public!",
-    fromCurrentUser: true,
-  },
-  {text: "omggosshh",
-  fromCurrentUser: false
-  },
-  {
-    text: "ur a sicko !",
-    fromCurrentUser: false
-  },
-  {text: "blocked!",
-    fromCurrentUser: false
-  },
-  {
-    text: 
-      "My good man, please do not block me! I must confess that I am " +
-      "currently on the brink of suicide. I am taking several quite strong " +
-      "anti-depressants and my dog has a rare form of cancer. " +
-      "\n\n" +
-      "My penis is a paltry 4.5 inches. What is arguably saddest about this " +
-      "is that I have measured its length using the imperial system. I know " +
-      "that ending it all would be kindest on *me*, but sometimes I wonder if " +
-      "ending it all would be kindest on others too. What keeps me alive is " +
-      "the hope that my presence may be a burden towards others. I hate " +
-      "others even more than I hate myself. The thought that my existence may " +
-      "trouble others emboldens me to get out of bed. ",
-    fromCurrentUser: true
-  },
-  {text: 
-    "ur so weird, but ur pics are cute. Hm.",
-    fromCurrentUser: false,
-  },
-  {text: 
-    "fuck it. meet you in the park near the lake 😊",
-    fromCurrentUser: false,
-  },
-  {
-    text: "hoorah",
-    fromCurrentUser: true,
-    // state: "Read"
-  },
-];
+  const personId: number = route?.params?.personId;
+  const name: string = route?.params?.name;
+  const imageUuid: number = route?.params?.imageUuid;
 
-// TODO
-const delay = async (ms: number) => {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+  const listRef = useRef<any>(null)
 
-const fetchPage = async (n: number): Promise<Message[]> => {
-  await delay(500);
+  const scrollToEnd = useCallback(() => {
+    if (listRef.current) {
+      listRef.current.scrollToEnd({animated: true});
+    }
+  }, [listRef.current]);
 
-  if (n <= 0)
-    return [];
-
-  return messages;
-};
-
-const ConversationScreen = ({navigation}) => {
-  const listRef = useRef(null);
-
-  const onPressSend = useCallback((text: string) => {
+  const onPressSend = useCallback(async (text: string): Promise<MessageStatus> => {
     const message: Message = {
       text: text,
+      from: '',
+      to: '',
+      id: getRandomString(40),
       fromCurrentUser: true,
     };
-    listRef.current.append(message);
+    setLastMessageStatus(null);
+    const messageStatus = await sendMessage(
+      personId,
+      message.text,
+      messages === null || messages.length === 0
+    );
+    if (messageStatus === 'sent') {
+      setMessages(messages => [...(messages ?? []), message]);
+    }
+    setLastMessageStatus(messageStatus);
+    return messageStatus;
+  }, [personId, messages]);
+
+  const _fetchConversation = useCallback(async () => {
+    const _messages = await fetchConversation(personId);
+    setMessageFetchTimeout(_messages === 'timeout');
+    if (_messages !== 'timeout') {
+      setMessages(existingMessages =>
+        [...(existingMessages ?? []), ...(_messages ?? [])]
+      );
+    }
   }, []);
+
+  const _onReceiveMessage = useCallback(
+    (msg) => setMessages(msgs => [...(msgs ?? []), msg]),
+    []
+  );
+
+  useEffect(() => {
+    _fetchConversation();
+
+    return onReceiveMessage(_onReceiveMessage, personId);
+  }, [_onReceiveMessage, personId]);
 
   return (
     <>
@@ -143,7 +131,7 @@ const ConversationScreen = ({navigation}) => {
           }}
         >
           <Image
-            source={{uri: `https://randomuser.me/api/portraits/men/${getRandomInt(99)}.jpg`}}
+            source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
             style={{
               width: 30,
               height: 30,
@@ -159,33 +147,128 @@ const ConversationScreen = ({navigation}) => {
               fontSize: 20,
             }}
           >
-            Rahim
+            {name ?? '...'}
           </DefaultText>
         </View>
       </TopNavBar>
-      <DefaultFlatList
-        innerRef={listRef}
-        emptyText="This is the start of your conversation with Rahim."
-        fetchPage={fetchPage}
-        renderItem={(x) =>
-          <SpeechBubble
-            fromCurrentUser={x.item.fromCurrentUser}
-            state={x.item.state}
+      {messages === null && !messageFetchTimeout &&
+        <View style={{flexGrow: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <ActivityIndicator size="large" color="#70f" />
+        </View>
+      }
+      {messages === null && messageFetchTimeout &&
+        <View style={{flexGrow: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <DefaultText
+            style={{fontFamily: 'Trueno'}}
           >
-            {x.item.text}
-          </SpeechBubble>
+            You're offline
+          </DefaultText>
+        </View>
+      }
+      {messages !== null && messages.length === 0 &&
+        <View style={{
+          flexGrow: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          alignSelf: 'center',
+        }}>
+          <ImageBackground
+            source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
+            style={{
+              height: 200,
+              width: 200,
+              margin: 2,
+              borderRadius: 999,
+              borderColor: 'white',
+              backgroundColor: imageUuid ? 'white' : '#f1e5ff',
+              overflow: 'hidden',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            {!imageUuid &&
+              <Ionicons
+                style={{fontSize: 40, color: 'rgba(119, 0, 255, 0.2)'}}
+                name={'person'}
+              />
+            }
+          </ImageBackground>
+          <Text
+            style={{
+              marginTop: 20,
+              marginBottom: 10,
+              fontFamily: 'Trueno',
+              textAlign: 'center',
+              marginLeft: '15%',
+              marginRight: '15%',
+            }}
+          >
+            This is the start of your conversation with {name}
+          </Text>
+          <DefaultText
+            style={{
+              textAlign: 'center',
+              marginLeft: '10%',
+              marginRight: '10%',
+            }}
+          >
+            Intros on Duolicious have to be totally unique! Try
+            asking {name} about something interesting on their profile...
+          </DefaultText>
+        </View>
+      }
+      {messages !== null && messages.length > 0 &&
+        <ScrollView
+          ref={listRef}
+          onLayout={scrollToEnd}
+          onContentSizeChange={scrollToEnd}
+          contentContainerStyle={{
+            paddingTop: 10,
+            maxWidth: 600,
+            width: '100%',
+            alignSelf: 'center',
+          }}
+        >
+          {messages.map((x) =>
+            <SpeechBubble
+              key={x.id}
+              fromCurrentUser={x.fromCurrentUser}
+            >
+              {x.text}
+            </SpeechBubble>
+          )}
+        </ScrollView>
+      }
+      <DefaultText
+        style={{
+          maxWidth: 600,
+          width: '100%',
+          alignSelf: 'center',
+          textAlign: 'center',
+          opacity: lastMessageStatus === 'sent' || lastMessageStatus === null ? 0 : 1,
+          color: lastMessageStatus === 'timeout' ? 'red' : '#70f',
+          ...(lastMessageStatus === 'timeout' ? {} : { fontFamily: 'Trueno' }),
+        }}
+      >
+        {lastMessageStatus === 'timeout' ?
+          "Message not delivered. Are you online?" :
+          "Someone already used that intro! Try again!"
         }
-        disableRefresh={true}
-        inverted={true}
-        firstPage={10}
-      />
-      <TextInputWithButton onPress={onPressSend}/>
+      </DefaultText>
+      {!messageFetchTimeout &&
+        <TextInputWithButton onPress={onPressSend}/>
+      }
     </>
   );
 };
 
-const TextInputWithButton = ({onPress}) => {
+const TextInputWithButton = ({
+  onPress,
+}: {
+  onPress: (text: string) => Promise<MessageStatus>,
+}) => {
   const opacity = useRef(new Animated.Value(1)).current;
+  const [isLoading, setIsLoading] = useState(false);
 
   const fadeIn = useCallback(() => {
     Animated.timing(opacity, {
@@ -205,11 +288,15 @@ const TextInputWithButton = ({onPress}) => {
 
   const [text, setText] = useState("");
 
-  const sendMessage = useCallback(() => {
+  const sendMessage = useCallback(async () => {
     const trimmed = text.trim();
     if (trimmed) {
-      onPress(trimmed)
-      setText("");
+      setIsLoading(true);
+      const messageStatus = await onPress(trimmed);
+      if (messageStatus === 'sent') {
+        setText("");
+      }
+      setIsLoading(false);
     }
   }, [text]);
 
@@ -225,6 +312,9 @@ const TextInputWithButton = ({onPress}) => {
       style={{
         flexDirection: 'row',
         padding: 10,
+        maxWidth: 600,
+        width: '100%',
+        alignSelf: 'center',
       }}
     >
       <TextInput
@@ -238,6 +328,7 @@ const TextInputWithButton = ({onPress}) => {
           flexGrow: 1,
           marginRight: 5,
         }}
+        readOnly={isLoading}
         value={text}
         onChangeText={setText}
         onKeyPress={onKeyPress}
@@ -279,15 +370,22 @@ const TextInputWithButton = ({onPress}) => {
                 backgroundColor: 'rgb(228, 204, 255)',
                 borderRadius: 999,
                 opacity: opacity,
-                paddingRight: 5,
-                paddingBottom: 5,
               }}
             >
-              <FontAwesomeIcon
-                icon={faPaperPlane}
-                size={20}
-                color="#70f"
-              />
+              {isLoading &&
+                <ActivityIndicator size="large" color="#70f" />
+              }
+              {!isLoading &&
+                <FontAwesomeIcon
+                  icon={faPaperPlane}
+                  size={20}
+                  color="#70f"
+                  style={{
+                    marginRight: 5,
+                    marginBottom: 5,
+                  }}
+                />
+              }
             </Animated.View>
           </Pressable>
         </View>

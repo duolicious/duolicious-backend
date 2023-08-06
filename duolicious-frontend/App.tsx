@@ -21,6 +21,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Font from 'expo-font';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as SplashScreen from 'expo-splash-screen';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { TabBar } from './components/tab-bar';
 import SearchTab from './components/search-tab';
@@ -31,9 +32,9 @@ import { TraitsTab } from './components/traits-tab';
 import { ConversationScreen } from './components/conversation-screen';
 import { GalleryScreen, ProspectProfileScreen } from './components/prospect-profile-screen';
 import { WelcomeScreen } from './components/welcome-screen';
-import { sessionToken } from './session-token/session-token';
+import { sessionToken } from './kv-storage/session-token';
 import { japi } from './api/api';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { login, logout } from './xmpp/xmpp';
 
 // TODO: iOS UI testing
 // TODO: Delete 'getRandomInt' definitions
@@ -53,6 +54,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 // TODO: Try minifying the app
 // TODO: Quiz card stack doesn't update after logging out
 // TODO: What happens if you leave the app to get the OTP from your emails?
+
 
 
 SplashScreen.preventAutoHideAsync();
@@ -122,20 +124,22 @@ const WebSplashScreen = ({loading}) => {
   }
 };
 
-let isSignedIn: boolean;
-let setIsSignedIn: React.Dispatch<React.SetStateAction<typeof isSignedIn>>;
+type SignedInUser = {
+  personId: number
+  units: 'Metric' | 'Imperial'
+  sessionToken: string
+};
 
 let referrerId: string | undefined;
 let setReferrerId: React.Dispatch<React.SetStateAction<typeof referrerId>>;
 
-let units: 'Metric' | 'Imperial';
-let setUnits: React.Dispatch<React.SetStateAction<typeof units>>;
+let signedInUser: SignedInUser | undefined;
+let setSignedInUser: React.Dispatch<React.SetStateAction<typeof signedInUser>>;
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
+  [signedInUser, setSignedInUser] = useState<SignedInUser | undefined>();
   [referrerId, setReferrerId] = useState<string | undefined>();
-  [isSignedIn, setIsSignedIn] = useState(false);
-  [units, setUnits] = useState('Metric');
 
   const loadFonts = useCallback(async () => {
     await Font.loadAsync({
@@ -167,20 +171,24 @@ const App = () => {
   const fetchSignInState = useCallback(async () => {
     const existingSessionToken = await sessionToken();
     if (existingSessionToken === null) {
-      setIsSignedIn(false);
-    } else {
+      setSignedInUser(undefined);
+    } else if (typeof existingSessionToken === 'string') {
       const response = await japi('post', '/check-session-token');
-      if (response.ok) {
-        setIsSignedIn(Boolean(response?.json?.onboarded));
-        setUnits(response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric');
+      if (response.ok && Boolean(response?.json?.onboarded)) {
+        setSignedInUser({
+          personId: response?.json?.person_id,
+          units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
+          sessionToken: existingSessionToken,
+        });
       } else {
-        setIsSignedIn(false);
+        setSignedInUser(undefined);
       }
     }
   }, []);
 
   const updateReferrerId = useCallback(async () => {
     const initialUrl = await Linking.getInitialURL();
+    if (!initialUrl) return void setReferrerId(undefined);
     const match = initialUrl.match(/\/me\/(\d+)$/);
     const referrerId_ = match ? match[1] : undefined;
     setReferrerId(referrerId_);
@@ -198,6 +206,16 @@ const App = () => {
       setIsLoading(false);
     })();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (signedInUser?.personId && signedInUser?.sessionToken) {
+        login(String(signedInUser.personId), signedInUser.sessionToken);
+      } else {
+        logout();
+      }
+    })();
+  }, [signedInUser?.personId, signedInUser?.sessionToken]);
 
   const onLayoutRootView = useCallback(async () => {
     if (!isLoading) {
@@ -235,7 +253,7 @@ const App = () => {
             {
               referrerId !== undefined ? (
                 <Tab.Screen name="Traits Screen" component={TraitsTab} />
-              ) : isSignedIn ? (
+              ) : signedInUser ? (
                 <>
                   <Tab.Screen name="Home" component={HomeTabs} />
                   <Tab.Screen name="Conversation Screen" component={ConversationScreen} />
@@ -258,8 +276,7 @@ const App = () => {
 
 export default App;
 export {
-  isSignedIn,
   referrerId,
-  setIsSignedIn,
-  units,
+  signedInUser,
+  setSignedInUser,
 };

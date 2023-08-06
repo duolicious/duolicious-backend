@@ -1,5 +1,5 @@
 diff --git a/node_modules/expo-font/build/ExpoFontLoader.web.js b/node_modules/expo-font/build/ExpoFontLoader.web.js
-index 3784a6a..844bc94 100644
+index 3784a6a..91b1dbf 100644
 --- a/node_modules/expo-font/build/ExpoFontLoader.web.js
 +++ b/node_modules/expo-font/build/ExpoFontLoader.web.js
 @@ -65,7 +65,7 @@ export default {

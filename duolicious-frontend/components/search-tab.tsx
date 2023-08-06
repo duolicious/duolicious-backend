@@ -139,7 +139,7 @@ const SearchScreen_ = ({navigation}) => {
         name={item.name}
         age={item.age}
         imageUuid={item.profile_photo_uuid}
-        userId={item.prospect_person_id}
+        personId={item.prospect_person_id}
         matchPercentage={item.match_percentage}
         containerStyle={itemContainerStyle}
       />

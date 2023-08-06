@@ -4,13 +4,15 @@ import {
   View,
 } from 'react-native';
 import {
-  useRef,
   useCallback,
+  useRef,
+  useState,
 } from 'react';
 import { DefaultText } from './default-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StackActions } from '@react-navigation/native';
 import { QAndADevice } from './q-and-a-device';
+import { Inbox, observeInbox } from '../xmpp/xmpp';
 
 const displayedTabs: Set<string> = new Set([
   "Q&A",
@@ -21,6 +23,16 @@ const displayedTabs: Set<string> = new Set([
 ]);
 
 const TabBar = ({state, descriptors, navigation}) => {
+  const [inboxHasUnread, setInboxHasUnread] = useState(false);
+  const onChangeInbox = useCallback(
+    (inbox: Inbox) => setInboxHasUnread(
+      inbox?.numUnread !== undefined &&
+      inbox?.numUnread > 0
+    ),
+    []
+  );
+  observeInbox(onChangeInbox);
+
   return (
     <View
       style={{
@@ -144,16 +156,23 @@ const TabBar = ({state, descriptors, navigation}) => {
                   {label === 'Inbox' &&
                     <Ionicons style={{...iconStyle}} name={inboxIcon}/>
                   }
-                  {label === 'Inbox' &&
+                  {label === 'Inbox' && inboxHasUnread &&
                     <View
                       style={{
                         position: 'absolute',
                         top: 3,
                         right: -13,
-                        height: 10,
-                        width: 10,
+                        height: 12,
+                        width: 12,
                         backgroundColor: '#70f',
                         borderRadius: 999,
+                        shadowOffset: {
+                          width: 0,
+                          height: 2,
+                        },
+                        shadowOpacity: 0.4,
+                        shadowRadius: 4,
+                        elevation: 4,
                       }}
                     />
                   }

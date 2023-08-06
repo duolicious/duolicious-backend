@@ -27,9 +27,9 @@ import {
 } from '../data/option-groups';
 import { Images } from './images';
 import { DefaultText } from './default-text';
-import { sessionToken } from '../session-token/session-token';
+import { sessionToken } from '../kv-storage/session-token';
 import { api } from '../api/api';
-import { setIsSignedIn } from '../App';
+import { setSignedInUser } from '../App';
 
 const Stack = createNativeStackNavigator();
 
@@ -84,7 +84,7 @@ const About = ({navigation}) => {
     setIsLoadingSignOut(true);
     if ((await api('post', '/sign-out')).ok) {
       await sessionToken(null);
-      setIsSignedIn(false);
+      setSignedInUser(undefined);
     }
     setIsLoadingSignOut(false);
   }, [navigation]);

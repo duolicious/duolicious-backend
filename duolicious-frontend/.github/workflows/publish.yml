@@ -22,6 +22,7 @@ jobs:
         env:
           NODE_OPTIONS: --openssl-legacy-provider
           DUO_API_URL: https://api-22szm34g7q-ue.a.run.app
+          DUO_CHAT_URL: wss://chat-22szm34g7q-ue.a.run.app
       - uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

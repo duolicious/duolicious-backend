@@ -19,7 +19,7 @@ function getRandomInt(max) {
 
 const Avatar = ({percentage, ...props}) => {
   const {
-    userId,
+    personId,
     imageUuid,
     navigation,
     size,
@@ -48,10 +48,10 @@ const Avatar = ({percentage, ...props}) => {
       'Prospect Profile Screen',
       {
         screen: 'Prospect Profile',
-        params: { userId },
+        params: { personId },
       }
     );
-  }, [navigation, userId]);
+  }, [navigation, personId]);
 
   return (
     <Element

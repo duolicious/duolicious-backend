@@ -75,7 +75,7 @@ const ImageOrSkeleton = ({resolution, imageUuid}) => {
   );
 };
 
-const ProfileCard = ({name, age, matchPercentage, imageUuid, userId, ...rest}) => {
+const ProfileCard = ({name, age, matchPercentage, imageUuid, personId, ...rest}) => {
   const navigation = useNavigation<any>();
 
   const itemOnPress = useCallback(() => {
@@ -83,10 +83,10 @@ const ProfileCard = ({name, age, matchPercentage, imageUuid, userId, ...rest}) =
       'Prospect Profile Screen',
       {
         screen: 'Prospect Profile',
-        params: { userId },
+        params: { personId },
       }
     );
-  }, [navigation, userId]);
+  }, [navigation, personId]);
 
   return (
     <View

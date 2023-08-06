@@ -33,6 +33,7 @@ const SpeechBubble = (props: Props) => {
         }}
       >
         <DefaultText
+          selectable={true}
           style={{
             color: props.fromCurrentUser ? 'white' : 'black',
             fontSize: 15,
@@ -43,6 +44,7 @@ const SpeechBubble = (props: Props) => {
       </View>
       {props.state &&
         <DefaultText
+          selectable={true}
           style={{
             fontSize: 13,
             paddingTop: 10,

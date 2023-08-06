@@ -78,7 +78,7 @@ const fetchNextQuestions = async (n: number = 10, o: number = 0): Promise<{
 };
 
 const prospectState = (
-  userId: number,
+  personId: number,
   imageUuid: string,
   matchPercentage: number
 ): ProspectState => {
@@ -110,7 +110,7 @@ const prospectState = (
   });
 
   return {
-    userId: userId,
+    personId: personId,
     imageUuid: imageUuid,
     matchPercentage: matchPercentage,
     style: {
@@ -171,7 +171,7 @@ type CardState = {
 };
 
 type ProspectState = {
-  userId: number
+  personId: number
   imageUuid: string
   matchPercentage: number
   style: {
@@ -397,7 +397,7 @@ const Prospects = ({
     elevation: 6,
   }).current;
 
-  const Prospect = useCallback(({style, userId, imageUuid, matchPercentage}) => (
+  const Prospect = useCallback(({style, personId, imageUuid, matchPercentage}) => (
     <Animated.View
       style={{
         position: 'absolute',
@@ -409,7 +409,7 @@ const Prospects = ({
     >
       <Avatar
         navigation={navigation}
-        userId={userId}
+        personId={personId}
         imageUuid={imageUuid}
         percentage={matchPercentage}
         shadow={true}
@@ -488,7 +488,7 @@ const Prospects = ({
             <Prospect
               key={String(topCardIndex - i)}
               style={prospect.style}
-              userId={prospect.userId}
+              personId={prospect.personId}
               imageUuid={prospect.imageUuid}
               matchPercentage={prospect.matchPercentage} />
           )

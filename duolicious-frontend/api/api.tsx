@@ -2,7 +2,7 @@ import {
   API_URL,
 } from '../env/env';
 import * as _ from "lodash";
-import { sessionToken } from '../session-token/session-token';
+import { sessionToken } from '../kv-storage/session-token';
 import { Buffer } from "buffer";
 
 type ApiResponse = {

@@ -5,17 +5,48 @@ import {
   View,
 } from 'react-native';
 import {
+  useCallback,
   useRef,
 } from 'react';
 import { DefaultText } from './default-text';
 import { Avatar } from './avatar';
+import { useNavigation } from '@react-navigation/native';
+import { format, isToday, isThisYear, isThisWeek } from 'date-fns'
 
-function getRandomInt(max) {
-  return Math.floor(Math.random() * max);
+const formatChatTimestamp = (date: Date): string => {
+  if (isToday(date)) {
+    // Format as 'HH:mm'
+    return format(date, 'HH:mm')
+  } else if (isThisWeek(date)) {
+    // Format as 'eeee' (day of the week)
+    return format(date, 'eeee')
+  } else if (isThisYear(date)) {
+    // Format as 'd MMMM' (date and month)
+    return format(date, 'd MMMM')
+  } else {
+    // Format as 'd MMMM yyyy' (date, month and year)
+    return format(date, 'd MMMM yyyy')
+  }
 }
 
-const InboxItem = (props) => {
-  const {style, unread, ...rest} = props;
+const InboxItem = ({
+  wasRead,
+  name,
+  personId,
+  imageUuid,
+  matchPercentage,
+  lastMessage,
+  lastMessageTimestamp,
+}: {
+  wasRead: boolean
+  name: string
+  personId: number
+  imageUuid: string | null
+  matchPercentage: number
+  lastMessage: string
+  lastMessageTimestamp: Date
+}) => {
+  const navigation = useNavigation<any>();
 
   const animated = useRef(new Animated.Value(1)).current;
 
@@ -41,11 +72,16 @@ const InboxItem = (props) => {
     }).start();
   };
 
+  const onPress = useCallback(() => navigation.navigate(
+    'Conversation Screen',
+    { personId, name, imageUuid }
+  ), [personId, name, imageUuid]);
+
   return (
     <Pressable
       onPressIn={fadeIn}
       onPressOut={fadeOut}
-      {...rest}
+      onPress={onPress}
     >
       <Animated.View
         style={{
@@ -55,10 +91,9 @@ const InboxItem = (props) => {
           paddingTop: 5,
           paddingBottom: 5,
           paddingLeft: 10,
-          ...style,
         }}
       >
-        <Avatar percentage={99}/>
+        <Avatar percentage={matchPercentage} imageUuid={imageUuid}/>
         <View
           style={{
             paddingLeft: 10,
@@ -82,35 +117,24 @@ const InboxItem = (props) => {
                 overflow: 'hidden',
               }}
             >
-              Rahim
+              {name}
             </DefaultText>
             <DefaultText
               style={{
                 color: 'grey',
               }}
             >
-              19:48
+              {formatChatTimestamp(lastMessageTimestamp)}
             </DefaultText>
           </View>
           <DefaultText
             numberOfLines={1}
             style={{
-              fontWeight: unread ? '600' : '400',
-              color: unread ? 'black' : 'grey',
+              fontWeight: wasRead ? '400' : '600',
+              color: wasRead ? 'grey' : 'black',
             }}
           >
-            hey bb, do u want fuk? 😊
-            hey bb, do u want fuk? 😊
-            hey bb, do u want fuk? 😊
-            hey bb, do u want fuk? 😊
-            hey bb, do u want fuk? 😊
-            hey bb, do u want fuk? 😊
-            hey bb, do u want fuk? 😊
-            hey bb, do u want fuk? 😊
-            hey bb, do u want fuk? 😊
-            hey bb, do u want fuk? 😊
-            hey bb, do u want fuk? 😊
-            hey bb, do u want fuk? 😊
+            {lastMessage}
           </DefaultText>
         </View>
       </Animated.View>
