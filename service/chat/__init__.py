@@ -6,6 +6,8 @@ import re
 import websockets
 
 # TODO: Push notifications, yay
+# TODO: async db ops
+# TODO: Lock down the XMPP server by only allowing certain types of message
 
 Q_UNIQUENESS = """
 INSERT INTO intro_hash (hash)
