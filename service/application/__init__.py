@@ -166,3 +166,11 @@ def get_inbox_info(s: t.SessionInfo):
         s=s,
         prospect_person_ids=request.args.getlist('prospect-person-id'),
     )
+
+@adelete('/account')
+def delete_account(s: t.SessionInfo):
+    return person.delete_account(s=s)
+
+@apost('/deactivate')
+def post_deactivate(s: t.SessionInfo):
+    return person.post_deactivate(s=s)

@@ -637,3 +637,16 @@ FROM
 WHERE
     id = ANY(%(prospect_person_ids)s)
 """
+
+Q_DELETE_ACCOUNT = """
+DELETE FROM person WHERE id = %(person_id)s
+"""
+
+Q_POST_DEACTIVATE = """
+UPDATE
+    person
+SET
+    activated = FALSE
+WHERE
+    id = %(person_id)s
+"""

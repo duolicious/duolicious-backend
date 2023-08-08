@@ -159,6 +159,14 @@ GET /inbox-info {
   }
 ]
 
+DELETE /delete-account {
+  session-token
+}
+
+POST /deactivate {
+  session-token
+}
+
 POST /search-filter {
   session-token
 } (
@@ -214,12 +222,4 @@ POST /contact {
   session-token
 } {
   text
-}
-
-POST /deactivate {
-  session-token
-}
-
-POST /delete-account {
-  session-token
 }
