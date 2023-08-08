@@ -217,9 +217,3 @@ DELETE /profile-info {
 } {
   { picture-id }
 }
-
-POST /contact {
-  session-token
-} {
-  text
-}
