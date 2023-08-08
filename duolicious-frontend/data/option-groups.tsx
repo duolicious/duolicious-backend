@@ -9,8 +9,6 @@ type OptionGroupButtons = {
   initialSelectedIndex?: number,
 };
 
-type OptionGroupVerification = 'verification';
-
 type OptionGroupDeletion = 'deletion';
 
 type OptionGroupLocationSelector = {
@@ -89,7 +87,6 @@ type OptionGroupRangeSlider = {
 
 type OptionGroupInputs
   = OptionGroupButtons
-  | OptionGroupVerification
   | OptionGroupDeletion
   | OptionGroupLocationSelector
   | OptionGroupSlider
@@ -126,10 +123,6 @@ const hasExactKeys = (obj, keys) => {
 
 const isOptionGroupButtons = (x: any): x is OptionGroupButtons => {
   return (x as OptionGroupButtons)?.buttons !== undefined;
-}
-
-const isOptionGroupVerification = (x: any): x is OptionGroupVerification => {
-  return x === 'verification';
 }
 
 const isOptionGroupDeletion = (x: any): x is OptionGroupDeletion => {
@@ -251,14 +244,6 @@ const lookingForOptionGroup: OptionGroup = {
 };
 
 // TODO: These should come from a DB or something
-const verificationOptionGroups: OptionGroup[] = [
-  {
-    title: 'Verification',
-    description: 'Get verified',
-    input: 'verification',
-  },
-];
-
 const basicsOptionGroups: OptionGroup[] = [
   genderOptionGroup,
   orientationOptionGroup,
@@ -703,14 +688,6 @@ const searchBasicsOptionGroups: OptionGroup[] = [
     },
   },
   {
-    title: "Verified",
-    description: "Do you want people in search results to be verified?",
-    input: {
-      buttons: ['Yes', 'No'],
-      submit: async (input: string) => true
-    },
-  },
-  {
     title: "Has a Profile Picture",
     description: "Do you want people in search results to have a profile picture?",
     input: {
@@ -948,10 +925,8 @@ export {
   isOptionGroupSlider,
   isOptionGroupTextLong,
   isOptionGroupTextShort,
-  isOptionGroupVerification,
   isOptionGroupCheckChips,
   isOptionGroupRangeSlider,
-  verificationOptionGroups,
   searchBasicsOptionGroups,
   searchInteractionsOptionGroups,
   createAccountOptionGroups,

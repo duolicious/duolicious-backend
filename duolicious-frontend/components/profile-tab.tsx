@@ -10,7 +10,6 @@ import {
 } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ButtonForOption } from './button/option';
-import { VerificationBadge } from './verification-badge';
 import { DuoliciousTopNavBar } from './top-nav-bar';
 import { OptionScreen } from './option-screen';
 import { Title } from './title';
@@ -23,7 +22,6 @@ import {
   generalSettingsOptionGroups,
   notificationSettingsOptionGroups,
   privacySettingsOptionGroups,
-  verificationOptionGroups,
 } from '../data/option-groups';
 import { Images } from './images';
 import { DefaultText } from './default-text';
@@ -93,11 +91,6 @@ const About = ({navigation}) => {
     <View>
       <Title>About</Title>
       <DefaultLongTextInput/>
-      <View style={{flexDirection: 'row'}}>
-        <Title>Verification</Title>
-        <VerificationBadge/>
-      </View>
-      <Button_ optionGroups={verificationOptionGroups}/>
       <Title>Basics</Title>
       {
         basicsOptionGroups.map((_, i) => {

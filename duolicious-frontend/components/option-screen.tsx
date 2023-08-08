@@ -35,7 +35,6 @@ import {
   isOptionGroupSlider,
   isOptionGroupTextLong,
   isOptionGroupTextShort,
-  isOptionGroupVerification,
   isOptionGroupRangeSlider,
   isOptionGroupCheckChips,
   isOptionGroupNone,
@@ -100,41 +99,6 @@ const Buttons = forwardRef((props: InputProps, ref) => {
     </>
   );
 });
-
-const Verification = ({input}) => {
-  // TODO
-  if (true) {
-    return (
-      <>
-        <DefaultTextInput
-          placeholder="Mobile (with country code)"
-          keyboardType="phone-pad"
-          textContentType="telephoneNumber"
-        />
-        <ButtonWithCenteredText
-          containerStyle={{
-            marginLeft: 20,
-            marginRight: 20,
-          }}
-        >
-          Send SMS
-        </ButtonWithCenteredText>
-      </>
-    );
-  } else {
-    return (
-      <DefaultText
-        style={{
-          textAlign: 'center',
-          fontSize: 22,
-          color: '#444',
-        }}
-      >
-        You're already verified!
-      </DefaultText>
-    );
-  }
-};
 
 const Slider = ({input, onPress, title, showDoneButton}) => {
   return (
@@ -568,8 +532,6 @@ const InputElement = forwardRef((props: InputProps, ref) => {
 
   if (isOptionGroupButtons(props.input)) {
     return <Buttons {...props1}/>;
-  } else if (isOptionGroupVerification(props.input)) {
-    return <Verification {...props1}/>;
   } else if (isOptionGroupSlider(props.input)) {
     return <Slider {...props1}/>;
   } else if (isOptionGroupDeletion(props.input)) {
