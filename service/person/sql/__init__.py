@@ -193,34 +193,11 @@ ON
     valid_session.person_id = existing_person.id
 """
 
-Q_SELECT_ONBOARDEE_PHOTO = """
-SELECT uuid
-FROM onboardee_photo
-WHERE
-    email = %(email)s AND
-    position = %(position)s
-"""
-
 Q_DELETE_ONBOARDEE_PHOTO = """
 DELETE FROM onboardee_photo
 WHERE
     email = %(email)s AND
     position = %(position)s
-"""
-
-Q_SELECT_ONBOARDEE_PHOTOS_TO_DELETE = """
-WITH
-valid_session AS (
-    SELECT email
-    FROM duo_session
-    WHERE
-        session_token_hash = %(session_token_hash)s AND
-        otp = %(otp)s AND
-        otp_expiry > NOW()
-)
-SELECT uuid
-FROM onboardee_photo
-WHERE email IN (SELECT email from valid_session)
 """
 
 Q_DELETE_DUO_SESSION = """
@@ -779,4 +756,11 @@ WITH photo AS (
         'show my age',            (SELECT j FROM show_my_age),
         'hide me from strangers', (SELECT j FROM hide_me_from_strangers)
     ) AS j
+"""
+
+Q_DELETE_PROFILE_INFO = """
+DELETE FROM photo
+WHERE
+    person_id = %(person_id)s AND
+    position = %(position)s
 """

@@ -228,6 +228,10 @@ CREATE TABLE IF NOT EXISTS photo (
     PRIMARY KEY (person_id, position)
 );
 
+CREATE TABLE IF NOT EXISTS photo_graveyard (
+    uuid TEXT PRIMARY KEY
+);
+
 CREATE TABLE IF NOT EXISTS question (
     id SMALLSERIAL,
     question TEXT NOT NULL,
@@ -1097,6 +1101,63 @@ ON person
 FOR EACH ROW
 EXECUTE FUNCTION insert_update_search_tables();
 
--- TODO: Trait descriptions should be in the database
+
+
+CREATE OR REPLACE FUNCTION add_to_photo_graveyard()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- If a photo is updated or deleted, add the old uuid to photo_graveyard
+    INSERT INTO photo_graveyard (uuid) VALUES (OLD.uuid);
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for DELETE operation
+CREATE OR REPLACE TRIGGER trigger_photo_delete
+BEFORE DELETE ON photo
+FOR EACH ROW
+EXECUTE FUNCTION add_to_photo_graveyard();
+
+-- Trigger for UPDATE operation
+CREATE OR REPLACE TRIGGER trigger_photo_update
+BEFORE UPDATE ON photo
+FOR EACH ROW
+WHEN (OLD.uuid IS DISTINCT FROM NEW.uuid)
+EXECUTE FUNCTION add_to_photo_graveyard();
+
+-- Trigger for DELETE operation on onboardee_photo
+CREATE OR REPLACE TRIGGER trigger_onboardee_photo_delete
+BEFORE DELETE ON onboardee_photo
+FOR EACH ROW
+EXECUTE FUNCTION add_to_photo_graveyard();
+
+-- Trigger for UPDATE operation on onboardee_photo
+CREATE OR REPLACE TRIGGER trigger_onboardee_photo_update
+BEFORE UPDATE ON onboardee_photo
+FOR EACH ROW
+WHEN (OLD.uuid IS DISTINCT FROM NEW.uuid)
+EXECUTE FUNCTION add_to_photo_graveyard();
+
+
+
+CREATE OR REPLACE FUNCTION remove_from_photo_graveyard()
+RETURNS TRIGGER AS $$
+BEGIN
+    DELETE FROM photo_graveyard WHERE uuid = NEW.uuid;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trigger_photo_insert
+AFTER INSERT ON photo
+FOR EACH ROW
+EXECUTE FUNCTION remove_from_photo_graveyard();
+
+CREATE OR REPLACE TRIGGER trigger_onboardee_photo_insert
+AFTER INSERT ON onboardee_photo
+FOR EACH ROW
+EXECUTE FUNCTION remove_from_photo_graveyard();
+
 -- TODO: Periodically delete expired tokens
 -- TODO: Periodically move inactive accounts
+-- TODO: Periodically delete photos from bucket

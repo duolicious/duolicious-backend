@@ -135,6 +135,7 @@ def put_images_in_object_store(uuid_img: Iterable[Tuple[str, io.BytesIO]]):
         for future in as_completed(futures):
             future.result()
 
+# TODO: Delete from the graveyard as a batch job
 def delete_images_from_object_store(uuids: Iterable[str]):
     keys_to_delete = [
         key_to_delete
@@ -279,13 +280,6 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
     )
 
     with transaction() as tx:
-        tx.execute(Q_SELECT_ONBOARDEE_PHOTOS_TO_DELETE, params)
-        previous_onboardee_photos = tx.fetchall()
-
-    delete_images_from_object_store(
-        row['uuid'] for row in previous_onboardee_photos)
-
-    with transaction() as tx:
         tx.execute(Q_MAYBE_DELETE_ONBOARDEE, params)
         tx.execute(Q_MAYBE_SIGN_IN, params)
         row = tx.fetchone()
@@ -424,14 +418,6 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
             for pos, uuid, _ in pos_uuid_img
         ]
 
-        # Delete existing onboardee photos in the given position, if any exist
-        with transaction() as tx:
-            tx.executemany(Q_SELECT_ONBOARDEE_PHOTO, params, returning=True)
-            previous_onboardee_photos = fetchall_sets(tx)
-
-        delete_images_from_object_store(
-            row['uuid'] for row in previous_onboardee_photos)
-
         # Create new onboardee photos. Because we:
         #   1. Create DB entries; then
         #   2. Create photos,
@@ -470,18 +456,6 @@ def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo):
         dict(email=s.email, position=position)
         for position in req.files
     ]
-
-    # We do this in two steps to ensure there's never any photos in object
-    # storage which we're not tracking in the DB. However, there might be
-    # entries in the DB which aren't in object storage. The front end deals with
-    # that.
-
-    with transaction() as tx:
-        tx.executemany(Q_SELECT_ONBOARDEE_PHOTO, params, returning=True)
-        previous_onboardee_photos = fetchall_sets(tx)
-
-    delete_images_from_object_store(
-        row['uuid'] for row in previous_onboardee_photos)
 
     with transaction() as tx:
         tx.executemany(Q_DELETE_ONBOARDEE_PHOTO, params)
@@ -704,9 +678,14 @@ def get_profile_info(s: t.SessionInfo):
     with transaction('READ COMMITTED') as tx:
         return tx.execute(Q_GET_PROFILE_INFO, params).fetchone()['j']
 
-def delete_profile_info(s: t.SessionInfo):
-    # TODO
-    pass
+def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
+    params = [
+        dict(person_id=s.person_id, position=position)
+        for position in req.files
+    ]
+
+    with transaction() as tx:
+        tx.executemany(Q_DELETE_PROFILE_INFO, params)
 
 def patch_profile_info(s: t.SessionInfo):
     # TODO

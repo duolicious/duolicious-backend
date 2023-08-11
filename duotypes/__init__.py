@@ -123,3 +123,6 @@ class PatchOnboardeeInfo(BaseModel):
 
 class DeleteOnboardeeInfo(BaseModel):
     files: List[conint(ge=1, le=7)]
+
+class DeleteProfileInfo(BaseModel):
+    files: List[conint(ge=1, le=7)]

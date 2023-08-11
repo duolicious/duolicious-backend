@@ -178,3 +178,8 @@ def post_deactivate(s: t.SessionInfo):
 @aget('/profile-info')
 def get_profile_info(s: t.SessionInfo):
     return person.get_profile_info(s)
+
+@adelete('/profile-info')
+@validate(t.DeleteProfileInfo)
+def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
+    return person.delete_profile_info(req, s)
