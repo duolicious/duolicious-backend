@@ -168,7 +168,6 @@ WITH valid_session AS (
 ), existing_person AS (
     UPDATE person
     SET
-        last_active_time = NOW(),
         activated = TRUE,
         sign_in_count = sign_in_count + 1
     FROM valid_session
@@ -227,12 +226,6 @@ WHERE email IN (SELECT email from valid_session)
 Q_DELETE_DUO_SESSION = """
 DELETE FROM duo_session
 WHERE session_token_hash = %(session_token_hash)s
-"""
-
-Q_POST_ACTIVE = """
-UPDATE person
-SET last_active_time = NOW()
-WHERE person_id = %(person_id)s
 """
 
 Q_FINISH_ONBOARDING = """
@@ -481,6 +474,7 @@ SELECT
 
     -- Basics
     occupation,
+    education,
     height_cm,
     (SELECT name FROM gender              WHERE id = p.gender_id              AND name != 'Unanswered') AS gender,
     (SELECT name FROM orientation         WHERE id = p.orientation_id         AND name != 'Unanswered') AS orientation,
@@ -649,4 +643,140 @@ SET
     activated = FALSE
 WHERE
     id = %(person_id)s
+"""
+
+Q_GET_PROFILE_INFO = """
+WITH photo AS (
+    SELECT json_object_agg(position, uuid) AS j
+    FROM photo
+    WHERE person_id = %(person_id)s
+), about AS (
+    SELECT about AS j FROM person WHERE id = %(person_id)s
+), gender AS (
+    SELECT gender.name AS j
+    FROM gender JOIN person ON gender_id = gender.id
+    WHERE person.id = %(person_id)s
+), orientation AS (
+    SELECT orientation.name AS j
+    FROM orientation JOIN person ON orientation_id = orientation.id
+    WHERE person.id = %(person_id)s
+), location AS (
+    SELECT short_friendly AS j
+    FROM location
+    ORDER BY coordinates <-> (
+        SELECT coordinates FROM person WHERE id = %(person_id)s
+    )
+    LIMIT 1
+), occupation AS (
+    SELECT occupation AS j FROM person WHERE id = %(person_id)s
+), education AS (
+    SELECT education AS j FROM person WHERE id = %(person_id)s
+), height AS (
+    SELECT height_cm AS j FROM person WHERE id = %(person_id)s
+), looking_for AS (
+    SELECT looking_for.name AS j
+    FROM looking_for JOIN person ON looking_for_id = looking_for.id
+    WHERE person.id = %(person_id)s
+), smoking AS (
+    SELECT yes_no_optional.name AS j
+    FROM yes_no_optional JOIN person ON smoking_id = yes_no_optional.id
+    WHERE person.id = %(person_id)s
+), drinking AS (
+    SELECT frequency.name AS j
+    FROM frequency JOIN person ON drinking_id = frequency.id
+    WHERE person.id = %(person_id)s
+), drugs AS (
+    SELECT yes_no_optional.name AS j
+    FROM yes_no_optional JOIN person ON drugs_id = yes_no_optional.id
+    WHERE person.id = %(person_id)s
+), long_distance AS (
+    SELECT yes_no_optional.name AS j
+    FROM yes_no_optional JOIN person ON long_distance_id = yes_no_optional.id
+    WHERE person.id = %(person_id)s
+), relationship_status AS (
+    SELECT relationship_status.name AS j
+    FROM relationship_status JOIN person ON relationship_status_id = relationship_status.id
+    WHERE person.id = %(person_id)s
+), has_kids AS (
+    SELECT yes_no_maybe.name AS j
+    FROM yes_no_maybe JOIN person ON has_kids_id = yes_no_maybe.id
+    WHERE person.id = %(person_id)s
+), wants_kids AS (
+    SELECT yes_no_maybe.name AS j
+    FROM yes_no_maybe JOIN person ON wants_kids_id = yes_no_maybe.id
+    WHERE person.id = %(person_id)s
+), exercise AS (
+    SELECT frequency.name AS j
+    FROM frequency JOIN person ON exercise_id = frequency.id
+    WHERE person.id = %(person_id)s
+), religion AS (
+    SELECT religion.name AS j
+    FROM religion JOIN person ON has_kids_id = religion.id
+    WHERE person.id = %(person_id)s
+), star_sign AS (
+    SELECT star_sign.name AS j
+    FROM star_sign JOIN person ON wants_kids_id = star_sign.id
+    WHERE person.id = %(person_id)s
+
+), unit AS (
+    SELECT unit.name AS j
+    FROM unit JOIN person ON unit_id = unit.id
+    WHERE person.id = %(person_id)s
+
+), chat AS (
+    SELECT immediacy.name AS j
+    FROM immediacy JOIN person ON chats_notification = immediacy.id
+    WHERE person.id = %(person_id)s
+), intro AS (
+    SELECT immediacy.name AS j
+    FROM immediacy JOIN person ON intros_notification = immediacy.id
+    WHERE person.id = %(person_id)s
+
+), show_my_location AS (
+    SELECT
+        CASE WHEN show_my_location THEN 'Yes' ELSE 'No' END AS j
+    FROM person
+    WHERE id = %(person_id)s
+), show_my_age AS (
+    SELECT
+        CASE WHEN show_my_age THEN 'Yes' ELSE 'No' END AS j
+    FROM person
+    WHERE id = %(person_id)s
+), hide_me_from_strangers AS (
+    SELECT
+        CASE WHEN hide_me_from_strangers THEN 'Yes' ELSE 'No' END AS j
+    FROM person
+    WHERE id = %(person_id)s
+
+) SELECT
+    json_build_object(
+        'photo',                  (SELECT j FROM photo),
+        'about',                  (SELECT j FROM about),
+        'gender',                 (SELECT j FROM gender),
+        'orientation',            (SELECT j FROM orientation),
+        'location',               (SELECT j FROM location),
+        'occupation',             (SELECT j FROM occupation),
+        'education',              (SELECT j FROM education),
+        'height',                 (SELECT j FROM height),
+        'looking for',            (SELECT j FROM looking_for),
+        'smoking',                (SELECT j FROM smoking),
+        'drinking',               (SELECT j FROM drinking),
+        'drugs',                  (SELECT j FROM drugs),
+        'long distance',          (SELECT j FROM long_distance),
+        'relationship status',    (SELECT j FROM relationship_status),
+        'has kids',               (SELECT j FROM has_kids),
+        'wants kids',             (SELECT j FROM wants_kids),
+        'exercise',               (SELECT j FROM exercise),
+        'religion',               (SELECT j FROM religion),
+        'star sign',              (SELECT j FROM star_sign),
+
+        'units',                  (SELECT j FROM unit),
+
+        'chats',                  (SELECT j FROM chat),
+        'intros',                 (SELECT j FROM intro),
+
+        'show my location',       (SELECT j FROM show_my_location),
+        'show my age',            (SELECT j FROM show_my_age),
+        'hide me from strangers', (SELECT j FROM hide_me_from_strangers)
+    ) AS j
 """

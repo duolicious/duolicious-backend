@@ -697,3 +697,17 @@ def post_deactivate(s: t.SessionInfo):
 
     with transaction() as tx:
         tx.execute(Q_POST_DEACTIVATE, params)
+
+def get_profile_info(s: t.SessionInfo):
+    params = dict(person_id=s.person_id)
+
+    with transaction('READ COMMITTED') as tx:
+        return tx.execute(Q_GET_PROFILE_INFO, params).fetchone()['j']
+
+def delete_profile_info(s: t.SessionInfo):
+    # TODO
+    pass
+
+def patch_profile_info(s: t.SessionInfo):
+    # TODO
+    pass

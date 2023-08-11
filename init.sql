@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS person (
     -- Basics
     orientation_id SMALLINT REFERENCES orientation(id) NOT NULL DEFAULT 1,
     occupation TEXT,
+    education TEXT,
     height_cm SMALLINT,
     looking_for_id SMALLINT REFERENCES looking_for(id) NOT NULL DEFAULT 1,
     smoking_id SMALLINT REFERENCES yes_no_optional(id) NOT NULL DEFAULT 1,
@@ -167,13 +168,11 @@ CREATE TABLE IF NOT EXISTS person (
     -- Privacy Settings
     show_my_location BOOLEAN NOT NULL DEFAULT TRUE,
     show_my_age BOOLEAN NOT NULL DEFAULT TRUE,
-    private_browsing BOOLEAN NOT NULL DEFAULT FALSE,
     hide_me_from_strangers BOOLEAN NOT NULL DEFAULT FALSE,
 
     -- Bookkeeping
     sign_up_time TIMESTAMP NOT NULL DEFAULT NOW(),
     sign_in_count INT NOT NULL DEFAULT 1,
-    last_active_time TIMESTAMP NOT NULL DEFAULT NOW(),
 
     -- Whether the user deactivated their account via the settings
     activated BOOLEAN NOT NULL DEFAULT TRUE,

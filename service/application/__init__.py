@@ -174,3 +174,7 @@ def delete_account(s: t.SessionInfo):
 @apost('/deactivate')
 def post_deactivate(s: t.SessionInfo):
     return person.post_deactivate(s=s)
+
+@aget('/profile-info')
+def get_profile_info(s: t.SessionInfo):
+    return person.get_profile_info(s)
