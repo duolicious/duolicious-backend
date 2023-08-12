@@ -14,6 +14,7 @@ setup () {
   q "delete from duo_session"
   q "delete from person"
   q "delete from onboardee"
+  q "delete from photo_graveyard"
 
   ../util/create-user.sh searcher 0
   ../util/create-user.sh user1 0
@@ -262,13 +263,13 @@ test_photos_promoted () {
   SELECT
     (select id from person where email = 'user3@example.com'),
     1,
-    'my-uuid'"
+    'user3-uuid'"
   q "
   insert into photo (person_id, position, uuid)
   select
     (select id from person where email = 'user4@example.com'),
     1,
-    'my-uuid'"
+    'user4-uuid'"
 
   response2=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
 
