@@ -440,12 +440,12 @@ test_basic orientation Straight
 test_basic_age
 test_basic_height
 test_basic has_profile_picture 'Yes' yes_no
-test_basic looking_for 'Long-term Dating'
+test_basic looking_for 'Long-term dating'
 test_basic smoking 'Yes' yes_no_optional
 test_basic drinking 'Often' frequency
 test_basic drugs 'No' yes_no_optional
 test_basic long_distance 'Yes' yes_no_optional
-test_basic relationship_status 'Seeing Someone'
+test_basic relationship_status 'Seeing someone'
 test_basic has_kids 'Yes' yes_no_optional
 test_basic wants_kids 'No' yes_no_optional
 test_basic exercise 'Never' frequency

@@ -38,7 +38,7 @@ test_set location "New York, New York, United States"
 test_set occupation 'Wallnut milker'
 test_set education MIT
 test_set height 184
-test_set looking_for 'Short-term Dating'
+test_set looking_for 'Short-term dating'
 test_set smoking Yes
 test_set drinking Often
 test_set drugs No
@@ -50,7 +50,7 @@ test_set exercise Often
 test_set religion Zoroastrianism
 test_set star_sign Sagittarius
 test_set units Imperial
-test_set chats 'Every 3 Days'
+test_set chats 'Every 3 days'
 test_set intros Weekly
 test_set show_my_location Yes
 test_set show_my_age No
