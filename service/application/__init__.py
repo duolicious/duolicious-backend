@@ -183,3 +183,8 @@ def get_profile_info(s: t.SessionInfo):
 @validate(t.DeleteProfileInfo)
 def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
     return person.delete_profile_info(req, s)
+
+@apatch('/profile-info')
+@validate(t.PatchProfileInfo)
+def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
+    return person.patch_profile_info(req, s)

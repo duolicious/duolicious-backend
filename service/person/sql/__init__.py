@@ -688,11 +688,11 @@ WITH photo AS (
     WHERE person.id = %(person_id)s
 ), religion AS (
     SELECT religion.name AS j
-    FROM religion JOIN person ON has_kids_id = religion.id
+    FROM religion JOIN person ON religion_id = religion.id
     WHERE person.id = %(person_id)s
 ), star_sign AS (
     SELECT star_sign.name AS j
-    FROM star_sign JOIN person ON wants_kids_id = star_sign.id
+    FROM star_sign JOIN person ON star_sign_id = star_sign.id
     WHERE person.id = %(person_id)s
 
 ), unit AS (
