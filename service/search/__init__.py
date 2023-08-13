@@ -402,7 +402,6 @@ WHERE
     position <= %(o)s + %(n)s
 ORDER BY
     position
-DESC
 """
 
 def _uncached_search_results(
