@@ -28,8 +28,8 @@ services:
       - .:/app:ro
     environment:
       DUO_ENV: dev
-      DUO_EMAIL_KEY: ''
-      DUO_EMAIL_URL: ''
+      DUO_EMAIL_KEY: ${DUO_EMAIL_KEY}
+      DUO_EMAIL_URL: ${DUO_EMAIL_URL}
       DUO_DB_HOST: postgres
       DUO_DB_PORT: 5432
       DUO_DB_USER: postgres
