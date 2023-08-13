@@ -99,8 +99,9 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
   const initialNumberOfPages = props.initialNumberOfPages ?? 1;
 
   const keyExtractor = useCallback((item: ItemT, index: number) => {
-    return String(props.inverted ? data.length - index : index);
-  }, [data?.length ?? -1, props.inverted]);
+    const indexKey = props.inverted ? data.length - index : index;
+    return JSON.stringify({dataKey, indexKey});
+  }, [data?.length ?? -1, props.inverted, dataKey]);
 
   const fetchNextPage = useCallback(async () => {
     if (lastFetchedPages.current[dataKey]?.length === 0) {

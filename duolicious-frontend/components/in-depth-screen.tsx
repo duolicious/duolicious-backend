@@ -207,7 +207,7 @@ const fetchPersonalityPage = (personId: number, m: number) => async (n: number):
   if (n === 1) {
     const response = await api('get', `/compare-personalities/${personId}/${topic}`);
 
-    if (response.json === undefined) return undefined;
+    if (response.json === undefined) return [];
 
     return [{
       kind: topic,
@@ -239,7 +239,7 @@ const InDepthScreen = (navigationRef) => ({navigation, route}) => {
             answer1={item.item.prospect_answer}
             user2="You"
             answer2={item.item.person_answer}
-            answer2Publicly={item.item.person_public_}
+            answer2Publicly={item.item.person_public_ ?? true}
           >
             {item.item.question}
           </AnsweredQuizCardMemo>;
@@ -249,6 +249,8 @@ const InDepthScreen = (navigationRef) => ({navigation, route}) => {
       case 'attachment':
       case 'other':
         return <ChartsMemo data={item.data}/>;
+      default:
+        return <></>;
     }
   }, []);
 
@@ -300,15 +302,15 @@ const Charts = ({data}) => {
       {data.map((trait) =>
         <Chart
           key={JSON.stringify(trait)}
-          dimensionName={trait.min_label ? undefined : trait.name}
-          minLabel={trait.min_label}
-          maxLabel={trait.max_label}
-          name1={trait.name1 ?? undefined}
-          percentage1={trait.percentage1 ?? undefined}
-          name2={trait.name2 ?? undefined}
-          percentage2={trait.percentage2 ?? undefined}
+          dimensionName={trait.trait_min_label ? undefined : trait.trait_name}
+          minLabel={trait.trait_min_label}
+          maxLabel={trait.trait_max_label}
+          name1={trait.prospect_name ?? undefined}
+          percentage1={trait.prospect_percentage ?? undefined}
+          name2={trait.person_name ?? undefined}
+          percentage2={trait.person_percentage ?? undefined}
         >
-          {trait.description}
+          {trait.trait_description}
         </Chart>
       )}
     </View>

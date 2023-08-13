@@ -157,15 +157,15 @@ const TraitsTab = () => {
         {data.personality.map((trait) =>
           <Chart
             key={JSON.stringify(trait)}
-            dimensionName={trait.min_label ? undefined : trait.name}
-            minLabel={trait.min_label}
-            maxLabel={trait.max_label}
+            dimensionName={trait.trait_min_label ? undefined : trait.trait_name}
+            minLabel={trait.trait_min_label}
+            maxLabel={trait.trait_max_label}
             name1={null}
-            percentage1={trait.percentage ?? undefined}
+            percentage1={trait.person_percentage ?? undefined}
             name2={undefined}
             percentage2={undefined}
           >
-            {trait.description}
+            {trait.trait_description}
           </Chart>
         )}
       </ScrollView>

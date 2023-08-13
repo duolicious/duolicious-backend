@@ -60,6 +60,7 @@ const LocationSelector = ({onChangeText, ...rest}) => {
   return (
     <>
       <DefaultTextInput
+        autoFocus={true}
         placeholder="Type a location..."
         value={text}
         onChangeText={onChangeTextDebounced}

@@ -199,6 +199,7 @@ const GivenName = forwardRef((props: InputProps<OptionGroupGivenName>, ref) => {
   return (
     <>
       <DefaultTextInput
+        autoFocus={true}
         placeholder="First name"
         textContentType="givenName"
         autoComplete="name-given"
@@ -403,6 +404,7 @@ const TextLong = forwardRef((props: InputProps<OptionGroupTextLong>, ref) => {
           marginLeft: 20,
           marginRight: 20,
         }}
+        autoFocus={true}
         onChangeText={onChangeInputValue}
         onSubmitEditing={submit}
       />

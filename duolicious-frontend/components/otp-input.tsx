@@ -133,6 +133,7 @@ const OtpInput = (props: Props) => {
         state.map((digitState, i) =>
           <DefaultTextInput
             key={i}
+            autoFocus={i === 0}
             innerRef={e => inputRefs.current[i] = e}
             onFocus={onFocus(i)}
             onBlur={onBlur(i)}
