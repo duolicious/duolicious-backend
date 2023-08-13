@@ -166,3 +166,25 @@ def get_inbox_info(s: t.SessionInfo):
         s=s,
         prospect_person_ids=request.args.getlist('prospect-person-id'),
     )
+
+@adelete('/account')
+def delete_account(s: t.SessionInfo):
+    return person.delete_account(s=s)
+
+@apost('/deactivate')
+def post_deactivate(s: t.SessionInfo):
+    return person.post_deactivate(s=s)
+
+@aget('/profile-info')
+def get_profile_info(s: t.SessionInfo):
+    return person.get_profile_info(s)
+
+@adelete('/profile-info')
+@validate(t.DeleteProfileInfo)
+def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
+    return person.delete_profile_info(req, s)
+
+@apatch('/profile-info')
+@validate(t.PatchProfileInfo)
+def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
+    return person.patch_profile_info(req, s)

@@ -159,6 +159,28 @@ GET /inbox-info {
   }
 ]
 
+DELETE /delete-account {
+  session-token
+}
+
+POST /deactivate {
+  session-token
+}
+
+DELETE /profile-info {
+  session-token
+} {} -> ...
+
+PATCH /profile-info {
+  session-token
+} {} -> ...
+
+GET /profile-info {
+  session-token
+} {} -> {
+ photo: { position: uuid },
+}
+
 POST /search-filter {
   session-token
 } (
@@ -188,38 +210,3 @@ GET /search-filter-questions {
     accept-unanswered?
   }
 ]
-
-GET /profile-info {
-  session-token
-} {} -> {
-  pictures: [id, url],
-  ...
-}
-
-PATCH /profile-info {
-  session-token
-} (
-  | { gender: "Man" | ... | "Other" }
-  | ...
-  | { two-way-filters }
-)
-
-DELETE /profile-info {
-  session-token
-} {
-  { picture-id }
-}
-
-POST /contact {
-  session-token
-} {
-  text
-}
-
-POST /deactivate {
-  session-token
-}
-
-POST /delete-account {
-  session-token
-}

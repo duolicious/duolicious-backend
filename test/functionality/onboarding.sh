@@ -10,6 +10,7 @@ set -xe
 q "delete from duo_session"
 q "delete from person"
 q "delete from onboardee"
+q "delete from photo_graveyard"
 q "update question set count_yes = 0, count_no = 0"
 
 img1=$(rand_image)
