@@ -7,6 +7,7 @@ import {
 import {
   forwardRef,
   useCallback,
+  useEffect,
   useRef,
   useState,
 } from 'react';
@@ -63,9 +64,24 @@ const Images = ({input, setIsLoading, setIsInvalid}) => {
   );
 };
 
-const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid}) => {
-  const [image, setImage] = useState(null);
+const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) => {
+  const [image, setImage] = useState<string | null>(null);
   const [isLoading_, setIsLoading_] = useState(false);
+
+  const fetchImage = useCallback(async () => {
+    const _fetchImage = input.photos.fetch;
+
+    if (_fetchImage) {
+      setIsLoading(true);
+      setIsLoading_(true);
+
+      const filename = await _fetchImage(String(fileNumber), resolution);
+
+      setImage(filename);
+      setIsLoading(false);
+      setIsLoading_(false);
+    }
+  }, [input]);
 
   const addImage = useCallback(async () => {
     // No permissions request is necessary for launching the image library
@@ -115,6 +131,8 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid}) => {
       setIsInvalid(true);
     }
   }, []);
+
+  useEffect(() => void fetchImage(), [fetchImage]);
 
   const Image_ = ({uri}) => {
     return (
@@ -178,7 +196,9 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid}) => {
 };
 
 const PrimaryImage = ({input, fileNumber, setIsLoading, setIsInvalid}) => {
-  return <UserImage {...{input, fileNumber, setIsLoading, setIsInvalid}}/>
+  return <UserImage
+    {...{input, fileNumber, setIsLoading, setIsInvalid, resolution: '900'}}
+  />
 };
 
 const Row = ({input, firstFileNumber, setIsLoading, setIsInvalid}) => {
@@ -210,18 +230,21 @@ const Row = ({input, firstFileNumber, setIsLoading, setIsInvalid}) => {
         fileNumber={firstFileNumber + 0}
         setIsLoading={setIsLoading1}
         setIsInvalid={setIsInvalid}
+        resolution="450"
       />
       <UserImage
         input={input}
         fileNumber={firstFileNumber + 1}
         setIsLoading={setIsLoading2}
         setIsInvalid={setIsInvalid}
+        resolution="450"
       />
       <UserImage
         input={input}
         fileNumber={firstFileNumber + 2}
         setIsLoading={setIsLoading3}
         setIsInvalid={setIsInvalid}
+        resolution="450"
       />
     </View>
   );
@@ -253,7 +276,7 @@ const SecondaryImages = (
       />
       <Row
         input={input}
-        firstFileNumber={firstFileNumber + 1}
+        firstFileNumber={firstFileNumber + 3}
         setIsLoading={setIsLoading2}
         setIsInvalid={setIsInvalid}
       />

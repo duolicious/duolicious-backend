@@ -724,7 +724,7 @@ const SearchQuizCard = ({children, questionNumber, topic, answer}) => {
               color: '#666'
             }}
           >
-            Accept Unanswered
+            Accept unanswered
           </DefaultText>
         </CheckBox>
       </View>

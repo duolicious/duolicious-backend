@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   Linking,
   Pressable,
   ScrollView,
@@ -6,6 +7,8 @@ import {
 } from 'react-native';
 import {
   useCallback,
+  useEffect,
+  useMemo,
   useState,
 } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -15,19 +18,44 @@ import { OptionScreen } from './option-screen';
 import { Title } from './title';
 import { DefaultLongTextInput } from './default-long-text-input';
 import {
+  OptionGroup,
+  OptionGroupInputs,
+  OptionGroupPhotos,
   basicsOptionGroups,
-  contactOptionGroups,
   deactivationOptionGroups,
   deletionOptionGroups,
   generalSettingsOptionGroups,
+  getCurrentValue,
+  isOptionGroupButtons,
+  isOptionGroupLocationSelector,
+  isOptionGroupSlider,
+  isOptionGroupTextShort,
   notificationSettingsOptionGroups,
   privacySettingsOptionGroups,
 } from '../data/option-groups';
 import { Images } from './images';
 import { DefaultText } from './default-text';
 import { sessionToken } from '../kv-storage/session-token';
-import { api } from '../api/api';
-import { setSignedInUser } from '../App';
+import { api, mapi, japi } from '../api/api';
+import { signedInUser, setSignedInUser } from '../App';
+import {
+  IMAGES_URL,
+} from '../env/env';
+import { cmToFeetInchesStr } from '../units/units';
+import * as _ from "lodash";
+import debounce from 'lodash/debounce';
+
+const formatHeight = (og: OptionGroup<OptionGroupInputs>): string | undefined => {
+  if (!isOptionGroupSlider(og.input)) return '';
+
+  const currentValue = getCurrentValue(og.input);
+
+  if (_.isNumber(currentValue)) {
+    return signedInUser?.units === 'Imperial' ?
+      cmToFeetInchesStr(currentValue) :
+      `${currentValue} cm`;
+  }
+};
 
 const Stack = createNativeStackNavigator();
 
@@ -45,38 +73,214 @@ const ProfileTab = ({navigation}) => {
   );
 };
 
+const Images_ = ({data}) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInvalid, setIsInvalid] = useState(false);
+  const input: OptionGroupPhotos = useMemo(() => {
+    return {
+      photos: {
+        submit: async (filename, pathOrBase64) => (await mapi(
+          'patch',
+          '/profile-info',
+          filename,
+          pathOrBase64
+        )).ok,
+        delete: async (filename) => (await japi(
+          'delete',
+          '/profile-info',
+          { files: [filename] }
+        )).ok,
+        fetch: async (position: string, resolution: string) => {
+          const imageUuid = (data?.photo ?? {})[position] ?? null;
+          if (imageUuid) {
+            return `${IMAGES_URL}/${resolution}-${imageUuid}.jpg`
+          } else {
+            return null;
+          }
+        }
+      }
+    };
+  }, [data]);
+
+  return <Images
+    input={input}
+    setIsLoading={setIsLoading}
+    setIsInvalid={setIsInvalid} />
+};
+
 const ProfileTab_ = ({navigation}) => {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      const response = await api('get', '/profile-info');
+      if (response.json) {
+        setData(response.json);
+      }
+    })();
+  }, []);
+
   return (
     <>
       <DuoliciousTopNavBar/>
-      <ScrollView
-        contentContainerStyle={{
-          paddingLeft: 10,
-          paddingRight: 10,
-          paddingBottom: 20,
-          maxWidth: 600,
-          width: '100%',
-          alignSelf: 'center',
-        }}
-      >
-        <Title>Profile Pictures</Title>
-        <Images/>
-        <About navigation={navigation}/>
-      </ScrollView>
+      {data &&
+        <ScrollView
+          contentContainerStyle={{
+            paddingLeft: 10,
+            paddingRight: 10,
+            paddingBottom: 20,
+            maxWidth: 600,
+            width: '100%',
+            alignSelf: 'center',
+          }}
+        >
+          <Title>Profile Pictures</Title>
+          <Images_ data={data}/>
+          <AboutPerson navigation={navigation} data={data}/>
+          <Options navigation={navigation} data={data}/>
+          <AboutDuolicious/>
+        </ScrollView>
+      }
+      {!data &&
+        <View
+          style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexGrow: 1,
+          }}
+        >
+          <ActivityIndicator size={60} color="#70f"/>
+        </View>
+      }
     </>
   );
 };
 
-const About = ({navigation}) => {
+const AboutPerson = ({navigation, data}) => {
+  const [aboutState, setAboutState] = useState<
+    'unchanged' | 'saving...' | 'saved' | 'error'
+  >('unchanged');
+
+  const debouncedOnChangeAboutText = useCallback(
+    debounce(
+      async (about: string, cb: (ok: boolean) => void) => {
+        const response = await japi('patch', '/profile-info', { about });
+        cb(response.ok);
+      },
+      1000,
+    ),
+    []
+  );
+
+  const onChangeAboutText = useCallback(async (about: string) => {
+    setAboutState('saving...');
+    await debouncedOnChangeAboutText(
+      about,
+      (ok) => setAboutState(ok ? 'saved' : 'error'),
+    );
+  }, []);
+
+  return (
+    <View>
+      <Title>
+        About {}
+        {aboutState !== 'unchanged' &&
+          <DefaultText
+            style={{
+              fontSize: 14,
+              fontWeight: '400',
+              color: '#777',
+            }}
+          >
+            ({aboutState})
+          </DefaultText>
+        }
+      </Title>
+      <DefaultLongTextInput
+        defaultValue={data?.about ?? ''}
+        onChangeText={onChangeAboutText}
+      />
+    </View>
+  );
+};
+
+const Options = ({navigation, data}) => {
+  const [, triggerRender] = useState({});
   const [isLoadingSignOut, setIsLoadingSignOut] = useState(false);
 
-  const Button_ = (props) => {
+  const addDefaultValue = (optionGroups: OptionGroup<OptionGroupInputs>[]) =>
+    optionGroups.map(
+      (
+        og: OptionGroup<OptionGroupInputs>,
+        i: number
+      ): OptionGroup<OptionGroupInputs> =>
+        _.merge(
+          {},
+          og,
+          isOptionGroupTextShort(og.input) ? {
+            input: {
+              textShort: {
+                currentValue: (data ?? {})[optionGroups[i].title.toLowerCase()]
+              }
+            }
+          } : {},
+          isOptionGroupButtons(og.input) ? {
+            input: {
+              buttons: {
+                currentValue: (data ?? {})[optionGroups[i].title.toLowerCase()]
+              }
+            }
+          } : {},
+          isOptionGroupLocationSelector(og.input) ? {
+            input: {
+              locationSelector: {
+                currentValue: (data ?? {})[optionGroups[i].title.toLowerCase()]
+              }
+            }
+          } : {},
+          isOptionGroupSlider(og.input) && og.title === 'Height' ? {
+            input: {
+              slider: {
+                unitsLabel: (
+                  signedInUser?.units === 'Imperial' ?
+                  "ft'in\"" : undefined),
+                valueRewriter: (
+                  signedInUser?.units === 'Imperial' ?
+                  cmToFeetInchesStr : undefined),
+                currentValue: (data ?? {})[optionGroups[i].title.toLowerCase()]
+              }
+            }
+          } : {},
+        )
+    );
+
+  const [
+    _basicsOptionGroups,
+    _generalSettingsOptionGroups,
+    _notificationSettingsOptionGroups,
+    _privacySettingsOptionGroups,
+  ] = useMemo(
+    () => [
+      addDefaultValue(basicsOptionGroups),
+      addDefaultValue(generalSettingsOptionGroups),
+      addDefaultValue(notificationSettingsOptionGroups),
+      addDefaultValue(privacySettingsOptionGroups),
+    ],
+    [data]
+  );
+
+  const onSubmitSuccess = useCallback(() => {
+    triggerRender({});
+  }, [triggerRender]);
+
+  const Button_ = useCallback((props) => {
     return <ButtonForOption
       navigation={navigation}
       navigationScreen="Profile Option Screen"
+      onSubmitSuccess={onSubmitSuccess}
       {...props}
     />;
-  }
+  }, [navigation]);
 
   const signOut = useCallback(async () => {
     setIsLoadingSignOut(true);
@@ -89,46 +293,85 @@ const About = ({navigation}) => {
 
   return (
     <View>
-      <Title>About</Title>
-      <DefaultLongTextInput/>
       <Title>Basics</Title>
       {
-        basicsOptionGroups.map((_, i) => {
-          return <Button_ key={i} optionGroups={basicsOptionGroups.slice(i)}/>
-        })
+        _basicsOptionGroups.map((og, i) =>
+          <Button_
+            key={i}
+            setting={
+              (
+                isOptionGroupSlider(og.input) &&
+                og.title === 'Height'
+              ) ?
+              formatHeight(og) :
+              getCurrentValue(_basicsOptionGroups[i].input)
+            }
+            optionGroups={_basicsOptionGroups.slice(i)}
+          />
+        )
       }
-      <Title>General Settings</Title>
+      <Title style={{ marginTop: 60 }}>General Settings</Title>
       {
-        generalSettingsOptionGroups.map((_, i) => {
-          return <Button_ key={i} optionGroups={generalSettingsOptionGroups.slice(i)}/>
-        })
+        _generalSettingsOptionGroups.map((og, i) =>
+          <Button_
+            key={i}
+            setting={getCurrentValue(og.input)}
+            optionGroups={_generalSettingsOptionGroups.slice(i)}
+          />
+        )
       }
       <Title>Notification Settings</Title>
       {
-        notificationSettingsOptionGroups.map((_, i) => {
-          return <Button_ key={i} optionGroups={notificationSettingsOptionGroups.slice(i)}/>
-        })
+        _notificationSettingsOptionGroups.map((og, i) =>
+          <Button_
+            key={i}
+            setting={getCurrentValue(og.input)}
+            optionGroups={_notificationSettingsOptionGroups.slice(i)}
+          />
+        )
       }
       <Title>Privacy Settings</Title>
       {
-        privacySettingsOptionGroups.map((_, i) => {
-          return <Button_ key={i} optionGroups={privacySettingsOptionGroups.slice(i)}/>
-        })
+        _privacySettingsOptionGroups.map((og, i) =>
+          <Button_
+            key={i}
+            setting={getCurrentValue(og.input)}
+            optionGroups={_privacySettingsOptionGroups.slice(i)}
+          />
+        )
       }
 
-      <Title>Sign Out</Title>
-      <ButtonForOption onPress={signOut} label="Sign Out" setting="" loading={isLoadingSignOut}/>
+      <Title style={{ marginTop: 60 }}>Sign Out</Title>
+      <ButtonForOption
+        onPress={signOut}
+        label="Sign Out"
+        setting=""
+        loading={isLoadingSignOut}
+      />
 
-      <Title>Deactivate Your Account</Title>
+      <Title style={{ marginTop: 60 }}>Deactivate Your Account</Title>
       <Button_ optionGroups={deactivationOptionGroups} setting="" showSkipButton={false}/>
 
       <Title>Delete Your Account</Title>
       <Button_ optionGroups={deletionOptionGroups} setting=""/>
+    </View>
+  );
+};
 
-      <Title>Contact Us</Title>
-      <Button_ optionGroups={contactOptionGroups} setting="" showSkipButton={false}/>
-
-      <Title style={{textAlign: 'center', color: '#999'}}>About</Title>
+const AboutDuolicious = () => {
+  return (
+    <View
+      style={{
+        marginBottom: 60,
+      }}
+    >
+      <Title style={{
+        marginTop: 60,
+        textAlign: 'center',
+        color: '#999'
+      }}>
+        About
+      </Title>
       <Pressable
         onPress={() => Linking.openURL('https://github.com/duolicious')}
       >
@@ -138,11 +381,30 @@ const About = ({navigation}) => {
             color: '#999',
           }}
         >
-          Duolicious is free software licensed under the AGPLv3. The source code used to make Duolicious is available
+          Duolicious is free software licensed under the AGPLv3. The source code
+          used to make Duolicious is available {}
           <DefaultText style={{fontWeight: '600', color: '#37f'}}>
-            {' '}here
+            here
           </DefaultText>
           .
+        </DefaultText>
+      </Pressable>
+      <Pressable
+        style={{marginTop: 15}}
+        onPress={() => Linking.openURL('mailto:support@duolicious.app')}
+      >
+        <DefaultText
+          style={{
+            textAlign: 'center',
+            color: '#999',
+          }}
+        >
+          You can contact us at {}
+          <DefaultText style={{fontWeight: '600', color: '#37f'}}>
+            support@duolicious.app
+          </DefaultText>
+          {} to provide feedback, report abuse, or submit any other concerns or
+          queries you have.
         </DefaultText>
       </Pressable>
     </View>

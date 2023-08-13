@@ -4,16 +4,18 @@ import { setSignedInUser } from '../App';
 import { sessionToken } from '../kv-storage/session-token';
 
 type OptionGroupButtons = {
-  buttons: string[],
-  submit: (input: string) => Promise<boolean>
-  initialSelectedIndex?: number,
+  buttons: {
+    values: string[],
+    submit: (input: string) => Promise<boolean>
+    currentValue?: string,
+  }
 };
 
-type OptionGroupDeletion = 'deletion';
 
 type OptionGroupLocationSelector = {
   locationSelector: {
     submit: (input: string) => Promise<boolean>
+    currentValue?: string,
   }
 };
 
@@ -33,6 +35,7 @@ type OptionGroupPhotos = {
   photos: {
     submit: (filename: string, pathOrBase64: string) => Promise<boolean>
     delete: (filename: string) => Promise<boolean>
+    fetch?: (position: string, resolution: string) => Promise<string | null>
   }
 };
 
@@ -43,7 +46,13 @@ type OptionGroupTextLong = {
   }
 };
 
-type OptionGroupTextShort = 'text-short';
+type OptionGroupTextShort = {
+  textShort: {
+    submit: (input: string) => Promise<boolean>
+    currentValue?: string,
+    invalidMsg?: string
+  }
+};
 
 type OptionGroupOtp = {
   otp: {
@@ -53,10 +62,12 @@ type OptionGroupOtp = {
 
 type OptionGroupCheckChips = {
   checkChips: {
-    label: string
-    checked: boolean
-  }[],
-  submit: (input: string[]) => Promise<boolean>
+    values: {
+      label: string
+      checked: boolean
+    }[]
+    submit: (input: string[]) => Promise<boolean>
+  }
 };
 
 type OptionGroupNone = {
@@ -70,10 +81,13 @@ type OptionGroupSlider = {
   slider: {
     sliderMin: number,
     sliderMax: number,
-    sliderInitial: number,
     step: number,
     unitsLabel: string,
-    addPlusAtMax?: boolean
+    submit: (input: number) => Promise<boolean>
+    addPlusAtMax?: boolean,
+    defaultValue: number,
+    valueRewriter?: (v: number) => string,
+    currentValue?: number,
   }
 };
 
@@ -87,7 +101,6 @@ type OptionGroupRangeSlider = {
 
 type OptionGroupInputs
   = OptionGroupButtons
-  | OptionGroupDeletion
   | OptionGroupLocationSelector
   | OptionGroupSlider
   | OptionGroupRangeSlider
@@ -100,13 +113,12 @@ type OptionGroupInputs
   | OptionGroupCheckChips
   | OptionGroupNone;
 
-type OptionGroup = {
+type OptionGroup<T extends OptionGroupInputs> = {
   title: string,
   description: string,
-  input?: OptionGroupInputs,
+  input: T,
   scrollView?: boolean,
 };
-
 
 const hasExactKeys = (obj, keys) => {
     // If the number of keys in the object and the keys array don't match, return false
@@ -122,11 +134,7 @@ const hasExactKeys = (obj, keys) => {
 }
 
 const isOptionGroupButtons = (x: any): x is OptionGroupButtons => {
-  return (x as OptionGroupButtons)?.buttons !== undefined;
-}
-
-const isOptionGroupDeletion = (x: any): x is OptionGroupDeletion => {
-  return x === 'deletion';
+  return hasExactKeys(x, ['buttons']);
 }
 
 const isOptionGroupLocationSelector = (x: any): x is OptionGroupLocationSelector => {
@@ -158,7 +166,7 @@ const isOptionGroupTextLong = (x: any): x is OptionGroupTextLong => {
 }
 
 const isOptionGroupTextShort = (x: any): x is OptionGroupTextShort => {
-  return x === 'text-short';
+  return hasExactKeys(x, ['textShort']);
 }
 
 const isOptionGroupOtp = (x: any): x is OptionGroupOtp => {
@@ -170,7 +178,21 @@ const isOptionGroupNone = (x: any): x is OptionGroupNone => {
 }
 
 const isOptionGroupCheckChips = (x: any): x is OptionGroupCheckChips => {
-  return hasExactKeys(x, ['checkChips', 'submit']);
+  return hasExactKeys(x, ['checkChips']);
+}
+
+const getCurrentValue = (x: OptionGroupInputs | undefined) => {
+  if (isOptionGroupButtons(x))
+    return x.buttons.currentValue;
+
+  if (isOptionGroupLocationSelector(x))
+    return x.locationSelector.currentValue;
+
+  if (isOptionGroupTextShort(x))
+    return x.textShort.currentValue;
+
+  if (isOptionGroupSlider(x))
+    return x.slider.currentValue;
 }
 
 const genders = [
@@ -184,85 +206,136 @@ const genders = [
   'Other',
 ];
 
-const genderOptionGroup: OptionGroup = {
+const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
   title: 'Gender',
   description: "What's your gender?",
   input: {
-    buttons: genders,
-    submit: async (input) => true
+    buttons: {
+      values: genders,
+      submit: async function(gender: string) {
+        const ok = (await japi('patch', '/profile-info', { gender })).ok;
+        if (ok) this.currentValue = gender;
+        return ok;
+      },
+    }
   }
 };
 
-const otherPeoplesGendersOptionGroup: OptionGroup = {
+const otherPeoplesGendersOptionGroup: OptionGroup<OptionGroupCheckChips> = {
   title: "Other People's Genders",
   description: "What are the genders of the people you'd like to meet?",
   input: {
-    checkChips: genders.map((g) => ({checked: true, label: g})),
-    submit: async (inputs: string[]) => true
+    checkChips: {
+      values: genders.map((g) => ({checked: true, label: g})),
+      submit: async (inputs: string[]) => true
+    }
   }
 };
 
-const locationOptionGroup: OptionGroup = {
+const locationOptionGroup: OptionGroup<OptionGroupLocationSelector> = {
   title: 'Location',
   description: "What city do you live in?",
   input: {
     locationSelector: {
-      submit: async (input: string) => true
+      submit: async function(location: string) {
+        const ok = (await japi('patch', '/profile-info', { location })).ok;
+        if (ok) this.currentValue = location;
+        return ok;
+      },
     }
   },
   scrollView: false,
 };
 
-const orientationOptionGroup: OptionGroup = {
+const orientationOptionGroup: OptionGroup<OptionGroupButtons> = {
   title: 'Orientation',
   description: "What's your sexual orientation?",
   input: {
-    buttons: [
-      'Straight',
-      'Gay',
-      'Bisexual',
-      'Asexual',
-      'Demisexual',
-      'Pansexual',
-      'Other',
-    ],
-    submit: async (input: string) => true
+    buttons: {
+      values: [
+        'Straight',
+        'Gay',
+        'Bisexual',
+        'Asexual',
+        'Demisexual',
+        'Pansexual',
+        'Other',
+      ],
+      submit: async function(orientation: string) {
+        const ok = (await japi('patch', '/profile-info', { orientation })).ok;
+        if (ok) this.currentValue = orientation;
+        return ok;
+      },
+    }
   },
 };
 
-const lookingForOptionGroup: OptionGroup = {
+const lookingForOptionGroup: OptionGroup<OptionGroupButtons> = {
   title: 'Looking for',
   description: 'What are you mainly looking for on Duolicious?',
   input: {
-    buttons: [
-      'Long-term dating',
-      'Short-term dating',
-      'Friends',
-    ],
-    submit: async (input: string) => true
+    buttons: {
+      values: [
+        'Long-term dating',
+        'Short-term dating',
+        'Friends',
+      ],
+      submit: async function(lookingFor: string) {
+        const ok = (await japi('patch', '/profile-info', { looking_for: lookingFor })).ok;
+        if (ok) this.currentValue = lookingFor;
+        return ok;
+      },
+    }
   }
 };
 
-// TODO: These should come from a DB or something
-const basicsOptionGroups: OptionGroup[] = [
+const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   genderOptionGroup,
   orientationOptionGroup,
   locationOptionGroup,
   {
     title: 'Occupation',
     description: "What's your profession?",
-    input: 'text-short',
+    input: {
+      textShort: {
+        submit: async function(occupation: string) {
+          const ok = (await japi('patch', '/profile-info', { occupation })).ok;
+          if (ok) this.currentValue = occupation;
+          return ok;
+        },
+        invalidMsg: 'Try again',
+      }
+    }
+  },
+  {
+    title: 'Education',
+    description: "Where did you study?",
+    input: {
+      textShort: {
+        submit: async function(education: string) {
+          const ok = (await japi('patch', '/profile-info', { education })).ok;
+          if (ok) this.currentValue = education;
+          return ok;
+        },
+        invalidMsg: 'Try again',
+      }
+    }
   },
   {
     title: 'Height',
     description: "How tall are you?",
     input: {
       slider: {
-        sliderMin: 50,
+        sliderMin: 100,
         sliderMax: 220,
+        defaultValue: 170,
         step: 1,
-        sliderInitial: 170,
         unitsLabel: 'cm',
+        submit: async function(height: number) {
+          const ok = (await japi('patch', '/profile-info', { height: String(height) })).ok;
+          if (ok) this.currentValue = height;
+          return ok;
+        },
       },
     },
   },
@@ -271,181 +344,294 @@ const basicsOptionGroups: OptionGroup[] = [
     title: 'Smoking',
     description: 'Do you smoke?',
     input: {
-      buttons: ['Yes', 'No'],
-      submit: async (input: string) => true
+      buttons: {
+        values: ['Yes', 'No'],
+        submit: async function(smoking: string) {
+          const ok = (await japi('patch', '/profile-info', { smoking })).ok;
+          if (ok) this.currentValue = smoking;
+          return ok;
+        },
+      }
     },
   },
   {
     title: 'Drinking',
     description: 'How often do you drink?',
     input: {
-      buttons: ['Often', 'Sometimes', 'Never'],
-      submit: async (input: string) => true
+      buttons: {
+        values: ['Often', 'Sometimes', 'Never'],
+        submit: async function(drinking: string) {
+          const ok = (await japi('patch', '/profile-info', { drinking })).ok;
+          if (ok) this.currentValue = drinking;
+          return ok;
+        },
+      }
     },
   },
   {
     title: 'Drugs',
     description: 'Do you do drugs?',
     input: {
-      buttons: ['Yes', 'No'],
-      submit: async (input: string) => true
+      buttons: {
+        values: ['Yes', 'No'],
+        submit: async function(drugs: string) {
+          const ok = (await japi('patch', '/profile-info', { drugs })).ok;
+          if (ok) this.currentValue = drugs;
+          return ok;
+        },
+      }
     },
   },
   {
     title: 'Long Distance',
     description: 'Are you willing to enter a long-distance relationship?',
     input: {
-      buttons: ['Yes', 'No'],
-      submit: async (input: string) => true
+      buttons: {
+        values: ['Yes', 'No'],
+        submit: async function(longDistance: string) {
+          const ok = (await japi('patch', '/profile-info', { long_distance: longDistance })).ok;
+          if (ok) this.currentValue = longDistance;
+          return ok;
+        },
+      }
     },
   },
   {
     title: 'Relationship Status',
     description: "What's your relationship status?",
     input: {
-      buttons: [
-        'Single',
-        'Seeing someone',
-        'Engaged',
-        'Married',
-        'Divorced',
-        'Widowed',
-        'Other',
-      ],
-      submit: async (input: string) => true
+      buttons: {
+        values: [
+          'Single',
+          'Seeing someone',
+          'Engaged',
+          'Married',
+          'Divorced',
+          'Widowed',
+          'Other',
+        ],
+        submit: async function(relationshipStatus: string) {
+          const ok = (
+            await japi('patch', '/profile-info', { relationship_status: relationshipStatus })
+          ).ok;
+          if (ok) this.currentValue = relationshipStatus;
+          return ok;
+        },
+      }
     }
   },
   {
     title: 'Has Kids',
     description: 'Do you have kids?',
     input: {
-      buttons: ['Yes', 'No'],
-      submit: async (input: string) => true
+      buttons: {
+        values: ['Yes', 'No'],
+        submit: async function(hasKids: string) {
+          const ok = (await japi('patch', '/profile-info', { has_kids: hasKids })).ok;
+          if (ok) this.currentValue = hasKids;
+          return ok;
+        },
+      }
     },
   },
   {
     title: 'Wants Kids',
     description: 'Do you want kids?',
     input: {
-      buttons: ['Yes', 'No'],
-      submit: async (input: string) => true
+      buttons: {
+        values: ['Yes', 'No'],
+        submit: async function(wantsKids: string) {
+          const ok = (await japi('patch', '/profile-info', { wants_kids: wantsKids })).ok;
+          if (ok) this.currentValue = wantsKids;
+          return ok;
+        },
+      }
     },
   },
   {
     title: 'Exercise',
     description: 'How often do you exercise?',
     input: {
-      buttons: [
-        'Often',
-        'Sometimes',
-        'Never',
-      ],
-      submit: async (input: string) => true
+      buttons: {
+        values: [
+          'Often',
+          'Sometimes',
+          'Never',
+        ],
+        submit: async function(exercise: string) {
+          const ok = (await japi('patch', '/profile-info', { exercise })).ok;
+          if (ok) this.currentValue = exercise;
+          return ok;
+        },
+      }
     },
   },
   {
     title: 'Religion',
     description: "What's your religion?",
     input: {
-      buttons: [
-        'Agnostic',
-        'Atheist',
-        'Buddhist',
-        'Christian',
-        'Hindu',
-        'Jewish',
-        'Muslim',
-        'Other',
-      ],
-      submit: async (input: string) => true
+      buttons: {
+        values: [
+          'Agnostic',
+          'Atheist',
+          'Buddhist',
+          'Christian',
+          'Hindu',
+          'Jewish',
+          'Muslim',
+          'Other',
+        ],
+        submit: async function(religion: string) {
+          const ok = (await japi('patch', '/profile-info', { religion })).ok;
+          if (ok) this.currentValue = religion;
+          return ok;
+        },
+      }
     },
   },
   {
     title: 'Star Sign',
     description: "What's your star sign?",
     input: {
-      buttons: [
-        'Aquarius',
-        'Aries',
-        'Cancer',
-        'Capricorn',
-        'Gemini',
-        'Leo',
-        'Libra',
-        'Pisces',
-        'Sagittarius',
-        'Scorpio',
-        'Taurus',
-        'Virgo',
-      ],
-      submit: async (input: string) => true
+      buttons: {
+        values: [
+          'Aquarius',
+          'Aries',
+          'Cancer',
+          'Capricorn',
+          'Gemini',
+          'Leo',
+          'Libra',
+          'Pisces',
+          'Sagittarius',
+          'Scorpio',
+          'Taurus',
+          'Virgo',
+        ],
+        submit: async function(starSign: string) {
+          const ok = (await japi('patch', '/profile-info', { star_sign: starSign })).ok;
+          if (ok) this.currentValue = starSign;
+          return ok;
+        },
+      }
     },
   },
 ];
 
-const generalSettingsOptionGroups: OptionGroup[] = [
+const generalSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
   {
     title: 'Units',
     description: "Do you use the metric system, or the imperial system?",
     input: {
-      buttons: ['Metric', 'Imperial'],
-      submit: async (input: string) => true
+      buttons: {
+        values: ['Metric', 'Imperial'],
+        submit: async function(units: 'Imperial' | 'Metric') {
+          const ok = (await japi('patch', '/profile-info', { units })).ok;
+          if (ok) {
+            this.currentValue = units;
+            setSignedInUser((signedInUser) => {
+              if (signedInUser) {
+                return {
+                  ...signedInUser,
+                  units,
+                }
+              } else {
+                return signedInUser;
+              }
+            });
+          }
+          return ok;
+        },
+      }
     }
   },
 ];
 
-const notificationSettingsOptionGroups: OptionGroup[] = [
+const notificationSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
   {
     title: 'Chats',
     description: "When do you want to be notified if anyone you're chatting with sends a new message? (\"Daily\" still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
     input: {
-      buttons: [
-        'Immediately',
-        'Daily',
-        'Every 3 Days',
-        'Weekly',
-        'Never'
-      ],
-      submit: async (input: string) => true
+      buttons: {
+        values: [
+          'Immediately',
+          'Daily',
+          'Every 3 days',
+          'Weekly',
+          'Never'
+        ],
+        submit: async function(chats: string) {
+          const ok = (await japi('patch', '/profile-info', { chats })).ok;
+          if (ok) this.currentValue = chats;
+          return ok;
+        },
+      }
     }
   },
   {
     title: 'Intros',
     description: "When do you want to be notified if someone you haven't chatted with sends you an intro? (\"Daily\" still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
     input: {
-      buttons: [
-        'Immediately',
-        'Daily',
-        'Every 3 Days',
-        'Weekly',
-        'Never'
-      ],
-      submit: async (input: string) => true
-    }
-  },
-];
-
-const deletionOptionGroups: OptionGroup[] = [
-  {
-    title: 'Delete Your Account',
-    description: 'Are you sure you want to delete your account? Type "delete" to confirm.',
-    input: 'text-short',
-  },
-];
-
-const deactivationOptionGroups: OptionGroup[] = [
-  {
-    title: 'Deactivate Your Account',
-    description: 'Are you sure you want to deactivate your account? This will hide you from other users and log you out. The next time you sign in, your account will be reactivated. Press "continue" to deactivate your account.',
-    input: {
-      none: {
-        submit: async () => true
+      buttons: {
+        values: [
+          'Immediately',
+          'Daily',
+          'Every 3 days',
+          'Weekly',
+          'Never'
+        ],
+        submit: async function(intros: string) {
+          const ok = (await japi('patch', '/profile-info', { intros })).ok;
+          if (ok) this.currentValue = intros;
+          return ok;
+        },
       }
     }
   },
 ];
 
-const createAccountOptionGroups: OptionGroup[] = [
+const deletionOptionGroups: OptionGroup<OptionGroupTextShort>[] = [
+  {
+    title: 'Delete Your Account',
+    description: `Are you sure you want to delete your account? This will immediately log you out and permanently delete your account data. If you're sure, type "delete" to confirm.`,
+    input: {
+      textShort: {
+        submit: async (input: string) => {
+          if ((input ?? '').trim() !== 'delete') return false;
+
+          const response = await japi('delete', '/account');
+
+          if (!response.ok) return false;
+
+          setSignedInUser(undefined);
+
+          return true;
+        },
+        invalidMsg: 'Try again',
+      }
+    }
+  },
+];
+
+const deactivationOptionGroups: OptionGroup<OptionGroupNone>[] = [
+  {
+    title: 'Deactivate Your Account',
+    description: 'Are you sure you want to deactivate your account? This will hide you from other users and log you out. The next time you sign in, your account will be reactivated. Press "continue" to deactivate your account.',
+    input: {
+      none: {
+        submit: async () => {
+          const ok = (await japi('post', '/deactivate')).ok
+          if (ok) {
+            setSignedInUser(undefined);
+          }
+          return ok;
+        }
+      }
+    }
+  },
+];
+
+const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     title: "Password",
     description: "Enter the one-time password you just received to create an account or sign in",
@@ -478,11 +664,13 @@ const createAccountOptionGroups: OptionGroup[] = [
     {
       title: 'Step 1 of 7: ' + otherPeoplesGendersOptionGroup.title,
       input: {
-        submit: async (input) => (await japi(
-          'patch',
-          '/onboardee-info',
-          { other_peoples_genders: input }
-        )).ok
+        checkChips: {
+          submit: async (input: string[]) => (await japi(
+            'patch',
+            '/onboardee-info',
+            { other_peoples_genders: input }
+          )).ok
+        }
       }
     },
   ),
@@ -492,11 +680,14 @@ const createAccountOptionGroups: OptionGroup[] = [
     {
       title: 'Step 2 of 7: ' + genderOptionGroup.title,
       input: {
-        submit: async (input) => (await japi(
-          'patch',
-          '/onboardee-info',
-          { gender: input }
-        )).ok
+        buttons: {
+          submit: async (input) => (await japi(
+            'patch',
+            '/onboardee-info',
+            { gender: input }
+          )).ok,
+          currentValue: 'Man',
+        }
       }
     },
   ),
@@ -586,6 +777,7 @@ const createAccountOptionGroups: OptionGroup[] = [
           const response = await japi('post', '/finish-onboarding');
           if (response.ok) {
             setSignedInUser((signedInUser) => ({
+              sessionToken: '',
               ...signedInUser,
               personId: response?.json?.person_id,
               units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
@@ -598,38 +790,17 @@ const createAccountOptionGroups: OptionGroup[] = [
   },
 ];
 
-const contactOptionGroups: OptionGroup[] = [
-  {
-    title: 'Contact Us',
-    description: "Our mission at Duolicious is to help its users meet like-minded people. You can help us achieve that by contacting us here to provide feedback, report abuse, or submit any other concerns or queries you have.",
-    input: {
-      textLong: {
-        submit: async () => true
-      }
-    }
-  },
-  {
-    title: 'Message Sent!',
-    description: "Thanks for getting in touch. We'll get back to you as soon as possible.",
-    input: {
-      none: {
-        submit: async () => true
-      }
-    }
-  }
-];
-
-const searchBasicsOptionGroups: OptionGroup[] = [
+const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     ...otherPeoplesGendersOptionGroup,
     input: {
-      checkChips: [
-        ...(
-          isOptionGroupCheckChips(otherPeoplesGendersOptionGroup.input) ?
-            otherPeoplesGendersOptionGroup.input.checkChips : []),
-        {checked: true, label: 'Accept Unanswered'}
-      ],
-      submit: async (input: string[]) => true
+      checkChips: {
+        values: [
+          ...otherPeoplesGendersOptionGroup.input.checkChips.values,
+          {checked: true, label: 'Accept unanswered'}
+        ],
+        submit: async (input: string[]) => true
+      }
     },
     title: "Gender",
     description: "Which genders would you like to see in search results?",
@@ -638,17 +809,19 @@ const searchBasicsOptionGroups: OptionGroup[] = [
     title: "Orientation",
     description: "Which orientations would you like to see in search results?",
     input: {
-      checkChips: [
-        {checked: true, label: 'Straight'},
-        {checked: true, label: 'Gay'},
-        {checked: true, label: 'Bisexual'},
-        {checked: true, label: 'Asexual'},
-        {checked: true, label: 'Demisexual'},
-        {checked: true, label: 'Pansexual'},
-        {checked: true, label: 'Other'},
-        {checked: true, label: 'Accept Unanswered'},
-      ],
-      submit: async (input: string[]) => true
+      checkChips: {
+        values: [
+          {checked: true, label: 'Straight'},
+          {checked: true, label: 'Gay'},
+          {checked: true, label: 'Bisexual'},
+          {checked: true, label: 'Asexual'},
+          {checked: true, label: 'Demisexual'},
+          {checked: true, label: 'Pansexual'},
+          {checked: true, label: 'Other'},
+          {checked: true, label: 'Accept unanswered'},
+        ],
+        submit: async (input: string[]) => true
+      }
     },
   },
   {
@@ -669,10 +842,11 @@ const searchBasicsOptionGroups: OptionGroup[] = [
       slider: {
         sliderMin: 0,
         sliderMax: 500,
-        sliderInitial: 50,
+        defaultValue: 50,
         step: 25,
         unitsLabel: 'km',
-        addPlusAtMax: true
+        addPlusAtMax: true,
+        submit: async () => true,
       },
     },
   },
@@ -691,219 +865,285 @@ const searchBasicsOptionGroups: OptionGroup[] = [
     title: "Has a Profile Picture",
     description: "Do you want people in search results to have a profile picture?",
     input: {
-      buttons: ['Yes', 'No'],
-      submit: async (input: string) => true
+      buttons: {
+        values: ['Yes', 'No'],
+        submit: async (input: string) => true
+      }
     },
   },
   {
     title: "Looking for",
     description: "What kind of relationships would you like people in search results to be seeking?",
     input: {
-      checkChips: [
-        {checked: true, label: 'Long-term dating'},
-        {checked: true, label: 'Short-term dating'},
-        {checked: true, label: 'Friends'},
-        {checked: true, label: 'Accept Unanswered'}
-      ],
-      submit: async (input: string[]) => true
+      checkChips: {
+        values: [
+          {checked: true, label: 'Long-term dating'},
+          {checked: true, label: 'Short-term dating'},
+          {checked: true, label: 'Friends'},
+          {checked: true, label: 'Accept unanswered'}
+        ],
+        submit: async (input: string[]) => true
+      }
     },
   },
   {
     title: "Smoking",
     description: "Do you want to include people who smoke in search results?",
     input: {
-      checkChips: [
-        {checked: true, label: 'Yes'},
-        {checked: true, label: 'No'},
-        {checked: true, label: 'Accept Unanswered'}
-      ],
-      submit: async (input: string[]) => true
+      checkChips: {
+        values: [
+          {checked: true, label: 'Yes'},
+          {checked: true, label: 'No'},
+          {checked: true, label: 'Accept unanswered'}
+        ],
+        submit: async (input: string[]) => true
+      }
     },
   },
   {
     title: "Drinking",
     description: "Do you want to include people who drink alcohol in search results?",
     input: {
-      checkChips: [
-        {checked: true, label: 'Often'},
-        {checked: true, label: 'Sometimes'},
-        {checked: true, label: 'Never'},
-        {checked: true, label: 'Accept Unanswered'}
-      ],
-      submit: async (input: string[]) => true
+      checkChips: {
+        values: [
+          {checked: true, label: 'Often'},
+          {checked: true, label: 'Sometimes'},
+          {checked: true, label: 'Never'},
+          {checked: true, label: 'Accept unanswered'}
+        ],
+        submit: async (input: string[]) => true
+      }
     },
   },
   {
     title: "Drugs",
     description: "Do you want to include people who take drugs in search results?",
     input: {
-      checkChips: [
-        {checked: true, label: 'Yes'},
-        {checked: true, label: 'No'},
-        {checked: true, label: 'Accept Unanswered'}
-      ],
-      submit: async (input: string[]) => true
+      checkChips: {
+        values: [
+          {checked: true, label: 'Yes'},
+          {checked: true, label: 'No'},
+          {checked: true, label: 'Accept unanswered'}
+        ],
+        submit: async (input: string[]) => true
+      }
     },
   },
   {
     title: "Long Distance",
     description: "Do you want search results to include people willing to enter a long-distance relationship?",
     input: {
-      checkChips: [
-        {checked: true, label: 'Yes'},
-        {checked: true, label: 'No'},
-        {checked: true, label: 'Accept Unanswered'}
-      ],
-      submit: async (input: string[]) => true
+      checkChips: {
+        values: [
+          {checked: true, label: 'Yes'},
+          {checked: true, label: 'No'},
+          {checked: true, label: 'Accept unanswered'}
+        ],
+        submit: async (input: string[]) => true
+      }
     },
   },
   {
     title: "Relationship Status",
     description: "What relationship statuses are you willing to accept from people in your search results?",
     input: {
-      checkChips: [
-        {checked: true, label: 'Single'},
-        {checked: true, label: 'Seeing someone'},
-        {checked: true, label: 'Engaged'},
-        {checked: true, label: 'Married'},
-        {checked: true, label: 'Divorced'},
-        {checked: true, label: 'Widowed'},
-        {checked: true, label: 'Other'},
-        {checked: true, label: 'Accept Unanswered'}
-      ],
-      submit: async (input: string[]) => true
+      checkChips: {
+        values: [
+          {checked: true, label: 'Single'},
+          {checked: true, label: 'Seeing someone'},
+          {checked: true, label: 'Engaged'},
+          {checked: true, label: 'Married'},
+          {checked: true, label: 'Divorced'},
+          {checked: true, label: 'Widowed'},
+          {checked: true, label: 'Other'},
+          {checked: true, label: 'Accept unanswered'}
+        ],
+        submit: async (input: string[]) => true
+      }
     },
   },
   {
     title: "Has Kids",
     description: "Do you want search results to include people who had kids?",
     input: {
-      checkChips: [
-        {checked: true, label: 'Yes'},
-        {checked: true, label: 'No'},
-        {checked: true, label: 'Accept Unanswered'}
-      ],
-      submit: async (input: string[]) => true
+      checkChips: {
+        values: [
+          {checked: true, label: 'Yes'},
+          {checked: true, label: 'No'},
+          {checked: true, label: 'Accept unanswered'}
+        ],
+        submit: async (input: string[]) => true
+      }
     },
   },
   {
     title: "Wants Kids",
     description: "Do you want search results to include people who want kids?",
     input: {
-      checkChips: [
-        {checked: true, label: 'Yes'},
-        {checked: true, label: 'No'},
-        {checked: true, label: 'Accept Unanswered'}
-      ],
-      submit: async (input: string[]) => true
+      checkChips: {
+        values: [
+          {checked: true, label: 'Yes'},
+          {checked: true, label: 'No'},
+          {checked: true, label: 'Accept unanswered'}
+        ],
+        submit: async (input: string[]) => true
+      }
     },
   },
   {
     title: "Exercise",
     description: "Do you want search results to include people who exercise?",
     input: {
-      checkChips: [
-        {checked: true, label: 'Often'},
-        {checked: true, label: 'Sometimes'},
-        {checked: true, label: 'Never'},
-        {checked: true, label: 'Accept Unanswered'},
-      ],
-      submit: async (input: string[]) => true
+      checkChips: {
+        values: [
+          {checked: true, label: 'Often'},
+          {checked: true, label: 'Sometimes'},
+          {checked: true, label: 'Never'},
+          {checked: true, label: 'Accept unanswered'},
+        ],
+        submit: async (input: string[]) => true
+      }
     },
   },
   {
     title: "Religion",
     description: "Do you want search results to include people who exercise?",
     input: {
-      checkChips: [
-        {checked: true, label: 'Agnostic'},
-        {checked: true, label: 'Atheist'},
-        {checked: true, label: 'Buddhist'},
-        {checked: true, label: 'Christian'},
-        {checked: true, label: 'Hindu'},
-        {checked: true, label: 'Jewish'},
-        {checked: true, label: 'Muslim'},
-        {checked: true, label: 'Other'},
-        {checked: true, label: 'Accept Unanswered'},
-      ],
-      submit: async (input: string[]) => true
+      checkChips: {
+      values: [
+          {checked: true, label: 'Agnostic'},
+          {checked: true, label: 'Atheist'},
+          {checked: true, label: 'Buddhist'},
+          {checked: true, label: 'Christian'},
+          {checked: true, label: 'Hindu'},
+          {checked: true, label: 'Jewish'},
+          {checked: true, label: 'Muslim'},
+          {checked: true, label: 'Other'},
+          {checked: true, label: 'Accept unanswered'},
+        ],
+        submit: async (input: string[]) => true
+      }
     },
   },
   {
     title: "Star Sign",
     description: "What star signs would you like to see in search results?",
     input: {
-      checkChips: [
-        {checked: true, label: 'Aquarius'},
-        {checked: true, label: 'Aries'},
-        {checked: true, label: 'Cancer'},
-        {checked: true, label: 'Capricorn'},
-        {checked: true, label: 'Gemini'},
-        {checked: true, label: 'Leo'},
-        {checked: true, label: 'Libra'},
-        {checked: true, label: 'Pisces'},
-        {checked: true, label: 'Sagittarius'},
-        {checked: true, label: 'Scorpio'},
-        {checked: true, label: 'Taurus'},
-        {checked: true, label: 'Virgo'},
-        {checked: true, label: 'Accept Unanswered'},
-      ],
-      submit: async (input: string[]) => true
+      checkChips: {
+        values: [
+          {checked: true, label: 'Aquarius'},
+          {checked: true, label: 'Aries'},
+          {checked: true, label: 'Cancer'},
+          {checked: true, label: 'Capricorn'},
+          {checked: true, label: 'Gemini'},
+          {checked: true, label: 'Leo'},
+          {checked: true, label: 'Libra'},
+          {checked: true, label: 'Pisces'},
+          {checked: true, label: 'Sagittarius'},
+          {checked: true, label: 'Scorpio'},
+          {checked: true, label: 'Taurus'},
+          {checked: true, label: 'Virgo'},
+          {checked: true, label: 'Accept unanswered'},
+        ],
+        submit: async (input: string[]) => true
+      }
     },
   },
 ];
 
-const searchInteractionsOptionGroups: OptionGroup[] = [
+const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     title: "People You've Messaged",
     description: "Would you like search results to include people you already messaged?",
     input: {
-      buttons: ['Yes', 'No'],
-      submit: async (input: string) => true
+      buttons: {
+        values: ['Yes', 'No'],
+        submit: async (input: string) => true
+      }
     },
   },
   {
     title: "People You've Hidden",
     description: "Would you like search results to include people you hidden?",
     input: {
-      buttons: ['Yes', 'No'],
-      submit: async (input: string) => true
+      buttons: {
+        values: ['Yes', 'No'],
+        submit: async (input: string) => true
+      }
     },
   },
   {
     title: "People You've Blocked",
     description: "Would you like to include people you blocked?",
     input: {
-      buttons: ['Yes', 'No'],
-      submit: async (input: string) => true
+      buttons: {
+        values: ['Yes', 'No'],
+        submit: async (input: string) => true
+      }
     },
   },
 ];
 
-const hideMeFromStrangersOptionGroup: OptionGroup = {
+const hideMeFromStrangersOptionGroup: OptionGroup<OptionGroupInputs> = {
   title: 'Hide Me From Strangers',
   description: "If you'd rather be the one who makes the first move, you can show your profile only to people who you've messaged. With this option set to 'Yes', people won't be able to see you anywhere in Duolicious until you message them.",
   input: {
-    buttons: ['Yes', 'No'],
-    submit: async (input: string) => true
+    buttons: {
+      values: ['Yes', 'No'],
+      submit: async function(hideMeFromStrangers: string) {
+        const ok = (
+          await japi(
+            'patch',
+            '/profile-info',
+            { hide_me_from_strangers: hideMeFromStrangers }
+          )
+        ).ok;
+        if (ok) this.currentValue = hideMeFromStrangers;
+        return ok;
+      },
+    }
   },
 };
 
-const privacySettingsOptionGroups: OptionGroup[] = [
+const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     title: 'Show My Location',
     description: "Would you like your location to appear on your profile? Note that if you set this option to 'No', other people will still be able to filter your profile by distance when searching.",
     input: {
-      buttons: ['Yes', 'No'],
-      submit: async (input: string) => true
+      buttons: {
+        values: ['Yes', 'No'],
+        submit: async function(showMyLocation: string) {
+          const ok = (
+            await japi(
+              'patch',
+              '/profile-info',
+              { show_my_location: showMyLocation }
+            )
+          ).ok;
+          if (ok) this.currentValue = showMyLocation;
+          return ok;
+        },
+      }
     },
   },
   {
     title: 'Show My Age',
     description: "Would you like your age to appear on your profile? Note that if you set this option to 'No', other people will still be able to filter your profile by age when searching.",
     input: {
-      buttons: ['Yes', 'No'],
-      submit: async (input: string) => true
+      buttons: {
+        values: ['Yes', 'No'],
+        submit: async function(showMyAge: string) {
+          const ok = (
+            await japi(
+              'patch',
+              '/profile-info',
+              { show_my_age: showMyAge }
+            )
+          ).ok;
+          if (ok) this.currentValue = showMyAge;
+          return ok;
+        },
+      }
     },
   },
   hideMeFromStrangersOptionGroup,
@@ -911,29 +1151,40 @@ const privacySettingsOptionGroups: OptionGroup[] = [
 
 export {
   OptionGroup,
+  OptionGroupButtons,
+  OptionGroupCheckChips,
+  OptionGroupDate,
+  OptionGroupGivenName,
+  OptionGroupInputs,
+  OptionGroupLocationSelector,
+  OptionGroupNone,
+  OptionGroupOtp,
+  OptionGroupPhotos,
+  OptionGroupRangeSlider,
+  OptionGroupSlider,
+  OptionGroupTextLong,
+  OptionGroupTextShort,
   basicsOptionGroups,
+  createAccountOptionGroups,
   deactivationOptionGroups,
   deletionOptionGroups,
+  generalSettingsOptionGroups,
+  getCurrentValue,
+  hideMeFromStrangersOptionGroup,
   isOptionGroupButtons,
+  isOptionGroupCheckChips,
   isOptionGroupDate,
-  isOptionGroupDeletion,
   isOptionGroupGivenName,
   isOptionGroupLocationSelector,
-  isOptionGroupOtp,
   isOptionGroupNone,
+  isOptionGroupOtp,
   isOptionGroupPhotos,
+  isOptionGroupRangeSlider,
   isOptionGroupSlider,
   isOptionGroupTextLong,
   isOptionGroupTextShort,
-  isOptionGroupCheckChips,
-  isOptionGroupRangeSlider,
-  searchBasicsOptionGroups,
-  searchInteractionsOptionGroups,
-  createAccountOptionGroups,
-  generalSettingsOptionGroups,
   notificationSettingsOptionGroups,
   privacySettingsOptionGroups,
-  contactOptionGroups,
-  hideMeFromStrangersOptionGroup,
-  OptionGroupOtp,
+  searchBasicsOptionGroups,
+  searchInteractionsOptionGroups,
 };

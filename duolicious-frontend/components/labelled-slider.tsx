@@ -8,7 +8,15 @@ import Slider from '@react-native-community/slider';
 import { DefaultText } from './default-text';
 
 const LabelledSlider = ({label, minimumValue, maximumValue, ...rest}) => {
-  const {value, initialValue, onValueChange, style, addPlusAtMax, ...rest_} = rest;
+  const {
+    value,
+    initialValue,
+    onValueChange,
+    style,
+    addPlusAtMax,
+    valueRewriter = (x) => x,
+    ...rest_
+  } = rest;
 
   const [valueState, setValueState] = useState(initialValue);
 
@@ -46,7 +54,7 @@ const LabelledSlider = ({label, minimumValue, maximumValue, ...rest}) => {
       </View>
       <View style={{marginTop: 10}}>
         <DefaultText>
-          {label}: {valueState}
+          {label}: {valueRewriter(valueState)}
           {addPlusAtMax && valueState === maximumValue ? '+' : ''}
         </DefaultText>
       </View>
