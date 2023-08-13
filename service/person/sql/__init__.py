@@ -79,44 +79,49 @@ WHERE
 
 Q_SELECT_PERSONALITY = """
 SELECT
-    *
-FROM (
-    SELECT DISTINCT ON (person_id, trait_id)
-        t2.id AS person_id,
-        t2.name AS person_name,
-        t2.trait_id AS trait_id,
-        ROUND(100 * t2.ratio)::SMALLINT AS percentage,
-        COALESCE(t2.ratio , -1) * (%(topic)s IS NULL)::INT AS position,
-        trait.name AS trait_name,
-        trait.min_label,
-        trait.max_label,
-        trait.description
-    FROM (
-        SELECT
-            id,
-            name,
-            (trait_ratio(presence_score, absence_score, 5000)).*
-        FROM
-            person
+    trait.name                        AS trait_name,
+    trait.description                 AS trait_description,
+    trait.min_label                   AS trait_min_label,
+    trait.max_label                   AS trait_max_label,
+    person_trait.name                 AS person_name,
+    ROUND(100 * person_trait.ratio)   AS person_percentage,
+    prospect_trait.name               AS prospect_name,
+    ROUND(100 * prospect_trait.ratio) AS prospect_percentage,
+    COALESCE(
+        prospect_trait.ratio,
+        person_trait.ratio,
+        0
+    ) AS position
+FROM trait
+LEFT JOIN (
+    SELECT
+        id,
+        name,
+        (trait_ratio(presence_score, absence_score, 5000)).*
+    FROM person
+    WHERE id = %(person_id)s
+) AS person_trait ON
+    person_trait.trait_id = trait.id
+LEFT JOIN (
+    SELECT
+        id,
+        name,
+        (trait_ratio(presence_score, absence_score, 5000)).*
+    FROM person
+    WHERE id = %(prospect_person_id)s
+) AS prospect_trait ON
+    prospect_trait.trait_id = trait.id
+WHERE
+    trait.id IN (
+        SELECT trait_id
+        FROM trait_topic
         WHERE
-            id = ANY(%(person_ids)s)
-    ) AS t2
-    JOIN
-        trait
-    ON
-        t2.trait_id = trait.id
-    JOIN
-        trait_topic
-    ON
-        trait_topic.trait_id = t2.trait_id AND
-        (
             trait_topic.name = %(topic)s OR
-            %(topic)s IS NULL
-        )
-) AS t1
+            %(topic)s::TEXT IS NULL
+    )
 ORDER BY
-    t1.position DESC,
-    t1.trait_name ASC
+    position DESC,
+    trait_name ASC
 """
 
 Q_INSERT_DUO_SESSION = """

@@ -6,7 +6,6 @@ import constants
 import duotypes
 import os
 
-ENV = os.environ['DUO_ENV']
 CORS_ORIGINS = os.environ.get('DUO_CORS_ORIGINS', '*')
 
 app = Flask(__name__)
