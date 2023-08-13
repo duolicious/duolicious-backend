@@ -113,6 +113,7 @@ const ButtonForOption = (props) => {
             color: (setting ?? noSettingText) === noSettingText ? '#888' : 'black',
             fontStyle: (setting ?? noSettingText) === noSettingText ? 'italic' : 'normal',
             textAlign: 'right',
+            flex: 1,
           }}
           numberOfLines={1}
         >

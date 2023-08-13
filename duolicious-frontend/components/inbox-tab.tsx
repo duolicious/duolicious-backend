@@ -128,7 +128,7 @@ const InboxTab_ = ({navigation}) => {
 
   const ListHeaderComponent = () => {
     useEffect(() => {
-      if (sectionIndex === 1) {
+      if (sectionIndex === 0) {
         fadeIn();
       } else {
         fadeOut();
@@ -139,8 +139,8 @@ const InboxTab_ = ({navigation}) => {
       <>
         <ButtonGroup
           buttons={[
+            'Intros' + (inbox?.intros?.numUnread ? ` (${inbox.intros.numUnread})` : ''),
             'Chats'  + (inbox?.chats?.numUnread  ? ` (${inbox.chats.numUnread})`  : ''),
-            'Intros' + (inbox?.intros?.numUnread ? ` (${inbox.intros.numUnread})` : '')
           ]}
           selectedIndex={sectionIndex}
           onPress={setSectionIndex_}
@@ -154,7 +154,7 @@ const InboxTab_ = ({navigation}) => {
           style={{
             opacity: buttonOpacity,
           }}
-          pointerEvents={sectionIndex === 1 ? 'auto' : 'none'}
+          pointerEvents={sectionIndex === 1 ? 'none' : 'auto'}
         >
           <ButtonGroup
             buttons={['Latest First', 'Best Matches First']}
@@ -168,7 +168,7 @@ const InboxTab_ = ({navigation}) => {
             }}
           />
         </Animated.View>
-        {!isTooManyTapped && sectionIndex === 1 && inbox && inbox.intros.numUnread >= 5 &&
+        {!isTooManyTapped && sectionIndex === 0 && inbox && inbox.intros.numUnread >= 5 &&
           <Notice
             onPress={onPressTooMany}
             style={{
@@ -220,13 +220,13 @@ const InboxTab_ = ({navigation}) => {
           ref={listRef}
           emptyText={
             sectionIndex === 0 ?
-            "No chats to show" :
-            "No intros to show"}
+            "No intros to show":
+            "No chats to show"}
           endText="No more messages to show"
           endTextStyle={{
             marginRight: 5,
           }}
-          fetchPage={sectionIndex === 0 ? fetchChatsPage : fetchIntrosPage}
+          fetchPage={sectionIndex === 0 ? fetchIntrosPage : fetchChatsPage}
           dataKey={String(sectionIndex)}
           ListHeaderComponent={ListHeaderComponent}
           renderItem={renderItem}

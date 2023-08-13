@@ -774,10 +774,11 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       none: {
         description: "You're ready to go! You can always sweeten your profile even more once you're signed in...",
         submit: async () => {
+          const _sessionToken = await sessionToken();
           const response = await japi('post', '/finish-onboarding');
           if (response.ok) {
             setSignedInUser((signedInUser) => ({
-              sessionToken: '',
+              sessionToken: _sessionToken ?? '',
               ...signedInUser,
               personId: response?.json?.person_id,
               units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',

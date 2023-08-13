@@ -241,12 +241,6 @@ const Options = ({navigation, data}) => {
           isOptionGroupSlider(og.input) && og.title === 'Height' ? {
             input: {
               slider: {
-                unitsLabel: (
-                  signedInUser?.units === 'Imperial' ?
-                  "ft'in\"" : undefined),
-                valueRewriter: (
-                  signedInUser?.units === 'Imperial' ?
-                  cmToFeetInchesStr : undefined),
                 currentValue: (data ?? {})[optionGroups[i].title.toLowerCase()]
               }
             }
@@ -268,6 +262,20 @@ const Options = ({navigation, data}) => {
     ],
     [data]
   );
+
+  useEffect(() => {
+    _basicsOptionGroups.forEach((og: OptionGroup<OptionGroupInputs>) => {
+      if (isOptionGroupSlider(og.input) && og.title === 'Height') {
+        og.input.slider.unitsLabel = (
+          signedInUser?.units === 'Imperial' ?
+          "ft'in\"" : 'cm');
+
+        og.input.slider.valueRewriter = (
+          signedInUser?.units === 'Imperial' ?
+          cmToFeetInchesStr : undefined);
+      }
+    });
+  }, [_basicsOptionGroups, signedInUser?.units]);
 
   const onSubmitSuccess = useCallback(() => {
     triggerRender({});
