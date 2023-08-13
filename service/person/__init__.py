@@ -12,8 +12,6 @@ import boto3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from service.person.sql import *
 
-ENV = os.environ['DUO_ENV']
-
 EMAIL_KEY = os.environ['DUO_EMAIL_KEY']
 EMAIL_URL = os.environ['DUO_EMAIL_URL']
 
@@ -193,14 +191,14 @@ def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
     with transaction() as tx:
         tx.execute(Q_UPDATE_ANSWER, params)
 
-def _generate_otp():
-    if ENV == 'dev':
+def _generate_otp(email: str):
+    if email.endswith('@example.com'):
         return '0' * 6
     else:
         return '{:06d}'.format(secrets.randbelow(10**6))
 
 def _send_otp(email: str, otp: str):
-    if ENV == 'dev':
+    if email.endswith('@example.com'):
         return
 
     headers = {
@@ -243,7 +241,7 @@ def _send_otp(email: str, otp: str):
 
 def post_request_otp(req: t.PostRequestOtp):
     email = req.email
-    otp = _generate_otp()
+    otp = _generate_otp(email)
     session_token = secrets.token_hex(64)
     session_token_hash = sha512(session_token)
 
@@ -261,7 +259,7 @@ def post_request_otp(req: t.PostRequestOtp):
     return dict(session_token=session_token)
 
 def post_resend_otp(s: t.SessionInfo):
-    otp = _generate_otp()
+    otp = _generate_otp(s.email)
 
     params = dict(
         otp=otp,
@@ -470,7 +468,8 @@ def post_finish_onboarding(s: t.SessionInfo):
 
 def get_me(person_id: int):
     params = dict(
-        person_ids=[person_id],
+        person_id=person_id,
+        prospect_person_id=None,
         topic=None,
     )
 
@@ -483,12 +482,11 @@ def get_me(person_id: int):
             'person_id': person_id,
             'personality': [
                 {
-                    'trait_id': trait['trait_id'],
-                    'name': trait['trait_name'],
-                    'min_label': trait['min_label'],
-                    'max_label': trait['max_label'],
-                    'description': trait['description'],
-                    'percentage': trait['percentage'],
+                    'trait_name': trait['trait_name'],
+                    'trait_min_label': trait['trait_min_label'],
+                    'trait_max_label': trait['trait_max_label'],
+                    'trait_description': trait['trait_description'],
+                    'person_percentage': trait['person_percentage'],
                 }
                 for trait in personality
             ]
@@ -565,52 +563,13 @@ def get_compare_personalities(
     db_topic = url_topic_to_db_topic[topic]
 
     params = dict(
-        person_ids=[s.person_id, prospect_person_id],
+        person_id=s.person_id,
+        prospect_person_id=prospect_person_id,
         topic=db_topic,
     )
 
     with transaction('READ COMMITTED') as tx:
-        rows = tx.execute(Q_SELECT_PERSONALITY, params).fetchall()
-
-    you_rows = [
-            row for row in rows if row['person_id'] == s.person_id]
-    prospect_rows = [
-            row for row in rows if row['person_id'] == prospect_person_id]
-
-    def rows_to_personality(you_row, prospect_row):
-        assert you_row['trait_name'] == prospect_row['trait_name']
-        assert you_row['min_label'] == prospect_row['min_label']
-        assert you_row['max_label'] == prospect_row['max_label']
-        assert you_row['description'] == prospect_row['description']
-
-        return {
-            'name1': 'You',
-            'percentage1': you_row['percentage'],
-
-            'name2': prospect_row['person_name'],
-            'percentage2': prospect_row['percentage'],
-
-            'name': (
-                you_row['trait_name'] if
-                topic != 'big5' else
-                you_row['trait_name'].replace(
-                    'Introversion/Extraversion',
-                    'Extraversion'
-                )
-            ),
-            'min_label': you_row['min_label'] if topic != 'big5' else None,
-            'max_label': you_row['max_label'] if topic != 'big5' else None,
-
-            'description': you_row['description'],
-        }
-
-    try:
-        return [
-            rows_to_personality(you_row, prospect_row)
-            for you_row, prospect_row in zip(you_rows, prospect_rows)
-        ]
-    except:
-        return '', 404
+        return tx.execute(Q_SELECT_PERSONALITY, params).fetchall()
 
 def get_compare_answers(
     s: t.SessionInfo,
