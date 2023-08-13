@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS person (
     -- Basics
     orientation_id SMALLINT REFERENCES orientation(id) NOT NULL DEFAULT 1,
     occupation TEXT,
+    education TEXT,
     height_cm SMALLINT,
     looking_for_id SMALLINT REFERENCES looking_for(id) NOT NULL DEFAULT 1,
     smoking_id SMALLINT REFERENCES yes_no_optional(id) NOT NULL DEFAULT 1,
@@ -167,13 +168,11 @@ CREATE TABLE IF NOT EXISTS person (
     -- Privacy Settings
     show_my_location BOOLEAN NOT NULL DEFAULT TRUE,
     show_my_age BOOLEAN NOT NULL DEFAULT TRUE,
-    private_browsing BOOLEAN NOT NULL DEFAULT FALSE,
     hide_me_from_strangers BOOLEAN NOT NULL DEFAULT FALSE,
 
     -- Bookkeeping
     sign_up_time TIMESTAMP NOT NULL DEFAULT NOW(),
     sign_in_count INT NOT NULL DEFAULT 1,
-    last_active_time TIMESTAMP NOT NULL DEFAULT NOW(),
 
     -- Whether the user deactivated their account via the settings
     activated BOOLEAN NOT NULL DEFAULT TRUE,
@@ -227,6 +226,10 @@ CREATE TABLE IF NOT EXISTS photo (
     position SMALLINT NOT NULL,
     uuid TEXT NOT NULL,
     PRIMARY KEY (person_id, position)
+);
+
+CREATE TABLE IF NOT EXISTS photo_graveyard (
+    uuid TEXT PRIMARY KEY
 );
 
 CREATE TABLE IF NOT EXISTS question (
@@ -497,13 +500,13 @@ INSERT INTO orientation (name) VALUES ('Queer') ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientation (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO looking_for (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
-INSERT INTO looking_for (name) VALUES ('Long-term Dating') ON CONFLICT (name) DO NOTHING;
-INSERT INTO looking_for (name) VALUES ('Short-term Dating') ON CONFLICT (name) DO NOTHING;
+INSERT INTO looking_for (name) VALUES ('Long-term dating') ON CONFLICT (name) DO NOTHING;
+INSERT INTO looking_for (name) VALUES ('Short-term dating') ON CONFLICT (name) DO NOTHING;
 INSERT INTO looking_for (name) VALUES ('Friends') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO relationship_status (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Single') ON CONFLICT (name) DO NOTHING;
-INSERT INTO relationship_status (name) VALUES ('Seeing Someone') ON CONFLICT (name) DO NOTHING;
+INSERT INTO relationship_status (name) VALUES ('Seeing someone') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Engaged') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Married') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Divorced') ON CONFLICT (name) DO NOTHING;
@@ -540,7 +543,7 @@ INSERT INTO unit (name) VALUES ('Metric') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO immediacy (name) VALUES ('Immediately') ON CONFLICT (name) DO NOTHING;
 INSERT INTO immediacy (name) VALUES ('Daily') ON CONFLICT (name) DO NOTHING;
-INSERT INTO immediacy (name) VALUES ('Every 3 Days') ON CONFLICT (name) DO NOTHING;
+INSERT INTO immediacy (name) VALUES ('Every 3 days') ON CONFLICT (name) DO NOTHING;
 INSERT INTO immediacy (name) VALUES ('Weekly') ON CONFLICT (name) DO NOTHING;
 INSERT INTO immediacy (name) VALUES ('Never') ON CONFLICT (name) DO NOTHING;
 
@@ -1098,6 +1101,70 @@ ON person
 FOR EACH ROW
 EXECUTE FUNCTION insert_update_search_tables();
 
--- TODO: Trait descriptions should be in the database
+
+
+CREATE OR REPLACE FUNCTION on_delete_photo()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO photo_graveyard (uuid) VALUES (OLD.uuid);
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION on_update_photo()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO photo_graveyard (uuid) VALUES (OLD.uuid);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for DELETE operation
+CREATE OR REPLACE TRIGGER trigger_photo_delete
+BEFORE DELETE ON photo
+FOR EACH ROW
+EXECUTE FUNCTION on_delete_photo();
+
+-- Trigger for DELETE operation on onboardee_photo
+CREATE OR REPLACE TRIGGER trigger_onboardee_photo_delete
+BEFORE DELETE ON onboardee_photo
+FOR EACH ROW
+EXECUTE FUNCTION on_delete_photo();
+
+-- Trigger for UPDATE operation
+CREATE OR REPLACE TRIGGER trigger_photo_update
+BEFORE UPDATE ON photo
+FOR EACH ROW
+WHEN (OLD.uuid IS DISTINCT FROM NEW.uuid)
+EXECUTE FUNCTION on_update_photo();
+
+-- Trigger for UPDATE operation on onboardee_photo
+CREATE OR REPLACE TRIGGER trigger_onboardee_photo_update
+BEFORE UPDATE ON onboardee_photo
+FOR EACH ROW
+WHEN (OLD.uuid IS DISTINCT FROM NEW.uuid)
+EXECUTE FUNCTION on_update_photo();
+
+
+
+CREATE OR REPLACE FUNCTION remove_from_photo_graveyard()
+RETURNS TRIGGER AS $$
+BEGIN
+    DELETE FROM photo_graveyard WHERE uuid = NEW.uuid;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trigger_photo_insert
+AFTER INSERT ON photo
+FOR EACH ROW
+EXECUTE FUNCTION remove_from_photo_graveyard();
+
+CREATE OR REPLACE TRIGGER trigger_onboardee_photo_insert
+AFTER INSERT ON onboardee_photo
+FOR EACH ROW
+EXECUTE FUNCTION remove_from_photo_graveyard();
+
 -- TODO: Periodically delete expired tokens
 -- TODO: Periodically move inactive accounts
+-- TODO: Periodically delete photos from bucket

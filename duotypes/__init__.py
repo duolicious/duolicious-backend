@@ -6,6 +6,61 @@ from PIL import Image
 import constants
 import io
 
+def file_names(files):
+    if files is None:
+        return files
+
+    for k in files.keys():
+        if len(files.getlist(k)) > 2:
+            raise ValueError('Files must have distinct names')
+
+    filename_to_bytes: Dict[str, io.BytesIO] = {
+        k: io.BytesIO(files[k].read()) for k in files
+    }
+
+    for k, v in filename_to_bytes.items():
+        if v.getbuffer().nbytes > constants.MAX_IMAGE_SIZE:
+            raise ValueError(
+                f'{k} exceeds {constants.MAX_IMAGE_SIZE} bytes')
+
+    try:
+        filename_to_image: Dict[str, Image.Image] = {
+            k: Image.open(v) for k, v in filename_to_bytes.items()
+        }
+    except:
+        raise ValueError(f'{k} is not a valid image')
+
+    for k, v in filename_to_image.items():
+        width, height = v.size
+
+        larger_dim = max(width, height)
+        smaller_dim = min(width, height)
+
+        if larger_dim > constants.MAX_IMAGE_DIM:
+            raise ValueError(
+                    f'{k} is greater than '
+                    f'{constants.MAX_IMAGE_DIM}x{constants.MAX_IMAGE_DIM} '
+                    'pixels')
+
+        if smaller_dim < constants.MIN_IMAGE_DIM:
+            raise ValueError(
+                    f'{k} is less than '
+                    f'{constants.MIN_IMAGE_DIM}x{constants.MIN_IMAGE_DIM} '
+                    'pixels')
+
+    for v in filename_to_image.values():
+        try:
+            v.load()
+        except:
+            raise ValueError(f'{k} is not a valid image')
+
+    order_to_image: Dict[int, Image.Image] = {
+        int(k[0]): v for k, v in filename_to_image.items()
+    }
+
+    return order_to_image
+
+
 class SessionInfo(BaseModel):
     email: str
     session_token_hash: str
@@ -59,63 +114,12 @@ class PatchOnboardeeInfo(BaseModel):
 
     @field_validator('files', mode='before')
     def file_names(cls, files):
-        if files is None:
-            return files
-
-        for k in files.keys():
-            if len(files.getlist(k)) > 2:
-                raise ValueError('Files must have distinct names')
-
-        filename_to_bytes: Dict[str, io.BytesIO] = {
-            k: io.BytesIO(files[k].read()) for k in files
-        }
-
-        for k, v in filename_to_bytes.items():
-            if v.getbuffer().nbytes > constants.MAX_IMAGE_SIZE:
-                raise ValueError(
-                    f'{k} exceeds {constants.MAX_IMAGE_SIZE} bytes')
-
-        try:
-            filename_to_image: Dict[str, Image.Image] = {
-                k: Image.open(v) for k, v in filename_to_bytes.items()
-            }
-        except:
-            raise ValueError(f'{k} is not a valid image')
-
-        for k, v in filename_to_image.items():
-            width, height = v.size
-
-            larger_dim = max(width, height)
-            smaller_dim = min(width, height)
-
-            if larger_dim > constants.MAX_IMAGE_DIM:
-                raise ValueError(
-                        f'{k} is greater than '
-                        f'{constants.MAX_IMAGE_DIM}x{constants.MAX_IMAGE_DIM} '
-                        'pixels')
-
-            if smaller_dim < constants.MIN_IMAGE_DIM:
-                raise ValueError(
-                        f'{k} is less than '
-                        f'{constants.MIN_IMAGE_DIM}x{constants.MIN_IMAGE_DIM} '
-                        'pixels')
-
-        for v in filename_to_image.values():
-            try:
-                v.load()
-            except:
-                raise ValueError(f'{k} is not a valid image')
-
-        order_to_image: Dict[int, Image.Image] = {
-            int(k[0]): v for k, v in filename_to_image.items()
-        }
-
-        return order_to_image
+        return file_names(files)
 
     @model_validator(mode='before')
-    def check_at_least_one(cls, values):
-        if len(values) == 0:
-            raise ValueError('At least one value must be set')
+    def check_exactly_one(cls, values):
+        if len(values) != 1:
+            raise ValueError('Exactly one value must be set')
         return values
 
     class Config:
@@ -124,5 +128,45 @@ class PatchOnboardeeInfo(BaseModel):
 class DeleteOnboardeeInfo(BaseModel):
     files: List[conint(ge=1, le=7)]
 
-class PostViewQuestion(BaseModel):
-    question_id: int
+class DeleteProfileInfo(BaseModel):
+    files: List[conint(ge=1, le=7)]
+
+class PatchProfileInfo(BaseModel):
+    files: Optional[Dict[conint(ge=1, le=7), Image.Image]] = None
+    about: Optional[constr(min_length=1, max_length=10000)] = None
+    gender: Optional[str] = None
+    orientation: Optional[str] = None
+    location: Optional[str] = None
+    occupation: Optional[str] = None
+    education: Optional[str] = None
+    height: Optional[int] = None
+    looking_for: Optional[str] = None
+    smoking: Optional[str] = None
+    drinking: Optional[str] = None
+    drugs: Optional[str] = None
+    long_distance: Optional[str] = None
+    relationship_status: Optional[str] = None
+    has_kids: Optional[str] = None
+    wants_kids: Optional[str] = None
+    exercise: Optional[str] = None
+    religion: Optional[str] = None
+    star_sign: Optional[str] = None
+    units: Optional[str] = None
+    chats: Optional[str] = None
+    intros: Optional[str] = None
+    show_my_location: Optional[str] = None
+    show_my_age: Optional[str] = None
+    hide_me_from_strangers: Optional[str] = None
+
+    @field_validator('files', mode='before')
+    def file_names(cls, files):
+        return file_names(files)
+
+    @model_validator(mode='before')
+    def check_exactly_one(cls, values):
+        if len(values) != 1:
+            raise ValueError('Exactly one value must be set')
+        return values
+
+    class Config:
+        arbitrary_types_allowed = True
