@@ -10,6 +10,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -38,8 +39,10 @@ import { faSmoking } from '@fortawesome/free-solid-svg-icons/faSmoking'
 import { faPersonHalfDress } from '@fortawesome/free-solid-svg-icons/faPersonHalfDress'
 import { faVenusMars } from '@fortawesome/free-solid-svg-icons/faVenusMars'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
+import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
 import { RotateCcw, X } from "react-native-feather";
 import { IMAGES_URL } from '../env/env';
+import { randomGagLocation } from '../data/gag-locations';
 
 const Stack = createNativeStackNavigator();
 
@@ -497,6 +500,11 @@ const ProspectUserDetails = ({
     navigation.navigate('In-Depth', { personId, name });
   }, [personId, name]);
 
+  const gagLocation = useMemo(randomGagLocation, []);
+
+  const displayedLocation = (
+    userLocation === undefined ? '' : (userLocation ?? gagLocation));
+
   return (
     <View
       style={{
@@ -522,7 +530,15 @@ const ProspectUserDetails = ({
             age,
           ].filter(Boolean).join(', ')}
         </DefaultText>
-        <DefaultText>{userLocation ?? ''}</DefaultText>
+        <DefaultText style={{textAlign: 'left'}}>
+          {displayedLocation}{' '}
+          <FontAwesomeIcon
+            icon={faLocationDot}
+            style={{
+              transform: [ { translateY: 2 } ]
+            }}
+          />
+        </DefaultText>
       </View>
       <DonutChart
         percentage={matchPercentage}

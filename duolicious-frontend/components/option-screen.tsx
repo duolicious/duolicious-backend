@@ -279,7 +279,7 @@ const Otp = forwardRef((props: InputProps<OptionGroupOtp>, ref) => {
 
 const LocationSelector = forwardRef((props: InputProps<OptionGroupLocationSelector>, ref) => {
   const [isInvalid, setIsInvalid] = useState(false);
-  const inputValueRef = useRef<string>('');
+  const inputValueRef = useRef<string>(props.input.locationSelector.currentValue ?? '');
 
   const onChangeInputValue = useCallback((value: string) => {
     inputValueRef.current = value;
@@ -302,7 +302,7 @@ const LocationSelector = forwardRef((props: InputProps<OptionGroupLocationSelect
     <>
       <LocationSelector_
         onChangeText={onChangeInputValue}
-        currentValue={props.input.locationSelector.currentValue}
+        currentValue={inputValueRef.current}
       />
       <DefaultText
         style={{
@@ -427,7 +427,7 @@ const TextLong = forwardRef((props: InputProps<OptionGroupTextLong>, ref) => {
 const TextShort = forwardRef((props: InputProps<OptionGroupTextShort>, ref) => {
   const [isInvalid, setIsInvalid] = useState(false);
 
-  const inputValueRef = useRef<string>('');
+  const inputValueRef = useRef<string>(props.input.textShort.currentValue ?? '');
 
   const onChangeInputValue = useCallback((value: string) => {
     inputValueRef.current = value;
@@ -453,6 +453,7 @@ const TextShort = forwardRef((props: InputProps<OptionGroupTextShort>, ref) => {
           marginLeft: 20,
           marginRight: 20,
         }}
+        defaultValue={inputValueRef.current}
         onChangeText={onChangeInputValue}
         onSubmitEditing={submit}
         placeholder="Type here..."
