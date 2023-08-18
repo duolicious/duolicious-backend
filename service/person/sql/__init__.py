@@ -365,8 +365,8 @@ onboardee_country AS (
     FROM new_person, relationship_status
 ), p13 AS (
     INSERT INTO search_preference_has_kids (person_id, has_kids_id)
-    SELECT new_person.id, yes_no_maybe.id
-    FROM new_person, yes_no_maybe
+    SELECT new_person.id, yes_no_optional.id
+    FROM new_person, yes_no_optional
 ), p14 AS (
     INSERT INTO search_preference_wants_kids (person_id, wants_kids_id)
     SELECT new_person.id, yes_no_maybe.id
@@ -466,7 +466,7 @@ SELECT
     (SELECT name FROM yes_no_optional     WHERE id = p.drugs_id               AND name != 'Unanswered') AS drugs,
     (SELECT name FROM yes_no_optional     WHERE id = p.long_distance_id       AND name != 'Unanswered') AS long_distance,
     (SELECT name FROM relationship_status WHERE id = p.relationship_status_id AND name != 'Unanswered') AS relationship_status,
-    (SELECT name FROM yes_no_maybe        WHERE id = p.has_kids_id            AND name != 'Unanswered') AS has_kids,
+    (SELECT name FROM yes_no_optional     WHERE id = p.has_kids_id            AND name != 'Unanswered') AS has_kids,
     (SELECT name FROM yes_no_maybe        WHERE id = p.wants_kids_id          AND name != 'Unanswered') AS wants_kids,
     (SELECT name FROM frequency           WHERE id = p.exercise_id            AND name != 'Unanswered') AS exercise,
     (SELECT name FROM religion            WHERE id = p.religion_id            AND name != 'Unanswered') AS religion,
@@ -773,43 +773,147 @@ WHERE
 
 Q_GET_SEARCH_FILTERS = """
 WITH answer AS (
-    SELECT COALESCE(array_agg(json_build_object(
-        'question_id', question_id,
-        'answer', answer,
-        'accept_unanswered', accept_unanswered
-    )), ARRAY[]::JSON[]) AS j
+    SELECT COALESCE(
+        array_agg(
+            json_build_object(
+                'question_id', question_id,
+                'answer', answer,
+                'accept_unanswered', accept_unanswered
+            )
+            ORDER BY question_id
+        ),
+        ARRAY[]::JSON[]
+    ) AS j
     FROM search_preference_answer
     WHERE person_id = %(person_id)s
 ), gender AS (
-    SELECT array_agg(name) AS j
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_gender JOIN gender
     ON gender_id = gender.id
+    WHERE person_id = %(person_id)s
+), orientation AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_orientation JOIN orientation
+    ON orientation_id = orientation.id
+    WHERE person_id = %(person_id)s
+), age AS (
+    SELECT json_build_object(
+        'min_age', min_age,
+        'max_age', max_age
+    ) AS j
+    FROM search_preference_age
+    WHERE person_id = %(person_id)s
+), furthest_distance AS (
+    SELECT distance AS j
+    FROM search_preference_distance
+    WHERE person_id = %(person_id)s
+), height AS (
+    SELECT json_build_object(
+        'min_height_cm', min_height_cm,
+        'max_height_cm', max_height_cm
+    ) AS j
+    FROM search_preference_height_cm
+    WHERE person_id = %(person_id)s
+), has_a_profile_picture AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_has_profile_picture JOIN yes_no
+    ON has_profile_picture_id = yes_no.id
+    WHERE person_id = %(person_id)s
+), looking_for AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_looking_for JOIN looking_for
+    ON looking_for_id = looking_for.id
+    WHERE person_id = %(person_id)s
+), smoking AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_smoking JOIN yes_no_optional
+    ON smoking_id = yes_no_optional.id
+    WHERE person_id = %(person_id)s
+), drinking AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_drinking JOIN frequency
+    ON drinking_id = frequency.id
+    WHERE person_id = %(person_id)s
+), drugs AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_drugs JOIN yes_no_optional
+    ON drugs_id = yes_no_optional.id
+    WHERE person_id = %(person_id)s
+), long_distance AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_long_distance JOIN yes_no_optional
+    ON long_distance_id = yes_no_optional.id
+    WHERE person_id = %(person_id)s
+), relationship_status AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_relationship_status JOIN relationship_status
+    ON relationship_status_id = relationship_status.id
+    WHERE person_id = %(person_id)s
+), has_kids AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_has_kids JOIN yes_no_optional
+    ON has_kids_id = yes_no_optional.id
+    WHERE person_id = %(person_id)s
+), wants_kids AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_wants_kids JOIN yes_no_maybe
+    ON wants_kids_id = yes_no_maybe.id
+    WHERE person_id = %(person_id)s
+), exercise AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_exercise JOIN frequency
+    ON exercise_id = frequency.id
+    WHERE person_id = %(person_id)s
+), religion AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_religion JOIN religion
+    ON religion_id = religion.id
+    WHERE person_id = %(person_id)s
+), star_sign AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_star_sign JOIN star_sign
+    ON star_sign_id = star_sign.id
+    WHERE person_id = %(person_id)s
+), people_messaged AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_messaged JOIN yes_no
+    ON messaged_id = yes_no.id
+    WHERE person_id = %(person_id)s
+), people_hidden AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_hidden JOIN yes_no
+    ON hidden_id = yes_no.id
+    WHERE person_id = %(person_id)s
+), people_blocked AS (
+    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_blocked JOIN yes_no
+    ON blocked_id = yes_no.id
     WHERE person_id = %(person_id)s
 )
 SELECT
     json_build_object(
-        'answers',                (SELECT j FROM answer),
+        'answer',                 (SELECT j FROM answer),
 
-        'genders',                (SELECT j FROM gender)
-        -- 'orientation',            (SELECT j FROM orientation),
-        -- 'age',                    (SELECT j FROM age),
-        -- 'furthest_distance',      (SELECT j FROM furthest_distance),
-        -- 'height',                 (SELECT j FROM height),
-        -- 'has_a_profile_picture',  (SELECT j FROM has_a_profile_picture),
-        -- 'looking_for',            (SELECT j FROM looking_for),
-        -- 'smoking',                (SELECT j FROM smoking),
-        -- 'drinking',               (SELECT j FROM drinking),
-        -- 'drugs',                  (SELECT j FROM drugs),
-        -- 'long_distance',          (SELECT j FROM long_distance),
-        -- 'relationship_status',    (SELECT j FROM relationship_status),
-        -- 'has_kids',               (SELECT j FROM has_kids),
-        -- 'wants_kids',             (SELECT j FROM wants_kids),
-        -- 'exercise',               (SELECT j FROM exercise),
-        -- 'religion',               (SELECT j FROM religion),
-        -- 'star_sign',              (SELECT j FROM star_sign),
+        'gender',                 (SELECT j FROM gender),
+        'orientation',            (SELECT j FROM orientation),
+        'age',                    (SELECT j FROM age),
+        'furthest_distance',      (SELECT j FROM furthest_distance),
+        'height',                 (SELECT j FROM height),
+        'has_a_profile_picture',  (SELECT j FROM has_a_profile_picture),
+        'looking_for',            (SELECT j FROM looking_for),
+        'smoking',                (SELECT j FROM smoking),
+        'drinking',               (SELECT j FROM drinking),
+        'drugs',                  (SELECT j FROM drugs),
+        'long_distance',          (SELECT j FROM long_distance),
+        'relationship_status',    (SELECT j FROM relationship_status),
+        'has_kids',               (SELECT j FROM has_kids),
+        'wants_kids',             (SELECT j FROM wants_kids),
+        'exercise',               (SELECT j FROM exercise),
+        'religion',               (SELECT j FROM religion),
+        'star_sign',              (SELECT j FROM star_sign),
 
-        -- 'people_messaged',        (SELECT j FROM people_messaged),
-        -- 'people_hidden',          (SELECT j FROM people_hidden),
-        -- 'people_blocked',         (SELECT j FROM people_blocked)
+        'people_messaged',        (SELECT j FROM people_messaged),
+        'people_hidden',          (SELECT j FROM people_hidden),
+        'people_blocked',         (SELECT j FROM people_blocked)
     ) AS j
 """

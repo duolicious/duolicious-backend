@@ -872,37 +872,39 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
     if field_value is None:
         return f'No field set in {req.dict()}', 400
 
-    # Set `params`
-    if field_name == 'answers':
-        json_data = [
-            {**answer.dict(), 'person_id': s.person_id}
-            for answer in req.answers]
+    print(req, flush=True) # TODO
+    print(field_name, flush=True) # TODO
+    print(field_value, flush=True) # TODO
 
-        params = dict(
-            person_id=s.person_id,
-            json_str=json.dumps(json_data)
-        )
-    else:
-        params = dict(
-            person_id=s.person_id,
-            field_value=field_value,
-        )
+    # Modify `field_value` for certain `field_name`s
+    if field_name in ['answer', 'age', 'height']:
+        field_value = json.dumps(field_value)
+
+    print(field_value, flush=True) # TODO
+
+    params = dict(
+        person_id=s.person_id,
+        field_value=field_value,
+    )
+
+    print(params, flush=True) # TODO
 
     with transaction() as tx:
-        if field_name == 'answers':
+        if field_name == 'answer':
             q1 = """
             DELETE FROM search_preference_answer
             WHERE person_id = %(person_id)s"""
+
             q2 = """
             INSERT INTO search_preference_answer (
                 person_id, question_id, answer, accept_unanswered
             ) SELECT
-                (json_data->>'person_id')::INT,
+                %(person_id)s,
                 (json_data->>'question_id')::SMALLINT,
                 (json_data->>'answer')::BOOLEAN,
                 (json_data->>'accept_unanswered')::BOOLEAN
-            FROM json_array_elements(%(json_str)s::json) AS json_data"""
-        elif field_name == 'genders':
+            FROM json_array_elements(%(field_value)s) AS json_data"""
+        elif field_name == 'gender':
             q1 = """
             DELETE FROM search_preference_gender
             WHERE person_id = %(person_id)s"""
@@ -913,6 +915,232 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
             )
             SELECT %(person_id)s, id
             FROM gender WHERE name = ANY(%(field_value)s)
+            """
+        # TODO: Check that ChatGPT generated these correctly
+        elif field_name == 'orientation':
+            q1 = """
+            DELETE FROM search_preference_orientation
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_orientation (
+                person_id, orientation_id
+            )
+            SELECT %(person_id)s, id
+            FROM orientation WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'age':
+            q1 = """
+            DELETE FROM search_preference_age
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_age (
+                person_id, min_age, max_age
+            ) SELECT
+                %(person_id)s,
+                (json_data->>'min_age')::SMALLINT,
+                (json_data->>'max_age')::SMALLINT
+            FROM to_json(%(field_value)s::json) AS json_data"""
+        elif field_name == 'furthest_distance':
+            q1 = """
+            DELETE FROM search_preference_distance
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_distance (person_id, distance)
+            VALUES (%(person_id)s, %(field_value)s)
+            """
+        elif field_name == 'height':
+            q1 = """
+            DELETE FROM search_preference_height_cm
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_height_cm (
+                person_id, min_height_cm, max_height_cm
+            ) SELECT
+                %(person_id)s,
+                (json_data->>'min_height_cm')::SMALLINT,
+                (json_data->>'max_height_cm')::SMALLINT
+            FROM to_json(%(field_value)s::json) AS json_data"""
+        elif field_name == 'has_a_profile_picture':
+            q1 = """
+            DELETE FROM search_preference_has_profile_picture
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_has_profile_picture (
+                person_id, has_profile_picture_id
+            ) SELECT %(person_id)s, id
+            FROM yes_no WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'looking_for':
+            q1 = """
+            DELETE FROM search_preference_looking_for
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_looking_for (
+                person_id, looking_for_id
+            ) SELECT %(person_id)s, id
+            FROM looking_for WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'smoking':
+            q1 = """
+            DELETE FROM search_preference_smoking
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_smoking (
+                person_id, smoking_id
+            )
+            SELECT %(person_id)s, id
+            FROM yes_no_optional WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'drinking':
+            q1 = """
+            DELETE FROM search_preference_drinking
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_drinking (
+                person_id, drinking_id
+            )
+            SELECT %(person_id)s, id
+            FROM frequency WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'drugs':
+            q1 = """
+            DELETE FROM search_preference_drugs
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_drugs (
+                person_id, drugs_id
+            )
+            SELECT %(person_id)s, id
+            FROM yes_no_optional WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'long_distance':
+            q1 = """
+            DELETE FROM search_preference_long_distance
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_long_distance (
+                person_id, long_distance_id
+            )
+            SELECT %(person_id)s, id
+            FROM yes_no_optional WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'relationship_status':
+            q1 = """
+            DELETE FROM search_preference_relationship_status
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_relationship_status (
+                person_id, relationship_status_id
+            )
+            SELECT %(person_id)s, id
+            FROM relationship_status WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'has_kids':
+            q1 = """
+            DELETE FROM search_preference_has_kids
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_has_kids (
+                person_id, has_kids_id
+            )
+            SELECT %(person_id)s, id
+            FROM yes_no_optional WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'wants_kids':
+            q1 = """
+            DELETE FROM search_preference_wants_kids
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_wants_kids (
+                person_id, wants_kids_id
+            )
+            SELECT %(person_id)s, id
+            FROM yes_no_maybe WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'exercise':
+            q1 = """
+            DELETE FROM search_preference_exercise
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_exercise (
+                person_id, exercise_id
+            )
+            SELECT %(person_id)s, id
+            FROM frequency WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'religion':
+            q1 = """
+            DELETE FROM search_preference_religion
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_religion (
+                person_id, religion_id
+            )
+            SELECT %(person_id)s, id
+            FROM religion WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'star_sign':
+            q1 = """
+            DELETE FROM search_preference_star_sign
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_star_sign (
+                person_id, star_sign_id
+            )
+            SELECT %(person_id)s, id
+            FROM star_sign WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'people_messaged':
+            q1 = """
+            DELETE FROM search_preference_messaged
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_messaged (
+                person_id, messaged_id
+            )
+            SELECT %(person_id)s, id
+            FROM yes_no WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'people_hidden':
+            q1 = """
+            DELETE FROM search_preference_hidden
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_hidden (
+                person_id, hidden_id
+            )
+            SELECT %(person_id)s, id
+            FROM yes_no WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'people_blocked':
+            q1 = """
+            DELETE FROM search_preference_blocked
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_blocked (
+                person_id, blocked_id
+            )
+            SELECT %(person_id)s, id
+            FROM yes_no WHERE name = ANY(%(field_value)s)
             """
         else:
             return f'Invalid field name {field_name}', 400

@@ -25,40 +25,37 @@ test_set () {
 
   jc POST /search-filter -d '{ "'"$field_name"'": '"$field_value"' }'
 
-  # TODO
-  echo '=========================================='
-  c GET /search-filters
-
   new_field_value=$(
     set +x
-    c GET /search-filters | jq -r ".[\"${field_name//_/\ }\"]"
+    c GET /search-filters | jq -r ".${field_name}"
   )
   [[ "$(jq -cS <<< "$new_field_value")" == "$(jq -cS <<< "$field_value")" ]]
 }
 
-# test_set answers '[{"question_id": 1, "answer": true, "accept_unanswered": false}]'
-# test_set answers '[]'
-# test_set genders '["Woman", "Trans man"]'
+test_set answer '[
+  {"question_id":  1, "answer": true, "accept_unanswered": false},
+  {"question_id": 42, "answer": true, "accept_unanswered": true}
+]'
+test_set answer '[]'
 
-# test_set orientation Asexual
-# test_set location "New York, New York, United States"
-# test_set occupation 'Wallnut milker'
-# test_set education MIT
-# test_set height 184
-# test_set looking_for 'Short-term dating'
-# test_set smoking Yes
-# test_set drinking Often
-# test_set drugs No
-# test_set long_distance Yes
-# test_set relationship_status Single
-# test_set has_kids No
-# test_set wants_kids Yes
-# test_set exercise Often
-# test_set religion Zoroastrianism
-# test_set star_sign Sagittarius
-# test_set units Imperial
-# test_set chats 'Every 3 days'
-# test_set intros Weekly
-# test_set show_my_location Yes
-# test_set show_my_age No
-# test_set hide_me_from_strangers Yes
+test_set gender '["Trans man", "Other"]'
+test_set orientation '["Unanswered", "Pansexual", "Other"]'
+test_set age '{ "min_age": 42, "max_age": 56 }'
+test_set furthest_distance 50
+test_set height '{"min_height_cm": 142, "max_height_cm": 171}'
+test_set has_a_profile_picture '["Yes", "No"]'
+test_set looking_for '["Unanswered", "Short-term dating", "Friends"]'
+test_set smoking '["Unanswered", "No"]'
+test_set drinking '["Unanswered", "Never"]'
+test_set drugs '["Unanswered", "No"]'
+test_set long_distance '["Unanswered", "No"]'
+test_set relationship_status '["Unanswered", "Engaged", "Other"]'
+test_set has_kids '["Unanswered", "No"]'
+test_set wants_kids '["Unanswered", "No", "Maybe"]'
+test_set exercise '["Unanswered", "Never"]'
+test_set religion '["Unanswered", "Buddhist"]'
+test_set star_sign '["Unanswered", "Virgo"]'
+
+test_set people_messaged '["Yes", "No"]'
+test_set people_hidden '["Yes", "No"]'
+test_set people_blocked '["Yes", "No"]'

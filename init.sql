@@ -152,7 +152,7 @@ CREATE TABLE IF NOT EXISTS person (
     drugs_id SMALLINT REFERENCES yes_no_optional(id) NOT NULL DEFAULT 1,
     long_distance_id SMALLINT REFERENCES yes_no_optional(id) NOT NULL DEFAULT 1,
     relationship_status_id SMALLINT REFERENCES relationship_status(id) NOT NULL DEFAULT 1,
-    has_kids_id SMALLINT REFERENCES yes_no_maybe(id) NOT NULL DEFAULT 1,
+    has_kids_id SMALLINT REFERENCES yes_no_optional(id) NOT NULL DEFAULT 1,
     wants_kids_id SMALLINT REFERENCES yes_no_maybe(id) NOT NULL DEFAULT 1,
     exercise_id SMALLINT REFERENCES frequency(id) NOT NULL DEFAULT 1,
     religion_id SMALLINT REFERENCES religion(id) NOT NULL DEFAULT 1,
@@ -365,7 +365,7 @@ CREATE TABLE IF NOT EXISTS search_preference_relationship_status (
 
 CREATE TABLE IF NOT EXISTS search_preference_has_kids (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    has_kids_id SMALLINT REFERENCES yes_no_maybe(id) ON DELETE CASCADE,
+    has_kids_id SMALLINT REFERENCES yes_no_optional(id) ON DELETE CASCADE,
     PRIMARY KEY (person_id, has_kids_id)
 );
 
@@ -396,19 +396,19 @@ CREATE TABLE IF NOT EXISTS search_preference_star_sign (
 CREATE TABLE IF NOT EXISTS search_preference_messaged (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     messaged_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    PRIMARY KEY (person_id)
+    PRIMARY KEY (person_id, messaged_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_hidden (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     hidden_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    PRIMARY KEY (person_id)
+    PRIMARY KEY (person_id, hidden_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_blocked (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     blocked_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    PRIMARY KEY (person_id)
+    PRIMARY KEY (person_id, blocked_id)
 );
 
 CREATE TABLE IF NOT EXISTS messaged (

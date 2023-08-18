@@ -177,9 +177,37 @@ class PostSearchFilter(BaseModel):
         answer: bool
         accept_unanswered: bool
 
-    answers: Optional[List[Answer]] = None
-    genders: Optional[list] = None
-    orientations: Optional[list] = None
+    class Age(BaseModel):
+        min_age: int
+        max_age: int
+
+    class Height(BaseModel):
+        min_height_cm: int
+        max_height_cm: int
+
+    answer: Optional[List[Answer]] = None
+
+    gender: Optional[List[str]] = None
+    orientation: Optional[List[str]] = None
+    age: Optional[Age] = None
+    furthest_distance: Optional[int] = None
+    height: Optional[Height] = None
+    has_a_profile_picture: Optional[List[str]] = None
+    looking_for: Optional[List[str]] = None
+    smoking: Optional[List[str]] = None
+    drinking: Optional[List[str]] = None
+    drugs: Optional[List[str]] = None
+    long_distance: Optional[List[str]] = None
+    relationship_status: Optional[List[str]] = None
+    has_kids: Optional[List[str]] = None
+    wants_kids: Optional[List[str]] = None
+    exercise: Optional[List[str]] = None
+    religion: Optional[List[str]] = None
+    star_sign: Optional[List[str]] = None
+
+    people_messaged: Optional[List[str]] = None
+    people_hidden: Optional[List[str]] = None
+    people_blocked: Optional[List[str]] = None
 
     @model_validator(mode='before')
     def check_exactly_one(cls, values):
