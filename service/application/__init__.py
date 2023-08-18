@@ -188,3 +188,12 @@ def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
 @validate(t.PatchProfileInfo)
 def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
     return person.patch_profile_info(req, s)
+
+@aget('/search-filters')
+def get_search_filers(s: t.SessionInfo):
+    return person.get_search_filters(s)
+
+@apost('/search-filter')
+@validate(t.PostSearchFilter)
+def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
+    return person.post_search_filter(req, s)

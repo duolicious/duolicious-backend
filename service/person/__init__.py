@@ -316,9 +316,9 @@ def post_active(s: t.SessionInfo):
 
 def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
     for field_name, field_value in req.dict().items():
-        if field_value:
+        if field_value is not None:
             break
-    if not field_value:
+    if field_value is None:
         return f'No field set in {req.dict()}', 400
 
     if field_name in ['name', 'date_of_birth', 'about']:
@@ -648,9 +648,9 @@ def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
 
 def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
     for field_name, field_value in req.dict().items():
-        if field_value:
+        if field_value is not None:
             break
-    if not field_value:
+    if field_value is None:
         return f'No field set in {req.dict()}', 400
 
     params = dict(
@@ -858,3 +858,64 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             return f'Invalid field name {field_name}', 400
 
         tx.execute(q, params)
+
+def get_search_filters(s: t.SessionInfo):
+    params = dict(person_id=s.person_id)
+
+    with transaction('READ COMMITTED') as tx:
+        return tx.execute(Q_GET_SEARCH_FILTERS, params).fetchone()['j']
+
+def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
+    for field_name, field_value in req.dict().items():
+        if field_value is not None:
+            break
+    if field_value is None:
+        return f'No field set in {req.dict()}', 400
+
+    # Set `params`
+    if field_name == 'answers':
+        json_data = [
+            {**answer.dict(), 'person_id': s.person_id}
+            for answer in req.answers]
+
+        params = dict(
+            person_id=s.person_id,
+            json_str=json.dumps(json_data)
+        )
+    else:
+        params = dict(
+            person_id=s.person_id,
+            field_value=field_value,
+        )
+
+    with transaction() as tx:
+        if field_name == 'answers':
+            q1 = """
+            DELETE FROM search_preference_answer
+            WHERE person_id = %(person_id)s"""
+            q2 = """
+            INSERT INTO search_preference_answer (
+                person_id, question_id, answer, accept_unanswered
+            ) SELECT
+                (json_data->>'person_id')::INT,
+                (json_data->>'question_id')::SMALLINT,
+                (json_data->>'answer')::BOOLEAN,
+                (json_data->>'accept_unanswered')::BOOLEAN
+            FROM json_array_elements(%(json_str)s::json) AS json_data"""
+        elif field_name == 'genders':
+            q1 = """
+            DELETE FROM search_preference_gender
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_gender (
+                person_id, gender_id
+            )
+            SELECT %(person_id)s, id
+            FROM gender WHERE name = ANY(%(field_value)s)
+            """
+        else:
+            return f'Invalid field name {field_name}', 400
+
+        tx.execute(q1, params)
+        tx.execute(q2, params)

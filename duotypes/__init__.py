@@ -137,8 +137,8 @@ class PatchProfileInfo(BaseModel):
     gender: Optional[str] = None
     orientation: Optional[str] = None
     location: Optional[str] = None
-    occupation: Optional[str] = None
-    education: Optional[str] = None
+    occupation: Optional[constr(min_length=1, max_length=64)] = None
+    education: Optional[constr(min_length=1, max_length=64)] = None
     height: Optional[int] = None
     looking_for: Optional[str] = None
     smoking: Optional[str] = None
@@ -161,6 +161,25 @@ class PatchProfileInfo(BaseModel):
     @field_validator('files', mode='before')
     def file_names(cls, files):
         return file_names(files)
+
+    @model_validator(mode='before')
+    def check_exactly_one(cls, values):
+        if len(values) != 1:
+            raise ValueError('Exactly one value must be set')
+        return values
+
+    class Config:
+        arbitrary_types_allowed = True
+
+class PostSearchFilter(BaseModel):
+    class Answer(BaseModel):
+        question_id: int
+        answer: bool
+        accept_unanswered: bool
+
+    answers: Optional[List[Answer]] = None
+    genders: Optional[list] = None
+    orientations: Optional[list] = None
 
     @model_validator(mode='before')
     def check_exactly_one(cls, values):

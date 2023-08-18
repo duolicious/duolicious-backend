@@ -730,7 +730,8 @@ WITH photo AS (
     FROM person
     WHERE id = %(person_id)s
 
-) SELECT
+)
+SELECT
     json_build_object(
         'photo',                  (SELECT j FROM photo),
         'about',                  (SELECT j FROM about),
@@ -768,4 +769,47 @@ DELETE FROM photo
 WHERE
     person_id = %(person_id)s AND
     position = %(position)s
+"""
+
+Q_GET_SEARCH_FILTERS = """
+WITH answer AS (
+    SELECT COALESCE(array_agg(json_build_object(
+        'question_id', question_id,
+        'answer', answer,
+        'accept_unanswered', accept_unanswered
+    )), ARRAY[]::JSON[]) AS j
+    FROM search_preference_answer
+    WHERE person_id = %(person_id)s
+), gender AS (
+    SELECT array_agg(name) AS j
+    FROM search_preference_gender JOIN gender
+    ON gender_id = gender.id
+    WHERE person_id = %(person_id)s
+)
+SELECT
+    json_build_object(
+        'answers',                (SELECT j FROM answer),
+
+        'genders',                (SELECT j FROM gender)
+        -- 'orientation',            (SELECT j FROM orientation),
+        -- 'age',                    (SELECT j FROM age),
+        -- 'furthest_distance',      (SELECT j FROM furthest_distance),
+        -- 'height',                 (SELECT j FROM height),
+        -- 'has_a_profile_picture',  (SELECT j FROM has_a_profile_picture),
+        -- 'looking_for',            (SELECT j FROM looking_for),
+        -- 'smoking',                (SELECT j FROM smoking),
+        -- 'drinking',               (SELECT j FROM drinking),
+        -- 'drugs',                  (SELECT j FROM drugs),
+        -- 'long_distance',          (SELECT j FROM long_distance),
+        -- 'relationship_status',    (SELECT j FROM relationship_status),
+        -- 'has_kids',               (SELECT j FROM has_kids),
+        -- 'wants_kids',             (SELECT j FROM wants_kids),
+        -- 'exercise',               (SELECT j FROM exercise),
+        -- 'religion',               (SELECT j FROM religion),
+        -- 'star_sign',              (SELECT j FROM star_sign),
+
+        -- 'people_messaged',        (SELECT j FROM people_messaged),
+        -- 'people_hidden',          (SELECT j FROM people_hidden),
+        -- 'people_blocked',         (SELECT j FROM people_blocked)
+    ) AS j
 """
