@@ -872,22 +872,14 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
     if field_value is None:
         return f'No field set in {req.dict()}', 400
 
-    print(req, flush=True) # TODO
-    print(field_name, flush=True) # TODO
-    print(field_value, flush=True) # TODO
-
     # Modify `field_value` for certain `field_name`s
     if field_name in ['answer', 'age', 'height']:
         field_value = json.dumps(field_value)
-
-    print(field_value, flush=True) # TODO
 
     params = dict(
         person_id=s.person_id,
         field_value=field_value,
     )
-
-    print(params, flush=True) # TODO
 
     with transaction() as tx:
         if field_name == 'answer':
@@ -916,7 +908,6 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
             SELECT %(person_id)s, id
             FROM gender WHERE name = ANY(%(field_value)s)
             """
-        # TODO: Check that ChatGPT generated these correctly
         elif field_name == 'orientation':
             q1 = """
             DELETE FROM search_preference_orientation
@@ -1116,7 +1107,7 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
                 person_id, messaged_id
             )
             SELECT %(person_id)s, id
-            FROM yes_no WHERE name = ANY(%(field_value)s)
+            FROM yes_no WHERE name = %(field_value)s
             """
         elif field_name == 'people_hidden':
             q1 = """
@@ -1128,7 +1119,7 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
                 person_id, hidden_id
             )
             SELECT %(person_id)s, id
-            FROM yes_no WHERE name = ANY(%(field_value)s)
+            FROM yes_no WHERE name = %(field_value)s
             """
         elif field_name == 'people_blocked':
             q1 = """
@@ -1140,7 +1131,7 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
                 person_id, blocked_id
             )
             SELECT %(person_id)s, id
-            FROM yes_no WHERE name = ANY(%(field_value)s)
+            FROM yes_no WHERE name = %(field_value)s
             """
         else:
             return f'Invalid field name {field_name}', 400

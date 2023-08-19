@@ -27,9 +27,9 @@ test_set () {
 
   new_field_value=$(
     set +x
-    c GET /search-filters | jq -r ".${field_name}"
+    c GET /search-filters | jq ".${field_name}"
   )
-  [[ "$(jq -cS <<< "$new_field_value")" == "$(jq -cS <<< "$field_value")" ]]
+  [[ "$(jq -cS . <<< "$new_field_value")" == "$(jq -cS . <<< "$field_value")" ]]
 }
 
 test_search_filter_questions () {
@@ -95,8 +95,8 @@ test_set exercise '["Unanswered", "Never"]'
 test_set religion '["Unanswered", "Buddhist"]'
 test_set star_sign '["Unanswered", "Virgo"]'
 
-test_set people_messaged '["Yes", "No"]'
-test_set people_hidden '["Yes", "No"]'
-test_set people_blocked '["Yes", "No"]'
+test_set people_messaged '"No"'
+test_set people_hidden '"Yes"'
+test_set people_blocked '"Yes"'
 
 test_search_filter_questions

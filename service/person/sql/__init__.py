@@ -875,17 +875,17 @@ WITH answer AS (
     ON star_sign_id = star_sign.id
     WHERE person_id = %(person_id)s
 ), people_messaged AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT name AS j
     FROM search_preference_messaged JOIN yes_no
     ON messaged_id = yes_no.id
     WHERE person_id = %(person_id)s
 ), people_hidden AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT name AS j
     FROM search_preference_hidden JOIN yes_no
     ON hidden_id = yes_no.id
     WHERE person_id = %(person_id)s
 ), people_blocked AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT name AS j
     FROM search_preference_blocked JOIN yes_no
     ON blocked_id = yes_no.id
     WHERE person_id = %(person_id)s

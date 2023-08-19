@@ -185,7 +185,7 @@ class PostSearchFilter(BaseModel):
         min_height_cm: int
         max_height_cm: int
 
-    answer: Optional[conlist(Answer, min_length=0, max_length=10)] = None
+    answer: Optional[conlist(Answer, min_length=0, max_length=20)] = None
 
     gender: Optional[List[str]] = None
     orientation: Optional[List[str]] = None
@@ -205,9 +205,9 @@ class PostSearchFilter(BaseModel):
     religion: Optional[List[str]] = None
     star_sign: Optional[List[str]] = None
 
-    people_messaged: Optional[List[str]] = None
-    people_hidden: Optional[List[str]] = None
-    people_blocked: Optional[List[str]] = None
+    people_messaged: Optional[str] = None
+    people_hidden: Optional[str] = None
+    people_blocked: Optional[str] = None
 
     @model_validator(mode='before')
     def check_exactly_one(cls, values):
