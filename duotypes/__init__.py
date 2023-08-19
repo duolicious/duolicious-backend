@@ -185,7 +185,7 @@ class PostSearchFilter(BaseModel):
         min_height_cm: int
         max_height_cm: int
 
-    answer: Optional[List[Answer]] = None
+    answer: Optional[conlist(Answer, min_length=0, max_length=10)] = None
 
     gender: Optional[List[str]] = None
     orientation: Optional[List[str]] = None
