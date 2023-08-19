@@ -47,6 +47,24 @@ LIMIT %(n)s
 OFFSET %(o)s
 """
 
+Q_GET_SEARCH_FILTER_QUESTIONS = """
+SELECT
+    id AS question_id,
+    question,
+    topic,
+    answer,
+    accept_unanswered
+FROM
+    question
+LEFT JOIN
+    search_preference_answer
+ON
+    question.id = question_id
+ORDER BY question <-> %(q)s
+LIMIT %(n)s
+OFFSET %(o)s
+"""
+
 def init_db():
     with open(_categorised_question_json_file) as f:
         categorised_questions = json.load(f)
@@ -180,5 +198,14 @@ def get_next_questions(s: t.SessionInfo, n: str, o: str):
     )
 
     with transaction('READ COMMITTED') as tx:
-        tx.execute(Q_GET_NEXT_QUESTIONS, params)
-        return tx.fetchall()
+        return tx.execute(Q_GET_NEXT_QUESTIONS, params).fetchall()
+
+def get_search_filter_questions(q: str, n: str, o: str):
+    params = dict(
+        q=q,
+        n=int(n),
+        o=int(o)
+    )
+
+    with transaction('READ COMMITTED') as tx:
+        return tx.execute(Q_GET_SEARCH_FILTER_QUESTIONS, params).fetchall()

@@ -32,6 +32,45 @@ test_set () {
   [[ "$(jq -cS <<< "$new_field_value")" == "$(jq -cS <<< "$field_value")" ]]
 }
 
+test_search_filter_questions () {
+  jc POST /search-filter -d '{
+    "answer": [{"question_id": 555, "answer": true, "accept_unanswered": false}]
+  }'
+
+  actual_response=$(c GET '/search-filter-questions?q=a+partner&n=3&o=1')
+  expected_response=$(cat << EOF
+    [
+      {
+        "accept_unanswered": null,
+        "answer": null,
+        "question": "Are you looking for a partner to marry?",
+        "question_id": 45,
+        "topic": "Interpersonal"
+      },
+      {
+        "accept_unanswered": false,
+        "answer": true,
+        "question": "Do you want your partner to call you a pet name?",
+        "question_id": 555,
+        "topic": "Interpersonal"
+      },
+      {
+        "accept_unanswered": null,
+        "answer": null,
+        "question": "Is it wrong to date a friend's ex-partner?",
+        "question_id": 220,
+        "topic": "Values"
+      }
+    ]
+EOF
+)
+
+  [[
+    "$(jq -cS <<< "$expected_response")" == \
+    "$(jq -cS <<< "$actual_response")"
+  ]]
+}
+
 test_set answer '[
   {"question_id":  1, "answer": true, "accept_unanswered": false},
   {"question_id": 42, "answer": true, "accept_unanswered": true}
@@ -59,3 +98,5 @@ test_set star_sign '["Unanswered", "Virgo"]'
 test_set people_messaged '["Yes", "No"]'
 test_set people_hidden '["Yes", "No"]'
 test_set people_blocked '["Yes", "No"]'
+
+test_search_filter_questions
