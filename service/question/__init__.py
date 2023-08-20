@@ -53,7 +53,7 @@ SELECT
     question,
     topic,
     answer,
-    accept_unanswered
+    COALESCE(accept_unanswered, TRUE) AS accept_unanswered
 FROM
     question
 LEFT JOIN

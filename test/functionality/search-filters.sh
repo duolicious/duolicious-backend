@@ -83,7 +83,7 @@ test_set age '{ "min_age": 42, "max_age": 56 }'
 test_set furthest_distance 50
 test_set height '{"min_height_cm": 142, "max_height_cm": 171}'
 test_set has_a_profile_picture '["Yes", "No"]'
-test_set looking_for '["Unanswered", "Short-term dating", "Friends"]'
+test_set looking_for '["Unanswered", "Friends", "Short-term dating"]'
 test_set smoking '["Unanswered", "No"]'
 test_set drinking '["Unanswered", "Never"]'
 test_set drugs '["Unanswered", "No"]'

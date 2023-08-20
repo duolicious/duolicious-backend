@@ -777,6 +777,8 @@ WITH answer AS (
         array_agg(
             json_build_object(
                 'question_id', question_id,
+                'question', question,
+                'topic', topic,
                 'answer', answer,
                 'accept_unanswered', accept_unanswered
             )
@@ -785,6 +787,8 @@ WITH answer AS (
         ARRAY[]::JSON[]
     ) AS j
     FROM search_preference_answer
+    LEFT JOIN question
+    ON question.id = question_id
     WHERE person_id = %(person_id)s
 ), gender AS (
     SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j

@@ -200,7 +200,9 @@ POST /search-filters {
 GET /search-filter-questions {
   session-token
 } {
-  query?
+  q?
+  n?
+  o?
 } -> [
   {
     question-id
