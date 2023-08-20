@@ -178,12 +178,12 @@ class PostSearchFilter(BaseModel):
         accept_unanswered: bool
 
     class Age(BaseModel):
-        min_age: int
-        max_age: int
+        min_age: Optional[int]
+        max_age: Optional[int]
 
     class Height(BaseModel):
-        min_height_cm: int
-        max_height_cm: int
+        min_height_cm: Optional[int]
+        max_height_cm: Optional[int]
 
     answer: Optional[conlist(Answer, min_length=0, max_length=20)] = None
 
