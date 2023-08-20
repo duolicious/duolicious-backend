@@ -502,9 +502,10 @@ INSERT INTO orientation (name) VALUES ('Queer') ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientation (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO looking_for (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
-INSERT INTO looking_for (name) VALUES ('Long-term dating') ON CONFLICT (name) DO NOTHING;
-INSERT INTO looking_for (name) VALUES ('Short-term dating') ON CONFLICT (name) DO NOTHING;
 INSERT INTO looking_for (name) VALUES ('Friends') ON CONFLICT (name) DO NOTHING;
+INSERT INTO looking_for (name) VALUES ('Short-term dating') ON CONFLICT (name) DO NOTHING;
+INSERT INTO looking_for (name) VALUES ('Long-term dating') ON CONFLICT (name) DO NOTHING;
+INSERT INTO looking_for (name) VALUES ('Marriage') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO relationship_status (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Single') ON CONFLICT (name) DO NOTHING;
