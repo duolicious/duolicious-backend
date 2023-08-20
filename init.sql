@@ -396,19 +396,19 @@ CREATE TABLE IF NOT EXISTS search_preference_star_sign (
 CREATE TABLE IF NOT EXISTS search_preference_messaged (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     messaged_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    PRIMARY KEY (person_id, messaged_id)
+    PRIMARY KEY (person_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_hidden (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     hidden_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    PRIMARY KEY (person_id, hidden_id)
+    PRIMARY KEY (person_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_blocked (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     blocked_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
-    PRIMARY KEY (person_id, blocked_id)
+    PRIMARY KEY (person_id)
 );
 
 CREATE TABLE IF NOT EXISTS messaged (
