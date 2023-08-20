@@ -25,23 +25,23 @@ test_set () {
 
   jc POST /search-filter -d '{ "'"$field_name"'": '"$field_value"' }'
 
-  new_field_value=$(
+  local new_field_value=$(
     set +x
     c GET /search-filters | jq ".${field_name}"
   )
   [[ "$(jq -cS . <<< "$new_field_value")" == "$(jq -cS . <<< "$field_value")" ]]
 }
 
-test_search_filter_questions () {
+test_get_search_filter_questions () {
   jc POST /search-filter -d '{
     "answer": [{"question_id": 555, "answer": true, "accept_unanswered": false}]
   }'
 
-  actual_response=$(c GET '/search-filter-questions?q=a+partner&n=3&o=1')
-  expected_response=$(cat << EOF
+  local actual_response=$(c GET '/search-filter-questions?q=a+partner&n=3&o=1')
+  local expected_response=$(cat << EOF
     [
       {
-        "accept_unanswered": null,
+        "accept_unanswered": true,
         "answer": null,
         "question": "Are you looking for a partner to marry?",
         "question_id": 45,
@@ -55,7 +55,7 @@ test_search_filter_questions () {
         "topic": "Interpersonal"
       },
       {
-        "accept_unanswered": null,
+        "accept_unanswered": true,
         "answer": null,
         "question": "Is it wrong to date a friend's ex-partner?",
         "question_id": 220,
@@ -71,32 +71,80 @@ EOF
   ]]
 }
 
-test_set answer '[
-  {"question_id":  1, "answer": true, "accept_unanswered": false},
-  {"question_id": 42, "answer": true, "accept_unanswered": true}
-]'
-test_set answer '[]'
+test_set_search_filter_questions () {
+  # POST two answers ====================
+  jc POST /search-filter -d '{
+    "answer": [
+      {"question_id": 555, "answer": true,  "accept_unanswered": false},
+      {"question_id": 220, "answer": false, "accept_unanswered": true}
+    ]
+  }'
 
-test_set gender '["Trans man", "Other"]'
-test_set orientation '["Unanswered", "Pansexual", "Other"]'
+  local actual_response=$(
+    set +x
+    c GET /search-filters | jq ".answer"
+  )
+  local expected_response=$(cat << EOF
+    [
+      {
+        "accept_unanswered": true,
+        "answer": false,
+        "question": "Is it wrong to date a friend's ex-partner?",
+        "question_id": 220,
+        "topic": "Values"
+      },
+      {
+        "accept_unanswered": false,
+        "answer": true,
+        "question": "Do you want your partner to call you a pet name?",
+        "question_id": 555,
+        "topic": "Interpersonal"
+      }
+    ]
+EOF
+)
+
+  [[
+    "$(jq -cS <<< "$expected_response")" == \
+    "$(jq -cS <<< "$actual_response")"
+  ]]
+
+  # POST zero answers =====================
+  jc POST /search-filter -d '{ "answer": [] }'
+
+  local actual_response=$(
+    set +x
+    c GET /search-filters | jq ".answer"
+  )
+  local expected_response='[]'
+
+  [[
+    "$(jq -cS <<< "$expected_response")" == \
+    "$(jq -cS <<< "$actual_response")"
+  ]]
+}
+
+test_get_search_filter_questions
+test_set_search_filter_questions
+
+test_set gender '["Other", "Trans man"]'
+test_set orientation '["Other", "Pansexual", "Unanswered"]'
 test_set age '{ "min_age": 42, "max_age": 56 }'
 test_set furthest_distance 50
 test_set height '{"min_height_cm": 142, "max_height_cm": 171}'
-test_set has_a_profile_picture '["Yes", "No"]'
-test_set looking_for '["Unanswered", "Friends", "Short-term dating"]'
-test_set smoking '["Unanswered", "No"]'
-test_set drinking '["Unanswered", "Never"]'
-test_set drugs '["Unanswered", "No"]'
-test_set long_distance '["Unanswered", "No"]'
-test_set relationship_status '["Unanswered", "Engaged", "Other"]'
-test_set has_kids '["Unanswered", "No"]'
-test_set wants_kids '["Unanswered", "No", "Maybe"]'
-test_set exercise '["Unanswered", "Never"]'
-test_set religion '["Unanswered", "Buddhist"]'
+test_set has_a_profile_picture '["No", "Yes"]'
+test_set looking_for '["Friends", "Short-term dating", "Unanswered"]'
+test_set smoking '["No", "Unanswered"]'
+test_set drinking '["Never", "Unanswered"]'
+test_set drugs '["No", "Unanswered"]'
+test_set long_distance '["No", "Unanswered"]'
+test_set relationship_status '["Engaged", "Other", "Unanswered"]'
+test_set has_kids '["No", "Unanswered"]'
+test_set wants_kids '["Maybe", "No", "Unanswered"]'
+test_set exercise '["Never", "Unanswered"]'
+test_set religion '["Buddhist", "Unanswered"]'
 test_set star_sign '["Unanswered", "Virgo"]'
 
 test_set people_messaged '"No"'
 test_set people_hidden '"Yes"'
 test_set people_blocked '"Yes"'
-
-test_search_filter_questions

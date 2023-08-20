@@ -791,12 +791,12 @@ WITH answer AS (
     ON question.id = question_id
     WHERE person_id = %(person_id)s
 ), gender AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_gender JOIN gender
     ON gender_id = gender.id
     WHERE person_id = %(person_id)s
 ), orientation AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_orientation JOIN orientation
     ON orientation_id = orientation.id
     WHERE person_id = %(person_id)s
@@ -819,62 +819,62 @@ WITH answer AS (
     FROM search_preference_height_cm
     WHERE person_id = %(person_id)s
 ), has_a_profile_picture AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_has_profile_picture JOIN yes_no
     ON has_profile_picture_id = yes_no.id
     WHERE person_id = %(person_id)s
 ), looking_for AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_looking_for JOIN looking_for
     ON looking_for_id = looking_for.id
     WHERE person_id = %(person_id)s
 ), smoking AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_smoking JOIN yes_no_optional
     ON smoking_id = yes_no_optional.id
     WHERE person_id = %(person_id)s
 ), drinking AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_drinking JOIN frequency
     ON drinking_id = frequency.id
     WHERE person_id = %(person_id)s
 ), drugs AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_drugs JOIN yes_no_optional
     ON drugs_id = yes_no_optional.id
     WHERE person_id = %(person_id)s
 ), long_distance AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_long_distance JOIN yes_no_optional
     ON long_distance_id = yes_no_optional.id
     WHERE person_id = %(person_id)s
 ), relationship_status AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_relationship_status JOIN relationship_status
     ON relationship_status_id = relationship_status.id
     WHERE person_id = %(person_id)s
 ), has_kids AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_has_kids JOIN yes_no_optional
     ON has_kids_id = yes_no_optional.id
     WHERE person_id = %(person_id)s
 ), wants_kids AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_wants_kids JOIN yes_no_maybe
     ON wants_kids_id = yes_no_maybe.id
     WHERE person_id = %(person_id)s
 ), exercise AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_exercise JOIN frequency
     ON exercise_id = frequency.id
     WHERE person_id = %(person_id)s
 ), religion AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_religion JOIN religion
     ON religion_id = religion.id
     WHERE person_id = %(person_id)s
 ), star_sign AS (
-    SELECT COALESCE(array_agg(name), ARRAY[]::TEXT[]) AS j
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_star_sign JOIN star_sign
     ON star_sign_id = star_sign.id
     WHERE person_id = %(person_id)s
