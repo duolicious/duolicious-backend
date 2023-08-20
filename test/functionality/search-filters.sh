@@ -131,6 +131,7 @@ test_set gender '["Other", "Trans man"]'
 test_set orientation '["Other", "Pansexual", "Unanswered"]'
 test_set age '{ "min_age": 42, "max_age": 56 }'
 test_set furthest_distance 50
+test_set furthest_distance null
 test_set height '{"min_height_cm": 142, "max_height_cm": 171}'
 test_set has_a_profile_picture '["No", "Yes"]'
 test_set looking_for '["Friends", "Short-term dating", "Unanswered"]'

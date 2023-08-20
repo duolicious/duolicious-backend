@@ -116,11 +116,18 @@ class PatchOnboardeeInfo(BaseModel):
     def file_names(cls, files):
         return file_names(files)
 
-    @model_validator(mode='before')
-    def check_exactly_one(cls, values):
-        if len(values) != 1:
+    @model_validator(mode='after')
+    def check_exactly_one(self):
+        if len(self.__pydantic_fields_set__) != 1:
             raise ValueError('Exactly one value must be set')
-        return values
+
+        [field_name] = self.__pydantic_fields_set__
+        field_value = getattr(self, field_name)
+
+        if field_value is None:
+            raise ValueError(f'Field {field_name} must not be None')
+
+        return self
 
     class Config:
         arbitrary_types_allowed = True
@@ -162,11 +169,18 @@ class PatchProfileInfo(BaseModel):
     def file_names(cls, files):
         return file_names(files)
 
-    @model_validator(mode='before')
-    def check_exactly_one(cls, values):
-        if len(values) != 1:
+    @model_validator(mode='after')
+    def check_exactly_one(self):
+        if len(self.__pydantic_fields_set__) != 1:
             raise ValueError('Exactly one value must be set')
-        return values
+
+        [field_name] = self.__pydantic_fields_set__
+        field_value = getattr(self, field_name)
+
+        if field_value is None:
+            raise ValueError(f'Field {field_name} must not be None')
+
+        return self
 
     class Config:
         arbitrary_types_allowed = True
@@ -209,11 +223,20 @@ class PostSearchFilter(BaseModel):
     people_hidden: Optional[str] = None
     people_blocked: Optional[str] = None
 
-    @model_validator(mode='before')
-    def check_exactly_one(cls, values):
-        if len(values) != 1:
+    @model_validator(mode='after')
+    def check_exactly_one(self):
+        if len(self.__pydantic_fields_set__) != 1:
             raise ValueError('Exactly one value must be set')
-        return values
+
+        [field_name] = self.__pydantic_fields_set__
+        field_value = getattr(self, field_name)
+
+        if field_name == 'furthest_distance':
+            pass
+        elif field_value is None:
+            raise ValueError(f'Field {field_name} must not be None')
+
+        return self
 
     class Config:
         arbitrary_types_allowed = True

@@ -315,11 +315,8 @@ def post_active(s: t.SessionInfo):
             tx.execute(Q_UPDATE_ACTIVE, params)
 
 def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
-    for field_name, field_value in req.dict().items():
-        if field_value is not None:
-            break
-    if field_value is None:
-        return f'No field set in {req.dict()}', 400
+    [field_name] = req.__pydantic_fields_set__
+    field_value = req.dict()[field_name]
 
     if field_name in ['name', 'date_of_birth', 'about']:
         params = dict(
@@ -647,11 +644,8 @@ def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
         tx.executemany(Q_DELETE_PROFILE_INFO, params)
 
 def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
-    for field_name, field_value in req.dict().items():
-        if field_value is not None:
-            break
-    if field_value is None:
-        return f'No field set in {req.dict()}', 400
+    [field_name] = req.__pydantic_fields_set__
+    field_value = req.dict()[field_name]
 
     params = dict(
         person_id=s.person_id,
@@ -866,11 +860,8 @@ def get_search_filters(s: t.SessionInfo):
         return tx.execute(Q_GET_SEARCH_FILTERS, params).fetchone()['j']
 
 def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
-    for field_name, field_value in req.dict().items():
-        if field_value is not None:
-            break
-    if field_value is None:
-        return f'No field set in {req.dict()}', 400
+    [field_name] = req.__pydantic_fields_set__
+    field_value = req.dict()[field_name]
 
     # Modify `field_value` for certain `field_name`s
     if field_name in ['answer', 'age', 'height']:
