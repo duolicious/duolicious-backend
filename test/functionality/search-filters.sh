@@ -22,6 +22,7 @@ jc POST /check-otp -d '{ "otp": "000000" }'
 test_set () {
   local field_name=$1
   local field_value=$2
+  local check_empty=${3:-false}
 
   jc POST /search-filter -d '{ "'"$field_name"'": '"$field_value"' }'
 
@@ -30,6 +31,11 @@ test_set () {
     c GET /search-filters | jq ".${field_name}"
   )
   [[ "$(jq -cS . <<< "$new_field_value")" == "$(jq -cS . <<< "$field_value")" ]]
+
+  if "$check_empty"
+  then
+    ! jc POST /search-filter -d '{ "'"$field_name"'": [] }'
+  fi
 }
 
 test_get_search_filter_questions () {
@@ -145,24 +151,24 @@ EOF
 test_get_search_filter_questions
 test_set_search_filter_question
 
-test_set gender '["Other", "Trans man"]'
-test_set orientation '["Other", "Pansexual", "Unanswered"]'
+test_set gender '["Other", "Trans man"]' true
+test_set orientation '["Other", "Pansexual", "Unanswered"]' true
 test_set age '{ "min_age": 42, "max_age": 56 }'
 test_set furthest_distance 50
 test_set furthest_distance null
 test_set height '{"min_height_cm": 142, "max_height_cm": 171}'
-test_set has_a_profile_picture '["No", "Yes"]'
-test_set looking_for '["Friends", "Short-term dating", "Unanswered"]'
-test_set smoking '["No", "Unanswered"]'
-test_set drinking '["Never", "Unanswered"]'
-test_set drugs '["No", "Unanswered"]'
-test_set long_distance '["No", "Unanswered"]'
-test_set relationship_status '["Engaged", "Other", "Unanswered"]'
-test_set has_kids '["No", "Unanswered"]'
-test_set wants_kids '["Maybe", "No", "Unanswered"]'
-test_set exercise '["Never", "Unanswered"]'
-test_set religion '["Buddhist", "Unanswered"]'
-test_set star_sign '["Unanswered", "Virgo"]'
+test_set has_a_profile_picture '["No", "Yes"]' true
+test_set looking_for '["Friends", "Short-term dating", "Unanswered"]' true
+test_set smoking '["No", "Unanswered"]' true
+test_set drinking '["Never", "Unanswered"]' true
+test_set drugs '["No", "Unanswered"]' true
+test_set long_distance '["No", "Unanswered"]' true
+test_set relationship_status '["Engaged", "Other", "Unanswered"]' true
+test_set has_kids '["No", "Unanswered"]' true
+test_set wants_kids '["Maybe", "No", "Unanswered"]' true
+test_set exercise '["Never", "Unanswered"]' true
+test_set religion '["Buddhist", "Unanswered"]' true
+test_set star_sign '["Unanswered", "Virgo"]' true
 
 test_set people_messaged '"No"'
 test_set people_hidden '"Yes"'

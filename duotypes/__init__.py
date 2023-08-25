@@ -194,23 +194,23 @@ class PostSearchFilter(BaseModel):
         min_height_cm: Optional[int]
         max_height_cm: Optional[int]
 
-    gender: Optional[List[str]] = None
-    orientation: Optional[List[str]] = None
+    gender: Optional[conlist(str, min_length=1)] = None
+    orientation: Optional[conlist(str, min_length=1)] = None
     age: Optional[Age] = None
     furthest_distance: Optional[int] = None
     height: Optional[Height] = None
-    has_a_profile_picture: Optional[List[str]] = None
-    looking_for: Optional[List[str]] = None
-    smoking: Optional[List[str]] = None
-    drinking: Optional[List[str]] = None
-    drugs: Optional[List[str]] = None
-    long_distance: Optional[List[str]] = None
-    relationship_status: Optional[List[str]] = None
-    has_kids: Optional[List[str]] = None
-    wants_kids: Optional[List[str]] = None
-    exercise: Optional[List[str]] = None
-    religion: Optional[List[str]] = None
-    star_sign: Optional[List[str]] = None
+    has_a_profile_picture: Optional[conlist(str, min_length=1)] = None
+    looking_for: Optional[conlist(str, min_length=1)] = None
+    smoking: Optional[conlist(str, min_length=1)] = None
+    drinking: Optional[conlist(str, min_length=1)] = None
+    drugs: Optional[conlist(str, min_length=1)] = None
+    long_distance: Optional[conlist(str, min_length=1)] = None
+    relationship_status: Optional[conlist(str, min_length=1)] = None
+    has_kids: Optional[conlist(str, min_length=1)] = None
+    wants_kids: Optional[conlist(str, min_length=1)] = None
+    exercise: Optional[conlist(str, min_length=1)] = None
+    religion: Optional[conlist(str, min_length=1)] = None
+    star_sign: Optional[conlist(str, min_length=1)] = None
 
     people_messaged: Optional[str] = None
     people_hidden: Optional[str] = None
