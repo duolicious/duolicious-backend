@@ -210,3 +210,7 @@ def get_search_filter_questions(s: t.SessionInfo):
 @validate(t.PostSearchFilterAnswer)
 def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo):
     return person.post_search_filter_answer(req, s)
+
+@apost('/mark-messaged/<int:prospect_person_id>')
+def post_mark_messaged(s: t.SessionInfo, prospect_person_id: int):
+    return person.post_mark_messaged(s, prospect_person_id)

@@ -921,3 +921,13 @@ SELECT
         'people_blocked',         (SELECT j FROM people_blocked)
     ) AS j
 """
+
+Q_INSERT_MESSAGED = """
+INSERT INTO messaged (
+    subject_person_id,
+    object_person_id
+) VALUES (
+    %(subject_person_id)s,
+    %(object_person_id)s
+) ON CONFLICT DO NOTHING
+"""

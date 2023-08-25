@@ -1224,3 +1224,12 @@ def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo):
             return dict(error=error), 400
         else:
             return dict(answer=answer)
+
+def post_mark_messaged(s: t.SessionInfo, prospect_person_id: int):
+    params = dict(
+        subject_person_id=s.person_id,
+        object_person_id=prospect_person_id,
+    )
+
+    with transaction() as tx:
+        tx.execute(Q_INSERT_MESSAGED, params)

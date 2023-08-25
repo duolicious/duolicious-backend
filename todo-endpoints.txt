@@ -222,3 +222,7 @@ POST /search-filter-answer {
 } ->
   | { error: string }
   | { answer: [ ... ] }
+
+POST /mark-messaged/<person-id> {
+  session-token
+}
