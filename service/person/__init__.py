@@ -864,7 +864,7 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
     field_value = req.dict()[field_name]
 
     # Modify `field_value` for certain `field_name`s
-    if field_name in ['answer', 'age', 'height']:
+    if field_name in ['age', 'height']:
         field_value = json.dumps(field_value)
 
     params = dict(
@@ -873,21 +873,7 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
     )
 
     with transaction() as tx:
-        if field_name == 'answer':
-            q1 = """
-            DELETE FROM search_preference_answer
-            WHERE person_id = %(person_id)s"""
-
-            q2 = """
-            INSERT INTO search_preference_answer (
-                person_id, question_id, answer, accept_unanswered
-            ) SELECT
-                %(person_id)s,
-                (json_data->>'question_id')::SMALLINT,
-                (json_data->>'answer')::BOOLEAN,
-                (json_data->>'accept_unanswered')::BOOLEAN
-            FROM json_array_elements(%(field_value)s) AS json_data"""
-        elif field_name == 'gender':
+        if field_name == 'gender':
             q1 = """
             DELETE FROM search_preference_gender
             WHERE person_id = %(person_id)s"""
@@ -1129,3 +1115,112 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
 
         tx.execute(q1, params)
         tx.execute(q2, params)
+
+def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo):
+    max_search_filter_answers = 20
+    error = f'You can’t set more than {max_search_filter_answers} Q&A filters'
+
+    params = dict(
+        person_id=s.person_id,
+        question_id=req.question_id,
+        answer=req.answer,
+        accept_unanswered=req.accept_unanswered,
+    )
+
+    if req.answer is None:
+        q = f"""
+        WITH deleted_answer AS (
+            DELETE FROM search_preference_answer
+            WHERE
+                person_id = %(person_id)s AND
+                question_id = %(question_id)s
+            RETURNING *
+        )
+        SELECT COALESCE(
+            array_agg(
+                json_build_object(
+                    'question_id', question_id,
+                    'question', question,
+                    'topic', topic,
+                    'answer', answer,
+                    'accept_unanswered', accept_unanswered
+                )
+                ORDER BY question_id
+            ),
+            ARRAY[]::JSON[]
+        ) AS j
+        FROM search_preference_answer
+        LEFT JOIN question
+        ON question.id = question_id
+        WHERE
+            person_id = %(person_id)s AND
+            question_id != (SELECT question_id FROM deleted_answer)
+        """
+    else:
+        q = f"""
+        WITH existing_search_preference_answer AS (
+            SELECT
+                person_id,
+                question_id,
+                answer,
+                accept_unanswered,
+                0 AS precedence
+            FROM search_preference_answer
+            WHERE person_id = %(person_id)s
+        ), new_search_preference_answer AS (
+            SELECT
+                %(person_id)s AS person_id,
+                %(question_id)s AS question_id,
+                %(answer)s AS answer,
+                %(accept_unanswered)s AS accept_unanswered,
+                1 AS precedence
+        ), updated_search_preference_answer AS (
+            SELECT DISTINCT ON (person_id, question_id)
+                person_id,
+                question_id,
+                answer,
+                accept_unanswered
+            FROM (
+                (SELECT * from existing_search_preference_answer)
+                UNION
+                (SELECT * from new_search_preference_answer)
+            ) AS t
+            ORDER BY person_id, question_id, precedence DESC
+        ), inserted_search_preference_answer AS (
+            INSERT INTO search_preference_answer (
+                person_id, question_id, answer, accept_unanswered
+            ) SELECT
+                person_id, question_id, answer, accept_unanswered
+            FROM
+                new_search_preference_answer
+            WHERE (
+                SELECT COUNT(*) FROM updated_search_preference_answer
+            ) <= {max_search_filter_answers}
+            ON CONFLICT (person_id, question_id) DO UPDATE SET
+                answer            = EXCLUDED.answer,
+                accept_unanswered = EXCLUDED.accept_unanswered
+        )
+        SELECT array_agg(
+            json_build_object(
+                'question_id', question_id,
+                'question', question,
+                'topic', topic,
+                'answer', answer,
+                'accept_unanswered', accept_unanswered
+            )
+            ORDER BY question_id
+        ) AS j
+        FROM updated_search_preference_answer
+        LEFT JOIN question
+        ON question.id = question_id
+        WHERE (
+            SELECT COUNT(*) FROM updated_search_preference_answer
+        ) <= {max_search_filter_answers}
+        """
+
+    with transaction() as tx:
+        answer = tx.execute(q, params).fetchone().get('j')
+        if answer is None:
+            return dict(error=error), 400
+        else:
+            return dict(answer=answer)

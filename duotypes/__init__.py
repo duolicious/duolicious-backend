@@ -186,11 +186,6 @@ class PatchProfileInfo(BaseModel):
         arbitrary_types_allowed = True
 
 class PostSearchFilter(BaseModel):
-    class Answer(BaseModel):
-        question_id: int
-        answer: bool
-        accept_unanswered: bool
-
     class Age(BaseModel):
         min_age: Optional[int]
         max_age: Optional[int]
@@ -198,8 +193,6 @@ class PostSearchFilter(BaseModel):
     class Height(BaseModel):
         min_height_cm: Optional[int]
         max_height_cm: Optional[int]
-
-    answer: Optional[conlist(Answer, min_length=0, max_length=20)] = None
 
     gender: Optional[List[str]] = None
     orientation: Optional[List[str]] = None
@@ -240,3 +233,8 @@ class PostSearchFilter(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+
+class PostSearchFilterAnswer(BaseModel):
+    question_id: int
+    answer: Optional[bool]
+    accept_unanswered: bool

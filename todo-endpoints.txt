@@ -212,3 +212,13 @@ GET /search-filter-questions {
     accept-unanswered?
   }
 ]
+
+POST /search-filter-answer {
+  session-token
+} {
+  question_id: number
+  answer: boolean | null
+  accept_unanswered: boolean
+} ->
+  | { error: string }
+  | { answer: [ ... ] }

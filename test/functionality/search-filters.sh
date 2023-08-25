@@ -33,8 +33,12 @@ test_set () {
 }
 
 test_get_search_filter_questions () {
-  jc POST /search-filter -d '{
-    "answer": [{"question_id": 555, "answer": true, "accept_unanswered": false}]
+  q "delete from search_preference_answer"
+
+  jc POST /search-filter-answer -d '{
+    "question_id": 555,
+    "answer": true,
+    "accept_unanswered": false
   }'
 
   local actual_response=$(c GET '/search-filter-questions?q=a+partner&n=3&o=1')
@@ -71,61 +75,75 @@ EOF
   ]]
 }
 
-test_set_search_filter_questions () {
-  # POST two answers ====================
-  jc POST /search-filter -d '{
-    "answer": [
-      {"question_id": 555, "answer": true,  "accept_unanswered": false},
-      {"question_id": 220, "answer": false, "accept_unanswered": true}
-    ]
-  }'
+test_set_search_filter_question() {
+  q "delete from search_preference_answer"
 
-  local actual_response=$(
-    set +x
-    c GET /search-filters | jq ".answer"
+  local answers=$(c GET /search-filters | jq .answer)
+
+  [[ "$answers" = "[]" ]]
+
+  local answers=$(
+    jc POST /search-filter-answer -d '{
+      "question_id": 1,
+      "answer": true,
+      "accept_unanswered": false
+    }' | jq .answer
   )
-  local expected_response=$(cat << EOF
+  local expected_answers=$(cat << EOF
     [
-      {
-        "accept_unanswered": true,
-        "answer": false,
-        "question": "Is it wrong to date a friend's ex-partner?",
-        "question_id": 220,
-        "topic": "Values"
-      },
       {
         "accept_unanswered": false,
         "answer": true,
-        "question": "Do you want your partner to call you a pet name?",
-        "question_id": 555,
+        "question": "Would you date a robot if they had a great personality?",
+        "question_id": 1,
         "topic": "Interpersonal"
       }
     ]
 EOF
 )
 
-  [[
-    "$(jq -cS <<< "$expected_response")" == \
-    "$(jq -cS <<< "$actual_response")"
-  ]]
+  [[ "$(jq -cS <<< "$expected_answers")" == "$(jq -cS <<< "$answers")" ]]
 
-  # POST zero answers =====================
-  jc POST /search-filter -d '{ "answer": [] }'
-
-  local actual_response=$(
-    set +x
-    c GET /search-filters | jq ".answer"
+  local answers=$(
+    jc POST /search-filter-answer -d '{
+      "question_id": 1,
+      "answer": null,
+      "accept_unanswered": false
+    }' | jq .answer
   )
-  local expected_response='[]'
 
-  [[
-    "$(jq -cS <<< "$expected_response")" == \
-    "$(jq -cS <<< "$actual_response")"
-  ]]
+  [[ "$answers" = "[]" ]]
+
+  for question_id in $(seq 1 20)
+  do
+    local json=$(cat << EOF
+{
+  "question_id": $question_id,
+  "answer": false,
+  "accept_unanswered": false
+}
+EOF
+    )
+
+    jc POST /search-filter-answer -d "$json"
+  done
+
+  [[ "$(c GET /search-filters | jq '.answer | length')" == "20" ]]
+
+  local error=$(
+    jc POST /search-filter-answer -d '{
+      "question_id": 21,
+      "answer": true,
+      "accept_unanswered": false
+    }' | jq -r .error
+  )
+  local expected_error="You can’t set more than 20 Q&A filters"
+
+  [[ "$error" == "$expected_error" ]]
 }
 
 test_get_search_filter_questions
-test_set_search_filter_questions
+test_set_search_filter_question
 
 test_set gender '["Other", "Trans man"]'
 test_set orientation '["Other", "Pansexual", "Unanswered"]'

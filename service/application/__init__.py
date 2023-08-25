@@ -205,3 +205,8 @@ def get_search_filter_questions(s: t.SessionInfo):
         n=request.args.get('n', '10'),
         o=request.args.get('o', '0'),
     )
+
+@apost('/search-filter-answer')
+@validate(t.PostSearchFilterAnswer)
+def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo):
+    return person.post_search_filter_answer(req, s)
