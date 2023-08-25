@@ -116,11 +116,18 @@ class PatchOnboardeeInfo(BaseModel):
     def file_names(cls, files):
         return file_names(files)
 
-    @model_validator(mode='before')
-    def check_exactly_one(cls, values):
-        if len(values) != 1:
+    @model_validator(mode='after')
+    def check_exactly_one(self):
+        if len(self.__pydantic_fields_set__) != 1:
             raise ValueError('Exactly one value must be set')
-        return values
+
+        [field_name] = self.__pydantic_fields_set__
+        field_value = getattr(self, field_name)
+
+        if field_value is None:
+            raise ValueError(f'Field {field_name} must not be None')
+
+        return self
 
     class Config:
         arbitrary_types_allowed = True
@@ -137,8 +144,8 @@ class PatchProfileInfo(BaseModel):
     gender: Optional[str] = None
     orientation: Optional[str] = None
     location: Optional[str] = None
-    occupation: Optional[str] = None
-    education: Optional[str] = None
+    occupation: Optional[constr(min_length=1, max_length=64)] = None
+    education: Optional[constr(min_length=1, max_length=64)] = None
     height: Optional[int] = None
     looking_for: Optional[str] = None
     smoking: Optional[str] = None
@@ -162,11 +169,72 @@ class PatchProfileInfo(BaseModel):
     def file_names(cls, files):
         return file_names(files)
 
-    @model_validator(mode='before')
-    def check_exactly_one(cls, values):
-        if len(values) != 1:
+    @model_validator(mode='after')
+    def check_exactly_one(self):
+        if len(self.__pydantic_fields_set__) != 1:
             raise ValueError('Exactly one value must be set')
-        return values
+
+        [field_name] = self.__pydantic_fields_set__
+        field_value = getattr(self, field_name)
+
+        if field_value is None:
+            raise ValueError(f'Field {field_name} must not be None')
+
+        return self
 
     class Config:
         arbitrary_types_allowed = True
+
+class PostSearchFilter(BaseModel):
+    class Age(BaseModel):
+        min_age: Optional[int]
+        max_age: Optional[int]
+
+    class Height(BaseModel):
+        min_height_cm: Optional[int]
+        max_height_cm: Optional[int]
+
+    gender: Optional[conlist(str, min_length=1)] = None
+    orientation: Optional[conlist(str, min_length=1)] = None
+    age: Optional[Age] = None
+    furthest_distance: Optional[int] = None
+    height: Optional[Height] = None
+    has_a_profile_picture: Optional[conlist(str, min_length=1)] = None
+    looking_for: Optional[conlist(str, min_length=1)] = None
+    smoking: Optional[conlist(str, min_length=1)] = None
+    drinking: Optional[conlist(str, min_length=1)] = None
+    drugs: Optional[conlist(str, min_length=1)] = None
+    long_distance: Optional[conlist(str, min_length=1)] = None
+    relationship_status: Optional[conlist(str, min_length=1)] = None
+    has_kids: Optional[conlist(str, min_length=1)] = None
+    wants_kids: Optional[conlist(str, min_length=1)] = None
+    exercise: Optional[conlist(str, min_length=1)] = None
+    religion: Optional[conlist(str, min_length=1)] = None
+    star_sign: Optional[conlist(str, min_length=1)] = None
+
+    people_messaged: Optional[str] = None
+    people_hidden: Optional[str] = None
+    people_blocked: Optional[str] = None
+
+    @model_validator(mode='after')
+    def check_exactly_one(self):
+        if len(self.__pydantic_fields_set__) != 1:
+            raise ValueError('Exactly one value must be set')
+
+        [field_name] = self.__pydantic_fields_set__
+        field_value = getattr(self, field_name)
+
+        if field_name == 'furthest_distance':
+            pass
+        elif field_value is None:
+            raise ValueError(f'Field {field_name} must not be None')
+
+        return self
+
+    class Config:
+        arbitrary_types_allowed = True
+
+class PostSearchFilterAnswer(BaseModel):
+    question_id: int
+    answer: Optional[bool]
+    accept_unanswered: bool

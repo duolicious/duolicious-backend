@@ -326,6 +326,7 @@ test_interaction_in_standard_search () {
 
   setup
 
+  local searcher_id=$(q "select id from person where email = 'searcher@example.com'")
   local user1_id=$(q "select id from person where email = 'user1@example.com'")
   local user2_id=$(q "select id from person where email = 'user2@example.com'")
 
@@ -336,10 +337,7 @@ test_interaction_in_standard_search () {
   else
     q "
     insert into ${interaction_name} (subject_person_id, object_person_id)
-    values (
-      (select id from person where email = 'searcher@example.com'),
-      (select id from person where email = 'user1@example.com')
-    )
+    values (${searcher_id}, ${user1_id})
     "
   fi
 
@@ -364,8 +362,15 @@ test_interaction_in_standard_search () {
   if [[ -n "${undo_endpoint}" ]]
   then
     c POST "${undo_endpoint}/${user1_id}"
-    assert_search_names 'user1 user2'
+  else
+    q "
+    delete from ${interaction_name} where
+      subject_person_id = ${searcher_id} and
+      object_person_id  = ${user1_id}
+    "
   fi
+
+  assert_search_names 'user1 user2'
 }
 
 test_hide_me_from_strangers () {
@@ -422,7 +427,7 @@ test_quiz_search
 
 test_hide_me_from_strangers
 
-test_interaction_in_standard_search messaged
+test_interaction_in_standard_search messaged /mark-messaged
 test_interaction_in_standard_search blocked /block /unblock
 test_interaction_in_standard_search_blocked_symmetry
 test_interaction_in_standard_search hidden /hide /unhide
