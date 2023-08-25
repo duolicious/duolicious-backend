@@ -69,6 +69,7 @@ type InputProps<T extends OptionGroupInputs> = {
   onSubmitSuccess: any
   title: string,
   showSkipButton: boolean
+  theme?: 'dark' | 'light'
 };
 
 const Buttons = forwardRef((props: InputProps<OptionGroupButtons>, ref) => {
@@ -116,25 +117,25 @@ const Buttons = forwardRef((props: InputProps<OptionGroupButtons>, ref) => {
 });
 
 const Slider = forwardRef((props: InputProps<OptionGroupSlider>, ref) => {
-  const inputValueRef = useRef<number>(
+  const inputValueRef = useRef<number | null>(
     props.input.slider.currentValue ??
     props.input.slider.defaultValue
   );
 
   const onChangeInputValue = useCallback((value: number) => {
-    inputValueRef.current = value;
+    if (value === props.input.slider.sliderMax && props.input.slider.addPlusAtMax) {
+      inputValueRef.current = null;
+    } else {
+      inputValueRef.current = value;
+    }
   }, []);
 
   const submit = useCallback(async () => {
     props.setIsLoading(true);
 
     const value = inputValueRef?.current;
-    if (value) {
-      const ok = await props.input.slider.submit(value);
-      ok && props.onSubmitSuccess();
-    } else {
-      props.onSubmitSuccess();
-    }
+    const ok = await props.input.slider.submit(value);
+    ok && props.onSubmitSuccess();
 
     props.setIsLoading(false);
   }, []);
@@ -147,9 +148,7 @@ const Slider = forwardRef((props: InputProps<OptionGroupSlider>, ref) => {
         label={`${props.title} (${props.input.slider.unitsLabel})`}
         minimumValue={props.input.slider.sliderMin}
         maximumValue={props.input.slider.sliderMax}
-        initialValue={
-          props.input.slider.currentValue ??
-          props.input.slider.defaultValue}
+        initialValue={inputValueRef.current}
         onValueChange={onChangeInputValue}
         step={props.input.slider.step}
         addPlusAtMax={props.input.slider.addPlusAtMax}
@@ -162,6 +161,7 @@ const Slider = forwardRef((props: InputProps<OptionGroupSlider>, ref) => {
       {props.showSkipButton &&
         <ButtonWithCenteredText
           onPress={submit}
+          loading={props.isLoading}
           containerStyle={{
             marginTop: 30,
             marginLeft: 20,
@@ -534,7 +534,7 @@ const CheckChips = forwardRef((props: InputProps<OptionGroupCheckChips>, ref) =>
       <DefaultText
         style={{
           textAlign: 'center',
-          color: 'white',
+          color: props.theme === 'light' ? 'red' : 'white',
           opacity: isInvalid ? 1 : 0,
         }}
       >
@@ -557,17 +557,88 @@ const CheckChips = forwardRef((props: InputProps<OptionGroupCheckChips>, ref) =>
   );
 });
 
-const RangeSlider = ({input}) => {
-  return <RangeSlider_
-    unitsLabel={input.rangeSlider.unitsLabel}
-    minimumValue={input.rangeSlider.sliderMin}
-    maximumValue={input.rangeSlider.sliderMax}
-    containerStyle={{
-      marginLeft: 20,
-      marginRight: 20,
-    }}
-  />
-};
+const RangeSlider = forwardRef((props: InputProps<OptionGroupRangeSlider>, ref) => {
+  const rangeSliderRef = useRef<any>();
+
+  const lowerValueRef = useRef<number | null>(
+    props.input.rangeSlider.currentMin ??
+    props.input.rangeSlider.sliderMin ??
+    null
+  );
+  const upperValueRef = useRef<number | null>(
+    props.input.rangeSlider.currentMax ??
+    props.input.rangeSlider.sliderMax ??
+    null
+  );
+
+  const onLowerValueChange = useCallback((value: number) => {
+    lowerValueRef.current = value;
+  }, []);
+  const onUpperValueChange = useCallback((value: number) => {
+    upperValueRef.current = value;
+  }, []);
+
+  const submit = useCallback(async () => {
+    props.setIsLoading(true);
+
+    const sliderMin = props.input.rangeSlider.sliderMin;
+    const sliderMax = props.input.rangeSlider.sliderMax;
+
+    const currentMin = lowerValueRef?.current;
+    const currentMax = upperValueRef?.current;
+
+    const minValue = sliderMin === currentMin ? null : currentMin;
+    const maxValue = sliderMax === currentMax ? null : currentMax;
+
+    const ok = await props.input.rangeSlider.submit(minValue, maxValue);
+    ok && props.onSubmitSuccess();
+
+    props.setIsLoading(false);
+  }, []);
+
+  useImperativeHandle(ref, () => ({ submit }), []);
+
+  const onPressReset = useCallback(() => {
+    const setValues = rangeSliderRef?.current?.setValues;
+    if (setValues) {
+      setValues({
+        lowerValue: props.input.rangeSlider.sliderMin,
+        upperValue: props.input.rangeSlider.sliderMax,
+      });
+    }
+  }, []);
+
+  return (
+    <>
+      <RangeSlider_
+        ref={rangeSliderRef}
+        initialLowerValue={lowerValueRef.current}
+        initialUpperValue={upperValueRef.current}
+        unitsLabel={props.input.rangeSlider.unitsLabel}
+        minimumValue={props.input.rangeSlider.sliderMin}
+        maximumValue={props.input.rangeSlider.sliderMax}
+        onLowerValueChange={onLowerValueChange}
+        onUpperValueChange={onUpperValueChange}
+        valueRewriter={props.input.rangeSlider.valueRewriter}
+        containerStyle={{
+          marginLeft: 20,
+          marginRight: 20,
+        }}
+      />
+      <ButtonWithCenteredText
+        onPress={onPressReset}
+        containerStyle={{
+          marginTop: 30,
+          marginLeft: 20,
+          marginRight: 20,
+        }}
+        secondary={true}
+      >
+        Reset
+      </ButtonWithCenteredText>
+    </>
+  );
+});
 
 const None = forwardRef((props: InputProps<OptionGroupNone>, ref) => {
   const submit = useCallback(async () => {
@@ -635,12 +706,10 @@ const OptionScreen = ({navigation, route}) => {
   const showSkipButton: boolean = route?.params?.showSkipButton ?? true;
   const showCloseButton: boolean = route?.params?.showCloseButton ?? true;
   const showBackButton: boolean = route?.params?.showBackButton ?? false;
-  const buttonBorderWidth: number = route?.params?.buttonBorderWidth;
-  const buttonBackgroundColor: number = route?.params?.buttonBackgroundColor;
-  const buttonTextColor: number = route?.params?.buttonTextColor;
   const backgroundColor: string | undefined = route?.params?.backgroundColor;
   const color: string | undefined = route?.params?.color;
   const onSubmitSuccess: any | undefined = route?.params?.onSubmitSuccess;
+  const theme: any | undefined = route?.params?.theme;
 
   const thisOptionGroup = optionGroups[0];
 
@@ -779,6 +848,7 @@ const OptionScreen = ({navigation, route}) => {
               onSubmitSuccess={_onSubmitSuccess}
               title={title}
               showSkipButton={showSkipButton}
+              theme={theme}
             />
           }
           {scrollView !== false && <>
@@ -797,6 +867,7 @@ const OptionScreen = ({navigation, route}) => {
                   onSubmitSuccess={_onSubmitSuccess}
                   title={title}
                   showSkipButton={showSkipButton}
+                  theme={theme}
                 />
                 <View style={{height: 20}}/>
               </ScrollView>
@@ -832,10 +903,7 @@ const OptionScreen = ({navigation, route}) => {
           }}
         >
           <ButtonWithCenteredText
-            secondary={true}
-            borderWidth={buttonBorderWidth}
-            backgroundColor={buttonBackgroundColor}
-            textColor={buttonTextColor}
+            secondary={theme !== 'light'}
             onPress={onPressContinue}
             loading={isLoading}
           >

@@ -83,7 +83,7 @@ type OptionGroupSlider = {
     sliderMax: number,
     step: number,
     unitsLabel: string,
-    submit: (input: number) => Promise<boolean>
+    submit: (input: number | null) => Promise<boolean>,
     addPlusAtMax?: boolean,
     defaultValue: number,
     valueRewriter?: (v: number) => string,
@@ -96,6 +96,10 @@ type OptionGroupRangeSlider = {
     sliderMin: number,
     sliderMax: number,
     unitsLabel: string,
+    submit: (sliderMin: number | null, sliderMax: number | null) => Promise<boolean>,
+    valueRewriter?: (v: number) => string,
+    currentMin?: number,
+    currentMax?: number,
   }
 };
 
@@ -193,7 +197,26 @@ const getCurrentValue = (x: OptionGroupInputs | undefined) => {
 
   if (isOptionGroupSlider(x))
     return x.slider.currentValue;
+
+  if (isOptionGroupRangeSlider(x))
+    return {
+      sliderMin: x.rangeSlider.sliderMin,
+      sliderMax: x.rangeSlider.sliderMax,
+    };
+
+  if (isOptionGroupCheckChips(x))
+    return x.checkChips.values.flatMap((v) => v.checked ? [v.label] : []);
 }
+
+const newCheckChipValues = (
+  currentValues: { label: string, checked: boolean }[],
+  newValues: string[],
+) => {
+  return currentValues.map((v) => ({
+    ...v,
+    checked: newValues.includes(v.label),
+  }));
+};
 
 const genders = [
   'Man',
@@ -271,14 +294,15 @@ const orientationOptionGroup: OptionGroup<OptionGroupButtons> = {
 };
 
 const lookingForOptionGroup: OptionGroup<OptionGroupButtons> = {
-  title: 'Looking for',
+  title: 'Looking For',
   description: 'What are you mainly looking for on Duolicious?',
   input: {
     buttons: {
       values: [
-        'Long-term dating',
-        'Short-term dating',
         'Friends',
+        'Short-term dating',
+        'Long-term dating',
+        'Marriage',
       ],
       submit: async function(lookingFor: string) {
         const ok = (await japi('patch', '/profile-info', { looking_for: lookingFor })).ok;
@@ -794,17 +818,22 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
 const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     ...otherPeoplesGendersOptionGroup,
+    title: "Gender",
+    description: "Which genders would you like to see in search results?",
     input: {
       checkChips: {
         values: [
           ...otherPeoplesGendersOptionGroup.input.checkChips.values,
-          {checked: true, label: 'Accept unanswered'}
         ],
-        submit: async (input: string[]) => true
+        submit: async function(gender: string[]) {
+          const ok = (await japi('post', '/search-filter', { gender })).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, gender);
+          }
+          return ok;
+        }
       }
     },
-    title: "Gender",
-    description: "Which genders would you like to see in search results?",
   },
   {
     title: "Orientation",
@@ -819,9 +848,15 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Demisexual'},
           {checked: true, label: 'Pansexual'},
           {checked: true, label: 'Other'},
-          {checked: true, label: 'Accept unanswered'},
+          {checked: true, label: 'Unanswered'},
         ],
-        submit: async (input: string[]) => true
+        submit: async function(orientation: string[]) {
+          const ok = (await japi('post', '/search-filter', { orientation })).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, orientation);
+          }
+          return ok;
+        }
       }
     },
   },
@@ -833,6 +868,25 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         sliderMin: 18,
         sliderMax: 99,
         unitsLabel: 'years',
+        submit: async function(sliderMin: number | null, sliderMax: number | null) {
+          const ok = (
+            await japi(
+              'post',
+              '/search-filter',
+              {
+                age: {
+                  min_age: sliderMin,
+                  max_age: sliderMax,
+                }
+              }
+            )
+          ).ok;
+          if (ok) {
+            this.currentMin = sliderMin;
+            this.currentMax = sliderMax;
+          }
+          return ok;
+        },
       }
     },
   },
@@ -841,13 +895,23 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: "How far away can people be?",
     input: {
       slider: {
-        sliderMin: 0,
+        sliderMin: 5,
         sliderMax: 500,
         defaultValue: 50,
-        step: 25,
+        step: 1,
         unitsLabel: 'km',
         addPlusAtMax: true,
-        submit: async () => true,
+        submit: async function(furthestDistance: number | null) {
+          const ok = (
+            await japi(
+              'post',
+              '/search-filter',
+              { furthest_distance: furthestDistance }
+            )
+          ).ok;
+          if (ok) this.currentValue = furthestDistance;
+          return ok;
+        },
       },
     },
   },
@@ -859,31 +923,74 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         sliderMin: 50,
         sliderMax: 220,
         unitsLabel: 'cm',
+        submit: async function(sliderMin: number | null, sliderMax: number | null) {
+          const ok = (
+            await japi(
+              'post',
+              '/search-filter',
+              {
+                height: {
+                  min_height_cm: sliderMin,
+                  max_height_cm: sliderMax,
+                }
+              }
+            )
+          ).ok;
+          if (ok) {
+            this.currentMin = sliderMin;
+            this.currentMax = sliderMax;
+          }
+          return ok;
+        },
       },
     },
   },
   {
     title: "Has a Profile Picture",
-    description: "Do you want people in search results to have a profile picture?",
+    description: "Do you want to see people who have a profile picture? Selecting 'Yes' and 'No' includes everyone, though people who have pictures will be shown first.",
     input: {
-      buttons: {
-        values: ['Yes', 'No'],
-        submit: async (input: string) => true
+      checkChips: {
+        values: [
+          {checked: true, label: "Yes"},
+          {checked: true, label: "No"},
+        ],
+        submit: async function(hasAProfilePicture: string[]) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { has_a_profile_picture: hasAProfilePicture }
+          )).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, hasAProfilePicture);
+          }
+          return ok;
+        }
       }
     },
   },
   {
-    title: "Looking for",
+    title: "Looking For",
     description: "What kind of relationships would you like people in search results to be seeking?",
     input: {
       checkChips: {
         values: [
-          {checked: true, label: 'Long-term dating'},
-          {checked: true, label: 'Short-term dating'},
           {checked: true, label: 'Friends'},
-          {checked: true, label: 'Accept unanswered'}
+          {checked: true, label: 'Short-term dating'},
+          {checked: true, label: 'Long-term dating'},
+          {checked: true, label: 'Marriage'},
+          {checked: true, label: 'Unanswered'}
         ],
-        submit: async (input: string[]) => true
+        submit: async function(lookingFor: string[]) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { looking_for: lookingFor }
+          )).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, lookingFor);
+          }
+          return ok;
+        }
       }
     },
   },
@@ -895,9 +1002,19 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         values: [
           {checked: true, label: 'Yes'},
           {checked: true, label: 'No'},
-          {checked: true, label: 'Accept unanswered'}
+          {checked: true, label: 'Unanswered'}
         ],
-        submit: async (input: string[]) => true
+        submit: async function(smoking: string[]) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { smoking }
+          )).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, smoking);
+          }
+          return ok;
+        }
       }
     },
   },
@@ -910,9 +1027,19 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Often'},
           {checked: true, label: 'Sometimes'},
           {checked: true, label: 'Never'},
-          {checked: true, label: 'Accept unanswered'}
+          {checked: true, label: 'Unanswered'}
         ],
-        submit: async (input: string[]) => true
+        submit: async function(drinking: string[]) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { drinking }
+          )).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, drinking);
+          }
+          return ok;
+        }
       }
     },
   },
@@ -924,9 +1051,19 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         values: [
           {checked: true, label: 'Yes'},
           {checked: true, label: 'No'},
-          {checked: true, label: 'Accept unanswered'}
+          {checked: true, label: 'Unanswered'}
         ],
-        submit: async (input: string[]) => true
+        submit: async function(drugs: string[]) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { drugs }
+          )).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, drugs);
+          }
+          return ok;
+        }
       }
     },
   },
@@ -938,9 +1075,19 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         values: [
           {checked: true, label: 'Yes'},
           {checked: true, label: 'No'},
-          {checked: true, label: 'Accept unanswered'}
+          {checked: true, label: 'Unanswered'}
         ],
-        submit: async (input: string[]) => true
+        submit: async function(longDistance: string[]) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { long_distance: longDistance }
+          )).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, longDistance);
+          }
+          return ok;
+        }
       }
     },
   },
@@ -957,9 +1104,19 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Divorced'},
           {checked: true, label: 'Widowed'},
           {checked: true, label: 'Other'},
-          {checked: true, label: 'Accept unanswered'}
+          {checked: true, label: 'Unanswered'}
         ],
-        submit: async (input: string[]) => true
+        submit: async function(relationshipStatus: string[]) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { relationship_status: relationshipStatus }
+          )).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, relationshipStatus);
+          }
+          return ok;
+        }
       }
     },
   },
@@ -971,9 +1128,19 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         values: [
           {checked: true, label: 'Yes'},
           {checked: true, label: 'No'},
-          {checked: true, label: 'Accept unanswered'}
+          {checked: true, label: 'Unanswered'}
         ],
-        submit: async (input: string[]) => true
+        submit: async function(hasKids: string[]) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { has_kids: hasKids }
+          )).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, hasKids);
+          }
+          return ok;
+        }
       }
     },
   },
@@ -985,9 +1152,19 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         values: [
           {checked: true, label: 'Yes'},
           {checked: true, label: 'No'},
-          {checked: true, label: 'Accept unanswered'}
+          {checked: true, label: 'Unanswered'}
         ],
-        submit: async (input: string[]) => true
+        submit: async function(wantsKids: string[]) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { wants_kids: wantsKids }
+          )).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, wantsKids);
+          }
+          return ok;
+        }
       }
     },
   },
@@ -1000,9 +1177,19 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Often'},
           {checked: true, label: 'Sometimes'},
           {checked: true, label: 'Never'},
-          {checked: true, label: 'Accept unanswered'},
+          {checked: true, label: 'Unanswered'},
         ],
-        submit: async (input: string[]) => true
+        submit: async function(exercise: string[]) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { exercise }
+          )).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, exercise);
+          }
+          return ok;
+        }
       }
     },
   },
@@ -1020,9 +1207,19 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Jewish'},
           {checked: true, label: 'Muslim'},
           {checked: true, label: 'Other'},
-          {checked: true, label: 'Accept unanswered'},
+          {checked: true, label: 'Unanswered'},
         ],
-        submit: async (input: string[]) => true
+        submit: async function(religion: string[]) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { religion }
+          )).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, religion);
+          }
+          return ok;
+        }
       }
     },
   },
@@ -1044,9 +1241,19 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Scorpio'},
           {checked: true, label: 'Taurus'},
           {checked: true, label: 'Virgo'},
-          {checked: true, label: 'Accept unanswered'},
+          {checked: true, label: 'Unanswered'},
         ],
-        submit: async (input: string[]) => true
+        submit: async function(starSign: string[]) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { star_sign: starSign }
+          )).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, starSign);
+          }
+          return ok;
+        }
       }
     },
   },
@@ -1059,7 +1266,15 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       buttons: {
         values: ['Yes', 'No'],
-        submit: async (input: string) => true
+        submit: async function(peopleMessaged: string) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { people_messaged: peopleMessaged }
+          )).ok;
+          if (ok) this.currentValue = peopleMessaged;
+          return ok;
+        }
       }
     },
   },
@@ -1069,7 +1284,15 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       buttons: {
         values: ['Yes', 'No'],
-        submit: async (input: string) => true
+        submit: async function(peopleHidden: string) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { people_hidden: peopleHidden }
+          )).ok;
+          if (ok) this.currentValue = peopleHidden;
+          return ok;
+        }
       }
     },
   },
@@ -1079,7 +1302,15 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       buttons: {
         values: ['Yes', 'No'],
-        submit: async (input: string) => true
+        submit: async function(peopleBlocked: string) {
+          const ok = (await japi(
+            'post',
+            '/search-filter',
+            { people_blocked: peopleBlocked }
+          )).ok;
+          if (ok) this.currentValue = peopleBlocked;
+          return ok;
+        }
       }
     },
   },

@@ -47,10 +47,6 @@ function getRandomInt(max) {
   return Math.floor(Math.random() * max);
 }
 
-const delay = async (ms: number) => {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 const fetchNextQuestions = async (n: number = 10, o: number = 0): Promise<{
   id: number,
   question: string,
@@ -164,7 +160,7 @@ type CardState = {
   }
   answerPublicly: boolean
   swipeDirection: Direction | undefined
-  onChangeAnswerPublicly: (answerPublicly: boolean) => void
+  onChangeAnswerPublicly: ((answerPublicly: boolean) => void) | undefined
   preventSwipe: Direction[]
   scale: Animated.Value
   ref: any
@@ -260,7 +256,7 @@ const addNextCardsInPlace = async (
   unfetchedCards.forEach(() => state.cards.pop());
 
   _.zip(unfetchedCards, nextQuestions).forEach(([u, q]) => {
-    if (!state.questionNumbers.has(q.id)) {
+    if (u && q && !state.questionNumbers.has(q.id)) {
       state.questionNumbers.add(q.id);
 
       u.questionNumber = q.id;
@@ -359,7 +355,7 @@ const Prospects = ({
     0.75,
     1.0,
   ]).current;
-  const lgStyle = useRef({
+  const lgStyle = useRef<StyleProp<ViewStyle>>({
     width: '100%',
     zIndex: 999,
     paddingTop: 5,
@@ -456,7 +452,7 @@ const Prospects = ({
     prospect2,
     prospect3,
     prospect4,
-  ].filter(prospect => prospect);
+  ].flatMap(prospect => prospect ? [prospect] : []);
 
   useEffect(() => {
     Animated.parallel([

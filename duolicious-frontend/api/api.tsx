@@ -7,6 +7,7 @@ import { Buffer } from "buffer";
 
 type ApiResponse = {
   ok: boolean
+  clientError: boolean
   json: any
 };
 
@@ -62,6 +63,7 @@ const api = async (
 
   return {
     ok: response?.ok ?? false,
+    clientError: response && response.status >= 400 && response.status < 500,
     json: json,
   }
 };

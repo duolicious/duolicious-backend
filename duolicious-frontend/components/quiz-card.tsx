@@ -13,7 +13,7 @@ import {
   useEffect,
   useState,
 } from 'react';
-import CheckBox from './check-box';
+import CheckBox, { StatelessCheckBox } from './check-box';
 import { TinderCard } from 'react-tinder-card'
 import { DefaultText } from './default-text';
 import { StackActions } from '@react-navigation/native';
@@ -23,6 +23,7 @@ import { Skeleton } from '@rneui/themed';
 import { japi } from '../api/api';
 import { quizQueue } from '../api/queue';
 import { markTraitDataDirty } from './traits-tab';
+import { IndeterminateProgressBar } from './indeterminate-progress-bar';
 
 const cardBorders = {
   borderRadius: 10,
@@ -521,7 +522,7 @@ const AnswerIconGroup = ({answer, enabled}) => {
 const nextAnswer = (thisAnswer: boolean | null) => {
   if (thisAnswer === true) return false;
   if (thisAnswer === false) return null;
-  if (thisAnswer === null) return true;
+  return true;
 };
 
 const AnsweredQuizCard = ({
@@ -666,12 +667,83 @@ const AnsweredQuizCard = ({
   );
 };
 
-const SearchQuizCard = ({children, questionNumber, topic, answer}) => {
-  const [answerState, setAnswer2State] = useState(answer);
+const SearchQuizCard = ({
+  children,
+  questionNumber,
+  topic,
+  answer,
+  initialCheckBoxValue,
+  onAnswerChange,
+}) => {
+  type State = {
+    answer: boolean | null
+    acceptUnanswered: boolean
+    errorMessage?: string
+    loading: boolean
+  };
 
-  const onPress = useCallback(() => {
-    setAnswer2State(answer => nextAnswer(answer));
-  }, []);
+  const [state, setState] = useState<State>({
+    answer,
+    acceptUnanswered: initialCheckBoxValue,
+    loading: false,
+  });
+
+  const updateAnswer = useCallback(async (acceptUnanswered?: boolean) => {
+    if (state.loading) {
+      return;
+    };
+
+    setState({
+      ...state,
+      errorMessage: undefined,
+      loading: true,
+    });
+
+    const updatedAnswer = (
+      acceptUnanswered === undefined ?
+      nextAnswer(state.answer) :
+      state.answer);
+
+    const updatedAcceptUnanswered = (
+      acceptUnanswered === undefined ?
+      state.acceptUnanswered :
+      acceptUnanswered);
+
+    const response = await japi(
+      'post',
+      '/search-filter-answer',
+      {
+        question_id: questionNumber,
+        answer: updatedAnswer,
+        accept_unanswered: updatedAcceptUnanswered,
+      }
+    );
+
+    const error = response.json?.error;
+    const answers = response.json?.answer;
+
+    if (error) {
+      setState({
+        ...state,
+        errorMessage: error,
+        loading: false,
+      });
+    } else if (answers) {
+      setState({
+        ...state,
+        answer: updatedAnswer,
+        acceptUnanswered: updatedAcceptUnanswered,
+        loading: false,
+      });
+
+      onAnswerChange(answers);
+    } else {
+      throw Error('Unexpected response: ' + JSON.stringify(response));
+    }
+  }, [state]);
+
+  const onPressAnswer   = useCallback(() => updateAnswer(), [updateAnswer]);
+  const onPressCheckBox = useCallback(updateAnswer, [updateAnswer]);
 
   const extraChildren = (
     <View
@@ -704,12 +776,12 @@ const SearchQuizCard = ({children, questionNumber, topic, answer}) => {
             }}
           >
             Answer: </DefaultText>
-          <Pressable onPress={onPress}>
-            <AnswerIconGroup answer={answerState} enabled={true}/>
+          <Pressable onPress={onPressAnswer}>
+            <AnswerIconGroup answer={state.answer} enabled={true}/>
           </Pressable>
         </View>
         <CheckBox
-          initialValue={true}
+          value={state.acceptUnanswered}
           labelPosition="left"
           containerStyle={{
             marginTop: 0,
@@ -717,6 +789,7 @@ const SearchQuizCard = ({children, questionNumber, topic, answer}) => {
             marginRight: 0,
             marginLeft: 0,
           }}
+          onValueChange={onPressCheckBox}
         >
           <DefaultText
             style={{
@@ -728,6 +801,18 @@ const SearchQuizCard = ({children, questionNumber, topic, answer}) => {
           </DefaultText>
         </CheckBox>
       </View>
+      {state.errorMessage &&
+        <DefaultText
+          style={{
+            color: 'red',
+            alignSelf: 'center',
+            marginBottom: 20,
+          }}
+        >
+          {state.errorMessage}
+        </DefaultText>
+      }
+      <IndeterminateProgressBar show={state.loading} />
     </View>
   );
 

@@ -52,7 +52,7 @@ const LabelledSlider = ({label, minimumValue, maximumValue, ...rest}) => {
           {...rest_}
         />
       </View>
-      <View style={{marginTop: 10}}>
+      <View style={{marginTop: 10}} pointerEvents="none">
         <DefaultText>
           {label}: {valueRewriter(valueState)}
           {addPlusAtMax && valueState === maximumValue ? '+' : ''}

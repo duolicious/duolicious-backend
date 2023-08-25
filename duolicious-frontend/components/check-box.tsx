@@ -63,4 +63,48 @@ const CheckBox = ({children, ...rest}) => {
   );
 };
 
+const StatelessCheckBox = ({children, ...rest}) => {
+  const {
+    value,
+    labelPosition = 'right',
+    containerStyle,
+    onValueChange,
+  } = rest;
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        margin: 5,
+        marginTop: 15,
+        marginBottom: 15,
+        ...containerStyle,
+      }}
+    >
+      {labelPosition !== 'right' &&
+        <Pressable onPress={onValueChange}>
+          <DefaultText>{children}</DefaultText>
+        </Pressable>
+      }
+      <Checkbox
+        value={value}
+        onValueChange={onValueChange}
+        style={
+          labelPosition === 'right' ?
+          {marginRight: 8} :
+          {marginLeft: 8}
+        }
+        color="#70f"
+      />
+      {labelPosition === 'right' &&
+        <Pressable onPress={onValueChange}>
+          <DefaultText>{children}</DefaultText>
+        </Pressable>
+      }
+    </View>
+  );
+};
+
 export default CheckBox;
+export { StatelessCheckBox };

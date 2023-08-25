@@ -12,12 +12,16 @@ const cmToFeetInchesStr = (cm: number): string => {
 }
 
 const kmToMiles = (km: number): number => {
-    const miles = km * 0.621371;
-    return miles;
+  return Math.round(km * 0.621371);
 }
+
+const kmToMilesStr = (km: number): string => {
+  return String(kmToMiles(km));
+};
 
 export {
   cmToFeetInches,
   cmToFeetInchesStr,
   kmToMiles,
+  kmToMilesStr,
 };

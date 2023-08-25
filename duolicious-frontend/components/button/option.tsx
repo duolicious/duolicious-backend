@@ -19,12 +19,10 @@ const ButtonForOption = (props) => {
     setting,
     noSettingText = 'Unanswered',
     showSkipButton,
-    buttonTextColor,
-    buttonBackgroundColor,
-    buttonBorderWidth,
     navigationScreen,
     navigation,
-    loading = false
+    loading = false,
+    theme,
   } = props;
 
   if ((label === undefined) === (optionGroups === undefined)) {
@@ -66,9 +64,7 @@ const ButtonForOption = (props) => {
         optionGroups: optionGroups,
         ...(onSubmitSuccess !== undefined ? {onSubmitSuccess} : {}),
         ...(showSkipButton !== undefined ? {showSkipButton} : {}),
-        ...(buttonTextColor !== undefined ? {buttonTextColor} : {}),
-        ...(buttonBackgroundColor !== undefined ? {buttonBackgroundColor} : {}),
-        ...(buttonBorderWidth !== undefined ? {buttonBorderWidth} : {}),
+        ...(theme !== undefined ? {theme} : {}),
       }
     )
   }), []);
@@ -108,7 +104,7 @@ const ButtonForOption = (props) => {
         </DefaultText>
         <DefaultText
           style={{
-            paddingLeft: 10,
+            paddingLeft: 20,
             paddingRight: 10,
             color: (setting ?? noSettingText) === noSettingText ? '#888' : 'black',
             fontStyle: (setting ?? noSettingText) === noSettingText ? 'italic' : 'normal',

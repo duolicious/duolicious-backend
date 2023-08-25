@@ -36,6 +36,7 @@ import {
   IMAGES_URL,
 } from '../env/env';
 import { getRandomString } from '../random/string';
+import { api } from '../api/api';
 
 // TODO: Re-add the ability to load old messages past the first page
 
@@ -59,6 +60,8 @@ const ConversationScreen = ({navigation, route}) => {
   }, [listRef.current]);
 
   const onPressSend = useCallback(async (text: string): Promise<MessageStatus> => {
+    const isFirstMessage = messages === null || messages.length === 0;
+
     const message: Message = {
       text: text,
       from: '',
@@ -66,16 +69,24 @@ const ConversationScreen = ({navigation, route}) => {
       id: getRandomString(40),
       fromCurrentUser: true,
     };
+
     setLastMessageStatus(null);
+
     const messageStatus = await sendMessage(
       personId,
       message.text,
-      messages === null || messages.length === 0
+      isFirstMessage,
     );
+
     if (messageStatus === 'sent') {
       setMessages(messages => [...(messages ?? []), message]);
     }
+    if (messageStatus === 'sent' && isFirstMessage) {
+      api('post', `/mark-messaged/${personId}`);
+    }
+
     setLastMessageStatus(messageStatus);
+
     return messageStatus;
   }, [personId, messages]);
 

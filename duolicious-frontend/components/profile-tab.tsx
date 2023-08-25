@@ -38,10 +38,10 @@ import { DefaultText } from './default-text';
 import { sessionToken } from '../kv-storage/session-token';
 import { api, mapi, japi } from '../api/api';
 import { signedInUser, setSignedInUser } from '../App';
+import { cmToFeetInchesStr } from '../units/units';
 import {
   IMAGES_URL,
 } from '../env/env';
-import { cmToFeetInchesStr } from '../units/units';
 import * as _ from "lodash";
 import debounce from 'lodash/debounce';
 
@@ -208,7 +208,7 @@ const Options = ({navigation, data}) => {
   const [, triggerRender] = useState({});
   const [isLoadingSignOut, setIsLoadingSignOut] = useState(false);
 
-  const addDefaultValue = (optionGroups: OptionGroup<OptionGroupInputs>[]) =>
+  const addCurrentValue = (optionGroups: OptionGroup<OptionGroupInputs>[]) =>
     optionGroups.map(
       (
         og: OptionGroup<OptionGroupInputs>,
@@ -255,10 +255,10 @@ const Options = ({navigation, data}) => {
     _privacySettingsOptionGroups,
   ] = useMemo(
     () => [
-      addDefaultValue(basicsOptionGroups),
-      addDefaultValue(generalSettingsOptionGroups),
-      addDefaultValue(notificationSettingsOptionGroups),
-      addDefaultValue(privacySettingsOptionGroups),
+      addCurrentValue(basicsOptionGroups),
+      addCurrentValue(generalSettingsOptionGroups),
+      addCurrentValue(notificationSettingsOptionGroups),
+      addCurrentValue(privacySettingsOptionGroups),
     ],
     [data]
   );
@@ -307,12 +307,9 @@ const Options = ({navigation, data}) => {
           <Button_
             key={i}
             setting={
-              (
-                isOptionGroupSlider(og.input) &&
-                og.title === 'Height'
-              ) ?
-              formatHeight(og) :
-              getCurrentValue(_basicsOptionGroups[i].input)
+              og.title === 'Height' ?
+                formatHeight(og) :
+                getCurrentValue(_basicsOptionGroups[i].input)
             }
             optionGroups={_basicsOptionGroups.slice(i)}
           />
