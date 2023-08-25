@@ -188,3 +188,29 @@ def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
 @validate(t.PatchProfileInfo)
 def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
     return person.patch_profile_info(req, s)
+
+@aget('/search-filters')
+def get_search_filers(s: t.SessionInfo):
+    return person.get_search_filters(s)
+
+@apost('/search-filter')
+@validate(t.PostSearchFilter)
+def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
+    return person.post_search_filter(req, s)
+
+@aget('/search-filter-questions')
+def get_search_filter_questions(s: t.SessionInfo):
+    return question.get_search_filter_questions(
+        q=request.args.get('q', ''),
+        n=request.args.get('n', '10'),
+        o=request.args.get('o', '0'),
+    )
+
+@apost('/search-filter-answer')
+@validate(t.PostSearchFilterAnswer)
+def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo):
+    return person.post_search_filter_answer(req, s)
+
+@apost('/mark-messaged/<int:prospect_person_id>')
+def post_mark_messaged(s: t.SessionInfo, prospect_person_id: int):
+    return person.post_mark_messaged(s, prospect_person_id)

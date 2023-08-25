@@ -181,7 +181,14 @@ GET /profile-info {
  photo: { position: uuid },
 }
 
-POST /search-filter {
+GET /search-filters {
+  session-token
+} -> {
+  gender
+  ...
+}
+
+POST /search-filters {
   session-token
 } (
   | { questions: [ { question-id, answer, accept-unanswered }, ... ]
@@ -190,23 +197,32 @@ POST /search-filter {
   | { two-way-filters: ["Man", ..., null] }
 )
 
-GET /search-filters {
-  session-token
-} -> {
-  gender
-  ...
-}
-
 GET /search-filter-questions {
   session-token
 } {
-  query?
+  q?
+  n?
+  o?
 } -> [
   {
     question-id
-    question-number
+    question
     topic
     answer?
     accept-unanswered?
   }
 ]
+
+POST /search-filter-answer {
+  session-token
+} {
+  question_id: number
+  answer: boolean | null
+  accept_unanswered: boolean
+} ->
+  | { error: string }
+  | { answer: [ ... ] }
+
+POST /mark-messaged/<person-id> {
+  session-token
+}

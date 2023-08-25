@@ -152,7 +152,7 @@ CREATE TABLE IF NOT EXISTS person (
     drugs_id SMALLINT REFERENCES yes_no_optional(id) NOT NULL DEFAULT 1,
     long_distance_id SMALLINT REFERENCES yes_no_optional(id) NOT NULL DEFAULT 1,
     relationship_status_id SMALLINT REFERENCES relationship_status(id) NOT NULL DEFAULT 1,
-    has_kids_id SMALLINT REFERENCES yes_no_maybe(id) NOT NULL DEFAULT 1,
+    has_kids_id SMALLINT REFERENCES yes_no_optional(id) NOT NULL DEFAULT 1,
     wants_kids_id SMALLINT REFERENCES yes_no_maybe(id) NOT NULL DEFAULT 1,
     exercise_id SMALLINT REFERENCES frequency(id) NOT NULL DEFAULT 1,
     religion_id SMALLINT REFERENCES religion(id) NOT NULL DEFAULT 1,
@@ -365,7 +365,7 @@ CREATE TABLE IF NOT EXISTS search_preference_relationship_status (
 
 CREATE TABLE IF NOT EXISTS search_preference_has_kids (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    has_kids_id SMALLINT REFERENCES yes_no_maybe(id) ON DELETE CASCADE,
+    has_kids_id SMALLINT REFERENCES yes_no_optional(id) ON DELETE CASCADE,
     PRIMARY KEY (person_id, has_kids_id)
 );
 
@@ -474,6 +474,8 @@ CREATE INDEX IF NOT EXISTS idx__duo_session__email ON duo_session(email);
 
 CREATE INDEX IF NOT EXISTS idx__location__long_friendly ON location USING GIST(long_friendly gist_trgm_ops);
 
+CREATE INDEX IF NOT EXISTS idx__question__question ON question USING GIST(question gist_trgm_ops);
+
 --------------------------------------------------------------------------------
 -- DATA
 --------------------------------------------------------------------------------
@@ -500,9 +502,10 @@ INSERT INTO orientation (name) VALUES ('Queer') ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientation (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO looking_for (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
-INSERT INTO looking_for (name) VALUES ('Long-term dating') ON CONFLICT (name) DO NOTHING;
-INSERT INTO looking_for (name) VALUES ('Short-term dating') ON CONFLICT (name) DO NOTHING;
 INSERT INTO looking_for (name) VALUES ('Friends') ON CONFLICT (name) DO NOTHING;
+INSERT INTO looking_for (name) VALUES ('Short-term dating') ON CONFLICT (name) DO NOTHING;
+INSERT INTO looking_for (name) VALUES ('Long-term dating') ON CONFLICT (name) DO NOTHING;
+INSERT INTO looking_for (name) VALUES ('Marriage') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO relationship_status (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Single') ON CONFLICT (name) DO NOTHING;
