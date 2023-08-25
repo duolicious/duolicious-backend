@@ -751,10 +751,15 @@ const OptionScreen = ({navigation, route}) => {
 
   const onPressContinue = useCallback(() => {
     const submit = inputRef.current?.submit;
-    if (!isLoading && submit) {
-      return submit();
-    }
+    !isLoading && submit && submit();
   }, [isLoading, inputRef.current]);
+
+  const onPressSkip = useCallback(() => {
+    // TODO: Uncomment this once skip works properly
+    // const skip = inputRef.current?.skip;
+    // !isLoading && skip && skip();
+    _onSubmitSuccess();
+  }, [isLoading, inputRef.current, _onSubmitSuccess]);
 
   return (
     <View
@@ -904,7 +909,7 @@ const OptionScreen = ({navigation, route}) => {
         >
           <ButtonWithCenteredText
             secondary={theme !== 'light'}
-            onPress={onPressContinue}
+            onPress={showSkipButton ? onPressSkip : onPressContinue}
             loading={isLoading}
           >
             {showSkipButton ? 'Skip' : 'Continue'}
