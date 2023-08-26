@@ -87,7 +87,7 @@ const TraitsTab = () => {
   }, []);
 
   useFocusEffect(() => {
-    if (isTraitDataDirty) {
+    if (!data || isTraitDataDirty) {
       setIsLoading(true);
       fetchData();
     }

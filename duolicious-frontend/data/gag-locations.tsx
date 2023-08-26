@@ -65,6 +65,7 @@ const gagLocations = [
   "Somewhere On Earth... Maybe.",
   "Mount Olympus",
   "Hiding From GPS Satellites",
+  "42 Wallaby Way, Sydney",
 ];
 
 const randomGagLocation = () =>

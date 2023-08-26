@@ -43,9 +43,7 @@ const getRandomArbitrary = (min: number, max: number) => {
   return Math.random() * (max - min) + min;
 }
 
-function getRandomInt(max) {
-  return Math.floor(Math.random() * max);
-}
+const getRandomInt = (max) => Math.floor(Math.random() * max);
 
 const fetchNextQuestions = async (n: number = 10, o: number = 0): Promise<{
   id: number,
@@ -181,12 +179,12 @@ type ProspectState = {
   animation: Animated.Value
 };
 
-const initialState: StackState = {
+const initialState = (): StackState => ({
   topCardIndex: 0,
   cards: [],
   prospects: [],
   questionNumbers: new Set<number>(),
-};
+});
 
 const unfetchedCard = (): CardState => {
   const scale = new Animated.Value(0);
@@ -585,7 +583,7 @@ const QuizCardStack = (props) => {
     navigation,
   } = props;
 
-  const stateRef = useRef<StackState>(initialState).current;
+  const stateRef = useRef<StackState>(initialState()).current;
 
   const [, triggerRender_] = useState({});
   const triggerRender = () => triggerRender_({});

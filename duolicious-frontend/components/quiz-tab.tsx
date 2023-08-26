@@ -45,7 +45,7 @@ const QuizTab = ({navigation}) => {
         onTopCardChanged={onTopCardChanged}
         onSwipe={onSwipe}
         navigation={navigation}
-        />
+      />
       <UndoNoYesSkip
         innerRef={inputElementsRef}
         onPressNo={onPressNo}
