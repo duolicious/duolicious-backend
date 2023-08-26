@@ -50,6 +50,7 @@ const ConversationScreen = ({navigation, route}) => {
   const personId: number = route?.params?.personId;
   const name: string = route?.params?.name;
   const imageUuid: number = route?.params?.imageUuid;
+  const isDeletedUser: boolean = route?.params?.isDeletedUser;
 
   const listRef = useRef<any>(null)
 
@@ -80,8 +81,9 @@ const ConversationScreen = ({navigation, route}) => {
 
     if (messageStatus === 'sent') {
       setMessages(messages => [...(messages ?? []), message]);
-    }
-    if (messageStatus === 'sent' && isFirstMessage) {
+
+      // TODO: Ideally, you wouldn't have to mark messages as sent in this way;
+      //       The chat service already knows if a message was sent
       api('post', `/mark-messaged/${personId}`);
     }
 
@@ -266,7 +268,7 @@ const ConversationScreen = ({navigation, route}) => {
           "Someone already used that intro! Try again!"
         }
       </DefaultText>
-      {!messageFetchTimeout &&
+      {!messageFetchTimeout && !isDeletedUser &&
         <TextInputWithButton onPress={onPressSend}/>
       }
     </>

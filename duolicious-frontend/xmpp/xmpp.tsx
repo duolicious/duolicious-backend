@@ -40,6 +40,7 @@ type Conversation = {
   lastMessage: string
   lastMessageRead: boolean
   lastMessageTimestamp: Date
+  isDeletedUser: boolean
 };
 
 type ConversationsMap = { [key: string]: Conversation };
@@ -114,10 +115,10 @@ const populateConversationList = async (
   }, {});
 
   conversationList.forEach((c: Conversation) => {
-    c.personId = personIdToInfo[c.personId].person_id;
-    c.name = personIdToInfo[c.personId].name;
-    c.matchPercentage = personIdToInfo[c.personId].match_percentage;
-    c.imageUuid = personIdToInfo[c.personId].image_uuid;
+    c.name = personIdToInfo[c.personId]?.name ?? 'Deleted User';
+    c.matchPercentage = personIdToInfo[c.personId]?.match_percentage ?? 0;
+    c.imageUuid = personIdToInfo[c.personId]?.image_uuid ?? null;
+    c.isDeletedUser = personIdToInfo[c.personId] === undefined;
   });
 };
 
@@ -162,6 +163,7 @@ const setInboxSent = (recipientPersonId: number, message: string) => {
       name: '',
       matchPercentage: 0,
       imageUuid: null,
+      isDeletedUser: false,
       ...chatsConversation,
       ...introsConversation,
       lastMessage: message,
@@ -228,6 +230,7 @@ const setInboxRecieved = async (
       name: '',
       matchPercentage: 0,
       imageUuid: null,
+      isDeletedUser: false,
       ...chatsConversation,
       ...introsConversation,
       lastMessage: message,
@@ -663,6 +666,7 @@ const _fetchBox = async (
     const lastMessage = bodyText.toString();
     const lastMessageRead = numUnread.toString() === '0';
     const lastMessageTimestamp = new Date(timestamp.toString());
+    const isDeletedUser = false;
 
     const conversation: Conversation = {
       personId,
@@ -672,6 +676,7 @@ const _fetchBox = async (
       lastMessage,
       lastMessageRead,
       lastMessageTimestamp,
+      isDeletedUser,
     };
 
     conversationList.push(conversation);

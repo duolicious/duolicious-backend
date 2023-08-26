@@ -616,7 +616,7 @@ const notificationSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
 
 const deletionOptionGroups: OptionGroup<OptionGroupTextShort>[] = [
   {
-    title: 'Delete Your Account',
+    title: 'Delete My Account',
     description: `Are you sure you want to delete your account? This will immediately log you out and permanently delete your account data. If you're sure, type "delete" to confirm.`,
     input: {
       textShort: {
@@ -639,7 +639,7 @@ const deletionOptionGroups: OptionGroup<OptionGroupTextShort>[] = [
 
 const deactivationOptionGroups: OptionGroup<OptionGroupNone>[] = [
   {
-    title: 'Deactivate Your Account',
+    title: 'Deactivate My Account',
     description: 'Are you sure you want to deactivate your account? This will hide you from other users and log you out. The next time you sign in, your account will be reactivated. Press "continue" to deactivate your account.',
     input: {
       none: {

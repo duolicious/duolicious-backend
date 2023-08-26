@@ -195,6 +195,7 @@ const InboxTab_ = ({navigation}) => {
       matchPercentage={x.item.matchPercentage}
       lastMessage={x.item.lastMessage}
       lastMessageTimestamp={x.item.lastMessageTimestamp}
+      isDeletedUser={x.item.isDeletedUser}
     />
   ), []);
 

@@ -37,6 +37,7 @@ const InboxItem = ({
   matchPercentage,
   lastMessage,
   lastMessageTimestamp,
+  isDeletedUser,
 }: {
   wasRead: boolean
   name: string
@@ -45,6 +46,7 @@ const InboxItem = ({
   matchPercentage: number
   lastMessage: string
   lastMessageTimestamp: Date
+  isDeletedUser: boolean
 }) => {
   const navigation = useNavigation<any>();
 
@@ -74,8 +76,8 @@ const InboxItem = ({
 
   const onPress = useCallback(() => navigation.navigate(
     'Conversation Screen',
-    { personId, name, imageUuid }
-  ), [personId, name, imageUuid]);
+    { personId, name, imageUuid, isDeletedUser }
+  ), [personId, name, imageUuid, isDeletedUser]);
 
   return (
     <Pressable

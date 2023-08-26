@@ -354,10 +354,10 @@ const Options = ({navigation, data}) => {
         loading={isLoadingSignOut}
       />
 
-      <Title style={{ marginTop: 60 }}>Deactivate Your Account</Title>
+      <Title style={{ marginTop: 60 }}>Deactivate My Account</Title>
       <Button_ optionGroups={deactivationOptionGroups} setting="" showSkipButton={false}/>
 
-      <Title>Delete Your Account</Title>
+      <Title>Delete My Account</Title>
       <Button_ optionGroups={deletionOptionGroups} setting=""/>
     </View>
   );
@@ -395,7 +395,7 @@ const AboutDuolicious = () => {
         </DefaultText>
       </Pressable>
       <Pressable
-        style={{marginTop: 15}}
+        style={{marginTop: 25}}
         onPress={() => Linking.openURL('mailto:support@duolicious.app')}
       >
         <DefaultText
