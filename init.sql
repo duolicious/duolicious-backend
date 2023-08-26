@@ -1168,6 +1168,53 @@ AFTER INSERT ON onboardee_photo
 FOR EACH ROW
 EXECUTE FUNCTION remove_from_photo_graveyard();
 
+--------------------------------------------------------------------------------
+-- TRIGGER - refresh_has_profile_picture_id
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION refresh_has_profile_picture_id(p_person_id INT)
+RETURNS INTEGER AS $$
+    WITH has_photo AS (
+        SELECT EXISTS (
+            SELECT 1 FROM photo WHERE photo.person_id = p_person_id
+        ) AS has_photo
+    ), has_profile_picture_id AS (
+        SELECT id
+        FROM yes_no
+        WHERE
+            (name = 'Yes' AND (SELECT has_photo FROM has_photo))
+        OR
+            (name = 'No'  AND (SELECT NOT has_photo FROM has_photo))
+    ), update_person AS (
+        UPDATE person
+        SET has_profile_picture_id = has_profile_picture_id.id
+        FROM has_profile_picture_id
+        WHERE person.id = p_person_id
+        RETURNING 1
+    )
+    SELECT COUNT(*) FROM update_person;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION trigger_fn_refresh_has_profile_picture_id()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        PERFORM refresh_has_profile_picture_id(NEW.person_id);
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+        PERFORM refresh_has_profile_picture_id(OLD.person_id);
+        RETURN OLD;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trigger_refresh_has_profile_picture_id
+AFTER INSERT OR DELETE ON photo
+FOR EACH ROW
+EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
+
+--------------------------------------------------------------------------------
+
 -- TODO: Periodically delete expired tokens
 -- TODO: Periodically move inactive accounts
 -- TODO: Periodically delete photos from bucket
