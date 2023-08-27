@@ -1261,6 +1261,8 @@ SELECT assert_table_non_empty('undeleted_photo');
 
 DROP TABLE photo_graveyard;
 
+SELECT id, refresh_search_tables(id) FROM person;
+
 --------------------------------------------------------------------------------
 
 -- TODO: Periodically delete expired tokens
