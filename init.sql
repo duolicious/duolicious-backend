@@ -228,12 +228,7 @@ CREATE TABLE IF NOT EXISTS photo (
     PRIMARY KEY (person_id, position)
 );
 
--- TODO: Delete
 CREATE TABLE IF NOT EXISTS photo_graveyard (
-    uuid TEXT PRIMARY KEY
-);
-
-CREATE TABLE IF NOT EXISTS undeleted_photo (
     uuid TEXT PRIMARY KEY
 );
 
@@ -1061,10 +1056,8 @@ RETURNS TABLE(trait_id SMALLINT, ratio FLOAT4) AS $$
 $$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
 
 --------------------------------------------------------------------------------
--- TRIGGER - insert_update_search_tables
--- TODO: Delete
+-- TRIGGERS
 --------------------------------------------------------------------------------
-
 
 CREATE OR REPLACE FUNCTION insert_update_search_tables()
 RETURNS TRIGGER AS $$
@@ -1111,127 +1104,8 @@ ON person
 FOR EACH ROW
 EXECUTE FUNCTION insert_update_search_tables();
 
---------------------------------------------------------------------------------
--- TRIGGER - refresh_search_tables
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION refresh_search_tables(p_person_id INT)
-RETURNS INTEGER AS $$
-    WITH selected_person AS (
-        SELECT
-            id,
-            coordinates,
-            personality,
-            activated,
-            has_profile_picture_id,
-            hide_me_from_strangers
-        FROM
-            person
-        WHERE
-            id = p_person_id
-    ), visible_in_standard_search AS (
-        SELECT (
-            activated
-        ) AS x
-        FROM selected_person
-    ), visible_in_quiz_search AS (
-        SELECT (
-            activated AND
-            NOT hide_me_from_strangers AND
-            has_profile_picture_id = 1
-        ) AS x
-        FROM selected_person
-    ), inserted_standard_search AS (
-        INSERT INTO search_for_standard_prospects (
-            person_id, coordinates, personality
-        )
-        SELECT
-            id AS person_id, coordinates, personality
-        FROM
-            selected_person
-        WHERE
-            (SELECT x FROM visible_in_standard_search)
-        ON CONFLICT (person_id) DO UPDATE SET
-            coordinates = EXCLUDED.coordinates,
-            personality = EXCLUDED.personality
-        RETURNING *
-    ), deleted_standard_search AS (
-        DELETE FROM search_for_standard_prospects
-        USING selected_person
-        WHERE person_id = selected_person.id AND
-            (SELECT NOT x FROM visible_in_standard_search)
-        RETURNING *
-    ), inserted_quiz_search AS (
-        INSERT INTO search_for_quiz_prospects (
-            person_id, coordinates, personality
-        )
-        SELECT
-            id AS person_id, coordinates, personality
-        FROM
-            selected_person
-        WHERE
-            (SELECT x FROM visible_in_quiz_search)
-        ON CONFLICT (person_id) DO UPDATE SET
-            coordinates = EXCLUDED.coordinates,
-            personality = EXCLUDED.personality
-        RETURNING *
-    ), deleted_quiz_search AS (
-        DELETE FROM search_for_quiz_prospects
-        USING selected_person
-        WHERE person_id = selected_person.id AND
-            (SELECT NOT x FROM visible_in_quiz_search)
-        RETURNING *
-    )
-    SELECT
-        (SELECT COUNT(*) from inserted_standard_search) +
-        (SELECT COUNT(*) from deleted_standard_search) +
-        (SELECT COUNT(*) from inserted_quiz_search) +
-        (SELECT COUNT(*) from deleted_quiz_search)
-$$ LANGUAGE sql;
-
-CREATE OR REPLACE FUNCTION trigger_fn_refresh_search_tables()
-RETURNS TRIGGER AS $$
-BEGIN
-    PERFORM refresh_search_tables(NEW.id);
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE TRIGGER trigger_refresh_search_tables
-AFTER INSERT OR UPDATE
-ON person
-FOR EACH ROW
-EXECUTE FUNCTION trigger_fn_refresh_search_tables();
-
---------------------------------------------------------------------------------
--- TRIGGER - undeleted_photo
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION trigger_fn_insert_into_undeleted_photo()
-RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO undeleted_photo (uuid)
-    VALUES (NEW.uuid)
-    ON CONFLICT DO NOTHING;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE TRIGGER trigger_fn_insert_into_undeleted_photo_on_insert_photo
-AFTER INSERT OR UPDATE ON photo
-FOR EACH ROW
-EXECUTE FUNCTION trigger_fn_insert_into_undeleted_photo();
-
-CREATE OR REPLACE TRIGGER trigger_fn_insert_into_undeleted_photo_on_insert_onboardee_photo
-AFTER INSERT OR UPDATE ON onboardee_photo
-FOR EACH ROW
-EXECUTE FUNCTION trigger_fn_insert_into_undeleted_photo();
 
 
---------------------------------------------------------------------------------
--- TODO: Delete these
---------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION on_delete_photo()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -1254,22 +1128,27 @@ BEFORE DELETE ON photo
 FOR EACH ROW
 EXECUTE FUNCTION on_delete_photo();
 
+-- Trigger for DELETE operation on onboardee_photo
 CREATE OR REPLACE TRIGGER trigger_onboardee_photo_delete
 BEFORE DELETE ON onboardee_photo
 FOR EACH ROW
 EXECUTE FUNCTION on_delete_photo();
 
+-- Trigger for UPDATE operation
 CREATE OR REPLACE TRIGGER trigger_photo_update
 BEFORE UPDATE ON photo
 FOR EACH ROW
 WHEN (OLD.uuid IS DISTINCT FROM NEW.uuid)
 EXECUTE FUNCTION on_update_photo();
 
+-- Trigger for UPDATE operation on onboardee_photo
 CREATE OR REPLACE TRIGGER trigger_onboardee_photo_update
 BEFORE UPDATE ON onboardee_photo
 FOR EACH ROW
 WHEN (OLD.uuid IS DISTINCT FROM NEW.uuid)
 EXECUTE FUNCTION on_update_photo();
+
+
 
 CREATE OR REPLACE FUNCTION remove_from_photo_graveyard()
 RETURNS TRIGGER AS $$
@@ -1278,6 +1157,16 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trigger_photo_insert
+AFTER INSERT ON photo
+FOR EACH ROW
+EXECUTE FUNCTION remove_from_photo_graveyard();
+
+CREATE OR REPLACE TRIGGER trigger_onboardee_photo_insert
+AFTER INSERT ON onboardee_photo
+FOR EACH ROW
+EXECUTE FUNCTION remove_from_photo_graveyard();
 
 --------------------------------------------------------------------------------
 -- TRIGGER - refresh_has_profile_picture_id
@@ -1323,51 +1212,6 @@ CREATE OR REPLACE TRIGGER trigger_refresh_has_profile_picture_id
 AFTER INSERT OR DELETE ON photo
 FOR EACH ROW
 EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
-
---------------------------------------------------------------------------------
--- MIGRATION
--- TODO: Delete after migration is complete
---------------------------------------------------------------------------------
-
-DROP TRIGGER insert_update_search_tables ON person;
-DROP FUNCTION insert_update_search_tables();
-
--- Drop the triggers
-DROP TRIGGER trigger_photo_delete ON photo;
-DROP TRIGGER trigger_onboardee_photo_delete ON onboardee_photo;
-DROP TRIGGER trigger_photo_update ON photo;
-DROP TRIGGER trigger_onboardee_photo_update ON onboardee_photo;
-
--- Drop the functions
-DROP FUNCTION on_delete_photo();
-DROP FUNCTION on_update_photo();
-DROP FUNCTION remove_from_photo_graveyard();
-
-
-CREATE OR REPLACE FUNCTION assert_table_non_empty(tbl_name text) RETURNS void AS $$
-DECLARE
-    row_count INTEGER;
-BEGIN
-    EXECUTE format('SELECT count(*) FROM %I', tbl_name) INTO row_count;
-
-    IF row_count = 0 THEN
-        RAISE EXCEPTION 'Table % is empty!', tbl_name;
-    END IF;
-
-    RAISE NOTICE 'Table % has % rows', tbl_name, row_count;
-END;
-$$ LANGUAGE plpgsql;
-
-INSERT INTO photo_graveyard (uuid) VALUES ('dummy');
-
-INSERT INTO undeleted_photo (uuid)
-SELECT uuid
-FROM photo_graveyard
-ON CONFLICT DO NOTHING;
-
-SELECT assert_table_non_empty('undeleted_photo');
-
-DROP TABLE photo_graveyard;
 
 --------------------------------------------------------------------------------
 
