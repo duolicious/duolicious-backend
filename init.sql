@@ -1215,6 +1215,53 @@ FOR EACH ROW
 EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 
 --------------------------------------------------------------------------------
+-- MIGRATION
+-- TODO: Delete after migration is complete
+--------------------------------------------------------------------------------
+
+DROP TRIGGER insert_update_search_tables ON person;
+DROP FUNCTION insert_update_search_tables();
+
+-- Drop the triggers
+DROP TRIGGER trigger_photo_delete ON photo;
+DROP TRIGGER trigger_onboardee_photo_delete ON onboardee_photo;
+DROP TRIGGER trigger_photo_update ON photo;
+DROP TRIGGER trigger_onboardee_photo_update ON onboardee_photo;
+DROP TRIGGER trigger_photo_insert ON photo;
+DROP TRIGGER trigger_onboardee_photo_insert ON onboardee_photo;
+
+-- Drop the functions
+DROP FUNCTION on_delete_photo();
+DROP FUNCTION on_update_photo();
+DROP FUNCTION remove_from_photo_graveyard();
+
+
+CREATE OR REPLACE FUNCTION assert_table_non_empty(tbl_name text) RETURNS void AS $$
+DECLARE
+    row_count INTEGER;
+BEGIN
+    EXECUTE format('SELECT count(*) FROM %I', tbl_name) INTO row_count;
+
+    IF row_count = 0 THEN
+        RAISE EXCEPTION 'Table % is empty!', tbl_name;
+    END IF;
+
+    RAISE NOTICE 'Table % has % rows', tbl_name, row_count;
+END;
+$$ LANGUAGE plpgsql;
+
+INSERT INTO photo_graveyard (uuid) VALUES ('dummy');
+
+INSERT INTO undeleted_photo (uuid)
+SELECT uuid
+FROM photo_graveyard
+ON CONFLICT DO NOTHING;
+
+SELECT assert_table_non_empty('undeleted_photo');
+
+DROP TABLE photo_graveyard;
+
+--------------------------------------------------------------------------------
 
 -- TODO: Periodically delete expired tokens
 -- TODO: Periodically move inactive accounts
