@@ -206,6 +206,7 @@ const FloatingHideButton = ({navigation, personId, isHidden}) => {
 const FloatingSendIntroButton = ({navigation, personId, name, imageUuid}) => {
   const onPress = useCallback(() => {
     if (personId === undefined) return;
+    if (name === undefined) return;
 
     navigation.navigate('Conversation Screen', { personId, name, imageUuid });
   }, [navigation, personId, name, imageUuid]);
@@ -216,7 +217,7 @@ const FloatingSendIntroButton = ({navigation, personId, name, imageUuid}) => {
       onPress={onPress}
       backgroundColor="#70f"
     >
-      {personId !== undefined &&
+      {personId !== undefined && name !== undefined &&
         <FontAwesomeIcon
           icon={faPaperPlane}
           size={24}
