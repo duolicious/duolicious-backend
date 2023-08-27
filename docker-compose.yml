@@ -1,4 +1,11 @@
 services:
+  status:
+    build:
+      context: .
+      dockerfile: status.Dockerfile
+    ports:
+      - "8080:8080"
+
   postgres:
     build:
       context: .
