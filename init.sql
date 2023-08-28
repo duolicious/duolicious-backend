@@ -472,6 +472,7 @@ CREATE INDEX IF NOT EXISTS idx__answer__person_id_public_answer ON answer(person
 
 CREATE INDEX IF NOT EXISTS idx__duo_session__email ON duo_session(email);
 
+CREATE INDEX IF NOT EXISTS idx__location__coordinates ON location USING GIST(coordinates);
 CREATE INDEX IF NOT EXISTS idx__location__long_friendly ON location USING GIST(long_friendly gist_trgm_ops);
 
 CREATE INDEX IF NOT EXISTS idx__question__question ON question USING GIST(question gist_trgm_ops);
