@@ -231,7 +231,7 @@ const genders = [
 
 const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
   title: 'Gender',
-  description: "What's your gender?",
+  description: "What’s your gender?",
   input: {
     buttons: {
       values: genders,
@@ -244,12 +244,12 @@ const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
   }
 };
 
-const otherPeoplesGendersOptionGroup: OptionGroup<OptionGroupCheckChips> = {
-  title: "Other People's Genders",
-  description: "What are the genders of the people you'd like to meet?",
+const yourPartnersGenderOptionGroup: OptionGroup<OptionGroupCheckChips> = {
+  title: "Your Partner’s Gender",
+  description: "Which gender do you want to date? You can select more than one option.",
   input: {
     checkChips: {
-      values: genders.map((g) => ({checked: true, label: g})),
+      values: genders.map((g) => ({checked: false, label: g})),
       submit: async (inputs: string[]) => true
     }
   }
@@ -272,7 +272,7 @@ const locationOptionGroup: OptionGroup<OptionGroupLocationSelector> = {
 
 const orientationOptionGroup: OptionGroup<OptionGroupButtons> = {
   title: 'Orientation',
-  description: "What's your sexual orientation?",
+  description: "What’s your sexual orientation?",
   input: {
     buttons: {
       values: [
@@ -684,9 +684,9 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   _.merge(
     {},
-    otherPeoplesGendersOptionGroup,
+    yourPartnersGenderOptionGroup,
     {
-      title: 'Step 1 of 7: ' + otherPeoplesGendersOptionGroup.title,
+      title: 'Step 1 of 7: ' + yourPartnersGenderOptionGroup.title,
       input: {
         checkChips: {
           submit: async (input: string[]) => (await japi(
@@ -702,7 +702,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     {},
     genderOptionGroup,
     {
-      title: 'Step 2 of 7: ' + genderOptionGroup.title,
+      title: 'Step 2 of 7: Your Gender',
       input: {
         buttons: {
           submit: async (input) => (await japi(
@@ -792,11 +792,11 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     }
   },
   {
-    title: "You're Looking Like A Snack 😋",
+    title: "You’re Looking Like A Snack 😋",
     description: "",
     input: {
       none: {
-        description: "You're ready to go! You can always sweeten your profile even more once you're signed in...",
+        description: "You’re ready to go! You can always sweeten your profile even more once you're signed in...",
         submit: async () => {
           const _sessionToken = await sessionToken();
           const response = await japi('post', '/finish-onboarding');
@@ -817,13 +817,13 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
 
 const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
-    ...otherPeoplesGendersOptionGroup,
+    ...yourPartnersGenderOptionGroup,
     title: "Gender",
     description: "Which genders would you like to see in search results?",
     input: {
       checkChips: {
         values: [
-          ...otherPeoplesGendersOptionGroup.input.checkChips.values,
+          ...yourPartnersGenderOptionGroup.input.checkChips.values,
         ],
         submit: async function(gender: string[]) {
           const ok = (await japi('post', '/search-filter', { gender })).ok;
