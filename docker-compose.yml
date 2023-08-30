@@ -5,6 +5,9 @@ services:
       dockerfile: status.Dockerfile
     ports:
       - "8080:8080"
+    volumes:
+      - ./service/status/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./service/status/index.html:/usr/share/nginx/html/index.html:ro
 
   postgres:
     build:
