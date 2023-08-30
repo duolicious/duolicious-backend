@@ -1,3 +1,5 @@
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 const deleteFromArray = <T,>(array: T[], element: T): T[] => {
   let index = array.indexOf(element);
   if (index !== -1) {
@@ -16,4 +18,5 @@ const withTimeout = <T,>(ms: number, promise: Promise<T>): Promise<T | 'timeout'
 export {
   deleteFromArray,
   withTimeout,
+  delay,
 };

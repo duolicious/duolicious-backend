@@ -30,29 +30,25 @@ import ProfileTab from './components/profile-tab';
 import InboxTab from './components/inbox-tab';
 import { TraitsTab } from './components/traits-tab';
 import { ConversationScreen } from './components/conversation-screen';
+import { UtilityScreen } from './components/utility-screen';
 import { GalleryScreen, ProspectProfileScreen } from './components/prospect-profile-screen';
 import { WelcomeScreen } from './components/welcome-screen';
 import { sessionToken } from './kv-storage/session-token';
-import { japi } from './api/api';
+import { japi, SUPPORTED_API_VERSIONS } from './api/api';
 import { login, logout } from './xmpp/xmpp';
+import { STATUS_URL } from './env/env';
+import { delay } from './util/util';
 
 // TODO: iOS UI testing
 // TODO: Delete 'getRandomInt' definitions
-// TODO: Delete 'delay' definitions
 // TODO: Notifications for new messages
 // TODO: Privacy Policy, Terms and Conditions
-// TODO: r9k algorithm on intros, or plagiarism detection?
 // TODO: Add the ability to reply to things (e.g. pictures, quiz responses) from people's profiles. You'll need to change the navigation to make it easier to reply to things. Consider breaking profiles into sections which can be replied to, each having one image or block of text. Letting people reply to specific things on the profile will improve intro quality.
 // TODO: A profile prompts. e.g. "If I had three wishes, I'd wish for...", "My favourite move is..."
 // TODO: Picture verification and a way to filter users by verified pics
 
-// TODO: Add more ways to sign up. Make sign-up really, really easy
 // TODO: Think more about mechanisms in place to stop women getting too many messages. Think about the setting which lets women message first. e.g. The initial message filter tells you what you *shouldn't* do; It'd be nice to have something which tells you what you should do. Is it okay to let anyone message anyone else by default?
 //
-// TODO: Users should alter their own scores, not the scores of others
-// TODO: X-Frame-Options: DENY
-// TODO: Try minifying the app
-// TODO: Quiz card stack doesn't update after logging out
 // TODO: What happens if you leave the app to get the OTP from your emails?
 
 
@@ -130,6 +126,8 @@ type SignedInUser = {
   sessionToken: string
 };
 
+type ServerStatus = "ok" | "down for maintenance" | "please update";
+
 let referrerId: string | undefined;
 let setReferrerId: React.Dispatch<React.SetStateAction<typeof referrerId>>;
 
@@ -138,6 +136,7 @@ let setSignedInUser: React.Dispatch<React.SetStateAction<typeof signedInUser>>;
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
   [signedInUser, setSignedInUser] = useState<SignedInUser | undefined>();
   [referrerId, setReferrerId] = useState<string | undefined>();
 
@@ -186,6 +185,38 @@ const App = () => {
     }
   }, []);
 
+  const fetchServerStatusState = useCallback(async () => {
+    const response = await japi('GET', STATUS_URL);
+    if (!response.ok) {
+      // If even the status server is down, things are *very* not-okay. But odds
+      // are it can't be contacted because the user has a crappy internet
+      // connection. The "You're offline" notice should still provide some
+      // feedback.
+      setServerStatus("ok");
+      return;
+    }
+
+    const j = response.json;
+    const apiVersion = j.api_version;
+    const reportedStatus = j.statuses[j.status_index];
+
+    const latestServerStatus: ServerStatus = (() => {
+      if (reportedStatus === "down for maintenance") {
+        return reportedStatus;
+      } else if (!SUPPORTED_API_VERSIONS.includes(apiVersion)) {
+        return "please update";
+      } else if (reportedStatus === "ok") {
+        return reportedStatus;
+      } else {
+        return "down for maintenance";
+      }
+    })();
+
+    if (serverStatus !== latestServerStatus) {
+      setServerStatus(latestServerStatus);
+    }
+  }, [serverStatus]);
+
   const updateReferrerId = useCallback(async () => {
     const initialUrl = await Linking.getInitialURL();
     if (!initialUrl) return void setReferrerId(undefined);
@@ -201,11 +232,29 @@ const App = () => {
         lockScreenOrientation(),
         fetchSignInState(),
         updateReferrerId(),
+        fetchServerStatusState(),
       ]);
 
       setIsLoading(false);
     })();
   }, []);
+
+  useEffect(() => {
+    // Without this flag, an infinite loop will start each time this effect
+    // starts, which would effectively be whenever the server's status changes.
+    // That would lead to multiple infinite loops running concurrently.
+    var doBreak = false;
+
+    (async () => {
+      while (true) {
+        await delay(5000);
+        await fetchServerStatusState();
+        if (doBreak) break;
+      }
+    })();
+
+    return () => { doBreak = true; };
+  }, [fetchServerStatusState]);
 
   useEffect(() => {
     (async () => {
@@ -222,6 +271,10 @@ const App = () => {
       await SplashScreen.hideAsync();
     }
   }, [isLoading]);
+
+  if (serverStatus !== "ok") {
+    return <UtilityScreen serverStatus={serverStatus}/>
+  }
 
   return (
     <>

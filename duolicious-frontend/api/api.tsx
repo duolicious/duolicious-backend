@@ -5,6 +5,8 @@ import * as _ from "lodash";
 import { sessionToken } from '../kv-storage/session-token';
 import { Buffer } from "buffer";
 
+const SUPPORTED_API_VERSIONS = [1];
+
 type ApiResponse = {
   ok: boolean
   clientError: boolean
@@ -27,7 +29,11 @@ const api = async (
 
     const existingSessionToken = await sessionToken();
 
-    const url = `${API_URL}${endpoint}`;
+    const startsWithHttp = (
+      endpoint.startsWith('http://') || endpoint.startsWith('https://'));
+    const url = startsWithHttp ?
+      endpoint :
+      `${API_URL}${endpoint}`;
 
     const init_ = _.merge(
       { method: method.toUpperCase() },
@@ -47,7 +53,7 @@ const api = async (
       response = await fetch(url, init_);
       break;
     } catch (error) {
-      const timeoutSeconds = Math.pow(2, Math.min(6, numRetries++));
+      const timeoutSeconds = Math.min(32, Math.pow(2, numRetries++));
 
       // TODO: There should be a message in the UI saying "you're offline" or something
       console.log(`Waiting ${timeoutSeconds} seconds and trying again; Caught error while fetching ${url}`, error);
@@ -129,6 +135,7 @@ const mapi = async (
 };
 
 export {
+  SUPPORTED_API_VERSIONS,
   api,
   japi,
   mapi,
