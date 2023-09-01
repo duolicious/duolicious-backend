@@ -643,7 +643,7 @@ WITH photo AS (
     FROM orientation JOIN person ON orientation_id = orientation.id
     WHERE person.id = %(person_id)s
 ), location AS (
-    SELECT short_friendly AS j
+    SELECT long_friendly AS j
     FROM location
     ORDER BY coordinates <-> (
         SELECT coordinates FROM person WHERE id = %(person_id)s
