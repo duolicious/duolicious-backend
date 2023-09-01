@@ -16,7 +16,7 @@ WITH deleted_search_cache AS (
     WHERE searcher_person_id = %(searcher_person_id)s
 )
 SELECT
-    distance
+    1000 * distance AS distance
 FROM
     person
 JOIN
