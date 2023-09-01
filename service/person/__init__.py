@@ -215,17 +215,48 @@ def _send_otp(email: str, otp: str):
        "to": [ { "email": email } ],
        "subject": "Verify Your Email",
        "htmlContent": f"""
+<!DOCTYPE html>
 <html lang="en">
-    <head>
-        <title>Verify Your Email</title>
-    </head>
-    <body>
-        <div style="padding: 20px; font-family: Helvetica, sans-serif; background-color: #70f; max-width: 600px; color: white; margin: 40px auto; text-align: center;">
-            <p style="color: white; font-weight: 900;">Your Duolicious one-time password is</p>
-            <strong style="font-weight: 900; display: inline-block; font-size: 200%; background-color: white; color: #70f; padding: 15px; margin: 10px;">{otp}</strong>
-            <p style="color: white; font-weight: 900;">If you didn’t request this, you can ignore this message.</p>
-        </div>
-    </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif;">
+    <table width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
+        <tr>
+            <td align="center">
+                <table width="600" cellspacing="0" cellpadding="0" border="0" align="center">
+                    <tr>
+                        <td bgcolor="#70f" align="center">
+                            <img src="https://email-assets.duolicious.app/header-logo.png" alt="Duolicious Logo" width="108" height="50" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#f1e5ff" height="20">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#f1e5ff" align="center" style="color: #70f;">
+                            <p style="color: #70f; font-size: 16px">Your one-time password is:</p>
+                            <table cellspacing="0" cellpadding="0" border="0" align="center">
+                                <tr>
+                                    <td bgcolor="#70f" style="font-weight: 900; font-size: 32px; color: white; padding: 15px; border-radius: 15px;">{otp}</td>
+                                </tr>
+                            </table>
+                            <p style="color: #70f; font-size: 16px">If you didn’t request this, you can ignore this message.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#f1e5ff" height="20">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#70f" height="50">&nbsp;</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
 </html>
 """
     }
