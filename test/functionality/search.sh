@@ -149,6 +149,31 @@ test_basic_height () {
   test_range height_cm
 }
 
+test_basic_furthest_distance () {
+  setup
+
+  local response=$(jc POST /request-otp -d '{ "email": "user1@example.com" }')
+  SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
+  jc POST /check-otp -d '{ "otp": "000000" }'
+  jc PATCH /profile-info -d '{ "location": "Sydney, New South Wales, Australia" }'
+
+  local response=$(jc POST /request-otp -d '{ "email": "user2@example.com" }')
+  SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
+  jc POST /check-otp -d '{ "otp": "000000" }'
+  jc PATCH /profile-info -d '{ "location": "Timbuktu, Tombouctou, Mali" }'
+
+  local response=$(jc POST /request-otp -d '{ "email": "searcher@example.com" }')
+  SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
+  jc POST /check-otp -d '{ "otp": "000000" }'
+  jc PATCH /profile-info -d '{ "location": "Sydney Olympic Park, New South Wales, Australia" }'
+
+  jc POST /search-filter -d '{ "furthest_distance": 50 }'
+  assert_search_names user1
+
+  jc POST /search-filter -d '{ "furthest_distance": null }'
+  assert_search_names 'user1 user2'
+}
+
 test_search_cache () {
   setup
   q "delete from search_cache"
@@ -443,6 +468,7 @@ test_search_cache
 test_basic gender Man
 test_basic orientation Straight
 test_basic_age
+test_basic_furthest_distance
 test_basic_height
 test_basic has_profile_picture 'Yes' yes_no
 test_basic looking_for 'Long-term dating'
