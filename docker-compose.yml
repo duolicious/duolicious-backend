@@ -50,6 +50,11 @@ services:
       DUO_R2_ACCT_ID: ${DUO_R2_ACCT_ID}
       DUO_R2_ACCESS_KEY_ID: ${DUO_R2_ACCESS_KEY_ID}
       DUO_R2_ACCESS_KEY_SECRET: ${DUO_R2_ACCESS_KEY_SECRET}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   chat:
     build:
@@ -72,6 +77,32 @@ services:
       DUO_DB_USER: postgres
       DUO_DB_PASS: password
       DUO_DB_NAME: duo_chat
+    healthcheck:
+      test: ["CMD", "bash", "-c", "[[ -e /db-initialized ]]"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  cron:
+    build:
+      context: .
+      dockerfile: cron.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chat:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    volumes:
+      - .:/app:ro
+    environment:
+      DUO_DB_HOST: postgres
+      DUO_DB_PORT: 5432
+      DUO_DB_USER: postgres
+      DUO_DB_PASS: password
+      DUO_DB_CHAT_NAME: duo_chat
+      DUO_DB_API_NAME: duo_api
 
 networks:
   default:

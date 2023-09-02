@@ -26,13 +26,17 @@ _chat_conninfo = psycopg.conninfo.make_conninfo(
     password=DB_PASS,
 )
 
-def join_lists_of_dicts(l1, l2, join_key):
-    lookup1 = {item[join_key]: item for item in l1}
-    lookup2 = {item[join_key]: item for item in l2}
+def join_lists_of_dicts(list1, list2, join_key):
+    lookup1 = {item[join_key]: item for item in list1}
+    lookup2 = {item[join_key]: item for item in list2}
 
     all_keys = set(lookup1.keys()) | set(lookup2.keys())
 
-    return [{**lookup1[k], **lookup2[k]} for k in all_keys]
+    return [
+        {**lookup1[k], **lookup2[k]}
+        for k in all_keys
+        if k in lookup1 and k in lookup2
+    ]
 
 
 async def maybe_send_notifications():
@@ -57,10 +61,13 @@ async def maybe_send_notifications():
     )
     rows_notification_settings = await cur_notification_settings.fetchall()
 
+    joined = join_lists_of_dicts(
+        rows_unread_inbox,
+        rows_notification_settings,
+        'person_id',
+    )
 
-    for row in rows_unread_inbox:
-        print(row)
-    for row in rows_notification_settings:
+    for row in joined:
         print(row)
 
     # TODO: Close connexions
@@ -72,14 +79,9 @@ async def periodic_task(name: str, interval: int):
         await asyncio.sleep(interval)
 
 async def main():
-    # Start three tasks with different intervals
-    # task1 = periodic_task('Task 1', 1)  # Prints every 1 second
-    # task2 = periodic_task('Task 2', 2)  # Prints every 2 seconds
-    # task3 = periodic_task('Task 3', 3)  # Prints every 3 seconds
+    task1 = periodic_task('Task 1', 60)
 
-    # await asyncio.gather(task1, task2, task3, maybe_send_notifications())
-
-    await asyncio.gather(maybe_send_notifications())
+    await asyncio.gather(task1, maybe_send_notifications())
 
 if __name__ == '__main__':
     asyncio.run(main())

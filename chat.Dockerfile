@@ -26,5 +26,5 @@ RUN : \
 
 CMD : \
   && /init-db.sh \
-  && /app/chat.main.sh &: \
+  && ( /app/chat.main.sh & ) \
   && /start.sh
