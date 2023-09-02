@@ -33,6 +33,7 @@ WITH ten_days_ago AS (
         username
 )
 SELECT
+    unfiltered_notifications.username,
     unfiltered_notifications.username::int AS person_id,
     COALESCE(duo_last_notification.seconds, 0) AS last_notification_seconds,
     unfiltered_notifications.intros,
@@ -48,12 +49,15 @@ LEFT JOIN
 ON
     duo_last_notification.username = unfiltered_notifications.username
 WHERE
-    -- only notify users whose last activity was longer than ten minutes ago
-    COALESCE(last.seconds, 0) < (SELECT seconds FROM ten_minutes_ago)
-AND
     -- only notify users we haven't already notified
     unfiltered_notifications.last_message_seconds > COALESCE(duo_last_notification.seconds, 0)
 """
+
+# TODO
+# AND
+#     -- only notify users whose last activity was longer than ten minutes ago
+#     COALESCE(last.seconds, 0) < (SELECT seconds FROM ten_minutes_ago)
+# """
 
 Q_NOTIFICATION_SETTINGS = """
 SELECT
@@ -89,7 +93,6 @@ WHERE
     id = ANY(%(ids)s)
 """
 
-# TODO
 Q_UPDATE_LAST_NOTIFICATION_TIME = """
 INSERT INTO duo_last_notification (
     username,
@@ -102,7 +105,4 @@ ON CONFLICT (username) DO UPDATE SET
     seconds = EXCLUDED.seconds
 """
 
-# TODO: You need to batch emails in at most 100, because of brevo's limitations
-# TODO: Replace '10 minutes' with correct intervals, based on how often the XMPP
-#       clients send activity
 # TODO: Select correct XMPP update interval in the frontend

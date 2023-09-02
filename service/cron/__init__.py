@@ -1,9 +1,13 @@
 # TODO: Don't literally send notifications immediately. Wait a few minutes, even if the person hasn't been online for a while
-from service.cron.sql import *
 from service.cron.emailtemplate import emailtemplate
+from service.cron.sql import *
 import asyncio
 import os
 import psycopg
+import urllib.request
+import json
+from dataclasses import dataclass
+from typing import List
 
 EMAIL_KEY = os.environ['DUO_EMAIL_KEY']
 EMAIL_URL = os.environ['DUO_EMAIL_URL']
@@ -31,6 +35,19 @@ _chat_conninfo = psycopg.conninfo.make_conninfo(
     password=DB_PASS,
 )
 
+@dataclass
+class PersonNotification:
+    person_id: int
+    username: str
+    last_notification_seconds: int
+    intros: bool
+    chats: bool
+    now_seconds: int
+    name: str
+    email: str
+    chats_drift_seconds: int
+    intros_drift_seconds: int
+
 def join_lists_of_dicts(list1, list2, join_key):
     lookup1 = {item[join_key]: item for item in list1}
     lookup2 = {item[join_key]: item for item in list2}
@@ -43,32 +60,33 @@ def join_lists_of_dicts(list1, list2, join_key):
         if k in lookup1 and k in lookup2
     ]
 
-def do_send(row):
-    email = row["email"]
-    has_intros = row["intros"]
-    has_chats = row["chats"]
-    intros_drift_seconds = row["intros_drift_seconds"]
-    chats_drift_seconds = row["chats_drift_seconds"]
-    last_notification_seconds = row["last_notification_seconds"]
-    now_seconds = row["now_seconds"]
+def do_send(row: PersonNotification):
+    email = row.email
+    has_intros = row.intros
+    has_chats = row.chats
+    intros_drift_seconds = row.intros_drift_seconds
+    chats_drift_seconds = row.chats_drift_seconds
+    last_notification_seconds = row.last_notification_seconds
+    now_seconds = row.now_seconds
 
     is_intro_sendable = (
         has_intros and
         intros_drift_seconds >= 0 and
-        last_notification_seconds + intros_drift_seconds < now_seconds)
+        last_notification_seconds + intros_drift_seconds < now_seconds
+    )
 
     is_chat_sendable = (
         has_chats and
         chats_drift_seconds >= 0 and
-        last_notification_seconds + chats_drift_seconds < now_seconds)
+        last_notification_seconds + chats_drift_seconds < now_seconds
+    )
 
     is_example = email.lower().endswith('@example.com')
 
     return (is_intro_sendable or is_chat_sendable) and not is_example
 
-async def maybe_send_notification(chat_conn, row):
-    print(row, flush=True) # TODO
 
+async def maybe_send_notification(chat_conn, row: PersonNotification):
     if not do_send(row):
         return
 
@@ -83,11 +101,11 @@ async def maybe_send_notification(chat_conn, row):
           "name": "Duolicious",
           "email": "no-reply@duolicious.app"
        },
-       "to": [ { "email": email } ],
+       "to": [ { "email": row.email } ],
        "subject": "You Have a New Message!",
        "htmlContent": emailtemplate(
-           has_intro=row['intros'],
-           chats=row['chats'],
+           has_intro=row.intros,
+           has_chat=row.chats,
        )
     }
 
@@ -99,19 +117,17 @@ async def maybe_send_notification(chat_conn, row):
 
     # Send notification
     try:
-        print(data, flush=True) # TODO
-        # TODO
-        # with urllib.request.urlopen(urllib_req) as f:
-        #     pass
+        with urllib.request.urlopen(urllib_req) as f:
+            pass
     except: # YOLO
         pass
 
     # Update last notification time
     params = dict(
-        username=row['username'],
-        seconds=row['now_seconds'],
+        username=row.username,
+        seconds=row.now_seconds,
     )
-    await chat_conn.execute(Q_UPDATE_LAST_NOTIFICATION_TIME)
+    await chat_conn.execute(Q_UPDATE_LAST_NOTIFICATION_TIME, params)
     await chat_conn.commit()
 
 
@@ -130,7 +146,6 @@ async def send_notifications_once():
         Q_UNREAD_INBOX,
     )
     rows_unread_inbox = await cur_unread_inbox.fetchall()
-    print(rows_unread_inbox, flush=True) # TODO
 
     cur_notification_settings = await api_conn.execute(
         Q_NOTIFICATION_SETTINGS,
@@ -138,23 +153,12 @@ async def send_notifications_once():
     )
     rows_notification_settings = await cur_notification_settings.fetchall()
 
-    # Example of a joined row:
-    #     {
-    #         'person_id': 2,
-    #         'last_message_seconds': 1693636581,
-    #         'intros': True,
-    #         'chats': False,
-    #         'now_seconds': 1693636586,
-    #         'name': 'user2',
-    #         'email': 'user2@example.com',
-    #         'chats_drift_seconds': 0,
-    #         'intros_drift_seconds': 86400
-    #     }
     joined = join_lists_of_dicts(
         rows_unread_inbox,
         rows_notification_settings,
         'person_id',
     )
+    typed = [PersonNotification(**j) for j in joined]
 
     for row in joined:
         await maybe_send_notification(chat_conn, row)
