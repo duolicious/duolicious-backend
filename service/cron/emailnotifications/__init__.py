@@ -132,13 +132,7 @@ def send_notification(row: PersonNotification):
         except: # YOLO
             pass
 
-async def maybe_send_notification(chat_conn, row: PersonNotification):
-    if not do_send(row):
-        return
-
-    send_notification()
-
-    # Update last notification time
+async def update_last_notification_time(chat_conn, row: PersonNotification):
     params = dict(
         username=row.username,
         seconds=row.now_seconds,
@@ -146,6 +140,12 @@ async def maybe_send_notification(chat_conn, row: PersonNotification):
     await chat_conn.execute(Q_UPDATE_LAST_NOTIFICATION_TIME, params)
     await chat_conn.commit()
 
+async def maybe_send_notification(chat_conn, row: PersonNotification):
+    if not do_send(row):
+        return
+
+    send_notification(row)
+    await update_last_notification_time(chat_conn, row)
 
 async def send_notifications_once():
     api_conn  = await psycopg.AsyncConnection.connect(
@@ -158,9 +158,7 @@ async def send_notifications_once():
         row_factory=psycopg.rows.dict_row
     )
 
-    cur_unread_inbox = await chat_conn.execute(
-        Q_UNREAD_INBOX,
-    )
+    cur_unread_inbox = await chat_conn.execute(Q_UNREAD_INBOX)
     rows_unread_inbox = await cur_unread_inbox.fetchall()
 
     cur_notification_settings = await api_conn.execute(
@@ -174,9 +172,9 @@ async def send_notifications_once():
         rows_notification_settings,
         'person_id',
     )
-    typed = [PersonNotification(**j) for j in joined]
+    person_notifications = [PersonNotification(**j) for j in joined]
 
-    for row in joined:
+    for row in person_notifications:
         await maybe_send_notification(chat_conn, row)
 
     await api_conn.close()
