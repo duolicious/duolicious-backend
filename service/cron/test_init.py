@@ -1,5 +1,5 @@
 import unittest
-from service.cron import join_lists_of_dicts
+from service.cron import do_send, join_lists_of_dicts
 
 class TestJoinListsOfDicts(unittest.TestCase):
 
@@ -42,6 +42,90 @@ class TestJoinListsOfDicts(unittest.TestCase):
         ]
 
         self.assertEqual(result, expected)
+
+class TestDoSend(unittest.TestCase):
+
+    def test_stuff(self):
+        self.assertFalse(do_send(dict(
+            email='asdf@exaMPle.com',
+            intros=True,
+            chats=True,
+            now_seconds=1,
+            last_notification_seconds=0,
+            intros_drift_seconds=0,
+            chats_drift_seconds=0)))
+
+        self.assertFalse(do_send(dict(
+            email='asdf@notexample.com',
+            intros=True,
+            chats=True,
+            now_seconds=1,
+            last_notification_seconds=0,
+            intros_drift_seconds=-1,
+            chats_drift_seconds=-1)))
+
+        self.assertFalse(do_send(dict(
+            email='asdf@notexample.com',
+            intros=False,
+            chats=True,
+            now_seconds=1,
+            last_notification_seconds=0,
+            intros_drift_seconds=0,
+            chats_drift_seconds=-1)))
+
+        self.assertFalse(do_send(dict(
+            email='asdf@notexample.com',
+            intros=True,
+            chats=False,
+            now_seconds=1,
+            last_notification_seconds=0,
+            intros_drift_seconds=-1,
+            chats_drift_seconds=0)))
+
+        self.assertTrue(do_send(dict(
+            email='asdf@notexample.com',
+            intros=True,
+            chats=True,
+            now_seconds=1,
+            last_notification_seconds=0,
+            intros_drift_seconds=0,
+            chats_drift_seconds=0)))
+
+        self.assertTrue(do_send(dict(
+            email='asdf@notexample.com',
+            intros=True,
+            chats=False,
+            now_seconds=100,
+            last_notification_seconds=90,
+            intros_drift_seconds=5,
+            chats_drift_seconds=50)))
+
+        self.assertTrue(do_send(dict(
+            email='asdf@notexample.com',
+            intros=False,
+            chats=True,
+            now_seconds=100,
+            last_notification_seconds=90,
+            intros_drift_seconds=50,
+            chats_drift_seconds=5)))
+
+        self.assertFalse(do_send(dict(
+            email='asdf@notexample.com',
+            intros=True,
+            chats=False,
+            now_seconds=100,
+            last_notification_seconds=90,
+            intros_drift_seconds=50,
+            chats_drift_seconds=5)))
+
+        self.assertFalse(do_send(dict(
+            email='asdf@notexample.com',
+            intros=False,
+            chats=True,
+            now_seconds=100,
+            last_notification_seconds=90,
+            intros_drift_seconds=5,
+            chats_drift_seconds=50)))
 
 if __name__ == '__main__':
     unittest.main()

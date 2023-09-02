@@ -1,5 +1,11 @@
 Q_UNREAD_INBOX = """
-WITH ten_minutes_ago AS (
+WITH ten_days_ago AS (
+    SELECT
+        (SELECT (EXTRACT(EPOCH FROM (
+            NOW() - INTERVAL '10 days')))::bigint) AS seconds,
+        (SELECT (EXTRACT(EPOCH FROM (
+            NOW() - INTERVAL '10 days')) * 1000000)::bigint) AS microseconds
+), ten_minutes_ago AS (
     SELECT
         (SELECT (EXTRACT(EPOCH FROM (
             NOW() - INTERVAL '10 minutes')))::bigint) AS seconds,
@@ -15,10 +21,7 @@ WITH ten_minutes_ago AS (
     WHERE
         unread_count > 0
     AND
-        -- As a performance optimization, we only consider recently sent
-        -- messages. This'll result in dropped messages if the app is down for
-        -- too long.
-        timestamp > (SELECT microseconds FROM ten_minutes_ago)
+        timestamp > (SELECT microseconds FROM ten_days_ago)
 ), unfiltered_notifications AS (
     SELECT
         username,
@@ -31,7 +34,7 @@ WITH ten_minutes_ago AS (
 )
 SELECT
     unfiltered_notifications.username::int AS person_id,
-    unfiltered_notifications.last_message_seconds,
+    COALESCE(duo_last_notification.seconds, 0) AS last_notification_seconds,
     unfiltered_notifications.intros,
     unfiltered_notifications.chats,
     (SELECT EXTRACT(EPOCH FROM NOW())::bigint) AS now_seconds
