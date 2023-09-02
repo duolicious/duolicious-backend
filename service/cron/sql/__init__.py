@@ -23,7 +23,7 @@ WITH ten_minutes_ago AS (
     SELECT
         username,
         MAX(seconds) AS last_message_seconds,
-        BOOL_OR(CASE WHEN box = 'inbox' THEN TRUE ELSE FALSE END) AS inbox,
+        BOOL_OR(CASE WHEN box = 'inbox' THEN TRUE ELSE FALSE END) AS intros,
         BOOL_OR(CASE WHEN box = 'chats' THEN TRUE ELSE FALSE END) AS chats
     FROM filtered_inbox
     GROUP BY
@@ -32,7 +32,7 @@ WITH ten_minutes_ago AS (
 SELECT
     unfiltered_notifications.username::int AS person_id,
     unfiltered_notifications.last_message_seconds,
-    unfiltered_notifications.inbox,
+    unfiltered_notifications.intros,
     unfiltered_notifications.chats,
     (SELECT EXTRACT(EPOCH FROM NOW())::bigint) AS now_seconds
 FROM unfiltered_notifications
@@ -46,25 +46,41 @@ ON
     duo_last_notification.username = unfiltered_notifications.username
 WHERE
     -- only notify users whose last activity was longer than ten minutes ago
-    last.seconds < (SELECT seconds FROM ten_minutes_ago)
+    COALESCE(last.seconds, 0) < (SELECT seconds FROM ten_minutes_ago)
 AND
     -- only notify users we haven't already notified
     unfiltered_notifications.last_message_seconds > COALESCE(duo_last_notification.seconds, 0)
 """
 
-# TODO: Possible values
-# INSERT INTO immediacy (name) VALUES ('Immediately') ON CONFLICT (name) DO NOTHING;
-# INSERT INTO immediacy (name) VALUES ('Daily') ON CONFLICT (name) DO NOTHING;
-# INSERT INTO immediacy (name) VALUES ('Every 3 days') ON CONFLICT (name) DO NOTHING;
-# INSERT INTO immediacy (name) VALUES ('Weekly') ON CONFLICT (name) DO NOTHING;
-# INSERT INTO immediacy (name) VALUES ('Never') ON CONFLICT (name) DO NOTHING;
-
-Q_EMAILS = """
+Q_NOTIFICATION_SETTINGS = """
 SELECT
-    id::text AS username,
+    id AS person_id,
+    name,
     email,
-    (SELECT name FROM immediacy WHERE immediacy.id = chats_notification),
-    (SELECT name FROM immediacy WHERE immediacy.id = intros_notification)
+    (
+        SELECT
+            CASE
+            WHEN name = 'Immediately'  THEN 0
+            WHEN name = 'Daily'        THEN 86400
+            WHEN name = 'Every 3 days' THEN 259200
+            WHEN name = 'Weekly'       THEN 604800
+            WHEN name = 'Never'        THEN -1
+            ELSE                            0
+            END AS chats_drift_seconds
+        FROM immediacy WHERE immediacy.id = chats_notification
+    ),
+    (
+        SELECT
+            CASE
+            WHEN name = 'Immediately'  THEN 0
+            WHEN name = 'Daily'        THEN 86400
+            WHEN name = 'Every 3 days' THEN 259200
+            WHEN name = 'Weekly'       THEN 604800
+            WHEN name = 'Never'        THEN -1
+            ELSE                            0
+            END AS intros_drift_seconds
+        FROM immediacy WHERE immediacy.id = intros_notification
+    )
 FROM person
 WHERE
     id = ANY(%(ids)s)

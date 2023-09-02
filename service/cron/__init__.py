@@ -26,6 +26,15 @@ _chat_conninfo = psycopg.conninfo.make_conninfo(
     password=DB_PASS,
 )
 
+def join_lists_of_dicts(l1, l2, join_key):
+    lookup1 = {item[join_key]: item for item in l1}
+    lookup2 = {item[join_key]: item for item in l2}
+
+    all_keys = set(lookup1.keys()) | set(lookup2.keys())
+
+    return [{**lookup1[k], **lookup2[k]} for k in all_keys]
+
+
 async def maybe_send_notifications():
     api_conn  = await psycopg.AsyncConnection.connect(
         _api_conninfo,
@@ -37,10 +46,24 @@ async def maybe_send_notifications():
         row_factory=psycopg.rows.dict_row
     )
 
-    rows = await(await chat_conn.execute(Q_UNREAD_INBOX)).fetchall()
+    cur_unread_inbox = await chat_conn.execute(
+        Q_UNREAD_INBOX,
+    )
+    rows_unread_inbox = await cur_unread_inbox.fetchall()
 
-    for row in rows:
+    cur_notification_settings = await api_conn.execute(
+        Q_NOTIFICATION_SETTINGS,
+        params=dict(ids=[r['person_id'] for r in rows_unread_inbox])
+    )
+    rows_notification_settings = await cur_notification_settings.fetchall()
+
+
+    for row in rows_unread_inbox:
         print(row)
+    for row in rows_notification_settings:
+        print(row)
+
+    # TODO: Close connexions
 
 async def periodic_task(name: str, interval: int):
     """A task that prints a given name every specified interval."""
