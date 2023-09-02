@@ -1,0 +1,9 @@
+services:
+  status:
+    volumes: []
+
+  api:
+    volumes: []
+
+  chat:
+    volumes: []
