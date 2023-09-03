@@ -26,6 +26,7 @@ jobs:
       - name: Run unit tests
         run: ./test/util/with-container.sh ./test/unit/unit.sh --no-sudo
         env:
+          DUO_DRY_RUN: true
           DUO_R2_ACCESS_KEY_ID: ${{ secrets.DUO_R2_ACCESS_KEY_ID }}
           DUO_R2_ACCESS_KEY_SECRET: ${{ secrets.DUO_R2_ACCESS_KEY_SECRET }}
           DUO_R2_ACCT_ID: ${{ secrets.DUO_R2_ACCT_ID }}

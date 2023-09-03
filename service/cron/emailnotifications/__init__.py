@@ -75,6 +75,8 @@ def do_send(row: PersonNotification):
     last_notification_seconds = row.last_notification_seconds
     now_seconds = row.now_seconds
 
+    print(row, flush=True) # TODO
+
     is_intro_sendable = (
         has_intros and
         intros_drift_seconds >= 0 and
