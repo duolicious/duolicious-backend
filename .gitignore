@@ -4,4 +4,4 @@ __pycache__
 
 venv/
 
-test/output/
+test/output/*
