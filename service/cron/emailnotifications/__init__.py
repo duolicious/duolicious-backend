@@ -124,7 +124,7 @@ def send_notification(row: PersonNotification):
     if DRY_RUN:
         email_data = dict(
             full_url=req.full_url,
-            headers=req.headers,
+            headers=req.headers | {'Api-key': 'redacted'},
             data=req.data.decode('utf8'),
         )
         email_data_str = json.dumps(email_data) + '\n'
