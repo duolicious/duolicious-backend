@@ -1,4 +1,5 @@
 from service.cron.emailnotifications import send_notifications_forever
+import asyncio
 
 async def main():
     await asyncio.gather(

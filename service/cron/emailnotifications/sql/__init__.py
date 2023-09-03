@@ -51,16 +51,13 @@ ON
 WHERE
     -- only notify users we haven't already notified
     unfiltered_notifications.last_message_seconds > COALESCE(duo_last_notification.seconds, 0)
+AND
+    -- only notify users whose last activity was longer than ten minutes ago
+    COALESCE(last.seconds, 0) < (SELECT seconds FROM ten_minutes_ago)
+AND
+    -- only notify users about messages sent longer than ten minutes ago
+    unfiltered_notifications.last_message_seconds < (SELECT seconds FROM ten_minutes_ago)
 """
-
-# TODO
-# AND
-#     -- only notify users whose last activity was longer than ten minutes ago
-#     COALESCE(last.seconds, 0) < (SELECT seconds FROM ten_minutes_ago)
-# AND
-#     -- only notify users about messages sent longer than ten minutes ago
-#     unfiltered_notifications.last_message_seconds < (SELECT seconds FROM ten_minutes_ago)
-# """
 
 Q_NOTIFICATION_SETTINGS = """
 SELECT

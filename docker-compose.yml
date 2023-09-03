@@ -95,8 +95,9 @@ services:
       api:
         condition: service_healthy
     volumes:
-      - .:/app:ro
+      - .:/app
     environment:
+      DUO_DRY_RUN: ${DUO_DRY_RUN}
       DUO_EMAIL_KEY: ${DUO_EMAIL_KEY}
       DUO_EMAIL_URL: ${DUO_EMAIL_URL}
       DUO_DB_HOST: postgres

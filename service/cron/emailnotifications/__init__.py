@@ -1,15 +1,15 @@
 # TODO: Don't literally send notifications immediately. Wait a few minutes, even if the person hasn't been online for a while
-from service.cron.emailnotifications.template import emailtemplate
+from dataclasses import dataclass
 from service.cron.emailnotifications.sql import *
+from service.cron.emailnotifications.template import emailtemplate
 import asyncio
+import json
 import os
 import psycopg
 import urllib.request
-import json
-from dataclasses import dataclass
-from typing import List
 
-DRY_RUN = os.environ.get('DUO_DRY_RUN', '').lower() not in ['false', 'f', '0', 'no']
+DRY_RUN = os.environ.get('DUO_DRY_RUN', '').lower() not in [
+    'false', 'f', '0', 'no', '']
 
 EMAIL_KEY = os.environ['DUO_EMAIL_KEY']
 EMAIL_URL = os.environ['DUO_EMAIL_URL']
@@ -20,6 +20,10 @@ DB_USER      = os.environ['DUO_DB_USER']
 DB_PASS      = os.environ['DUO_DB_PASS']
 DB_CHAT_NAME = os.environ['DUO_DB_CHAT_NAME']
 DB_API_NAME  = os.environ['DUO_DB_API_NAME']
+
+_emails_file = os.path.join(
+        os.path.dirname(__file__), '..', '..', '..',
+        'test/output/cron-emails')
 
 _api_conninfo = psycopg.conninfo.make_conninfo(
     host=DB_HOST,
@@ -101,7 +105,7 @@ def new_notification_req(row: PersonNotification):
        },
        "to": [ { "email": row.email } ],
        "subject": "You Have a New Message!",
-       "htmlContent": template(
+       "htmlContent": emailtemplate(
            has_intro=row.intros,
            has_chat=row.chats,
        )
@@ -120,11 +124,11 @@ def send_notification(row: PersonNotification):
         email_data = dict(
             full_url=req.full_url,
             headers=req.headers,
-            data=req.data,
+            data=req.data.decode('utf8'),
         )
         email_data_str = json.dumps(email_data) + '\n'
 
-        with open(filename, 'a') as f:
+        with open(_emails_file, 'a') as f:
             f.write(email_data_str)
     else:
         try:
@@ -160,6 +164,7 @@ async def send_notifications_once():
 
     cur_unread_inbox = await chat_conn.execute(Q_UNREAD_INBOX)
     rows_unread_inbox = await cur_unread_inbox.fetchall()
+    print(rows_unread_inbox, flush=True) # TODO
 
     cur_notification_settings = await api_conn.execute(
         Q_NOTIFICATION_SETTINGS,
