@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS duo_last_notification (
     PRIMARY KEY (username)
 );
 
--- TODO: What other indexes do I need?
 CREATE INDEX duo_idx__inbox__timestamp__unread_count
 ON inbox(timestamp, unread_count)
 WHERE unread_count > 0;

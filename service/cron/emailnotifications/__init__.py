@@ -1,4 +1,3 @@
-# TODO: Don't literally send notifications immediately. Wait a few minutes, even if the person hasn't been online for a while
 from dataclasses import dataclass
 from service.cron.emailnotifications.sql import *
 from service.cron.emailnotifications.template import emailtemplate
@@ -76,8 +75,6 @@ def do_send(row: PersonNotification):
     last_intro_notification_seconds = row.last_intro_notification_seconds
     last_chat_notification_seconds = row.last_chat_notification_seconds
     now_seconds = row.now_seconds
-
-    print(row, flush=True) # TODO
 
     is_intro_sendable = (
         has_intro and
@@ -171,7 +168,6 @@ async def send_notifications_once():
 
     cur_unread_inbox = await chat_conn.execute(Q_UNREAD_INBOX)
     rows_unread_inbox = await cur_unread_inbox.fetchall()
-    print(rows_unread_inbox, flush=True) # TODO
 
     cur_notification_settings = await api_conn.execute(
         Q_NOTIFICATION_SETTINGS,

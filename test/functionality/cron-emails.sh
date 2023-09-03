@@ -359,5 +359,3 @@ test_sad_still_active
 
 test_sad_already_notified_for_particular_message
 test_sad_already_notified_for_other_intro_in_drift_period
-
-# TODO: Should store usernames as userids instead, and index them as such, for performance?
