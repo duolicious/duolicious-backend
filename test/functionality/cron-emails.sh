@@ -8,28 +8,34 @@ source ../util/setup.sh
 set -ex
 
 ################################################################################
+#
 # duo_chat=# select * from last;
 #      server     | username |  seconds   | state
 # ----------------+----------+------------+-------
 #  duolicious.app | 2        | 1693678400 |
 # (1 row)
+#
 ################################################################################
+#
 # duo_chat=# select * from inbox;
 #  luser |    lserver     | remote_bare_jid  |                  msg_id                  |  box  | content |    timestamp     | muted_until | unread_count
 # -------+----------------+------------------+------------------------------------------+-------+---------+------------------+-------------+--------------
 #  2     | duolicious.app | 1@duolicious.app | Fv2SDTePaYDhaIANaCeqG8wDFFxHrQp6vTlGXB1Y | inbox |         | 1693678421648540 |           0 |            1
 #  1     | duolicious.app | 2@duolicious.app | Fv2SDTePaYDhaIANaCeqG8wDFFxHrQp6vTlGXB1Y | chats |         | 1693678421648540 |           0 |            0
 # (2 rows)
+#
 ################################################################################
+#
 # duo_api=# select id AS person_id, name, email, chats_drift_seconds, intros_drift_seconds from person;
 # ...
 # (? rows)
 ################################################################################
 # duo_chat=# select * from duo_last_notification;
-#  username |  seconds
-# ----------+------------
-#  2        | 1693678935
+#  username | intro_seconds | chat_seconds
+# ----------+---------------+--------------
+#  67       |    1693776210 |   1693778611
 # (1 row)
+#
 ################################################################################
 
 setup () {
@@ -116,7 +122,52 @@ test_happy_path_chats () {
 }
 
 test_happy_path_chat_not_deferred_by_intro () {
-  :; # TODO
+  setup
+
+  # Default drift period for intros (i.e. inbox messages) is 1 day = 86400 s.
+  local t1=$(db_now as-microseconds '- 50 minutes') # last intro
+  local t2=$(db_now as-seconds      '- 40 minutes') # last notification
+  local t3=$(db_now as-microseconds '- 30 minutes') # last chat
+
+  # Insert last notification
+  q "
+  insert into duo_last_notification
+  values
+    ($user1id, $t2)
+  " duo_chat
+  local rows=$(
+    q "select count(*)
+    from duo_last_notification
+    where username = '$user1id'
+    and chat_seconds = 0
+    and intro_seconds = $t2" duo_chat
+  )
+  [[ "$rows" = 1 ]]
+
+  # Insert last message
+  q "
+  insert into inbox
+  values
+    ($user1id, '', 'sender1', '', 'chats', '', ${t3}, 0, 42),
+    ($user1id, '', 'sender2', '', 'inbox', '', ${t1}, 0,  0)
+  " duo_chat
+  [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
+
+  sleep 2
+
+  # Cron service should still send chat notification
+  local rows=$(
+    q "select count(*)
+    from duo_last_notification
+    where username = '$user1id'
+    and chat_seconds != 0
+    and intro_seconds = $t2" duo_chat
+  )
+  [[ "$rows" = 1 ]]
+
+  diff \
+    ../../test/output/cron-emails \
+    ../../test/fixtures/cron-emails-happy-path-chat-not-deffered-by-intro
 }
 
 test_sad_sent_9_minutes_ago () {
@@ -131,7 +182,7 @@ test_sad_sent_9_minutes_ago () {
   insert into inbox
   values
     ($user1id, '', '', '', 'chats', '', ${time_interval}, 0, 42),
-    ($user2id, '', '', '', 'inbox', '', ${time_interval}, 0, 43)
+    ($user2id, '', '', '', 'chats', '', ${time_interval}, 0, 43)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -153,7 +204,7 @@ test_sad_sent_11_days_ago () {
   insert into inbox
   values
     ($user1id, '', '', '', 'chats', '', ${time_interval}, 0, 42),
-    ($user2id, '', '', '', 'inbox', '', ${time_interval}, 0, 43)
+    ($user2id, '', '', '', 'chats', '', ${time_interval}, 0, 43)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -175,7 +226,7 @@ test_sad_only_old_messages () {
   insert into inbox
   values
     ($user1id, '', '', '', 'chats', '', ${time_interval}, 0, 0),
-    ($user2id, '', '', '', 'inbox', '', ${time_interval}, 0, 0)
+    ($user2id, '', '', '', 'chats', '', ${time_interval}, 0, 0)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -203,8 +254,8 @@ test_sad_still_active () {
   q "
   insert into inbox
   values
-    ($user1id, '', '', '', 'inbox', '', ${t1}, 0, 42),
-    ($user2id, '', '', '', 'inbox', '', ${t1}, 0, 0)
+    ($user1id, '', '', '', 'chats', '', ${t1}, 0, 42),
+    ($user2id, '', '', '', 'chats', '', ${t1}, 0, 0)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -267,7 +318,9 @@ test_sad_already_notified_for_other_intro_in_drift_period () {
   local rows=$(
     q "select count(*)
     from duo_last_notification
-    where username = '$user1id' and seconds = $t1" duo_chat
+    where username = '$user1id'
+    and chat_seconds = 0
+    and intro_seconds = $t1" duo_chat
   )
   [[ "$rows" = 1 ]]
 
@@ -286,70 +339,25 @@ test_sad_already_notified_for_other_intro_in_drift_period () {
   local rows=$(
     q "select count(*)
     from duo_last_notification
-    where username = '$user1id' and seconds = $t1" duo_chat
+    where username = '$user1id'
+    and chat_seconds = 0
+    and intro_seconds = $t1" duo_chat
   )
   [[ "$rows" = 1 ]]
 
   [[ ! -s ../../test/output/cron-emails ]]
 }
 
+test_happy_path_intros
+test_happy_path_chats
+test_happy_path_chat_not_deferred_by_intro
 
-# An intro should be deferred if a chat was sent during the intro drift period
-test_sad_intro_deferred_by_chat_in_drift_period () {
-  setup
+test_sad_sent_9_minutes_ago
+test_sad_sent_11_days_ago
+test_sad_only_old_messages
+test_sad_still_active
 
-  # Default drift period for intros (i.e. inbox messages) is 1 day = 86400 s.
-  local t1=$(db_now as-microseconds '- 40 minutes') # last chat
-  local t2=$(db_now as-seconds      '- 30 minutes') # last notification
-  local t3=$(db_now as-microseconds '- 20 minutes') # last intro
-
-  # Insert last notification
-  q "
-  insert into duo_last_notification
-  values
-    ($user1id, $t2)
-  " duo_chat
-  local rows=$(q "select count(*) from duo_last_notification" duo_chat)
-  [[ "$rows" = 1 ]]
-
-  # Insert chat and intro
-  q "
-  insert into inbox
-  values
-    ($user1id, 'sender1', '', '', 'chats', '', ${t1}, 0, 42),
-    ($user1id, 'sender2', '', '', 'inbox', '', ${t3}, 0, 43)
-  " duo_chat
-  [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
-
-  sleep 2
-
-  # Cron service should prevent intros notification from being sent
-  local rows=$(
-    q "select count(*)
-    from duo_last_notification
-    where username = '$user1id' and seconds = $t2" duo_chat
-  )
-  [[ "$rows" = 1 ]]
-
-  [[ ! -s ../../test/output/cron-emails ]]
-}
-# TODO
-#test_happy_path_intros
-#test_happy_path_chats
-#
-#test_sad_sent_9_minutes_ago
-#test_sad_sent_11_days_ago
-#test_sad_only_old_messages
-#test_sad_only_old_messages
-#test_sad_still_active
-#test_sad_already_notified_for_particular_message
-#test_sad_already_notified_for_other_intro_in_drift_period
-test_sad_intro_deferred_by_chat_in_drift_period
-
-# TODO: new notification updates old timestamp
-#
-# TODO: intros and chats need to have their drift periods handled separately.
-#       Or do they? If a user logs into the app, they're not going to look
-#       at one of "intros" and "chats" and not the other.
+test_sad_already_notified_for_particular_message
+test_sad_already_notified_for_other_intro_in_drift_period
 
 # TODO: Should store usernames as userids instead, and index them as such, for performance?

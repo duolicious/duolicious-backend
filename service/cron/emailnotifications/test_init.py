@@ -55,90 +55,99 @@ class TestDoSend(unittest.TestCase):
         self.assertFalse(do_send(PersonNotification(
             **dont_care,
             email='asdf@exaMPle.com',
-            intros=True,
-            chats=True,
+            has_intro=True,
+            has_chat=True,
             now_seconds=1,
-            last_notification_seconds=0,
+            last_intro_notification_seconds=0,
+            last_chat_notification_seconds=0,
             intros_drift_seconds=0,
             chats_drift_seconds=0)))
 
         self.assertFalse(do_send(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
-            intros=True,
-            chats=True,
+            has_intro=True,
+            has_chat=True,
             now_seconds=1,
-            last_notification_seconds=0,
+            last_intro_notification_seconds=0,
+            last_chat_notification_seconds=0,
             intros_drift_seconds=-1,
             chats_drift_seconds=-1)))
 
         self.assertFalse(do_send(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
-            intros=False,
-            chats=True,
+            has_intro=False,
+            has_chat=True,
             now_seconds=1,
-            last_notification_seconds=0,
+            last_intro_notification_seconds=0,
+            last_chat_notification_seconds=0,
             intros_drift_seconds=0,
             chats_drift_seconds=-1)))
 
         self.assertFalse(do_send(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
-            intros=True,
-            chats=False,
+            has_intro=True,
+            has_chat=False,
             now_seconds=1,
-            last_notification_seconds=0,
+            last_intro_notification_seconds=0,
+            last_chat_notification_seconds=0,
             intros_drift_seconds=-1,
             chats_drift_seconds=0)))
 
         self.assertTrue(do_send(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
-            intros=True,
-            chats=True,
+            has_intro=True,
+            has_chat=True,
             now_seconds=1,
-            last_notification_seconds=0,
+            last_intro_notification_seconds=0,
+            last_chat_notification_seconds=0,
             intros_drift_seconds=0,
             chats_drift_seconds=0)))
 
         self.assertTrue(do_send(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
-            intros=True,
-            chats=False,
+            has_intro=True,
+            has_chat=False,
             now_seconds=100,
-            last_notification_seconds=90,
+            last_intro_notification_seconds=90,
+            last_chat_notification_seconds=90,
             intros_drift_seconds=5,
             chats_drift_seconds=50)))
 
         self.assertTrue(do_send(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
-            intros=False,
-            chats=True,
+            has_intro=False,
+            has_chat=True,
             now_seconds=100,
-            last_notification_seconds=90,
+            last_intro_notification_seconds=90,
+            last_chat_notification_seconds=90,
             intros_drift_seconds=50,
             chats_drift_seconds=5)))
 
         self.assertFalse(do_send(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
-            intros=True,
-            chats=False,
+            has_intro=True,
+            has_chat=False,
             now_seconds=100,
-            last_notification_seconds=90,
+            last_intro_notification_seconds=90,
+            last_chat_notification_seconds=99,
             intros_drift_seconds=50,
             chats_drift_seconds=5)))
 
         self.assertFalse(do_send(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
-            intros=False,
-            chats=True,
+            has_intro=False,
+            has_chat=True,
             now_seconds=100,
-            last_notification_seconds=90,
+            last_intro_notification_seconds=99,
+            last_chat_notification_seconds=90,
             intros_drift_seconds=5,
             chats_drift_seconds=50)))
 

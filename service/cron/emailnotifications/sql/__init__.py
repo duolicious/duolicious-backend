@@ -25,9 +25,10 @@ WITH ten_days_ago AS (
 ), unfiltered_notifications AS (
     SELECT
         username,
-        MAX(seconds) AS last_message_seconds,
-        BOOL_OR(CASE WHEN box = 'inbox' THEN TRUE ELSE FALSE END) AS intros,
-        BOOL_OR(CASE WHEN box = 'chats' THEN TRUE ELSE FALSE END) AS chats
+        MAX(CASE WHEN box = 'inbox' THEN seconds ELSE 0 END) AS last_intro_seconds,
+        MAX(CASE WHEN box = 'chats' THEN seconds ELSE 0 END) AS last_chat_seconds,
+        BOOL_OR(CASE WHEN box = 'inbox' THEN TRUE ELSE FALSE END) AS has_intro,
+        BOOL_OR(CASE WHEN box = 'chats' THEN TRUE ELSE FALSE END) AS has_chat
     FROM filtered_inbox
     GROUP BY
         username
@@ -35,9 +36,10 @@ WITH ten_days_ago AS (
 SELECT
     unfiltered_notifications.username,
     unfiltered_notifications.username::int AS person_id,
-    COALESCE(duo_last_notification.seconds, 0) AS last_notification_seconds,
-    unfiltered_notifications.intros,
-    unfiltered_notifications.chats,
+    COALESCE(duo_last_notification.intro_seconds, 0) AS last_intro_notification_seconds,
+    COALESCE(duo_last_notification.chat_seconds, 0) AS last_chat_notification_seconds,
+    unfiltered_notifications.has_intro,
+    unfiltered_notifications.has_chat,
     (SELECT EXTRACT(EPOCH FROM NOW())::bigint) AS now_seconds
 FROM unfiltered_notifications
 LEFT JOIN
@@ -50,13 +52,25 @@ ON
     duo_last_notification.username = unfiltered_notifications.username
 WHERE
     -- only notify users we haven't already notified
-    unfiltered_notifications.last_message_seconds > COALESCE(duo_last_notification.seconds, 0)
+    (
+        has_intro AND unfiltered_notifications.last_intro_seconds >
+            COALESCE(duo_last_notification.intro_seconds, 0)
+    OR
+        has_chat AND unfiltered_notifications.last_chat_seconds >
+            COALESCE(duo_last_notification.chat_seconds, 0)
+    )
+AND
+    -- only notify users about messages sent longer than ten minutes ago
+    (
+        has_intro AND unfiltered_notifications.last_intro_seconds <
+            (SELECT seconds FROM ten_minutes_ago)
+    OR
+        has_chat AND unfiltered_notifications.last_chat_seconds <
+            (SELECT seconds FROM ten_minutes_ago)
+    )
 AND
     -- only notify users whose last activity was longer than ten minutes ago
     COALESCE(last.seconds, 0) < (SELECT seconds FROM ten_minutes_ago)
-AND
-    -- only notify users about messages sent longer than ten minutes ago
-    unfiltered_notifications.last_message_seconds < (SELECT seconds FROM ten_minutes_ago)
 """
 
 Q_NOTIFICATION_SETTINGS = """
@@ -93,16 +107,18 @@ WHERE
     id = ANY(%(ids)s)
 """
 
-Q_UPDATE_LAST_NOTIFICATION_TIME = """
-INSERT INTO duo_last_notification (
-    username,
-    seconds
-) VALUES (
-    %(username)s,
-    %(seconds)s
-)
+Q_UPDATE_LAST_INTRO_NOTIFICATION_TIME = """
+INSERT INTO duo_last_notification ( username, intro_seconds)
+VALUES ( %(username)s, %(seconds)s)
 ON CONFLICT (username) DO UPDATE SET
-    seconds = EXCLUDED.seconds
+    intro_seconds = EXCLUDED.intro_seconds
+"""
+
+Q_UPDATE_LAST_CHAT_NOTIFICATION_TIME = """
+INSERT INTO duo_last_notification ( username, chat_seconds)
+VALUES ( %(username)s, %(seconds)s)
+ON CONFLICT (username) DO UPDATE SET
+    chat_seconds = EXCLUDED.chat_seconds
 """
 
 # TODO: Select correct XMPP update interval in the frontend

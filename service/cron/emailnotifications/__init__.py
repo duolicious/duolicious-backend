@@ -45,9 +45,10 @@ _chat_conninfo = psycopg.conninfo.make_conninfo(
 class PersonNotification:
     person_id: int
     username: str
-    last_notification_seconds: int
-    intros: bool
-    chats: bool
+    last_intro_notification_seconds: int
+    last_chat_notification_seconds: int
+    has_intro: bool
+    has_chat: bool
     now_seconds: int
     name: str
     email: str
@@ -68,25 +69,26 @@ def join_lists_of_dicts(list1, list2, join_key):
 
 def do_send(row: PersonNotification):
     email = row.email
-    has_intros = row.intros
-    has_chats = row.chats
+    has_intro = row.has_intro
+    has_chat = row.has_chat
     intros_drift_seconds = row.intros_drift_seconds
     chats_drift_seconds = row.chats_drift_seconds
-    last_notification_seconds = row.last_notification_seconds
+    last_intro_notification_seconds = row.last_intro_notification_seconds
+    last_chat_notification_seconds = row.last_chat_notification_seconds
     now_seconds = row.now_seconds
 
     print(row, flush=True) # TODO
 
     is_intro_sendable = (
-        has_intros and
+        has_intro and
         intros_drift_seconds >= 0 and
-        last_notification_seconds + intros_drift_seconds < now_seconds
+        last_intro_notification_seconds + intros_drift_seconds < now_seconds
     )
 
     is_chat_sendable = (
-        has_chats and
+        has_chat and
         chats_drift_seconds >= 0 and
-        last_notification_seconds + chats_drift_seconds < now_seconds
+        last_chat_notification_seconds + chats_drift_seconds < now_seconds
     )
 
     is_example = email.lower().endswith('@example.com')
@@ -108,8 +110,8 @@ def new_notification_req(row: PersonNotification):
        "to": [ { "email": row.email } ],
        "subject": "You Have a New Message!",
        "htmlContent": emailtemplate(
-           has_intro=row.intros,
-           has_chat=row.chats,
+           has_intro=row.has_intro,
+           has_chat=row.has_chat,
        )
     }
 
@@ -143,7 +145,10 @@ async def update_last_notification_time(chat_conn, row: PersonNotification):
         username=row.username,
         seconds=row.now_seconds,
     )
-    await chat_conn.execute(Q_UPDATE_LAST_NOTIFICATION_TIME, params)
+    if row.has_intro:
+        await chat_conn.execute(Q_UPDATE_LAST_INTRO_NOTIFICATION_TIME, params)
+    if row.has_chat:
+        await chat_conn.execute(Q_UPDATE_LAST_CHAT_NOTIFICATION_TIME, params)
     await chat_conn.commit()
 
 async def maybe_send_notification(chat_conn, row: PersonNotification):

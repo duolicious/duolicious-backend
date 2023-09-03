@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS intro_hash(
 
 CREATE TABLE IF NOT EXISTS duo_last_notification (
     username text NOT NULL,
-    seconds INT NOT NULL,
+    intro_seconds INT NOT NULL DEFAULT 0,
+    chat_seconds INT NOT NULL DEFAULT 0,
 
     PRIMARY KEY (username)
 );
