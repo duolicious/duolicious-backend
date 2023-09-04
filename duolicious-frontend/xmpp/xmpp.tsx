@@ -13,7 +13,7 @@ import { getRandomString } from '../random/string';
 
 import { deviceId } from '../kv-storage/device-id';
 import { api } from '../api/api';
-import { deleteFromArray, withTimeout } from '../util/util';
+import { deleteFromArray, withTimeout, delay } from '../util/util';
 
 // TODO: Catch more exceptions. If a network request fails, that shouldn't crash the app.
 // TODO: Update match percentages when user answers some questions
@@ -318,7 +318,28 @@ const login = async (username: string, password: string) => {
     _xmpp.on("online", async () => {
       if (_xmpp) {
         await _xmpp.send(xml("presence", { type: "available" }));
+
         await refreshInbox();
+
+        // This is a hack to help figure out if the user is online. The
+        // server-side notification logic relies on coarse-grained last-online
+        // information to figure out if a notification should be sent.
+        //
+        // The XMPP server's mod_last module records the last disconnection
+        // time. But other than that, I don't see an indication of online
+        // status. So we periodically set users to "unavailable" to refresh the
+        // last disconnection time. Caveat: Messages can't be received while
+        // offline, so if someone gets a message during the split second they're
+        // unavailable, they won't see it until they refresh the app. So it
+        // could be better to set this to a higher number in the future.
+        (async () => {
+          while (true) {
+            if (!_xmpp) break;
+            await delay(3 * 60 * 1000); // 3 minutes
+            await _xmpp.send(xml("presence", { type: "unavailable" }));
+            await _xmpp.send(xml("presence", { type: "available" }));
+          }
+        })();
       }
     });
 
