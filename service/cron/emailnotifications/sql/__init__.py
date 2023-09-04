@@ -36,11 +36,12 @@ WITH ten_days_ago AS (
 SELECT
     unfiltered_notifications.username,
     unfiltered_notifications.username::int AS person_id,
+    unfiltered_notifications.last_intro_seconds,
+    unfiltered_notifications.last_chat_seconds,
     COALESCE(duo_last_notification.intro_seconds, 0) AS last_intro_notification_seconds,
     COALESCE(duo_last_notification.chat_seconds, 0) AS last_chat_notification_seconds,
     unfiltered_notifications.has_intro,
-    unfiltered_notifications.has_chat,
-    (SELECT EXTRACT(EPOCH FROM NOW())::bigint) AS now_seconds
+    unfiltered_notifications.has_chat
 FROM unfiltered_notifications
 LEFT JOIN
     last
@@ -109,16 +110,16 @@ WHERE
 
 Q_UPDATE_LAST_INTRO_NOTIFICATION_TIME = """
 INSERT INTO duo_last_notification ( username, intro_seconds)
-VALUES ( %(username)s, %(seconds)s)
+VALUES ( %(username)s, extract(epoch from now())::int)
 ON CONFLICT (username) DO UPDATE SET
-    intro_seconds = EXCLUDED.intro_seconds
+    intro_seconds = extract(epoch from now())::int
 """
 
 Q_UPDATE_LAST_CHAT_NOTIFICATION_TIME = """
 INSERT INTO duo_last_notification ( username, chat_seconds)
-VALUES ( %(username)s, %(seconds)s)
+VALUES ( %(username)s, extract(epoch from now())::int)
 ON CONFLICT (username) DO UPDATE SET
-    chat_seconds = EXCLUDED.chat_seconds
+    chat_seconds = extract(epoch from now())::int
 """
 
 # TODO: Select correct XMPP update interval in the frontend

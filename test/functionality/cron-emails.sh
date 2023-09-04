@@ -39,6 +39,7 @@ set -ex
 ################################################################################
 
 setup () {
+  mkdir -p    ../../test/output/
   printf '' > ../../test/output/cron-emails
   q "delete from last" duo_chat
   q "delete from inbox" duo_chat

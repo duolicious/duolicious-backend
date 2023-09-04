@@ -46,9 +46,10 @@ class PersonNotification:
     username: str
     last_intro_notification_seconds: int
     last_chat_notification_seconds: int
+    last_intro_seconds: int
+    last_chat_seconds: int
     has_intro: bool
     has_chat: bool
-    now_seconds: int
     name: str
     email: str
     chats_drift_seconds: int
@@ -66,6 +67,7 @@ def join_lists_of_dicts(list1, list2, join_key):
         if k in lookup1 and k in lookup2
     ]
 
+
 def do_send(row: PersonNotification):
     email = row.email
     has_intro = row.has_intro
@@ -74,18 +76,19 @@ def do_send(row: PersonNotification):
     chats_drift_seconds = row.chats_drift_seconds
     last_intro_notification_seconds = row.last_intro_notification_seconds
     last_chat_notification_seconds = row.last_chat_notification_seconds
-    now_seconds = row.now_seconds
+    last_intro_seconds = row.last_intro_seconds
+    last_chat_seconds = row.last_chat_seconds
 
     is_intro_sendable = (
         has_intro and
         intros_drift_seconds >= 0 and
-        last_intro_notification_seconds + intros_drift_seconds < now_seconds
+        last_intro_notification_seconds + intros_drift_seconds < last_intro_seconds
     )
 
     is_chat_sendable = (
         has_chat and
         chats_drift_seconds >= 0 and
-        last_chat_notification_seconds + chats_drift_seconds < now_seconds
+        last_chat_notification_seconds + chats_drift_seconds < last_chat_seconds
     )
 
     is_example = email.lower().endswith('@example.com')
@@ -122,6 +125,7 @@ def send_notification(row: PersonNotification):
     req = new_notification_req(row)
 
     if DRY_RUN:
+        print('DUO_DRY_RUN env var prevented email from being sent', flush=True)
         email_data = dict(
             full_url=req.full_url,
             headers=req.headers | {'Api-key': 'redacted'},
@@ -133,15 +137,14 @@ def send_notification(row: PersonNotification):
             f.write(email_data_str)
     else:
         try:
-            urllib.request.urlopen(req) # TODO: Does this work without the ctx manager?
-        except: # YOLO
+            urllib.request.urlopen(req)
+        except Exception as e: # YOLO
+            print(str(e), flush=True)
             pass
 
 async def update_last_notification_time(chat_conn, row: PersonNotification):
-    params = dict(
-        username=row.username,
-        seconds=row.now_seconds,
-    )
+    params = dict(username=row.username)
+
     if row.has_intro:
         await chat_conn.execute(Q_UPDATE_LAST_INTRO_NOTIFICATION_TIME, params)
     if row.has_chat:
@@ -150,7 +153,9 @@ async def update_last_notification_time(chat_conn, row: PersonNotification):
 
 async def maybe_send_notification(chat_conn, row: PersonNotification):
     if not do_send(row):
+        print('not sending', str(row), flush=True) # TODO
         return
+    print('sending', str(row), flush=True) # TODO
 
     send_notification(row)
     await update_last_notification_time(chat_conn, row)
