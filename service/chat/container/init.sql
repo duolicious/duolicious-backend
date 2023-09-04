@@ -1,3 +1,5 @@
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS intro_hash (
     hash TEXT PRIMARY KEY
 );
@@ -16,3 +18,5 @@ WHERE unread_count > 0;
 
 CREATE INDEX duo_idx__last__username
 ON last(username);
+
+COMMIT;
