@@ -127,7 +127,6 @@ def send_notification(row: PersonNotification):
     if DRY_RUN:
         print('DUO_DRY_RUN env var prevented email from being sent', flush=True)
         email_data = dict(
-            full_url=req.full_url,
             headers=req.headers | {'Api-key': 'redacted'},
             data=req.data.decode('utf8'),
         )
