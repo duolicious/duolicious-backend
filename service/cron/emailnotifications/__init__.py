@@ -152,9 +152,9 @@ async def update_last_notification_time(chat_conn, row: PersonNotification):
 
 async def maybe_send_notification(chat_conn, row: PersonNotification):
     if not do_send(row):
-        print('not sending', str(row), flush=True) # TODO
+        print('NOT SENDING:', str(row), flush=True)
         return
-    print('sending', str(row), flush=True) # TODO
+    print('SENDING:', str(row), flush=True)
 
     send_notification(row)
     await update_last_notification_time(chat_conn, row)

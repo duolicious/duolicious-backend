@@ -39,12 +39,13 @@ set -ex
 ################################################################################
 
 setup () {
+  q "delete from inbox" duo_chat
+  q "delete from person"
+  q "delete from last" duo_chat
+  q "delete from duo_last_notification" duo_chat
+
   mkdir -p    ../../test/output/
   printf '' > ../../test/output/cron-emails
-  q "delete from last" duo_chat
-  q "delete from inbox" duo_chat
-  q "delete from duo_last_notification" duo_chat
-  q "delete from person"
 
   ../util/create-user.sh user1 0 0
   ../util/create-user.sh user2 0 0

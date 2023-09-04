@@ -121,5 +121,3 @@ VALUES ( %(username)s, extract(epoch from now())::int)
 ON CONFLICT (username) DO UPDATE SET
     chat_seconds = extract(epoch from now())::int
 """
-
-# TODO: Select correct XMPP update interval in the frontend
