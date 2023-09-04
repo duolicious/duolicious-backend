@@ -2,7 +2,8 @@
 
 set -e
 
-docker-compose up -d
+docker-compose -f docker-compose.yml -f docker-compose.test.yml up -d
+docker-compose logs -f &
 
 echo 'Waiting for the API to start...'
 timeout=60

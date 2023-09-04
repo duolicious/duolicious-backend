@@ -16,11 +16,6 @@ ON CONFLICT DO NOTHING
 RETURNING hash;
 """
 
-# TODO: Delete
-def log(*s):
-    with open("/tmp/out", "a") as f:
-        f.write(' '.join(map(str, s)) + '\n')
-
 def get_message_attrs(message_str):
     try:
         # Create a safe XML parser
