@@ -62,7 +62,7 @@ jc () { c "$@" --header "Content-Type: application/json"; }
 q () {
   PGPASSWORD="$DUO_DB_PASS" psql \
     -U "$DUO_DB_USER" \
-    -d duo_api \
+    -d "${2:-duo_api}" \
     -c "$1;" \
     -t \
     -h "$DUO_DB_HOST" \
@@ -98,4 +98,15 @@ rand_image () {
       "$filename"
 
   echo "$filename"
+}
+
+assume_role () {
+  local response=$(jc POST /request-otp -d '{ "email": "'"$username"'@example.com" }')
+  SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
+  jc POST /check-otp -d '{ "otp": "000000" }'
+  export SESSION_TOKEN
+}
+
+get_id () {
+  q "select id from person where email = '$1'"
 }

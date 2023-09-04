@@ -7,6 +7,7 @@ ENV DUO_USE_VENV=false
 # MongooseIM config
 COPY service/chat/container/auth.sh /usr/lib/mongooseim/etc/auth.sh
 COPY service/chat/container/init-db.sh /init-db.sh
+COPY service/chat/container/init.sql /init.sql
 COPY service/chat/container/jq /bin/jq
 COPY service/chat/container/mongooseim.toml /mongooseim.template.toml
 
@@ -25,5 +26,5 @@ RUN : \
 
 CMD : \
   && /init-db.sh \
-  && /app/chat.main.sh &: \
+  && ( /app/chat.main.sh & ) \
   && /start.sh

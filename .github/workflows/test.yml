@@ -1,0 +1,38 @@
+on: [push]
+
+jobs:
+  functionality-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Out Code
+        uses: actions/checkout@v3
+
+      - name: Run functionality tests
+        run: ./test/util/with-container.sh ./test/functionality.sh
+        env:
+          DUO_DRY_RUN: 'true'
+          DUO_EMAIL_KEY: 'not-a-real-key'
+          DUO_EMAIL_URL: 'https://example.com'
+          DUO_R2_ACCESS_KEY_ID: ${{ secrets.DUO_R2_ACCESS_KEY_ID }}
+          DUO_R2_ACCESS_KEY_SECRET: ${{ secrets.DUO_R2_ACCESS_KEY_SECRET }}
+          DUO_R2_ACCT_ID: ${{ secrets.DUO_R2_ACCT_ID }}
+          DUO_R2_BUCKET_NAME: ${{ secrets.DUO_R2_BUCKET_NAME }}
+
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Out Code
+        uses: actions/checkout@v3
+
+      - name: Run unit tests
+        run: ./test/util/with-container.sh ./test/unit/unit.sh --no-sudo
+        env:
+          DUO_DRY_RUN: 'true'
+          DUO_EMAIL_KEY: 'not-a-real-key'
+          DUO_EMAIL_URL: 'https://example.com'
+          DUO_R2_ACCESS_KEY_ID: ${{ secrets.DUO_R2_ACCESS_KEY_ID }}
+          DUO_R2_ACCESS_KEY_SECRET: ${{ secrets.DUO_R2_ACCESS_KEY_SECRET }}
+          DUO_R2_ACCT_ID: ${{ secrets.DUO_R2_ACCT_ID }}
+          DUO_R2_BUCKET_NAME: ${{ secrets.DUO_R2_BUCKET_NAME }}
