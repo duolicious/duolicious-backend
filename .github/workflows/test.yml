@@ -12,6 +12,8 @@ jobs:
         run: ./test/util/with-container.sh ./test/functionality.sh
         env:
           DUO_DRY_RUN: 'true'
+          DUO_EMAIL_KEY: ''
+          DUO_EMAIL_URL: ''
           DUO_R2_ACCESS_KEY_ID: ${{ secrets.DUO_R2_ACCESS_KEY_ID }}
           DUO_R2_ACCESS_KEY_SECRET: ${{ secrets.DUO_R2_ACCESS_KEY_SECRET }}
           DUO_R2_ACCT_ID: ${{ secrets.DUO_R2_ACCT_ID }}
@@ -28,6 +30,8 @@ jobs:
         run: ./test/util/with-container.sh ./test/unit/unit.sh --no-sudo
         env:
           DUO_DRY_RUN: 'true'
+          DUO_EMAIL_KEY: ''
+          DUO_EMAIL_URL: ''
           DUO_R2_ACCESS_KEY_ID: ${{ secrets.DUO_R2_ACCESS_KEY_ID }}
           DUO_R2_ACCESS_KEY_SECRET: ${{ secrets.DUO_R2_ACCESS_KEY_SECRET }}
           DUO_R2_ACCT_ID: ${{ secrets.DUO_R2_ACCT_ID }}
