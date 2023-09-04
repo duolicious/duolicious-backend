@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS intro_hash(
+CREATE TABLE IF NOT EXISTS intro_hash (
     hash TEXT PRIMARY KEY
 );
 
