@@ -87,11 +87,11 @@ SELECT
     ROUND(100 * person_trait.ratio)   AS person_percentage,
     prospect_trait.name               AS prospect_name,
     ROUND(100 * prospect_trait.ratio) AS prospect_percentage,
-    COALESCE(
-        prospect_trait.ratio,
-        person_trait.ratio,
-        0
-    ) AS position
+    CASE
+        WHEN %(prospect_person_id)s IS NOT NULL
+        THEN COALESCE(prospect_trait.ratio, 0)
+        ELSE COALESCE(person_trait.ratio, 0)
+    END AS position
 FROM trait
 LEFT JOIN (
     SELECT
