@@ -1,7 +1,6 @@
 import {
   ActivityIndicator,
   Linking,
-  Pressable,
   ScrollView,
   View,
 } from 'react-native';
@@ -377,41 +376,35 @@ const AboutDuolicious = () => {
       }}>
         About
       </Title>
-      <Pressable
+      <DefaultText
         onPress={() => Linking.openURL('https://github.com/duolicious')}
+        style={{
+          textAlign: 'center',
+          color: '#999',
+        }}
       >
-        <DefaultText
-          style={{
-            textAlign: 'center',
-            color: '#999',
-          }}
-        >
-          Duolicious is free software licensed under the AGPLv3. The source code
-          used to make Duolicious is available {}
-          <DefaultText style={{fontWeight: '600', color: '#37f'}}>
-            here
-          </DefaultText>
-          .
+        Duolicious is free software licensed under the AGPLv3. The source code
+        used to make Duolicious is available {}
+        <DefaultText style={{fontWeight: '600', color: '#37f'}}>
+          here
         </DefaultText>
-      </Pressable>
-      <Pressable
-        style={{marginTop: 25}}
+        .
+      </DefaultText>
+      <DefaultText
         onPress={() => Linking.openURL('mailto:support@duolicious.app')}
+        style={{
+          marginTop: 25,
+          textAlign: 'center',
+          color: '#999',
+        }}
       >
-        <DefaultText
-          style={{
-            textAlign: 'center',
-            color: '#999',
-          }}
-        >
-          You can contact us at {}
-          <DefaultText style={{fontWeight: '600', color: '#37f'}}>
-            support@duolicious.app
-          </DefaultText>
-          {} to provide feedback, report abuse, or submit any other concerns or
-          queries you have.
+        You can contact us at {}
+        <DefaultText style={{fontWeight: '600', color: '#37f'}}>
+          support@duolicious.app
         </DefaultText>
-      </Pressable>
+        {} to provide feedback, report abuse, or submit any other concerns or
+        queries you have.
+      </DefaultText>
     </View>
   );
 };

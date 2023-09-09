@@ -1,10 +1,10 @@
 import {
+  Linking,
   Text,
   View,
 } from 'react-native';
 import {
   useCallback,
-  useMemo,
   useState,
 } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -16,23 +16,6 @@ import { createAccountOptionGroups } from '../data/option-groups';
 import { OptionScreen } from './option-screen';
 import { japi } from '../api/api';
 import { sessionToken } from '../kv-storage/session-token';
-
-const callToActionList = [
-  "Meet people who get you.",
-  "Where your weird meets their weird. And it’s, like, super romantic.",
-  "Find someone to share memes and existential dread. Cute, right?",
-  "Because your next awkward first date story needs an upgrade.",
-  "Because your type isn’t ‘generic with a hint of blah’.",
-  "The only app where ‘quirky’ isn’t code for ‘has five cats’. Unless that’s your vibe.",
-  "We’re not saying we’re the best dating app, but... Actually that’s exactly what we’re saying.",
-  "Your solo act is legendary. Time for an equally epic encore with a partner in crime.",
-  "Because ‘forever alone’ is so last decade.",
-  "Ready to find someone who’s also too good for most dating apps?",
-  "Where ‘single and thriving’ can also mean ‘open to distractions’.",
-  "Matching you based on more than just your ability to craft a sassy bio.",
-  "Babe, wake up. New matches just dropped.",
-  "When life gives you this app, you don’t just make lemonade, you find someone to share it with.",
-];
 
 const Stack = createNativeStackNavigator();
 
@@ -55,10 +38,6 @@ const WelcomeScreen_ = ({navigation}) => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [emailNotSent, setEmailNotSent] = useState(false);
-  const callToAction = useMemo(() =>
-    callToActionList[Math.floor(Math.random() * callToActionList.length)],
-    []
-  );
 
   const submit = async (suffix?: string) => {
     const suffix_ = suffix ?? '';
@@ -139,6 +118,15 @@ const WelcomeScreen_ = ({navigation}) => {
           justifyContent: 'center',
           flexGrow: 1
         }}>
+          <DefaultText
+            style={{
+              alignSelf: 'center',
+              color: 'white',
+              fontSize: 20,
+            }}
+          >
+            Welcome to
+          </DefaultText>
           <Text
             style={{
               color: 'white',
@@ -149,18 +137,6 @@ const WelcomeScreen_ = ({navigation}) => {
           >
             Duolicious
           </Text>
-          <DefaultText
-            style={{
-              alignSelf: 'center',
-              color: 'white',
-              fontSize: 20,
-              textAlign: 'center',
-              marginLeft: 20,
-              marginRight: 20,
-            }}
-          >
-            {callToAction}
-          </DefaultText>
           <DefaultTextInput
             style={{
               marginTop: 80,
@@ -217,8 +193,33 @@ const WelcomeScreen_ = ({navigation}) => {
             secondary={true}
             loading={isLoading}
           >
-            Create Account or Sign In
+            Sign in or sign up
           </ButtonWithCenteredText>
+          <DefaultText
+            style={{
+              color: 'white',
+              textAlign: 'center',
+              alignSelf: 'center',
+            }}
+          >
+            By signing up you agree to our {}
+            <DefaultText
+              style={{
+                fontWeight: '600',
+              }}
+              onPress={() => Linking.openURL('https://duolicious.app/terms')}
+            >
+              Terms
+            </DefaultText>
+            {} and {}
+            <DefaultText
+              style={{ fontWeight: '600' }}
+              onPress={() => Linking.openURL('https://duolicious.app/privacy')}
+            >
+              Privacy Policy
+            </DefaultText>
+            .
+          </DefaultText>
         </View>
       </View>
     </View>
