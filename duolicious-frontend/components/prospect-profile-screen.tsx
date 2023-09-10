@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   Animated,
   Pressable,
   ScrollView,
@@ -43,6 +44,7 @@ import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
 import { RotateCcw, X } from "react-native-feather";
 import { IMAGES_URL } from '../env/env';
 import { randomGagLocation } from '../data/gag-locations';
+import { setBlocked } from '../xmpp/xmpp';
 
 const Stack = createNativeStackNavigator();
 
@@ -279,18 +281,40 @@ const SeeQAndAButton = ({navigation, personId, name, countAnswers}) => {
 };
 
 const BlockButton = ({name, personId, isBlocked}) => {
+  const [isLoading, setIsLoading] = useState(false);
   const [isBlockedState, setIsBlockedState] = useState(false);
 
   useEffect(() => {
     setIsBlockedState(isBlocked);
   }, [isBlocked]);
 
-  const onPress = useCallback(() => {
-    setIsBlockedState(!isBlockedState);
+  const onPress = useCallback(async () => {
+    if (isLoading) return;
 
-    if (isBlockedState === true ) api('post', `/unblock/${personId}`);
-    if (isBlockedState === false) api('post', `/block/${personId}`);
-  }, [isBlockedState]);
+    setIsLoading(true);
+
+    const nextIsBlockedState = !isBlockedState;
+
+    const status = await setBlocked(personId, nextIsBlockedState);
+    if (status === undefined) {
+      const endpoint = (
+        nextIsBlockedState ?
+        `/block/${personId}` :
+        `/unblock/${personId}`);
+
+      const response = await api('post', endpoint);
+
+      if (response.ok) {
+        setIsBlockedState(nextIsBlockedState);
+      }
+    } else if (status === 'timeout') {
+      ;
+    } else {
+      throw Error(`Unexpected status: ${status}`);
+    }
+
+    setIsLoading(false);
+  }, [isLoading, isBlockedState]);
 
   const text = isBlockedState
     ? `You have blocked and reported ${name}. Press to unblock ${name}.` :
@@ -305,14 +329,19 @@ const BlockButton = ({name, personId, isBlocked}) => {
         alignSelf: 'center',
       }}
     >
-      <DefaultText
-        style={{
-          color: '#777',
-          overflow: 'hidden',
-        }}
-      >
-        {name === undefined ? '...' : text}
-      </DefaultText>
+      {isLoading &&
+        <ActivityIndicator size="small" color="#70f"/>
+      }
+      {!isLoading &&
+        <DefaultText
+          style={{
+            color: '#777',
+            overflow: 'hidden',
+          }}
+        >
+          {name === undefined ? '...' : text}
+        </DefaultText>
+      }
     </Pressable>
   );
 };
@@ -397,6 +426,7 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
   navigationRef.current = navigation;
 
   const personId = route.params.personId;
+  const showBottomButtons = route.params.showBottomButtons ?? true;
 
   const [data, setData] = useState<UserData | undefined>(undefined);
 
@@ -450,38 +480,40 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
           data={data}
         />
       </ScrollView>
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          width: '100%',
-          maxWidth: 600,
-          alignSelf: 'center',
-          zIndex: 999,
-          overflow: 'visible',
-          justifyContent: 'center',
-          flexDirection: 'row',
-        }}
-        pointerEvents="box-none"
-      >
+      {showBottomButtons &&
         <View
           style={{
+            position: 'absolute',
+            bottom: 0,
+            width: '100%',
+            maxWidth: 600,
+            alignSelf: 'center',
+            zIndex: 999,
+            overflow: 'visible',
+            justifyContent: 'center',
             flexDirection: 'row',
           }}
+          pointerEvents="box-none"
         >
-          <FloatingHideButton
-            navigation={navigation}
-            personId={personId}
-            isHidden={data?.is_hidden}
-          />
-          <FloatingSendIntroButton
-            navigation={navigation}
-            personId={personId}
-            name={data?.name}
-            imageUuid={imageUuid}
-          />
+          <View
+            style={{
+              flexDirection: 'row',
+            }}
+          >
+            <FloatingHideButton
+              navigation={navigation}
+              personId={personId}
+              isHidden={data?.is_hidden}
+            />
+            <FloatingSendIntroButton
+              navigation={navigation}
+              personId={personId}
+              name={data?.name}
+              imageUuid={imageUuid}
+            />
+          </View>
         </View>
-      </View>
+      }
     </>
   );
 };

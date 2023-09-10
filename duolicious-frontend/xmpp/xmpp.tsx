@@ -21,6 +21,7 @@ import { deleteFromArray, withTimeout, delay } from '../util/util';
 
 type MessageStatus =
   | 'sent'
+  | 'blocked'
   | 'not unique'
   | 'timeout'
 
@@ -367,22 +368,29 @@ const _markDisplayed = async (message: Message) => {
   await setInboxDisplayed(jidToPersonId(message.from));
 };
 
-const _sendMessage = async (
+const _sendMessage = (
   recipientPersonId: number,
   message: string,
   callback: (messageStatus: Omit<MessageStatus, 'unsent: error'>) => void,
   checkUniqueness: boolean,
-): Promise<void> => {
-  if (!_xmpp) return;
-
+): void => {
   const id = getRandomString(40);
-  const jid = personIdToJid(recipientPersonId);
+  const fromJid = (
+      signedInUser?.personId !== undefined ?
+      personIdToJid(signedInUser.personId) :
+      undefined
+  );
+  const toJid = personIdToJid(recipientPersonId);
+
+  if (!_xmpp) return;
+  if (!fromJid) return;
 
   const messageXml = xml(
     "message",
     {
       type: "chat",
-      to: jid,
+      from: fromJid,
+      to: toJid,
       id: id,
       check_uniqueness: checkUniqueness ? 'true' : 'false',
     },
@@ -404,13 +412,20 @@ const _sendMessage = async (
       doc
     );
 
+    const blockedNode = xpath.select1(
+      `/*[name()='duo_message_blocked'][@id='${id}']`,
+      doc
+    );
+
     const messageDeliveredNode = xpath.select1(
       `/*[name()='duo_message_delivered'][@id='${id}']`,
       doc
     );
 
-    if (notUniqueNode) {
-      callback('unsent: not unique');
+    if (blockedNode) {
+      callback('blocked');
+    } else if (notUniqueNode) {
+      callback('not unique');
     } else if (messageDeliveredNode) {
       setInboxSent(recipientPersonId, message);
       callback('sent');
@@ -423,9 +438,7 @@ const _sendMessage = async (
 
   _xmpp.addListener("input", messageStatusListener);
 
-  try {
-    await _xmpp.send(messageXml);
-  } catch {}
+  _xmpp.send(messageXml);
 };
 
 const sendMessage = async (
@@ -439,6 +452,64 @@ const sendMessage = async (
   );
 
   return await withTimeout(5000, __sendMessage);
+};
+
+const _setBlocked = (
+  personId: number,
+  doBlock: boolean,
+  callback: () => void,
+) => {
+  if (!_xmpp) return;
+
+  const id = getRandomString(40);
+  const jid = personIdToJid(personId);
+
+  const blockStanza = parse(`
+    <iq type='set' id='${id}'>
+      <block xmlns='urn:xmpp:blocking'>
+        <item jid='${jid}'/>
+      </block>
+    </iq>
+  `);
+
+  const unblockStanza = parse(`
+    <iq type='set' id='${id}'>
+      <unblock xmlns='urn:xmpp:blocking'>
+        <item jid='${jid}'/>
+      </unblock>
+    </iq>
+  `);
+
+  const _onReceiveStanza = async (stanza: Element) => {
+    const doc = new DOMParser().parseFromString(stanza.toString(), 'text/xml');
+
+    if (!doc) return;
+
+    const node = xpath.select1(
+      `/*[name()='iq'][@type='result'][@id='${id}']`,
+      doc,
+    );
+
+    if (!node) return;
+
+    callback();
+
+    if (_xmpp) {
+      _xmpp.removeListener("input", _onReceiveStanza);
+    }
+  };
+
+  _xmpp.addListener("input", _onReceiveStanza);
+
+  _xmpp.send(doBlock ? blockStanza : unblockStanza);
+};
+
+const setBlocked = async (personId: number, isBlocked: boolean): Promise<'timeout' | undefined> => {
+  const __block = new Promise<undefined>(
+    (resolve) => _setBlocked(personId, isBlocked, () => resolve(undefined))
+  );
+
+  return await withTimeout(5000, __block);
 };
 
 const onReceiveMessage = (
@@ -775,5 +846,6 @@ export {
   observeInbox,
   onReceiveMessage,
   sendMessage,
+  setBlocked,
   setInbox,
 };

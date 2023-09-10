@@ -193,7 +193,9 @@ const WelcomeScreen_ = ({navigation}) => {
             secondary={true}
             loading={isLoading}
           >
-            Sign in or sign up
+            <Text style={{fontWeight: '700'}}>Sign Up</Text>
+            {} or {}
+            <Text style={{fontWeight: '700'}}>Sign In</Text>
           </ButtonWithCenteredText>
           <DefaultText
             style={{
