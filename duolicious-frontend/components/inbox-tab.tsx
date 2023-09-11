@@ -177,7 +177,7 @@ const InboxTab_ = ({navigation}) => {
           >
             <DefaultText style={{color: '#70f', textAlign: 'center'}} >
               Getting too many intros? You can keep your profile hidden and
-              make the first move instead 🕵️. Press here to change your privacy
+              message first instead 🕵️. Press here to change your privacy
               settings.
             </DefaultText>
           </Notice>
