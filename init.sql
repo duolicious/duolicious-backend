@@ -228,7 +228,12 @@ CREATE TABLE IF NOT EXISTS photo (
     PRIMARY KEY (person_id, position)
 );
 
+-- TODO: Delete
 CREATE TABLE IF NOT EXISTS photo_graveyard (
+    uuid TEXT PRIMARY KEY
+);
+
+CREATE TABLE IF NOT EXISTS undeleted_photo (
     uuid TEXT PRIMARY KEY
 );
 
@@ -1182,6 +1187,9 @@ FOR EACH ROW
 EXECUTE FUNCTION trigger_fn_insert_into_undeleted_photo();
 
 
+--------------------------------------------------------------------------------
+-- TODO: Delete these
+--------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION on_delete_photo()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -1204,27 +1212,22 @@ BEFORE DELETE ON photo
 FOR EACH ROW
 EXECUTE FUNCTION on_delete_photo();
 
--- Trigger for DELETE operation on onboardee_photo
 CREATE OR REPLACE TRIGGER trigger_onboardee_photo_delete
 BEFORE DELETE ON onboardee_photo
 FOR EACH ROW
 EXECUTE FUNCTION on_delete_photo();
 
--- Trigger for UPDATE operation
 CREATE OR REPLACE TRIGGER trigger_photo_update
 BEFORE UPDATE ON photo
 FOR EACH ROW
 WHEN (OLD.uuid IS DISTINCT FROM NEW.uuid)
 EXECUTE FUNCTION on_update_photo();
 
--- Trigger for UPDATE operation on onboardee_photo
 CREATE OR REPLACE TRIGGER trigger_onboardee_photo_update
 BEFORE UPDATE ON onboardee_photo
 FOR EACH ROW
 WHEN (OLD.uuid IS DISTINCT FROM NEW.uuid)
 EXECUTE FUNCTION on_update_photo();
-
-
 
 CREATE OR REPLACE FUNCTION remove_from_photo_graveyard()
 RETURNS TRIGGER AS $$
