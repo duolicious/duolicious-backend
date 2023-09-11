@@ -1072,10 +1072,7 @@ BEGIN
         RETURN FALSE;
     END IF;
 
-    RETURN (
-        p.activated AND
-        NOT p.hide_me_from_strangers
-    );
+    RETURN p.activated;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -1086,31 +1083,20 @@ BEGIN
         RETURN FALSE;
     END IF;
 
-    RETURN (
-        p.activated AND
-        NOT p.hide_me_from_strangers AND
-        p.has_profile_picture_id = 1
-    );
+    RETURN p.activated AND p.has_profile_picture_id = 1;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION insert_update_search_tables()
 RETURNS TRIGGER AS $$
 DECLARE
-    new_visible_in_search BOOLEAN;
-    old_visible_in_search BOOLEAN;
-    new_visible_in_quiz_search BOOLEAN;
-    old_visible_in_quiz_search BOOLEAN;
+    visible_in_search BOOLEAN;
+    visible_in_quiz_search BOOLEAN;
 BEGIN
-    new_visible_in_search := visible_in_search(NEW);
-    old_visible_in_search := visible_in_search(OLD);
+    visible_in_search := visible_in_search(NEW);
+    visible_in_quiz_search := visible_in_quiz_search(NEW);
 
-    new_visible_in_quiz_search := visible_in_quiz_search(NEW);
-    old_visible_in_quiz_search := visible_in_quiz_search(OLD);
-
-    IF new_visible_in_quiz_search = old_visible_in_quiz_search THEN
-        -- Search visibility is unchanged; no need to update.
-    ELSIF new_visible_in_quiz_search THEN
+    IF visible_in_quiz_search THEN
         INSERT INTO search_for_quiz_prospects (person_id, coordinates, personality)
         VALUES (NEW.id, NEW.coordinates, NEW.personality)
         ON CONFLICT (person_id)
@@ -1123,9 +1109,7 @@ BEGIN
     END IF;
 
 
-    IF new_visible_in_search = old_visible_in_search THEN
-        -- Search visibility is unchanged; no need to update.
-    ELSIF new_visible_in_search THEN
+    IF visible_in_search THEN
         INSERT INTO search_for_standard_prospects (person_id, coordinates, personality)
         VALUES (NEW.id, NEW.coordinates, NEW.personality)
         ON CONFLICT (person_id)

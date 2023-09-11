@@ -401,6 +401,8 @@ test_interaction_in_standard_search () {
 test_hide_me_from_strangers () {
   setup
 
+  q "update person set has_profile_picture_id = 1"
+
   # user1 asks to be hidden from strangers
   q "
   update person
@@ -411,6 +413,7 @@ test_hide_me_from_strangers () {
   # searcher (a stranger to user1) can only see user2 in standard searches
   assert_search_names 'user2'
   # searcher (a stranger to user1) can only see user2 in quiz searches
+  assert_search_names 'user2' ''
 
   # searcher (a stranger to user1) can only see user2 in standard searches
   # user1 messaged the searcher
