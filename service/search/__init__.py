@@ -2,13 +2,6 @@ import duotypes as t
 from database import transaction
 from typing import Tuple, Optional
 
-# TODO localisation for dates, times, distances
-# TODO wire-up /active
-# TODO Preferences which can be null need to be properly encoded by UI:
-#      * min_age, max_age
-#      * distance
-#      * min_height, max_height
-
 def _q_uncached_search_1():
     return """
 WITH deleted_search_cache AS (
