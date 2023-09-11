@@ -1057,31 +1057,56 @@ RETURNS TABLE(trait_id SMALLINT, ratio FLOAT4) AS $$
 $$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
 
 --------------------------------------------------------------------------------
--- TRIGGERS
+-- TRIGGER - insert_update_search_tables
 --------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION visible_in_search(p person)
+RETURNS BOOLEAN AS $$
+BEGIN
+    IF p IS NULL THEN
+        RETURN FALSE;
+    END IF;
+
+    RETURN (
+        p.activated AND
+        NOT p.hide_me_from_strangers
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION visible_in_quiz_search(p person)
+RETURNS BOOLEAN AS $$
+BEGIN
+    IF p IS NULL THEN
+        RETURN FALSE;
+    END IF;
+
+    RETURN (
+        p.activated AND
+        NOT p.hide_me_from_strangers AND
+        p.has_profile_picture_id = 1
+    );
+END;
+$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION insert_update_search_tables()
 RETURNS TRIGGER AS $$
 DECLARE
-    visible_in_search BOOLEAN;
-    visible_in_quiz_search BOOLEAN;
+    new_visible_in_search BOOLEAN;
+    old_visible_in_search BOOLEAN;
+    new_visible_in_quiz_search BOOLEAN;
+    old_visible_in_quiz_search BOOLEAN;
 BEGIN
-    visible_in_search := NEW.activated;
-    visible_in_quiz_search := (
-        NEW.has_profile_picture_id = 1 AND
-        NEW.hide_me_from_strangers = FALSE);
+    new_visible_in_search := visible_in_search(NEW);
+    old_visible_in_search := visible_in_search(OLD);
 
-    IF (visible_in_search = TRUE) THEN
-        IF (visible_in_quiz_search) THEN
-            INSERT INTO search_for_quiz_prospects (person_id, coordinates, personality)
-            VALUES (NEW.id, NEW.coordinates, NEW.personality)
-            ON CONFLICT (person_id)
-            DO UPDATE SET
-                coordinates = EXCLUDED.coordinates,
-                personality = EXCLUDED.personality;
-        END IF;
+    new_visible_in_quiz_search := visible_in_quiz_search(NEW);
+    old_visible_in_quiz_search := visible_in_quiz_search(OLD);
 
-        INSERT INTO search_for_standard_prospects (person_id, coordinates, personality)
+    IF new_visible_in_quiz_search = old_visible_in_quiz_search THEN
+        -- Search visibility is unchanged; no need to update.
+    ELSIF new_visible_in_quiz_search THEN
+        INSERT INTO search_for_quiz_prospects (person_id, coordinates, personality)
         VALUES (NEW.id, NEW.coordinates, NEW.personality)
         ON CONFLICT (person_id)
         DO UPDATE SET
@@ -1090,7 +1115,19 @@ BEGIN
     ELSE
         DELETE FROM search_for_quiz_prospects
         WHERE person_id = NEW.id;
+    END IF;
 
+
+    IF new_visible_in_search = old_visible_in_search THEN
+        -- Search visibility is unchanged; no need to update.
+    ELSIF new_visible_in_search THEN
+        INSERT INTO search_for_standard_prospects (person_id, coordinates, personality)
+        VALUES (NEW.id, NEW.coordinates, NEW.personality)
+        ON CONFLICT (person_id)
+        DO UPDATE SET
+            coordinates = EXCLUDED.coordinates,
+            personality = EXCLUDED.personality;
+    ELSE
         DELETE FROM search_for_standard_prospects
         WHERE person_id = NEW.id;
     END IF;
@@ -1105,6 +1142,44 @@ ON person
 FOR EACH ROW
 EXECUTE FUNCTION insert_update_search_tables();
 
+CREATE OR REPLACE FUNCTION trigger_fn_refresh_search_tables()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM refresh_search_tables(NEW.id);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trigger_refresh_search_tables
+AFTER INSERT OR UPDATE
+ON person
+FOR EACH ROW
+EXECUTE FUNCTION trigger_fn_refresh_search_tables();
+
+--------------------------------------------------------------------------------
+-- TRIGGER - undeleted_photo
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION trigger_fn_insert_into_undeleted_photo()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO undeleted_photo (uuid)
+    VALUES (NEW.uuid)
+    ON CONFLICT DO NOTHING;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trigger_fn_insert_into_undeleted_photo_on_insert_photo
+AFTER INSERT OR UPDATE ON photo
+FOR EACH ROW
+EXECUTE FUNCTION trigger_fn_insert_into_undeleted_photo();
+
+CREATE OR REPLACE TRIGGER trigger_fn_insert_into_undeleted_photo_on_insert_onboardee_photo
+AFTER INSERT OR UPDATE ON onboardee_photo
+FOR EACH ROW
+EXECUTE FUNCTION trigger_fn_insert_into_undeleted_photo();
 
 
 CREATE OR REPLACE FUNCTION on_delete_photo()
@@ -1219,8 +1294,79 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- TODO: Delete after migration is complete
 --------------------------------------------------------------------------------
 
-DROP TRIGGER insert_update_search_tables ON person;
-DROP FUNCTION insert_update_search_tables();
+CREATE OR REPLACE FUNCTION refresh_search_tables(p_person_id INT)
+RETURNS INTEGER AS $$
+    WITH selected_person AS (
+        SELECT
+            id,
+            coordinates,
+            personality,
+            activated,
+            has_profile_picture_id,
+            hide_me_from_strangers
+        FROM
+            person
+        WHERE
+            id = p_person_id
+    ), visible_in_standard_search AS (
+        SELECT (
+            activated
+        ) AS x
+        FROM selected_person
+    ), visible_in_quiz_search AS (
+        SELECT (
+            activated AND
+            NOT hide_me_from_strangers AND
+            has_profile_picture_id = 1
+        ) AS x
+        FROM selected_person
+    ), inserted_standard_search AS (
+        INSERT INTO search_for_standard_prospects (
+            person_id, coordinates, personality
+        )
+        SELECT
+            id AS person_id, coordinates, personality
+        FROM
+            selected_person
+        WHERE
+            (SELECT x FROM visible_in_standard_search)
+        ON CONFLICT (person_id) DO UPDATE SET
+            coordinates = EXCLUDED.coordinates,
+            personality = EXCLUDED.personality
+        RETURNING *
+    ), deleted_standard_search AS (
+        DELETE FROM search_for_standard_prospects
+        USING selected_person
+        WHERE person_id = selected_person.id AND
+            (SELECT NOT x FROM visible_in_standard_search)
+        RETURNING *
+    ), inserted_quiz_search AS (
+        INSERT INTO search_for_quiz_prospects (
+            person_id, coordinates, personality
+        )
+        SELECT
+            id AS person_id, coordinates, personality
+        FROM
+            selected_person
+        WHERE
+            (SELECT x FROM visible_in_quiz_search)
+        ON CONFLICT (person_id) DO UPDATE SET
+            coordinates = EXCLUDED.coordinates,
+            personality = EXCLUDED.personality
+        RETURNING *
+    ), deleted_quiz_search AS (
+        DELETE FROM search_for_quiz_prospects
+        USING selected_person
+        WHERE person_id = selected_person.id AND
+            (SELECT NOT x FROM visible_in_quiz_search)
+        RETURNING *
+    )
+    SELECT
+        (SELECT COUNT(*) from inserted_standard_search) +
+        (SELECT COUNT(*) from deleted_standard_search) +
+        (SELECT COUNT(*) from inserted_quiz_search) +
+        (SELECT COUNT(*) from deleted_quiz_search)
+$$ LANGUAGE sql;
 
 -- Drop the triggers
 DROP TRIGGER trigger_photo_delete ON photo;
