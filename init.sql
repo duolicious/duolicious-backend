@@ -1147,20 +1147,6 @@ ON person
 FOR EACH ROW
 EXECUTE FUNCTION insert_update_search_tables();
 
-CREATE OR REPLACE FUNCTION trigger_fn_refresh_search_tables()
-RETURNS TRIGGER AS $$
-BEGIN
-    PERFORM refresh_search_tables(NEW.id);
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE TRIGGER trigger_refresh_search_tables
-AFTER INSERT OR UPDATE
-ON person
-FOR EACH ROW
-EXECUTE FUNCTION trigger_fn_refresh_search_tables();
-
 --------------------------------------------------------------------------------
 -- TRIGGER - undeleted_photo
 --------------------------------------------------------------------------------
