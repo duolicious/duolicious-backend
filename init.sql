@@ -433,6 +433,9 @@ CREATE TABLE IF NOT EXISTS blocked (
 -- TABLES TO SPEED UP SEARCHING
 --------------------------------------------------------------------------------
 
+-- TODO: Delete this statement after deployment.
+-- TODO: Delete associated indexes.
+-- TODO: Delete associated trigger logic.
 CREATE TABLE IF NOT EXISTS search_for_quiz_prospects (
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     coordinates GEOGRAPHY(Point, 4326) NOT NULL,
@@ -449,6 +452,9 @@ CREATE TABLE IF NOT EXISTS search_for_standard_prospects (
     PRIMARY KEY (person_id)
 );
 
+-- TODO: Delete this statement after deployment
+DROP TABLE IF EXISTS search_cache;
+
 CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     position SMALLINT,
@@ -457,6 +463,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     name TEXT NOT NULL,
     age SMALLINT,
     match_percentage SMALLINT NOT NULL,
+    personality VECTOR(47) NOT NULL,
     PRIMARY KEY (searcher_person_id, position)
 );
 

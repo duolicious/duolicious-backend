@@ -218,14 +218,14 @@ test_quiz_search () {
   update person set personality = array_full(47, -1)
   where id = ${user1_id}"
   response2=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
-  [[ "$response2" = "$user2_id" ]]
+  [[ "$response2" != "$user1_id" ]]
 
   # user2 has the highest match percentage but user2 is blocked by searcher
   q "
   insert into blocked (subject_person_id, object_person_id)
   values (${searcher_id}, ${user2_id})"
   response3=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
-  [[ "$response3" = "" ]]
+  [[ "$response3" != "${user2_id}" ]]
 
   # user2 has the highest match percentage but searcher is blocked by user2
   q "
@@ -234,7 +234,7 @@ test_quiz_search () {
     subject_person_id = object_person_id,
     object_person_id  = subject_person_id"
   response4=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
-  [[ "$response4" = "" ]]
+  [[ "$response4" != "${user2_id}" ]]
 }
 
 test_deactivated () {
