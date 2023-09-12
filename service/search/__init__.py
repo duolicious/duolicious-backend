@@ -3,6 +3,15 @@ from database import transaction
 from typing import Tuple, Optional
 from service.search.sql import *
 
+def _quiz_search_results(searcher_person_id: int):
+    params = dict(
+        searcher_person_id=searcher_person_id,
+    )
+
+    with transaction('READ COMMITTED') as tx:
+        return tx.execute(Q_QUIZ_SEARCH, params).fetchall()
+
+
 def _q_uncached_search_2(use_distance: bool) -> str:
     maybe_distance_fragment = (
         Q_UNCACHED_SEARCH_2_DISTANCE_FRAGMENT if use_distance else ''
@@ -16,6 +25,7 @@ def _q_uncached_search_2(use_distance: bool) -> str:
     print(query, flush=True) # TODO
 
     return query
+
 
 def _uncached_search_results(searcher_person_id: int, no: Tuple[int, int]):
     with transaction('READ COMMITTED') as tx:
@@ -40,6 +50,7 @@ def _uncached_search_results(searcher_person_id: int, no: Tuple[int, int]):
 
         return tx.execute(q_uncached_search_2, params_2).fetchall()
 
+
 def _cached_search_results(searcher_person_id: int, no: Tuple[int, int]):
     n, o = no
 
@@ -52,6 +63,7 @@ def _cached_search_results(searcher_person_id: int, no: Tuple[int, int]):
     with transaction('READ COMMITTED') as tx:
         return tx.execute(Q_CACHED_SEARCH, params).fetchall()
 
+
 def get_search(s: t.SessionInfo, n: Optional[str], o: Optional[str]):
     n_: Optional[int] = n if n is None else int(n)
     o_: Optional[int] = o if o is None else int(o)
@@ -63,9 +75,9 @@ def get_search(s: t.SessionInfo, n: Optional[str], o: Optional[str]):
 
     no = None if (n_ is None or o_ is None) else (n_, o_)
 
-    is no is None:
+    if no is None:
         return _quiz_search_results(searcher_person_id=s.person_id)
-    elif no[1] = 0:
+    elif no[1] == 0:
         return _uncached_search_results(searcher_person_id=s.person_id, no=no)
     else:
         return _cached_search_results(searcher_person_id=s.person_id, no=no)

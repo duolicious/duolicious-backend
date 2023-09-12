@@ -16,6 +16,7 @@ WHERE
 """
 
 Q_UNCACHED_SEARCH_2_DISTANCE_FRAGMENT = """
+    WHERE
         ST_DWithin(
             coordinates,
             (SELECT coordinates FROM searcher),
@@ -39,8 +40,7 @@ WITH searcher AS (
         personality <#> (SELECT personality FROM searcher) AS negative_dot_prod
     FROM
         search_for_standard_prospects
-    WHERE
-        [[maybe_distance_fragment]]
+    [[maybe_distance_fragment]]
     ORDER BY
         negative_dot_prod
     LIMIT
@@ -51,7 +51,7 @@ WITH searcher AS (
     FROM
         prospects_first_pass AS prospect
     WHERE
-        person_id != %(searcher_person_id)s
+        prospect_person_id != %(searcher_person_id)s
     AND
         -- The prospect did not block the searcher
         NOT EXISTS (
@@ -145,7 +145,8 @@ WITH searcher AS (
         ) AS profile_photo_uuid,
         name,
         CASE WHEN show_my_age THEN age ELSE NULL END AS age,
-        CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2)::SMALLINT AS match_percentage
+        CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2)::SMALLINT AS match_percentage,
+        personality
     FROM
         joined_prospects AS prospect
     WHERE
@@ -302,10 +303,9 @@ WITH searcher AS (
             ) UNION ALL (
                 SELECT 1
                 FROM messaged
-                ON
-                    messaged.subject_person_id = prospect_person_id AND
-                    messaged.object_person_id = %(searcher_person_id)s
                 WHERE
+                    messaged.subject_person_id = prospect_person_id AND
+                    messaged.object_person_id = %(searcher_person_id)s AND
                     prospect.hide_me_from_strangers
                 LIMIT 1
             )
@@ -329,7 +329,12 @@ WITH searcher AS (
                 (profile_photo_uuid IS NOT NULL) DESC,
                 match_percentage DESC
         ) AS position,
-        *
+        prospect_person_id,
+        profile_photo_uuid,
+        name,
+        age,
+        match_percentage,
+        personality
     FROM
         prospects_third_pass
     RETURNING *
@@ -376,7 +381,10 @@ WITH searcher AS (
     LIMIT 1
 ), with_negative_dot_prod AS (
     SELECT
-        *,
+        prospect_person_id,
+        profile_photo_uuid,
+        name,
+        age,
         personality <#> (SELECT personality FROM searcher) AS negative_dot_prod
     FROM
         search_cache
@@ -393,8 +401,8 @@ SELECT
     profile_photo_uuid,
     name,
     age,
-    personality
     CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2)::SMALLINT AS match_percentage
 FROM
     with_negative_dot_prod
+LIMIT 1
 """
