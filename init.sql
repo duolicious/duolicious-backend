@@ -433,6 +433,7 @@ CREATE TABLE IF NOT EXISTS blocked (
 -- TABLES TO SPEED UP SEARCHING
 --------------------------------------------------------------------------------
 
+-- TODO: Delete this statement after deployment.
 CREATE TABLE IF NOT EXISTS search_for_quiz_prospects (
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     coordinates GEOGRAPHY(Point, 4326) NOT NULL,
@@ -449,6 +450,9 @@ CREATE TABLE IF NOT EXISTS search_for_standard_prospects (
     PRIMARY KEY (person_id)
 );
 
+-- TODO: Delete this statement after deployment
+DROP TABLE IF EXISTS search_cache;
+
 CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     position SMALLINT,
@@ -457,6 +461,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     name TEXT NOT NULL,
     age SMALLINT,
     match_percentage SMALLINT NOT NULL,
+    personality VECTOR(47) NOT NULL,
     PRIMARY KEY (searcher_person_id, position)
 );
 
@@ -464,8 +469,12 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
 -- INDEXES
 --------------------------------------------------------------------------------
 
+-- TODO: Delete this statement after deployment
 CREATE INDEX IF NOT EXISTS idx__search_for_quiz_prospects__coordinates ON search_for_quiz_prospects USING GIST(coordinates);
+
 CREATE INDEX IF NOT EXISTS idx__search_for_standard_prospects__coordinates ON search_for_standard_prospects USING GIST(coordinates);
+
+CREATE INDEX IF NOT EXISTS idx__search_cache__searcher_person_id__position ON search_cache(searcher_person_id, position);
 
 CREATE INDEX IF NOT EXISTS idx__answer__question_id ON answer(question_id);
 CREATE INDEX IF NOT EXISTS idx__answer__person_id_public_answer ON answer(person_id, public_, answer);
@@ -1060,6 +1069,7 @@ $$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
 -- TRIGGER - insert_update_search_tables
 --------------------------------------------------------------------------------
 
+-- TODO: Delete
 CREATE OR REPLACE FUNCTION visible_in_search(p person)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -1071,6 +1081,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- TODO: Delete
 CREATE OR REPLACE FUNCTION visible_in_quiz_search(p person)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -1084,27 +1095,8 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION insert_update_search_tables()
 RETURNS TRIGGER AS $$
-DECLARE
-    visible_in_search BOOLEAN;
-    visible_in_quiz_search BOOLEAN;
 BEGIN
-    visible_in_search := visible_in_search(NEW);
-    visible_in_quiz_search := visible_in_quiz_search(NEW);
-
-    IF visible_in_quiz_search THEN
-        INSERT INTO search_for_quiz_prospects (person_id, coordinates, personality)
-        VALUES (NEW.id, NEW.coordinates, NEW.personality)
-        ON CONFLICT (person_id)
-        DO UPDATE SET
-            coordinates = EXCLUDED.coordinates,
-            personality = EXCLUDED.personality;
-    ELSE
-        DELETE FROM search_for_quiz_prospects
-        WHERE person_id = NEW.id;
-    END IF;
-
-
-    IF visible_in_search THEN
+    IF NEW.activated THEN
         INSERT INTO search_for_standard_prospects (person_id, coordinates, personality)
         VALUES (NEW.id, NEW.coordinates, NEW.personality)
         ON CONFLICT (person_id)
@@ -1195,6 +1187,15 @@ CREATE OR REPLACE TRIGGER trigger_refresh_has_profile_picture_id
 AFTER INSERT OR DELETE ON photo
 FOR EACH ROW
 EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
+
+--------------------------------------------------------------------------------
+-- Migrations
+--------------------------------------------------------------------------------
+
+DROP FUNCTION visible_in_quiz_search(person);
+DROP FUNCTION visible_in_search(person);
+DROP INDEX idx__search_for_quiz_prospects__coordinates;
+DROP TABLE search_for_quiz_prospects CASCADE;
 
 --------------------------------------------------------------------------------
 
