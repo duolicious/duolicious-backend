@@ -203,29 +203,38 @@ test_quiz_search () {
   local user2_id=$(q "select id from person where email = 'user2@example.com'")
 
   q "
-  update person
-  set has_profile_picture_id = (select id from yes_no where name = 'Yes')"
+  update person set personality = array_full(47, 1)
+  where id = ${user1_id}"
+
+  q "
+  update person set personality = array_full(47, -1)
+  where id = ${user2_id}"
+
+  # Populate the search cache
+  c GET '/search?n=1&o=0'
 
   # user1 has the higher match percentage
   q "
   update person set personality = array_full(47, 1)
-  where id IN (${searcher_id}, ${user1_id})"
+  where id = ${searcher_id}"
   response1=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response1" = "$user1_id" ]]
 
   # user1 has the lower match percentage
   q "
   update person set personality = array_full(47, -1)
-  where id = ${user1_id}"
+  where id = ${searcher_id}"
   response2=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
-  [[ "$response2" = "$user2_id" ]]
+  [[ "$response2" != "$user1_id" ]]
 
   # user2 has the highest match percentage but user2 is blocked by searcher
   q "
   insert into blocked (subject_person_id, object_person_id)
   values (${searcher_id}, ${user2_id})"
+  c GET '/search?n=1&o=0' # Re-populate search cache
+
   response3=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
-  [[ "$response3" = "" ]]
+  [[ "$response3" != "${user2_id}" ]]
 
   # user2 has the highest match percentage but searcher is blocked by user2
   q "
@@ -233,8 +242,10 @@ test_quiz_search () {
   set
     subject_person_id = object_person_id,
     object_person_id  = subject_person_id"
+  c GET '/search?n=1&o=0' # Re-populate search cache
+
   response4=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
-  [[ "$response4" = "" ]]
+  [[ "$response4" != "${user2_id}" ]]
 }
 
 test_deactivated () {

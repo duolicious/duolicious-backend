@@ -21,7 +21,6 @@ q "delete from undeleted_photo"
 
 [[ "$(q "select count(*) from photo")" == "1" ]]
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "1" ]]
-[[ "$(q "select count(*) from search_for_quiz_prospects")" == "1" ]]
 [[ "$(q "select count(*) from onboardee_photo")" == "0" ]]
 [[ "$(q "select count(*) from undeleted_photo")" == "1" ]]
 
@@ -36,7 +35,6 @@ c PATCH /profile-info \
 
 [[ "$(q "select count(*) from photo")" == "1" ]]
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "1" ]]
-[[ "$(q "select count(*) from search_for_quiz_prospects")" == "1" ]]
 [[ "$(q "select count(*) from onboardee_photo")" == "0" ]]
 [[ "$(q "select count(*) from undeleted_photo")" == "2" ]]
 
@@ -45,7 +43,6 @@ jc DELETE /profile-info -d '{ "files": [1] }'
 
 [[ "$(q "select count(*) from photo")" == "0" ]]
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "0" ]]
-[[ "$(q "select count(*) from search_for_quiz_prospects")" == "0" ]]
 [[ "$(q "select count(*) from onboardee_photo")" == "0" ]]
 [[ "$(q "select count(*) from undeleted_photo")" == "2" ]]
 
@@ -63,7 +60,6 @@ jc POST /check-otp -d '{ "otp": "000000" }'
 
 [[ "$(q "select count(*) from photo")" == "0" ]]
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "0" ]]
-[[ "$(q "select count(*) from search_for_quiz_prospects")" == "0" ]]
 [[ "$(q "select count(*) from onboardee_photo")" == "0" ]]
 [[ "$(q "select count(*) from undeleted_photo")" == "0" ]]
 
@@ -74,7 +70,6 @@ c PATCH /profile-info \
 
 [[ "$(q "select count(*) from photo")" == "1" ]]
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "1" ]]
-[[ "$(q "select count(*) from search_for_quiz_prospects")" == "1" ]]
 [[ "$(q "select count(*) from onboardee_photo")" == "0" ]]
 [[ "$(q "select count(*) from undeleted_photo")" == "1" ]]
 
@@ -97,7 +92,6 @@ c PATCH /onboardee-info \
 
 [[ "$(q "select count(*) from photo")" == "0" ]]
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "0" ]]
-[[ "$(q "select count(*) from search_for_quiz_prospects")" == "0" ]]
 [[ "$(q "select count(*) from onboardee_photo")" == "2" ]]
 [[ "$(q "select count(*) from undeleted_photo")" == "2" ]]
 
@@ -109,6 +103,5 @@ c PATCH /onboardee-info \
 
 [[ "$(q "select count(*) from photo")" == "0" ]]
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "0" ]]
-[[ "$(q "select count(*) from search_for_quiz_prospects")" == "0" ]]
 [[ "$(q "select count(*) from onboardee_photo")" == "3" ]]
 [[ "$(q "select count(*) from undeleted_photo")" == "4" ]]

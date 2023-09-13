@@ -12,9 +12,6 @@ q "delete from onboardee"
 # TODO: Replace me with a database that's 1000 times bigger
 time bash -c 'seq 1000 | parallel -j16 ../util/create-user.sh "user{}" 0 0'
 
-# Make prospects appear in `search_for_quiz_prospects`
-q "update person set has_profile_picture_id = 1"
-
 # I realise this isn't a great performance test but I need a bigger DB once
 # development has settled down.
 for n in $(seq 100)
