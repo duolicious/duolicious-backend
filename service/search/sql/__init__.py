@@ -16,7 +16,7 @@ WHERE
 """
 
 Q_UNCACHED_SEARCH_2_DISTANCE_FRAGMENT = """
-    WHERE
+    AND
         ST_DWithin(
             coordinates,
             (SELECT coordinates FROM searcher),
@@ -25,7 +25,7 @@ Q_UNCACHED_SEARCH_2_DISTANCE_FRAGMENT = """
 """
 
 Q_UNCACHED_SEARCH_2 = """
-WITH searcher AS (
+WITH searcher AS MATERIALIZED (
     SELECT
         coordinates,
         personality
@@ -34,104 +34,30 @@ WITH searcher AS (
     WHERE
         person.id = %(searcher_person_id)s
     LIMIT 1
-), prospects_first_pass AS (
+), prospects_first_pass AS MATERIALIZED (
     SELECT
         person_id AS prospect_person_id,
         personality <#> (SELECT personality FROM searcher) AS negative_dot_prod
     FROM
         search_for_standard_prospects
+    WHERE
+        person_id != %(searcher_person_id)s
     [[maybe_distance_fragment]]
     ORDER BY
         negative_dot_prod
     LIMIT
         1000
-), prospects_second_pass AS (
-    SELECT
-        *
-    FROM
-        prospects_first_pass AS prospect
-    WHERE
-        prospect_person_id != %(searcher_person_id)s
-    AND
-        -- The prospect did not block the searcher
-        NOT EXISTS (
-            SELECT 1
-            FROM
-                blocked
-            WHERE
-                subject_person_id = prospect_person_id AND
-                object_person_id  = %(searcher_person_id)s
-            LIMIT 1
-        )
-    AND
-        -- The searcher did not block the prospect, or the searcher wishes to
-        -- view blocked prospects
-        NOT EXISTS (
-            SELECT 1
-            FROM search_preference_blocked AS preference
-            JOIN blocked
-            ON
-                preference.person_id      = %(searcher_person_id)s AND
-                preference.blocked_id     = 2 AND
-                blocked.subject_person_id = %(searcher_person_id)s AND
-                blocked.object_person_id  = prospect_person_id
-            LIMIT 1
-        )
-    AND
-       NOT EXISTS (
-            SELECT 1
-            FROM search_preference_messaged AS preference
-            JOIN messaged
-            ON
-                preference.person_id       = %(searcher_person_id)s AND
-                preference.messaged_id     = 2 AND
-                messaged.subject_person_id = %(searcher_person_id)s AND
-                messaged.object_person_id  = prospect_person_id
-            LIMIT 1
-        )
-    AND
-       NOT EXISTS (
-            SELECT 1
-            FROM search_preference_hidden AS preference
-            JOIN hidden
-            ON
-                preference.person_id     = %(searcher_person_id)s AND
-                preference.hidden_id     = 2 AND
-                hidden.subject_person_id = %(searcher_person_id)s AND
-                hidden.object_person_id  = prospect_person_id
-            LIMIT 1
-        )
-    AND
-        -- NOT EXISTS an answer contrary to the searcher's preference...
-        NOT EXISTS (
-            SELECT 1
-            FROM search_preference_answer pref
-            LEFT JOIN answer ans
-            ON
-                ans.person_id = prospect_person_id AND
-                ans.question_id = pref.question_id AND
-                pref.person_id = %(searcher_person_id)s
-            WHERE
-                -- Contrary because the answer exists and is wrong
-                ans.answer IS NOT NULL AND
-                ans.answer != pref.answer
-            OR
-                -- Contrary because the answer doesn't exist but should
-                ans.answer IS NULL AND
-                pref.accept_unanswered = FALSE
-            LIMIT 1
-        )
-), joined_prospects AS (
+), joined_prospects AS MATERIALIZED (
     SELECT
         *,
         EXTRACT(YEAR FROM AGE(date_of_birth)) AS age
     FROM
         person
     JOIN
-        prospects_second_pass
+        prospects_first_pass
     ON
         person.id = prospect_person_id
-), prospects_third_pass AS (
+), prospects_second_pass AS MATERIALIZED (
     SELECT
         id AS prospect_person_id,
         (
@@ -311,6 +237,75 @@ WITH searcher AS (
             )
             LIMIT 1
         )
+    AND
+        -- The prospect did not block the searcher
+        NOT EXISTS (
+            SELECT 1
+            FROM
+                blocked
+            WHERE
+                subject_person_id = prospect_person_id AND
+                object_person_id  = %(searcher_person_id)s
+            LIMIT 1
+        )
+    AND
+        -- The searcher did not block the prospect, or the searcher wishes to
+        -- view blocked prospects
+        NOT EXISTS (
+            SELECT 1
+            FROM search_preference_blocked AS preference
+            JOIN blocked
+            ON
+                preference.person_id      = %(searcher_person_id)s AND
+                preference.blocked_id     = 2 AND
+                blocked.subject_person_id = %(searcher_person_id)s AND
+                blocked.object_person_id  = prospect_person_id
+            LIMIT 1
+        )
+    AND
+       NOT EXISTS (
+            SELECT 1
+            FROM search_preference_messaged AS preference
+            JOIN messaged
+            ON
+                preference.person_id       = %(searcher_person_id)s AND
+                preference.messaged_id     = 2 AND
+                messaged.subject_person_id = %(searcher_person_id)s AND
+                messaged.object_person_id  = prospect_person_id
+            LIMIT 1
+        )
+    AND
+       NOT EXISTS (
+            SELECT 1
+            FROM search_preference_hidden AS preference
+            JOIN hidden
+            ON
+                preference.person_id     = %(searcher_person_id)s AND
+                preference.hidden_id     = 2 AND
+                hidden.subject_person_id = %(searcher_person_id)s AND
+                hidden.object_person_id  = prospect_person_id
+            LIMIT 1
+        )
+    AND
+        -- NOT EXISTS an answer contrary to the searcher's preference...
+        NOT EXISTS (
+            SELECT 1
+            FROM search_preference_answer pref
+            LEFT JOIN answer ans
+            ON
+                ans.person_id = prospect_person_id AND
+                ans.question_id = pref.question_id AND
+                pref.person_id = %(searcher_person_id)s
+            WHERE
+                -- Contrary because the answer exists and is wrong
+                ans.answer IS NOT NULL AND
+                ans.answer != pref.answer
+            OR
+                -- Contrary because the answer doesn't exist but should
+                ans.answer IS NULL AND
+                pref.accept_unanswered = FALSE
+            LIMIT 1
+        )
 ), updated_search_cache AS (
     INSERT INTO search_cache (
         searcher_person_id,
@@ -336,7 +331,7 @@ WITH searcher AS (
         match_percentage,
         personality
     FROM
-        prospects_third_pass
+        prospects_second_pass
     RETURNING *
 )
 SELECT
