@@ -25,7 +25,7 @@ Q_UNCACHED_SEARCH_2_DISTANCE_FRAGMENT = """
 """
 
 Q_UNCACHED_SEARCH_2 = """
-WITH searcher AS (
+WITH searcher AS MATERIALIZED (
     SELECT
         coordinates,
         personality
@@ -34,7 +34,7 @@ WITH searcher AS (
     WHERE
         person.id = %(searcher_person_id)s
     LIMIT 1
-), prospects_first_pass AS (
+), prospects_first_pass AS MATERIALIZED (
     SELECT
         person_id AS prospect_person_id,
         personality <#> (SELECT personality FROM searcher) AS negative_dot_prod
@@ -57,7 +57,7 @@ WITH searcher AS (
         prospects_first_pass
     ON
         person.id = prospect_person_id
-), prospects_second_pass AS (
+), prospects_second_pass AS MATERIALIZED (
     SELECT
         id AS prospect_person_id,
         (
