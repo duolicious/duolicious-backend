@@ -17,14 +17,10 @@ def _q_uncached_search_2(use_distance: bool) -> str:
         Q_UNCACHED_SEARCH_2_DISTANCE_FRAGMENT if use_distance else ''
     )
 
-    query = Q_UNCACHED_SEARCH_2.replace(
+    return Q_UNCACHED_SEARCH_2.replace(
         '[[maybe_distance_fragment]]',
         maybe_distance_fragment,
     )
-
-    print(query, flush=True) # TODO
-
-    return query
 
 
 def _uncached_search_results(searcher_person_id: int, no: Tuple[int, int]):
