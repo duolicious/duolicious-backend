@@ -350,6 +350,59 @@ test_sad_already_notified_for_other_intro_in_drift_period () {
   [[ ! -s ../../test/output/cron-emails ]]
 }
 
+# The user has already received an intro in the past day and a chat in the past
+# 10 minutes. They were notified about both of these. Then the user gets another
+# chat within this same 10 minute window. The user should not be notified about
+# this chat during this time.
+test_sad_intro_within_day_and_chat_within_past_10_minutes () {
+  setup
+
+  # Default drift period for intros (i.e. inbox messages) is 1 day = 86400 s.
+  local t1=$(db_now as-microseconds '- 13 hours             ') # last intro
+  local t2=$(db_now as-seconds      '- 13 minutes + 1 second') # last intro notification
+  local t3=$(db_now as-seconds      '-  5 minutes           ') # last chat notification
+  local t4=$(db_now as-microseconds '-  3 minutes           ') # last chat
+
+  # Insert last notification
+  q "
+  insert into duo_last_notification (username, intro_seconds, chat_seconds)
+  values
+    ($user1id, $t2, $t3)
+  " duo_chat
+  local rows=$(
+    q "select count(*)
+    from duo_last_notification
+    where username = '$user1id'
+    and intro_seconds = $t2
+    and chat_seconds = $t3" duo_chat
+  )
+  [[ "$rows" = 1 ]]
+
+  # Insert intro and chat
+  q "
+  insert into inbox
+  values
+    ($user1id, '', 'sender2', '', 'inbox', '', ${t1}, 0, 42),
+    ($user1id, '', 'sender1', '', 'chats', '', ${t4}, 0, 43)
+  " duo_chat
+  [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
+
+  sleep 2
+
+  # Cron service should not send any notifications and duo_last_notification
+  # should remain unchanged
+  local rows=$(
+    q "select count(*)
+    from duo_last_notification
+    where username = '$user1id'
+    and intro_seconds = $t2
+    and chat_seconds = $t3" duo_chat
+  )
+  [[ "$rows" = 1 ]]
+
+  [[ ! -s ../../test/output/cron-emails ]]
+}
+
 test_happy_path_intros
 test_happy_path_chats
 test_happy_path_chat_not_deferred_by_intro
@@ -361,3 +414,5 @@ test_sad_still_active
 
 test_sad_already_notified_for_particular_message
 test_sad_already_notified_for_other_intro_in_drift_period
+
+test_sad_intro_within_day_and_chat_within_past_10_minutes

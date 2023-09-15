@@ -52,26 +52,37 @@ LEFT JOIN
 ON
     duo_last_notification.username = unfiltered_notifications.username
 WHERE
-    -- only notify users we haven't already notified
     (
-        has_intro AND unfiltered_notifications.last_intro_seconds >
+        has_intro
+    AND
+        -- only notify users we haven't already notified
+        unfiltered_notifications.last_intro_seconds >
             COALESCE(duo_last_notification.intro_seconds, 0)
-    OR
-        has_chat AND unfiltered_notifications.last_chat_seconds >
-            COALESCE(duo_last_notification.chat_seconds, 0)
+    AND
+        -- only notify users about messages sent longer than ten minutes ago
+        unfiltered_notifications.last_intro_seconds <
+            (SELECT seconds FROM ten_minutes_ago)
+    AND
+        -- only notify users whose last activity was longer than ten minutes ago
+        COALESCE(last.seconds, 0) <
+            (SELECT seconds FROM ten_minutes_ago)
     )
-AND
-    -- only notify users about messages sent longer than ten minutes ago
+OR
     (
-        has_intro AND unfiltered_notifications.last_intro_seconds <
+        has_chat
+    AND
+        -- only notify users we haven't already notified
+        unfiltered_notifications.last_chat_seconds >
+            COALESCE(duo_last_notification.chat_seconds, 0)
+    AND
+        -- only notify users about messages sent longer than ten minutes ago
+        unfiltered_notifications.last_chat_seconds <
             (SELECT seconds FROM ten_minutes_ago)
-    OR
-        has_chat AND unfiltered_notifications.last_chat_seconds <
+    AND
+        -- only notify users whose last activity was longer than ten minutes ago
+        COALESCE(last.seconds, 0) <
             (SELECT seconds FROM ten_minutes_ago)
     )
-AND
-    -- only notify users whose last activity was longer than ten minutes ago
-    COALESCE(last.seconds, 0) < (SELECT seconds FROM ten_minutes_ago)
 """
 
 Q_NOTIFICATION_SETTINGS = """
