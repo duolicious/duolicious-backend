@@ -433,15 +433,6 @@ CREATE TABLE IF NOT EXISTS blocked (
 -- TABLES TO SPEED UP SEARCHING
 --------------------------------------------------------------------------------
 
--- TODO: Delete this statement after deployment.
-CREATE TABLE IF NOT EXISTS search_for_quiz_prospects (
-    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    coordinates GEOGRAPHY(Point, 4326) NOT NULL,
-    personality VECTOR(47) NOT NULL,
-
-    PRIMARY KEY (person_id)
-);
-
 CREATE TABLE IF NOT EXISTS search_for_standard_prospects (
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     coordinates GEOGRAPHY(Point, 4326) NOT NULL,
@@ -449,9 +440,6 @@ CREATE TABLE IF NOT EXISTS search_for_standard_prospects (
 
     PRIMARY KEY (person_id)
 );
-
--- TODO: Delete this statement after deployment
-DROP TABLE IF EXISTS search_cache;
 
 CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -468,9 +456,6 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
 --------------------------------------------------------------------------------
 -- INDEXES
 --------------------------------------------------------------------------------
-
--- TODO: Delete this statement after deployment
-CREATE INDEX IF NOT EXISTS idx__search_for_quiz_prospects__coordinates ON search_for_quiz_prospects USING GIST(coordinates);
 
 CREATE INDEX IF NOT EXISTS idx__search_for_standard_prospects__coordinates ON search_for_standard_prospects USING GIST(coordinates);
 
@@ -1069,30 +1054,6 @@ $$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
 -- TRIGGER - insert_update_search_tables
 --------------------------------------------------------------------------------
 
--- TODO: Delete
-CREATE OR REPLACE FUNCTION visible_in_search(p person)
-RETURNS BOOLEAN AS $$
-BEGIN
-    IF p IS NULL THEN
-        RETURN FALSE;
-    END IF;
-
-    RETURN p.activated;
-END;
-$$ LANGUAGE plpgsql;
-
--- TODO: Delete
-CREATE OR REPLACE FUNCTION visible_in_quiz_search(p person)
-RETURNS BOOLEAN AS $$
-BEGIN
-    IF p IS NULL THEN
-        RETURN FALSE;
-    END IF;
-
-    RETURN p.activated AND p.has_profile_picture_id = 1;
-END;
-$$ LANGUAGE plpgsql;
-
 CREATE OR REPLACE FUNCTION insert_update_search_tables()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -1191,11 +1152,6 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
-
-DROP FUNCTION visible_in_quiz_search(person);
-DROP FUNCTION visible_in_search(person);
-DROP INDEX idx__search_for_quiz_prospects__coordinates;
-DROP TABLE search_for_quiz_prospects CASCADE;
 
 --------------------------------------------------------------------------------
 
