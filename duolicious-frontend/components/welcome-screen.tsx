@@ -118,15 +118,6 @@ const WelcomeScreen_ = ({navigation}) => {
           justifyContent: 'center',
           flexGrow: 1
         }}>
-          <DefaultText
-            style={{
-              alignSelf: 'center',
-              color: 'white',
-              fontSize: 20,
-            }}
-          >
-            Welcome to
-          </DefaultText>
           <Text
             style={{
               color: 'white',
@@ -137,6 +128,15 @@ const WelcomeScreen_ = ({navigation}) => {
           >
             Duolicious
           </Text>
+          <DefaultText
+            style={{
+              alignSelf: 'center',
+              color: 'white',
+              fontSize: 20,
+            }}
+          >
+            Date, chat & make new friends
+          </DefaultText>
           <DefaultTextInput
             style={{
               marginTop: 80,
