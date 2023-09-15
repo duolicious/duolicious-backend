@@ -307,7 +307,7 @@ const Charts = ({data}) => {
           maxLabel={trait.trait_max_label}
           name1={trait.prospect_name ?? undefined}
           percentage1={trait.prospect_percentage ?? undefined}
-          name2={trait.person_name ?? undefined}
+          name2="You"
           percentage2={trait.person_percentage ?? undefined}
         >
           {trait.trait_description}
