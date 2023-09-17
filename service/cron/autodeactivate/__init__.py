@@ -39,7 +39,7 @@ _chat_conninfo = psycopg.conninfo.make_conninfo(
     password=DB_PASS,
 )
 
-print('Hello from cron module: autodeactivate', flush=True)
+print('Hello from cron module: autodeactivate')
 
 @dataclass
 class JoinedPerson:
@@ -60,7 +60,7 @@ def filter_deactiveatable(joined_persons: list[JoinedPerson]):
     return [j for j in joined_persons if has_disposable_email(j)]
 
 async def autodeactivate_once():
-    api_conn  = await psycopg.AsyncConnection.connect(
+    api_conn = await psycopg.AsyncConnection.connect(
         _api_conninfo,
         row_factory=psycopg.rows.dict_row
     )
@@ -84,9 +84,9 @@ async def autodeactivate_once():
     deactiveatable_persons = filter_deactiveatable(joined_persons)
     deactiveatable_person_ids = [p.person_id for p in deactiveatable_persons]
 
-    if deactiveatable_person_ids:
+    if deactiveatable_persons:
         print(
-            f'About to deactivate {str(len(deactiveatable_person_ids))} '
+            f'About to deactivate {str(len(deactiveatable_persons))} '
             'accounts:',
         )
         for p in deactiveatable_persons:
