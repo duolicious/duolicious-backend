@@ -10,5 +10,3 @@ services:
 
   cron:
     volumes: []
-    environment:
-      DUO_EMAIL_POLL_SECONDS: 1

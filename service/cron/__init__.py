@@ -1,3 +1,4 @@
+from service.cron.autodeactivate import autodeactivate_forever
 from service.cron.emailnotifications import send_notifications_forever
 import asyncio
 from http.server import SimpleHTTPRequestHandler
@@ -21,6 +22,7 @@ async def http_server():
 async def main():
     await asyncio.gather(
         # TODO: Add photo deletion task
+        autodeactivate_forever(),
         send_notifications_forever(),
         http_server(),
     )

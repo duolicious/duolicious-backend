@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 die_env () {
   echo echo "Must be set: $1" >&2
   exit 1
@@ -14,7 +16,7 @@ PGPASSWORD=$DUO_DB_PASS psql \
   -h "$DUO_DB_HOST" \
   -U "$DUO_DB_USER" \
   -p "$DUO_DB_PORT" \
-  -c "CREATE DATABASE duo_chat;"
+  -c "CREATE DATABASE duo_chat;" || :
 
 PGPASSWORD=$DUO_DB_PASS psql \
   -h "$DUO_DB_HOST" \
