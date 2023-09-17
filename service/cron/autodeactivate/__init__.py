@@ -16,6 +16,8 @@ AUTODEACTIVATE_POLL_SECONDS = int(os.environ.get(
     10,
 ))
 
+print('AUTODEACTIVATE_POLL_SECONDS', AUTODEACTIVATE_POLL_SECONDS) # TODO
+
 DB_HOST      = os.environ['DUO_DB_HOST']
 DB_PORT      = os.environ['DUO_DB_PORT']
 DB_USER      = os.environ['DUO_DB_USER']
@@ -39,7 +41,7 @@ _chat_conninfo = psycopg.conninfo.make_conninfo(
     password=DB_PASS,
 )
 
-print('Hello from cron module: autodeactivate', flush=True)
+print('Hello from cron module: autodeactivate')
 
 @dataclass
 class JoinedPerson:
@@ -60,7 +62,8 @@ def filter_deactiveatable(joined_persons: list[JoinedPerson]):
     return [j for j in joined_persons if has_disposable_email(j)]
 
 async def autodeactivate_once():
-    api_conn  = await psycopg.AsyncConnection.connect(
+    print('once') # TODO
+    api_conn = await psycopg.AsyncConnection.connect(
         _api_conninfo,
         row_factory=psycopg.rows.dict_row
     )
@@ -73,20 +76,23 @@ async def autodeactivate_once():
     params = dict(polling_interval_seconds=AUTODEACTIVATE_POLL_SECONDS)
     cur_inactive = await chat_conn.execute(Q_INACTIVE, params)
     rows_inactive = await cur_inactive.fetchall()
+    print(rows_inactive) # TODO
 
     params = dict(ids=[r['person_id'] for r in rows_inactive])
     cur_emails = await api_conn.execute(Q_EMAILS, params)
     rows_emails = await cur_emails.fetchall()
+    print(rows_emails) # TODO
 
     joined = join_lists_of_dicts(rows_inactive, rows_emails, 'person_id')
 
     joined_persons = [JoinedPerson(**j) for j in joined]
     deactiveatable_persons = filter_deactiveatable(joined_persons)
     deactiveatable_person_ids = [p.person_id for p in deactiveatable_persons]
+    print(deactiveatable_persons) # TODO
 
-    if deactiveatable_person_ids:
+    if deactiveatable_persons:
         print(
-            f'About to deactivate {str(len(deactiveatable_person_ids))} '
+            f'About to deactivate {str(len(deactiveatable_persons))} '
             'accounts:',
         )
         for p in deactiveatable_persons:
@@ -106,6 +112,7 @@ async def autodeactivate_once():
     await chat_conn.close()
 
 async def autodeactivate_forever():
+    print('forever') # TODO
     while True:
         await print_stacktrace(autodeactivate_once)
         await asyncio.sleep(AUTODEACTIVATE_POLL_SECONDS)
