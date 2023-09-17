@@ -6,9 +6,10 @@ FROM
     last
 WHERE
     seconds <= extract(epoch from NOW() - INTERVAL '3 days')::int
-AND
-    seconds >= extract(epoch from NOW() - INTERVAL '3 days + 1 hour')::int - 2 * %(polling_interval_seconds)s
 """
+# AND
+#     seconds >= extract(epoch from NOW() - INTERVAL '3 days + 1 hour')::int - 2 * %(polling_interval_seconds)s
+# """
 
 Q_EMAILS = """
 SELECT
