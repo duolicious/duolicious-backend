@@ -1,19 +1,26 @@
 from dataclasses import dataclass
 from service.cron.emailnotifications.sql import *
 from service.cron.emailnotifications.template import emailtemplate
+from service.cron.util import join_lists_of_dicts, print_stacktrace
 import asyncio
 import json
 import os
 import psycopg
+import traceback
 import urllib.request
 
-DRY_RUN = os.environ.get('DUO_DRY_RUN', '').lower() not in [
-    'false', 'f', '0', 'no', '']
+DRY_RUN = os.environ.get(
+    'DUO_CRON_EMAIL_DRY_RUN',
+    'true',
+).lower() not in ['false', 'f', '0', 'no']
 
 EMAIL_KEY = os.environ['DUO_EMAIL_KEY']
 EMAIL_URL = os.environ['DUO_EMAIL_URL']
 
-EMAIL_POLL_SECONDS = int(os.environ.get('DUO_EMAIL_POLL_SECONDS', 10))
+EMAIL_POLL_SECONDS = int(os.environ.get(
+    'DUO_CRON_EMAIL_POLL_SECONDS',
+    '10',
+))
 
 DB_HOST      = os.environ['DUO_DB_HOST']
 DB_PORT      = os.environ['DUO_DB_PORT']
@@ -42,6 +49,8 @@ _chat_conninfo = psycopg.conninfo.make_conninfo(
     password=DB_PASS,
 )
 
+print('Hello from cron module: emailnotifications')
+
 @dataclass
 class PersonNotification:
     person_id: int
@@ -56,19 +65,6 @@ class PersonNotification:
     email: str
     chats_drift_seconds: int
     intros_drift_seconds: int
-
-def join_lists_of_dicts(list1, list2, join_key):
-    lookup1 = {item[join_key]: item for item in list1}
-    lookup2 = {item[join_key]: item for item in list2}
-
-    all_keys = set(lookup1.keys()) | set(lookup2.keys())
-
-    return [
-        lookup1[k] | lookup2[k]
-        for k in all_keys
-        if k in lookup1 and k in lookup2
-    ]
-
 
 def do_send(row: PersonNotification):
     email = row.email
@@ -127,7 +123,7 @@ def send_notification(row: PersonNotification):
     req = new_notification_req(row)
 
     if DRY_RUN:
-        print('DUO_DRY_RUN env var prevented email from being sent', flush=True)
+        print('DUO_CRON_EMAIL_DRY_RUN env var prevented email from being sent')
         email_data = dict(
             headers=req.headers | {'Api-key': 'redacted'},
             data=req.data.decode('utf8'),
@@ -139,9 +135,8 @@ def send_notification(row: PersonNotification):
     else:
         try:
             urllib.request.urlopen(req)
-        except Exception as e: # YOLO
-            print(str(e), flush=True)
-            pass
+        except: # YOLO
+            print(traceback.format_exc())
 
 async def update_last_notification_time(chat_conn, row: PersonNotification):
     params = dict(username=row.username)
@@ -155,7 +150,7 @@ async def update_last_notification_time(chat_conn, row: PersonNotification):
 async def maybe_send_notification(chat_conn, row: PersonNotification):
     if not do_send(row):
         return
-    print('SENDING:', str(row), flush=True)
+    print('SENDING:', str(row))
 
     send_notification(row)
     await update_last_notification_time(chat_conn, row)
@@ -195,5 +190,5 @@ async def send_notifications_once():
 
 async def send_notifications_forever():
     while True:
-        await send_notifications_once()
+        await print_stacktrace(send_notifications_once)
         await asyncio.sleep(EMAIL_POLL_SECONDS)

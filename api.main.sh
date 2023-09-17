@@ -5,6 +5,7 @@ cd "$script_dir"
 
 set -e
 
+export PYTHONUNBUFFERED=true
 export PYTHONDONTWRITEBYTECODE=true
 export PYTHONPATH=.
 
