@@ -13,6 +13,8 @@ DRY_RUN = os.environ.get('DUO_DRY_RUN', '').lower() not in [
 EMAIL_KEY = os.environ['DUO_EMAIL_KEY']
 EMAIL_URL = os.environ['DUO_EMAIL_URL']
 
+EMAIL_POLL_SECONDS = int(os.environ.get('DUO_EMAIL_POLL_SECONDS', 10))
+
 DB_HOST      = os.environ['DUO_DB_HOST']
 DB_PORT      = os.environ['DUO_DB_PORT']
 DB_USER      = os.environ['DUO_DB_USER']
@@ -194,4 +196,4 @@ async def send_notifications_once():
 async def send_notifications_forever():
     while True:
         await send_notifications_once()
-        await asyncio.sleep(1)
+        await asyncio.sleep(EMAIL_POLL_SECONDS)
