@@ -145,6 +145,7 @@ const WelcomeScreen_ = ({navigation}) => {
             keyboardType="email-address"
             textContentType="emailAddress"
             autoComplete="email"
+            autoCapitalize="none"
             value={email}
             onChangeText={setEmail}
             onSubmitEditing={() => submit()}
