@@ -59,7 +59,7 @@ type Inbox = {
   numUnread: number
 };
 
-const emtpyInbox = (): Inbox => ({
+const emptyInbox = (): Inbox => ({
   chats: {
     conversations: [], conversationsMap: {}, numUnread: 0 },
   intros: {
@@ -69,21 +69,24 @@ const emtpyInbox = (): Inbox => ({
 
 let _xmpp: Client | undefined;
 
-let _inbox: Inbox = emtpyInbox();
-const _inboxObservers: Set<(inbox: Inbox | undefined) => void> = new Set();
+let _inbox: Inbox | null = null;
+const _inboxObservers: Set<(inbox: Inbox | null) => void> = new Set();
 
-const observeInbox = (callback: (inbox: Inbox | undefined) => void): void => {
+const observeInbox = (
+  callback: (inbox: Inbox | null) => void
+): (() => void) | undefined => {
   if (_inboxObservers.has(callback))
     return;
 
   _inboxObservers.add(callback);
 
-  if (_inbox !== undefined)
-    callback(_inbox);
+  callback(_inbox);
+
+  return () => _inboxObservers.delete(callback);
 };
 
 const setInbox = async (
-  setter: (inbox: Inbox) => Promise<Inbox> | Inbox
+  setter: (inbox: Inbox | null) => Promise<Inbox | null> | Inbox | null
 ): Promise<void> => {
   _inbox = await setter(_inbox);
   _inboxObservers.forEach((observer) => observer(_inbox));
@@ -145,19 +148,21 @@ const personIdToJid = (personId: number): string =>
 
 const setInboxSent = (recipientPersonId: number, message: string) => {
   setInbox(async (inbox) => {
-    const chatsConversation =
-      inbox.chats.conversationsMap[recipientPersonId] as Conversation | undefined;
-    const introsConversation =
-      inbox.intros.conversationsMap[recipientPersonId] as Conversation | undefined;
+    const i = inbox ?? emptyInbox();
 
-    inbox.chats.numUnread  -= (
+    const chatsConversation =
+      i.chats.conversationsMap[recipientPersonId] as Conversation | undefined;
+    const introsConversation =
+      i.intros.conversationsMap[recipientPersonId] as Conversation | undefined;
+
+    i.chats.numUnread  -= (
       chatsConversation ?.lastMessageRead ?? true) ? 0 : 1;
-    inbox.intros.numUnread -= (
+    i.intros.numUnread -= (
       introsConversation?.lastMessageRead ?? true) ? 0 : 1;
 
-    inbox.numUnread = (
-      inbox.chats.numUnread +
-      inbox.intros.numUnread);
+    i.numUnread = (
+      i.chats.numUnread +
+      i.intros.numUnread);
 
     const updatedConversation: Conversation = {
       personId: recipientPersonId,
@@ -182,21 +187,21 @@ const setInboxSent = (recipientPersonId: number, message: string) => {
       // Add conversation into chats
       await moveToChats(recipientPersonId);
 
-      inbox.chats.conversations.push(updatedConversation);
-      inbox.chats.conversationsMap[recipientPersonId] = updatedConversation;
+      i.chats.conversations.push(updatedConversation);
+      i.chats.conversationsMap[recipientPersonId] = updatedConversation;
 
       // Remove conversation from intros
-      deleteFromArray(inbox.intros.conversations, introsConversation);
-      delete inbox.intros.conversationsMap[recipientPersonId];
+      deleteFromArray(i.intros.conversations, introsConversation);
+      delete i.intros.conversationsMap[recipientPersonId];
     }
     // Update existing chat otherwise
     else {
       Object.assign(chatsConversation, updatedConversation);
     }
 
-    // We could've returned `inbox` instead of a shallow copy. But then it
+    // We could've returned `i` instead of a shallow copy. But then it
     // wouldn't trigger re-renders when passed to a useState setter.
-    return {...inbox};
+    return {...i};
   });
 };
 
@@ -830,7 +835,7 @@ const logout = async () => {
   if (_xmpp) {
     await _xmpp.send(xml("presence", { type: "unavailable" })).catch(console.error);
     await _xmpp.stop().catch(console.error);
-    setInbox(emtpyInbox);
+    setInbox(() => null);
   }
 };
 
