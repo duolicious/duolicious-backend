@@ -50,9 +50,6 @@
 [modules.mod_disco]
   users_can_see_hidden_services = false
 
-[modules.mod_stream_management]
-  buffer_max = 10000
-
 [modules.mod_presence]
 
 [modules.mod_last]
