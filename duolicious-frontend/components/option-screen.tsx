@@ -607,6 +607,8 @@ const RangeSlider = forwardRef((props: InputProps<OptionGroupRangeSlider>, ref) 
         lowerValue: props.input.rangeSlider.sliderMin,
         upperValue: props.input.rangeSlider.sliderMax,
       });
+      onLowerValueChange(props.input.rangeSlider.sliderMin);
+      onUpperValueChange(props.input.rangeSlider.sliderMax);
     }
   }, []);
 

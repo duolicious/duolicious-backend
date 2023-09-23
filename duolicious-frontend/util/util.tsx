@@ -8,11 +8,11 @@ const friendlyTimestamp = (date: Date): string => {
     // Format as 'eeee' (day of the week)
     return format(date, 'eeee')
   } else if (isThisYear(date)) {
-    // Format as 'd MMMM' (date and month)
-    return format(date, 'd MMMM')
+    // Format as 'd MMM' (date and month)
+    return format(date, 'd MMM')
   } else {
-    // Format as 'd MMMM yyyy' (date, month and year)
-    return format(date, 'd MMMM yyyy')
+    // Format as 'd MMM yyyy' (date, month and year)
+    return format(date, 'd MMM yyyy')
   }
 };
 

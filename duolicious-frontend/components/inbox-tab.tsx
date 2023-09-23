@@ -85,15 +85,15 @@ const InboxTab_ = ({navigation}) => {
 
   useEffect(() => observeInbox(setInbox), []);
   useEffect(
-    () => void listRef.current?.refresh && listRef.current.refresh(),
+    () => void (listRef.current?.refresh && listRef.current.refresh()),
     [listRef.current?.refresh, sectionIndex]
   );
   useEffect(
-    () => void listRef.current?.refresh && listRef.current.refresh(),
+    () => void (listRef.current?.refresh && listRef.current.refresh()),
     [listRef.current?.refresh, sortByIndex]
   );
   useEffect(
-    () => void listRef.current?.refresh && listRef.current.refresh(),
+    () => void (listRef.current?.refresh && listRef.current.refresh()),
     [listRef.current?.refresh, inbox]
   );
 

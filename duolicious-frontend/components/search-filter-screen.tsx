@@ -403,7 +403,7 @@ const QandQFilterScreen = ({navigation, route}) => {
 
     setSearchResults(results);
     setIsLoading(false);
-  }, 1000), []);
+  }, 500), []);
 
   const onChangeTextDebounced = useCallback(async (q) => {
     setSearchText(q);
