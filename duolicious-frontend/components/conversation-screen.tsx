@@ -68,6 +68,7 @@ const ConversationScreen = ({navigation, route}) => {
       from: '',
       to: '',
       id: getRandomString(40),
+      timestamp: new Date(),
       fromCurrentUser: true,
     };
 
@@ -257,6 +258,7 @@ const ConversationScreen = ({navigation, route}) => {
             <SpeechBubble
               key={x.id}
               fromCurrentUser={x.fromCurrentUser}
+              timestamp={x.timestamp}
             >
               {x.text}
             </SpeechBubble>

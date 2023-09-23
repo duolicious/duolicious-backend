@@ -1,18 +1,31 @@
 import {
+  useCallback,
+  useState,
+} from 'react';
+import {
+  Pressable,
   View,
 } from 'react-native';
 import { DefaultText } from './default-text';
+import { friendlyTimestamp } from '../util/util';
 
 type State = 'Read' | 'Delivered';
 
 type Props = {
   fromCurrentUser?: boolean,
   state?: State,
+  timestamp: Date,
   children?: string | string[],
   style?: Object,
 };
 
 const SpeechBubble = (props: Props) => {
+  const [showTimestamp, setShowTimestamp] = useState(false);
+
+  const onPress = useCallback(() => {
+    setShowTimestamp(t => !t);
+  }, [setShowTimestamp]);
+
   return (
     <View
       style={{
@@ -22,7 +35,8 @@ const SpeechBubble = (props: Props) => {
         paddingRight: 10,
       }}
     >
-      <View
+      <Pressable
+        onPress={onPress}
         style={{
           borderRadius: 10,
           backgroundColor: props.fromCurrentUser ? '#70f' : '#dddddd',
@@ -41,14 +55,27 @@ const SpeechBubble = (props: Props) => {
         >
           {props.children}
         </DefaultText>
-      </View>
+      </Pressable>
+      {showTimestamp &&
+        <DefaultText
+          selectable={true}
+          style={{
+            fontSize: 13,
+            paddingTop: 10,
+            alignSelf: props.fromCurrentUser ? 'flex-end' : 'flex-start',
+            color: '#666',
+          }}
+        >
+          {friendlyTimestamp(props.timestamp)}
+        </DefaultText>
+      }
       {props.state &&
         <DefaultText
           selectable={true}
           style={{
             fontSize: 13,
             paddingTop: 10,
-            alignSelf: 'flex-end',
+            alignSelf: props.fromCurrentUser ? 'flex-end' : 'flex-start',
             color: '#666',
           }}
         >

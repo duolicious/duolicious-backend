@@ -11,23 +11,7 @@ import {
 import { DefaultText } from './default-text';
 import { Avatar } from './avatar';
 import { useNavigation } from '@react-navigation/native';
-import { format, isToday, isThisYear, isThisWeek } from 'date-fns'
-
-const formatChatTimestamp = (date: Date): string => {
-  if (isToday(date)) {
-    // Format as 'HH:mm'
-    return format(date, 'HH:mm')
-  } else if (isThisWeek(date)) {
-    // Format as 'eeee' (day of the week)
-    return format(date, 'eeee')
-  } else if (isThisYear(date)) {
-    // Format as 'd MMMM' (date and month)
-    return format(date, 'd MMMM')
-  } else {
-    // Format as 'd MMMM yyyy' (date, month and year)
-    return format(date, 'd MMMM yyyy')
-  }
-}
+import { friendlyTimestamp } from '../util/util';
 
 const InboxItem = ({
   wasRead,
@@ -126,7 +110,7 @@ const InboxItem = ({
                 color: 'grey',
               }}
             >
-              {formatChatTimestamp(lastMessageTimestamp)}
+              {friendlyTimestamp(lastMessageTimestamp)}
             </DefaultText>
           </View>
           <DefaultText

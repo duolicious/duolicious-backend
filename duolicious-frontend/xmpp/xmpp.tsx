@@ -31,6 +31,7 @@ type Message = {
   to: string
   fromCurrentUser: boolean
   id: string
+  timestamp: Date
 };
 
 type Conversation = {
@@ -119,7 +120,7 @@ const populateConversationList = async (
   }, {});
 
   conversationList.forEach((c: Conversation) => {
-    c.name = personIdToInfo[c.personId]?.name ?? 'Deleted User';
+    c.name = personIdToInfo[c.personId]?.name ?? 'Deleted account';
     c.matchPercentage = personIdToInfo[c.personId]?.match_percentage ?? 0;
     c.imageUuid = personIdToInfo[c.personId]?.image_uuid ?? null;
     c.isDeletedUser = personIdToInfo[c.personId] === undefined;
@@ -537,11 +538,16 @@ const onReceiveMessage = (
     const from = xpath.select1(`string(./parent::*/@from)`, node);
     const to = xpath.select1(`string(./parent::*/@to)`, node);
     const id = xpath.select1(`string(./parent::*/@id)`, node);
+    const stamp = xpath.select1(
+      `string(./preceding-sibling::*/@stamp | ./following-sibling::*/@stamp)`,
+      node
+    );
     const bodyText = xpath.select1(`string(./text())`, node);
 
     if (from === null) return;
     if (to === null) return;
     if (id === null) return;
+    if (stamp === null) return;
     if (bodyText === null) return;
 
     if (
@@ -554,6 +560,7 @@ const onReceiveMessage = (
       from: from.toString(),
       to: to.toString(),
       id: id.toString(),
+      timestamp: new Date(stamp.toString()),
       fromCurrentUser: jidToPersonId(from.toString()) == signedInUser?.personId,
     };
 
@@ -643,11 +650,16 @@ const _fetchConversation = async (
     const from = xpath.select1(`string(./@from)`, node);
     const to = xpath.select1(`string(./@to)`, node);
     const id = xpath.select1(`string(./@id)`, node);
+    const stamp = xpath.select1(
+      `string(./preceding-sibling::*/@stamp | ./following-sibling::*/@stamp)`,
+      node
+    );
     const bodyText = xpath.select1(`string(./*[name()='body']/text())`, node);
 
     if (from === null) return;
     if (to === null) return;
     if (id === null) return;
+    if (stamp === null) return;
     if (bodyText === null) return;
 
     const fromCurrentUser = from.toString().startsWith(
@@ -658,6 +670,7 @@ const _fetchConversation = async (
       from: from.toString(),
       to: to.toString(),
       id: id.toString(),
+      timestamp: new Date(stamp.toString()),
       fromCurrentUser: fromCurrentUser,
     });
   };

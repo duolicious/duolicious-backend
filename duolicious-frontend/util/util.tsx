@@ -1,3 +1,21 @@
+import { format, isToday, isThisYear, isThisWeek } from 'date-fns'
+
+const friendlyTimestamp = (date: Date): string => {
+  if (isToday(date)) {
+    // Format as 'hh:mm'
+    return format(date, 'h:mm aaa')
+  } else if (isThisWeek(date)) {
+    // Format as 'eeee' (day of the week)
+    return format(date, 'eeee')
+  } else if (isThisYear(date)) {
+    // Format as 'd MMMM' (date and month)
+    return format(date, 'd MMMM')
+  } else {
+    // Format as 'd MMMM yyyy' (date, month and year)
+    return format(date, 'd MMMM yyyy')
+  }
+};
+
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const deleteFromArray = <T,>(array: T[], element: T): T[] => {
@@ -16,7 +34,8 @@ const withTimeout = <T,>(ms: number, promise: Promise<T>): Promise<T | 'timeout'
 };
 
 export {
-  deleteFromArray,
-  withTimeout,
   delay,
+  deleteFromArray,
+  friendlyTimestamp,
+  withTimeout,
 };
