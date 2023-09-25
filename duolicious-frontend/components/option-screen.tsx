@@ -7,6 +7,7 @@ import {
   createElement,
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useRef,
   useState,
@@ -61,6 +62,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { japi } from '../api/api';
 import { signedInUser } from '../App';
 import { cmToFeetInchesStr } from '../units/units';
+import { delay } from '../util/util';
 
 type InputProps<T extends OptionGroupInputs> = {
   input: T,
@@ -70,6 +72,50 @@ type InputProps<T extends OptionGroupInputs> = {
   title: string,
   showSkipButton: boolean
   theme?: 'dark' | 'light'
+};
+
+const ButtonGroup_ = ({buttons, initialSelectedIndex, ...rest}) => {
+  const {onPress} = rest;
+
+  const [selectedIndex, setSelectedIndex] = useState<number>(initialSelectedIndex);
+
+  const onPress_ = (value: number) => {
+    setSelectedIndex(value);
+    if (onPress !== undefined) {
+      onPress(value);
+    }
+  };
+
+  return <ButtonGroup
+    vertical={true}
+    buttons={buttons}
+    selectedIndex={selectedIndex}
+    onPress={onPress_}
+    buttonContainerStyle={{
+      backgroundColor: 'transparent',
+    }}
+    selectedButtonStyle={{
+      backgroundColor: '#70f',
+    }}
+    containerStyle={{
+      marginTop: 0,
+      marginLeft: 20,
+      marginRight: 20,
+      marginBottom: 0,
+      borderWidth: 1,
+      borderRadius: 10,
+      backgroundColor: 'white',
+    }}
+    activeOpacity={0}
+    innerBorderStyle={{
+      width: 1,
+      color: '#ddd',
+    }}
+    textStyle={{
+      color: 'black',
+      fontFamily: 'MontserratMedium',
+    }}
+  />;
 };
 
 const Buttons = forwardRef((props: InputProps<OptionGroupButtons>, ref) => {
@@ -223,8 +269,11 @@ const GivenName = forwardRef((props: InputProps<OptionGroupGivenName>, ref) => {
 });
 
 const Otp = forwardRef((props: InputProps<OptionGroupOtp>, ref) => {
+  const counterInit = 30;
+
   const [isLoadingResend, setIsLoadingResend] = useState(false);
   const [isInvalid, setIsInvalid] = useState(false);
+  const [counter, setCounter] = useState(counterInit);
   const inputValueRef = useRef<string>('');
 
   const onChangeInputValue = useCallback((value: string) => {
@@ -247,8 +296,18 @@ const Otp = forwardRef((props: InputProps<OptionGroupOtp>, ref) => {
   const resend = useCallback(async () => {
     setIsLoadingResend(true);
     await japi('post', '/resend-otp');
+    setCounter(counterInit);
     setIsLoadingResend(false);
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (counter > 0) {
+        await delay(1000);
+        setCounter(counter - 1);
+      }
+    })();
+  }, [counter]);
 
   return (
     <>
@@ -270,10 +329,11 @@ const Otp = forwardRef((props: InputProps<OptionGroupOtp>, ref) => {
           marginRight: 20,
         }}
         fontSize={14}
-        onPress={isLoadingResend ? undefined : resend}
+        onPress={(isLoadingResend || counter > 0) ? undefined : resend}
         loading={isLoadingResend}
       >
-        Resend code
+        {counter >  0 && `${counter}s until you can resend password`}
+        {counter <= 0 && `Resend password`}
       </ButtonWithCenteredText>
     </>
   );
@@ -922,50 +982,6 @@ const OptionScreen = ({navigation, route}) => {
       </View>
     </View>
   );
-};
-
-const ButtonGroup_ = ({buttons, initialSelectedIndex, ...rest}) => {
-  const {onPress} = rest;
-
-  const [selectedIndex, setSelectedIndex] = useState<number>(initialSelectedIndex);
-
-  const onPress_ = (value: number) => {
-    setSelectedIndex(value);
-    if (onPress !== undefined) {
-      onPress(value);
-    }
-  };
-
-  return <ButtonGroup
-    vertical={true}
-    buttons={buttons}
-    selectedIndex={selectedIndex}
-    onPress={onPress_}
-    buttonContainerStyle={{
-      backgroundColor: 'transparent',
-    }}
-    selectedButtonStyle={{
-      backgroundColor: '#70f',
-    }}
-    containerStyle={{
-      marginTop: 0,
-      marginLeft: 20,
-      marginRight: 20,
-      marginBottom: 0,
-      borderWidth: 1,
-      borderRadius: 10,
-      backgroundColor: 'white',
-    }}
-    activeOpacity={0}
-    innerBorderStyle={{
-      width: 1,
-      color: '#ddd',
-    }}
-    textStyle={{
-      color: 'black',
-      fontFamily: 'MontserratMedium',
-    }}
-  />;
 };
 
 export {
