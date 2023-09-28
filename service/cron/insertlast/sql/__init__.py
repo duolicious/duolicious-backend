@@ -4,7 +4,7 @@ SELECT
 FROM
     person
 WHERE
-    sign_up_time >= NOW() - INTERVAL '1 second' * %(polling_interval_seconds)s * 2 - INTERVAL '365 day'
+    sign_up_time >= NOW() - INTERVAL '1 second' * %(polling_interval_seconds)s * 2 - INTERVAL '1 day'
 """
 
 Q_INSERT_LAST = """
