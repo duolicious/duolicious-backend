@@ -15,6 +15,18 @@ Then run this:
 ./test/util/with-container.sh ./test/functionality.sh
 ```
 
+You can also do this in one terminal:
+
+```bash
+docker-compose up
+```
+
+...Then run this in another:
+
+```bash
+DUO_DB_PORT=5433 ./test/functionality.sh
+```
+
 ## Using pg_stat_statements:
 
 ```

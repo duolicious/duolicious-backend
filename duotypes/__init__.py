@@ -86,7 +86,7 @@ class PostRequestOtp(BaseModel):
 
     @field_validator('email', mode='before')
     def validate_email(cls, value):
-        return EmailStr._validate(value.lower().strip(), None)
+        return EmailStr._validate(value.lower().strip())
 
 
 class PostCheckOtp(BaseModel):
