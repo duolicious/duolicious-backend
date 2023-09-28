@@ -49,7 +49,7 @@ do_test () {
   q "
   update person
   set
-    sign_up_time = NOW() - INTERVAL '1 second' * 2 - INTERVAL '365 day' - INTERVAL '1 second' * 42
+    sign_up_time = NOW() - INTERVAL '1 second' * 2 - INTERVAL '1 day' - INTERVAL '1 second' * 42
   where id = $user2id"
   q "delete from last" duo_chat
 
