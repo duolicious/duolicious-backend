@@ -471,6 +471,8 @@ CREATE INDEX IF NOT EXISTS idx__location__long_friendly ON location USING GIST(l
 
 CREATE INDEX IF NOT EXISTS idx__question__question ON question USING GIST(question gist_trgm_ops);
 
+CREATE INDEX IF NOT EXISTS idx__person__sign_up_time ON person(sign_up_time);
+
 --------------------------------------------------------------------------------
 -- DATA
 --------------------------------------------------------------------------------

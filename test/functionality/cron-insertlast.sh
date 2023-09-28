@@ -38,31 +38,25 @@ do_test () {
   q "delete from duo_session"
   q "delete from last" duo_chat
 
-  ../util/create-user.sh will-be-deactivated 0 0
-  ../util/create-user.sh will-remain-active1 0 0
-  ../util/create-user.sh will-remain-active2 0 0
+  ../util/create-user.sh will-be-inserted 0 0
+  ../util/create-user.sh wont-be-inserted-cuz-late 0 0
+  ../util/create-user.sh wont-be-inserted-cuz-exists 0 0
+
+  user1id=$(get_id 'will-be-inserted@example.com')
+  user2id=$(get_id 'wont-be-inserted-cuz-late@example.com')
+  user3id=$(get_id 'wont-be-inserted-cuz-exists@example.com')
 
   q "
-  UPDATE person
-  SET
-    email = 'will-remain-active1@duolicious.app'
-  WHERE
-    email = 'will-remain-active1@example.com'
-  "
-
-  user1id=$(get_id 'will-be-deactivated@example.com')
-  user2id=$(get_id 'will-remain-active1@duolicious.app')
-  user3id=$(get_id 'will-remain-active2@example.com')
-
-  local days_ago_2=$(db_now as-seconds '- 2 days')
-  local days_ago_3=$(db_now as-seconds '- 3 days - 1 minute')
+  update person
+  set
+    sign_up_time = NOW() - INTERVAL '1 second' * 2 - INTERVAL '365 day' - INTERVAL '1 second' * 42
+  where id = $user2id"
+  q "delete from last" duo_chat
 
   q "
   insert into last (server, username, seconds, state)
   values
-    ('duolicious.app', '$user1id', $days_ago_3, ''),
-    ('duolicious.app', '$user2id', $days_ago_3, ''),
-    ('duolicious.app', '$user3id', $days_ago_2, '')
+    ('duolicious.app', '$user3id', 42, '')
   ON CONFLICT (server, username) DO UPDATE SET
     server   = EXCLUDED.server,
     username = EXCLUDED.username,
@@ -72,10 +66,9 @@ do_test () {
 
   sleep 2
 
-  [[ "$(q "select 1 from person where activated = false and email like 'will-be-deactivated%' ")" = "1" ]]
-  [[ "$(q "select 1 from person where activated = true  and email like 'will-remain-active1%' ")" = "1" ]]
-  [[ "$(q "select 1 from person where activated = true  and email like 'will-remain-active2%' ")" = "1" ]]
-  [[ "$(q "select count(*) from duo_session ")" = "2" ]]
+  [[ "$(q "select 1 from last where username = '${user1id}'                  " duo_chat)" = "1" ]]
+  [[ "$(q "select 1 from last where username = '${user2id}'                  " duo_chat)" = "" ]]
+  [[ "$(q "select 1 from last where username = '${user3id}' and seconds = 42 " duo_chat)" = "1" ]]
 }
 
 do_test

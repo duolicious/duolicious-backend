@@ -59,6 +59,19 @@ setup () {
   user1id=$(get_id 'user1@duolicious.app')
   user2id=$(get_id 'user2@duolicious.app')
   user3id=$(get_id 'user3@duolicious.app')
+
+  q "
+  insert into last (server, username, seconds, state)
+  values
+    ('duolicious.app', '$user1id', 0, ''),
+    ('duolicious.app', '$user2id', 0, ''),
+    ('duolicious.app', '$user3id', 0, '')
+  ON CONFLICT (server, username) DO UPDATE SET
+    server   = EXCLUDED.server,
+    username = EXCLUDED.username,
+    seconds  = EXCLUDED.seconds,
+    state    = EXCLUDED.state
+  " duo_chat
 }
 
 db_now () {
@@ -249,9 +262,13 @@ test_sad_still_active () {
   q "
   insert into last
   values
-    ('', $user1id, $t2, '')
+    ('duolicious.app', $user1id, $t2, '')
+  ON CONFLICT (server, username) DO UPDATE SET
+    server   = EXCLUDED.server,
+    username = EXCLUDED.username,
+    seconds  = EXCLUDED.seconds,
+    state    = EXCLUDED.state
   " duo_chat
-  [[ "$(q "select count(*) from last" duo_chat)" = 1 ]]
 
   q "
   insert into inbox
