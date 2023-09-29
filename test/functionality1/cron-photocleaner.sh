@@ -7,40 +7,34 @@ source ../util/setup.sh
 
 set -ex
 
-wait_for_deletion () {
+assert_photos_downloadable_by_uuid () {
+  local uuid=$1
+
+  c GET "https://test-user-images.duolicious.app/original-${uuid}.jpg" > /dev/null || return 1
+  c GET "https://test-user-images.duolicious.app/900-${uuid}.jpg" > /dev/null || return 1
+  c GET "https://test-user-images.duolicious.app/450-${uuid}.jpg" > /dev/null || return 1
+}
+
+wait_for_deletion_by_uuid () {
+  local uuid=$1
+
   local url=$1
 
   local elapsed=0
 
   while (( elapsed < 5 ))
   do
-    if ! c GET "${url}" > /dev/null
+    if ! assert_photos_downloadable_by_uuid "${uuid}"
     then
       return 0
     fi
 
     sleep 1
 
-    (( elapsed += interval )) || true
+    (( elapsed += 1 )) || true
   done
 
   return 1
-}
-
-wait_for_deletion_by_uuid () {
-  local uuid=$1
-
-  wait_for_deletion "https://test-user-images.duolicious.app/original-${uuid}.jpg"
-  wait_for_deletion "https://test-user-images.duolicious.app/900-${uuid}.jpg"
-  wait_for_deletion "https://test-user-images.duolicious.app/450-${uuid}.jpg"
-}
-
-assert_photos_downloadable_by_uuid () {
-  local uuid=$1
-
-  c GET "https://test-user-images.duolicious.app/original-${uuid}.jpg" > /dev/null
-  c GET "https://test-user-images.duolicious.app/900-${uuid}.jpg" > /dev/null
-  c GET "https://test-user-images.duolicious.app/450-${uuid}.jpg" > /dev/null
 }
 
 do_test () {
