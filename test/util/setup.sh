@@ -101,6 +101,7 @@ rand_image () {
 }
 
 assume_role () {
+  local username=$1
   local response=$(jc POST /request-otp -d '{ "email": "'"$username"'@example.com" }')
   SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
   jc POST /check-otp -d '{ "otp": "000000" }'
