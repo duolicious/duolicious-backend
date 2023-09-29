@@ -37,9 +37,9 @@ _api_conninfo = psycopg.conninfo.make_conninfo(
 print('Hello from cron module: photocleaner')
 
 async def delete_images_from_object_store(api_conn, uuids: list[str]):
-    # Split the uuids list into chunks of 1000 since that's the limit for
-    # delete_objects
-    chunks = [uuids[i:i+1000] for i in range(0, len(uuids), 1000)]
+    # Split the uuids list into chunks of 300 since the limit is 1000 and
+    # there's three objects to delete per uuid
+    chunks = [uuids[i:i+300] for i in range(0, len(uuids), 300)]
 
     s3_client = boto3.client(
         's3',
