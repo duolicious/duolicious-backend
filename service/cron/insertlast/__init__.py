@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from service.cron.insertlast.sql import *
 from service.cron.util import print_stacktrace
 import asyncio
@@ -6,7 +5,7 @@ import os
 import psycopg
 
 INSERT_LAST_POLL_SECONDS = int(os.environ.get(
-    'DUO_CRON_INSERTLAST_POLL_SECONDS',
+    'DUO_CRON_INSERT_LAST_POLL_SECONDS',
     10,
 ))
 

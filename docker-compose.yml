@@ -101,20 +101,31 @@ services:
     volumes:
       - .:/app
     environment:
-      DUO_DRY_RUN: ${DUO_DRY_RUN}
       DUO_EMAIL_KEY: ${DUO_EMAIL_KEY}
       DUO_EMAIL_URL: ${DUO_EMAIL_URL}
+
       DUO_DB_HOST: postgres
       DUO_DB_PORT: 5432
       DUO_DB_USER: postgres
       DUO_DB_PASS: password
       DUO_DB_CHAT_NAME: duo_chat
       DUO_DB_API_NAME: duo_api
+
+      DUO_R2_BUCKET_NAME: ${DUO_R2_BUCKET_NAME}
+      DUO_R2_ACCT_ID: ${DUO_R2_ACCT_ID}
+      DUO_R2_ACCESS_KEY_ID: ${DUO_R2_ACCESS_KEY_ID}
+      DUO_R2_ACCESS_KEY_SECRET: ${DUO_R2_ACCESS_KEY_SECRET}
+
       DUO_CRON_EMAIL_DRY_RUN: 'true'
       DUO_CRON_EMAIL_POLL_SECONDS: '1'
+
       DUO_CRON_AUTODEACTIVATE_DRY_RUN: 'false'
       DUO_CRON_AUTODEACTIVATE_POLL_SECONDS: '1'
-      DUO_CRON_INSERTLAST_POLL_SECONDS: '1'
+
+      DUO_CRON_INSERT_LAST_POLL_SECONDS: '1'
+
+      DUO_CRON_PHOTO_CLEANER_DRY_RUN: ${DUO_CRON_PHOTO_CLEANER_DRY_RUN:-false}
+      DUO_CRON_PHOTO_CLEANER_POLL_SECONDS: '1'
 
 networks:
   default:

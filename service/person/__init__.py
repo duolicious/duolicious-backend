@@ -111,9 +111,6 @@ def process_image(
 def put_object(key: str, io_bytes: io.BytesIO):
     bucket.put_object(Key=key, Body=io_bytes)
 
-def delete_object(key: str):
-    s3.Object(R2_BUCKET_NAME, key).delete()
-
 def put_images_in_object_store(uuid_img: Iterable[Tuple[str, io.BytesIO]]):
     key_img = [
         (key, converted_img)
@@ -132,31 +129,6 @@ def put_images_in_object_store(uuid_img: Iterable[Tuple[str, io.BytesIO]]):
 
         for future in as_completed(futures):
             future.result()
-
-# TODO: Delete from the graveyard as a batch job
-def delete_images_from_object_store(uuids: Iterable[str]):
-    keys_to_delete = [
-        key_to_delete
-        for uuid in uuids
-        for key_to_delete in [
-            f'original-{uuid}.jpg',
-            f'900-{uuid}.jpg',
-            f'450-{uuid}.jpg',
-        ]
-        if uuid is not None
-    ]
-
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        futures = {
-            executor.submit(delete_object, key)
-            for key in keys_to_delete}
-
-        for future in as_completed(futures):
-            try:
-                future.result()
-            except Exception as e:
-                print(f'Failed to delete object:', e)
-
 
 def post_answer(req: t.PostAnswer, s: t.SessionInfo):
     params_add_yes_no_count = dict(
