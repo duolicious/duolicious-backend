@@ -185,14 +185,14 @@ def _send_otp(email: str, otp: str):
           "email": "no-reply@duolicious.app"
        },
        "to": [ { "email": email } ],
-       "subject": "Verify Your Email",
+       "subject": "Sign in to Duolicious",
        "htmlContent": f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verify Your Email</title>
+    <title>Sign in to Duolicious</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif;">
     <table width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
