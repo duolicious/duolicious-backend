@@ -317,7 +317,7 @@ test_quiz_filters () {
   setup
   ../util/create-user.sh user3 2
 
-  # Gotta set answers to something non-null. ../util/create-user.sh sometimes gives
+  # Gotta set answers to something non-null; ../util/create-user.sh sometimes gives
   # null answers
   q "update answer set answer = false"
 
@@ -348,11 +348,17 @@ test_quiz_filters () {
     false
   "
 
-  assert_search_names 'user3'
-
   q "update search_preference_answer set accept_unanswered = true"
-
+  assume_role searcher
   assert_search_names 'user1 user2 user3'
+  assume_role user1
+  assert_search_names 'searcher user2 user3'
+
+  q "update search_preference_answer set accept_unanswered = false"
+  assume_role searcher
+  assert_search_names 'user3'
+  assume_role user1
+  assert_search_names 'searcher user2 user3'
 }
 
 test_interaction_in_standard_search () {
