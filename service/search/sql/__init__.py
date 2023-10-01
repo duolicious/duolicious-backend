@@ -290,12 +290,15 @@ WITH searcher AS MATERIALIZED (
         -- NOT EXISTS an answer contrary to the searcher's preference...
         NOT EXISTS (
             SELECT 1
-            FROM search_preference_answer pref
-            LEFT JOIN answer ans
+            FROM (
+                SELECT *
+                FROM search_preference_answer
+                WHERE person_id = %(searcher_person_id)s) AS pref
+            LEFT JOIN
+                answer ans
             ON
                 ans.person_id = prospect_person_id AND
-                ans.question_id = pref.question_id AND
-                pref.person_id = %(searcher_person_id)s
+                ans.question_id = pref.question_id
             WHERE
                 -- Contrary because the answer exists and is wrong
                 ans.answer IS NOT NULL AND

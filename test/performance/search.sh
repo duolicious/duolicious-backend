@@ -5,12 +5,9 @@ cd "$script_dir"
 
 source ../util/setup.sh
 
-q "delete from duo_session"
-q "delete from person"
-q "delete from onboardee"
+# TODO: Restore database here
 
-# TODO: Replace me with a database that's 1000 times bigger
-time bash -c 'seq 1000 | parallel -j16 ../util/create-user.sh "user{}" 0 0'
+time bash -c 'seq 100 | parallel -j16 ../util/create-user.sh "user{}" 0 0'
 
 # I realise this isn't a great performance test but I need a bigger DB once
 # development has settled down.
