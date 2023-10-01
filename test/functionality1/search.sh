@@ -228,24 +228,40 @@ test_quiz_search () {
   [[ "$response2" != "$user1_id" ]]
 
   # user2 has the highest match percentage but user2 is blocked by searcher
-  q "
-  insert into blocked (subject_person_id, object_person_id)
-  values (${searcher_id}, ${user2_id})"
-  c GET '/search?n=1&o=0' # Re-populate search cache
+  c POST "/block/${user2_id}"
 
   response3=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response3" != "${user2_id}" ]]
 
+  # Reset searcher's search cache
+  c POST "/unblock/${user2_id}"
+  c GET '/search?n=1&o=0'
+
   # user2 has the highest match percentage but searcher is blocked by user2
-  q "
-  update blocked
-  set
-    subject_person_id = object_person_id,
-    object_person_id  = subject_person_id"
-  c GET '/search?n=1&o=0' # Re-populate search cache
+  assume_role user2
+  c POST "/block/${searcher_id}"
+  assume_role searcher
 
   response4=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response4" != "${user2_id}" ]]
+
+  # Reset searcher's search cache
+  assume_role user2
+  c POST "/unblock/${searcher_id}"
+  assume_role searcher
+  c GET '/search?n=1&o=0'
+
+
+
+  # user2 has the highest match percentage
+  response2=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
+  [[ "$response2" = "$user2_id" ]]
+
+  # user2 has the highest match percentage but user2 is hidden by searcher
+  c POST "/hide/${user2_id}"
+
+  response3=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
+  [[ "$response3" != "${user2_id}" ]]
 }
 
 test_deactivated () {
