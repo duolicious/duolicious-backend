@@ -5,8 +5,10 @@ import {
   View,
 } from 'react-native';
 import {
+  useEffect,
   useCallback,
   useRef,
+  useState,
 } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Skeleton } from '@rneui/themed';
@@ -17,6 +19,7 @@ import {
 } from '../env/env';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { listen, unlisten } from '../events/events';
 
 function getRandomInt(max) {
   return Math.floor(Math.random() * max);
@@ -76,6 +79,8 @@ const ImageOrSkeleton = ({resolution, imageUuid}) => {
 };
 
 const ProfileCard = ({name, age, matchPercentage, imageUuid, personId, ...rest}) => {
+  const [isHidden, setIsHidden] = useState(false);
+
   const navigation = useNavigation<any>();
 
   const itemOnPress = useCallback(() => {
@@ -88,11 +93,30 @@ const ProfileCard = ({name, age, matchPercentage, imageUuid, personId, ...rest})
     );
   }, [navigation, personId]);
 
+  const onHide = useCallback((personId_: number) => {
+    if (personId === personId_) setIsHidden(true);
+  }, [personId, setIsHidden]);
+
+  const onUnhide = useCallback((personId_: number) => {
+    if (personId === personId_) setIsHidden(false);
+  }, [personId, setIsHidden]);
+
+  useEffect(() => {
+    listen('hide-profile', onHide);
+    listen('unhide-profile', onUnhide);
+
+    return () => {
+      unlisten('hide-profile', onHide);
+      unlisten('unhide-profile', onUnhide);
+    };
+  }, [onHide, onUnhide]);
+
   return (
     <View
       style={{
         paddingTop: 5,
         paddingLeft: 5,
+        opacity: isHidden ? 0 : 1,
         ...rest.containerStyle,
       }}
     >

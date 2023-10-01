@@ -45,6 +45,7 @@ import { RotateCcw, X } from "react-native-feather";
 import { IMAGES_URL } from '../env/env';
 import { randomGagLocation } from '../data/gag-locations';
 import { setBlocked } from '../xmpp/xmpp';
+import { notify } from '../events/events';
 
 const Stack = createNativeStackNavigator();
 
@@ -173,12 +174,16 @@ const FloatingHideButton = ({navigation, personId, isHidden}) => {
   const onPress = useCallback(() => {
     if (personId === undefined) return;
 
-    setIsHiddenState(!isHiddenState);
+    const newIsHiddenState = !isHiddenState;
 
-    if (isHiddenState === true ) api('post', `/unhide/${personId}`);
-    if (isHiddenState === false) api('post', `/hide/${personId}`);
+    setIsHiddenState(newIsHiddenState);
 
-    if (isHiddenState === false) navigation.goBack();
+    notify(newIsHiddenState ? 'hide-profile' : 'unhide-profile', personId);
+
+    if ( newIsHiddenState) api('post', `/hide/${personId}`);
+    if (!newIsHiddenState) api('post', `/unhide/${personId}`);
+
+    if (newIsHiddenState) navigation.goBack();
   }, [isHiddenState, personId]);
 
   return (
@@ -306,6 +311,11 @@ const BlockButton = ({name, personId, isBlocked}) => {
 
       if (response.ok) {
         setIsBlockedState(nextIsBlockedState);
+
+        notify(
+          nextIsBlockedState ? 'hide-profile' : 'unhide-profile',
+          personId,
+        );
       }
     } else if (status === 'timeout') {
       ;
@@ -314,7 +324,7 @@ const BlockButton = ({name, personId, isBlocked}) => {
     }
 
     setIsLoading(false);
-  }, [isLoading, isBlockedState]);
+  }, [isLoading, isBlockedState, personId]);
 
   const text = isBlockedState
     ? `You have blocked and reported ${name}. Press to unblock ${name}.` :
