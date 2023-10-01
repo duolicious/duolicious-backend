@@ -93,23 +93,18 @@ const ProfileCard = ({name, age, matchPercentage, imageUuid, personId, ...rest})
     );
   }, [navigation, personId]);
 
-  const onHide = useCallback((personId_: number) => {
-    if (personId === personId_) setIsHidden(true);
-  }, [personId, setIsHidden]);
-
-  const onUnhide = useCallback((personId_: number) => {
-    if (personId === personId_) setIsHidden(false);
-  }, [personId, setIsHidden]);
+  const onHide = useCallback(() => setIsHidden(true), [setIsHidden]);
+  const onUnhide = useCallback(() => setIsHidden(false), [setIsHidden]);
 
   useEffect(() => {
-    listen('hide-profile', onHide);
-    listen('unhide-profile', onUnhide);
+    listen(`hide-profile-${personId}`, onHide);
+    listen(`unhide-profile-${personId}`, onUnhide);
 
     return () => {
-      unlisten('hide-profile', onHide);
-      unlisten('unhide-profile', onUnhide);
+      unlisten(`hide-profile-${personId}`, onHide);
+      unlisten(`unhide-profile-${personId}`, onUnhide);
     };
-  }, [onHide, onUnhide]);
+  }, [onHide, onUnhide, personId]);
 
   return (
     <View

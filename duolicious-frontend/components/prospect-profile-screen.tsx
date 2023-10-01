@@ -178,7 +178,11 @@ const FloatingHideButton = ({navigation, personId, isHidden}) => {
 
     setIsHiddenState(newIsHiddenState);
 
-    notify(newIsHiddenState ? 'hide-profile' : 'unhide-profile', personId);
+    notify(
+      newIsHiddenState ?
+      `hide-profile-${personId}` :
+      `unhide-profile-${personId}`
+    );
 
     if ( newIsHiddenState) api('post', `/hide/${personId}`);
     if (!newIsHiddenState) api('post', `/unhide/${personId}`);
