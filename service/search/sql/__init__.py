@@ -286,26 +286,29 @@ WITH searcher AS MATERIALIZED (
                 hidden.object_person_id  = prospect_person_id
             LIMIT 1
         )
-    -- AND
-    --     -- NOT EXISTS an answer contrary to the searcher's preference...
-    --     NOT EXISTS (
-    --         SELECT 1
-    --         FROM search_preference_answer pref
-    --         LEFT JOIN answer ans
-    --         ON
-    --             ans.person_id = prospect_person_id AND
-    --             ans.question_id = pref.question_id AND
-    --             pref.person_id = %(searcher_person_id)s
-    --         WHERE
-    --             -- Contrary because the answer exists and is wrong
-    --             ans.answer IS NOT NULL AND
-    --             ans.answer != pref.answer
-    --         OR
-    --             -- Contrary because the answer doesn't exist but should
-    --             ans.answer IS NULL AND
-    --             pref.accept_unanswered = FALSE
-    --         LIMIT 1
-    --     )
+    AND
+        -- NOT EXISTS an answer contrary to the searcher's preference...
+        NOT EXISTS (
+            SELECT 1
+            FROM (
+                SELECT *
+                FROM search_preference_answer
+                WHERE person_id = %(searcher_person_id)s) AS pref
+            LEFT JOIN
+                answer ans
+            ON
+                ans.person_id = prospect_person_id AND
+                ans.question_id = pref.question_id
+            WHERE
+                -- Contrary because the answer exists and is wrong
+                ans.answer IS NOT NULL AND
+                ans.answer != pref.answer
+            OR
+                -- Contrary because the answer doesn't exist but should
+                ans.answer IS NULL AND
+                pref.accept_unanswered = FALSE
+            LIMIT 1
+        )
 ), updated_search_cache AS (
     INSERT INTO search_cache (
         searcher_person_id,
