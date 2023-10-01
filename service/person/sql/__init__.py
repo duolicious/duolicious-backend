@@ -487,13 +487,24 @@ WHERE
 """
 
 Q_INSERT_BLOCKED = """
-INSERT INTO blocked (
-    subject_person_id,
-    object_person_id
-) VALUES (
-    %(subject_person_id)s,
-    %(object_person_id)s
-) ON CONFLICT DO NOTHING
+WITH q1 AS (
+    INSERT INTO blocked (
+        subject_person_id,
+        object_person_id
+    ) VALUES (
+        %(subject_person_id)s,
+        %(object_person_id)s
+    ) ON CONFLICT DO NOTHING
+), q2 AS (
+    DELETE FROM search_cache
+    WHERE
+        searcher_person_id = %(subject_person_id)s AND
+        prospect_person_id = %(object_person_id)s
+    OR
+        searcher_person_id = %(object_person_id)s AND
+        prospect_person_id = %(subject_person_id)s
+)
+SELECT 1
 """
 
 Q_DELETE_BLOCKED = """
@@ -504,13 +515,21 @@ WHERE
 """
 
 Q_INSERT_HIDDEN = """
-INSERT INTO hidden (
-    subject_person_id,
-    object_person_id
-) VALUES (
-    %(subject_person_id)s,
-    %(object_person_id)s
-) ON CONFLICT DO NOTHING
+WITH q1 AS (
+    INSERT INTO hidden (
+        subject_person_id,
+        object_person_id
+    ) VALUES (
+        %(subject_person_id)s,
+        %(object_person_id)s
+    ) ON CONFLICT DO NOTHING
+), q2 AS (
+    DELETE FROM search_cache
+    WHERE
+        searcher_person_id = %(subject_person_id)s AND
+        prospect_person_id = %(object_person_id)s
+)
+SELECT 1
 """
 
 Q_DELETE_HIDDEN = """
