@@ -3,7 +3,6 @@ on: [push]
 jobs:
   build-api:
     runs-on: ubuntu-latest
-    needs: take-db-snapshot
 
     steps:
       - name: Checkout code
@@ -33,7 +32,6 @@ jobs:
 
   build-chat:
     runs-on: ubuntu-latest
-    needs: take-db-snapshot
 
     steps:
       - name: Checkout code
@@ -63,7 +61,6 @@ jobs:
 
   build-cron:
     runs-on: ubuntu-latest
-    needs: take-db-snapshot
 
     steps:
       - name: Checkout code
@@ -93,7 +90,6 @@ jobs:
 
   build-status:
     runs-on: ubuntu-latest
-    needs: take-db-snapshot
 
     steps:
       - name: Checkout code
