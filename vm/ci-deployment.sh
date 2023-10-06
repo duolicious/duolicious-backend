@@ -12,4 +12,4 @@ sed -i "s|{{commit_sha}}|$commit_sha|g" deployment.yaml
 
 microk8s.kubectl apply -f deployment.yaml
 
-microk8s.kubectl rollout status deployment --timeout=180s
+microk8s.kubectl rollout status deployment --timeout=300s
