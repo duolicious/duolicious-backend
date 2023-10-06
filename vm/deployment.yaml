@@ -1,0 +1,331 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+      - name: api
+        image: us-east1-docker.pkg.dev/duolicious/api/{{branch}}:{{commit_sha}}
+        resources:
+          limits:
+            memory: "1Gi"
+        ports:
+        - containerPort: 5000
+        readinessProbe:
+          tcpSocket:
+            port: 5000
+          initialDelaySeconds: 0
+          periodSeconds: 240
+          failureThreshold: 1
+          timeoutSeconds: 240
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 0
+          periodSeconds: 1
+          failureThreshold: 60
+          timeoutSeconds: 1
+        env:
+        - { name: DUO_ENV, value: prod }
+        - { name: DUO_EMAIL_URL, value: 'https://api.brevo.com/v3/smtp/email' }
+
+        - { name: DUO_DB_HOST, value: 10.0.1.1 }
+        - { name: DUO_DB_PORT, value: '5432' }
+        - { name: DUO_DB_NAME, value: duo_api }
+        - { name: DUO_DB_USER, value: postgres }
+        - { name: DUO_R2_BUCKET_NAME, value: strewn-cozily-bankbook5 }
+
+        - name: DUO_DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: duo-secrets
+              key: DUO_DB_PASS
+
+        - name: DUO_EMAIL_KEY
+          valueFrom:
+            secretKeyRef:
+              name: duo-secrets
+              key: DUO_EMAIL_KEY
+
+        - name: DUO_R2_ACCT_ID
+          valueFrom:
+            secretKeyRef:
+              name: duo-secrets
+              key: DUO_R2_ACCT_ID
+
+        - name: DUO_R2_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: duo-secrets
+              key: DUO_R2_ACCESS_KEY_ID
+
+        - name: DUO_R2_ACCESS_KEY_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: duo-secrets
+              key: DUO_R2_ACCESS_KEY_SECRET
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chat
+  template:
+    metadata:
+      labels:
+        app: chat
+    spec:
+      containers:
+      - name: chat
+        image: us-east1-docker.pkg.dev/duolicious/chat/{{branch}}:{{commit_sha}}
+        resources:
+          limits:
+            memory: "1Gi"
+        readinessProbe:
+          tcpSocket:
+            port: 5443
+          initialDelaySeconds: 0
+          periodSeconds: 240
+          failureThreshold: 1
+          timeoutSeconds: 240
+        ports:
+        - containerPort: 5443
+        env:
+        - { name: DUO_API_HOST, value: 'http://api.default.svc.cluster.local' }
+        - { name: DUO_DB_HOST, value: 10.0.1.1 }
+        - { name: DUO_DB_PORT, value: '5432' }
+        - { name: DUO_DB_USER, value: postgres }
+        - { name: DUO_DB_NAME, value: duo_chat }
+
+        - name: DUO_DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: duo-secrets
+              key: DUO_DB_PASS
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cron
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cron
+  template:
+    metadata:
+      labels:
+        app: cron
+    spec:
+      containers:
+      - name: cron
+        image: us-east1-docker.pkg.dev/duolicious/cron/{{branch}}:{{commit_sha}}
+        resources:
+          limits:
+            memory: "512Mi"
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 240
+          failureThreshold: 1
+          timeoutSeconds: 240
+        env:
+        - { name: DUO_EMAIL_URL, value: https://api.brevo.com/v3/smtp/email }
+
+        - { name: DUO_DB_HOST, value: 10.0.1.1 }
+        - { name: DUO_DB_PORT, value: '5432' }
+        - { name: DUO_DB_USER, value: postgres }
+        - { name: DUO_R2_BUCKET_NAME, value: strewn-cozily-bankbook5 }
+
+        - { name: DUO_DB_CHAT_NAME, value: duo_chat }
+        - { name: DUO_DB_API_NAME, value: duo_api }
+
+        - { name: DUO_CRON_EMAIL_DRY_RUN, value: 'false' }
+        - { name: DUO_CRON_AUTODEACTIVATE_DRY_RUN, value: 'false' }
+        - { name: DUO_CRON_PHOTO_CLEANER_DRY_RUN, value: 'false' }
+
+        - name: DUO_DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: duo-secrets
+              key: DUO_DB_PASS
+
+        - name: DUO_EMAIL_KEY
+          valueFrom:
+            secretKeyRef:
+              name: duo-secrets
+              key: DUO_EMAIL_KEY
+
+        - name: DUO_R2_ACCT_ID
+          valueFrom:
+            secretKeyRef:
+              name: duo-secrets
+              key: DUO_R2_ACCT_ID
+
+        - name: DUO_R2_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: duo-secrets
+              key: DUO_R2_ACCESS_KEY_ID
+
+        - name: DUO_R2_ACCESS_KEY_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: duo-secrets
+              key: DUO_R2_ACCESS_KEY_SECRET
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: status
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: status
+  template:
+    metadata:
+      labels:
+        app: status
+    spec:
+      containers:
+      - name: status
+        image: us-east1-docker.pkg.dev/duolicious/status/{{branch}}:{{commit_sha}}
+        resources:
+          limits:
+            memory: "128Mi"
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 240
+          failureThreshold: 1
+          timeoutSeconds: 240
+        ports:
+        - containerPort: 8080
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+    app: api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat
+spec:
+  selector:
+    app: chat
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5443
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: status
+spec:
+  selector:
+    app: status
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    acme.cert-manager.io/http01-edit-in-place: "true"
+spec:
+  ingressClassName: "nginx"
+  rules:
+  - host: api.duolicious.app
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: api
+            port:
+              number: 80
+  - host: chat.duolicious.app
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: chat
+            port:
+              number: 80
+  - host: status.duolicious.app
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: status
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - api.duolicious.app
+    secretName: api-duolicious-tls
+  - hosts:
+    - chat.duolicious.app
+    secretName: chat-duolicious-tls
+  - hosts:
+    - status.duolicious.app
+    secretName: status-duolicious-tls
+
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: admin@duolicious.app
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
