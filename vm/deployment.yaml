@@ -44,7 +44,7 @@ spec:
         - { name: DUO_DB_PORT, value: '5432' }
         - { name: DUO_DB_NAME, value: duo_api }
         - { name: DUO_DB_USER, value: postgres }
-        - { name: DUO_R2_BUCKET_NAME, value: dart-enunciate1-recycler } # TODO: Change me
+        - { name: DUO_R2_BUCKET_NAME, value: strewn-cozily-bankbook5 }
 
         - name: DUO_DB_PASS
           valueFrom:
@@ -153,7 +153,7 @@ spec:
         - { name: DUO_DB_HOST, value: 10.0.1.1 }
         - { name: DUO_DB_PORT, value: '5432' }
         - { name: DUO_DB_USER, value: postgres }
-        - { name: DUO_R2_BUCKET_NAME, value: dart-enunciate1-recycler } # TODO: Change me
+        - { name: DUO_R2_BUCKET_NAME, value: strewn-cozily-bankbook5 }
 
         - { name: DUO_DB_CHAT_NAME, value: duo_chat }
         - { name: DUO_DB_API_NAME, value: duo_api }
