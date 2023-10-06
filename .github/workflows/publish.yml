@@ -330,16 +330,15 @@ jobs:
         with:
           credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
 
-      - name: Take DB snapshot if on main
+      - name: Deploy if on main
         run: |
           set -eu
 
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
 
-          # TODO
-          # if [[ "${BRANCH_NAME:-}" != main ]]; then
-          #   exit
-          # fi
+          if [[ "${BRANCH_NAME:-}" != main ]]; then
+            exit
+          fi
 
           # == Set up credentials ===
           mkdir -p ~/.ssh/
