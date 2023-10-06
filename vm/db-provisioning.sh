@@ -71,4 +71,10 @@ sudo bash -c \
 sudo systemctl restart postgresql
 
 
+# Useful commands
+#
 # ALTER USER postgres WITH PASSWORD 'password';
+# zfs list -t snapshot
+# zfs list -t snapshot -o name -s creation -H | grep '^dbpool@' | head -n -1 | xargs -n1 zfs destroy
+# zfs snapshot dbpool@pr42
+# zfs destroy dbpool@pr42
