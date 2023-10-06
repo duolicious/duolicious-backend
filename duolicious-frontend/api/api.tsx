@@ -5,7 +5,7 @@ import * as _ from "lodash";
 import { sessionToken } from '../kv-storage/session-token';
 import { Buffer } from "buffer";
 
-const SUPPORTED_API_VERSIONS = [1];
+const SUPPORTED_API_VERSIONS = [2];
 
 type ApiResponse = {
   ok: boolean
