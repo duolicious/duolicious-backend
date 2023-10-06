@@ -49,6 +49,3 @@ microk8s.kubectl apply -f deployment.yaml
 # kubectl rollout history deployment/$deployent_name
 # kubectl rollout undo deployment/your-deployment --to-revision=x
 # kubectl rollout undo deployment/$deployent_name
-#
-# TODO: Need a way to take down everything but the status container
-# TODO: CI/CD
