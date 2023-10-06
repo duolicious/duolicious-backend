@@ -362,7 +362,7 @@ jobs:
             "duolicious_app@instance-1" \
             --zone "us-east1-b" \
             --project "duolicious" \
-            --command "~/ci-deployment.sh ${GITHUB_SHA}"
+            --command "~/ci-deployment.sh ${BRANCH_NAME} ${GITHUB_SHA}"
         shell: bash
         env:
           SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}

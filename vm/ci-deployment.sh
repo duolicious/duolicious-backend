@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 
-set -e
+set -ex
 
-commit_sha=$1
+branch=$1
+commit_sha=$2
 
 sudo zfs snapshot "dbpool@commit_${commit_sha}"
 
-sed -i "s/{{commit_sha}}/$commit_sha/g" deployment.yaml
+sed -i "s|{{branch}}|$branch|g" deployment.yaml
+sed -i "s|{{commit_sha}}|$commit_sha|g" deployment.yaml
 
 microk8s.kubectl apply -f deployment.yaml
+
+kubectl rollout status deployment --timeout=180s

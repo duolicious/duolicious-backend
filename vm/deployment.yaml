@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: us-east1-docker.pkg.dev/duolicious/api/main:{{commit_sha}}
+        image: us-east1-docker.pkg.dev/duolicious/api/{{branch}}:{{commit_sha}}
         resources:
           limits:
             memory: "1Gi"
@@ -93,7 +93,7 @@ spec:
     spec:
       containers:
       - name: chat
-        image: us-east1-docker.pkg.dev/duolicious/chat/main:{{commit_sha}}
+        image: us-east1-docker.pkg.dev/duolicious/chat/{{branch}}:{{commit_sha}}
         resources:
           limits:
             memory: "1Gi"
@@ -136,7 +136,7 @@ spec:
     spec:
       containers:
       - name: cron
-        image: us-east1-docker.pkg.dev/duolicious/cron/main:{{commit_sha}}
+        image: us-east1-docker.pkg.dev/duolicious/cron/{{branch}}:{{commit_sha}}
         resources:
           limits:
             memory: "512Mi"
@@ -209,7 +209,7 @@ spec:
     spec:
       containers:
       - name: status
-        image: us-east1-docker.pkg.dev/duolicious/status/main:{{commit_sha}}
+        image: us-east1-docker.pkg.dev/duolicious/status/{{branch}}:{{commit_sha}}
         resources:
           limits:
             memory: "128Mi"
