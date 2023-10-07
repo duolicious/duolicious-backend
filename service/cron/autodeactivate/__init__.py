@@ -47,10 +47,24 @@ class JoinedPerson:
     email: str
     seconds: int
 
+def extract_domain_from_hostname(hostname):
+    parts = hostname.split('.')
+
+    if len(parts) < 2:
+        return hostname
+
+    return '.'.join(parts[-2:])
+
+def extract_hostname_from_email(email):
+    _, hostname = email.split('@')
+    return hostname
+
 def has_disposable_email(joined_person: JoinedPerson):
     try:
-        left, right = joined_person.email.split('@')
-        return right in disposable_emails
+        hostname = extract_hostname_from_email(joined_person.email)
+        domain = extract_domain_from_hostname(hostname)
+
+        return domain in disposable_emails
     except:
         print(traceback.format_exc())
 
