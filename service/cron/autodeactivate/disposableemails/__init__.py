@@ -12079,6 +12079,7 @@ disposable_emails = set([
     "anomail.club",
     "anomgo.com",
     "anon.subdavis.com",
+    "anonbox.net",
     "anongirl.com",
     "anonib.su",
     "anoniemgesprek.online",
