@@ -270,7 +270,7 @@ const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
           <Tick color="#ddd" position={100}/>
 
           <Tick
-            color="#666"
+            color="#c3c3c3"
             position={percentage2}
             label={name2}
             labelPercentage={labelPercentage(percentage2)}
