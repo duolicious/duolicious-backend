@@ -1,4 +1,5 @@
 import {
+  Platform,
   Text,
   View,
 } from 'react-native';
@@ -45,7 +46,11 @@ const UtilityScreen = ({
       return "Down For Maintenance";
     }
     if (serverStatus === "please update") {
-      return "Please Update Your App 😇"
+      if (Platform.OS === 'web') {
+        return "Please Refresh This Page 😇"
+      } else {
+        return "Please Update Your App 😇"
+      }
     }
 
     // Just in case the type signature is a lie
