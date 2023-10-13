@@ -237,7 +237,7 @@ onboardee_country AS (
         date_of_birth,
         coordinates,
         gender_id,
-        about,
+        COALESCE(about, ''),
         CASE
             WHEN EXISTS (SELECT 1 FROM onboardee_photo WHERE email = %(email)s)
             THEN 1
