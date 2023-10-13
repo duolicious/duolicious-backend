@@ -99,7 +99,7 @@ class PatchOnboardeeInfo(BaseModel):
     gender: Optional[constr(min_length=1)] = None
     other_peoples_genders: Optional[conlist(constr(min_length=1), min_length=1)] = None
     files: Optional[Dict[conint(ge=1, le=7), Image.Image]] = None
-    about: Optional[constr(min_length=1, max_length=10000)] = None
+    about: Optional[constr(min_length=0, max_length=10000)] = None
 
     @field_validator('date_of_birth')
     def age_must_be_18_or_up(cls, date_of_birth):
@@ -115,6 +115,10 @@ class PatchOnboardeeInfo(BaseModel):
     @field_validator('files', mode='before')
     def file_names(cls, files):
         return file_names(files)
+
+    @field_validator('about', mode='before')
+    def strip_about(cls, about):
+        return about if about is None else about.strip()
 
     @model_validator(mode='after')
     def check_exactly_one(self):
@@ -140,7 +144,7 @@ class DeleteProfileInfo(BaseModel):
 
 class PatchProfileInfo(BaseModel):
     files: Optional[Dict[conint(ge=1, le=7), Image.Image]] = None
-    about: Optional[constr(min_length=1, max_length=10000)] = None
+    about: Optional[constr(min_length=0, max_length=10000)] = None
     gender: Optional[str] = None
     orientation: Optional[str] = None
     location: Optional[str] = None
@@ -181,6 +185,10 @@ class PatchProfileInfo(BaseModel):
             raise ValueError(f'Field {field_name} must not be None')
 
         return self
+
+    @field_validator('about', mode='before')
+    def strip_about(cls, about):
+        return about if about is None else about.strip()
 
     class Config:
         arbitrary_types_allowed = True
