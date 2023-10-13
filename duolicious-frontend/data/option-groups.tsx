@@ -230,6 +230,81 @@ const genders = [
   'Other',
 ];
 
+const orientations = [
+  'Straight',
+  'Gay',
+  'Lesbian',
+  'Bisexual',
+  'Asexual',
+  'Demisexual',
+  'Pansexual',
+  'Queer',
+  'Other',
+];
+
+const religions = [
+  'Agnostic',
+  'Atheist',
+  'Buddhist',
+  'Christian',
+  'Hindu',
+  'Jewish',
+  'Muslim',
+  'Zoroastrian',
+  'Other',
+];
+
+const starSigns = [
+  'Aquarius',
+  'Aries',
+  'Cancer',
+  'Capricorn',
+  'Gemini',
+  'Leo',
+  'Libra',
+  'Pisces',
+  'Sagittarius',
+  'Scorpio',
+  'Taurus',
+  'Virgo',
+];
+
+const lookingFor = [
+  'Friends',
+  'Short-term dating',
+  'Long-term dating',
+  'Marriage',
+];
+
+const relationshipStatus = [
+  'Single',
+  'Seeing someone',
+  'Engaged',
+  'Married',
+  'Divorced',
+  'Widowed',
+  'Other',
+];
+
+const yesNo = [
+  'Yes',
+  'No',
+];
+
+const frequency = [
+  'Often',
+  'Sometimes',
+  'Never',
+];
+
+const immediacy = [
+  'Immediately',
+  'Daily',
+  'Every 3 days',
+  'Weekly',
+  'Never'
+];
+
 const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
   title: 'Gender',
   description: "What’s your gender?",
@@ -250,7 +325,7 @@ const yourPartnersGenderOptionGroup: OptionGroup<OptionGroupCheckChips> = {
   description: "Which gender do you want to date? You can select more than one option.",
   input: {
     checkChips: {
-      values: genders.map((g) => ({checked: false, label: g})),
+      values: genders.map((x) => ({checked: false, label: x})),
       submit: async (inputs: string[]) => true
     }
   }
@@ -276,17 +351,7 @@ const orientationOptionGroup: OptionGroup<OptionGroupButtons> = {
   description: "What’s your sexual orientation?",
   input: {
     buttons: {
-      values: [
-        'Straight',
-        'Gay',
-        'Lesbian',
-        'Bisexual',
-        'Asexual',
-        'Demisexual',
-        'Pansexual',
-        'Queer',
-        'Other',
-      ],
+      values: orientations,
       submit: async function(orientation: string) {
         const ok = (await japi('patch', '/profile-info', { orientation })).ok;
         if (ok) this.currentValue = orientation;
@@ -301,12 +366,7 @@ const lookingForOptionGroup: OptionGroup<OptionGroupButtons> = {
   description: 'What are you mainly looking for on Duolicious?',
   input: {
     buttons: {
-      values: [
-        'Friends',
-        'Short-term dating',
-        'Long-term dating',
-        'Marriage',
-      ],
+      values: lookingFor,
       submit: async function(lookingFor: string) {
         const ok = (await japi('patch', '/profile-info', { looking_for: lookingFor })).ok;
         if (ok) this.currentValue = lookingFor;
@@ -372,7 +432,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: 'Do you smoke?',
     input: {
       buttons: {
-        values: ['Yes', 'No'],
+        values: yesNo,
         submit: async function(smoking: string) {
           const ok = (await japi('patch', '/profile-info', { smoking })).ok;
           if (ok) this.currentValue = smoking;
@@ -386,7 +446,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: 'How often do you drink?',
     input: {
       buttons: {
-        values: ['Often', 'Sometimes', 'Never'],
+        values: frequency,
         submit: async function(drinking: string) {
           const ok = (await japi('patch', '/profile-info', { drinking })).ok;
           if (ok) this.currentValue = drinking;
@@ -400,7 +460,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: 'Do you do drugs?',
     input: {
       buttons: {
-        values: ['Yes', 'No'],
+        values: yesNo,
         submit: async function(drugs: string) {
           const ok = (await japi('patch', '/profile-info', { drugs })).ok;
           if (ok) this.currentValue = drugs;
@@ -414,7 +474,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: 'Are you willing to enter a long-distance relationship?',
     input: {
       buttons: {
-        values: ['Yes', 'No'],
+        values: yesNo,
         submit: async function(longDistance: string) {
           const ok = (await japi('patch', '/profile-info', { long_distance: longDistance })).ok;
           if (ok) this.currentValue = longDistance;
@@ -428,15 +488,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: "What's your relationship status?",
     input: {
       buttons: {
-        values: [
-          'Single',
-          'Seeing someone',
-          'Engaged',
-          'Married',
-          'Divorced',
-          'Widowed',
-          'Other',
-        ],
+        values: relationshipStatus,
         submit: async function(relationshipStatus: string) {
           const ok = (
             await japi('patch', '/profile-info', { relationship_status: relationshipStatus })
@@ -452,7 +504,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: 'Do you have kids?',
     input: {
       buttons: {
-        values: ['Yes', 'No'],
+        values: yesNo,
         submit: async function(hasKids: string) {
           const ok = (await japi('patch', '/profile-info', { has_kids: hasKids })).ok;
           if (ok) this.currentValue = hasKids;
@@ -466,7 +518,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: 'Do you want kids?',
     input: {
       buttons: {
-        values: ['Yes', 'No'],
+        values: yesNo,
         submit: async function(wantsKids: string) {
           const ok = (await japi('patch', '/profile-info', { wants_kids: wantsKids })).ok;
           if (ok) this.currentValue = wantsKids;
@@ -480,11 +532,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: 'How often do you exercise?',
     input: {
       buttons: {
-        values: [
-          'Often',
-          'Sometimes',
-          'Never',
-        ],
+        values: frequency,
         submit: async function(exercise: string) {
           const ok = (await japi('patch', '/profile-info', { exercise })).ok;
           if (ok) this.currentValue = exercise;
@@ -498,17 +546,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: "What's your religion?",
     input: {
       buttons: {
-        values: [
-          'Agnostic',
-          'Atheist',
-          'Buddhist',
-          'Christian',
-          'Hindu',
-          'Jewish',
-          'Muslim',
-          'Zoroastrian',
-          'Other',
-        ],
+        values: religions,
         submit: async function(religion: string) {
           const ok = (await japi('patch', '/profile-info', { religion })).ok;
           if (ok) this.currentValue = religion;
@@ -522,20 +560,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: "What's your star sign?",
     input: {
       buttons: {
-        values: [
-          'Aquarius',
-          'Aries',
-          'Cancer',
-          'Capricorn',
-          'Gemini',
-          'Leo',
-          'Libra',
-          'Pisces',
-          'Sagittarius',
-          'Scorpio',
-          'Taurus',
-          'Virgo',
-        ],
+        values: starSigns,
         submit: async function(starSign: string) {
           const ok = (await japi('patch', '/profile-info', { star_sign: starSign })).ok;
           if (ok) this.currentValue = starSign;
@@ -581,13 +606,7 @@ const notificationSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
     description: "When do you want to be notified if anyone you're chatting with sends a new message? (\"Daily\" still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
     input: {
       buttons: {
-        values: [
-          'Immediately',
-          'Daily',
-          'Every 3 days',
-          'Weekly',
-          'Never'
-        ],
+        values: immediacy,
         submit: async function(chats: string) {
           const ok = (await japi('patch', '/profile-info', { chats })).ok;
           if (ok) this.currentValue = chats;
@@ -601,13 +620,7 @@ const notificationSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
     description: "When do you want to be notified if someone you haven't chatted with sends you an intro? (\"Daily\" still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
     input: {
       buttons: {
-        values: [
-          'Immediately',
-          'Daily',
-          'Every 3 days',
-          'Weekly',
-          'Never'
-        ],
+        values: immediacy,
         submit: async function(intros: string) {
           const ok = (await japi('patch', '/profile-info', { intros })).ok;
           if (ok) this.currentValue = intros;
@@ -845,13 +858,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       checkChips: {
         values: [
-          {checked: true, label: 'Straight'},
-          {checked: true, label: 'Gay'},
-          {checked: true, label: 'Bisexual'},
-          {checked: true, label: 'Asexual'},
-          {checked: true, label: 'Demisexual'},
-          {checked: true, label: 'Pansexual'},
-          {checked: true, label: 'Other'},
+          ...orientations.map((x) => ({checked: true, label: x})),
           {checked: true, label: 'Unanswered'},
         ],
         submit: async function(orientation: string[]) {
@@ -955,8 +962,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       checkChips: {
         values: [
-          {checked: true, label: "Yes"},
-          {checked: true, label: "No"},
+          ...yesNo.map((x) => ({checked: true, label: x})),
         ],
         submit: async function(hasAProfilePicture: string[]) {
           const ok = (await japi(
@@ -978,11 +984,8 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       checkChips: {
         values: [
-          {checked: true, label: 'Friends'},
-          {checked: true, label: 'Short-term dating'},
-          {checked: true, label: 'Long-term dating'},
-          {checked: true, label: 'Marriage'},
-          {checked: true, label: 'Unanswered'}
+          ...lookingFor.map((x) => ({checked: true, label: x})),
+          {checked: true, label: 'Unanswered'},
         ],
         submit: async function(lookingFor: string[]) {
           const ok = (await japi(
@@ -1004,8 +1007,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       checkChips: {
         values: [
-          {checked: true, label: 'Yes'},
-          {checked: true, label: 'No'},
+          ...yesNo.map((x) => ({checked: true, label: x})),
           {checked: true, label: 'Unanswered'}
         ],
         submit: async function(smoking: string[]) {
@@ -1028,9 +1030,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       checkChips: {
         values: [
-          {checked: true, label: 'Often'},
-          {checked: true, label: 'Sometimes'},
-          {checked: true, label: 'Never'},
+          ...frequency.map((x) => ({checked: true, label: x})),
           {checked: true, label: 'Unanswered'}
         ],
         submit: async function(drinking: string[]) {
@@ -1053,8 +1053,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       checkChips: {
         values: [
-          {checked: true, label: 'Yes'},
-          {checked: true, label: 'No'},
+          ...yesNo.map((x) => ({checked: true, label: x})),
           {checked: true, label: 'Unanswered'}
         ],
         submit: async function(drugs: string[]) {
@@ -1077,8 +1076,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       checkChips: {
         values: [
-          {checked: true, label: 'Yes'},
-          {checked: true, label: 'No'},
+          ...yesNo.map((x) => ({checked: true, label: x})),
           {checked: true, label: 'Unanswered'}
         ],
         submit: async function(longDistance: string[]) {
@@ -1101,14 +1099,8 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       checkChips: {
         values: [
-          {checked: true, label: 'Single'},
-          {checked: true, label: 'Seeing someone'},
-          {checked: true, label: 'Engaged'},
-          {checked: true, label: 'Married'},
-          {checked: true, label: 'Divorced'},
-          {checked: true, label: 'Widowed'},
-          {checked: true, label: 'Other'},
-          {checked: true, label: 'Unanswered'}
+          ...relationshipStatus.map((x) => ({checked: true, label: x})),
+          {checked: true, label: 'Unanswered'},
         ],
         submit: async function(relationshipStatus: string[]) {
           const ok = (await japi(
@@ -1130,8 +1122,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       checkChips: {
         values: [
-          {checked: true, label: 'Yes'},
-          {checked: true, label: 'No'},
+          ...yesNo.map((x) => ({checked: true, label: x})),
           {checked: true, label: 'Unanswered'}
         ],
         submit: async function(hasKids: string[]) {
@@ -1154,8 +1145,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       checkChips: {
         values: [
-          {checked: true, label: 'Yes'},
-          {checked: true, label: 'No'},
+          ...yesNo.map((x) => ({checked: true, label: x})),
           {checked: true, label: 'Unanswered'}
         ],
         submit: async function(wantsKids: string[]) {
@@ -1178,9 +1168,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       checkChips: {
         values: [
-          {checked: true, label: 'Often'},
-          {checked: true, label: 'Sometimes'},
-          {checked: true, label: 'Never'},
+          ...frequency.map((x) => ({checked: true, label: x})),
           {checked: true, label: 'Unanswered'},
         ],
         submit: async function(exercise: string[]) {
@@ -1203,14 +1191,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       checkChips: {
       values: [
-          {checked: true, label: 'Agnostic'},
-          {checked: true, label: 'Atheist'},
-          {checked: true, label: 'Buddhist'},
-          {checked: true, label: 'Christian'},
-          {checked: true, label: 'Hindu'},
-          {checked: true, label: 'Jewish'},
-          {checked: true, label: 'Muslim'},
-          {checked: true, label: 'Other'},
+          ...religions.map((x) => ({checked: true, label: x})),
           {checked: true, label: 'Unanswered'},
         ],
         submit: async function(religion: string[]) {
@@ -1233,18 +1214,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       checkChips: {
         values: [
-          {checked: true, label: 'Aquarius'},
-          {checked: true, label: 'Aries'},
-          {checked: true, label: 'Cancer'},
-          {checked: true, label: 'Capricorn'},
-          {checked: true, label: 'Gemini'},
-          {checked: true, label: 'Leo'},
-          {checked: true, label: 'Libra'},
-          {checked: true, label: 'Pisces'},
-          {checked: true, label: 'Sagittarius'},
-          {checked: true, label: 'Scorpio'},
-          {checked: true, label: 'Taurus'},
-          {checked: true, label: 'Virgo'},
+          ...starSigns.map((x) => ({checked: true, label: x})),
           {checked: true, label: 'Unanswered'},
         ],
         submit: async function(starSign: string[]) {
@@ -1269,7 +1239,7 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: "Would you like search results to include people you already messaged?",
     input: {
       buttons: {
-        values: ['Yes', 'No'],
+        values: yesNo,
         submit: async function(peopleMessaged: string) {
           const ok = (await japi(
             'post',
@@ -1287,7 +1257,7 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: "Would you like search results to include people you hidden?",
     input: {
       buttons: {
-        values: ['Yes', 'No'],
+        values: yesNo,
         submit: async function(peopleHidden: string) {
           const ok = (await japi(
             'post',
@@ -1305,7 +1275,7 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: "Would you like to include people you blocked?",
     input: {
       buttons: {
-        values: ['Yes', 'No'],
+        values: yesNo,
         submit: async function(peopleBlocked: string) {
           const ok = (await japi(
             'post',
@@ -1325,7 +1295,7 @@ const hideMeFromStrangersOptionGroup: OptionGroup<OptionGroupInputs> = {
   description: "If you'd rather be the one who messages first, you can show your profile only to people who you've messaged before. With this option set to 'Yes', people won't be able to see you anywhere in Duolicious until you message them.",
   input: {
     buttons: {
-      values: ['Yes', 'No'],
+      values: yesNo,
       submit: async function(hideMeFromStrangers: string) {
         const ok = (
           await japi(
@@ -1347,7 +1317,7 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: "Would you like your location to appear on your profile? Note that if you set this option to 'No', other people will still be able to filter your profile by distance when searching.",
     input: {
       buttons: {
-        values: ['Yes', 'No'],
+        values: yesNo,
         submit: async function(showMyLocation: string) {
           const ok = (
             await japi(
@@ -1367,7 +1337,7 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: "Would you like your age to appear on your profile? Note that if you set this option to 'No', other people will still be able to filter your profile by age when searching.",
     input: {
       buttons: {
-        values: ['Yes', 'No'],
+        values: yesNo,
         submit: async function(showMyAge: string) {
           const ok = (
             await japi(
