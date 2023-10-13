@@ -47,7 +47,7 @@ test_set relationship_status Single
 test_set has_kids No
 test_set wants_kids Yes
 test_set exercise Often
-test_set religion Zoroastrianism
+test_set religion Zoroastrian
 test_set star_sign Sagittarius
 test_set units Imperial
 test_set chats 'Every 3 days'
