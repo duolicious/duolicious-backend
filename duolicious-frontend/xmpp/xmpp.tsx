@@ -31,6 +31,7 @@ type Message = {
   to: string
   fromCurrentUser: boolean
   id: string
+  mamId?: string | undefined
   timestamp: Date
 };
 
@@ -560,7 +561,7 @@ const onReceiveMessage = (
       from: from.toString(),
       to: to.toString(),
       id: id.toString(),
-      timestamp: new Date(stamp.toString()),
+      timestamp: stamp.toString() ? new Date(stamp.toString()) : new Date(),
       fromCurrentUser: jidToPersonId(from.toString()) == signedInUser?.personId,
     };
 
@@ -606,6 +607,7 @@ const moveToChats = async (personId: number) => {
 const _fetchConversation = async (
   withPersonId: number,
   callback: (messages: Message[] | 'timeout') => void,
+  beforeId: string = '',
 ) => {
   if (!_xmpp) return callback('timeout');
 
@@ -624,7 +626,7 @@ const _fetchConversation = async (
         </x>
         <set xmlns='http://jabber.org/protocol/rsm'>
           <max>50</max>
-          <before/>
+          <before>${beforeId}</before>
         </set>
       </query>
     </iq>
@@ -650,6 +652,10 @@ const _fetchConversation = async (
     const from = xpath.select1(`string(./@from)`, node);
     const to = xpath.select1(`string(./@to)`, node);
     const id = xpath.select1(`string(./@id)`, node);
+    const mamId = xpath.select1(
+      `string(.//ancestor::*[name()='result']/@id)`,
+      node
+    );
     const stamp = xpath.select1(
       `string(./preceding-sibling::*/@stamp | ./following-sibling::*/@stamp)`,
       node
@@ -659,6 +665,7 @@ const _fetchConversation = async (
     if (from === null) return;
     if (to === null) return;
     if (id === null) return;
+    if (mamId === null) return;
     if (stamp === null) return;
     if (bodyText === null) return;
 
@@ -670,6 +677,7 @@ const _fetchConversation = async (
       from: from.toString(),
       to: to.toString(),
       id: id.toString(),
+      mamId: mamId ? mamId.toString() : undefined,
       timestamp: new Date(stamp.toString()),
       fromCurrentUser: fromCurrentUser,
     });
@@ -706,11 +714,12 @@ const _fetchConversation = async (
 };
 
 const fetchConversation = async (
-  withPersonId: number
+  withPersonId: number,
+  beforeId: string = '',
 ): Promise<Message[] | undefined | 'timeout'> => {
   const __fetchConversation = new Promise(
     (resolve: (messages: Message[] | undefined | 'timeout') => void) =>
-      _fetchConversation(withPersonId, resolve)
+      _fetchConversation(withPersonId, resolve, beforeId)
     );
 
   return await withTimeout(5000, __fetchConversation);

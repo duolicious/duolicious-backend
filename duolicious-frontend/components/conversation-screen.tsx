@@ -38,14 +38,15 @@ import {
 import { getRandomString } from '../random/string';
 import { api } from '../api/api';
 
-// TODO: Re-add the ability to load old messages past the first page
-
 const ConversationScreen = ({navigation, route}) => {
   const [messageFetchTimeout, setMessageFetchTimeout] = useState(false);
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [lastMessageStatus, setLastMessageStatus] = useState<
     MessageStatus | null
   >(null);
+  const hasScrolled = useRef(false);
+  const hasFetchedAll = useRef(false);
+  const isFetchingNextPage = useRef(false);
 
   const personId: number = route?.params?.personId;
   const name: string = route?.params?.name;
@@ -54,9 +55,21 @@ const ConversationScreen = ({navigation, route}) => {
 
   const listRef = useRef<any>(null)
 
+  const lastMamId = (() => {
+    if (!messages) return '';
+    if (!messages.length) return '';
+
+    const mamId = messages[0].mamId;
+
+    if (!mamId) return '';
+
+    return mamId;
+  })();
+
   const scrollToEnd = useCallback(() => {
-    if (listRef.current) {
+    if (listRef.current && !hasScrolled.current) {
       listRef.current.scrollToEnd({animated: true});
+      hasScrolled.current = true;
     }
   }, [listRef.current]);
 
@@ -81,6 +94,7 @@ const ConversationScreen = ({navigation, route}) => {
     );
 
     if (messageStatus === 'sent') {
+      hasScrolled.current = false;
       setMessages(messages => [...(messages ?? []), message]);
 
       // TODO: Ideally, you wouldn't have to mark messages as sent in this way;
@@ -103,26 +117,49 @@ const ConversationScreen = ({navigation, route}) => {
     );
   }, [personId, name]);
 
-  const _fetchConversation = useCallback(async () => {
-    const _messages = await fetchConversation(personId);
-    setMessageFetchTimeout(_messages === 'timeout');
-    if (_messages !== 'timeout') {
-      setMessages(existingMessages =>
-        [...(existingMessages ?? []), ...(_messages ?? [])]
-      );
+  const maybeLoadNextPage = useCallback(async () => {
+    if (hasFetchedAll.current) {
+      return;
     }
+    if (isFetchingNextPage.current) {
+      return;
+    }
+
+    isFetchingNextPage.current = true;
+    const fetchedMessages = await fetchConversation(personId, lastMamId);
+
+    isFetchingNextPage.current = false;
+
+    setMessageFetchTimeout(fetchedMessages === 'timeout');
+    if (fetchedMessages !== 'timeout') {
+      // Prevents the list from moving up to the newly added speech bubbles and
+      // triggering another fetch
+      if (listRef.current) listRef.current.scrollTo({y: 1});
+
+      setMessages([...(fetchedMessages ?? []), ...(messages ?? [])]);
+
+      hasFetchedAll.current = !(fetchedMessages && fetchedMessages.length);
+    }
+  }, [messages, lastMamId]);
+
+  const _onReceiveMessage = useCallback((msg) => {
+    hasScrolled.current = false;
+    setMessages(msgs => [...(msgs ?? []), msg]);
   }, []);
 
-  const _onReceiveMessage = useCallback(
-    (msg) => setMessages(msgs => [...(msgs ?? []), msg]),
-    []
-  );
+  const isCloseToTop = ({contentOffset}) => contentOffset.y < 20;
+
+  const onScroll = useCallback(({nativeEvent}) => {
+    if (isCloseToTop(nativeEvent)) {
+      maybeLoadNextPage();
+    }
+  }, [maybeLoadNextPage]);
 
   useEffect(() => {
-    _fetchConversation();
+    maybeLoadNextPage();
 
     return onReceiveMessage(_onReceiveMessage, personId);
-  }, [_onReceiveMessage, personId]);
+  }, []);
 
   return (
     <>
@@ -247,8 +284,11 @@ const ConversationScreen = ({navigation, route}) => {
           ref={listRef}
           onLayout={scrollToEnd}
           onContentSizeChange={scrollToEnd}
+          onScroll={onScroll}
+          scrollEventThrottle={0}
           contentContainerStyle={{
             paddingTop: 10,
+            paddingBottom: 20,
             maxWidth: 600,
             width: '100%',
             alignSelf: 'center',
