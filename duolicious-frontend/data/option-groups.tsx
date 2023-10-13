@@ -221,6 +221,7 @@ const newCheckChipValues = (
 const genders = [
   'Man',
   'Woman',
+  'Agender',
   'Intersex',
   'Non-binary',
   'Transgender',
@@ -278,10 +279,12 @@ const orientationOptionGroup: OptionGroup<OptionGroupButtons> = {
       values: [
         'Straight',
         'Gay',
+        'Lesbian',
         'Bisexual',
         'Asexual',
         'Demisexual',
         'Pansexual',
+        'Queer',
         'Other',
       ],
       submit: async function(orientation: string) {
@@ -503,6 +506,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           'Hindu',
           'Jewish',
           'Muslim',
+          'Zoroastrian',
           'Other',
         ],
         submit: async function(religion: string) {
