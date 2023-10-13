@@ -749,10 +749,17 @@ const Body = ({
           {data?.height_cm && signedInUser?.units === 'Imperial' &&
             <Basic icon={faRulerVertical}>{cmToFeetInchesStr(data.height_cm)}</Basic>}
         </Basics>
-        <Title>About {data?.name ?? '...'}</Title>
-        <DefaultText>
-          {data?.about ?? '...'}
-        </DefaultText>
+        {!data?.name &&
+          <Title>About ...</Title>
+        }
+        {data?.name && data?.about && data.about.trim() &&
+          <>
+            <Title>About {data.name}</Title>
+            <DefaultText>
+              {data.about}
+            </DefaultText>
+          </>
+        }
         <SeeQAndAButton
           navigation={navigation}
           personId={personId}
