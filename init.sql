@@ -521,7 +521,7 @@ INSERT INTO religion (name) VALUES ('Christian') ON CONFLICT (name) DO NOTHING;
 INSERT INTO religion (name) VALUES ('Hindu') ON CONFLICT (name) DO NOTHING;
 INSERT INTO religion (name) VALUES ('Jewish') ON CONFLICT (name) DO NOTHING;
 INSERT INTO religion (name) VALUES ('Muslim') ON CONFLICT (name) DO NOTHING;
-INSERT INTO religion (name) VALUES ('Zoroastrianism') ON CONFLICT (name) DO NOTHING;
+INSERT INTO religion (name) VALUES ('Zoroastrian') ON CONFLICT (name) DO NOTHING;
 INSERT INTO religion (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO star_sign (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
