@@ -1,4 +1,17 @@
+import {
+  Platform,
+} from 'react-native';
 import { format, isToday, isThisYear, isThisWeek } from 'date-fns'
+
+const isMobile = () => {
+  const re = /(android|iphone|ipod|iemobile|blackberry|webos|symbian)/i;
+
+  return (
+    Platform.OS === 'android' ||
+    Platform.OS === 'ios' ||
+    re.test(window.navigator.userAgent)
+  );
+};
 
 const friendlyTimestamp = (date: Date): string => {
   if (isToday(date)) {
@@ -37,5 +50,6 @@ export {
   delay,
   deleteFromArray,
   friendlyTimestamp,
+  isMobile,
   withTimeout,
 };

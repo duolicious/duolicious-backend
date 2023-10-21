@@ -31,7 +31,7 @@ import InboxTab from './components/inbox-tab';
 import { TraitsTab } from './components/traits-tab';
 import { ConversationScreen } from './components/conversation-screen';
 import { UtilityScreen } from './components/utility-screen';
-import { GalleryScreen, ProspectProfileScreen } from './components/prospect-profile-screen';
+import { ProspectProfileScreen } from './components/prospect-profile-screen';
 import { WelcomeScreen } from './components/welcome-screen';
 import { sessionToken } from './kv-storage/session-token';
 import { japi, SUPPORTED_API_VERSIONS } from './api/api';
@@ -310,7 +310,6 @@ const App = () => {
                 <>
                   <Tab.Screen name="Home" component={HomeTabs} />
                   <Tab.Screen name="Conversation Screen" component={ConversationScreen} />
-                  <Tab.Screen name="Gallery Screen" component={GalleryScreen} />
                   <Tab.Screen name="Prospect Profile Screen" component={ProspectProfileScreen} />
                 </>
               ) : (

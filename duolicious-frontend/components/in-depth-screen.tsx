@@ -24,6 +24,8 @@ import { ArrowLeft, ArrowRight } from "react-native-feather";
 import { Chart } from './chart';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../api/api';
+import { StatusBarSpacer } from './status-bar-spacer';
+import { FloatingBackButton } from './prospect-profile-screen';
 
 const sideMargins: StyleProp<ViewStyle> = {
   marginLeft: 10,
@@ -255,45 +257,62 @@ const InDepthScreen = (navigationRef) => ({navigation, route}) => {
   }, []);
 
   // TODO: Sometimes a spinner shows up at the bottom of the screen that won't go away
-  return <DefaultFlatList
-    contentContainerStyle={{
-      paddingTop: 0,
-      paddingBottom: 20,
-    }}
-    dataKey={
-      idx1 === 1 ? `${idx1}-${idx4}` : `${idx1}-${idx2}-${idx3}`}
-    emptyText={
-      idx1 === 1 ? undefined : "No Q&A answers to show"}
-    endText={
-      idx1 === 1 ? undefined : "No more Q&A answers to show"}
-    endTextStyle={{
-      marginRight: 5,
-    }}
-    fetchPage={
-      idx1 === 1 ?
-      fetchPersonalityPage(personId, idx4) :
-      fetchAnswersPage(
-        personId,
-        ['all', 'agree', 'disagree', 'unanswered'][idx2],
-        ['all', 'values', 'sex', 'interpersonal', 'other'][idx3],
-      )
-    }
-    ListHeaderComponent={
-      <Header
-        name={name}
-        idx1={idx1}
-        idx2={idx2}
-        idx3={idx3}
-        idx4={idx4}
-        onChangeIdx1={setIdx1}
-        onChangeIdx2={setIdx2}
-        onChangeIdx3={setIdx3}
-        onChangeIdx4={setIdx4}
+  return (
+    <>
+      <DefaultFlatList
+        contentContainerStyle={{
+          paddingTop: 0,
+          paddingBottom: 20,
+        }}
+        dataKey={
+          idx1 === 1 ? `${idx1}-${idx4}` : `${idx1}-${idx2}-${idx3}`}
+        emptyText={
+          idx1 === 1 ? undefined : "No Q&A answers to show"}
+        endText={
+          idx1 === 1 ? undefined : "No more Q&A answers to show"}
+        endTextStyle={{
+          marginRight: 5,
+        }}
+        fetchPage={
+          idx1 === 1 ?
+          fetchPersonalityPage(personId, idx4) :
+          fetchAnswersPage(
+            personId,
+            ['all', 'agree', 'disagree', 'unanswered'][idx2],
+            ['all', 'values', 'sex', 'interpersonal', 'other'][idx3],
+          )
+        }
+        ListHeaderComponent={
+          <Header
+            name={name}
+            idx1={idx1}
+            idx2={idx2}
+            idx3={idx3}
+            idx4={idx4}
+            onChangeIdx1={setIdx1}
+            onChangeIdx2={setIdx2}
+            onChangeIdx3={setIdx3}
+            onChangeIdx4={setIdx4}
+          />
+        }
+        renderItem={renderItem}
+        disableRefresh={true}
       />
-    }
-    renderItem={renderItem}
-    disableRefresh={true}
-  />;
+      <View
+        style={{
+          position: 'absolute',
+          height: 0,
+          width: '100%',
+          maxWidth: 600,
+          alignSelf: 'center',
+          zIndex: 999,
+        }}
+      >
+        <StatusBarSpacer/>
+        <FloatingBackButton navigationRef={navigationRef}/>
+      </View>
+    </>
+  );
 };
 
 const Charts = ({data}) => {

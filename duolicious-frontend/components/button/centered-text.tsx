@@ -7,7 +7,6 @@ import {
 import {
   useRef,
 } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultText } from '../default-text';
 
 const ButtonWithCenteredText = ({children, ...rest}) => {

@@ -12,7 +12,6 @@ import {
 } from 'react';
 import { DefaultText } from './default-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ArrowLeft, ArrowRight } from "react-native-feather";
 
 const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
   const {

@@ -25,9 +25,13 @@ function getRandomInt(max) {
   return Math.floor(Math.random() * max);
 }
 
-const ImageOrSkeleton = ({resolution, imageUuid}) => {
+const ImageOrSkeleton = ({resolution, imageUuid, ...rest}) => {
+  const {
+    showGradient = true,
+  } = rest;
+
   return (
-    <>
+    <View style={rest.style}>
       {imageUuid !== undefined &&
         <Skeleton
           style={{
@@ -51,21 +55,25 @@ const ImageOrSkeleton = ({resolution, imageUuid}) => {
         }}
       >
         <LinearGradient
-          colors={[
-            imageUuid ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
+          colors={showGradient ? [
+            'rgba(0, 0, 0, 0.1)',
             'transparent',
             'transparent',
             'transparent',
             'transparent',
-            'rgba(0, 0, 0, 0.2)',
+            'rgba(0, 0, 0, 0.1)',
+            'rgba(0, 0, 0, 0.3)',
             'rgba(0, 0, 0, 0.4)',
+          ] : [
+            'transparent',
+            'transparent',
           ]}
           style={{
             height: '100%',
             justifyContent: 'center',
             alignItems: 'center',
           }}
-          >
+        >
           {imageUuid === null &&
             <Ionicons
               style={{fontSize: 100, color: '#eee'}}
@@ -74,7 +82,7 @@ const ImageOrSkeleton = ({resolution, imageUuid}) => {
           }
         </LinearGradient>
       </ImageBackground>
-    </>
+    </View>
   );
 };
 
@@ -140,32 +148,6 @@ const ProfileCard = ({name, age, matchPercentage, imageUuid, personId, ...rest})
         </View>
       </Pressable>
     </View>
-  );
-};
-
-const ProspectProfileCard = ({onPress, imageUuid, numMorePics = 0}) => {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={{ width: '100%' }}
-    >
-      <ImageOrSkeleton resolution={900} imageUuid={imageUuid}/>
-      <DefaultText
-        style={{
-          position: 'absolute',
-          bottom: 15,
-          right: 15,
-          paddingLeft: 7,
-          paddingRight: 7,
-          borderRadius: 999,
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',
-          fontWeight: '500',
-          opacity: numMorePics === 0 ? 0 : 1,
-        }}
-      >
-        +{numMorePics} More Pic{numMorePics === 1 ? '' : 's'}
-      </DefaultText>
-    </Pressable>
   );
 };
 
@@ -346,7 +328,7 @@ const VerticalProfileCard = ({name, age, location, ...props}) => {
 };
 
 export {
+  ImageOrSkeleton,
   ProfileCard,
-  ProspectProfileCard,
   VerticalProfileCard,
 };
