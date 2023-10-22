@@ -1,4 +1,5 @@
 from service.cron.autodeactivate import autodeactivate_forever
+from service.cron.autodeactivate2 import autodeactivate2_forever
 from service.cron.emailnotifications import send_notifications_forever
 from service.cron.insertlast import insert_last_forever
 from service.cron.photocleaner import clean_photos_forever
@@ -24,6 +25,7 @@ async def http_server():
 async def main():
     await asyncio.gather(
         autodeactivate_forever(),
+        autodeactivate2_forever(),
         clean_photos_forever(),
         http_server(),
         insert_last_forever(),
