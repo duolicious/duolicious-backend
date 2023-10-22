@@ -131,11 +131,13 @@ const WelcomeScreen_ = ({navigation}) => {
           <DefaultText
             style={{
               alignSelf: 'center',
+              textAlign: 'center',
               color: 'white',
               fontSize: 20,
             }}
           >
-            Date, chat & make new friends
+            {/* Date, chat & make new friends */}
+            Online dating exclusively for 4chan
           </DefaultText>
           <DefaultTextInput
             style={{
