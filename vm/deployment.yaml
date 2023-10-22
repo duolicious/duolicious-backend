@@ -160,6 +160,7 @@ spec:
 
         - { name: DUO_CRON_EMAIL_DRY_RUN, value: 'false' }
         - { name: DUO_CRON_AUTODEACTIVATE_DRY_RUN, value: 'false' }
+        - { name: DUO_CRON_AUTODEACTIVATE2_DRY_RUN, value: 'false' }
         - { name: DUO_CRON_PHOTO_CLEANER_DRY_RUN, value: 'false' }
 
         - name: DUO_DB_PASS
