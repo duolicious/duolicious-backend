@@ -24,20 +24,27 @@ WHERE
 """
 
 Q_DEACTIVATE = """
-WITH q1 AS (
+WITH newly_deactivated AS (
+    UPDATE
+        person
+    SET
+        activated = FALSE
+    WHERE
+        id = ANY(%(ids)s)
+    AND
+        activated = TRUE
+    RETURNING
+        id
+), deleted AS (
     DELETE FROM
         duo_session
+    USING
+        newly_deactivated
     WHERE
-        person_id = ANY(%(ids)s)
+        duo_session.person_id = newly_deactivated.id
 )
-UPDATE
-    person
-SET
-    activated = FALSE
-WHERE
-    id = ANY(%(ids)s)
-AND
-    activated = TRUE
-RETURNING
+SELECT
     id
+FROM
+    newly_deactivated
 """
