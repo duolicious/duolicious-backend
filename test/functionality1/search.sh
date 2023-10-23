@@ -484,6 +484,28 @@ test_interaction_in_standard_search_blocked_symmetry() {
   assert_search_names 'user2'
 }
 
+test_interaction_in_standard_search_hidden_symmetry() {
+  setup
+
+  # Everyone wants to see people they've hidden
+  q "update search_preference_hidden set hidden_id = 1"
+
+  # Searcher can see everyone
+  assert_search_names 'user1 user2'
+
+  # But then... user1 hides searcher :'(
+  q "
+  insert into hidden (subject_person_id, object_person_id)
+  values (
+    (select id from person where email = 'user1@example.com'),
+    (select id from person where email = 'searcher@example.com')
+  )
+  "
+
+  # Searcher can no longer see user1 </3
+  assert_search_names 'user2'
+}
+
 test_quiz_search
 
 test_hide_me_from_strangers
@@ -492,6 +514,7 @@ test_interaction_in_standard_search messaged /mark-messaged
 test_interaction_in_standard_search blocked /block /unblock
 test_interaction_in_standard_search_blocked_symmetry
 test_interaction_in_standard_search hidden /hide /unhide
+test_interaction_in_standard_search_hidden_symmetry
 
 test_quiz_filters
 
