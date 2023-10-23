@@ -62,7 +62,7 @@ async def autodeactivate2_once():
 
     if rows_deactivated:
         print(
-            f'deactivate2: About to deactivate '
+            f'autodeactivate2: About to deactivate '
             f'{len(rows_deactivated)} accounts:',
         )
         for p in rows_deactivated:
@@ -71,13 +71,13 @@ async def autodeactivate2_once():
     if DRY_RUN:
         await api_conn.rollback()
         print(
-            'deactivate2: DUO_CRON_AUTODEACTIVATE2_DRY_RUN env var prevented '
-            'deactivation'
+            'autodeactivate2: DUO_CRON_AUTODEACTIVATE2_DRY_RUN env var '
+            'prevented deactivation'
         )
     else:
         await api_conn.commit()
         if rows_deactivated:
-            print('deactivate2: Accounts deactivated!')
+            print('autodeactivate2: Accounts deactivated!')
 
     await api_conn.close()
     await chat_conn.close()
