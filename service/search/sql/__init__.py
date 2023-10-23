@@ -275,6 +275,19 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
+        -- The prospect did not hide the searcher
+        NOT EXISTS (
+            SELECT 1
+            FROM
+                hidden
+            WHERE
+                subject_person_id = prospect_person_id AND
+                object_person_id  = %(searcher_person_id)s
+            LIMIT 1
+        )
+    AND
+        -- The searcher did not hide the prospect, or the searcher wishes to
+        -- view hidden prospects
        NOT EXISTS (
             SELECT 1
             FROM search_preference_hidden AS preference
