@@ -54,11 +54,11 @@ Terminal B:
 pg_dump -h ${DB_HOST} -U postgres -d duo_chat -f /tmp/duo_chat.sql
 pg_dump -h ${DB_HOST} -U postgres -d duo_api  -f /tmp/duo_api.sql
 
-psql -U postgres -h localhost -p 5433 -c 'create database duo_api;'
-psql -U postgres -h localhost -p 5433 -c 'create database duo_chat;'
+PGPASSWORD=password psql -U postgres -h localhost -p 5433 -c 'create database duo_api;'
+PGPASSWORD=password psql -U postgres -h localhost -p 5433 -c 'create database duo_chat;'
 
-psql -U postgres -d duo_api  -h localhost -p 5433 < /tmp/duo_api.sql
-psql -U postgres -d duo_chat -h localhost -p 5433 < /tmp/duo_chat.sql
+PGPASSWORD=password psql -U postgres -d duo_api  -h localhost -p 5433 < /tmp/duo_api.sql
+PGPASSWORD=password psql -U postgres -d duo_chat -h localhost -p 5433 < /tmp/duo_chat.sql
 ```
 
 Terminal A:
