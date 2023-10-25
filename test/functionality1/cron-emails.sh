@@ -197,7 +197,7 @@ test_sad_sent_9_minutes_ago () {
   insert into inbox
   values
     ($user1id, '', '', '', 'chats', '', ${time_interval}, 0, 42),
-    ($user2id, '', '', '', 'chats', '', ${time_interval}, 0, 43)
+    ($user2id, '', '', '', 'inbox', '', ${time_interval}, 0, 43)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -219,7 +219,7 @@ test_sad_sent_11_days_ago () {
   insert into inbox
   values
     ($user1id, '', '', '', 'chats', '', ${time_interval}, 0, 42),
-    ($user2id, '', '', '', 'chats', '', ${time_interval}, 0, 43)
+    ($user2id, '', '', '', 'inbox', '', ${time_interval}, 0, 43)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -241,7 +241,7 @@ test_sad_only_old_messages () {
   insert into inbox
   values
     ($user1id, '', '', '', 'chats', '', ${time_interval}, 0, 0),
-    ($user2id, '', '', '', 'chats', '', ${time_interval}, 0, 0)
+    ($user2id, '', '', '', 'inbox', '', ${time_interval}, 0, 0)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
