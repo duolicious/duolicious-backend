@@ -63,6 +63,9 @@ WHERE
         unfiltered_notifications.last_intro_seconds <
             (SELECT seconds FROM ten_minutes_ago)
     AND
+        -- only notify users about messages sent after their last activity
+        COALESCE(last.seconds, 0) < unfiltered_notifications.last_intro_seconds
+    AND
         -- only notify users whose last activity was longer than ten minutes ago
         COALESCE(last.seconds, 0) <
             (SELECT seconds FROM ten_minutes_ago)
@@ -78,6 +81,9 @@ OR
         -- only notify users about messages sent longer than ten minutes ago
         unfiltered_notifications.last_chat_seconds <
             (SELECT seconds FROM ten_minutes_ago)
+    AND
+        -- only notify users about messages sent after their last activity
+        COALESCE(last.seconds, 0) < unfiltered_notifications.last_chat_seconds
     AND
         -- only notify users whose last activity was longer than ten minutes ago
         COALESCE(last.seconds, 0) <
@@ -120,15 +126,15 @@ WHERE
 """
 
 Q_UPDATE_LAST_INTRO_NOTIFICATION_TIME = """
-INSERT INTO duo_last_notification ( username, intro_seconds)
-VALUES ( %(username)s, extract(epoch from now())::int)
+INSERT INTO duo_last_notification (username, intro_seconds)
+VALUES (%(username)s, extract(epoch from now())::int)
 ON CONFLICT (username) DO UPDATE SET
     intro_seconds = extract(epoch from now())::int
 """
 
 Q_UPDATE_LAST_CHAT_NOTIFICATION_TIME = """
-INSERT INTO duo_last_notification ( username, chat_seconds)
-VALUES ( %(username)s, extract(epoch from now())::int)
+INSERT INTO duo_last_notification (username, chat_seconds)
+VALUES (%(username)s, extract(epoch from now())::int)
 ON CONFLICT (username) DO UPDATE SET
     chat_seconds = extract(epoch from now())::int
 """

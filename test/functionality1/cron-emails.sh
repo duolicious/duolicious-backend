@@ -197,7 +197,7 @@ test_sad_sent_9_minutes_ago () {
   insert into inbox
   values
     ($user1id, '', '', '', 'chats', '', ${time_interval}, 0, 42),
-    ($user2id, '', '', '', 'chats', '', ${time_interval}, 0, 43)
+    ($user2id, '', '', '', 'inbox', '', ${time_interval}, 0, 43)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -219,7 +219,7 @@ test_sad_sent_11_days_ago () {
   insert into inbox
   values
     ($user1id, '', '', '', 'chats', '', ${time_interval}, 0, 42),
-    ($user2id, '', '', '', 'chats', '', ${time_interval}, 0, 43)
+    ($user2id, '', '', '', 'inbox', '', ${time_interval}, 0, 43)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -229,7 +229,7 @@ test_sad_sent_11_days_ago () {
   [[ ! -s ../../test/output/cron-emails ]]
 }
 
-test_sad_only_old_messages () {
+test_sad_only_read_messages () {
   setup
 
   local time_interval=$(db_now as-microseconds '- 11 minutes')
@@ -241,7 +241,7 @@ test_sad_only_old_messages () {
   insert into inbox
   values
     ($user1id, '', '', '', 'chats', '', ${time_interval}, 0, 0),
-    ($user2id, '', '', '', 'chats', '', ${time_interval}, 0, 0)
+    ($user2id, '', '', '', 'inbox', '', ${time_interval}, 0, 0)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -251,7 +251,7 @@ test_sad_only_old_messages () {
   [[ ! -s ../../test/output/cron-emails ]]
 }
 
-test_sad_still_active () {
+test_sad_still_active_at_poll_time () {
   setup
 
   local t1=$(db_now as-microseconds '- 11 minutes')
@@ -262,7 +262,8 @@ test_sad_still_active () {
   q "
   insert into last
   values
-    ('duolicious.app', $user1id, $t2, '')
+    ('duolicious.app', $user1id, $t2, ''),
+    ('duolicious.app', $user2id, $t2, '')
   ON CONFLICT (server, username) DO UPDATE SET
     server   = EXCLUDED.server,
     username = EXCLUDED.username,
@@ -274,7 +275,42 @@ test_sad_still_active () {
   insert into inbox
   values
     ($user1id, '', '', '', 'chats', '', ${t1}, 0, 42),
-    ($user2id, '', '', '', 'chats', '', ${t1}, 0, 0)
+    ($user2id, '', '', '', 'inbox', '', ${t1}, 0, 43)
+  " duo_chat
+  [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
+
+  sleep 2
+
+  [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
+
+  [[ ! -s ../../test/output/cron-emails ]]
+}
+
+test_sad_still_active_after_message_time () {
+  setup
+
+  local t1=$(db_now as-microseconds '- 13 minutes')
+  local t2=$(db_now as-seconds      '- 11 minutes')
+
+  [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
+
+  q "
+  insert into last
+  values
+    ('duolicious.app', $user1id, $t2, ''),
+    ('duolicious.app', $user2id, $t2, '')
+  ON CONFLICT (server, username) DO UPDATE SET
+    server   = EXCLUDED.server,
+    username = EXCLUDED.username,
+    seconds  = EXCLUDED.seconds,
+    state    = EXCLUDED.state
+  " duo_chat
+
+  q "
+  insert into inbox
+  values
+    ($user1id, '', '', '', 'chats', '', ${t1}, 0, 42),
+    ($user2id, '', '', '', 'inbox', '', ${t1}, 0, 43)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -426,8 +462,9 @@ test_happy_path_chat_not_deferred_by_intro
 
 test_sad_sent_9_minutes_ago
 test_sad_sent_11_days_ago
-test_sad_only_old_messages
-test_sad_still_active
+test_sad_only_read_messages
+test_sad_still_active_at_poll_time
+test_sad_still_active_after_message_time
 
 test_sad_already_notified_for_particular_message
 test_sad_already_notified_for_other_intro_in_drift_period
