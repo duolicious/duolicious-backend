@@ -46,6 +46,7 @@ const ConversationScreen = ({navigation, route}) => {
   >(null);
   const hasScrolled = useRef(false);
   const hasFetchedAll = useRef(false);
+  const hasFinishedFirstLoad = useRef(false);
   const isFetchingNextPage = useRef(false);
 
   const personId: number = route?.params?.personId;
@@ -53,7 +54,7 @@ const ConversationScreen = ({navigation, route}) => {
   const imageUuid: number = route?.params?.imageUuid;
   const isDeletedUser: boolean = route?.params?.isDeletedUser;
 
-  const listRef = useRef<any>(null)
+  const listRef = useRef<ScrollView>(null)
 
   const lastMamId = (() => {
     if (!messages) return '';
@@ -121,11 +122,12 @@ const ConversationScreen = ({navigation, route}) => {
     if (hasFetchedAll.current) {
       return;
     }
+
     if (isFetchingNextPage.current) {
       return;
     }
-
     isFetchingNextPage.current = true;
+
     const fetchedMessages = await fetchConversation(personId, lastMamId);
 
     isFetchingNextPage.current = false;
@@ -134,7 +136,7 @@ const ConversationScreen = ({navigation, route}) => {
     if (fetchedMessages !== 'timeout') {
       // Prevents the list from moving up to the newly added speech bubbles and
       // triggering another fetch
-      if (listRef.current) listRef.current.scrollTo({y: 1});
+      if (listRef.current) listRef.current.scrollTo({y: 1, animated: false});
 
       setMessages([...(fetchedMessages ?? []), ...(messages ?? [])]);
 
@@ -147,11 +149,19 @@ const ConversationScreen = ({navigation, route}) => {
     setMessages(msgs => [...(msgs ?? []), msg]);
   }, []);
 
-  const isCloseToTop = ({contentOffset}) => contentOffset.y < 20;
+  const isCloseToTop = ({contentOffset}) => contentOffset.y === 0;
+  const isCloseToBottom = ({layoutMeasurement, contentOffset, contentSize}) => {
+    const paddingToBottom = 20;
+    return layoutMeasurement.height + contentOffset.y >=
+      contentSize.height - paddingToBottom;
+  };
 
   const onScroll = useCallback(({nativeEvent}) => {
-    if (isCloseToTop(nativeEvent)) {
+    if (isCloseToTop(nativeEvent) && hasFinishedFirstLoad.current) {
       maybeLoadNextPage();
+    }
+    if (isCloseToBottom(nativeEvent)) {
+      hasFinishedFirstLoad.current = true;
     }
   }, [maybeLoadNextPage]);
 
@@ -286,6 +296,9 @@ const ConversationScreen = ({navigation, route}) => {
           onContentSizeChange={scrollToEnd}
           onScroll={onScroll}
           scrollEventThrottle={0}
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0
+          }}
           contentContainerStyle={{
             paddingTop: 10,
             paddingBottom: 20,
