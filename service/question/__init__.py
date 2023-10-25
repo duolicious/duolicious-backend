@@ -60,6 +60,8 @@ LEFT JOIN
     search_preference_answer
 ON
     question.id = question_id
+AND
+    person_id = %(person_id)s
 ORDER BY question <-> %(q)s
 LIMIT %(n)s
 OFFSET %(o)s
@@ -200,8 +202,9 @@ def get_next_questions(s: t.SessionInfo, n: str, o: str):
     with transaction('READ COMMITTED') as tx:
         return tx.execute(Q_GET_NEXT_QUESTIONS, params).fetchall()
 
-def get_search_filter_questions(q: str, n: str, o: str):
+def get_search_filter_questions(s: t.SessionInfo, q: str, n: str, o: str):
     params = dict(
+        person_id=s.person_id,
         q=q,
         n=int(n),
         o=int(o)
