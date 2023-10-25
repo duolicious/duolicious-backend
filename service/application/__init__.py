@@ -201,6 +201,7 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
 @aget('/search-filter-questions')
 def get_search_filter_questions(s: t.SessionInfo):
     return question.get_search_filter_questions(
+        s=s,
         q=request.args.get('q', ''),
         n=request.args.get('n', '10'),
         o=request.args.get('o', '0'),

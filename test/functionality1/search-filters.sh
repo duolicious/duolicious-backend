@@ -14,6 +14,7 @@ q "delete from undeleted_photo"
 q "update question set count_yes = 0, count_no = 0"
 
 ../util/create-user.sh user1 0 0
+../util/create-user.sh user2 0 0
 
 response=$(jc POST /request-otp -d '{ "email": "user1@example.com" }')
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
@@ -88,6 +89,16 @@ test_set_search_filter_question() {
 
   [[ "$answers" = "[]" ]]
 
+  assume_role user2
+  local answers=$(
+    jc POST /search-filter-answer -d '{
+      "question_id": 1,
+      "answer": false,
+      "accept_unanswered": false
+    }' | jq .answer
+  )
+
+  assume_role user1
   local answers=$(
     jc POST /search-filter-answer -d '{
       "question_id": 1,
@@ -95,6 +106,7 @@ test_set_search_filter_question() {
       "accept_unanswered": false
     }' | jq .answer
   )
+
   local expected_answers=$(cat << EOF
     [
       {
