@@ -11,84 +11,95 @@ WITH ten_days_ago AS (
             NOW() - INTERVAL '10 minutes')))::bigint) AS seconds,
         (SELECT (EXTRACT(EPOCH FROM (
             NOW() - INTERVAL '10 minutes')) * 1000000)::bigint) AS microseconds
-), filtered_inbox AS (
+), inbox_first_pass AS (
     SELECT
         luser AS username,
-        box,
-        unread_count,
-        timestamp / 1000000 AS seconds
+        MAX(CASE WHEN box = 'inbox' THEN timestamp ELSE 0 END) / 1000000 AS last_intro_seconds,
+        MAX(CASE WHEN box = 'chats' THEN timestamp ELSE 0 END) / 1000000 AS last_chat_seconds,
+        BOOL_OR(CASE WHEN box = 'inbox' THEN TRUE ELSE FALSE END) AS has_intro,
+        BOOL_OR(CASE WHEN box = 'chats' THEN TRUE ELSE FALSE END) AS has_chat
     FROM inbox
     WHERE
         unread_count > 0
     AND
         timestamp > (SELECT microseconds FROM ten_days_ago)
-), unfiltered_notifications AS (
-    SELECT
-        username,
-        MAX(CASE WHEN box = 'inbox' THEN seconds ELSE 0 END) AS last_intro_seconds,
-        MAX(CASE WHEN box = 'chats' THEN seconds ELSE 0 END) AS last_chat_seconds,
-        BOOL_OR(CASE WHEN box = 'inbox' THEN TRUE ELSE FALSE END) AS has_intro,
-        BOOL_OR(CASE WHEN box = 'chats' THEN TRUE ELSE FALSE END) AS has_chat
-    FROM filtered_inbox
     GROUP BY
-        username
+        luser
+), inbox_second_pass AS (
+    SELECT
+        inbox_first_pass.username,
+        inbox_first_pass.username::int AS person_id,
+        inbox_first_pass.last_intro_seconds,
+        inbox_first_pass.last_chat_seconds,
+        COALESCE(duo_last_notification.intro_seconds, 0) AS last_intro_notification_seconds,
+        COALESCE(duo_last_notification.chat_seconds, 0) AS last_chat_notification_seconds,
+        (
+                inbox_first_pass.has_intro
+            AND
+                -- only notify users we haven't already notified
+                inbox_first_pass.last_intro_seconds >
+                    COALESCE(duo_last_notification.intro_seconds, 0)
+            AND
+                -- only notify users about messages sent longer than ten minutes
+                -- ago
+                inbox_first_pass.last_intro_seconds <
+                    (SELECT seconds FROM ten_minutes_ago)
+            AND
+                -- only notify users about messages sent after their last
+                -- activity
+                COALESCE(last.seconds, 0) < inbox_first_pass.last_intro_seconds
+            AND
+                -- only notify users whose last activity was longer than ten
+                -- minutes ago
+                COALESCE(last.seconds, 0) <
+                    (SELECT seconds FROM ten_minutes_ago)
+        ) AS has_intro,
+        (
+                inbox_first_pass.has_chat
+            AND
+                -- only notify users we haven't already notified
+                inbox_first_pass.last_chat_seconds >
+                    COALESCE(duo_last_notification.chat_seconds, 0)
+            AND
+                -- only notify users about messages sent longer than ten minutes
+                -- ago
+                inbox_first_pass.last_chat_seconds <
+                    (SELECT seconds FROM ten_minutes_ago)
+            AND
+                -- only notify users about messages sent after their last
+                -- activity
+                COALESCE(last.seconds, 0) < inbox_first_pass.last_chat_seconds
+            AND
+                -- only notify users whose last activity was longer than ten
+                -- minutes ago
+                COALESCE(last.seconds, 0) <
+                    (SELECT seconds FROM ten_minutes_ago)
+        ) AS has_chat
+    FROM inbox_first_pass
+    LEFT JOIN
+        last
+    ON
+        last.username = inbox_first_pass.username
+    LEFT JOIN
+        duo_last_notification
+    ON
+        duo_last_notification.username = inbox_first_pass.username
 )
 SELECT
-    unfiltered_notifications.username,
-    unfiltered_notifications.username::int AS person_id,
-    unfiltered_notifications.last_intro_seconds,
-    unfiltered_notifications.last_chat_seconds,
-    COALESCE(duo_last_notification.intro_seconds, 0) AS last_intro_notification_seconds,
-    COALESCE(duo_last_notification.chat_seconds, 0) AS last_chat_notification_seconds,
-    unfiltered_notifications.has_intro,
-    unfiltered_notifications.has_chat
-FROM unfiltered_notifications
-LEFT JOIN
-    last
-ON
-    last.username = unfiltered_notifications.username
-LEFT JOIN
-    duo_last_notification
-ON
-    duo_last_notification.username = unfiltered_notifications.username
+    username,
+    username::int AS person_id,
+    last_intro_seconds,
+    last_chat_seconds,
+    last_intro_notification_seconds,
+    last_chat_notification_seconds,
+    has_intro,
+    has_chat
+FROM
+    inbox_second_pass
 WHERE
-    (
-        has_intro
-    AND
-        -- only notify users we haven't already notified
-        unfiltered_notifications.last_intro_seconds >
-            COALESCE(duo_last_notification.intro_seconds, 0)
-    AND
-        -- only notify users about messages sent longer than ten minutes ago
-        unfiltered_notifications.last_intro_seconds <
-            (SELECT seconds FROM ten_minutes_ago)
-    AND
-        -- only notify users about messages sent after their last activity
-        COALESCE(last.seconds, 0) < unfiltered_notifications.last_intro_seconds
-    AND
-        -- only notify users whose last activity was longer than ten minutes ago
-        COALESCE(last.seconds, 0) <
-            (SELECT seconds FROM ten_minutes_ago)
-    )
+    has_intro
 OR
-    (
-        has_chat
-    AND
-        -- only notify users we haven't already notified
-        unfiltered_notifications.last_chat_seconds >
-            COALESCE(duo_last_notification.chat_seconds, 0)
-    AND
-        -- only notify users about messages sent longer than ten minutes ago
-        unfiltered_notifications.last_chat_seconds <
-            (SELECT seconds FROM ten_minutes_ago)
-    AND
-        -- only notify users about messages sent after their last activity
-        COALESCE(last.seconds, 0) < unfiltered_notifications.last_chat_seconds
-    AND
-        -- only notify users whose last activity was longer than ten minutes ago
-        COALESCE(last.seconds, 0) <
-            (SELECT seconds FROM ten_minutes_ago)
-    )
+    has_chat
 """
 
 Q_NOTIFICATION_SETTINGS = """
