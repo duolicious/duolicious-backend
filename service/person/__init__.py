@@ -655,7 +655,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         field_value=field_value,
     )
 
-    with transaction() as tx:
+    with transaction('READ COMMITTED') as tx:
         if field_name == 'files':
             pos_uuid_img = [
                 (pos, secrets.token_hex(32), img)
