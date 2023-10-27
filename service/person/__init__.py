@@ -619,6 +619,15 @@ def get_inbox_info(s: t.SessionInfo, prospect_person_ids: Iterable[int]):
     with transaction('READ COMMITTED') as tx:
         return tx.execute(Q_INBOX_INFO, params).fetchall()
 
+def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo):
+    params = dict(
+        person_id=s.person_id,
+        prospect_person_ids=req.person_ids
+    )
+
+    with transaction('READ COMMITTED') as tx:
+        return tx.execute(Q_INBOX_INFO, params).fetchall()
+
 def delete_account(s: t.SessionInfo):
     params = dict(person_id=s.person_id)
 
