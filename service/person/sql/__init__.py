@@ -631,6 +631,32 @@ FROM
     person AS prospect
 WHERE
     id = ANY(%(prospect_person_ids)s)
+AND
+    activated
+AND
+    NOT EXISTS (
+        SELECT
+            1
+        FROM
+            blocked
+        WHERE
+            subject_person_id = prospect.id
+        AND
+            object_person_id = %(person_id)s
+        LIMIT 1
+    )
+AND
+    NOT EXISTS (
+        SELECT
+            1
+        FROM
+            hidden
+        WHERE
+            subject_person_id = prospect.id
+        AND
+            object_person_id = %(person_id)s
+        LIMIT 1
+    )
 """
 
 Q_DELETE_ACCOUNT = """

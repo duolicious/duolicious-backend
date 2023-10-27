@@ -246,3 +246,6 @@ class PostSearchFilterAnswer(BaseModel):
     question_id: int
     answer: Optional[bool]
     accept_unanswered: bool
+
+class PostInboxInfo(BaseModel):
+    person_ids: List[int]
