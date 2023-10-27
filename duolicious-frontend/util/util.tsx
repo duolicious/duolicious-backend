@@ -13,6 +13,22 @@ const isMobile = () => {
   );
 };
 
+/* Compare arrays as they would be in Python
+ */
+const compareArrays = (arrA: any[], arrB: any[]): number => {
+  let minLength = Math.min(arrA.length, arrB.length);
+
+  for (let i = 0; i < minLength; i++) {
+    if (arrA[i] < arrB[i]) {
+      return -1;
+    } else if (arrA[i] > arrB[i]) {
+      return 1;
+    }
+  }
+
+  return arrA.length - arrB.length;
+}
+
 const friendlyTimestamp = (date: Date): string => {
   if (isToday(date)) {
     // Format as 'hh:mm'
@@ -47,6 +63,7 @@ const withTimeout = <T,>(ms: number, promise: Promise<T>): Promise<T | 'timeout'
 };
 
 export {
+  compareArrays,
   delay,
   deleteFromArray,
   friendlyTimestamp,

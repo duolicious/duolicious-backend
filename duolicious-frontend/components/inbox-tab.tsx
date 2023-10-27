@@ -23,6 +23,7 @@ import { OptionScreen } from './option-screen';
 import { hideMeFromStrangersOptionGroup } from '../data/option-groups';
 import { DefaultFlatList } from './default-flat-list';
 import { Inbox, Conversation, observeInbox } from '../xmpp/xmpp';
+import { compareArrays } from '../util/util';
 
 // TODO: Blocking people should remove them from each others' inboxes
 
@@ -114,14 +115,16 @@ const InboxTab_ = ({navigation}) => {
     const pageSize = 10;
     const page = [...section.conversations]
       .sort((a, b) => {
-        if (
-          sectionName === 'intros' &&
-          sortByIndex === 1 &&
-          a.matchPercentage !== b.matchPercentage
-        ) {
-          return b.matchPercentage - a.matchPercentage
+        if (sectionName === 'intros' && sortByIndex === 1) {
+          return compareArrays(
+            [!b.isDeletedUser, b.matchPercentage, +b.lastMessageTimestamp],
+            [!a.isDeletedUser, a.matchPercentage, +a.lastMessageTimestamp],
+          );
         } else {
-          return +b.lastMessageTimestamp - +a.lastMessageTimestamp
+          return compareArrays(
+            [!b.isDeletedUser, +b.lastMessageTimestamp, b.matchPercentage],
+            [!a.isDeletedUser, +a.lastMessageTimestamp, a.matchPercentage],
+          );
         }
       })
       .slice(
