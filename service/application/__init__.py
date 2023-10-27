@@ -160,12 +160,18 @@ def get_compare_answers(s: t.SessionInfo, prospect_person_id: int):
         o=request.args.get('o', '0'),
     )
 
+# TODO: Delete
 @aget('/inbox-info')
 def get_inbox_info(s: t.SessionInfo):
     return person.get_inbox_info(
         s=s,
         prospect_person_ids=request.args.getlist('prospect-person-id'),
     )
+
+@apost('/inbox-info')
+@validate(t.PostInboxInfo)
+def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo):
+    return person.post_inbox_info(req, s)
 
 @adelete('/account')
 def delete_account(s: t.SessionInfo):
