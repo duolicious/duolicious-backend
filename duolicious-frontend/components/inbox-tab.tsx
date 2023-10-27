@@ -24,6 +24,7 @@ import { hideMeFromStrangersOptionGroup } from '../data/option-groups';
 import { DefaultFlatList } from './default-flat-list';
 import { Inbox, Conversation, observeInbox } from '../xmpp/xmpp';
 import { compareArrays } from '../util/util';
+import { TopNavBarButton } from './top-nav-bar-button';
 
 // TODO: Blocking people should remove them from each others' inboxes
 
@@ -50,6 +51,7 @@ const InboxTab_ = ({navigation}) => {
   const [sortByIndex, setSortByIndex] = useState(0);
   const [isTooManyTapped, setIsTooManyTapped] = useState(false);
   const [inbox, setInbox] = useState<Inbox | null>(null);
+  const [showArchive, setShowArchive] = useState(false);
   const listRef = useRef<any>(undefined);
 
   const buttonOpacity = useRef(new Animated.Value(0)).current;
@@ -83,6 +85,9 @@ const InboxTab_ = ({navigation}) => {
     setIsTooManyTapped(true);
   }, []);
 
+  const onPressArchiveButton = useCallback(() => {
+    setShowArchive(x => !x);
+  }, []);
 
   useEffect(() => observeInbox(setInbox), []);
   useEffect(
@@ -114,6 +119,7 @@ const InboxTab_ = ({navigation}) => {
 
     const pageSize = 10;
     const page = [...section.conversations]
+      .filter((c) => c.isDeletedUser === showArchive)
       .sort((a, b) => {
         if (sectionName === 'intros' && sortByIndex === 1) {
           return compareArrays(
@@ -220,8 +226,13 @@ const InboxTab_ = ({navigation}) => {
             fontSize: 20,
           }}
         >
-          Inbox
+          {'Inbox' + (showArchive ? ' (Archive)' : '')}
         </DefaultText>
+        <TopNavBarButton
+          onPress={onPressArchiveButton}
+          iconName={showArchive ? 'chatbubbles-outline' : 'file-tray-full-outline'}
+          style={{right: 15}}
+        />
       </TopNavBar>
       {inbox === null &&
         <View style={{height: '100%', justifyContent: 'center', alignItems: 'center'}}>

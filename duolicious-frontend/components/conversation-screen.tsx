@@ -37,6 +37,7 @@ import {
 } from '../env/env';
 import { getRandomString } from '../random/string';
 import { api } from '../api/api';
+import { TopNavBarButton } from './top-nav-bar-button';
 
 const ConversationScreen = ({navigation, route}) => {
   const [messageFetchTimeout, setMessageFetchTimeout] = useState(false);
@@ -174,27 +175,11 @@ const ConversationScreen = ({navigation, route}) => {
   return (
     <>
       <TopNavBar>
-        <Pressable
+        <TopNavBarButton
           onPress={() => navigation.goBack()}
-          style={{
-            zIndex: 999,
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            height: '100%',
-            aspectRatio: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginLeft: 10,
-          }}
-        >
-          <Ionicons
-            style={{
-              fontSize: 20,
-            }}
-            name="arrow-back"
-          />
-        </Pressable>
+          iconName="arrow-back"
+          style={{left: 15}}
+        />
         <Pressable
           onPress={onPressName}
           style={{

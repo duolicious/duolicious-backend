@@ -41,6 +41,7 @@ import { signedInUser } from '../App';
 import { cmToFeetInchesStr, kmToMilesStr } from '../units/units';
 import debounce from 'lodash/debounce';
 import { Notice } from './notice';
+import { TopNavBarButton } from './top-nav-bar-button';
 
 const getCurrentValueAsLabel = (og: OptionGroup<OptionGroupInputs> | undefined) => {
   if (!og) return undefined;
@@ -297,27 +298,11 @@ const SearchFilterScreen_ = ({navigation, route}) => {
           justifyContent: 'center',
         }}
       >
-        <Pressable
+        <TopNavBarButton
           onPress={goBack}
-          style={{
-            zIndex: 999,
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            height: '100%',
-            aspectRatio: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginLeft: 10,
-          }}
-        >
-          <Ionicons
-            style={{
-              fontSize: 20,
-            }}
-            name="arrow-back"
-          />
-        </Pressable>
+          iconName="arrow-back"
+          style={{left: 15}}
+        />
         <DefaultText
           style={{
             fontWeight: '700',
