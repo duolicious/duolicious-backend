@@ -37,13 +37,15 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "was_archived_by_me": false
   },
   {
     "image_uuid": "my-uuid",
     "match_percentage": 50,
     "name": "user4",
-    "person_id": ${user4_id}
+    "person_id": ${user4_id},
+    "was_archived_by_me": false
   }
 ]
 EOF
@@ -62,13 +64,15 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "was_archived_by_me": false
   },
   {
     "image_uuid": "my-uuid",
     "match_percentage": 50,
     "name": "user4",
-    "person_id": ${user4_id}
+    "person_id": ${user4_id},
+    "was_archived_by_me": false
   }
 ]
 EOF
@@ -89,7 +93,8 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "was_archived_by_me": false
   }
 ]
 EOF
@@ -111,7 +116,8 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "was_archived_by_me": false
   }
 ]
 EOF
@@ -132,7 +138,8 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "was_archived_by_me": false
   }
 ]
 EOF
@@ -156,13 +163,15 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "was_archived_by_me": false
   },
   {
     "image_uuid": "my-uuid",
     "match_percentage": 50,
     "name": "user4",
-    "person_id": ${user4_id}
+    "person_id": ${user4_id},
+    "was_archived_by_me": true
   }
 ]
 EOF
