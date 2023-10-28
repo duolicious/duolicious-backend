@@ -35,13 +35,24 @@ const friendlyTimestamp = (date: Date): string => {
     return format(date, 'h:mm aaa')
   } else if (isThisWeek(date)) {
     // Format as 'eeee' (day of the week)
-    return format(date, 'eeee')
+    return format(date, 'eee')
   } else if (isThisYear(date)) {
     // Format as 'd MMM' (date and month)
     return format(date, 'd MMM')
   } else {
     // Format as 'd MMM yyyy' (date, month and year)
     return format(date, 'd MMM yyyy')
+  }
+};
+
+const longFriendlyTimestamp = (date: Date): string => {
+  // Format as 'hh:mm'
+  const timeOfDay = format(date, 'h:mm aaa');
+
+  if (isToday(date)) {
+    return timeOfDay;
+  } else {
+    return friendlyTimestamp(date) + ', ' + timeOfDay
   }
 };
 
@@ -68,5 +79,6 @@ export {
   deleteFromArray,
   friendlyTimestamp,
   isMobile,
+  longFriendlyTimestamp,
   withTimeout,
 };

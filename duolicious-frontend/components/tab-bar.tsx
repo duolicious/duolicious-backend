@@ -12,7 +12,7 @@ import { DefaultText } from './default-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StackActions } from '@react-navigation/native';
 import { QAndADevice } from './q-and-a-device';
-import { Inbox, observeInbox } from '../xmpp/xmpp';
+import { Inbox, inboxStats, observeInbox } from '../xmpp/xmpp';
 
 const displayedTabs: Set<string> = new Set([
   "Q&A",
@@ -24,13 +24,16 @@ const displayedTabs: Set<string> = new Set([
 
 const TabBar = ({state, descriptors, navigation}) => {
   const [inboxHasUnread, setInboxHasUnread] = useState(false);
-  const onChangeInbox = useCallback(
-    (inbox: Inbox) => setInboxHasUnread(
-      inbox?.numUnread !== undefined &&
-      inbox?.numUnread > 0
-    ),
-    []
-  );
+  const onChangeInbox = useCallback((inbox: Inbox | null) => {
+    if (!inbox) {
+      setInboxHasUnread(false);
+      return;
+    }
+
+    const numUnreadAvailable = inboxStats(inbox).numUnreadAvailable;
+
+    setInboxHasUnread(numUnreadAvailable > 0);
+  }, []);
   observeInbox(onChangeInbox);
 
   return (

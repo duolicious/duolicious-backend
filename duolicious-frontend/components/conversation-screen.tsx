@@ -53,7 +53,7 @@ const ConversationScreen = ({navigation, route}) => {
   const personId: number = route?.params?.personId;
   const name: string = route?.params?.name;
   const imageUuid: number = route?.params?.imageUuid;
-  const isDeletedUser: boolean = route?.params?.isDeletedUser;
+  const isAvailableUser: boolean = route?.params?.isAvailableUser ?? true;
 
   const listRef = useRef<ScrollView>(null)
 
@@ -320,7 +320,7 @@ const ConversationScreen = ({navigation, route}) => {
         {lastMessageStatus === 'blocked' ?  name + ' is unavailable right now. Try messaging someone else!' : '' }
         {lastMessageStatus === 'not unique' ? `Someone already sent that intro! Try sending ${name} a different message...` : '' }
       </DefaultText>
-      {!messageFetchTimeout && !isDeletedUser &&
+      {!messageFetchTimeout && isAvailableUser &&
         <TextInputWithButton onPress={onPressSend}/>
       }
     </>

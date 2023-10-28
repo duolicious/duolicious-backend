@@ -22,7 +22,7 @@ import { Notice } from './notice';
 import { OptionScreen } from './option-screen';
 import { hideMeFromStrangersOptionGroup } from '../data/option-groups';
 import { DefaultFlatList } from './default-flat-list';
-import { Inbox, Conversation, observeInbox } from '../xmpp/xmpp';
+import { Inbox, Conversation, inboxStats, observeInbox } from '../xmpp/xmpp';
 import { compareArrays } from '../util/util';
 import { TopNavBarButton } from './top-nav-bar-button';
 
@@ -53,6 +53,28 @@ const InboxTab_ = ({navigation}) => {
   const [inbox, setInbox] = useState<Inbox | null>(null);
   const [showArchive, setShowArchive] = useState(false);
   const listRef = useRef<any>(undefined);
+
+  const _inboxStats = inbox ? inboxStats(inbox) : null;
+
+  const numUnreadChats = (() => {
+    if (!_inboxStats) {
+      return 0;
+    }
+
+    return showArchive ?
+      _inboxStats.chats.numUnreadUnavailable :
+      _inboxStats.chats.numUnreadAvailable;
+  })();
+
+  const numUnreadIntros = (() => {
+    if (!_inboxStats) {
+      return 0;
+    }
+
+    return showArchive ?
+      _inboxStats.intros.numUnreadUnavailable :
+      _inboxStats.intros.numUnreadAvailable;
+  })();
 
   const buttonOpacity = useRef(new Animated.Value(0)).current;
 
@@ -116,20 +138,19 @@ const InboxTab_ = ({navigation}) => {
 
     const a = section.conversations[0];
 
-
     const pageSize = 10;
     const page = [...section.conversations]
-      .filter((c) => c.isDeletedUser === showArchive)
+      .filter((c) => (!c.isAvailableUser || c.wasArchivedByMe) === showArchive)
       .sort((a, b) => {
         if (sectionName === 'intros' && sortByIndex === 1) {
           return compareArrays(
-            [!b.isDeletedUser, b.matchPercentage, +b.lastMessageTimestamp],
-            [!a.isDeletedUser, a.matchPercentage, +a.lastMessageTimestamp],
+            [b.matchPercentage, +b.lastMessageTimestamp],
+            [a.matchPercentage, +a.lastMessageTimestamp],
           );
         } else {
           return compareArrays(
-            [!b.isDeletedUser, +b.lastMessageTimestamp, b.matchPercentage],
-            [!a.isDeletedUser, +a.lastMessageTimestamp, a.matchPercentage],
+            [+b.lastMessageTimestamp, b.matchPercentage],
+            [+a.lastMessageTimestamp, a.matchPercentage],
           );
         }
       })
@@ -157,8 +178,8 @@ const InboxTab_ = ({navigation}) => {
       <>
         <ButtonGroup
           buttons={[
-            'Intros' + (inbox?.intros?.numUnread ? ` (${inbox.intros.numUnread})` : ''),
-            'Chats'  + (inbox?.chats?.numUnread  ? ` (${inbox.chats.numUnread})`  : ''),
+            'Intros' + (numUnreadIntros ? ` (${numUnreadIntros})` : ''),
+            'Chats'  + (numUnreadChats  ? ` (${numUnreadChats})`  : ''),
           ]}
           selectedIndex={sectionIndex}
           onPress={setSectionIndex_}
@@ -186,7 +207,7 @@ const InboxTab_ = ({navigation}) => {
             }}
           />
         </Animated.View>
-        {!isTooManyTapped && sectionIndex === 0 && inbox && inbox.intros.numUnread >= 5 &&
+        {!isTooManyTapped && sectionIndex === 0 && !showArchive && numUnreadIntros >= 3 &&
           <Notice
             onPress={onPressTooMany}
             style={{
@@ -213,7 +234,7 @@ const InboxTab_ = ({navigation}) => {
       matchPercentage={x.item.matchPercentage}
       lastMessage={x.item.lastMessage}
       lastMessageTimestamp={x.item.lastMessageTimestamp}
-      isDeletedUser={x.item.isDeletedUser}
+      isAvailableUser={x.item.isAvailableUser}
     />
   ), []);
 

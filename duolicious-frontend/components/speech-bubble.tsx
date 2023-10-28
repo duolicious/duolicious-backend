@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { DefaultText } from './default-text';
-import { friendlyTimestamp } from '../util/util';
+import { longFriendlyTimestamp } from '../util/util';
 
 type State = 'Read' | 'Delivered';
 
@@ -66,7 +66,7 @@ const SpeechBubble = (props: Props) => {
             color: '#666',
           }}
         >
-          {friendlyTimestamp(props.timestamp)}
+          {longFriendlyTimestamp(props.timestamp)}
         </DefaultText>
       }
       {props.state &&

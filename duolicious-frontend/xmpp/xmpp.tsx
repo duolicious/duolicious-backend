@@ -12,7 +12,7 @@ import { signedInUser } from '../App';
 import { getRandomString } from '../random/string';
 
 import { deviceId } from '../kv-storage/device-id';
-import { api } from '../api/api';
+import { japi } from '../api/api';
 import { deleteFromArray, withTimeout, delay } from '../util/util';
 
 // TODO: Catch more exceptions. If a network request fails, that shouldn't crash the app.
@@ -43,7 +43,8 @@ type Conversation = {
   lastMessage: string
   lastMessageRead: boolean
   lastMessageTimestamp: Date
-  isDeletedUser: boolean
+  isAvailableUser: boolean
+  wasArchivedByMe: boolean
 };
 
 type ConversationsMap = { [key: string]: Conversation };
@@ -52,21 +53,72 @@ type MarkDisplayedMap = { [key: string]: number };
 type Conversations = {
   conversations: Conversation[]
   conversationsMap: ConversationsMap
-  numUnread: number
 };
 
 type Inbox = {
   chats: Conversations
   intros: Conversations
-  numUnread: number
+};
+
+const inboxStats = (inbox: Inbox): {
+  chats: {
+    numUnreadAvailable: number
+    numUnreadUnavailable: number
+  }
+  intros: {
+    numUnreadAvailable: number
+    numUnreadUnavailable: number
+  }
+  numUnreadAvailable: number
+  numUnreadUnavailable: number
+} => {
+  const unreadAvailable = (sum: number, c: Conversation) =>
+    sum + ( c.isAvailableUser && !c.lastMessageRead ? 1 : 0);
+
+  const unreadUnavailable = (sum: number, c: Conversation) =>
+    sum + (!c.isAvailableUser && !c.lastMessageRead ? 1 : 0);
+
+  const chats = {
+    numUnreadAvailable: inbox.chats.conversations.reduce(
+       unreadAvailable,
+       0
+     ),
+    numUnreadUnavailable: inbox.chats.conversations.reduce(
+       unreadUnavailable,
+       0
+     ),
+  };
+
+  const intros = {
+    numUnreadAvailable: inbox.intros.conversations.reduce(
+       unreadAvailable,
+       0
+     ),
+    numUnreadUnavailable: inbox.intros.conversations.reduce(
+       unreadUnavailable,
+       0
+     ),
+  };
+
+  const numUnreadAvailable = (
+    chats .numUnreadAvailable +
+    intros.numUnreadAvailable);
+
+  const numUnreadUnavailable = (
+    chats .numUnreadUnavailable +
+    intros.numUnreadUnavailable);
+
+  return {
+    chats,
+    intros,
+    numUnreadAvailable,
+    numUnreadUnavailable,
+  };
 };
 
 const emptyInbox = (): Inbox => ({
-  chats: {
-    conversations: [], conversationsMap: {}, numUnread: 0 },
-  intros: {
-    conversations: [], conversationsMap: {}, numUnread: 0 },
-  numUnread: 0,
+  chats:  { conversations: [], conversationsMap: {} },
+  intros: { conversations: [], conversationsMap: {} },
 });
 
 let _xmpp: Client | undefined;
@@ -109,11 +161,10 @@ const populateConversationList = async (
 ): Promise<void> => {
   const personIds: number[] = conversationList.map(c => c.personId);
 
-  const query = personIds.map(id => `prospect-person-id=${id}`).join('&');
   // TODO: Better error handling
   const response = conversationList.length === 0 ?
     [] :
-    (await api('get', `/inbox-info?${query}`)).json;
+    (await japi('post', '/inbox-info', {person_ids: personIds})).json;
 
   const personIdToInfo = response.reduce((obj, item) => {
     obj[item.person_id] = item;
@@ -121,10 +172,11 @@ const populateConversationList = async (
   }, {});
 
   conversationList.forEach((c: Conversation) => {
-    c.name = personIdToInfo[c.personId]?.name ?? 'Deleted account';
+    c.name = personIdToInfo[c.personId]?.name ?? 'Unavailable User';
     c.matchPercentage = personIdToInfo[c.personId]?.match_percentage ?? 0;
     c.imageUuid = personIdToInfo[c.personId]?.image_uuid ?? null;
-    c.isDeletedUser = personIdToInfo[c.personId] === undefined;
+    c.isAvailableUser = personIdToInfo[c.personId] !== undefined;
+    c.wasArchivedByMe = personIdToInfo[c.personId]?.was_archived_by_me ?? false;
   });
 };
 
@@ -157,21 +209,13 @@ const setInboxSent = (recipientPersonId: number, message: string) => {
     const introsConversation =
       i.intros.conversationsMap[recipientPersonId] as Conversation | undefined;
 
-    i.chats.numUnread  -= (
-      chatsConversation ?.lastMessageRead ?? true) ? 0 : 1;
-    i.intros.numUnread -= (
-      introsConversation?.lastMessageRead ?? true) ? 0 : 1;
-
-    i.numUnread = (
-      i.chats.numUnread +
-      i.intros.numUnread);
-
     const updatedConversation: Conversation = {
       personId: recipientPersonId,
       name: '',
       matchPercentage: 0,
       imageUuid: null,
-      isDeletedUser: false,
+      isAvailableUser: true,
+      wasArchivedByMe: false,
       ...chatsConversation,
       ...introsConversation,
       lastMessage: message,
@@ -217,28 +261,13 @@ const setInboxRecieved = async (
     const introsConversation =
       inbox.intros.conversationsMap[fromPersonId] as Conversation | undefined;
 
-    inbox.chats.numUnread += (
-        // The received message is the continuation of a 'chats' conversation
-        // whose last message was read
-        chatsConversation && chatsConversation.lastMessageRead
-      ) ? 1 : 0;
-
-    inbox.intros.numUnread += (
-        // The received message is the continuation of an 'intro' conversation
-        // whose last message was read
-        introsConversation && introsConversation.lastMessageRead ||
-        // The received message is new
-        !introsConversation && !chatsConversation
-      ) ? 1 : 0;
-
-    inbox.numUnread = inbox.chats.numUnread + inbox.intros.numUnread;
-
     const updatedConversation: Conversation = {
       personId: fromPersonId,
       name: '',
       matchPercentage: 0,
       imageUuid: null,
-      isDeletedUser: false,
+      isAvailableUser: true,
+      wasArchivedByMe: false,
       ...chatsConversation,
       ...introsConversation,
       lastMessage: message,
@@ -270,18 +299,6 @@ const setInboxDisplayed = async (fromPersonId: number) => {
       inbox.chats.conversationsMap[fromPersonId] as Conversation | undefined;
     const introsConversation =
       inbox.intros.conversationsMap[fromPersonId] as Conversation | undefined;
-
-    inbox.chats.numUnread -=
-        (chatsConversation?.lastMessageRead ?? true) ?
-        0 :
-        1;
-
-    inbox.intros.numUnread -=
-        (introsConversation?.lastMessageRead ?? true) ?
-        0 :
-        1;
-
-    inbox.numUnread = inbox.chats.numUnread + inbox.intros.numUnread;
 
     const updatedConversation = {
       ...chatsConversation,
@@ -785,7 +802,8 @@ const _fetchBox = async (
     const lastMessage = bodyText.toString();
     const lastMessageRead = numUnread.toString() === '0';
     const lastMessageTimestamp = new Date(timestamp.toString());
-    const isDeletedUser = false;
+    const isAvailableUser = true;
+    const wasArchivedByMe = false;
 
     const conversation: Conversation = {
       personId,
@@ -795,7 +813,8 @@ const _fetchBox = async (
       lastMessage,
       lastMessageRead,
       lastMessageTimestamp,
-      isDeletedUser,
+      isAvailableUser,
+      wasArchivedByMe,
     };
 
     conversationList.push(conversation);
@@ -815,10 +834,6 @@ const _fetchBox = async (
     const conversations: Conversations = {
       conversations: conversationList,
       conversationsMap: conversationListToMap(conversationList),
-      numUnread: conversationList.reduce(
-        (acc, conversation) => acc + (conversation.lastMessageRead ? 0 : 1),
-        0
-      ),
     };
 
     await populateConversationList(conversations.conversations);
@@ -844,12 +859,10 @@ const fetchBox = async (box: string): Promise<Conversations | undefined> => {
 const refreshInbox = async (): Promise<void> => {
   const chats  = await fetchBox('chats'); if (!chats)  return;
   const intros = await fetchBox('inbox'); if (!intros) return;
-  const numUnread = chats.numUnread + intros.numUnread;
 
   setInbox((inbox: Inbox) => ({
     chats,
     intros,
-    numUnread,
   }));
 };
 
@@ -868,6 +881,7 @@ export {
   Message,
   MessageStatus,
   fetchConversation,
+  inboxStats,
   login,
   logout,
   observeInbox,
