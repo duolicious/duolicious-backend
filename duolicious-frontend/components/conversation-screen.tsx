@@ -110,14 +110,16 @@ const ConversationScreen = ({navigation, route}) => {
   }, [personId, messages]);
 
   const onPressName = useCallback(() => {
-    navigation.navigate(
-      'Prospect Profile Screen',
-      {
-        screen: 'Prospect Profile',
-        params: { personId, showBottomButtons: false },
-      }
-    );
-  }, [personId, name]);
+    if (isAvailableUser) {
+      navigation.navigate(
+        'Prospect Profile Screen',
+        {
+          screen: 'Prospect Profile',
+          params: { personId, showBottomButtons: false },
+        }
+      );
+    }
+  }, [isAvailableUser, personId, name]);
 
   const maybeLoadNextPage = useCallback(async () => {
     if (hasFetchedAll.current) {
