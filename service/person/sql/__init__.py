@@ -626,7 +626,32 @@ SELECT
         ORDER BY
             position
         LIMIT 1
-    ) AS image_uuid
+    ) AS image_uuid,
+    (
+        EXISTS (
+            SELECT
+                1
+            FROM
+                blocked
+            WHERE
+                subject_person_id = %(person_id)s
+            AND
+                object_person_id = prospect.id
+            LIMIT 1
+        )
+    OR
+        EXISTS (
+            SELECT
+                1
+            FROM
+                hidden
+            WHERE
+                subject_person_id = %(person_id)s
+            AND
+                object_person_id = prospect.id
+            LIMIT 1
+        )
+    ) AS was_archived_by_me
 FROM
     person AS prospect
 WHERE
