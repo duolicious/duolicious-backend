@@ -610,6 +610,7 @@ def get_compare_answers(
     with transaction('READ COMMITTED') as tx:
         return tx.execute(Q_ANSWER_COMPARISON, params).fetchall()
 
+# TODO
 def get_inbox_info(s: t.SessionInfo, prospect_person_ids: Iterable[int]):
     params = dict(
         person_id=s.person_id,
