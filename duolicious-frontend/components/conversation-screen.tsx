@@ -7,8 +7,10 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TextStyle,
   TextInput,
   View,
+  ViewStyle,
 } from 'react-native';
 import {
   useCallback,
@@ -38,8 +40,158 @@ import {
 import { getRandomString } from '../random/string';
 import { api } from '../api/api';
 import { TopNavBarButton } from './top-nav-bar-button';
+import { RotateCcw, Slash, X } from "react-native-feather";
+import { setHidden, setBlocked } from '../hide-and-block/hide-and-block';
+
+const Menu = ({navigation, personId}) => {
+  const [isBlocked, setIsBlocked] = useState<boolean | undefined>();
+  const [isHidden, setIsHidden] = useState<boolean | undefined>();
+  const [isUpdatingIsBlocked, setIsUpdatingIsBlocked] = useState(false);
+  const [isUpdatingIsHidden, setIsUpdatingIsHidden] = useState(false);
+
+  const isLoading = isBlocked === undefined || isHidden === undefined;
+
+  const onPressMatch = useCallback(async () => {
+    if (isHidden === undefined) {
+      return;
+    }
+
+    setIsUpdatingIsHidden(true);
+    const nextHiddenState = !isHidden;
+    if (await setHidden(personId, nextHiddenState)) {
+      setIsHidden(nextHiddenState);
+      setIsUpdatingIsHidden(false);
+      if (nextHiddenState) {
+        navigation.popToTop();
+      }
+    }
+  }, [navigation, personId, isHidden]);
+
+  const onPressBlock = useCallback(async () => {
+    if (isBlocked === undefined) {
+      return;
+    }
+
+    setIsUpdatingIsBlocked(true);
+    const nextBlockedState = !isBlocked;
+    if (await setBlocked(personId, nextBlockedState)) {
+      setIsBlocked(nextBlockedState);
+      setIsUpdatingIsBlocked(false);
+      if (nextBlockedState) {
+        navigation.popToTop();
+      }
+    }
+  }, [navigation, personId, isBlocked]);
+
+  useEffect(() => {
+    (async () => {
+      const response = await api('get', `/prospect-profile/${personId}`);
+      if (response.ok) {
+        setIsBlocked(response.json.is_blocked);
+        setIsHidden(response.json.is_hidden);
+      }
+    })();
+  }, [personId]);
+
+  const pressableStyle: ViewStyle = {
+    flexDirection: 'row',
+    gap: 10,
+  };
+
+  const iconStyle = {
+    backgroundColor: isLoading ? '#ddd' : undefined,
+    borderRadius: 3,
+  };
+
+  const labelStyle: TextStyle = {
+    fontSize: 16,
+    fontWeight: '600',
+    color: isLoading ? '#ddd' : '#777',
+    backgroundColor: isLoading ? '#ddd' : undefined,
+    borderRadius: 3,
+  };
+
+  const iconStroke = isLoading ? "transparent" : "black";
+
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        top: 25,
+        right: 50,
+        padding: 25,
+        gap: 40,
+        flexDirection: 'column',
+        backgroundColor: 'white',
+        borderRadius: 10,
+        shadowOffset: {
+          width: 0,
+          height: 3,
+        },
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+        elevation: 8,
+        zIndex: 999,
+      }}
+    >
+      <Pressable style={pressableStyle} onPress={onPressMatch}>
+        {isUpdatingIsHidden &&
+          <ActivityIndicator size="small" color="#70f" />
+        }
+        {!isUpdatingIsHidden && isHidden &&
+          <RotateCcw
+            style={iconStyle}
+            stroke={iconStroke}
+            strokeWidth={4}
+            height={18}
+            width={18}
+          />
+        }
+        {!isUpdatingIsHidden && !isHidden &&
+          <X
+            style={iconStyle}
+            stroke={iconStroke}
+            strokeWidth={4}
+            height={18}
+            width={18}
+          />
+        }
+        <DefaultText style={labelStyle}>
+          {isHidden ? 'Undo unmatch' : 'Unmatch'}
+        </DefaultText>
+      </Pressable>
+      <Pressable style={pressableStyle} onPress={onPressBlock}>
+        {isUpdatingIsBlocked &&
+          <ActivityIndicator size="small" color="#70f" />
+        }
+        {!isUpdatingIsBlocked && isBlocked &&
+          <RotateCcw
+            style={iconStyle}
+            stroke={iconStroke}
+            strokeWidth={4}
+            height={18}
+            width={18}
+          />
+        }
+        {!isUpdatingIsBlocked && !isBlocked &&
+          <Slash
+            style={iconStyle}
+            stroke={iconStroke}
+            strokeWidth={4}
+            height={18}
+            width={18}
+          />
+        }
+        <DefaultText style={labelStyle}>
+          {isBlocked ? 'Unblock' : 'Block and report'}
+        </DefaultText>
+      </Pressable>
+    </View>
+  );
+};
 
 const ConversationScreen = ({navigation, route}) => {
+  const [showMenu, setShowMenu] = useState(false);
   const [messageFetchTimeout, setMessageFetchTimeout] = useState(false);
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [lastMessageStatus, setLastMessageStatus] = useState<
@@ -174,6 +326,10 @@ const ConversationScreen = ({navigation, route}) => {
     return onReceiveMessage(_onReceiveMessage, personId);
   }, []);
 
+  const toggleMenu = useCallback(() => {
+    setShowMenu(x => !x);
+  }, []);
+
   return (
     <>
       <TopNavBar>
@@ -209,6 +365,16 @@ const ConversationScreen = ({navigation, route}) => {
             {name ?? '...'}
           </DefaultText>
         </Pressable>
+        {isAvailableUser &&
+          <TopNavBarButton
+            onPress={toggleMenu}
+            iconName="ellipsis-vertical"
+            style={{right: 10}}
+          />
+        }
+        {showMenu &&
+          <Menu navigation={navigation} personId={personId} />
+        }
       </TopNavBar>
       {messages === null && !messageFetchTimeout &&
         <View style={{flexGrow: 1, justifyContent: 'center', alignItems: 'center'}}>

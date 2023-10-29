@@ -28,8 +28,7 @@ import { cmToFeetInchesStr } from '../units/units';
 import { signedInUser } from '../App';
 import { IMAGES_URL } from '../env/env';
 import { randomGagLocation } from '../data/gag-locations';
-import { setBlocked } from '../xmpp/xmpp';
-import { notify } from '../events/events';
+import { setHidden, setBlocked } from '../hide-and-block/hide-and-block';
 import { ImageCarousel } from './image-carousel';
 import { Pinchy } from './pinchy';
 
@@ -158,6 +157,7 @@ const FloatingProfileInteractionButton = ({
 };
 
 const FloatingHideButton = ({navigation, personId, isHidden}) => {
+  const [isLoading, setIsLoading] = useState(false);
   const [isHiddenState, setIsHiddenState] = useState<
     boolean | undefined
   >(isHidden);
@@ -166,24 +166,18 @@ const FloatingHideButton = ({navigation, personId, isHidden}) => {
     setIsHiddenState(isHidden);
   }, [isHidden]);
 
-  const onPress = useCallback(() => {
+  const onPress = useCallback(async () => {
     if (personId === undefined) return;
 
-    const newIsHiddenState = !isHiddenState;
+    const nextIsHiddenState = !isHiddenState;
 
-    setIsHiddenState(newIsHiddenState);
-
-    notify(
-      newIsHiddenState ?
-      `hide-profile-${personId}` :
-      `unhide-profile-${personId}`
-    );
-
-    if ( newIsHiddenState) api('post', `/hide/${personId}`);
-    if (!newIsHiddenState) api('post', `/unhide/${personId}`);
-
-    if (newIsHiddenState) navigation.goBack();
-  }, [isHiddenState, personId]);
+    setIsLoading(true);
+    if (await setHidden(personId, nextIsHiddenState)) {
+      if (nextIsHiddenState) navigation.goBack();
+      setIsHiddenState(nextIsHiddenState);
+      setIsLoading(false);
+    }
+  }, [isLoading, isHiddenState, personId]);
 
   return (
     <FloatingProfileInteractionButton
@@ -191,14 +185,17 @@ const FloatingHideButton = ({navigation, personId, isHidden}) => {
       onPress={onPress}
       backgroundColor="white"
     >
-      {isHiddenState === true && <RotateCcw
+      {isLoading &&
+        <ActivityIndicator size="large" color="#70f"/>
+      }
+      {!isLoading && isHiddenState === true && <RotateCcw
           stroke="#70f"
           strokeWidth={3}
           height={24}
           width={24}
         />
       }
-      {isHiddenState === false && <X
+      {!isLoading && isHiddenState === false && <X
           stroke="#70f"
           strokeWidth={3}
           height={24}
@@ -284,7 +281,7 @@ const SeeQAndAButton = ({navigation, personId, name, countAnswers}) => {
   );
 };
 
-const BlockButton = ({name, personId, isBlocked}) => {
+const BlockButton = ({navigation, name, personId, isBlocked}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isBlockedState, setIsBlockedState] = useState(false);
 
@@ -299,30 +296,14 @@ const BlockButton = ({name, personId, isBlocked}) => {
 
     const nextIsBlockedState = !isBlockedState;
 
-    const status = await setBlocked(personId, nextIsBlockedState);
-    if (status === undefined) {
-      const endpoint = (
-        nextIsBlockedState ?
-        `/block/${personId}` :
-        `/unblock/${personId}`);
-
-      const response = await api('post', endpoint);
-
-      if (response.ok) {
-        setIsBlockedState(nextIsBlockedState);
-
-        notify(
-          nextIsBlockedState ? 'hide-profile' : 'unhide-profile',
-          personId,
-        );
+    setIsLoading(true);
+    if (await setBlocked(personId, nextIsBlockedState)) {
+      setIsBlockedState(nextIsBlockedState);
+      setIsLoading(false);
+      if (nextIsBlockedState) {
+        navigation.popToTop();
       }
-    } else if (status === 'timeout') {
-      ;
-    } else {
-      throw Error(`Unexpected status: ${status}`);
     }
-
-    setIsLoading(false);
   }, [isLoading, isBlockedState, personId]);
 
   const text = isBlockedState
@@ -346,6 +327,7 @@ const BlockButton = ({name, personId, isBlocked}) => {
           style={{
             color: '#777',
             overflow: 'hidden',
+            textAlign: 'center',
           }}
         >
           {name === undefined ? '...' : text}
@@ -773,7 +755,12 @@ const Body = ({
           name={data?.name}
           countAnswers={data?.count_answers}
         />
-        <BlockButton name={data?.name} personId={personId} isBlocked={data?.is_blocked} />
+        <BlockButton
+          navigation={navigation}
+          name={data?.name}
+          personId={personId}
+          isBlocked={data?.is_blocked}
+        />
       </View>
     </>
   );

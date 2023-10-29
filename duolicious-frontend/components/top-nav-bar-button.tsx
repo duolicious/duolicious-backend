@@ -41,7 +41,7 @@ const TopNavBarButton = ({onPress, iconName, style}) => {
         <Ionicons
           style={{
             color: '#333',
-            fontSize: 30,
+            fontSize: 26,
           }}
           name={iconName}
         />

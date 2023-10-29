@@ -48,7 +48,6 @@ type Conversation = {
 };
 
 type ConversationsMap = { [key: string]: Conversation };
-type MarkDisplayedMap = { [key: string]: number };
 
 type Conversations = {
   conversations: Conversation[]
@@ -504,6 +503,22 @@ const _setBlocked = (
     </iq>
   `);
 
+  const updateInbox = () => setInbox((inbox) => {
+    if (!inbox) {
+      return inbox;
+    }
+
+    const conversationToUpdate = (
+      inbox.chats .conversationsMap[personId] ??
+      inbox.intros.conversationsMap[personId]) as Conversation | undefined;
+
+    if (conversationToUpdate) {
+      conversationToUpdate.wasArchivedByMe = doBlock;
+    }
+
+    return {...inbox};
+  });
+
   const _onReceiveStanza = async (stanza: Element) => {
     const doc = new DOMParser().parseFromString(stanza.toString(), 'text/xml');
 
@@ -515,6 +530,8 @@ const _setBlocked = (
     );
 
     if (!node) return;
+
+    updateInbox();
 
     callback();
 
