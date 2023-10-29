@@ -15,6 +15,7 @@ import {
 import {
   DefaultTheme,
   NavigationContainer,
+  NavigationContainerRef,
 } from '@react-navigation/native';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -139,6 +140,7 @@ const App = () => {
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
   [signedInUser, setSignedInUser] = useState<SignedInUser | undefined>();
   [referrerId, setReferrerId] = useState<string | undefined>();
+  const navigationContainerRef = useRef<any>();
 
   const loadFonts = useCallback(async () => {
     await Font.loadAsync({
@@ -266,6 +268,26 @@ const App = () => {
     })();
   }, [signedInUser?.personId, signedInUser?.sessionToken]);
 
+  const pushBrowserState = Platform.OS !== 'web' ? undefined : useCallback(() => {
+    history.pushState((history?.state ?? 0) + 1, "", "#");
+  }, []);
+
+  if (Platform.OS === 'web') {
+    useEffect(() => {
+      const handlePopstate = (ev) => {
+        ev.preventDefault();
+
+        const navigationContainer = navigationContainerRef?.current;
+
+        if (navigationContainer) {
+          navigationContainer.goBack();
+        }
+      };
+
+      window.addEventListener('popstate', handlePopstate);
+    }, []);
+  }
+
   const onLayoutRootView = useCallback(async () => {
     if (!isLoading) {
       await SplashScreen.hideAsync();
@@ -280,6 +302,8 @@ const App = () => {
     <>
       {!isLoading &&
         <NavigationContainer
+          ref={navigationContainerRef}
+          onStateChange={pushBrowserState}
           theme={{
             ...DefaultTheme,
             colors: {
