@@ -491,6 +491,24 @@ const ConversationScreen = ({navigation, route}) => {
       {!messageFetchTimeout && isAvailableUser &&
         <TextInputWithButton onPress={onPressSend}/>
       }
+      {!messageFetchTimeout && !isAvailableUser &&
+        <DefaultText
+          style={{
+            maxWidth: 600,
+            width: '100%',
+            alignSelf: 'center',
+            textAlign: 'center',
+            padding: 5,
+            paddingTop: 10,
+            paddingBottom: 10,
+            backgroundColor: '#eee',
+            fontFamily: 'Trueno',
+          }}
+        >
+          This person isn't available right now. This often means their account
+          is inactive or was deleted.
+        </DefaultText>
+      }
     </>
   );
 };

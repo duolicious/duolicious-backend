@@ -39,7 +39,7 @@ const SpeechBubble = (props: Props) => {
         onPress={onPress}
         style={{
           borderRadius: 10,
-          backgroundColor: props.fromCurrentUser ? '#70f' : '#dddddd',
+          backgroundColor: props.fromCurrentUser ? '#70f' : '#eee',
           alignSelf: props.fromCurrentUser ? 'flex-end' : 'flex-start',
           maxWidth: '80%',
           padding: 10,
