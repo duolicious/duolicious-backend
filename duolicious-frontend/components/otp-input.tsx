@@ -33,7 +33,7 @@ const OtpInput = (props: Props) => {
       isFocused: false,
     }))
   );
-  const inputRefs = useRef([]);
+  const inputRefs = useRef<any>([]);
 
   const copyStateObj = (stateObj: State) => {
     return stateObj.map(digitState => ({...digitState}));

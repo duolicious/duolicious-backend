@@ -469,6 +469,7 @@ const TextLong = forwardRef((props: InputProps<OptionGroupTextLong>, ref) => {
         autoFocus={true}
         onChangeText={onChangeInputValue}
         onSubmitEditing={submit}
+        numberOfLines={8}
       />
       {props.input?.textLong?.invalidMsg &&
         <DefaultText

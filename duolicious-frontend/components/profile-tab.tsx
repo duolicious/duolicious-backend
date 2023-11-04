@@ -198,6 +198,7 @@ const AboutPerson = ({navigation, data}) => {
       <DefaultLongTextInput
         defaultValue={data?.about ?? ''}
         onChangeText={onChangeAboutText}
+        numberOfLines={8}
       />
     </View>
   );
