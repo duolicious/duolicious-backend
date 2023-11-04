@@ -61,57 +61,60 @@ type Inbox = {
 
 const inboxStats = (inbox: Inbox): {
   chats: {
-    numUnreadAvailable: number
-    numUnreadUnavailable: number
+    numUnreadInbox: number
+    numUnreadArchive: number
   }
   intros: {
-    numUnreadAvailable: number
-    numUnreadUnavailable: number
+    numUnreadInbox: number
+    numUnreadArchive: number
   }
-  numUnreadAvailable: number
-  numUnreadUnavailable: number
+  numUnreadInbox: number
+  numUnreadArchive: number
 } => {
-  const unreadAvailable = (sum: number, c: Conversation) =>
-    sum + ( c.isAvailableUser && !c.lastMessageRead ? 1 : 0);
+  const isArchived = (c: Conversation) =>
+    !c.isAvailableUser || c.wasArchivedByMe;
 
-  const unreadUnavailable = (sum: number, c: Conversation) =>
-    sum + (!c.isAvailableUser && !c.lastMessageRead ? 1 : 0);
+  const unreadInbox = (sum: number, c: Conversation) =>
+    sum + (!isArchived(c) && !c.lastMessageRead ? 1 : 0);
+
+  const unreadArchive = (sum: number, c: Conversation) =>
+    sum + ( isArchived(c) && !c.lastMessageRead ? 1 : 0);
 
   const chats = {
-    numUnreadAvailable: inbox.chats.conversations.reduce(
-       unreadAvailable,
+    numUnreadInbox: inbox.chats.conversations.reduce(
+       unreadInbox,
        0
      ),
-    numUnreadUnavailable: inbox.chats.conversations.reduce(
-       unreadUnavailable,
+    numUnreadArchive: inbox.chats.conversations.reduce(
+       unreadArchive,
        0
      ),
   };
 
   const intros = {
-    numUnreadAvailable: inbox.intros.conversations.reduce(
-       unreadAvailable,
+    numUnreadInbox: inbox.intros.conversations.reduce(
+       unreadInbox,
        0
      ),
-    numUnreadUnavailable: inbox.intros.conversations.reduce(
-       unreadUnavailable,
+    numUnreadArchive: inbox.intros.conversations.reduce(
+       unreadArchive,
        0
      ),
   };
 
-  const numUnreadAvailable = (
-    chats .numUnreadAvailable +
-    intros.numUnreadAvailable);
+  const numUnreadInbox = (
+    chats .numUnreadInbox +
+    intros.numUnreadInbox);
 
-  const numUnreadUnavailable = (
-    chats .numUnreadUnavailable +
-    intros.numUnreadUnavailable);
+  const numUnreadArchive = (
+    chats .numUnreadArchive +
+    intros.numUnreadArchive);
 
   return {
     chats,
     intros,
-    numUnreadAvailable,
-    numUnreadUnavailable,
+    numUnreadInbox,
+    numUnreadArchive,
   };
 };
 
@@ -171,7 +174,7 @@ const populateConversationList = async (
   }, {});
 
   conversationList.forEach((c: Conversation) => {
-    c.name = personIdToInfo[c.personId]?.name ?? 'Unavailable User';
+    c.name = personIdToInfo[c.personId]?.name ?? 'Unavailable Person';
     c.matchPercentage = personIdToInfo[c.personId]?.match_percentage ?? 0;
     c.imageUuid = personIdToInfo[c.personId]?.image_uuid ?? null;
     c.isAvailableUser = personIdToInfo[c.personId] !== undefined;

@@ -30,7 +30,7 @@ const TabBar = ({state, descriptors, navigation}) => {
       return;
     }
 
-    const numUnreadAvailable = inboxStats(inbox).numUnreadAvailable;
+    const numUnreadAvailable = inboxStats(inbox).numUnreadInbox;
 
     setInboxHasUnread(numUnreadAvailable > 0);
   }, []);

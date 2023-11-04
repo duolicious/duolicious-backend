@@ -313,7 +313,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
     contentContainerStyle.current = [style, props.contentContainerStyle];
   }
 
-  useImperativeHandle(ref, () => ({ refresh: onRefresh }), [onRefresh]);
+  useImperativeHandle(ref, () => ({ refresh: onRefresh_ }), [onRefresh_]);
 
   useEffect(() => {
     if (

@@ -15,7 +15,7 @@ import {
 } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TopNavBar } from './top-nav-bar';
-import { InboxItem } from './inbox-item';
+import { IntrosItem, ChatsItem } from './inbox-item';
 import { DefaultText } from './default-text';
 import { ButtonGroup } from './button-group';
 import { Notice } from './notice';
@@ -25,10 +25,12 @@ import { DefaultFlatList } from './default-flat-list';
 import { Inbox, Conversation, inboxStats, observeInbox } from '../xmpp/xmpp';
 import { compareArrays } from '../util/util';
 import { TopNavBarButton } from './top-nav-bar-button';
+import { listen, unlisten } from '../events/events';
 
 const Stack = createNativeStackNavigator();
 
-const InboxItemMemo = memo(InboxItem);
+const IntrosItemMemo = memo(IntrosItem);
+const ChatsItemMemo = memo(ChatsItem);
 
 const InboxTab = ({navigation}) => {
   return (
@@ -60,8 +62,8 @@ const InboxTab_ = ({navigation}) => {
     }
 
     return showArchive ?
-      _inboxStats.chats.numUnreadUnavailable :
-      _inboxStats.chats.numUnreadAvailable;
+      _inboxStats.chats.numUnreadArchive :
+      _inboxStats.chats.numUnreadInbox;
   })();
 
   const numUnreadIntros = (() => {
@@ -70,8 +72,8 @@ const InboxTab_ = ({navigation}) => {
     }
 
     return showArchive ?
-      _inboxStats.intros.numUnreadUnavailable :
-      _inboxStats.intros.numUnreadAvailable;
+      _inboxStats.intros.numUnreadArchive :
+      _inboxStats.intros.numUnreadInbox;
   })();
 
   const buttonOpacity = useRef(new Animated.Value(0)).current;
@@ -109,19 +111,30 @@ const InboxTab_ = ({navigation}) => {
     setShowArchive(x => !x);
   }, []);
 
+  const maybeRefresh = useCallback(() => {
+    listRef.current?.refresh && listRef.current.refresh()
+  }, [listRef]);
+
   useEffect(() => observeInbox(setInbox), []);
-  useEffect(
-    () => void (listRef.current?.refresh && listRef.current.refresh()),
-    [listRef.current?.refresh, sectionIndex]
-  );
-  useEffect(
-    () => void (listRef.current?.refresh && listRef.current.refresh()),
-    [listRef.current?.refresh, sortByIndex]
-  );
-  useEffect(
-    () => void (listRef.current?.refresh && listRef.current.refresh()),
-    [listRef.current?.refresh, inbox]
-  );
+
+  useEffect(maybeRefresh, [maybeRefresh, sectionIndex]);
+  useEffect(maybeRefresh, [maybeRefresh, sortByIndex]);
+  useEffect(maybeRefresh, [maybeRefresh, inbox]);
+  useEffect(maybeRefresh, [maybeRefresh, showArchive]);
+
+
+  const personIds = inbox ? [
+    ...(inbox ? inbox .chats.conversations.map(c => c.personId).sort() : []),
+    ...(inbox ? inbox.intros.conversations.map(c => c.personId).sort() : []),
+  ] : [];
+
+  useEffect(() => {
+    personIds.forEach((personId) =>
+      listen(`hide-profile-${personId}`, maybeRefresh));
+    return () =>
+      personIds.forEach((personId) =>
+        unlisten(`hide-profile-${personId}`, maybeRefresh));
+  }, [personIds.toString()]);
 
   const fetchInboxPage = (
     sectionName: 'chats' | 'intros'
@@ -134,13 +147,11 @@ const InboxTab_ = ({navigation}) => {
 
     const section = sectionName === 'chats' ? inbox.chats : inbox.intros;
 
-    const a = section.conversations[0];
-
     const pageSize = 10;
     const page = [...section.conversations]
       .filter((c) => (!c.isAvailableUser || c.wasArchivedByMe) === showArchive)
       .sort((a, b) => {
-        if (sectionName === 'intros' && sortByIndex === 1) {
+        if (sectionName === 'intros' && sortByIndex === 0) {
           return compareArrays(
             [b.matchPercentage, +b.lastMessageTimestamp],
             [a.matchPercentage, +a.lastMessageTimestamp],
@@ -194,7 +205,7 @@ const InboxTab_ = ({navigation}) => {
           pointerEvents={sectionIndex === 1 ? 'none' : 'auto'}
         >
           <ButtonGroup
-            buttons={['Latest First', 'Best Matches First']}
+            buttons={['Best Matches First', 'Latest First']}
             selectedIndex={sortByIndex}
             onPress={setSortByIndex_}
             secondary={true}
@@ -205,36 +216,35 @@ const InboxTab_ = ({navigation}) => {
             }}
           />
         </Animated.View>
-        {!isTooManyTapped && sectionIndex === 0 && !showArchive && numUnreadIntros >= 3 &&
-          <Notice
-            onPress={onPressTooMany}
-            style={{
-              marginBottom: 5,
-            }}
-          >
-            <DefaultText style={{color: '#70f', textAlign: 'center'}} >
-              Getting too many intros? You can keep your profile hidden and
-              message first instead 🕵️. Press here to change your privacy
-              settings.
-            </DefaultText>
-          </Notice>
-        }
       </>
     );
   };
 
-  const renderItem = useCallback((x: ListRenderItemInfo<Conversation>) => (
-    <InboxItemMemo
-      wasRead={x.item.lastMessageRead}
-      name={x.item.name}
-      personId={x.item.personId}
-      imageUuid={x.item.imageUuid}
-      matchPercentage={x.item.matchPercentage}
-      lastMessage={x.item.lastMessage}
-      lastMessageTimestamp={x.item.lastMessageTimestamp}
-      isAvailableUser={x.item.isAvailableUser}
-    />
-  ), []);
+  const renderItem = useCallback((x: ListRenderItemInfo<Conversation>) => {
+    if (sectionIndex === 0 && !showArchive) {
+      return <IntrosItemMemo
+        wasRead={x.item.lastMessageRead}
+        name={x.item.name}
+        personId={x.item.personId}
+        imageUuid={x.item.imageUuid}
+        matchPercentage={x.item.matchPercentage}
+        lastMessage={x.item.lastMessage}
+        lastMessageTimestamp={x.item.lastMessageTimestamp}
+        isAvailableUser={x.item.isAvailableUser}
+      />
+    } else {
+      return <ChatsItemMemo
+        wasRead={x.item.lastMessageRead}
+        name={x.item.name}
+        personId={x.item.personId}
+        imageUuid={x.item.imageUuid}
+        matchPercentage={x.item.matchPercentage}
+        lastMessage={x.item.lastMessage}
+        lastMessageTimestamp={x.item.lastMessageTimestamp}
+        isAvailableUser={x.item.isAvailableUser}
+      />
+    }
+  }, [sectionIndex, showArchive]);
 
   return (
     <>
@@ -275,6 +285,7 @@ const InboxTab_ = ({navigation}) => {
           dataKey={String(sectionIndex)}
           ListHeaderComponent={ListHeaderComponent}
           renderItem={renderItem}
+          disableRefresh={true}
         />
       }
     </>
