@@ -38,6 +38,8 @@ Type "help" for help.
 duo_api=# CREATE EXTENSION pg_stat_statements;
 
 duo_api=# select query, mean_exec_time, calls from pg_stat_statements order by total_exec_time desc;
+
+duo_api=# select pg_stat_statements_reset();
 ```
 
 ## Restoring a dumped database

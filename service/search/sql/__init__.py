@@ -46,7 +46,7 @@ WITH searcher AS MATERIALIZED (
     ORDER BY
         negative_dot_prod
     LIMIT
-        1000
+        2000
 ), joined_prospects AS MATERIALIZED (
     SELECT
         *,
@@ -58,6 +58,24 @@ WITH searcher AS MATERIALIZED (
     ON
         person.id = prospect_person_id
 ), prospects_second_pass AS MATERIALIZED (
+    SELECT
+        *
+    FROM
+        joined_prospects AS prospect
+    WHERE
+        -- The prospect satisfies the searcher's gender preference
+        EXISTS (
+            SELECT 1
+            FROM search_preference_gender AS preference
+            WHERE
+                preference.person_id = %(searcher_person_id)s AND
+                preference.gender_id = prospect.gender_id
+            LIMIT 1
+        )
+    ORDER BY
+        negative_dot_prod
+    LIMIT 500
+), prospects_third_pass AS MATERIALIZED (
     SELECT
         id AS prospect_person_id,
         (
@@ -74,18 +92,8 @@ WITH searcher AS MATERIALIZED (
         CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2)::SMALLINT AS match_percentage,
         personality
     FROM
-        joined_prospects AS prospect
+        prospects_second_pass AS prospect
     WHERE
-        -- The prospect satisfies the searcher's gender preference
-        EXISTS (
-            SELECT 1
-            FROM search_preference_gender AS preference
-            WHERE
-                preference.person_id = %(searcher_person_id)s AND
-                preference.gender_id = prospect.gender_id
-            LIMIT 1
-        )
-    AND
         EXISTS (
             SELECT 1
             FROM search_preference_orientation AS preference
@@ -347,7 +355,7 @@ WITH searcher AS MATERIALIZED (
         match_percentage,
         personality
     FROM
-        prospects_second_pass
+        prospects_third_pass
     RETURNING *
 )
 SELECT
