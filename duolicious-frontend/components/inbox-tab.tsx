@@ -122,20 +122,6 @@ const InboxTab_ = ({navigation}) => {
   useEffect(maybeRefresh, [maybeRefresh, inbox]);
   useEffect(maybeRefresh, [maybeRefresh, showArchive]);
 
-
-  const personIds = inbox ? [
-    ...(inbox ? inbox .chats.conversations.map(c => c.personId).sort() : []),
-    ...(inbox ? inbox.intros.conversations.map(c => c.personId).sort() : []),
-  ] : [];
-
-  useEffect(() => {
-    personIds.forEach((personId) =>
-      listen(`hide-profile-${personId}`, maybeRefresh));
-    return () =>
-      personIds.forEach((personId) =>
-        unlisten(`hide-profile-${personId}`, maybeRefresh));
-  }, [personIds.toString()]);
-
   const fetchInboxPage = (
     sectionName: 'chats' | 'intros'
   ) => async (
