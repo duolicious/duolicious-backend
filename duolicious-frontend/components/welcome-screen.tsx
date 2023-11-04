@@ -173,12 +173,12 @@ const WelcomeScreen_ = ({navigation}) => {
               marginRight: 20,
             }}
           >
-            <SuffixButton suffix="@gmail.com"/>
-            <SuffixButton suffix="@yahoo.com"/>
-            <SuffixButton suffix="@hotmail.com"/>
-            <SuffixButton suffix="@outlook.com"/>
-            <SuffixButton suffix="@live.com"/>
-            <SuffixButton suffix="@aol.com"/>
+            <SuffixButton suffix="@gmail.com" />
+            <SuffixButton suffix="@proton.me" />
+            <SuffixButton suffix="@yahoo.com" />
+            <SuffixButton suffix="@hotmail.com" />
+            <SuffixButton suffix="@outlook.com" />
+            <SuffixButton suffix="@icloud.com" />
           </View>
         </View>
         <View
