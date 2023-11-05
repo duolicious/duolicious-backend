@@ -21,7 +21,7 @@ def emailtemplate(has_intro, has_chat):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>You Have a New Message!</title>
+        <title>You have a new message 😍</title>
     </head>
     <body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif;">
         <table width="100%" cellspacing="0" cellpadding="0" border="0" align="center">

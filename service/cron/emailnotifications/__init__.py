@@ -106,7 +106,7 @@ def new_notification_req(row: PersonNotification):
           "email": "no-reply@duolicious.app"
        },
        "to": [ { "email": row.email } ],
-       "subject": "You Have a New Message!",
+       "subject": "You have a new message 😍",
        "htmlContent": emailtemplate(
            has_intro=row.has_intro,
            has_chat=row.has_chat,
