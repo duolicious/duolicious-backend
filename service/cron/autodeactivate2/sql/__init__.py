@@ -34,7 +34,7 @@ WITH newly_deactivated AS (
     AND
         activated = TRUE
     AND
-        sign_in_time < NOW() - INTERVAL '1 day'
+        sign_in_time < NOW() - INTERVAL '10 minutes'
     RETURNING
         id,
         email

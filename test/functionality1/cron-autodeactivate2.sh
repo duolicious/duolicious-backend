@@ -70,7 +70,7 @@ do_test () {
 
     -- There's a mechanism which prevents accounts from being re-deactivated
     -- immediately after signing in again. This overrides that mechanism.
-    sign_in_time = now() - interval '2 days'
+    sign_in_time = now() - interval '20 minutes'
   "
 
   local user1id=$(get_id 'will-be-deactivated@duolicious.app')
