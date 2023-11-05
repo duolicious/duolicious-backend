@@ -79,10 +79,22 @@ WHERE
 
 Q_SELECT_PERSONALITY = """
 SELECT
-    trait.name                        AS trait_name,
+    CASE
+        WHEN %(topic)s::TEXT = 'Big 5' AND trait.name = 'Introversion/Extraversion'
+        THEN 'Extraversion'
+        ELSE trait.name
+    END                               AS trait_name,
+    CASE
+        WHEN %(topic)s::TEXT = 'Big 5' AND trait.name = 'Introversion/Extraversion'
+        THEN NULL
+        ELSE trait.min_label
+    END                               AS trait_min_label,
+    CASE
+        WHEN %(topic)s::TEXT = 'Big 5' AND trait.name = 'Introversion/Extraversion'
+        THEN NULL
+        ELSE trait.max_label
+    END                               AS trait_max_label,
     trait.description                 AS trait_description,
-    trait.min_label                   AS trait_min_label,
-    trait.max_label                   AS trait_max_label,
     person_trait.name                 AS person_name,
     ROUND(100 * person_trait.ratio)   AS person_percentage,
     prospect_trait.name               AS prospect_name,
@@ -92,24 +104,29 @@ SELECT
         THEN COALESCE(prospect_trait.ratio, 0)
         ELSE COALESCE(person_trait.ratio, 0)
     END AS position
-FROM trait
-LEFT JOIN (
-    SELECT
-        id,
-        name,
-        (trait_ratio(presence_score, absence_score, 5000)).*
-    FROM person
-    WHERE id = %(person_id)s
-) AS person_trait ON
+FROM
+    trait
+LEFT JOIN
+    (
+        SELECT
+            id,
+            name,
+            (trait_ratio(presence_score, absence_score, 5000)).*
+        FROM person
+        WHERE id = %(person_id)s
+    ) AS person_trait
+ON
     person_trait.trait_id = trait.id
-LEFT JOIN (
-    SELECT
-        id,
-        name,
-        (trait_ratio(presence_score, absence_score, 5000)).*
-    FROM person
-    WHERE id = %(prospect_person_id)s
-) AS prospect_trait ON
+LEFT JOIN
+    (
+        SELECT
+            id,
+            name,
+            (trait_ratio(presence_score, absence_score, 5000)).*
+        FROM person
+        WHERE id = %(prospect_person_id)s
+    ) AS prospect_trait
+ON
     prospect_trait.trait_id = trait.id
 WHERE
     trait.id IN (
