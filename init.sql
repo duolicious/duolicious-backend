@@ -173,6 +173,7 @@ CREATE TABLE IF NOT EXISTS person (
     -- Bookkeeping
     sign_up_time TIMESTAMP NOT NULL DEFAULT NOW(),
     sign_in_count INT NOT NULL DEFAULT 1,
+    sign_in_time TIMESTAMP NOT NULL DEFAULT NOW(),
 
     -- Whether the user deactivated their account via the settings
     activated BOOLEAN NOT NULL DEFAULT TRUE,
@@ -181,9 +182,6 @@ CREATE TABLE IF NOT EXISTS person (
     UNIQUE (email),
     PRIMARY KEY (id)
 );
-
--- TODO: Move into `person`
-ALTER TABLE person ADD COLUMN sign_in_time TIMESTAMP NOT NULL DEFAULT NOW();
 
 CREATE TABLE IF NOT EXISTS onboardee (
     email TEXT NOT NULL,
