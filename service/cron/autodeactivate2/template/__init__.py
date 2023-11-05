@@ -5,7 +5,7 @@ def emailtemplate():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>You make Duolicious wayyy better!</title>
+        <title>Baby, come back!</title>
     </head>
     <body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif;">
         <table width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
@@ -22,7 +22,7 @@ def emailtemplate():
                         </tr>
                         <tr>
                             <td bgcolor="#f1e5ff" align="center" style="color: #70f; padding-left: 20px; padding-right: 20px; padding-bottom: 20px;">
-                                <p style="color: #70f; font-size: 20px; font-weight: 900;">You make Duolicious wayyy better!</p>
+                                <p style="color: #70f; font-size: 20px; font-weight: 900;">Baby, come back!</p>
                                 <p style="color: #70f; font-size: 16px">
                                   Because we only show active members, your profile was hidden for now. That means you won't get any more intros or chats until you get on Duolicious.
                                 </p>
