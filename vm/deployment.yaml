@@ -159,8 +159,8 @@ spec:
         - { name: DUO_DB_API_NAME, value: duo_api }
 
         - { name: DUO_CRON_EMAIL_DRY_RUN, value: 'false' }
-        - { name: DUO_CRON_AUTODEACTIVATE_DRY_RUN, value: 'false' }
         - { name: DUO_CRON_AUTODEACTIVATE2_DRY_RUN, value: 'false' }
+        - { name: DUO_CRON_AUTODEACTIVATE2_DEBUG_EMAIL, value: 'false' }
         - { name: DUO_CRON_PHOTO_CLEANER_DRY_RUN, value: 'false' }
 
         - name: DUO_DB_PASS
