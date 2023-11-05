@@ -34,7 +34,8 @@ WITH newly_deactivated AS (
     AND
         activated = TRUE
     RETURNING
-        id
+        id,
+        email
 ), deleted AS (
     DELETE FROM
         duo_session
@@ -44,7 +45,8 @@ WITH newly_deactivated AS (
         duo_session.person_id = newly_deactivated.id
 )
 SELECT
-    id
+    id,
+    email
 FROM
     newly_deactivated
 """

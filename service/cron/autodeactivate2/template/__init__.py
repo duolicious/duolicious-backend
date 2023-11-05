@@ -1,27 +1,11 @@
-def big_part(has_intro, has_chat):
-    if has_intro and has_chat:
-        return 'You have new messages in your chats and intros!'
-    if has_intro:
-        return 'You have a new message in your intros!'
-    if has_chat:
-        return 'You have a new message in your chats!'
-    return (
-        "Our email notifier is broken 😵‍💫. Please report this "
-        "to support@duolicious.app")
-
-def little_part(has_intro, has_chat):
-    if has_intro and has_chat:
-        return 'Open the app to read them'
-    return 'Open the app to read it'
-
-def emailtemplate(has_intro, has_chat):
+def emailtemplate():
     return f"""
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>You Have a New Message!</title>
+        <title>You make Duolicious wayyy better!</title>
     </head>
     <body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif;">
         <table width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
@@ -37,9 +21,11 @@ def emailtemplate(has_intro, has_chat):
                             <td bgcolor="#f1e5ff" height="20">&nbsp;</td>
                         </tr>
                         <tr>
-                            <td bgcolor="#f1e5ff" align="center" style="color: #70f; padding-left: 20px; padding-right: 20px; padding-bottom: 40px;">
-                                <p style="color: #70f; font-size: 20px; font-weight: 900;">{big_part(has_intro, has_chat)}</p>
-                                <p style="color: #70f; font-size: 16px">{little_part(has_intro, has_chat)}</p>
+                            <td bgcolor="#f1e5ff" align="center" style="color: #70f; padding-left: 20px; padding-right: 20px; padding-bottom: 20px;">
+                                <p style="color: #70f; font-size: 20px; font-weight: 900;">You make Duolicious wayyy better!</p>
+                                <p style="color: #70f; font-size: 16px">
+                                  Because we only show active members, your profile was hidden for now. That means you won't get any more intros or chats until you get on Duolicious.
+                                </p>
                             </td>
                         </tr>
                         <tr>
@@ -50,7 +36,7 @@ def emailtemplate(has_intro, has_chat):
                                   <a href="https://web.duolicious.app/" style="display:block;padding:11px 40px;text-decoration:none;color:#70f" target="_blank">
                                     <span style="text-decoration:none;color:#70f">
                                       <strong>
-                                        Open Duolicious
+                                        Get on Duolicious
                                       </strong>
                                     </span>
                                   </a>
