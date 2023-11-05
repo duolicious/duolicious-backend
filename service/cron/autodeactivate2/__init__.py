@@ -23,7 +23,7 @@ EMAIL_URL = os.environ['DUO_EMAIL_URL']
 
 AUTODEACTIVATE2_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_AUTODEACTIVATE2_POLL_SECONDS',
-    10,
+    600,
 ))
 
 DB_HOST      = os.environ['DUO_DB_HOST']
