@@ -68,7 +68,7 @@ def email_http_request(email: str):
           "email": "no-reply@duolicious.app"
        },
        "to": [ { "email": email } ],
-       "subject": "Your profile is invisible! 👻",
+       "subject": "Your profile is invisible 👻",
        "htmlContent": emailtemplate()
     }
 
