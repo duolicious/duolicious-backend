@@ -33,6 +33,8 @@ WITH newly_deactivated AS (
         id = ANY(%(ids)s)
     AND
         activated = TRUE
+    AND
+        sign_in_time < NOW() - INTERVAL '1 day'
     RETURNING
         id,
         email

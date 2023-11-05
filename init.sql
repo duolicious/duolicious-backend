@@ -182,6 +182,9 @@ CREATE TABLE IF NOT EXISTS person (
     PRIMARY KEY (id)
 );
 
+-- TODO: Move into `person`
+ALTER TABLE person ADD COLUMN sign_in_time TIMESTAMP NOT NULL DEFAULT NOW();
+
 CREATE TABLE IF NOT EXISTS onboardee (
     email TEXT NOT NULL,
 

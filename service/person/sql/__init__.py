@@ -174,7 +174,8 @@ WITH valid_session AS (
     UPDATE person
     SET
         activated = TRUE,
-        sign_in_count = sign_in_count + 1
+        sign_in_count = sign_in_count + 1,
+        sign_in_time = NOW()
     FROM valid_session
     WHERE person.id = person_id
     RETURNING person.id, person.unit_id

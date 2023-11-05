@@ -63,8 +63,15 @@ do_test () {
     email = REPLACE(email, '@example.com', '@duolicious.app');
   "
 
-  # In case one of the other cron modules deactivated the accounts
-  q "update person set activated = true;"
+  q "
+  update person set
+    -- In case one of the other cron modules deactivated the accounts
+    activated = true,
+
+    -- There's a mechanism which prevents accounts from being re-deactivated
+    -- immediately after signing in again. This overrides that mechanism.
+    sign_in_time = now() - interval '2 days'
+  "
 
   local user1id=$(get_id 'will-be-deactivated@duolicious.app')
   local user2id=$(get_id 'will-remain-active1@duolicious.app')
