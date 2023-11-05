@@ -35,7 +35,7 @@ DB_API_NAME  = os.environ['DUO_DB_API_NAME']
 
 _emails_file = os.path.join(
         os.path.dirname(__file__), '..', '..', '..',
-        'test/output/cron-emails')
+        'test/output/cron-autodeactivate2-email')
 
 _api_conninfo = psycopg.conninfo.make_conninfo(
     host=DB_HOST,
