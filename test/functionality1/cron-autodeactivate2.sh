@@ -48,6 +48,9 @@ do_test () {
   q "delete from last" duo_chat
   q "delete from inbox" duo_chat
 
+  mkdir -p    ../../test/output/
+  printf '' > ../../test/output/cron-emails
+
   ../util/create-user.sh will-be-deactivated 0 0
 
   ../util/create-user.sh will-remain-active1 0 0
@@ -141,6 +144,10 @@ do_test () {
   [[ "$(q "select 1 from person where activated = true  and email like 'will-remain-active3%' ")" = "1" ]]
   [[ "$(q "select 1 from person where activated = true  and email like 'will-remain-active4%' ")" = "1" ]]
   [[ "$(q "select count(*) from duo_session ")" = "4" ]]
+
+  diff \
+    ../../test/output/cron-emails \
+    ../../test/fixtures/cron-autodeactivate2-email
 }
 
 do_test
