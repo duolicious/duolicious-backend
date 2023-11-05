@@ -225,6 +225,7 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
     extraChildren,
     containerStyle,
     innerStyle,
+    fontSize,
     maxFontSize,
     answerPubliclyValue,
     answerPubliclyInitialValue,
@@ -251,7 +252,9 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
 
     const scaledFontSize = Math.round(defaultFontSize * w1 * w2);
 
-    if (maxFontSize === undefined) {
+    if (fontSize) {
+      return fontSize;
+    } else if (maxFontSize === undefined) {
       return scaledFontSize;
     } else if (scaledFontSize > maxFontSize) {
       return maxFontSize;
@@ -831,7 +834,7 @@ const SearchQuizCard = ({
         flexGrow: undefined,
         width: '100%',
       }}
-      maxFontSize={18}
+      fontSize={18}
       extraChildren={extraChildren}
       showAnswerPubliclyCheckBox={false}
     >

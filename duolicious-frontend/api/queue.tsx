@@ -29,6 +29,9 @@ class PromiseQueue {
 // happen.
 const quizQueue = new PromiseQueue();
 
+const aboutQueue = new PromiseQueue();
+
 export {
+  aboutQueue,
   quizQueue,
 };

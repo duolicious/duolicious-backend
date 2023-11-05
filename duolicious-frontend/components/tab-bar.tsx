@@ -5,8 +5,8 @@ import {
 } from 'react-native';
 import {
   useCallback,
+  useEffect,
   useRef,
-  useState,
 } from 'react';
 import { DefaultText } from './default-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -23,18 +23,54 @@ const displayedTabs: Set<string> = new Set([
 ]);
 
 const TabBar = ({state, descriptors, navigation}) => {
-  const [inboxHasUnread, setInboxHasUnread] = useState(false);
+  const prevNumUnread = useRef(0);
+  const numUnread = useRef(0);
+
+  const unreadIndicatorOpacity = useRef(new Animated.Value(0)).current;
+
+  const hideIndicator = useCallback(() => {
+    unreadIndicatorOpacity.setValue(0);
+  }, []);
+
+  const indicatorTransition = (v: number) => [
+    Animated.timing(unreadIndicatorOpacity, {
+      toValue: v,
+      duration: 0,
+      useNativeDriver: false,
+    }),
+    Animated.delay(200),
+  ];
+
+  const flashIndicator = useCallback(() => {
+    unreadIndicatorOpacity.setValue(1);
+
+    Animated.sequence([
+      ...indicatorTransition(0),
+      ...indicatorTransition(1),
+      ...indicatorTransition(0),
+      ...indicatorTransition(1),
+    ]).start();
+  }, []);
+
   const onChangeInbox = useCallback((inbox: Inbox | null) => {
-    if (!inbox) {
-      setInboxHasUnread(false);
-      return;
+    if (inbox) {
+      prevNumUnread.current = numUnread.current;
+      numUnread.current = inboxStats(inbox).numUnreadInbox;
+    } else {
+      prevNumUnread.current = numUnread.current;
+      numUnread.current = 0;
     }
 
-    const numUnreadAvailable = inboxStats(inbox).numUnreadInbox;
-
-    setInboxHasUnread(numUnreadAvailable > 0);
+    if (numUnread.current === 0) {
+      hideIndicator();
+    } else if (numUnread.current > prevNumUnread.current) {
+      flashIndicator();
+    }
   }, []);
-  observeInbox(onChangeInbox);
+
+  useEffect(() => {
+    return observeInbox(onChangeInbox);
+  }, []);
 
   return (
     <View
@@ -159,11 +195,11 @@ const TabBar = ({state, descriptors, navigation}) => {
                   {label === 'Inbox' &&
                     <Ionicons style={{...iconStyle}} name={inboxIcon}/>
                   }
-                  {label === 'Inbox' && inboxHasUnread &&
-                    <View
+                  {label === 'Inbox' &&
+                    <Animated.View
                       style={{
                         position: 'absolute',
-                        top: 3,
+                        top: 0,
                         right: -13,
                         height: 12,
                         width: 12,
@@ -176,6 +212,7 @@ const TabBar = ({state, descriptors, navigation}) => {
                         shadowOpacity: 0.4,
                         shadowRadius: 4,
                         elevation: 4,
+                        opacity: unreadIndicatorOpacity,
                       }}
                     />
                   }

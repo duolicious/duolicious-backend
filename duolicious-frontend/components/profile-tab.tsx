@@ -43,6 +43,7 @@ import {
 } from '../env/env';
 import * as _ from "lodash";
 import debounce from 'lodash/debounce';
+import { aboutQueue } from '../api/queue';
 
 const formatHeight = (og: OptionGroup<OptionGroupInputs>): string | undefined => {
   if (!isOptionGroupSlider(og.input)) return '';
@@ -155,19 +156,22 @@ const ProfileTab_ = ({navigation}) => {
   );
 };
 
+const enqueueAbout = async (about: string, cb: (ok: boolean) => void) => {
+  aboutQueue.addTask(
+    async () => {
+      const response = await japi('patch', '/profile-info', { about });
+      cb(response.ok);
+    }
+  );
+};
+
 const AboutPerson = ({navigation, data}) => {
   const [aboutState, setAboutState] = useState<
     'unchanged' | 'saving...' | 'saved' | 'error'
   >('unchanged');
 
   const debouncedOnChangeAboutText = useCallback(
-    debounce(
-      async (about: string, cb: (ok: boolean) => void) => {
-        const response = await japi('patch', '/profile-info', { about });
-        cb(response.ok);
-      },
-      1000,
-    ),
+    debounce(enqueueAbout, 1000),
     []
   );
 
