@@ -27,33 +27,6 @@ response=$(jc POST /request-otp -d '{ "email": "user2@example.com" }')
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
 jc POST /check-otp -d '{ "otp": "000000" }'
 
-# TODO: Delete v
-response=$(c GET "/inbox-info?prospect-person-id=${user4_id}&prospect-person-id=${user1_id}")
-
-actual=$(jq -r 'sort_by(.name)' <<< "$response")
-expected=$(cat <<EOF
-[
-  {
-    "image_uuid": null,
-    "match_percentage": 50,
-    "name": "user1",
-    "person_id": ${user1_id},
-    "was_archived_by_me": false
-  },
-  {
-    "image_uuid": "my-uuid",
-    "match_percentage": 50,
-    "name": "user4",
-    "person_id": ${user4_id},
-    "was_archived_by_me": false
-  }
-]
-EOF
-)
-
-[[ "$expected" = "$actual" ]]
-# TODO: Delete ^
-
 echo Test 1
 response=$(jc POST "/inbox-info" -d "{ \"person_ids\": [${user4_id}, ${user1_id}] }")
 
