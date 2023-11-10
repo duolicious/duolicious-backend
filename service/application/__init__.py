@@ -1,5 +1,6 @@
 import os
 from flask import request
+import duohash
 import duotypes as t
 from service import (
     location,
@@ -109,13 +110,30 @@ def get_search(s: t.SessionInfo):
 def get_health():
     return 'status: ok'
 
+# TODO: Delete
 @aget('/me')
 def get_me_by_session(s: t.SessionInfo):
     return person.get_me(s.person_id)
 
+# TODO: Delete
 @get('/me/<int:person_id>')
 def get_me_by_id(person_id: int):
     return person.get_me(person_id)
+
+@aget('/u')
+def get_u_by_session(s: t.SessionInfo):
+    return person.get_u(
+        person_id=s.person_id,
+        person_id_salt=None,
+    )
+
+@get('/u/<int:salted_person_id>')
+def get_u_by_id(salted_person_id: str):
+    unsalted = duohash.unsalt(person_id, exponent=10 ** 6)
+    return person.get_u(
+        person_id=unsalted.unsalted,
+        person_id_salt=unsalted.salt,
+    )
 
 @aget('/prospect-profile/<int:prospect_person_id>')
 def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):

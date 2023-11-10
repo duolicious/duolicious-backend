@@ -5,7 +5,7 @@ import duotypes as t
 import urllib.request
 import json
 import secrets
-from duohash import sha512
+from duohash import sha512, salt
 from PIL import Image
 import io
 import boto3
@@ -466,9 +466,11 @@ def post_finish_onboarding(s: t.SessionInfo):
     with transaction() as tx:
         return tx.execute(Q_FINISH_ONBOARDING, params).fetchone()
 
+# TODO: Delete
 def get_me(person_id: int):
     params = dict(
         person_id=person_id,
+        person_id_salt=None,
         prospect_person_id=None,
         topic=None,
     )
@@ -480,6 +482,40 @@ def get_me(person_id: int):
         return {
             'name': personality[0]['person_name'],
             'person_id': person_id,
+            'personality': [
+                {
+                    'trait_name': trait['trait_name'],
+                    'trait_min_label': trait['trait_min_label'],
+                    'trait_max_label': trait['trait_max_label'],
+                    'trait_description': trait['trait_description'],
+                    'person_percentage': trait['person_percentage'],
+                }
+                for trait in personality
+            ]
+        }
+    except:
+        return '', 404
+
+def get_u(person_id: int, person_id_salt: int | None):
+    params = dict(
+        person_id=person_id,
+        person_id_salt=person_id_salt,
+        prospect_person_id=None,
+        topic=None,
+    )
+
+    with transaction('READ COMMITTED') as tx:
+        personality = tx.execute(Q_SELECT_PERSONALITY, params).fetchall()
+
+    try:
+        return {
+            'name': personality[0]['person_name'],
+            'person_id': person_id,
+            'salted_person_id': salt(
+                n=person_id,
+                s=personality[0]['person_salt'],
+                exponent=10 ** 6,
+            )
             'personality': [
                 {
                     'trait_name': trait['trait_name'],
@@ -564,6 +600,7 @@ def get_compare_personalities(
 
     params = dict(
         person_id=s.person_id,
+        person_id_salt=None,
         prospect_person_id=prospect_person_id,
         topic=db_topic,
     )
