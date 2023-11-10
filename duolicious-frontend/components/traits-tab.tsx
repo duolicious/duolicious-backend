@@ -40,8 +40,6 @@ const ShareNotice = ({personId}) => {
   return (
     <Pressable
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
         marginTop: 10,
         marginBottom: 20,
         backgroundColor: 'rgba(119, 0, 255, 0.1)',
@@ -51,18 +49,20 @@ const ShareNotice = ({personId}) => {
       onPress={onPressNotice}
     >
       <DefaultText style={{color: '#70f', fontWeight: '600', marginRight: 5}}>
-        {isCopied ? 'Copied!' : 'Share:'}
+        {isCopied ? 'Copied!' : 'Share'}
       </DefaultText>
 
-      <TextInput
-        style={{color: '#70f', marginRight: 10, flexGrow: 1}}
-        value={url}
-      />
+      <View style={{ flexDirection: 'row' }}>
+        <TextInput
+          style={{color: '#70f', flexGrow: 1}}
+          value={url}
+        />
 
-      <FontAwesomeIcon
-        icon={faCopy}
-        size={16}
-      />
+        <FontAwesomeIcon
+          icon={faCopy}
+          size={16}
+        />
+      </View>
     </Pressable>
   );
 }
