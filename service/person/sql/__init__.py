@@ -96,7 +96,6 @@ SELECT
     END                               AS trait_max_label,
     trait.description                 AS trait_description,
     person_trait.name                 AS person_name,
-    person_trait.id_salt              AS person_salt,
     ROUND(100 * person_trait.ratio)   AS person_percentage,
     prospect_trait.name               AS prospect_name,
     ROUND(100 * prospect_trait.ratio) AS prospect_percentage,
@@ -111,19 +110,10 @@ LEFT JOIN
     (
         SELECT
             id,
-            id_salt,
             name,
             (trait_ratio(presence_score, absence_score, 5000)).*
-        FROM
-            person
-        WHERE
-            id = %(person_id)s
-        AND
-            (
-                %(person_id_salt)s::INT = mod(id_salt, 10 ^ 6)
-            OR
-                %(person_id_salt)s::INT IS NULL
-            )
+        FROM person
+        WHERE id = %(person_id)s
     ) AS person_trait
 ON
     person_trait.trait_id = trait.id

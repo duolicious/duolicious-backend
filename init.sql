@@ -183,10 +183,6 @@ CREATE TABLE IF NOT EXISTS person (
     PRIMARY KEY (id)
 );
 
--- TODO: Add this into the `create table` statement
-ALTER TABLE person ADD COLUMN id_salt INT DEFAULT FLOOR(RANDOM() * 2147483647);
-
-
 CREATE TABLE IF NOT EXISTS onboardee (
     email TEXT NOT NULL,
 
