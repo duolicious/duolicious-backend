@@ -26,6 +26,26 @@ RETURNS FLOAT AS $$
     SELECT LEAST(hi, GREATEST(lo, val));
 $$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
 
+CREATE OR REPLACE FUNCTION base62_encode(num bigint) RETURNS text AS $$
+DECLARE
+    characters text := '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    result text := '';
+    current int;
+BEGIN
+    IF num = 0 THEN
+        RETURN '0';
+    END IF;
+
+    WHILE num > 0 LOOP
+        current := num % 62;
+        result := substr(characters, current + 1, 1) || result;
+        num := num / 62;
+    END LOOP;
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE STRICT;
+
 --------------------------------------------------------------------------------
 -- BASICS
 --------------------------------------------------------------------------------
@@ -182,6 +202,11 @@ CREATE TABLE IF NOT EXISTS person (
     UNIQUE (email),
     PRIMARY KEY (id)
 );
+
+-- TODO: Move these into `person`
+ALTER TABLE person ADD COLUMN IF NOT EXISTS id_salt INT DEFAULT FLOOR(RANDOM() * 1000000);
+ALTER TABLE person ADD COLUMN IF NOT EXISTS tiny_id TEXT GENERATED ALWAYS AS
+    (base62_encode(id::BIGINT * 1000000 + id_salt)) STORED;
 
 CREATE TABLE IF NOT EXISTS onboardee (
     email TEXT NOT NULL,
@@ -473,6 +498,7 @@ CREATE INDEX IF NOT EXISTS idx__location__long_friendly ON location USING GIST(l
 CREATE INDEX IF NOT EXISTS idx__question__question ON question USING GIST(question gist_trgm_ops);
 
 CREATE INDEX IF NOT EXISTS idx__person__sign_up_time ON person(sign_up_time);
+CREATE INDEX IF NOT EXISTS idx__person__tiny_id ON person(tiny_id);
 
 --------------------------------------------------------------------------------
 -- DATA
