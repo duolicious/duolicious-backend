@@ -222,7 +222,7 @@ const App = () => {
   const updateReferrerId = useCallback(async () => {
     const initialUrl = await Linking.getInitialURL();
     if (!initialUrl) return void setReferrerId(undefined);
-    const match = initialUrl.match(/\/me\/(\d+)$/);
+    const match = initialUrl.match(/\/me\/([^\/]+)$/);
     const referrerId_ = match ? match[1] : undefined;
     setReferrerId(referrerId_);
   }, []);
