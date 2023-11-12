@@ -28,7 +28,8 @@ Q_UNCACHED_SEARCH_2 = """
 WITH searcher AS MATERIALIZED (
     SELECT
         coordinates,
-        personality
+        personality,
+        gender_id
     FROM
         person
     WHERE
@@ -87,9 +88,17 @@ WITH searcher AS MATERIALIZED (
                 position
             LIMIT 1
         ) AS profile_photo_uuid,
+        EXISTS (
+            SELECT 1
+            FROM search_preference_gender AS preference
+            WHERE
+                preference.person_id = prospect.id AND
+                preference.gender_id = (SELECT gender_id FROM searcher)
+            LIMIT 1
+        ) AS prospect_is_looking_for_searcher,
         name,
         CASE WHEN show_my_age THEN age ELSE NULL END AS age,
-        CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2)::SMALLINT AS match_percentage,
+        CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2) AS match_percentage,
         personality
     FROM
         prospects_second_pass AS prospect
@@ -346,6 +355,7 @@ WITH searcher AS MATERIALIZED (
         ROW_NUMBER() OVER (
             ORDER BY
                 (profile_photo_uuid IS NOT NULL) DESC,
+                prospect_is_looking_for_searcher DESC,
                 match_percentage DESC
         ) AS position,
         prospect_person_id,
