@@ -141,6 +141,9 @@ CREATE TABLE IF NOT EXISTS immediacy (
 CREATE TABLE IF NOT EXISTS person (
     id SERIAL,
 
+    id_salt INT DEFAULT FLOOR(RANDOM() * 1000000),
+    tiny_id TEXT GENERATED ALWAYS AS (base62_encode(id::BIGINT * 1000000 + id_salt)) STORED,
+
     -- Required during sign-up
     email TEXT NOT NULL,
     name TEXT NOT NULL,
@@ -202,11 +205,6 @@ CREATE TABLE IF NOT EXISTS person (
     UNIQUE (email),
     PRIMARY KEY (id)
 );
-
--- TODO: Move these into `person`
-ALTER TABLE person ADD COLUMN IF NOT EXISTS id_salt INT DEFAULT FLOOR(RANDOM() * 1000000);
-ALTER TABLE person ADD COLUMN IF NOT EXISTS tiny_id TEXT GENERATED ALWAYS AS
-    (base62_encode(id::BIGINT * 1000000 + id_salt)) STORED;
 
 CREATE TABLE IF NOT EXISTS onboardee (
     email TEXT NOT NULL,
