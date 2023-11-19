@@ -1,27 +1,6 @@
 Q_UNCACHED_SEARCH_1 = """
-WITH deleted_search_cache AS (
-    DELETE FROM search_cache
-    WHERE searcher_person_id = %(searcher_person_id)s
-)
-SELECT
-    1000 * distance AS distance
-FROM
-    person
-JOIN
-    search_preference_distance
-ON
-    person.id = person_id
-WHERE
-    person.id = %(searcher_person_id)s
-"""
-
-Q_UNCACHED_SEARCH_2_DISTANCE_FRAGMENT = """
-    AND
-        ST_DWithin(
-            coordinates,
-            (SELECT coordinates FROM searcher),
-            %(distance)s
-        )
+DELETE FROM search_cache
+WHERE searcher_person_id = %(searcher_person_id)s
 """
 
 Q_UNCACHED_SEARCH_2 = """
@@ -29,7 +8,23 @@ WITH searcher AS MATERIALIZED (
     SELECT
         coordinates,
         personality,
-        gender_id
+        gender_id,
+        COALESCE(
+            (
+                SELECT
+                    1000 * distance
+                FROM
+                    person
+                JOIN
+                    search_preference_distance
+                ON
+                    person.id = person_id
+                WHERE
+                    person.id = %(searcher_person_id)s
+                LIMIT 1
+            ),
+            1e9
+        ) AS distance_preference
     FROM
         person
     WHERE
@@ -63,10 +58,20 @@ WITH searcher AS MATERIALIZED (
         star_sign_id,
 
         show_my_age,
-        hide_me_from_strangers
+        hide_me_from_strangers,
+
+        EXISTS (
+            SELECT 1
+            FROM search_preference_gender AS preference
+            WHERE
+                preference.person_id = id AND
+                preference.gender_id = (SELECT gender_id FROM searcher)
+            LIMIT 1
+        ) AS prospect_is_looking_for_searcher
 
     FROM
         person AS prospect
+
     WHERE
         prospect.activated
     AND
@@ -78,13 +83,22 @@ WITH searcher AS MATERIALIZED (
             WHERE
                 person_id = %(searcher_person_id)s
         )
-    [[maybe_distance_fragment]]
+    AND
+        ST_DWithin(
+            prospect.coordinates,
+            (SELECT coordinates FROM searcher),
+            (SELECT distance_preference FROM searcher)
+        )
     AND
         prospect.id != %(searcher_person_id)s
+
     ORDER BY
+        has_profile_picture_id,
+        prospect_is_looking_for_searcher DESC,
         negative_dot_prod
+
     LIMIT
-        3000
+        500
 ), prospects_second_pass AS (
     SELECT
         prospect_person_id,
@@ -97,14 +111,7 @@ WITH searcher AS MATERIALIZED (
                 position
             LIMIT 1
         ) AS profile_photo_uuid,
-        EXISTS (
-            SELECT 1
-            FROM search_preference_gender AS preference
-            WHERE
-                preference.person_id = prospect_person_id AND
-                preference.gender_id = (SELECT gender_id FROM searcher)
-            LIMIT 1
-        ) AS prospect_is_looking_for_searcher,
+        prospect_is_looking_for_searcher,
         name,
         CASE WHEN show_my_age THEN age ELSE NULL END AS age,
         CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2) AS match_percentage,
@@ -375,8 +382,6 @@ WITH searcher AS MATERIALIZED (
         personality
     FROM
         prospects_second_pass
-    LIMIT
-        500
     RETURNING *
 )
 SELECT
