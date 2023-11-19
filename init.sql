@@ -6,6 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS plpython3u;
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 --------------------------------------------------------------------------------
 -- FUNCTIONS (1)
@@ -457,6 +458,7 @@ CREATE TABLE IF NOT EXISTS blocked (
 -- TABLES TO SPEED UP SEARCHING
 --------------------------------------------------------------------------------
 
+-- TODO: Delete v
 CREATE TABLE IF NOT EXISTS search_for_standard_prospects (
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     coordinates GEOGRAPHY(Point, 4326) NOT NULL,
@@ -464,6 +466,7 @@ CREATE TABLE IF NOT EXISTS search_for_standard_prospects (
 
     PRIMARY KEY (person_id)
 );
+-- TODO: Delete ^
 
 CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -481,7 +484,22 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
 -- INDEXES
 --------------------------------------------------------------------------------
 
+-- TODO: Delete v
 CREATE INDEX IF NOT EXISTS idx__search_for_standard_prospects__coordinates ON search_for_standard_prospects USING GIST(coordinates);
+
+DROP INDEX IF EXISTS idx__search_for_standard_prospects__coordinates CASCADE;
+DROP TABLE IF EXISTS search_for_standard_prospects CASCADE;
+-- TODO: Delete ^
+
+CREATE INDEX IF NOT EXISTS idx__person__activated__gender_id__coordinates
+    ON person
+    USING GIST(gender_id, coordinates)
+    WHERE activated;
+
+CREATE INDEX IF NOT EXISTS idx__person__activated__coordinates__gender_id
+    ON person
+    USING GIST(coordinates, gender_id)
+    WHERE activated;
 
 CREATE INDEX IF NOT EXISTS idx__search_cache__searcher_person_id__position ON search_cache(searcher_person_id, position);
 
@@ -1077,6 +1095,7 @@ RETURNS TABLE(trait_id SMALLINT, ratio FLOAT4) AS $$
     FROM UNNEST(presence_score, absence_score) as t(a, b);
 $$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
 
+-- TODO: Delete v
 --------------------------------------------------------------------------------
 -- TRIGGER - insert_update_search_tables
 --------------------------------------------------------------------------------
@@ -1105,6 +1124,10 @@ AFTER INSERT OR UPDATE
 ON person
 FOR EACH ROW
 EXECUTE FUNCTION insert_update_search_tables();
+
+DROP FUNCTION IF EXISTS insert_update_search_tables CASCADE;
+DROP TRIGGER IF EXISTS insert_update_search_tables ON person;
+-- TODO: Delete ^
 
 --------------------------------------------------------------------------------
 -- TRIGGER - undeleted_photo
