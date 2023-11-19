@@ -458,16 +458,6 @@ CREATE TABLE IF NOT EXISTS blocked (
 -- TABLES TO SPEED UP SEARCHING
 --------------------------------------------------------------------------------
 
--- TODO: Delete v
-CREATE TABLE IF NOT EXISTS search_for_standard_prospects (
-    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    coordinates GEOGRAPHY(Point, 4326) NOT NULL,
-    personality VECTOR(47) NOT NULL,
-
-    PRIMARY KEY (person_id)
-);
--- TODO: Delete ^
-
 CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     position SMALLINT,
@@ -483,13 +473,6 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
 --------------------------------------------------------------------------------
 -- INDEXES
 --------------------------------------------------------------------------------
-
--- TODO: Delete v
-CREATE INDEX IF NOT EXISTS idx__search_for_standard_prospects__coordinates ON search_for_standard_prospects USING GIST(coordinates);
-
-DROP INDEX IF EXISTS idx__search_for_standard_prospects__coordinates CASCADE;
-DROP TABLE IF EXISTS search_for_standard_prospects CASCADE;
--- TODO: Delete ^
 
 CREATE INDEX IF NOT EXISTS idx__person__activated__gender_id__coordinates
     ON person
@@ -1094,40 +1077,6 @@ RETURNS TABLE(trait_id SMALLINT, ratio FLOAT4) AS $$
         END AS percentage
     FROM UNNEST(presence_score, absence_score) as t(a, b);
 $$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
-
--- TODO: Delete v
---------------------------------------------------------------------------------
--- TRIGGER - insert_update_search_tables
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION insert_update_search_tables()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.activated THEN
-        INSERT INTO search_for_standard_prospects (person_id, coordinates, personality)
-        VALUES (NEW.id, NEW.coordinates, NEW.personality)
-        ON CONFLICT (person_id)
-        DO UPDATE SET
-            coordinates = EXCLUDED.coordinates,
-            personality = EXCLUDED.personality;
-    ELSE
-        DELETE FROM search_for_standard_prospects
-        WHERE person_id = NEW.id;
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE TRIGGER insert_update_search_tables
-AFTER INSERT OR UPDATE
-ON person
-FOR EACH ROW
-EXECUTE FUNCTION insert_update_search_tables();
-
-DROP FUNCTION IF EXISTS insert_update_search_tables CASCADE;
-DROP TRIGGER IF EXISTS insert_update_search_tables ON person;
--- TODO: Delete ^
 
 --------------------------------------------------------------------------------
 -- TRIGGER - undeleted_photo
