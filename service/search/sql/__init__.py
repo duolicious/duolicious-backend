@@ -35,50 +35,59 @@ WITH searcher AS MATERIALIZED (
     WHERE
         person.id = %(searcher_person_id)s
     LIMIT 1
-), prospects_first_pass AS MATERIALIZED (
+), prospects_first_pass AS (
     SELECT
-        person_id AS prospect_person_id,
-        personality <#> (SELECT personality FROM searcher) AS negative_dot_prod
+        id AS prospect_person_id,
+
+        name,
+        EXTRACT(YEAR FROM AGE(date_of_birth)) AS age,
+
+        personality,
+        personality <#> (SELECT personality FROM searcher) AS negative_dot_prod,
+
+        has_profile_picture_id,
+        orientation_id,
+        occupation,
+        education,
+        height_cm,
+        looking_for_id,
+        smoking_id,
+        drinking_id,
+        drugs_id,
+        long_distance_id,
+        relationship_status_id,
+        has_kids_id,
+        wants_kids_id,
+        exercise_id,
+        religion_id,
+        star_sign_id,
+
+        show_my_age,
+        hide_me_from_strangers
+
     FROM
-        search_for_standard_prospects
+        person AS prospect
     WHERE
-        person_id != %(searcher_person_id)s
+        prospect.activated
+    AND
+        prospect.gender_id IN (
+            SELECT
+                gender_id
+            FROM
+                search_preference_gender AS preference
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
     [[maybe_distance_fragment]]
+    AND
+        prospect.id != %(searcher_person_id)s
     ORDER BY
         negative_dot_prod
     LIMIT
-        2000
-), joined_prospects AS MATERIALIZED (
+        3000
+), prospects_second_pass AS (
     SELECT
-        *,
-        EXTRACT(YEAR FROM AGE(date_of_birth)) AS age
-    FROM
-        person
-    JOIN
-        prospects_first_pass
-    ON
-        person.id = prospect_person_id
-), prospects_second_pass AS MATERIALIZED (
-    SELECT
-        *
-    FROM
-        joined_prospects AS prospect
-    WHERE
-        -- The prospect satisfies the searcher's gender preference
-        EXISTS (
-            SELECT 1
-            FROM search_preference_gender AS preference
-            WHERE
-                preference.person_id = %(searcher_person_id)s AND
-                preference.gender_id = prospect.gender_id
-            LIMIT 1
-        )
-    ORDER BY
-        negative_dot_prod
-    LIMIT 500
-), prospects_third_pass AS MATERIALIZED (
-    SELECT
-        id AS prospect_person_id,
+        prospect_person_id,
         (
             SELECT uuid
             FROM photo
@@ -92,7 +101,7 @@ WITH searcher AS MATERIALIZED (
             SELECT 1
             FROM search_preference_gender AS preference
             WHERE
-                preference.person_id = prospect.id AND
+                preference.person_id = prospect_person_id AND
                 preference.gender_id = (SELECT gender_id FROM searcher)
             LIMIT 1
         ) AS prospect_is_looking_for_searcher,
@@ -101,7 +110,7 @@ WITH searcher AS MATERIALIZED (
         CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2) AS match_percentage,
         personality
     FROM
-        prospects_second_pass AS prospect
+        prospects_first_pass AS prospect
     WHERE
         EXISTS (
             SELECT 1
@@ -365,7 +374,9 @@ WITH searcher AS MATERIALIZED (
         match_percentage,
         personality
     FROM
-        prospects_third_pass
+        prospects_second_pass
+    LIMIT
+        500
     RETURNING *
 )
 SELECT
