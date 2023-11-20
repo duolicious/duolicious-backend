@@ -471,11 +471,6 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     PRIMARY KEY (searcher_person_id, position)
 );
 
-ALTER TABLE
-  search_cache
-ADD COLUMN IF NOT EXISTS
-  prospect_is_looking_for_searcher BOOLEAN NOT NULL DEFAULT TRUE;
-
 --------------------------------------------------------------------------------
 -- INDEXES
 --------------------------------------------------------------------------------
