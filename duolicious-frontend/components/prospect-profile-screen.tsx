@@ -744,7 +744,7 @@ const Body = ({
         {data?.name && data?.about && data.about.trim() &&
           <>
             <Title>About {data.name}</Title>
-            <DefaultText>
+            <DefaultText selectable={true}>
               {data.about}
             </DefaultText>
           </>

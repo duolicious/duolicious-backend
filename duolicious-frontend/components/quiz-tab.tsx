@@ -6,7 +6,12 @@ import {
 } from 'react';
 import { ButtonWithCenteredText } from './button/centered-text';
 import { QuizCardStack } from './quiz-card-stack';
-import { X, Check, FastForward, RotateCcw } from "react-native-feather";
+import {
+  Check,
+  FastForward,
+  Rewind,
+  X,
+} from "react-native-feather";
 
 const QuizTab = ({navigation}) => {
   const stackRef = useRef(undefined);
@@ -138,11 +143,15 @@ const UndoNoYesSkip = (props) => {
         borderColor="white"
         borderWidth={2}
       >
-        <RotateCcw
+        <Rewind
           stroke="white"
           strokeWidth={4}
           height={30}
           width={30}
+          style={{
+            marginTop: 3,
+            marginLeft: -3,
+          }}
         />
       </ButtonWithCenteredText>
       <ButtonWithCenteredText
@@ -159,6 +168,9 @@ const UndoNoYesSkip = (props) => {
           strokeWidth={4}
           width={30}
           height={30}
+          style={{
+            marginTop: 3,
+          }}
         />
       </ButtonWithCenteredText>
       <ButtonWithCenteredText
@@ -175,6 +187,9 @@ const UndoNoYesSkip = (props) => {
           strokeWidth={4}
           width={30}
           height={30}
+          style={{
+            marginTop: 3,
+          }}
         />
       </ButtonWithCenteredText>
       <ButtonWithCenteredText
@@ -192,6 +207,10 @@ const UndoNoYesSkip = (props) => {
           strokeWidth={4}
           height={30}
           width={30}
+          style={{
+            marginTop: 3,
+            marginRight: -3,
+          }}
         />
       </ButtonWithCenteredText>
     </View>
