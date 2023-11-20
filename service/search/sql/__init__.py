@@ -93,6 +93,7 @@ WITH searcher AS MATERIALIZED (
         prospect.id != %(searcher_person_id)s
 
     ORDER BY
+        -- If this is changed, other queries will need changing too
         has_profile_picture_id,
         prospect_is_looking_for_searcher DESC,
         negative_dot_prod
@@ -371,6 +372,7 @@ WITH searcher AS MATERIALIZED (
         %(searcher_person_id)s,
         ROW_NUMBER() OVER (
             ORDER BY
+                -- If this is changed, other queries will need changing too
                 (profile_photo_uuid IS NOT NULL) DESC,
                 prospect_is_looking_for_searcher DESC,
                 match_percentage DESC
@@ -442,6 +444,7 @@ FROM
 WHERE
     searcher_person_id = %(searcher_person_id)s
 ORDER BY
+    -- If this is changed, other queries will need changing too
     (profile_photo_uuid IS NOT NULL) DESC,
     prospect_is_looking_for_searcher DESC,
     match_percentage DESC
