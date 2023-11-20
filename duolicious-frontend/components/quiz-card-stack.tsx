@@ -120,10 +120,13 @@ const prospectState = (
   };
 };
 
-const fetchNBestProspects = async (n: number): Promise<ProspectState[]> => {
-  const response = n === 1 ?
-    await japi('get', '/search') :
-    await japi('get', `/search?n=${n}&o=0`);
+const fetchNBestProspects = async (
+  n: number,
+  refreshNeighborhood: boolean,
+): Promise<ProspectState[]> => {
+  const response = refreshNeighborhood || n > 1 ?
+    await japi('get', `/search?n=${n}&o=0`) :
+    await japi('get', '/search');
 
   if (!response.ok) {
     return [];
@@ -284,7 +287,14 @@ const addNextProspectsInPlace = async (
 ) => {
   const prospects = state.prospects;
 
-  prospects.push(...await fetchNBestProspects(n));
+  const topCardQuestionNumber = state.cards[
+    state.topCardIndex
+  ]?.questionNumber ?? -1;
+
+  prospects.push(...await fetchNBestProspects(
+    n,
+    [4, 8, 16, 32, 64].includes(topCardQuestionNumber)
+  ));
 
   callback && callback();
 };
