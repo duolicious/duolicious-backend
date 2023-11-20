@@ -361,6 +361,7 @@ WITH searcher AS MATERIALIZED (
         position,
         prospect_person_id,
         profile_photo_uuid,
+        prospect_is_looking_for_searcher,
         name,
         age,
         match_percentage,
@@ -376,6 +377,7 @@ WITH searcher AS MATERIALIZED (
         ) AS position,
         prospect_person_id,
         profile_photo_uuid,
+        prospect_is_looking_for_searcher,
         name,
         age,
         match_percentage,
@@ -424,30 +426,25 @@ WITH searcher AS (
     WHERE
         person.id = %(searcher_person_id)s
     LIMIT 1
-), with_negative_dot_prod AS (
-    SELECT
-        prospect_person_id,
-        profile_photo_uuid,
-        name,
-        age,
-        personality <#> (SELECT personality FROM searcher) AS negative_dot_prod
-    FROM
-        search_cache
-    WHERE
-        searcher_person_id = %(searcher_person_id)s
-    ORDER BY
-        (profile_photo_uuid IS NOT NULL) DESC,
-        negative_dot_prod
-    LIMIT
-        1
 )
 SELECT
     prospect_person_id,
     profile_photo_uuid,
     name,
     age,
-    CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2)::SMALLINT AS match_percentage
+    CLAMP(
+        0,
+        99,
+        100 * (1 - (personality <#> (SELECT personality FROM searcher))) / 2
+    )::SMALLINT AS match_percentage
 FROM
-    with_negative_dot_prod
-LIMIT 1
+    search_cache
+WHERE
+    searcher_person_id = %(searcher_person_id)s
+ORDER BY
+    (profile_photo_uuid IS NOT NULL) DESC,
+    prospect_is_looking_for_searcher DESC,
+    match_percentage DESC
+LIMIT
+    1
 """

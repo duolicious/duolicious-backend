@@ -462,6 +462,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     position SMALLINT,
     prospect_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    prospect_is_looking_for_searcher BOOLEAN NOT NULL DEFAULT TRUE,
     profile_photo_uuid TEXT,
     name TEXT NOT NULL,
     age SMALLINT,
@@ -469,6 +470,11 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     personality VECTOR(47) NOT NULL,
     PRIMARY KEY (searcher_person_id, position)
 );
+
+ALTER TABLE
+  search_cache
+ADD COLUMN IF NOT EXISTS
+  prospect_is_looking_for_searcher BOOLEAN NOT NULL DEFAULT TRUE;
 
 --------------------------------------------------------------------------------
 -- INDEXES
