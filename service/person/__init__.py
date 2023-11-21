@@ -5,7 +5,7 @@ import duotypes as t
 import urllib.request
 import json
 import secrets
-from duohash import sha512, pk
+from duohash import sha512
 from PIL import Image
 import io
 import boto3
@@ -466,8 +466,12 @@ def post_finish_onboarding(s: t.SessionInfo):
     with transaction() as tx:
         return tx.execute(Q_FINISH_ONBOARDING, params).fetchone()
 
-def get_me(person_id: int | str):
-    person_id_as_int, person_id_as_str = pk(person_id)
+def get_me(
+    person_id_as_int: int | None = None,
+    person_id_as_str: str | None = None,
+):
+    if person_id_as_int is None and person_id_as_str is None:
+        raise ValueError('pass an arg, please')
 
     params = dict(
         person_id_as_int=person_id_as_int,
