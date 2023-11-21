@@ -26,6 +26,7 @@ import { Inbox, Conversation, inboxStats, observeInbox } from '../xmpp/xmpp';
 import { compareArrays } from '../util/util';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { listen, unlisten } from '../events/events';
+import { inboxOrder, inboxSection } from '../kv-storage/inbox';
 
 const Stack = createNativeStackNavigator();
 
@@ -94,8 +95,14 @@ const InboxTab_ = ({navigation}) => {
     }).start();
   }, []);
 
-  const setSectionIndex_ = useCallback((value) => setSectionIndex(value), []);
-  const setSortByIndex_  = useCallback((value) => setSortByIndex(value), []);
+  const setSectionIndex_ = useCallback((value: number) => {
+    setSectionIndex(value);
+    inboxSection(value);
+  }, []);
+  const setSortByIndex_  = useCallback((value: number) => {
+    setSortByIndex(value);
+    inboxOrder(value);
+  }, []);
 
   const onPressTooMany = useCallback(() => {
     navigation.navigate(
@@ -115,7 +122,17 @@ const InboxTab_ = ({navigation}) => {
     listRef.current?.refresh && listRef.current.refresh()
   }, [listRef]);
 
-  useEffect(() => observeInbox(setInbox), []);
+  useEffect(() => {
+    (async () => {
+      const _inboxOrder = await inboxOrder();
+      const _inboxSection = await inboxSection();
+
+      setSectionIndex(_inboxSection);
+      setSortByIndex(_inboxOrder);
+
+      observeInbox(setInbox);
+    })();
+  }, []);
 
   useEffect(maybeRefresh, [maybeRefresh, sectionIndex]);
   useEffect(maybeRefresh, [maybeRefresh, sortByIndex]);
