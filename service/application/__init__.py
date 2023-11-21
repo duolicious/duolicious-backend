@@ -111,11 +111,11 @@ def get_health():
 
 @aget('/me')
 def get_me_by_session(s: t.SessionInfo):
-    return person.get_me(s.person_id)
+    return person.get_me(person_id_as_int=s.person_id)
 
 @get('/me/<person_id>')
 def get_me_by_id(person_id: str):
-    return person.get_me(person_id)
+    return person.get_me(person_id_as_str=person_id)
 
 @aget('/prospect-profile/<int:prospect_person_id>')
 def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
