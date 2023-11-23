@@ -20,6 +20,22 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { RotateCcw, X } from "react-native-feather";
 
+
+
+const introVerb = (msg: string) => {
+  return (
+    msg.endsWith('?') ||
+    msg.toLowerCase().startsWith('who ') ||
+    msg.toLowerCase().startsWith('where ') ||
+    msg.toLowerCase().startsWith('when ') ||
+    msg.toLowerCase().startsWith('why ') ||
+    msg.toLowerCase().startsWith('what ') ||
+    msg.toLowerCase().startsWith('how ')
+  )
+  ? 'asks'
+  : 'says';
+};
+
 const IntrosItem = ({
   wasRead,
   name,
@@ -45,7 +61,10 @@ const IntrosItem = ({
 
   const backgroundColor = animated.interpolate({
     inputRange: [0, 1],
-    outputRange: ['rgba(222,222,222, 1)', 'rgba(255,255,255, 0)'],
+    outputRange: [
+      'rgba(222,222,222, 1)',
+      wasRead ? 'white' : 'rgba(241, 229, 255, 1)',
+    ],
     extrapolate: 'clamp',
   });
 
@@ -83,22 +102,25 @@ const IntrosItem = ({
       <Animated.View
         style={{
           backgroundColor: backgroundColor,
+          borderRadius: 15,
           flexDirection: 'row',
           alignItems: 'center',
-          paddingTop: 5,
-          paddingBottom: 5,
+          paddingTop: 15,
+          paddingBottom: 10,
           paddingLeft: 10,
+          marginLeft: 5,
+          marginRight: 5,
         }}
       >
         <Avatar percentage={matchPercentage} imageUuid={imageUuid}/>
         <View
           style={{
-            paddingLeft: 10,
+            paddingLeft: 18,
             paddingRight: 20,
             flexDirection: 'column',
             flex: 1,
             flexGrow: 1,
-            marginTop: -20,
+            marginBottom: 30,
           }}
         >
           <View
@@ -109,30 +131,33 @@ const IntrosItem = ({
           >
             <DefaultText
               style={{
-                fontSize: 16,
+                fontSize: 20,
                 fontWeight: '700',
                 paddingBottom: 5,
                 overflow: 'hidden',
+                color: wasRead ? 'black' : '#70f',
+                flexWrap: 'wrap',
+                flexShrink: 1,
               }}
             >
-              {name}
+              {name} {introVerb(lastMessage)}...
             </DefaultText>
             <DefaultText
               style={{
-                color: 'grey',
+                color: wasRead ? 'grey' : '#70f',
               }}
             >
               {friendlyTimestamp(lastMessageTimestamp)}
             </DefaultText>
           </View>
           <DefaultText
-            numberOfLines={1}
+            numberOfLines={5}
             style={{
-              fontWeight: wasRead ? '400' : '600',
-              color: wasRead ? 'grey' : 'black',
+              fontWeight: '400',
+              color: wasRead ? 'grey' : '#70f',
             }}
           >
-            Sent you an intro
+            {lastMessage}
           </DefaultText>
         </View>
       </Animated.View>
@@ -355,11 +380,14 @@ const ChatsItem = ({
       <Animated.View
         style={{
           backgroundColor: backgroundColor,
+          borderRadius: 15,
           flexDirection: 'row',
           alignItems: 'center',
           paddingTop: 5,
           paddingBottom: 5,
           paddingLeft: 10,
+          marginLeft: 5,
+          marginRight: 5,
         }}
       >
         <Avatar percentage={matchPercentage} imageUuid={imageUuid}/>
@@ -384,6 +412,8 @@ const ChatsItem = ({
                 fontWeight: '700',
                 paddingBottom: 5,
                 overflow: 'hidden',
+                flexWrap: 'wrap',
+                flexShrink: 1,
               }}
             >
               {name}
