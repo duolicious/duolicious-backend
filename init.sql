@@ -454,6 +454,20 @@ CREATE TABLE IF NOT EXISTS blocked (
     PRIMARY KEY (subject_person_id, object_person_id)
 );
 
+CREATE TABLE IF NOT EXISTS club (
+    name TEXT NOT NULL,
+    count_members INT NOT NULL DEFAULT 0,
+
+    PRIMARY KEY (name)
+);
+
+CREATE TABLE IF NOT EXISTS person_club (
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    club_name TEXT NOT NULL REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+
+    PRIMARY KEY (person_id, club_name)
+);
+
 --------------------------------------------------------------------------------
 -- TABLES TO SPEED UP SEARCHING
 --------------------------------------------------------------------------------
@@ -499,6 +513,8 @@ CREATE INDEX IF NOT EXISTS idx__question__question ON question USING GIST(questi
 
 CREATE INDEX IF NOT EXISTS idx__person__sign_up_time ON person(sign_up_time);
 CREATE INDEX IF NOT EXISTS idx__person__tiny_id ON person(tiny_id);
+
+CREATE INDEX IF NOT EXISTS idx__club__name ON club USING GIST(name gist_trgm_ops);
 
 --------------------------------------------------------------------------------
 -- DATA

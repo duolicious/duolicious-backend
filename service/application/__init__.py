@@ -213,3 +213,17 @@ def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo):
 @apost('/mark-messaged/<int:prospect_person_id>')
 def post_mark_messaged(s: t.SessionInfo, prospect_person_id: int):
     return person.post_mark_messaged(s, prospect_person_id)
+
+@aget('/search-clubs')
+def get_search_clubs(s: t.SessionInfo):
+    return person.get_search_clubs(s=s, q=request.args.get('q', ''))
+
+@apost('/join-club')
+@validate(t.PostJoinClub)
+def post_join_club(req: t.PostJoinClub, s: t.SessionInfo):
+    return person.post_join_club(req, s)
+
+@apost('/leave-club')
+@validate(t.PostLeaveClub)
+def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo):
+    return person.post_leave_club(req, s)
