@@ -11,9 +11,13 @@ import io
 import boto3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from service.person.sql import *
+from service.person.template import otp_template, report_template
+import traceback
 
 EMAIL_KEY = os.environ['DUO_EMAIL_KEY']
 EMAIL_URL = os.environ['DUO_EMAIL_URL']
+
+REPORT_EMAIL = os.environ['DUO_REPORT_EMAIL']
 
 R2_ACCT_ID = os.environ['DUO_R2_ACCT_ID']
 R2_ACCESS_KEY_ID = os.environ['DUO_R2_ACCESS_KEY_ID']
@@ -31,6 +35,35 @@ bucket = s3.Bucket(R2_BUCKET_NAME)
 
 def init_db():
     pass
+
+def _send_report(subject_person_id: int, object_person_id: int):
+    with transaction() as tx:
+        report = tx.execute(Q_REPORT_EMAIL).fetchone()
+
+    headers = {
+        'accept': 'application/json',
+        'api-key': EMAIL_KEY,
+        'content-type': 'application/json'
+    }
+
+    data = {
+       "sender": {
+          "name": "Duolicious",
+          "email": "no-reply@duolicious.app"
+       },
+       "to": [ { "email": REPORT_EMAIL } ],
+       "subject": "New Report",
+       "htmlContent": report_template(report)
+    }
+
+    urllib_req = urllib.request.Request(
+        EMAIL_URL,
+        headers=headers,
+        data=json.dumps(data).encode('utf-8')
+    )
+
+    with urllib.request.urlopen(urllib_req) as f:
+        pass
 
 def process_image(
     image: Image.Image,
@@ -186,51 +219,7 @@ def _send_otp(email: str, otp: str):
        },
        "to": [ { "email": email } ],
        "subject": "Sign in to Duolicious",
-       "htmlContent": f"""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign in to Duolicious</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif;">
-    <table width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
-        <tr>
-            <td align="center">
-                <table width="600" cellspacing="0" cellpadding="0" border="0" align="center">
-                    <tr>
-                        <td bgcolor="#70f" align="center">
-                            <img src="https://email-assets.duolicious.app/header-logo.png" alt="Duolicious Logo" width="108" height="50" />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td bgcolor="#f1e5ff" height="20">&nbsp;</td>
-                    </tr>
-                    <tr>
-                        <td bgcolor="#f1e5ff" align="center" style="color: #70f;">
-                            <p style="color: #70f; font-size: 16px">Your one-time password is:</p>
-                            <table cellspacing="0" cellpadding="0" border="0" align="center">
-                                <tr>
-                                    <td bgcolor="#70f" style="font-weight: 900; font-size: 32px; color: white; padding: 15px; border-radius: 15px;">{otp}</td>
-                                </tr>
-                            </table>
-                            <p style="color: #70f; font-size: 16px">If you didn’t request this, you can ignore this message.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td bgcolor="#f1e5ff" height="20">&nbsp;</td>
-                    </tr>
-                    <tr>
-                        <td bgcolor="#70f" height="50">&nbsp;</td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>
-"""
+       "htmlContent": otp_template(otp),
     }
 
     urllib_req = urllib.request.Request(
@@ -523,6 +512,14 @@ def post_block(s: t.SessionInfo, prospect_person_id: int):
 
     with transaction() as tx:
         tx.execute(Q_INSERT_BLOCKED, params)
+
+    try:
+        _send_report(
+            subject_person_id=s.person_id,
+            object_person_id=prospect_person_id,
+        )
+    except:
+        print(traceback.format_exc())
 
 def post_unblock(s: t.SessionInfo, prospect_person_id: int):
     params = dict(

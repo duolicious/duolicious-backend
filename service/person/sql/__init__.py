@@ -1027,3 +1027,34 @@ INSERT INTO messaged (
     %(object_person_id)s
 ) ON CONFLICT DO NOTHING
 """
+
+Q_REPORT_EMAIL = """
+SELECT
+    CASE
+        WHEN id = %(subject_person_id)s
+        THEN 'Reporter'
+        ELSE 'Accused'
+    END AS role,
+    id,
+    email,
+    name,
+    about,
+    count_answers,
+    occupation,
+    education,
+    ARRAY(
+        SELECT
+            position,
+            ('https://user-images.duolicious.app/original-' || uuid || '.jpg') AS image_url
+        FROM photo
+        WHERE person_id = id
+        ORDER BY position
+    ) AS photo_uuids
+FROM
+    person
+WHERE
+    id IN (
+        %(subject_person_id)s,
+        %(object_person_id)s
+    )
+"""
