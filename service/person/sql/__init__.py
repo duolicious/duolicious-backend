@@ -1038,18 +1038,18 @@ SELECT
     id,
     email,
     name,
-    about,
+    gender_id,
     count_answers,
     occupation,
     education,
     ARRAY(
         SELECT
-            position,
             ('https://user-images.duolicious.app/original-' || uuid || '.jpg') AS image_url
         FROM photo
         WHERE person_id = id
         ORDER BY position
-    ) AS photo_uuids
+    ) AS photo_uuids,
+    about
 FROM
     person
 WHERE

@@ -48,8 +48,12 @@ def otp_template(otp: str):
 </html>
 """
 
-def report_template(report_json):
-    json_string = json.dumps(report_json)
+def report_template(
+    report_json,
+    subject_person_id: int,
+    object_person_id: int,
+):
+    json_string = json.dumps(report_json, indent=2)
 
     safe_json_string = html.escape(json_string)
 
@@ -65,6 +69,17 @@ def report_template(report_json):
 <pre>
 {safe_json_string}
 </pre>
+
+<pre>
+# Reporter
+duo_last_50 {subject_person_id}
+</pre>
+
+<pre>
+# Accused
+duo_last_50 {object_person_id}
+</pre>
+
 </body>
 </html>
 """

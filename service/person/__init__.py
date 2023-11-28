@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from service.person.sql import *
 from service.person.template import otp_template, report_template
 import traceback
+import threading
 
 EMAIL_KEY = os.environ['DUO_EMAIL_KEY']
 EMAIL_URL = os.environ['DUO_EMAIL_URL']
@@ -37,33 +38,45 @@ def init_db():
     pass
 
 def _send_report(subject_person_id: int, object_person_id: int):
-    with transaction() as tx:
-        report = tx.execute(Q_REPORT_EMAIL).fetchone()
+    try:
+        params = dict(
+            subject_person_id=subject_person_id,
+            object_person_id=object_person_id,
+        )
 
-    headers = {
-        'accept': 'application/json',
-        'api-key': EMAIL_KEY,
-        'content-type': 'application/json'
-    }
+        with transaction('READ COMMITTED') as tx:
+            report = tx.execute(Q_REPORT_EMAIL, params).fetchall()
 
-    data = {
-       "sender": {
-          "name": "Duolicious",
-          "email": "no-reply@duolicious.app"
-       },
-       "to": [ { "email": REPORT_EMAIL } ],
-       "subject": "New Report",
-       "htmlContent": report_template(report)
-    }
+        headers = {
+            'accept': 'application/json',
+            'api-key': EMAIL_KEY,
+            'content-type': 'application/json'
+        }
 
-    urllib_req = urllib.request.Request(
-        EMAIL_URL,
-        headers=headers,
-        data=json.dumps(data).encode('utf-8')
-    )
+        data = {
+           "sender": {
+              "name": "Duolicious",
+              "email": "no-reply@duolicious.app"
+           },
+           "to": [ { "email": REPORT_EMAIL } ],
+           "subject": f"Report: {subject_person_id} - {object_person_id}",
+           "htmlContent": report_template(
+               report,
+               subject_person_id,
+               object_person_id,
+           )
+        }
 
-    with urllib.request.urlopen(urllib_req) as f:
-        pass
+        urllib_req = urllib.request.Request(
+            EMAIL_URL,
+            headers=headers,
+            data=json.dumps(data).encode('utf-8')
+        )
+
+        with urllib.request.urlopen(urllib_req) as f:
+            pass
+    except:
+        print(traceback.format_exc())
 
 def process_image(
     image: Image.Image,
@@ -513,13 +526,7 @@ def post_block(s: t.SessionInfo, prospect_person_id: int):
     with transaction() as tx:
         tx.execute(Q_INSERT_BLOCKED, params)
 
-    try:
-        _send_report(
-            subject_person_id=s.person_id,
-            object_person_id=prospect_person_id,
-        )
-    except:
-        print(traceback.format_exc())
+    threading.Thread(target=_send_report, kwargs=params).start()
 
 def post_unblock(s: t.SessionInfo, prospect_person_id: int):
     params = dict(
