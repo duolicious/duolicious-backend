@@ -76,6 +76,12 @@ spec:
               name: duo-secrets
               key: DUO_R2_ACCESS_KEY_SECRET
 
+        - name: DUO_REPORT_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: duo-secrets
+              key: DUO_REPORT_EMAIL
+
 ---
 apiVersion: apps/v1
 kind: Deployment
