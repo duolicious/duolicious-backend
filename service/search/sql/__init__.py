@@ -30,6 +30,13 @@ WITH searcher AS MATERIALIZED (
     WHERE
         person.id = %(searcher_person_id)s
     LIMIT 1
+), searcher_club AS MATERIALIZED (
+    SELECT
+        club_name
+    FROM
+        person_club
+    WHERE
+        person_id = %(searcher_person_id)s
 ), prospects_first_pass AS (
     SELECT
         id AS prospect_person_id,
@@ -59,6 +66,16 @@ WITH searcher AS MATERIALIZED (
 
         show_my_age,
         hide_me_from_strangers,
+
+        EXISTS (
+            SELECT club_name FROM searcher_club
+
+            INTERSECT
+
+            SELECT club_name FROM person_club
+            WHERE person_id = prospect.id
+            LIMIT 1
+        ) AS has_mutual_club,
 
         EXISTS (
             SELECT 1
@@ -95,6 +112,7 @@ WITH searcher AS MATERIALIZED (
     ORDER BY
         -- If this is changed, other queries will need changing too
         has_profile_picture_id,
+        has_mutual_club DESC,
         prospect_is_looking_for_searcher DESC,
         negative_dot_prod
 
@@ -112,6 +130,7 @@ WITH searcher AS MATERIALIZED (
                 position
             LIMIT 1
         ) AS profile_photo_uuid,
+        has_mutual_club,
         prospect_is_looking_for_searcher,
         name,
         CASE WHEN show_my_age THEN age ELSE NULL END AS age,
@@ -362,6 +381,7 @@ WITH searcher AS MATERIALIZED (
         position,
         prospect_person_id,
         profile_photo_uuid,
+        has_mutual_club,
         prospect_is_looking_for_searcher,
         name,
         age,
@@ -374,11 +394,13 @@ WITH searcher AS MATERIALIZED (
             ORDER BY
                 -- If this is changed, other queries will need changing too
                 (profile_photo_uuid IS NOT NULL) DESC,
+                has_mutual_club DESC,
                 prospect_is_looking_for_searcher DESC,
                 match_percentage DESC
         ) AS position,
         prospect_person_id,
         profile_photo_uuid,
+        has_mutual_club,
         prospect_is_looking_for_searcher,
         name,
         age,
@@ -446,6 +468,7 @@ WHERE
 ORDER BY
     -- If this is changed, other queries will need changing too
     (profile_photo_uuid IS NOT NULL) DESC,
+    has_mutual_club DESC,
     prospect_is_looking_for_searcher DESC,
     match_percentage DESC
 LIMIT

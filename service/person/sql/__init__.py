@@ -1194,6 +1194,8 @@ WITH currently_joined_clubs AS (
         club
     WHERE
         name NOT IN (SELECT club_name FROM currently_joined_clubs)
+    AND
+        count_members > 0
     ORDER BY
         name <-> %(search_string)s
     LIMIT 20

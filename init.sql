@@ -476,6 +476,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     position SMALLINT,
     prospect_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    has_mutual_club BOOLEAN NOT NULL DEFAULT FALSE,
     prospect_is_looking_for_searcher BOOLEAN NOT NULL DEFAULT TRUE,
     profile_photo_uuid TEXT,
     name TEXT NOT NULL,
@@ -1169,8 +1170,10 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
+-- TODO: Delete
+ALTER TABLE search_cache ADD COLUMN has_mutual_club BOOLEAN NOT NULL DEFAULT FALSE;
+
 --------------------------------------------------------------------------------
 
 -- TODO: Periodically delete expired tokens
 -- TODO: Periodically move inactive accounts
--- TODO: Periodically delete photos from bucket
