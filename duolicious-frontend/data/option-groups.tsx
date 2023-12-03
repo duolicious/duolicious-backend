@@ -382,7 +382,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   locationOptionGroup,
   {
     title: 'Occupation',
-    description: "What's your profession?",
+    description: "What’s your profession?",
     input: {
       textShort: {
         submit: async function(occupation: string) {
@@ -485,7 +485,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Relationship Status',
-    description: "What's your relationship status?",
+    description: "What’s your relationship status?",
     input: {
       buttons: {
         values: relationshipStatus,
@@ -543,7 +543,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Religion',
-    description: "What's your religion?",
+    description: "What’s your religion?",
     input: {
       buttons: {
         values: religions,
@@ -557,7 +557,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Star Sign',
-    description: "What's your star sign?",
+    description: "What’s your star sign?",
     input: {
       buttons: {
         values: starSigns,
@@ -603,7 +603,7 @@ const generalSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
 const notificationSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
   {
     title: 'Chats',
-    description: "When do you want to be notified if anyone you're chatting with sends a new message? (\"Daily\" still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
+    description: "When do you want to be notified if anyone you’re chatting with sends a new message? (\"Daily\" still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
     input: {
       buttons: {
         values: immediacy,
@@ -617,7 +617,7 @@ const notificationSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
   },
   {
     title: 'Intros',
-    description: "When do you want to be notified if someone you haven't chatted with sends you an intro? (\"Daily\" still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
+    description: "When do you want to be notified if someone you haven’t chatted with sends you an intro? (\"Daily\" still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
     input: {
       buttons: {
         values: immediacy,
@@ -634,7 +634,7 @@ const notificationSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
 const deletionOptionGroups: OptionGroup<OptionGroupTextShort>[] = [
   {
     title: 'Delete My Account',
-    description: `Are you sure you want to delete your account? This will immediately log you out and permanently delete your account data. If you're sure, type "delete" to confirm.`,
+    description: `Are you sure you want to delete your account? This will immediately log you out and permanently delete your account data. If you’re sure, type "delete" to confirm.`,
     input: {
       textShort: {
         submit: async (input: string) => {
@@ -734,7 +734,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   ),
   {
     title: "Step 3 of 7: First Name",
-    description: "What's your first name?",
+    description: "What’s your first name?",
     input: {
       givenName: {
         submit: async (input) => (await japi(
@@ -813,7 +813,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: "",
     input: {
       none: {
-        description: "You’re ready to go! You can always sweeten your profile even more once you're signed in...",
+        description: "You’re ready to go! You can always sweeten your profile even more once you’re signed in...",
         submit: async () => {
           const _sessionToken = await sessionToken();
           const response = await japi('post', '/finish-onboarding');
@@ -907,8 +907,8 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       slider: {
         sliderMin: 5,
-        sliderMax: 2500,
-        defaultValue: 2500,
+        sliderMax: 5000,
+        defaultValue: 5000,
         step: 1,
         unitsLabel: 'km',
         addPlusAtMax: true,
@@ -958,7 +958,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Has a Profile Picture",
-    description: "Do you want to see people who have a profile picture? Selecting 'Yes' and 'No' includes everyone, though people who have pictures will be shown first.",
+    description: "Do you want to see people who have a profile picture? Selecting ‘Yes’ and ‘No’ includes everyone, though people who have pictures will be shown first.",
     input: {
       checkChips: {
         values: [
@@ -1292,7 +1292,7 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
 
 const hideMeFromStrangersOptionGroup: OptionGroup<OptionGroupInputs> = {
   title: 'Hide Me From Strangers',
-  description: "With this option set to 'Yes', people won't see you anywhere in Duolicious until you message them first.",
+  description: "With this option set to ‘Yes’, people won’t see you anywhere in Duolicious until you message them first.",
   input: {
     buttons: {
       values: yesNo,
@@ -1314,7 +1314,7 @@ const hideMeFromStrangersOptionGroup: OptionGroup<OptionGroupInputs> = {
 const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     title: 'Show My Location',
-    description: "Would you like your location to appear on your profile? Note that if you set this option to 'No', other people will still be able to filter your profile by distance when searching.",
+    description: "Would you like your location to appear on your profile? Note that if you set this option to ‘No’, other people will still be able to filter your profile by distance when searching.",
     input: {
       buttons: {
         values: yesNo,
@@ -1334,7 +1334,7 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Show My Age',
-    description: "Would you like your age to appear on your profile? Note that if you set this option to 'No', other people will still be able to filter your profile by age when searching.",
+    description: "Would you like your age to appear on your profile? Note that if you set this option to ‘No’, other people will still be able to filter your profile by age when searching.",
     input: {
       buttons: {
         values: yesNo,

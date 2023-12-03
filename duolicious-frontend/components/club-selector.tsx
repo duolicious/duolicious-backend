@@ -274,7 +274,7 @@ const ClubSelector = ({navigation, route}) => {
               textAlign: 'center'
             }}
           >
-            Start typing to search for clubs to join...
+            Start typing to find clubs to join...
           </DefaultText>
         }
 

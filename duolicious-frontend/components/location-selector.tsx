@@ -76,6 +76,7 @@ const LocationSelector = ({onChangeText, ...rest}) => {
       >
         {displayResults &&
           <ScrollView
+            showsVerticalScrollIndicator={!loading}
             style={{
               position: 'absolute',
               width: '100%',

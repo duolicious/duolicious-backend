@@ -42,6 +42,7 @@ import { api } from '../api/api';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { RotateCcw, Slash, X } from "react-native-feather";
 import { setHidden, setBlocked } from '../hide-and-block/hide-and-block';
+import { isMobile } from '../util/util';
 
 const Menu = ({navigation, personId}) => {
   const [isBlocked, setIsBlocked] = useState<boolean | undefined>();
@@ -552,7 +553,20 @@ const TextInputWithButton = ({
   }, [text]);
 
   const onKeyPress = useCallback((e) => {
-    if (e.key === 'Enter' && !e.shiftKey && !e.controlKey && !e.altKey) {
+    if (
+      !isMobile() &&
+      e.key === 'Enter' &&
+      (e.ctrlKey || e.altKey)
+    ) {
+      e.preventDefault();
+      setText((text) => text + "\n");
+    } else if (
+      !isMobile() &&
+      e.key === 'Enter' &&
+      !e.shiftKey &&
+      !e.ctrlKey &&
+      !e.altKey
+    ) {
       e.preventDefault();
       sendMessage();
     }
