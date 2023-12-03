@@ -1,10 +1,20 @@
 from typing import Any, DefaultDict, Dict, List, Optional
-from pydantic import BaseModel, EmailStr, constr, conlist, field_validator, model_validator, conint
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    conint,
+    conlist,
+    constr,
+    field_validator,
+    model_validator,
+)
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from PIL import Image
 import constants
 import io
+
+CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 
 def file_names(files):
     if files is None:
@@ -249,3 +259,9 @@ class PostSearchFilterAnswer(BaseModel):
 
 class PostInboxInfo(BaseModel):
     person_ids: List[int]
+
+class PostJoinClub(BaseModel):
+    name: constr(pattern=CLUB_PATTERN)
+
+class PostLeaveClub(BaseModel):
+    name: constr(pattern=CLUB_PATTERN)

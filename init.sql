@@ -454,6 +454,20 @@ CREATE TABLE IF NOT EXISTS blocked (
     PRIMARY KEY (subject_person_id, object_person_id)
 );
 
+CREATE TABLE IF NOT EXISTS club (
+    name TEXT NOT NULL,
+    count_members INT NOT NULL DEFAULT 0,
+
+    PRIMARY KEY (name)
+);
+
+CREATE TABLE IF NOT EXISTS person_club (
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    club_name TEXT NOT NULL REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+
+    PRIMARY KEY (person_id, club_name)
+);
+
 --------------------------------------------------------------------------------
 -- TABLES TO SPEED UP SEARCHING
 --------------------------------------------------------------------------------
@@ -462,6 +476,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     position SMALLINT,
     prospect_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    has_mutual_club BOOLEAN NOT NULL DEFAULT FALSE,
     prospect_is_looking_for_searcher BOOLEAN NOT NULL DEFAULT TRUE,
     profile_photo_uuid TEXT,
     name TEXT NOT NULL,
@@ -499,6 +514,8 @@ CREATE INDEX IF NOT EXISTS idx__question__question ON question USING GIST(questi
 
 CREATE INDEX IF NOT EXISTS idx__person__sign_up_time ON person(sign_up_time);
 CREATE INDEX IF NOT EXISTS idx__person__tiny_id ON person(tiny_id);
+
+CREATE INDEX IF NOT EXISTS idx__club__name ON club USING GIST(name gist_trgm_ops);
 
 --------------------------------------------------------------------------------
 -- DATA
@@ -1153,8 +1170,10 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
+-- TODO: Delete
+ALTER TABLE search_cache ADD COLUMN IF NOT EXISTS has_mutual_club BOOLEAN NOT NULL DEFAULT FALSE;
+
 --------------------------------------------------------------------------------
 
 -- TODO: Periodically delete expired tokens
 -- TODO: Periodically move inactive accounts
--- TODO: Periodically delete photos from bucket

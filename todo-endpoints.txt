@@ -114,6 +114,8 @@ GET /prospect-profile/<person-id> {
   match-percentage: number
   summary: { gender: , ..., profession: }
   about: "I'm a reasonable..."
+  mutual_clubs: [ name ]
+  other_clubs: [ name ]
 }
 
 POST /block/<person-id> { session-token }
@@ -225,4 +227,27 @@ POST /search-filter-answer {
 
 POST /mark-messaged/<person-id> {
   session-token
+}
+
+GET /search-clubs {
+  session-token
+} {
+  q?
+} -> [
+  {
+    name
+    member_count
+  }
+]
+
+POST /join-club {
+  session-token
+} {
+  name
+}
+
+POST /leave-club {
+  session-token
+} {
+  name
 }

@@ -9,11 +9,14 @@ set -xe
 
 q "delete from duo_session"
 q "delete from person"
+q "delete from club"
+q "delete from person_club"
 q "delete from onboardee"
 q "delete from undeleted_photo"
 q "update question set count_yes = 0, count_no = 0"
 
 ../util/create-user.sh user1 0 0
+../util/create-user.sh user2 0 0
 
 response=$(jc POST /request-otp -d '{ "email": "user1@example.com" }')
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
@@ -29,6 +32,81 @@ test_set () {
     c GET /profile-info | jq -r ".[\"${field_name//_/\ }\"]"
   )
   [[ "$new_field_value" == "$field_value" ]]
+}
+
+test_club () {
+  local clubs=$(
+    set +x
+    c GET /profile-info | jq -r ".[\"clubs\"] | sort_by(.name)"
+  )
+  local expected_clubs="[]"
+  [[ "$clubs" == "$expected_clubs" ]]
+
+  jc POST /join-club -d '{ "name": "my-club" }'
+  jc POST /join-club -d '{ "name": "my-other-club" }'
+  local clubs=$(
+    set +x
+    c GET /profile-info | jq -r ".[\"clubs\"] | sort_by(.name)"
+  )
+  local expected_clubs=$(
+    jq -r . <<< "[\
+      {\"count_members\": 1, \"name\": \"my-club\"}, \
+      {\"count_members\": 1, \"name\": \"my-other-club\"}\
+    ] | sort_by(.name)"
+  )
+  [[ "$clubs" == "$expected_clubs" ]]
+
+  assume_role user2
+  jc POST /join-club -d '{ "name": "my-other-club" }'
+  local clubs=$(
+    set +x
+    c GET /profile-info | jq -r ".[\"clubs\"] | sort_by(.name)"
+  )
+  local expected_clubs=$(
+    jq -r . <<< "[\
+      {\"count_members\": 2, \"name\": \"my-other-club\"}\
+    ] | sort_by(.name)"
+  )
+  [[ "$clubs" == "$expected_clubs" ]]
+
+  assume_role user1
+  local clubs=$(
+    set +x
+    c GET /profile-info | jq -r ".[\"clubs\"] | sort_by(.name)"
+  )
+  local expected_clubs=$(
+    jq -r . <<< "[\
+      {\"count_members\": 1, \"name\": \"my-club\"}, \
+      {\"count_members\": 2, \"name\": \"my-other-club\"}\
+    ] | sort_by(.name)"
+  )
+  [[ "$clubs" == "$expected_clubs" ]]
+
+  # /leave-club is basically correct
+  jc POST /leave-club -d '{ "name": "my-club" }'
+  local clubs=$(
+    set +x
+    c GET /profile-info | jq -r ".[\"clubs\"] | sort_by(.name)"
+  )
+  local expected_clubs=$(
+    jq -r . <<< "[\
+      {\"count_members\": 2, \"name\": \"my-other-club\"}\
+    ] | sort_by(.name)"
+  )
+  [[ "$clubs" == "$expected_clubs" ]]
+
+  # /leave-club is idempotent
+  jc POST /leave-club -d '{ "name": "my-club" }'
+  local clubs=$(
+    set +x
+    c GET /profile-info | jq -r ".[\"clubs\"] | sort_by(.name)"
+  )
+  local expected_clubs=$(
+    jq -r . <<< "[\
+      {\"count_members\": 2, \"name\": \"my-other-club\"}\
+    ] | sort_by(.name)"
+  )
+  [[ "$clubs" == "$expected_clubs" ]]
 }
 
 test_set about "I'm a bad ass motherfuckin' DJ / This is why I walk and talk this way"
@@ -55,3 +133,4 @@ test_set intros Weekly
 test_set show_my_location Yes
 test_set show_my_age No
 test_set hide_me_from_strangers Yes
+test_club

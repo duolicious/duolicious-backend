@@ -14,6 +14,7 @@ from service.person.sql import *
 from service.person.template import otp_template, report_template
 import traceback
 import threading
+import re
 
 EMAIL_KEY = os.environ['DUO_EMAIL_KEY']
 EMAIL_URL = os.environ['DUO_EMAIL_URL']
@@ -511,10 +512,14 @@ def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
 
     with transaction('READ COMMITTED') as tx:
         row = tx.execute(Q_SELECT_PROSPECT_PROFILE, params).fetchone()
-        if row:
-            return row
-        else:
+        if not row:
             return '', 404
+
+        profile = row.get('j')
+        if not profile:
+            return '', 404
+
+        return profile
     return '', 500
 
 def post_block(s: t.SessionInfo, prospect_person_id: int):
@@ -1248,3 +1253,33 @@ def post_mark_messaged(s: t.SessionInfo, prospect_person_id: int):
 
     with transaction() as tx:
         tx.execute(Q_INSERT_MESSAGED, params)
+
+def get_search_clubs(s: t.SessionInfo, q: str):
+    if not re.match(t.CLUB_PATTERN, q):
+        return []
+
+    params = dict(
+        person_id=s.person_id,
+        search_string=q,
+    )
+
+    with transaction('READ COMMITTED') as tx:
+        return tx.execute(Q_SEARCH_CLUBS, params).fetchall()
+
+def post_join_club(req: t.PostJoinClub, s: t.SessionInfo):
+    params = dict(
+        person_id=s.person_id,
+        club_name=req.name,
+    )
+
+    with transaction() as tx:
+        tx.execute(Q_JOIN_CLUB, params)
+
+def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo):
+    params = dict(
+        person_id=s.person_id,
+        club_name=req.name,
+    )
+
+    with transaction() as tx:
+        tx.execute(Q_LEAVE_CLUB, params)
