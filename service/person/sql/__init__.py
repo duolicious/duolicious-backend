@@ -1192,6 +1192,8 @@ WHERE
         %(subject_person_id)s,
         %(object_person_id)s
     )
+ORDER BY
+    (id = %(object_person_id)s)
 """
 
 Q_SEARCH_CLUBS = """
