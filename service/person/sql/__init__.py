@@ -472,7 +472,7 @@ WITH prospect AS (
     FROM
         negative_dot_prod
 ), photo_uuids AS (
-    SELECT json_arrayagg(uuid) AS j
+    SELECT COALESCE(json_agg(uuid ORDER BY position), '[]'::json) AS j
     FROM photo
     WHERE person_id = %(prospect_person_id)s
 ), gender AS (
