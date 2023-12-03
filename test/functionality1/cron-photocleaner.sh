@@ -37,6 +37,28 @@ wait_for_deletion_by_uuid () {
   return 1
 }
 
+wait_for_creation_by_uuid () {
+  local uuid=$1
+
+  local url=$1
+
+  local elapsed=0
+
+  while (( elapsed < 5 ))
+  do
+    if assert_photos_downloadable_by_uuid "${uuid}"
+    then
+      return 0
+    fi
+
+    sleep 1
+
+    (( elapsed += 1 )) || true
+  done
+
+  return 1
+}
+
 do_test () {
   q "delete from person"
   q "delete from duo_session"
@@ -53,14 +75,14 @@ do_test () {
   local uuid2=$(q "select uuid from photo where person_id = ${user2id} and position = 1")
 
   # Delete user1's photo
-  assert_photos_downloadable_by_uuid "${uuid1}"
+  wait_for_creation_by_uuid "${uuid1}"
 
   assume_role user1; jc DELETE /profile-info -d '{ "files": [2] }'
 
   wait_for_deletion_by_uuid "${uuid1}"
 
   # Delete user2's photo
-  assert_photos_downloadable_by_uuid "${uuid2}"
+  wait_for_creation_by_uuid "${uuid2}"
 
   assume_role user2; jc DELETE /profile-info -d '{ "files": [1] }'
 
@@ -73,7 +95,7 @@ do_test () {
 
   for uuid in "${uuids[@]}"
   do
-    assert_photos_downloadable_by_uuid "${uuid}"
+    wait_for_creation_by_uuid "${uuid}"
   done
 }
 
