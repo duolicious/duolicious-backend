@@ -21,10 +21,6 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { listen, unlisten } from '../events/events';
 
-function getRandomInt(max) {
-  return Math.floor(Math.random() * max);
-}
-
 const ImageOrSkeleton = ({resolution, imageUuid, ...rest}) => {
   const {
     showGradient = true,

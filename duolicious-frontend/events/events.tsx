@@ -9,6 +9,8 @@ const listeners: EventKeyToHandlers = {};
 const listen = (key: string, eventHandler: EventHandler) => {
   listeners[key] = listeners[key] ?? new Set<EventKeyToHandlers>();
   listeners[key].add(eventHandler);
+
+  return () => unlisten(key, eventHandler);
 };
 
 const unlisten = (key: string, eventHandler: EventHandler) => {

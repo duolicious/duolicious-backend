@@ -24,7 +24,7 @@ import { RotateCcw, X } from "react-native-feather";
 
 const introVerb = (msg: string) => {
   return (
-    msg.endsWith('?') ||
+    msg.includes('?') ||
     msg.toLowerCase().startsWith('who ') ||
     msg.toLowerCase().startsWith('where ') ||
     msg.toLowerCase().startsWith('when ') ||
@@ -105,7 +105,7 @@ const IntrosItem = ({
           borderRadius: 15,
           flexDirection: 'row',
           alignItems: 'center',
-          paddingTop: 15,
+          paddingTop: 12,
           paddingBottom: 10,
           paddingLeft: 10,
           marginLeft: 5,

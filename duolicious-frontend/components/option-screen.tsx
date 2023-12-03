@@ -874,7 +874,7 @@ const OptionScreen = ({navigation, route}) => {
             justifyContent: 'center',
             flexShrink: 1,
             paddingTop: showCloseButton || showBackButton ? 0 : 40,
-            paddingBottom: 40,
+            paddingBottom: 20,
           }}
         >
           <DefaultText

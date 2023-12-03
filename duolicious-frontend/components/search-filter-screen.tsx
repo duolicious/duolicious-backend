@@ -432,7 +432,7 @@ const QandQFilterScreen = ({navigation, route}) => {
           />
         </Pressable>
         <DefaultTextInput
-          placeholder="Search Questions..."
+          placeholder="Search questions..."
           style={{
             marginLeft: 50,
             marginRight: 50,

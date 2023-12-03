@@ -31,10 +31,11 @@ import { randomGagLocation } from '../data/gag-locations';
 import { setHidden, setBlocked } from '../hide-and-block/hide-and-block';
 import { ImageCarousel } from './image-carousel';
 import { Pinchy } from './pinchy';
+import { Basic } from './basic';
+import { Club, Clubs } from './club';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
-import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons/faArrowLeft'
 import { faRulerVertical } from '@fortawesome/free-solid-svg-icons/faRulerVertical'
 import { faHandsPraying } from '@fortawesome/free-solid-svg-icons/faHandsPraying'
@@ -48,8 +49,10 @@ import { RotateCcw, X } from "react-native-feather";
 
 const Stack = createNativeStackNavigator();
 
-const isIconDefinition = (x: any): x is IconDefinition => {
-  return x.iconName !== undefined;
+const goToGallery = (navigation, imageUuids) => () => {
+  if ((imageUuids ?? []).length > 0) {
+    navigation.navigate('Gallery Screen', { imageUuids } );
+  }
 };
 
 const FloatingBackButton = (props) => {
@@ -373,6 +376,8 @@ const ProspectProfileScreen = ({navigation, route}) => {
 type UserData = {
   name: string,
   about: string,
+  mutual_clubs: string[],
+  other_clubs: string[],
   gender: string,
   match_percentage: number,
   count_answers: number,
@@ -595,54 +600,6 @@ const ProspectUserDetails = ({
   );
 };
 
-const Basic = ({children, ...rest}) => {
-  const {icon} = rest;
-
-  const Icon = ({icon}) => {
-    if (isIconDefinition(icon)) {
-      return <FontAwesomeIcon
-        icon={icon}
-        size={16}
-        style={{
-          marginRight: 5,
-        }}
-      />
-    } else {
-      return <Ionicons
-        style={{
-          fontSize: 16,
-          marginRight: 5,
-        }}
-        name={icon}
-      />
-    }
-  };
-
-  return (
-    <View
-      style={{
-        borderColor: '#ddd',
-        borderWidth: 1,
-        borderRadius: 999,
-        paddingTop: 5,
-        paddingBottom: 5,
-        paddingLeft: 10,
-        paddingRight: 10,
-        marginRight: 5,
-        marginBottom: 5,
-        justifyContent: 'center',
-        alignItems: 'center',
-        flexDirection: 'row',
-      }}
-    >
-      {icon && <Icon icon={icon}/>}
-      <View>
-        <DefaultText>{children}</DefaultText>
-      </View>
-    </View>
-  );
-};
-
 const Basics = ({children}) => {
   return (
     <View
@@ -747,6 +704,34 @@ const Body = ({
             <DefaultText selectable={true}>
               {data.about}
             </DefaultText>
+          </>
+        }
+        {data !== undefined && data.mutual_clubs.length > 0 &&
+          <>
+            <Title>Mutual Clubs</Title>
+            <Clubs>
+              {data.mutual_clubs.map((clubName, i) =>
+                <Club
+                  key={i}
+                  name={clubName}
+                  isMutual={true}
+                />
+              )}
+            </Clubs>
+          </>
+        }
+        {data !== undefined && data.other_clubs.length > 0 &&
+          <>
+            <Title>{data.mutual_clubs.length > 0 ? 'Other ' : ''}Clubs</Title>
+            <Clubs>
+              {data.other_clubs.map((clubName, i) =>
+                <Club
+                  key={i}
+                  name={clubName}
+                  isMutual={false}
+                />
+              )}
+            </Clubs>
           </>
         }
         <SeeQAndAButton

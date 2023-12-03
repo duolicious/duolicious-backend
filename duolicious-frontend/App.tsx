@@ -39,19 +39,12 @@ import { japi, SUPPORTED_API_VERSIONS } from './api/api';
 import { login, logout } from './xmpp/xmpp';
 import { STATUS_URL } from './env/env';
 import { delay } from './util/util';
+import { ClubSelector } from './components/club-selector'; // TODO
 
 // TODO: iOS UI testing
-// TODO: Delete 'getRandomInt' definitions
-// TODO: Notifications for new messages
-// TODO: Privacy Policy, Terms and Conditions
 // TODO: Add the ability to reply to things (e.g. pictures, quiz responses) from people's profiles. You'll need to change the navigation to make it easier to reply to things. Consider breaking profiles into sections which can be replied to, each having one image or block of text. Letting people reply to specific things on the profile will improve intro quality.
 // TODO: A profile prompts. e.g. "If I had three wishes, I'd wish for...", "My favourite move is..."
 // TODO: Picture verification and a way to filter users by verified pics
-
-// TODO: Think more about mechanisms in place to stop women getting too many messages. Think about the setting which lets women message first. e.g. The initial message filter tells you what you *shouldn't* do; It'd be nice to have something which tells you what you should do. Is it okay to let anyone message anyone else by default?
-//
-// TODO: What happens if you leave the app to get the OTP from your emails?
-
 
 
 SplashScreen.preventAutoHideAsync();

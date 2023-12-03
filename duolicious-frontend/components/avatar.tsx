@@ -13,10 +13,6 @@ import {
 } from '../env/env';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-function getRandomInt(max) {
-  return Math.floor(Math.random() * max);
-}
-
 const Avatar = ({percentage, ...props}) => {
   const {
     personId,
