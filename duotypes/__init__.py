@@ -14,7 +14,7 @@ from PIL import Image
 import constants
 import io
 
-CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"]+( [a-zA-Z0-9/#'"]+)*$"""
+CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 
 def file_names(files):
     if files is None:

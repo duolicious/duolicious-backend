@@ -229,7 +229,7 @@ POST /mark-messaged/<person-id> {
   session-token
 }
 
-GET /search-club {
+GET /search-clubs {
   session-token
 } {
   q?

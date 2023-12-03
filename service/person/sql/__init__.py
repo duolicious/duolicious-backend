@@ -561,11 +561,27 @@ WITH prospect AS (
         is_mutual DESC,
         club_name
 ), mutual_clubs_json AS (
-    SELECT COALESCE(json_agg(club_name), '[]'::json) AS j
+    SELECT COALESCE(
+        json_agg(
+            club_name
+            ORDER BY
+                is_mutual DESC,
+                club_name
+        ),
+        '[]'::json
+    ) AS j
     FROM clubs
     WHERE is_mutual
 ), other_clubs_json AS (
-    SELECT COALESCE(json_agg(club_name), '[]'::json) AS j
+    SELECT COALESCE(
+        json_agg(
+            club_name
+            ORDER BY
+                is_mutual DESC,
+                club_name
+        ),
+        '[]'::json
+    ) AS j
     FROM clubs
     WHERE NOT is_mutual
 )
@@ -1236,16 +1252,19 @@ SELECT
 FROM
     distinct_club
 ORDER BY
-    count_members DESC
+    count_members DESC,
+    name
 """
 
 Q_JOIN_CLUB = """
 -- Step 1: Try to insert the new club
 WITH inserted_club AS (
     INSERT INTO club (
-        name
+        name,
+        count_members
     ) VALUES (
-        %(club_name)s
+        %(club_name)s,
+        1
     )
     ON CONFLICT (name) DO NOTHING
     RETURNING name
@@ -1272,7 +1291,11 @@ SET
 WHERE
     name = %(club_name)s
 AND
-    EXISTS (SELECT 1 FROM inserted_person_club)
+    NOT EXISTS (
+        SELECT 1 FROM inserted_club)
+AND
+    EXISTS (
+        SELECT 1 FROM inserted_person_club)
 """
 
 Q_LEAVE_CLUB = """
