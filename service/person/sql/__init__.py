@@ -436,11 +436,31 @@ FROM
 """
 
 Q_SELECT_PROSPECT_PROFILE = """
-WITH negative_dot_prod AS (
+WITH prospect AS (
+    SELECT
+        *,
+        (
+            SELECT EXTRACT(YEAR FROM AGE(p.date_of_birth))::SMALLINT
+            WHERE p.show_my_age
+        ) AS age,
+        (
+            SELECT short_friendly
+            FROM location
+            WHERE p.show_my_location
+            ORDER BY location.coordinates <-> p.coordinates
+            LIMIT 1
+        ) AS location
+    FROM
+        person AS p
+    WHERE
+        id = %(prospect_person_id)s
+    LIMIT
+        1
+), negative_dot_prod AS (
     SELECT (
         SELECT personality FROM person WHERE id = %(person_id)s
     ) <#> (
-        SELECT personality FROM person WHERE id = %(prospect_person_id)s
+        SELECT personality FROM prospect
     ) AS negative_dot_prod
 ), match_percentage AS (
     SELECT
@@ -448,59 +468,157 @@ WITH negative_dot_prod AS (
             0,
             99,
             100 * (1 - negative_dot_prod.negative_dot_prod) / 2
-        )::SMALLINT AS match_percentage
+        )::SMALLINT AS j
     FROM
         negative_dot_prod
+), photo_uuids AS (
+    SELECT COALESCE(json_agg(uuid ORDER BY position), '[]'::json) AS j
+    FROM photo
+    WHERE person_id = %(prospect_person_id)s
+), gender AS (
+    SELECT gender.name AS j
+    FROM gender JOIN prospect ON gender_id = gender.id
+    WHERE gender.name != 'Unanswered'
+), orientation AS (
+    SELECT orientation.name AS j
+    FROM orientation JOIN prospect ON orientation_id = orientation.id
+    WHERE orientation.name != 'Unanswered'
+), looking_for AS (
+    SELECT looking_for.name AS j
+    FROM looking_for JOIN prospect ON looking_for_id = looking_for.id
+    WHERE looking_for.name != 'Unanswered'
+), smoking AS (
+    SELECT yes_no_optional.name AS j
+    FROM yes_no_optional JOIN prospect ON smoking_id = yes_no_optional.id
+    WHERE yes_no_optional.name != 'Unanswered'
+), drinking AS (
+    SELECT frequency.name AS j
+    FROM frequency JOIN prospect ON drinking_id = frequency.id
+    WHERE frequency.name != 'Unanswered'
+), drugs AS (
+    SELECT yes_no_optional.name AS j
+    FROM yes_no_optional JOIN prospect ON drugs_id = yes_no_optional.id
+    WHERE yes_no_optional.name != 'Unanswered'
+), long_distance AS (
+    SELECT yes_no_optional.name AS j
+    FROM yes_no_optional JOIN prospect ON long_distance_id = yes_no_optional.id
+    WHERE yes_no_optional.name != 'Unanswered'
+), relationship_status AS (
+    SELECT relationship_status.name AS j
+    FROM relationship_status JOIN prospect ON relationship_status_id = relationship_status.id
+    WHERE relationship_status.name != 'Unanswered'
+), has_kids AS (
+    SELECT yes_no_maybe.name AS j
+    FROM yes_no_maybe JOIN prospect ON has_kids_id = yes_no_maybe.id
+    WHERE yes_no_maybe.name != 'Unanswered'
+), wants_kids AS (
+    SELECT yes_no_maybe.name AS j
+    FROM yes_no_maybe JOIN prospect ON wants_kids_id = yes_no_maybe.id
+    WHERE yes_no_maybe.name != 'Unanswered'
+), exercise AS (
+    SELECT frequency.name AS j
+    FROM frequency JOIN prospect ON exercise_id = frequency.id
+    WHERE frequency.name != 'Unanswered'
+), religion AS (
+    SELECT religion.name AS j
+    FROM religion JOIN prospect ON religion_id = religion.id
+    WHERE religion.name != 'Unanswered'
+), star_sign AS (
+    SELECT star_sign.name AS j
+    FROM star_sign JOIN prospect ON star_sign_id = star_sign.id
+    WHERE star_sign.name != 'Unanswered'
+), is_hidden AS (
+    SELECT
+        EXISTS (
+            SELECT 1
+            FROM hidden
+            WHERE subject_person_id = %(person_id)s
+            AND object_person_id = %(prospect_person_id)s
+        ) AS j
+), is_blocked AS (
+    SELECT
+        EXISTS (
+            SELECT 1
+            FROM blocked
+            WHERE subject_person_id = %(person_id)s
+            AND object_person_id = %(prospect_person_id)s
+        ) AS j
+), clubs AS (
+    SELECT
+        prospect_person_club.club_name,
+        person_club_.person_id IS NOT NULL AS is_mutual
+    FROM
+        person_club AS prospect_person_club
+    LEFT JOIN
+        person_club AS person_club_
+    ON
+        prospect_person_club.club_name = person_club_.club_name
+    AND
+        person_club_.person_id = %(person_id)s
+    WHERE
+        prospect_person_club.person_id = %(prospect_person_id)s
+    ORDER BY
+        is_mutual DESC,
+        club_name
+), mutual_clubs_json AS (
+    SELECT COALESCE(
+        json_agg(
+            club_name
+            ORDER BY
+                is_mutual DESC,
+                club_name
+        ),
+        '[]'::json
+    ) AS j
+    FROM clubs
+    WHERE is_mutual
+), other_clubs_json AS (
+    SELECT COALESCE(
+        json_agg(
+            club_name
+            ORDER BY
+                is_mutual DESC,
+                club_name
+        ),
+        '[]'::json
+    ) AS j
+    FROM clubs
+    WHERE NOT is_mutual
 )
 SELECT
-    ARRAY(
-        SELECT uuid
-        FROM photo
-        WHERE person_id = %(prospect_person_id)s
-        ORDER BY position
-    ) AS photo_uuids,
-    name,
-    (
-        SELECT EXTRACT(YEAR FROM AGE(p.date_of_birth))::SMALLINT
-        WHERE p.show_my_age
-    ) AS age,
-    (
-        SELECT short_friendly
-        FROM location
-        WHERE p.show_my_location
-        ORDER BY coordinates <-> p.coordinates
-        LIMIT 1
-    ) AS location,
-    (
-        SELECT match_percentage
-        FROM match_percentage
-    ) AS match_percentage,
-    about,
-    count_answers,
-    EXISTS (SELECT 1 FROM hidden  WHERE subject_person_id = %(person_id)s AND object_person_id = %(prospect_person_id)s) AS is_hidden,
-    EXISTS (SELECT 1 FROM blocked WHERE subject_person_id = %(person_id)s AND object_person_id = %(prospect_person_id)s) AS is_blocked,
+    json_build_object(
+        'photo_uuids',            (SELECT j             FROM photo_uuids),
+        'name',                   (SELECT name          FROM prospect),
+        'age',                    (SELECT age           FROM prospect),
+        'location',               (SELECT location      FROM prospect),
+        'match_percentage',       (SELECT j             FROM match_percentage),
+        'about',                  (SELECT about         FROM prospect),
+        'count_answers',          (SELECT count_answers FROM prospect),
+        'is_blocked',             (SELECT j             FROM is_blocked),
+        'is_hidden',              (SELECT j             FROM is_hidden),
 
-    -- Basics
-    occupation,
-    education,
-    height_cm,
-    (SELECT name FROM gender              WHERE id = p.gender_id              AND name != 'Unanswered') AS gender,
-    (SELECT name FROM orientation         WHERE id = p.orientation_id         AND name != 'Unanswered') AS orientation,
-    (SELECT name FROM looking_for         WHERE id = p.looking_for_id         AND name != 'Unanswered') AS looking_for,
-    (SELECT name FROM yes_no_optional     WHERE id = p.smoking_id             AND name != 'Unanswered') AS smoking,
-    (SELECT name FROM frequency           WHERE id = p.drinking_id            AND name != 'Unanswered') AS drinking,
-    (SELECT name FROM yes_no_optional     WHERE id = p.drugs_id               AND name != 'Unanswered') AS drugs,
-    (SELECT name FROM yes_no_optional     WHERE id = p.long_distance_id       AND name != 'Unanswered') AS long_distance,
-    (SELECT name FROM relationship_status WHERE id = p.relationship_status_id AND name != 'Unanswered') AS relationship_status,
-    (SELECT name FROM yes_no_optional     WHERE id = p.has_kids_id            AND name != 'Unanswered') AS has_kids,
-    (SELECT name FROM yes_no_maybe        WHERE id = p.wants_kids_id          AND name != 'Unanswered') AS wants_kids,
-    (SELECT name FROM frequency           WHERE id = p.exercise_id            AND name != 'Unanswered') AS exercise,
-    (SELECT name FROM religion            WHERE id = p.religion_id            AND name != 'Unanswered') AS religion,
-    (SELECT name FROM star_sign           WHERE id = p.star_sign_id           AND name != 'Unanswered') AS star_sign
-FROM
-    person AS p
-WHERE
-    id = %(prospect_person_id)s
+        -- Basics
+        'occupation',             (SELECT occupation    FROM prospect),
+        'education',              (SELECT education     FROM prospect),
+        'height_cm',              (SELECT height_cm     FROM prospect),
+        'gender',                 (SELECT j             FROM gender),
+        'orientation',            (SELECT j             FROM orientation),
+        'looking_for',            (SELECT j             FROM looking_for),
+        'smoking',                (SELECT j             FROM smoking),
+        'drinking',               (SELECT j             FROM drinking),
+        'drugs',                  (SELECT j             FROM drugs),
+        'long_distance',          (SELECT j             FROM long_distance),
+        'relationship_status',    (SELECT j             FROM relationship_status),
+        'has_kids',               (SELECT j             FROM has_kids),
+        'wants_kids',             (SELECT j             FROM wants_kids),
+        'exercise',               (SELECT j             FROM exercise),
+        'religion',               (SELECT j             FROM religion),
+        'star_sign',              (SELECT j             FROM star_sign),
+
+        -- Clubs
+        'mutual_clubs',           (SELECT j             FROM mutual_clubs_json),
+        'other_clubs',            (SELECT j             FROM other_clubs_json)
+    ) AS j
 """
 
 Q_SELECT_UNITS = """
@@ -796,6 +914,22 @@ WITH photo AS (
     FROM star_sign JOIN person ON star_sign_id = star_sign.id
     WHERE person.id = %(person_id)s
 
+), clubs AS (
+    SELECT
+        COALESCE(
+            json_agg(
+                json_build_object(
+                    'name', name,
+                    'count_members', count_members
+                )
+                ORDER BY name
+            ),
+            '[]'::json
+        ) AS j
+    FROM person_club
+    JOIN club ON club.name = club_name
+    WHERE person_id = %(person_id)s
+
 ), unit AS (
     SELECT unit.name AS j
     FROM unit JOIN person ON unit_id = unit.id
@@ -825,7 +959,6 @@ WITH photo AS (
         CASE WHEN hide_me_from_strangers THEN 'Yes' ELSE 'No' END AS j
     FROM person
     WHERE id = %(person_id)s
-
 )
 SELECT
     json_build_object(
@@ -848,6 +981,8 @@ SELECT
         'exercise',               (SELECT j FROM exercise),
         'religion',               (SELECT j FROM religion),
         'star sign',              (SELECT j FROM star_sign),
+
+        'clubs',                  (SELECT j FROM clubs),
 
         'units',                  (SELECT j FROM unit),
 
@@ -1057,4 +1192,129 @@ WHERE
         %(subject_person_id)s,
         %(object_person_id)s
     )
+"""
+
+Q_SEARCH_CLUBS = """
+WITH currently_joined_clubs AS (
+    SELECT
+        club_name
+    FROM
+        person_club
+    WHERE
+        person_id = %(person_id)s
+), fuzzy_match AS (
+    SELECT
+        name,
+        count_members
+    FROM
+        club
+    WHERE
+        name NOT IN (SELECT club_name FROM currently_joined_clubs)
+    AND
+        count_members > 0
+    ORDER BY
+        name <-> %(search_string)s
+    LIMIT 20
+), exact_match_is_in_club AS (
+    SELECT
+        name,
+        count_members
+    FROM
+        club
+    WHERE
+        name NOT IN (SELECT club_name FROM currently_joined_clubs)
+    AND
+        name = %(search_string)s
+), exact_match_is_not_in_club AS (
+    SELECT
+        %(search_string)s AS name,
+        0 AS count_members
+    WHERE
+        %(search_string)s NOT IN (SELECT club_name FROM currently_joined_clubs)
+), distinct_club AS (
+    SELECT DISTINCT ON (name)
+        name,
+        count_members
+    FROM (
+        SELECT name, count_members FROM fuzzy_match UNION
+        SELECT name, count_members FROM exact_match_is_in_club UNION
+        SELECT name, count_members FROM exact_match_is_not_in_club
+    )
+    ORDER BY
+        name,
+        count_members DESC
+    LIMIT
+        20
+)
+SELECT
+    name,
+    count_members
+FROM
+    distinct_club
+ORDER BY
+    count_members DESC,
+    name
+"""
+
+Q_JOIN_CLUB = """
+-- Step 1: Try to insert the new club
+WITH inserted_club AS (
+    INSERT INTO club (
+        name,
+        count_members
+    ) VALUES (
+        %(club_name)s,
+        1
+    )
+    ON CONFLICT (name) DO NOTHING
+    RETURNING name
+),
+-- Step 2: Insert person into person_club, if not already a member
+inserted_person_club AS (
+    INSERT INTO person_club (
+        person_id,
+        club_name
+    )
+    VALUES (
+        %(person_id)s,
+        %(club_name)s
+    )
+    ON CONFLICT (person_id, club_name) DO NOTHING
+    RETURNING
+        club_name
+)
+-- Step 3: Update member count only if a new member was actually added
+UPDATE
+    club
+SET
+    count_members = count_members + 1
+WHERE
+    name = %(club_name)s
+AND
+    NOT EXISTS (
+        SELECT 1 FROM inserted_club)
+AND
+    EXISTS (
+        SELECT 1 FROM inserted_person_club)
+"""
+
+Q_LEAVE_CLUB = """
+WITH deleted_person_club AS (
+    DELETE FROM
+        person_club
+    WHERE
+        person_id = %(person_id)s
+    AND
+        club_name = %(club_name)s
+    RETURNING
+        club_name
+)
+UPDATE
+    club
+SET
+    count_members = GREATEST(0, count_members - 1)
+WHERE
+    name = %(club_name)s
+AND
+    EXISTS (SELECT 1 FROM deleted_person_club)
 """
