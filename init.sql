@@ -1170,9 +1170,6 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
--- TODO: Delete
-ALTER TABLE search_cache ADD COLUMN IF NOT EXISTS has_mutual_club BOOLEAN NOT NULL DEFAULT FALSE;
-
 --------------------------------------------------------------------------------
 
 -- TODO: Periodically delete expired tokens
