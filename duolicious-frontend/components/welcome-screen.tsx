@@ -139,9 +139,21 @@ const WelcomeScreen_ = ({navigation}) => {
             {/* Date, chat & make new friends */}
             Online dating exclusively for 4chan
           </DefaultText>
+          <DefaultText
+            style={{
+              marginTop: 20,
+              alignSelf: 'center',
+              textAlign: 'center',
+              color: 'white',
+              fontSize: 14,
+            }}
+            onPress={() => Linking.openURL('https://boards.4chan.org/soc/thread/32706309')}
+          >
+            {'/soc/ thread: >>32706309'}
+          </DefaultText>
           <DefaultTextInput
             style={{
-              marginTop: 80,
+              marginTop: 50,
             }}
             placeholder="Enter your email to begin"
             keyboardType="email-address"
@@ -178,7 +190,6 @@ const WelcomeScreen_ = ({navigation}) => {
             <SuffixButton suffix="@yahoo.com" />
             <SuffixButton suffix="@hotmail.com" />
             <SuffixButton suffix="@outlook.com" />
-            <SuffixButton suffix="@icloud.com" />
           </View>
         </View>
         <View
@@ -223,7 +234,6 @@ const WelcomeScreen_ = ({navigation}) => {
             >
               Privacy Policy
             </DefaultText>
-            .
           </DefaultText>
         </View>
       </View>
