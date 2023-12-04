@@ -1199,11 +1199,22 @@ ORDER BY
 Q_SEARCH_CLUBS = """
 WITH currently_joined_clubs AS (
     SELECT
-        club_name
+        club_name AS name
     FROM
         person_club
     WHERE
         person_id = %(person_id)s
+), maybe_stuff_the_user_typed AS (
+    SELECT
+        %(search_string)s AS name,
+        COALESCE(
+            (SELECT count_members FROM club WHERE name = %(search_string)s),
+            0
+        ) AS count_members
+    WHERE
+        %(search_string)s NOT IN (SELECT name FROM currently_joined_clubs)
+    LIMIT
+        1
 ), fuzzy_match AS (
     SELECT
         name,
@@ -1211,51 +1222,28 @@ WITH currently_joined_clubs AS (
     FROM
         club
     WHERE
-        name NOT IN (SELECT club_name FROM currently_joined_clubs)
+        name NOT IN (SELECT name FROM currently_joined_clubs)
+    AND
+        name NOT IN (SELECT name FROM maybe_stuff_the_user_typed)
     AND
         count_members > 0
     ORDER BY
         name <-> %(search_string)s
-    LIMIT 20
-), exact_match_is_in_club AS (
-    SELECT
-        name,
-        count_members
-    FROM
-        club
-    WHERE
-        name NOT IN (SELECT club_name FROM currently_joined_clubs)
-    AND
-        name = %(search_string)s
-), exact_match_is_not_in_club AS (
-    SELECT
-        %(search_string)s AS name,
-        0 AS count_members
-    WHERE
-        %(search_string)s NOT IN (SELECT club_name FROM currently_joined_clubs)
-), distinct_club AS (
-    SELECT DISTINCT ON (name)
-        name,
-        count_members
-    FROM (
-        SELECT name, count_members FROM fuzzy_match UNION
-        SELECT name, count_members FROM exact_match_is_in_club UNION
-        SELECT name, count_members FROM exact_match_is_not_in_club
-    )
-    ORDER BY
-        name,
-        count_members DESC
     LIMIT
-        20
+        20 - (SELECT COUNT(*) FROM maybe_stuff_the_user_typed)
 )
 SELECT
     name,
     count_members
-FROM
-    distinct_club
+FROM (
+    SELECT name, count_members FROM fuzzy_match UNION
+    SELECT name, count_members FROM maybe_stuff_the_user_typed
+)
 ORDER BY
-    count_members DESC,
-    name
+    count_members = 0,
+    name <-> %(search_string)s,
+    name,
+    count_members DESC
 """
 
 Q_JOIN_CLUB = """
