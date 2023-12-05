@@ -722,7 +722,7 @@ const Body = ({
         }
         {data !== undefined && data.other_clubs.length > 0 &&
           <>
-            <Title>{data.mutual_clubs.length > 0 ? 'Other ' : ''}clubs</Title>
+            <Title>{data.mutual_clubs.length > 0 ? 'Other clubs' : 'Clubs'}</Title>
             <Clubs>
               {data.other_clubs.map((clubName, i) =>
                 <Club
