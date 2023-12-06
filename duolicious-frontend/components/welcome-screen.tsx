@@ -147,9 +147,9 @@ const WelcomeScreen_ = ({navigation}) => {
               color: 'white',
               fontSize: 14,
             }}
-            onPress={() => Linking.openURL('https://boards.4chan.org/soc/thread/32706309')}
+            onPress={() => Linking.openURL('https://boards.4chan.org/soc/thread/32748979')}
           >
-            {'/soc/ thread: >>32706309'}
+            {'/soc/ thread: >>32748979'}
           </DefaultText>
           <DefaultTextInput
             style={{
