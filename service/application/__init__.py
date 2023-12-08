@@ -227,3 +227,11 @@ def post_join_club(req: t.PostJoinClub, s: t.SessionInfo):
 @validate(t.PostLeaveClub)
 def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo):
     return person.post_leave_club(req, s)
+
+@get('/update-notifications')
+def get_update_notifications():
+    return person.get_update_notifications(
+        email=request.args.get('email', ''),
+        type=request.args.get('type', ''),
+        frequency=request.args.get('frequency', ''),
+    )

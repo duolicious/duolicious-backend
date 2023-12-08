@@ -22,7 +22,7 @@ def emailtemplate():
                         </tr>
                         <tr>
                             <td bgcolor="#f1e5ff" align="center" style="color: #70f; padding-left: 20px; padding-right: 20px; padding-bottom: 20px;">
-                                <p style="color: #70f; font-size: 20px; font-weight: 900;">Baby, come back!</p>
+                                <p style="color: #70f; font-size: 24px; font-weight: 900;">Baby, come back!</p>
                                 <p style="color: #70f; font-size: 16px">
                                   Because we only show active members, your profile was hidden for now. That means you won't get any more intros or chats until you get on Duolicious.
                                 </p>
@@ -32,7 +32,7 @@ def emailtemplate():
                           <td bgcolor="#f1e5ff" align="center" style="padding-bottom:25px">
                             <table border="0" cellspacing="0" cellpadding="0">
                               <tbody><tr>
-                                <td style="border-radius:50px; border:3px solid #70f; font-size: 16px; line-height:26px; color: #70f; text-align:center; min-width:auto!important">
+                                <td style="border-radius:50px; border:3px solid #70f; font-size: 20px; line-height:26px; color: #70f; text-align:center; min-width:auto!important">
                                   <a href="https://web.duolicious.app/" style="display:block;padding:11px 40px;text-decoration:none;color:#70f" target="_blank">
                                     <span style="text-decoration:none;color:#70f">
                                       <strong>

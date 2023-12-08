@@ -1308,3 +1308,43 @@ WHERE
 AND
     EXISTS (SELECT 1 FROM deleted_person_club)
 """
+
+Q_UPDATE_CHATS_NOTIFICATIONS = """
+WITH updated_rows AS (
+    UPDATE
+        person
+    SET
+        chats_notification = immediacy.id
+    FROM
+        immediacy
+    WHERE
+        person.email = %(email)s
+    AND
+        immediacy.name = %(frequency)s
+    RETURNING 1
+)
+SELECT
+    count(*) > 0 AS ok
+FROM
+    updated_rows
+"""
+
+Q_UPDATE_INTROS_NOTIFICATIONS = """
+WITH updated_rows AS (
+    UPDATE
+        person
+    SET
+        intros_notification = immediacy.id
+    FROM
+        immediacy
+    WHERE
+        person.email = %(email)s
+    AND
+        immediacy.name = %(frequency)s
+    RETURNING 1
+)
+SELECT
+    count(*) > 0 AS ok
+FROM
+    updated_rows
+"""
