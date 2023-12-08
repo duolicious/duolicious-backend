@@ -108,6 +108,7 @@ def new_notification_req(row: PersonNotification):
        "to": [ { "email": row.email } ],
        "subject": "You have a new message 😍",
        "htmlContent": emailtemplate(
+           email=row.email,
            has_intro=row.has_intro,
            has_chat=row.has_chat,
        )
