@@ -80,7 +80,7 @@ def emailtemplate(email, has_intro, has_chat):
                     <tr>
                         <td style="font-weight: 900; color: #999; font-size: 13px; background-color: #fff; padding: 10px 0; text-align: center;">
                             <div>
-                                <p>Notification frequency</p>
+                                <p>Getting too many notifications? You can put a cap on how often you get them:</p>
                                 <span>Chats:
                                     <a href="{frequency_url(email, 'Chats', 'Immediately')}"  style="font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;">Immediately</a> |
                                     <a href="{frequency_url(email, 'Chats', 'Daily')}"        style="font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;">Daily</a> |
