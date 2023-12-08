@@ -251,3 +251,10 @@ POST /leave-club {
 } {
   name
 }
+
+GET /update-notifications {
+} {
+  email
+  type
+  frequency
+}

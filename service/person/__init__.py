@@ -1283,3 +1283,30 @@ def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo):
 
     with transaction() as tx:
         tx.execute(Q_LEAVE_CLUB, params)
+
+def get_update_notifications(email: str, type: str, frequency: str):
+    params = dict(
+        email=email,
+        frequency=frequency,
+    )
+
+    if type == 'Intros':
+        queries = [Q_UPDATE_INTROS_NOTIFICATIONS]
+    elif type == 'Chats':
+        queries = [Q_UPDATE_CHATS_NOTIFICATIONS]
+    elif type == 'Every':
+        queries = [Q_UPDATE_INTROS_NOTIFICATIONS, Q_UPDATE_CHATS_NOTIFICATIONS]
+    else:
+        return 'Invalid type', 400
+
+    with transaction('READ COMMITTED') as tx:
+        query_results = [tx.execute(q, params).fetchone()['ok'] for q in queries]
+
+    if all(query_results):
+        return (
+            f"✅ "
+            f"<b>{type}</b> notification frequency set to "
+            f"<b>{frequency}</b> for "
+            f"<b>{email}</b>")
+    else:
+        return 'Invalid email address or notification frequency', 400

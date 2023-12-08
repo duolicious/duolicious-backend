@@ -14,7 +14,7 @@ def otp_template(otp: str):
     <table width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
         <tr>
             <td align="center">
-                <table width="600" cellspacing="0" cellpadding="0" border="0" align="center">
+                <table style="max-width: 600px; width: 100%;" cellspacing="0" cellpadding="0" border="0" align="center">
                     <tr>
                         <td bgcolor="#70f" align="center">
                             <img src="https://email-assets.duolicious.app/header-logo.png" alt="Duolicious Logo" width="108" height="50" />
