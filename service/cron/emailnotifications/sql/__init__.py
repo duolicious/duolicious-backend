@@ -134,6 +134,8 @@ SELECT
 FROM person
 WHERE
     id = ANY(%(ids)s)
+AND
+    activated
 """
 
 Q_UPDATE_LAST_INTRO_NOTIFICATION_TIME = """
