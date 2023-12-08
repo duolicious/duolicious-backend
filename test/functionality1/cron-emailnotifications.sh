@@ -459,6 +459,8 @@ test_sad_intro_within_day_and_chat_within_past_10_minutes () {
 test_sad_not_activated () {
   setup
 
+  q "update person set activated = false where id = $user1id"
+
   local time_interval=$(db_now as-microseconds '- 11 minutes')
 
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
