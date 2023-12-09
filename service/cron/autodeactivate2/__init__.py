@@ -79,6 +79,9 @@ def email_http_request(email: str):
     )
 
 def maybe_send_email(email: str):
+    if email.lower().endswith('@example.com'):
+        return
+
     req = email_http_request(email)
 
     if DEBUG_EMAIL:
