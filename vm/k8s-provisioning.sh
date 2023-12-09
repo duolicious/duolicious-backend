@@ -30,6 +30,8 @@ microk8s.kubectl create secret generic duo-secrets \
   --from-literal=DUO_R2_ACCESS_KEY_ID=your_duo_r2_access_key_id_value \
   --from-literal=DUO_R2_ACCESS_KEY_SECRET=your_duo_r2_access_key_secret_value \
   --from-literal=DUO_REPORT_EMAIL=your_duo_report_email_value \
+  --from-literal=DUO_SMTP_USER=your_duo_smtp_user_value \
+  --from-literal=DUO_SMTP_PASS=your_duo_smtp_pass_value \
   --dry-run=client \
   -o yaml \
   > secrets.yaml

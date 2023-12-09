@@ -39,15 +39,25 @@ services:
       - .:/app:ro
     environment:
       DUO_ENV: dev
+
       DUO_EMAIL_KEY: ${DUO_EMAIL_KEY}
       DUO_EMAIL_URL: ${DUO_EMAIL_URL}
+
+      DUO_SMTP_HOST: ${DUO_SMTP_HOST}
+      DUO_SMTP_PORT: ${DUO_SMTP_PORT}
+      DUO_SMTP_USER: ${DUO_SMTP_USER}
+      DUO_SMTP_PASS: ${DUO_SMTP_PASS}
+
       DUO_REPORT_EMAIL: ${DUO_REPORT_EMAIL}
+
       DUO_DB_HOST: postgres
       DUO_DB_PORT: 5432
       DUO_DB_USER: postgres
       DUO_DB_PASS: password
       DUO_DB_NAME: duo_api
+
       DUO_CORS_ORIGINS: '*'
+
       DUO_R2_BUCKET_NAME: ${DUO_R2_BUCKET_NAME}
       DUO_R2_ACCT_ID: ${DUO_R2_ACCT_ID}
       DUO_R2_ACCESS_KEY_ID: ${DUO_R2_ACCESS_KEY_ID}
