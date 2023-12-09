@@ -8,6 +8,8 @@ import os
 import psycopg
 import traceback
 import urllib.request
+from smtp import aws_smtp
+import random
 
 DRY_RUN = os.environ.get(
     'DUO_CRON_EMAIL_DRY_RUN',
@@ -134,10 +136,21 @@ def send_notification(row: PersonNotification):
         with open(_emails_file, 'a') as f:
             f.write(email_data_str)
     else:
-        try:
-            urllib.request.urlopen(req)
-        except: # YOLO
-            print(traceback.format_exc())
+        if random.random() < 0.1:
+            aws_smtp.send(
+                to=row.email,
+                subject="You have a new message 😍",
+                body=emailtemplate(
+                    email=row.email,
+                    has_intro=row.has_intro,
+                    has_chat=row.has_chat,
+                )
+            )
+        else:
+            try:
+                urllib.request.urlopen(req)
+            except: # YOLO
+                print(traceback.format_exc())
 
 async def update_last_notification_time(chat_conn, row: PersonNotification):
     params = dict(username=row.username)
