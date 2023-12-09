@@ -15,7 +15,9 @@ from service.person.template import otp_template, report_template
 import traceback
 import threading
 import re
+from smtp import aws_smtp
 
+# TODO: Delete these when we've moved to AWS
 EMAIL_KEY = os.environ['DUO_EMAIL_KEY']
 EMAIL_URL = os.environ['DUO_EMAIL_URL']
 
@@ -48,34 +50,16 @@ def _send_report(subject_person_id: int, object_person_id: int):
         with transaction('READ COMMITTED') as tx:
             report = tx.execute(Q_REPORT_EMAIL, params).fetchall()
 
-        headers = {
-            'accept': 'application/json',
-            'api-key': EMAIL_KEY,
-            'content-type': 'application/json'
-        }
-
-        data = {
-           "sender": {
-              "name": "Duolicious",
-              "email": "no-reply@duolicious.app"
-           },
-           "to": [ { "email": REPORT_EMAIL } ],
-           "subject": f"Report: {subject_person_id} - {object_person_id}",
-           "htmlContent": report_template(
-               report,
-               subject_person_id,
-               object_person_id,
-           )
-        }
-
-        urllib_req = urllib.request.Request(
-            EMAIL_URL,
-            headers=headers,
-            data=json.dumps(data).encode('utf-8')
+        aws_smtp.send(
+            to=REPORT_EMAIL,
+            subject=f"Report: {subject_person_id} - {object_person_id}",
+            body=report_template(
+                report,
+                subject_person_id,
+                object_person_id,
+            ),
+            from_addr=REPORT_EMAIL,
         )
-
-        with urllib.request.urlopen(urllib_req) as f:
-            pass
     except:
         print(traceback.format_exc())
 
