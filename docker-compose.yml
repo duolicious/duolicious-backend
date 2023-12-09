@@ -115,6 +115,11 @@ services:
       DUO_EMAIL_KEY: ${DUO_EMAIL_KEY}
       DUO_EMAIL_URL: ${DUO_EMAIL_URL}
 
+      DUO_SMTP_HOST: ${DUO_SMTP_HOST}
+      DUO_SMTP_PORT: ${DUO_SMTP_PORT}
+      DUO_SMTP_USER: ${DUO_SMTP_USER}
+      DUO_SMTP_PASS: ${DUO_SMTP_PASS}
+
       DUO_DB_HOST: postgres
       DUO_DB_PORT: 5432
       DUO_DB_USER: postgres
