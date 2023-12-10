@@ -7,6 +7,7 @@ import constants
 import duotypes
 import os
 from pathlib import Path
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 def get_remote_address() -> str:
     """
@@ -20,6 +21,11 @@ def get_remote_address() -> str:
         'input' /
         'disable-rate-limit')
 
+    # v TODO
+    print('request.remote_addr', request.remote_addr)
+    return duo_uuid()
+    # ^ TODO
+
     if disable_rate_limit.is_file():
         with disable_rate_limit.open() as file:
             if file.read().strip() == '1':
@@ -30,6 +36,9 @@ def get_remote_address() -> str:
 CORS_ORIGINS = os.environ.get('DUO_CORS_ORIGINS', '*')
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
+app.config['MAX_CONTENT_LENGTH'] = constants.MAX_CONTENT_LENGTH;
+
 limiter = Limiter(
     get_remote_address,
     app=app,
@@ -37,9 +46,8 @@ limiter = Limiter(
     storage_uri="memory://",
     strategy="fixed-window",
 )
-shared_otp_limit = limiter.shared_limit("8 per 2 minutes", scope="otp")
 
-app.config['MAX_CONTENT_LENGTH'] = constants.MAX_CONTENT_LENGTH;
+shared_otp_limit = limiter.shared_limit("8 per 2 minutes", scope="otp")
 
 CORS(app, origins=CORS_ORIGINS.split(','))
 
