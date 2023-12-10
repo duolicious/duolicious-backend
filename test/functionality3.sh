@@ -5,6 +5,7 @@ cd "$script_dir"
 
 set -e
 
-./functionality1.sh
-./functionality2.sh
-./functionality3.sh
+for t in ./functionality3/*.sh
+do
+  "$t"
+done

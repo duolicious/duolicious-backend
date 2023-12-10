@@ -6,3 +6,4 @@ gunicorn
 openai
 psycopg[pool]
 pydantic[email]
+Flask-Limiter
