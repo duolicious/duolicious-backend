@@ -99,7 +99,11 @@ const UnselectedClub = ({
           marginBottom: 5,
         }}
       >{clubItem.name}</Basic>
-      <DefaultText style={{fontWeight: '700'}}>{clubItem.count_members} people</DefaultText>
+      <DefaultText style={{fontWeight: '700'}}>
+        {clubItem.count_members}
+        {' '}
+        {clubItem.count_members === 1 ? 'person' : 'people'}
+      </DefaultText>
     </Pressable>
   );
 };
