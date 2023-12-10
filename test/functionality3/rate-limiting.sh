@@ -14,7 +14,4 @@ set -xe
   jc POST /request-otp -d '{ "email": "user3@example.com" }'
   jc POST /request-otp -d '{ "email": "user4@example.com" }'
   jc POST /request-otp -d '{ "email": "user5@example.com" }'
-  jc POST /request-otp -d '{ "email": "user6@example.com" }'
-  jc POST /request-otp -d '{ "email": "user7@example.com" }'
-  jc POST /request-otp -d '{ "email": "user8@example.com" }'
-! jc POST /request-otp -d '{ "email": "user9@example.com" }'
+! jc POST /request-otp -d '{ "email": "user6@example.com" }'

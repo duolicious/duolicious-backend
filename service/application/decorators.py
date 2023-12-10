@@ -42,7 +42,7 @@ limiter = Limiter(
     strategy="fixed-window",
 )
 
-shared_otp_limit = limiter.shared_limit("8 per 2 minutes", scope="otp")
+shared_otp_limit = limiter.shared_limit("5 per 2 minutes", scope="otp")
 
 CORS(app, origins=CORS_ORIGINS.split(','))
 
