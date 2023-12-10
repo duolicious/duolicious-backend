@@ -136,7 +136,7 @@ def send_notification(row: PersonNotification):
         with open(_emails_file, 'a') as f:
             f.write(email_data_str)
     else:
-        if random.random() < 0.1:
+        if random.random() < 0.5:
             aws_smtp.send(
                 to=row.email,
                 subject="You have a new message 😍",
