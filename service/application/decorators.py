@@ -21,11 +21,6 @@ def get_remote_address() -> str:
         'input' /
         'disable-rate-limit')
 
-    # v TODO
-    print(f'IP Address: {request.remote_addr}, Endpoint: {request.endpoint}')
-    return duo_uuid()
-    # ^ TODO
-
     if disable_rate_limit.is_file():
         with disable_rate_limit.open() as file:
             if file.read().strip() == '1':
