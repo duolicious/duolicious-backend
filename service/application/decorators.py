@@ -22,7 +22,7 @@ def get_remote_address() -> str:
         'disable-rate-limit')
 
     # v TODO
-    print('request.remote_addr', request.remote_addr)
+    print(f'IP Address: {request.remote_addr}, Endpoint: {request.endpoint}')
     return duo_uuid()
     # ^ TODO
 
