@@ -148,33 +148,50 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
     return go2
 
 def make_decorator(flask_decorator):
-    def go2(*args, **kwargs):
+    def go2(
+            rule,
+            limiter=None,
+            **kwargs
+    ):
+        maybe_limiter = limiter or (lambda x: x)
+
         def go1(func):
             return flask_decorator(
-                *args,
+                rule,
                 strict_slashes=False,
                 **kwargs,
-            )(return_empty_string(func))
+            )(
+                maybe_limiter(
+                    return_empty_string(func)
+                )
+            )
         return go1
     return go2
 
 def make_auth_decorator(flask_decorator):
     def go2(
-            *args,
+            rule,
+            limiter=None,
             expected_onboarding_status=True,
             expected_sign_in_status=True,
             **kwargs
     ):
+        maybe_limiter = limiter or (lambda x: x)
+
         def go1(func):
             return flask_decorator(
-                *args,
+                rule,
                 strict_slashes=False,
                 **kwargs,
             )(
-                require_auth(
-                    expected_onboarding_status,
-                    expected_sign_in_status
-                )(return_empty_string(func))
+                maybe_limiter(
+                    require_auth(
+                        expected_onboarding_status,
+                        expected_sign_in_status
+                    )(
+                        return_empty_string(func)
+                    )
+                )
             )
         return go1
     return go2
