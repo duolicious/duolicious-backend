@@ -42,15 +42,11 @@ def _get_remote_address() -> str:
     """
     _remote_addr = request.remote_addr or "127.0.0.1"
 
-    print(f'endpoint: {request.endpoint}') # TODO
-
     if disable_rate_limit_file.is_file():
         with disable_rate_limit_file.open() as file:
             if file.read().strip() == '1':
-                print(f'returning {duo_uuid()}') # TODO
                 return duo_uuid()
 
-    print(f'returning {_remote_addr}') # TODO
     return _remote_addr
 
 CORS_ORIGINS = os.environ.get('DUO_CORS_ORIGINS', '*')
@@ -68,8 +64,8 @@ limiter = Limiter(
     default_limits_exempt_when=_is_private_ip,
 )
 
-shared_otp_limit = limiter.shared_limit("5 per 2 minutes", scope="otp")
-shared_test_rate_limit = limiter.shared_limit("5 per 2 minutes", scope="sharedtestratelimit")
+shared_otp_limit = limiter.shared_limit("4 per minute", scope="otp")
+shared_test_rate_limit = limiter.shared_limit("4 per minute", scope="sharedtestratelimit")
 
 CORS(app, origins=CORS_ORIGINS.split(','))
 
