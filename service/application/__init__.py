@@ -37,18 +37,25 @@ def init_db():
     with transaction() as tx:
         tx.execute(init_sql_file)
 
-@post('/request-otp')
-@shared_otp_limit
+@post('/request-otp', limiter=shared_otp_limit)
 @validate(t.PostRequestOtp)
 def post_request_otp(req: t.PostRequestOtp):
     return person.post_request_otp(req)
 
-@apost('/resend-otp', expected_onboarding_status=None, expected_sign_in_status=False)
-@shared_otp_limit
+@apost(
+    '/resend-otp',
+    limiter=shared_otp_limit,
+    expected_onboarding_status=None,
+    expected_sign_in_status=False
+)
 def post_resend_otp(s: t.SessionInfo):
     return person.post_resend_otp(s)
 
-@apost('/check-otp', expected_onboarding_status=None, expected_sign_in_status=False)
+@apost(
+    '/check-otp',
+    expected_onboarding_status=None,
+    expected_sign_in_status=False
+)
 @validate(t.PostCheckOtp)
 def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
     return person.post_check_otp(req, s)
@@ -65,7 +72,11 @@ def post_check_session_token(s: t.SessionInfo):
 def post_active(s: t.SessionInfo):
     return person.post_active(s)
 
-@aget('/search-locations', expected_onboarding_status=None, expected_sign_in_status=None)
+@aget(
+    '/search-locations',
+    expected_onboarding_status=None,
+    expected_sign_in_status=None,
+)
 def get_search_locations(_):
     return location.get_search_locations(q=request.args.get('q'))
 
@@ -109,8 +120,7 @@ def get_search(s: t.SessionInfo):
         o=request.args.get('o')
     )
 
-@get('/health')
-@limiter.exempt
+@get('/health', limiter=limiter.exempt)
 def get_health():
     return 'status: ok'
 
