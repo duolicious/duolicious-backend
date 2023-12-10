@@ -1239,7 +1239,7 @@ def post_mark_messaged(s: t.SessionInfo, prospect_person_id: int):
         tx.execute(Q_INSERT_MESSAGED, params)
 
 def get_search_clubs(s: t.SessionInfo, q: str):
-    if not re.match(t.CLUB_PATTERN, q):
+    if not re.match(t.CLUB_PATTERN, q) or not len(q) <= t.CLUB_MAX_LEN:
         return []
 
     params = dict(

@@ -15,6 +15,7 @@ import constants
 import io
 
 CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
+CLUB_MAX_LEN = 42
 
 def file_names(files):
     if files is None:
@@ -261,7 +262,7 @@ class PostInboxInfo(BaseModel):
     person_ids: List[int]
 
 class PostJoinClub(BaseModel):
-    name: constr(pattern=CLUB_PATTERN)
+    name: constr(pattern=CLUB_PATTERN, min_length=1, max_length=CLUB_MAX_LEN)
 
 class PostLeaveClub(BaseModel):
-    name: constr(pattern=CLUB_PATTERN)
+    name: constr(pattern=CLUB_PATTERN, min_length=1, max_length=CLUB_MAX_LEN)

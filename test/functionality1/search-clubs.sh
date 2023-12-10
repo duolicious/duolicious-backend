@@ -37,3 +37,7 @@ expected=$(
   ]"
 )
 [[ "$results" == "$expected" ]]
+
+results=$(c GET '/search-clubs?q=really-long-club-name-that-exceeds-the-limit')
+expected='[]'
+[[ "$results" == "$expected" ]]
