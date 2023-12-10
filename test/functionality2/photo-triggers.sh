@@ -24,9 +24,7 @@ q "delete from undeleted_photo"
 [[ "$(q "select count(*) from onboardee_photo")" == "0" ]]
 [[ "$(q "select count(*) from undeleted_photo")" == "1" ]]
 
-response=$(jc POST /request-otp -d '{ "email": "user1@example.com" }')
-SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
-jc POST /check-otp -d '{ "otp": "000000" }'
+assume_role user1
 
 echo Change the first photo
 c PATCH /profile-info \
@@ -54,9 +52,7 @@ q "delete from undeleted_photo"
 ../util/create-user.sh unchanged 0 0
 ../util/create-user.sh user1 0 0
 
-response=$(jc POST /request-otp -d '{ "email": "user1@example.com" }')
-SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
-jc POST /check-otp -d '{ "otp": "000000" }'
+assume_role user1
 
 [[ "$(q "select count(*) from photo")" == "0" ]]
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "0" ]]
@@ -80,9 +76,7 @@ q "delete from onboardee"
 q "delete from undeleted_photo"
 ../util/create-user.sh unchanged 0 0
 
-response=$(jc POST /request-otp -d '{ "email": "user1@example.com" }')
-SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
-jc POST /check-otp -d '{ "otp": "000000" }'
+assume_role user1
 
 echo Upload onboardee photos 1.jpg and 2.jpg
 c PATCH /onboardee-info \

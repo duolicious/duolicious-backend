@@ -1,16 +1,53 @@
 from database import transaction
-from duohash import sha512
+from duohash import duo_uuid, sha512
 from flask import request, Flask
+from flask_limiter import Limiter
 from flask_cors import CORS
 import constants
 import duotypes
 import os
+from pathlib import Path
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+def get_remote_address() -> str:
+    """
+    :return: the ip address for the current request
+     (or 127.0.0.1 if none found)
+
+    """
+    disable_rate_limit = (
+        Path(__file__).parent.parent.parent /
+        'test' /
+        'input' /
+        'disable-rate-limit')
+
+    # v TODO
+    print('request.remote_addr', request.remote_addr)
+    return duo_uuid()
+    # ^ TODO
+
+    if disable_rate_limit.is_file():
+        with disable_rate_limit.open() as file:
+            if file.read().strip() == '1':
+                return duo_uuid()
+
+    return request.remote_addr or "127.0.0.1"
 
 CORS_ORIGINS = os.environ.get('DUO_CORS_ORIGINS', '*')
 
 app = Flask(__name__)
-
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 app.config['MAX_CONTENT_LENGTH'] = constants.MAX_CONTENT_LENGTH;
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["120 per minute", "12 per second"],
+    storage_uri="memory://",
+    strategy="fixed-window",
+)
+
+shared_otp_limit = limiter.shared_limit("8 per 2 minutes", scope="otp")
 
 CORS(app, origins=CORS_ORIGINS.split(','))
 

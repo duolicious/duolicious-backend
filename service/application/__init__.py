@@ -22,6 +22,8 @@ from service.application.decorators import (
     post,
     put,
     validate,
+    limiter,
+    shared_otp_limit,
 )
 
 _init_sql_file = os.path.join(
@@ -36,11 +38,13 @@ def init_db():
         tx.execute(init_sql_file)
 
 @post('/request-otp')
+@shared_otp_limit
 @validate(t.PostRequestOtp)
 def post_request_otp(req: t.PostRequestOtp):
     return person.post_request_otp(req)
 
 @apost('/resend-otp', expected_onboarding_status=None, expected_sign_in_status=False)
+@shared_otp_limit
 def post_resend_otp(s: t.SessionInfo):
     return person.post_resend_otp(s)
 
@@ -106,6 +110,7 @@ def get_search(s: t.SessionInfo):
     )
 
 @get('/health')
+@limiter.exempt
 def get_health():
     return 'status: ok'
 
