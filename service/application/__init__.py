@@ -24,6 +24,7 @@ from service.application.decorators import (
     validate,
     limiter,
     shared_otp_limit,
+    shared_test_rate_limit,
 )
 
 _init_sql_file = os.path.join(
@@ -250,3 +251,9 @@ def get_update_notifications():
         type=request.args.get('type', ''),
         frequency=request.args.get('frequency', ''),
     )
+
+# TODO
+@post('/test-rate-limit', limiter=shared_test_rate_limit)
+@validate(t.PostRequestOtp)
+def post_test_rate_limit(req: t.PostRequestOtp):
+    return 'ok'
