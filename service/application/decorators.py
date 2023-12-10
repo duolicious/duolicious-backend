@@ -8,29 +8,50 @@ import duotypes
 import os
 from pathlib import Path
 from werkzeug.middleware.proxy_fix import ProxyFix
+import ipaddress
 
-def get_remote_address() -> str:
+disable_rate_limit_file = (
+    Path(__file__).parent.parent.parent /
+    'test' /
+    'input' /
+    'disable-rate-limit')
+
+def _is_private_ip() -> bool:
+    """
+    Check if the given IP address is private.
+    :param ip: IP address in string format
+    :return: True if IP is private, False otherwise
+    """
+    _remote_addr = request.remote_addr or "127.0.0.1"
+
+    if disable_rate_limit_file.is_file():
+        with disable_rate_limit_file.open() as file:
+            if file.read().strip() == '1':
+                return False
+
+    try:
+        return ipaddress.ip_address(_remote_addr).is_private
+    except ValueError:
+        return False
+
+def _get_remote_address() -> str:
     """
     :return: the ip address for the current request
      (or 127.0.0.1 if none found)
 
     """
-    disable_rate_limit = (
-        Path(__file__).parent.parent.parent /
-        'test' /
-        'input' /
-        'disable-rate-limit')
+    _remote_addr = request.remote_addr or "127.0.0.1"
 
     print(f'endpoint: {request.endpoint}') # TODO
 
-    if disable_rate_limit.is_file():
-        with disable_rate_limit.open() as file:
+    if disable_rate_limit_file.is_file():
+        with disable_rate_limit_file.open() as file:
             if file.read().strip() == '1':
                 print(f'returning {duo_uuid()}') # TODO
                 return duo_uuid()
 
-    print(f'returning {request.remote_addr or "127.0.0.1"}') # TODO
-    return request.remote_addr or "127.0.0.1"
+    print(f'returning {_remote_addr}') # TODO
+    return _remote_addr
 
 CORS_ORIGINS = os.environ.get('DUO_CORS_ORIGINS', '*')
 
@@ -39,11 +60,12 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 app.config['MAX_CONTENT_LENGTH'] = constants.MAX_CONTENT_LENGTH;
 
 limiter = Limiter(
-    get_remote_address,
+    _get_remote_address,
     app=app,
     default_limits=["120 per minute", "12 per second"],
     storage_uri="memory://",
     strategy="fixed-window",
+    default_limits_exempt_when=_is_private_ip,
 )
 
 shared_otp_limit = limiter.shared_limit("5 per 2 minutes", scope="otp")
