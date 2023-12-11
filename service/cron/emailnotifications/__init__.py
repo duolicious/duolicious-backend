@@ -6,8 +6,6 @@ import asyncio
 import json
 import os
 import psycopg
-import traceback
-import urllib.request
 from smtp import aws_smtp
 import random
 
@@ -15,9 +13,6 @@ DRY_RUN = os.environ.get(
     'DUO_CRON_EMAIL_DRY_RUN',
     'true',
 ).lower() not in ['false', 'f', '0', 'no']
-
-EMAIL_KEY = os.environ['DUO_EMAIL_KEY']
-EMAIL_URL = os.environ['DUO_EMAIL_URL']
 
 EMAIL_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_EMAIL_POLL_SECONDS',
@@ -95,62 +90,26 @@ def do_send(row: PersonNotification):
 
     return (is_intro_sendable or is_chat_sendable) and not is_example
 
-def new_notification_req(row: PersonNotification):
-    headers = {
-        'accept': 'application/json',
-        'api-key': EMAIL_KEY,
-        'content-type': 'application/json'
-    }
-
-    data = {
-       "sender": {
-          "name": "Duolicious",
-          "email": "no-reply@duolicious.app"
-       },
-       "to": [ { "email": row.email } ],
-       "subject": "You have a new message 😍",
-       "htmlContent": emailtemplate(
-           email=row.email,
-           has_intro=row.has_intro,
-           has_chat=row.has_chat,
-       )
-    }
-
-    return urllib.request.Request(
-        EMAIL_URL,
-        headers=headers,
-        data=json.dumps(data).encode('utf-8')
-    )
-
 def send_notification(row: PersonNotification):
-    req = new_notification_req(row)
+    send_args = dict(
+        to=row.email,
+        subject="You have a new message 😍",
+        body=emailtemplate(
+            email=row.email,
+            has_intro=row.has_intro,
+            has_chat=row.has_chat,
+        )
+    )
 
     if DRY_RUN:
         print('DUO_CRON_EMAIL_DRY_RUN env var prevented email from being sent')
-        email_data = dict(
-            headers=req.headers | {'Api-key': 'redacted'},
-            data=req.data.decode('utf8'),
-        )
-        email_data_str = json.dumps(email_data) + '\n'
+
+        email_data_str = json.dumps(send_args, indent=4) + '\n'
 
         with open(_emails_file, 'a') as f:
             f.write(email_data_str)
     else:
-        if random.random() < 0.5:
-            aws_smtp.send(
-                to=row.email,
-                subject="You have a new message 😍",
-                body=emailtemplate(
-                    email=row.email,
-                    has_intro=row.has_intro,
-                    has_chat=row.has_chat,
-                )
-            )
-        else:
-            try:
-                urllib.request.urlopen(req)
-            except: # YOLO
-                print(traceback.format_exc())
+        aws_smtp.send(**send_args)
 
 async def update_last_notification_time(chat_conn, row: PersonNotification):
     params = dict(username=row.username)
