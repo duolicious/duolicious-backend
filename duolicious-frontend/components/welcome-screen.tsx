@@ -139,21 +139,9 @@ const WelcomeScreen_ = ({navigation}) => {
             {/* Date, chat & make new friends */}
             Online dating exclusively for 4chan
           </DefaultText>
-          <DefaultText
-            style={{
-              marginTop: 20,
-              alignSelf: 'center',
-              textAlign: 'center',
-              color: 'white',
-              fontSize: 14,
-            }}
-            onPress={() => Linking.openURL('https://boards.4chan.org/soc/thread/32748979')}
-          >
-            {'/soc/ thread: >>32748979'}
-          </DefaultText>
           <DefaultTextInput
             style={{
-              marginTop: 50,
+              marginTop: 80,
             }}
             placeholder="Enter your email to begin"
             keyboardType="email-address"
