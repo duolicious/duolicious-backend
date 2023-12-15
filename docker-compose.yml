@@ -40,9 +40,6 @@ services:
     environment:
       DUO_ENV: dev
 
-      DUO_EMAIL_KEY: ${DUO_EMAIL_KEY}
-      DUO_EMAIL_URL: ${DUO_EMAIL_URL}
-
       DUO_SMTP_HOST: ${DUO_SMTP_HOST}
       DUO_SMTP_PORT: ${DUO_SMTP_PORT}
       DUO_SMTP_USER: ${DUO_SMTP_USER}
