@@ -39,8 +39,6 @@ spec:
         env:
         - { name: DUO_ENV, value: prod }
 
-        - { name: DUO_EMAIL_URL, value: 'https://api.brevo.com/v3/smtp/email' }
-
         - { name: DUO_SMTP_HOST, value: 'email-smtp.us-west-1.amazonaws.com' }
         - { name: DUO_SMTP_PORT, value: '587' }
 
@@ -56,12 +54,6 @@ spec:
             secretKeyRef:
               name: duo-secrets
               key: DUO_DB_PASS
-
-        - name: DUO_EMAIL_KEY
-          valueFrom:
-            secretKeyRef:
-              name: duo-secrets
-              key: DUO_EMAIL_KEY
 
         - name: DUO_R2_ACCT_ID
           valueFrom:
