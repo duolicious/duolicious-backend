@@ -25,7 +25,6 @@ microk8s enable host-access # A new local network interface named lo:microk8s is
 
 microk8s.kubectl create secret generic duo-secrets \
   --from-literal=DUO_DB_PASS=your_duo_db_pass_value \
-  --from-literal=DUO_EMAIL_KEY=your_duo_email_key_value \
   --from-literal=DUO_R2_ACCT_ID=your_duo_r2_acct_id_value \
   --from-literal=DUO_R2_ACCESS_KEY_ID=your_duo_r2_access_key_id_value \
   --from-literal=DUO_R2_ACCESS_KEY_SECRET=your_duo_r2_access_key_secret_value \

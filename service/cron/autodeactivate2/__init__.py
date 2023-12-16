@@ -6,7 +6,7 @@ import json
 import os
 import psycopg
 import traceback
-import urllib.request
+from smtp import aws_smtp
 
 DRY_RUN = os.environ.get(
     'DUO_CRON_AUTODEACTIVATE2_DRY_RUN',
@@ -17,9 +17,6 @@ DEBUG_EMAIL = os.environ.get(
     'DUO_CRON_AUTODEACTIVATE2_DEBUG_EMAIL',
     'true',
 ).lower() not in ['false', 'f', '0', 'no']
-
-EMAIL_KEY = os.environ['DUO_EMAIL_KEY']
-EMAIL_URL = os.environ['DUO_EMAIL_URL']
 
 AUTODEACTIVATE2_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_AUTODEACTIVATE2_POLL_SECONDS',
@@ -55,54 +52,27 @@ _chat_conninfo = psycopg.conninfo.make_conninfo(
 
 print('Hello from cron module: autodeactivate2')
 
-def email_http_request(email: str):
-    headers = {
-        'accept': 'application/json',
-        'api-key': EMAIL_KEY,
-        'content-type': 'application/json'
-    }
-
-    data = {
-       "sender": {
-          "name": "Duolicious",
-          "email": "no-reply@duolicious.app"
-       },
-       "to": [ { "email": email } ],
-       "subject": "Your profile is invisible 👻",
-       "htmlContent": emailtemplate()
-    }
-
-    return urllib.request.Request(
-        EMAIL_URL,
-        headers=headers,
-        data=json.dumps(data).encode('utf-8')
-    )
-
 def maybe_send_email(email: str):
     if email.lower().endswith('@example.com'):
         return
 
-    req = email_http_request(email)
+    send_args = dict(
+        to=email,
+        subject="Your profile is invisible 👻",
+        body=emailtemplate()
+    )
 
     if DEBUG_EMAIL:
         print(
             'autodeactivate2: DUO_CRON_AUTODEACTIVATE2_DEBUG_EMAIL env var '
             'prevented email from being sent'
         )
-        email_data = dict(
-            headers=req.headers | {'Api-key': 'redacted'},
-            data=req.data.decode('utf8'),
-        )
-        email_data_str = json.dumps(email_data) + '\n'
 
         with open(_emails_file, 'a') as f:
-            f.write(email_data_str)
+            f.write(json.dumps(send_args, indent=4) + '\n')
     else:
-        try:
-            print('autodeactivate2: sending deactivation email to', email)
-            urllib.request.urlopen(req)
-        except: # YOLO
-            print(traceback.format_exc())
+        print('autodeactivate2: sending deactivation email to', email)
+        aws_smtp.send(**send_args)
 
 async def autodeactivate2_once():
     api_conn = await psycopg.AsyncConnection.connect(

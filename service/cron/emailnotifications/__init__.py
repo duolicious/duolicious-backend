@@ -7,7 +7,6 @@ import json
 import os
 import psycopg
 from smtp import aws_smtp
-import random
 
 DRY_RUN = os.environ.get(
     'DUO_CRON_EMAIL_DRY_RUN',
