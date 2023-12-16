@@ -322,7 +322,7 @@ const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
 
 const yourPartnersGenderOptionGroup: OptionGroup<OptionGroupCheckChips> = {
   title: "Your Partner’s Gender",
-  description: "Which gender do you want to date? You can select more than one option.",
+  description: "Which gender do you want to date? You can select more than one option",
   input: {
     checkChips: {
       values: genders.map((x) => ({checked: false, label: x})),
@@ -734,7 +734,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   ),
   {
     title: "Step 3 of 7: First Name",
-    description: "What’s your first name? (You can’t change this later.)",
+    description: "What’s your first name? You can’t change this later",
     input: {
       givenName: {
         submit: async (input) => (await japi(
@@ -777,7 +777,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   ),
   {
     title: 'Step 6 of 7: Photos',
-    description: 'Profiles with photos are promoted in search results, but you can add these later.',
+    description: 'Profiles with photos are promoted in search results, but you can add these later',
     input: {
       photos: {
         submit: async (filename, pathOrBase64) => (await mapi(
