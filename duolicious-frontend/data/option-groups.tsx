@@ -734,7 +734,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   ),
   {
     title: "Step 3 of 7: First Name",
-    description: "What’s your first name?",
+    description: "What’s your first name? (You can’t change this later.)",
     input: {
       givenName: {
         submit: async (input) => (await japi(
