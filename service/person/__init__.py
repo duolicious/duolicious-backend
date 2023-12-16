@@ -2,7 +2,6 @@ import os
 from database import transaction, fetchall_sets
 from typing import Optional, Iterable, Tuple
 import duotypes as t
-import urllib.request
 import json
 import secrets
 from duohash import sha512
@@ -16,10 +15,6 @@ import traceback
 import threading
 import re
 from smtp import aws_smtp
-
-# TODO: Delete these when we've moved to AWS
-EMAIL_KEY = os.environ['DUO_EMAIL_KEY']
-EMAIL_URL = os.environ['DUO_EMAIL_URL']
 
 REPORT_EMAIL = os.environ['DUO_REPORT_EMAIL']
 
@@ -204,30 +199,11 @@ def _send_otp(email: str, otp: str):
     if email.endswith('@example.com'):
         return
 
-    headers = {
-        'accept': 'application/json',
-        'api-key': EMAIL_KEY,
-        'content-type': 'application/json'
-    }
-
-    data = {
-       "sender": {
-          "name": "Duolicious",
-          "email": "no-reply@duolicious.app"
-       },
-       "to": [ { "email": email } ],
-       "subject": "Sign in to Duolicious",
-       "htmlContent": otp_template(otp),
-    }
-
-    urllib_req = urllib.request.Request(
-        EMAIL_URL,
-        headers=headers,
-        data=json.dumps(data).encode('utf-8')
+    aws_smtp.send(
+        to=email,
+        subject="Sign in to Duolicious",
+        body=otp_template(otp)
     )
-
-    with urllib.request.urlopen(urllib_req) as f:
-        pass
 
 def post_request_otp(req: t.PostRequestOtp):
     email = req.email
