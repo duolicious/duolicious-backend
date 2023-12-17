@@ -23,6 +23,7 @@ type MessageStatus =
   | 'sent'
   | 'blocked'
   | 'not unique'
+  | 'too long'
   | 'timeout'
 
 type Message = {
@@ -433,6 +434,11 @@ const _sendMessage = (
 
     if (!doc) return;
 
+    const tooLongNode = xpath.select1(
+      `/*[name()='duo_message_too_long'][@id='${id}']`,
+      doc
+    );
+
     const notUniqueNode = xpath.select1(
       `/*[name()='duo_message_not_unique'][@id='${id}']`,
       doc
@@ -452,6 +458,8 @@ const _sendMessage = (
       callback('blocked');
     } else if (notUniqueNode) {
       callback('not unique');
+    } else if (tooLongNode) {
+      callback('too long');
     } else if (messageDeliveredNode) {
       setInboxSent(recipientPersonId, message);
       callback('sent');
