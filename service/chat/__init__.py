@@ -14,7 +14,7 @@ Q_UNIQUENESS = """
 INSERT INTO intro_hash (hash)
 VALUES (%(hash)s)
 ON CONFLICT DO NOTHING
-RETURNING hash;
+RETURNING hash
 """
 
 Q_BLOCKED = """
@@ -34,6 +34,8 @@ LIMIT
     1
 """
 
+MAX_MESSAGE_LEN = 5000
+
 class Username:
     def __init__(self):
         self.username = None
@@ -42,10 +44,10 @@ def parse_xml(s):
     parser = etree.XMLParser(resolve_entities=False, no_network=True)
     return etree.fromstring(s, parser=parser)
 
-def get_message_attrs(message_str):
+def get_message_attrs(message_xml):
     try:
         # Create a safe XML parser
-        root = parse_xml(message_str)
+        root = parse_xml(message_xml)
 
         if root.tag != '{jabber:client}message':
             raise Exception('Not a message')
@@ -53,23 +55,24 @@ def get_message_attrs(message_str):
         if root.attrib.get('type') != 'chat':
             raise Exception('type != chat')
 
-        check_uniqueness = root.attrib.get('check_uniqueness') == 'true'
+        do_check_uniqueness = root.attrib.get('check_uniqueness') == 'true'
 
-        maybe_unique_text = None
-        if check_uniqueness:
-            body = root.find('{jabber:client}body')
-            if body is not None and check_uniqueness:
-                maybe_unique_text = body.text
+        maybe_message_body = root.find('{jabber:client}body')
+
+        maybe_message_body = None
+        body = root.find('{jabber:client}body')
+        if body is not None:
+            maybe_message_body = body.text
 
         return (
             root.attrib.get('id'),
             root.attrib.get('to'),
-            maybe_unique_text,
-            message_str)
+            do_check_uniqueness,
+            maybe_message_body)
     except Exception as e:
         pass
 
-    return None, None, None, message_str
+    return None, None, None, None
 
 def normalize_message(message_str):
     message_str = message_str.lower()
@@ -81,6 +84,9 @@ def normalize_message(message_str):
     message_str = re.sub(r'(.)\1{1,}', r'\1', message_str)
 
     return message_str
+
+def is_message_too_long(message_str):
+    return len(message_str) > MAX_MESSAGE_LEN
 
 def is_message_unique(message_str):
     normalized = normalize_message(message_str)
@@ -105,10 +111,7 @@ def is_message_blocked(username, toJid):
         )
 
         with database.transaction('READ COMMITTED') as tx:
-            if tx.execute(Q_BLOCKED, params).fetchall():
-                return True
-            else:
-                return False
+            return bool(tx.execute(Q_BLOCKED, params).fetchall())
     except:
         return True
 
@@ -137,19 +140,24 @@ def process_auth(message_str, username):
     except Exception as e:
         pass
 
-def process_duo_message(message_str, username):
-    id, toJid, maybe_unique_text, message = get_message_attrs(message_str)
+def process_duo_message(message_xml, username):
+    id, toJid, do_check_uniqueness, maybe_message_body = get_message_attrs(
+        message_xml)
+
+    if id and maybe_message_body and is_message_too_long(maybe_message_body):
+        return f'<duo_message_too_long id="{id}"/>', None
 
     if id and is_message_blocked(username, toJid):
         return f'<duo_message_blocked id="{id}"/>', None
 
-    if id and maybe_unique_text and not is_message_unique(maybe_unique_text):
+    if id and maybe_message_body and do_check_uniqueness and \
+            not is_message_unique(maybe_message_body):
         return f'<duo_message_not_unique id="{id}"/>', None
 
     if id:
-        return f'<duo_message_delivered id="{id}"/>', message
+        return f'<duo_message_delivered id="{id}"/>', message_xml
 
-    return None, message
+    return None, message_xml
 
 async def process(src, dst, username):
     async for message in src:
