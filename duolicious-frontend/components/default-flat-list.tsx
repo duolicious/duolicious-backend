@@ -73,6 +73,13 @@ const ActivityIndicator_ = () => {
 }
 
 const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, ref) => {
+  // This is a workaround for what I think might be a bug in React Native
+  // where the FlatList stops redrawing list items when the flatlist goes
+  // off-screen.
+  const [, _forceRender] = useState({});
+  const forceRender = () => _forceRender({});
+  const allItemsWereInvisible = useRef<boolean>(false);
+
   const flatList = useRef<any>(null);
   const [datas, setDatas] = useState<{[dataKey: string]: ItemT[]} >({});
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -332,6 +339,15 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
     fetchNextPage
   ]);
 
+  const onViewableItemsChanged = useCallback((x: any) => {
+    allItemsWereInvisible.current ||= x.viewableItems.length === 0;
+
+    if (x.viewableItems.length > 0 && allItemsWereInvisible.current) {
+      allItemsWereInvisible.current = false;
+      forceRender();
+    }
+  }, []);
+
   if (data === undefined) {
     return (
       <View
@@ -363,6 +379,8 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
         ListHeaderComponent={ListHeaderComponent}
         onContentSizeChange={onContentSizeChange}
         keyExtractor={keyExtractor}
+        onViewableItemsChanged={onViewableItemsChanged}
+        initialNumToRender={1}
       />
     );
   }

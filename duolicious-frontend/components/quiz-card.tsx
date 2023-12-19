@@ -43,6 +43,11 @@ const cardPadding = {
   paddingBottom: 10,
 };
 
+type CardState = {
+  answer: boolean | null,
+  public_: boolean,
+}
+
 const LeftComponent = ({percentage}) => {
   return (
     <View
@@ -537,12 +542,18 @@ const AnsweredQuizCard = ({
   user2,
   answer2,
   answer2Publicly,
+  onStateChange,
+}: {
+  children: any,
+  questionNumber: number
+  topic: string,
+  user1: string,
+  answer1: boolean | null,
+  user2: string,
+  answer2: boolean | null,
+  answer2Publicly: boolean,
+  onStateChange: (state: CardState) => void,
 }) => {
-  type CardState = {
-    answer: boolean | null,
-    public_: boolean,
-  }
-
   const [state, setState] = useState<CardState>({
     answer: answer2,
     public_: answer2Publicly
@@ -576,10 +587,14 @@ const AnsweredQuizCard = ({
         markTraitDataDirty();
       });
 
-      return {
+      const nextState = {
         ...state,
         answer: nextAnswer_,
       };
+
+      onStateChange(nextState);
+
+      return nextState;
     });
   }, [setState]);
 
@@ -905,6 +920,7 @@ const NoMoreCards = () => {
 
 export {
   AnsweredQuizCard,
+  CardState,
   NoMoreCards,
   QuizCard,
   SearchQuizCard,

@@ -26,24 +26,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../api/api';
 import { StatusBarSpacer } from './status-bar-spacer';
 import { FloatingBackButton } from './prospect-profile-screen';
+import { CardState } from './quiz-card';
 
 const sideMargins: StyleProp<ViewStyle> = {
   marginLeft: 10,
   marginRight: 10,
 };
 
-const AnsweredQuizCard_ = (props: {
-  children: any,
-  questionNumber: number
-  topic: string,
-  user1: string,
-  answer1: boolean | null,
-  user2: string,
-  answer2: boolean | null,
-  answer2Publicly: boolean,
-}) => <AnsweredQuizCard {...props}/>;
-
-const AnsweredQuizCardMemo = memo(AnsweredQuizCard_);
+const AnsweredQuizCardMemo = memo(AnsweredQuizCard);
 
 const Subtitle = ({children}) => {
   return (
@@ -232,6 +222,11 @@ const InDepthScreen = (navigationRef) => ({navigation, route}) => {
   const [idx4, setIdx4] = useState(0);
 
   const renderItem = useCallback(({item}) => {
+    const onStateChange = (state: CardState) => {
+      item.item.person_answer = state.answer;
+      item.item.person_public_ = state.public_;
+    };
+
     switch (item.kind) {
       case 'answer':
         return <AnsweredQuizCardMemo
@@ -242,6 +237,7 @@ const InDepthScreen = (navigationRef) => ({navigation, route}) => {
             user2="You"
             answer2={item.item.person_answer}
             answer2Publicly={item.item.person_public_ ?? true}
+            onStateChange={onStateChange}
           >
             {item.item.question}
           </AnsweredQuizCardMemo>;

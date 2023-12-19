@@ -698,7 +698,7 @@ const Body = ({
         {!data?.name &&
           <Title>About ...</Title>
         }
-        {data?.name && data?.about && data.about.trim() &&
+        {!!data?.name && !!data?.about && data.about.trim() &&
           <>
             <Title>About {data.name}</Title>
             <DefaultText selectable={true}>
