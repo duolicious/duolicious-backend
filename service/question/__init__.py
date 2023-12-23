@@ -1,5 +1,5 @@
 import os
-from database import transaction
+from database import api_tx
 import duotypes as t
 from questions.archetypeise_questions import load_questions
 from typing import List, Optional
@@ -77,7 +77,7 @@ def init_db():
     categorised_questions["categorised"].sort(
         key=lambda q: question_to_index[q["question"]])
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute('SELECT COUNT(*) FROM question')
         if tx.fetchone()['count'] == 0:
             tx.executemany(
@@ -109,7 +109,7 @@ def init_db():
 
     archetypeised_questions = load_questions(_archetypeised_question_json_file)
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(
             """
             SELECT COUNT(*)
@@ -199,7 +199,7 @@ def get_next_questions(s: t.SessionInfo, n: str, o: str):
         o=int(o)
     )
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_NEXT_QUESTIONS, params).fetchall()
 
 def get_search_filter_questions(s: t.SessionInfo, q: str, n: str, o: str):
@@ -210,5 +210,5 @@ def get_search_filter_questions(s: t.SessionInfo, q: str, n: str, o: str):
         o=int(o)
     )
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_SEARCH_FILTER_QUESTIONS, params).fetchall()

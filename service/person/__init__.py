@@ -1,5 +1,5 @@
 import os
-from database import transaction, fetchall_sets
+from database import api_tx, fetchall_sets
 from typing import Optional, Iterable, Tuple
 import duotypes as t
 import json
@@ -42,7 +42,7 @@ def _send_report(subject_person_id: int, object_person_id: int):
             object_person_id=object_person_id,
         )
 
-        with transaction('READ COMMITTED') as tx:
+        with api_tx('READ COMMITTED') as tx:
             report = tx.execute(Q_REPORT_EMAIL, params).fetchall()
 
         aws_smtp.send(
@@ -171,10 +171,10 @@ def post_answer(req: t.PostAnswer, s: t.SessionInfo):
         public=req.public,
     )
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         tx.execute(Q_ADD_YES_NO_COUNT, params_add_yes_no_count)
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(Q_UPDATE_ANSWER, params_update_answer)
 
 def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
@@ -186,7 +186,7 @@ def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
         public=None,
     )
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(Q_UPDATE_ANSWER, params)
 
 def _generate_otp(email: str):
@@ -217,7 +217,7 @@ def post_request_otp(req: t.PostRequestOtp):
         session_token_hash=session_token_hash,
     )
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(Q_INSERT_DUO_SESSION, params)
 
     _send_otp(email, otp)
@@ -234,7 +234,7 @@ def post_resend_otp(s: t.SessionInfo):
 
     _send_otp(s.email, otp)
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(Q_UPDATE_OTP, params)
 
 def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
@@ -243,7 +243,7 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
         session_token_hash=s.session_token_hash,
     )
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(Q_MAYBE_DELETE_ONBOARDEE, params)
         tx.execute(Q_MAYBE_SIGN_IN, params)
         row = tx.fetchone()
@@ -259,13 +259,13 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
 def post_sign_out(s: t.SessionInfo):
     params = dict(session_token_hash=s.session_token_hash)
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         tx.execute(Q_DELETE_DUO_SESSION, params)
 
 def post_check_session_token(s: t.SessionInfo):
     params = dict(person_id=s.person_id)
 
-    with transaction() as tx:
+    with api_tx() as tx:
         row = tx.execute(Q_SELECT_UNITS, params).fetchone()
         if row:
             return dict(
@@ -277,7 +277,7 @@ def post_check_session_token(s: t.SessionInfo):
 def post_active(s: t.SessionInfo):
     params = dict(person_id=s.person_id)
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
             tx.execute(Q_UPDATE_ACTIVE, params)
 
 def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
@@ -301,7 +301,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
                 $field_name = EXCLUDED.$field_name
             """.replace('$field_name', field_name)
 
-        with transaction() as tx:
+        with api_tx() as tx:
             tx.execute(q_set_onboardee_field, params)
     elif field_name == 'location':
         params = dict(
@@ -321,7 +321,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
             ON CONFLICT (email) DO UPDATE SET
                 coordinates = EXCLUDED.coordinates
             """
-        with transaction() as tx:
+        with api_tx() as tx:
             tx.execute(q_set_onboardee_field, params)
             if tx.rowcount != 1:
                 return 'Unknown location', 400
@@ -344,7 +344,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
                 gender_id = EXCLUDED.gender_id
             """
 
-        with transaction() as tx:
+        with api_tx() as tx:
             tx.execute(q_set_onboardee_field, params)
     elif field_name == 'other_peoples_genders':
         params = dict(
@@ -366,7 +366,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
                 gender_id = EXCLUDED.gender_id
             """
 
-        with transaction() as tx:
+        with api_tx() as tx:
             tx.execute(q_set_onboardee_field, params)
     elif field_name == 'files':
         pos_uuid_img = [
@@ -399,7 +399,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
                 uuid = EXCLUDED.uuid
             """
 
-        with transaction() as tx:
+        with api_tx() as tx:
             tx.executemany(q_set_onboardee_field, params)
 
         try:
@@ -418,7 +418,7 @@ def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo):
         for position in req.files
     ]
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.executemany(Q_DELETE_ONBOARDEE_PHOTO, params)
 
 def post_finish_onboarding(s: t.SessionInfo):
@@ -426,7 +426,7 @@ def post_finish_onboarding(s: t.SessionInfo):
         email=s.email
     )
 
-    with transaction() as tx:
+    with api_tx() as tx:
         return tx.execute(Q_FINISH_ONBOARDING, params).fetchone()
 
 def get_me(
@@ -443,7 +443,7 @@ def get_me(
         topic=None,
     )
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         personality = tx.execute(Q_SELECT_PERSONALITY, params).fetchall()
 
     try:
@@ -470,7 +470,7 @@ def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
         prospect_person_id=prospect_person_id,
     )
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         row = tx.execute(Q_SELECT_PROSPECT_PROFILE, params).fetchone()
         if not row:
             return '', 404
@@ -488,7 +488,7 @@ def post_block(s: t.SessionInfo, prospect_person_id: int):
         object_person_id=prospect_person_id,
     )
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(Q_INSERT_BLOCKED, params)
 
     threading.Thread(target=_send_report, kwargs=params).start()
@@ -499,7 +499,7 @@ def post_unblock(s: t.SessionInfo, prospect_person_id: int):
         object_person_id=prospect_person_id,
     )
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(Q_DELETE_BLOCKED, params)
 
 def post_hide(s: t.SessionInfo, prospect_person_id: int):
@@ -508,7 +508,7 @@ def post_hide(s: t.SessionInfo, prospect_person_id: int):
         object_person_id=prospect_person_id,
     )
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(Q_INSERT_HIDDEN, params)
 
 def post_unhide(s: t.SessionInfo, prospect_person_id: int):
@@ -517,7 +517,7 @@ def post_unhide(s: t.SessionInfo, prospect_person_id: int):
         object_person_id=prospect_person_id,
     )
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(Q_DELETE_HIDDEN, params)
 
 def get_compare_personalities(
@@ -545,7 +545,7 @@ def get_compare_personalities(
         topic=db_topic,
     )
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_SELECT_PERSONALITY, params).fetchall()
 
 def get_compare_answers(
@@ -584,7 +584,7 @@ def get_compare_answers(
         o=o,
     )
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_ANSWER_COMPARISON, params).fetchall()
 
 def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo):
@@ -593,25 +593,25 @@ def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo):
         prospect_person_ids=req.person_ids
     )
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_INBOX_INFO, params).fetchall()
 
 def delete_account(s: t.SessionInfo):
     params = dict(person_id=s.person_id)
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(Q_DELETE_ACCOUNT, params)
 
 def post_deactivate(s: t.SessionInfo):
     params = dict(person_id=s.person_id)
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(Q_POST_DEACTIVATE, params)
 
 def get_profile_info(s: t.SessionInfo):
     params = dict(person_id=s.person_id)
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_PROFILE_INFO, params).fetchone()['j']
 
 def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
@@ -620,7 +620,7 @@ def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
         for position in req.files
     ]
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.executemany(Q_DELETE_PROFILE_INFO, params)
 
 def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
@@ -632,7 +632,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         field_value=field_value,
     )
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         if field_name == 'files':
             pos_uuid_img = [
                 (pos, secrets.token_hex(32), img)
@@ -836,7 +836,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
 def get_search_filters(s: t.SessionInfo):
     params = dict(person_id=s.person_id)
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_SEARCH_FILTERS, params).fetchone()['j']
 
 def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
@@ -852,7 +852,7 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
         field_value=field_value,
     )
 
-    with transaction() as tx:
+    with api_tx() as tx:
         if field_name == 'gender':
             q1 = """
             DELETE FROM search_preference_gender
@@ -1198,7 +1198,7 @@ def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo):
         ) <= {max_search_filter_answers}
         """
 
-    with transaction() as tx:
+    with api_tx() as tx:
         answer = tx.execute(q, params).fetchone().get('j')
         if answer is None:
             return dict(error=error), 400
@@ -1211,7 +1211,7 @@ def post_mark_messaged(s: t.SessionInfo, prospect_person_id: int):
         object_person_id=prospect_person_id,
     )
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(Q_INSERT_MESSAGED, params)
 
 def get_search_clubs(s: t.SessionInfo, q: str):
@@ -1223,7 +1223,7 @@ def get_search_clubs(s: t.SessionInfo, q: str):
         search_string=q,
     )
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_SEARCH_CLUBS, params).fetchall()
 
 def post_join_club(req: t.PostJoinClub, s: t.SessionInfo):
@@ -1232,7 +1232,7 @@ def post_join_club(req: t.PostJoinClub, s: t.SessionInfo):
         club_name=req.name,
     )
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(Q_JOIN_CLUB, params)
 
 def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo):
@@ -1241,7 +1241,7 @@ def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo):
         club_name=req.name,
     )
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(Q_LEAVE_CLUB, params)
 
 def get_update_notifications(email: str, type: str, frequency: str):
@@ -1259,7 +1259,7 @@ def get_update_notifications(email: str, type: str, frequency: str):
     else:
         return 'Invalid type', 400
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         query_results = [tx.execute(q, params).fetchone()['ok'] for q in queries]
 
     if all(query_results):

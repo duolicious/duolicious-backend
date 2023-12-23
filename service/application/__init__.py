@@ -7,7 +7,7 @@ from service import (
     question,
     search,
 )
-from database import transaction
+from database import api_tx
 import psycopg
 from service.application.decorators import (
     app,
@@ -35,7 +35,7 @@ def init_db():
     with open(_init_sql_file, 'r') as f:
         init_sql_file = f.read()
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute(init_sql_file)
 
 @post('/request-otp', limiter=shared_otp_limit)
