@@ -413,7 +413,7 @@ onboardee_country AS (
     INSERT INTO search_preference_messaged (person_id, messaged_id)
     SELECT new_person.id, yes_no.id
     FROM new_person, yes_no
-    WHERE yes_no.name = 'Yes'
+    WHERE yes_no.name = 'No'
 ), p19 AS (
     INSERT INTO search_preference_hidden (person_id, hidden_id)
     SELECT new_person.id, yes_no.id
