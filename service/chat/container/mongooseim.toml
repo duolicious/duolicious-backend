@@ -18,7 +18,7 @@
 
     host     = "$DUO_DB_HOST"
     port     =  $DUO_DB_PORT
-    database = "$DUO_DB_NAME"
+    database = "duo_chat"
     username = "$DUO_DB_USER"
     password = "$DUO_DB_PASS"
 

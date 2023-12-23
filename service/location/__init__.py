@@ -1,4 +1,4 @@
-from database import transaction
+from database import api_tx
 import json
 import os
 from typing import Optional
@@ -19,7 +19,7 @@ def init_db():
     with open(_locations_json_file) as f:
         locations = json.load(f)
 
-    with transaction() as tx:
+    with api_tx() as tx:
         tx.execute("SELECT COUNT(*) FROM location")
         if tx.fetchone()['count'] != 0:
             return
@@ -59,6 +59,6 @@ def get_search_locations(q: Optional[str]):
         search_string=normalized_whitespace,
     )
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         tx.execute(Q_SEARCH_LOCATIONS, params)
         return [row['long_friendly'] for row in tx.fetchall()]

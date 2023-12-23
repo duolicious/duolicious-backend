@@ -9,7 +9,6 @@ import time
 
 DB_HOST = os.environ['DUO_DB_HOST']
 DB_PORT = os.environ['DUO_DB_PORT']
-DB_NAME = os.environ['DUO_DB_NAME']
 DB_USER = os.environ['DUO_DB_USER']
 DB_PASS = os.environ['DUO_DB_PASS']
 
@@ -21,10 +20,9 @@ _valid_isolation_levels = [
 
 _default_transaction_isolation = 'REPEATABLE READ'
 
-_conninfo = psycopg.conninfo.make_conninfo(
+_coninfo_args = dict(
     host=DB_HOST,
     port=DB_PORT,
-    dbname=DB_NAME,
     user=DB_USER,
     password=DB_PASS,
     options=(
@@ -35,18 +33,57 @@ _conninfo = psycopg.conninfo.make_conninfo(
     ),
 )
 
-pool = ConnectionPool(_conninfo, min_size=2, max_size=2)
+_api_conninfo = psycopg.conninfo.make_conninfo(
+    **(_coninfo_args | dict(dbname='duo_api'))
+)
 
-def transaction(
+_chat_conninfo = psycopg.conninfo.make_conninfo(
+    **(_coninfo_args | dict(dbname='duo_chat'))
+)
+
+_api_pool  = None
+_chat_pool = None
+
+def api_tx(
     isolation_level=_default_transaction_isolation
 ) -> ContextManager[psycopg.Cursor[Any]]:
+    global _api_pool
+
     if isolation_level.upper() not in _valid_isolation_levels:
         raise ValueError(isolation_level)
+
+    if not _api_pool:
+        _api_pool = ConnectionPool(_api_conninfo,  min_size=2, max_size=2)
 
     @contextmanager
     def generator_function():
         with (
-            pool.connection() as conn,
+            _api_pool.connection() as conn,
+            conn.cursor(row_factory=psycopg.rows.dict_row) as cur
+        ):
+            if isolation_level != _default_transaction_isolation:
+                cur.execute(
+                    f'SET TRANSACTION ISOLATION LEVEL {isolation_level}'
+                )
+            yield cur
+
+    return generator_function()
+
+def chat_tx(
+    isolation_level=_default_transaction_isolation
+) -> ContextManager[psycopg.Cursor[Any]]:
+    global _chat_pool
+
+    if isolation_level.upper() not in _valid_isolation_levels:
+        raise ValueError(isolation_level)
+
+    if not _chat_pool:
+        _chat_pool = ConnectionPool(_chat_conninfo,  min_size=2, max_size=2)
+
+    @contextmanager
+    def generator_function():
+        with (
+            _chat_pool.connection() as conn,
             conn.cursor(row_factory=psycopg.rows.dict_row) as cur
         ):
             if isolation_level != _default_transaction_isolation:
@@ -66,9 +103,17 @@ def fetchall_sets(tx: psycopg.Cursor[Any]):
             break
     return result
 
-def check_connections_repeatedly():
+def _check_api_connections_repeatedly():
     while True:
-        pool.check()
+        if _api_pool:
+            _api_pool.check()
         time.sleep(60 + random.randint(-30, 30))
 
-threading.Thread(target=check_connections_repeatedly, daemon=True).start()
+def _check_chat_connections_repeatedly():
+    while True:
+        if _chat_pool:
+            _chat_pool.check()
+        time.sleep(60 + random.randint(-30, 30))
+
+threading.Thread(target=_check_api_connections_repeatedly,  daemon=True).start()
+threading.Thread(target=_check_chat_connections_repeatedly, daemon=True).start()

@@ -1,4 +1,4 @@
-from database import transaction
+from database import api_tx
 from duohash import duo_uuid, sha512
 from flask import request, Flask
 from flask_limiter import Limiter
@@ -124,7 +124,7 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
             session_token_hash = sha512(session_token)
             params = dict(session_token_hash=session_token_hash)
             row = None
-            with transaction('READ COMMITTED') as tx:
+            with api_tx('READ COMMITTED') as tx:
                 row = tx.execute(Q_GET_SESSION, params).fetchone()
 
             if row:

@@ -1,5 +1,5 @@
 import duotypes as t
-from database import transaction
+from database import api_tx
 from typing import Tuple, Optional
 from service.search.sql import *
 
@@ -8,12 +8,12 @@ def _quiz_search_results(searcher_person_id: int):
         searcher_person_id=searcher_person_id,
     )
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_QUIZ_SEARCH, params).fetchall()
 
 
 def _uncached_search_results(searcher_person_id: int, no: Tuple[int, int]):
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         params_1 = dict(
             searcher_person_id=searcher_person_id,
         )
@@ -39,7 +39,7 @@ def _cached_search_results(searcher_person_id: int, no: Tuple[int, int]):
         o=o
     )
 
-    with transaction('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_CACHED_SEARCH, params).fetchall()
 
 
