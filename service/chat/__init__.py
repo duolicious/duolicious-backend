@@ -1,10 +1,10 @@
+from database import chat_tx
 from lxml import etree
 import asyncio
-import database
+import base64
 import duohash
 import re
 import websockets
-import base64
 
 # TODO: Push notifications, yay
 # TODO: async db ops
@@ -94,7 +94,7 @@ def is_message_unique(message_str):
 
     params = dict(hash=hashed)
 
-    with database.transaction('READ COMMITTED') as tx:
+    with chat_tx('READ COMMITTED') as tx:
         if tx.execute(Q_UNIQUENESS, params).fetchall():
             return True
         else:
@@ -110,7 +110,7 @@ def is_message_blocked(username, toJid):
             toUsername=toUsername,
         )
 
-        with database.transaction('READ COMMITTED') as tx:
+        with chat_tx('READ COMMITTED') as tx:
             return bool(tx.execute(Q_BLOCKED, params).fetchall())
     except:
         return True

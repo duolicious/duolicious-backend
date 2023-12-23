@@ -51,7 +51,6 @@ services:
       DUO_DB_PORT: 5432
       DUO_DB_USER: postgres
       DUO_DB_PASS: password
-      DUO_DB_NAME: duo_api
 
       DUO_CORS_ORIGINS: '*'
 
@@ -86,7 +85,6 @@ services:
       DUO_DB_PORT: 5432
       DUO_DB_USER: postgres
       DUO_DB_PASS: password
-      DUO_DB_NAME: duo_chat
     healthcheck:
       test: ["CMD", "bash", "-c", "[[ -e /db-initialized ]]"]
       interval: 30s
