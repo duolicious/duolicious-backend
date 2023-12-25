@@ -182,6 +182,5 @@ test_set exercise '["Never", "Unanswered"]' true
 test_set religion '["Buddhist", "Unanswered"]' true
 test_set star_sign '["Unanswered", "Virgo"]' true
 
-test_set people_messaged '"No"'
-test_set people_hidden '"Yes"'
-test_set people_blocked '"Yes"'
+test_set people_you_messaged '"No"'
+test_set people_you_skipped '"Yes"'

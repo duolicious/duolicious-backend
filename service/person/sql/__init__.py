@@ -415,12 +415,7 @@ onboardee_country AS (
     FROM new_person, yes_no
     WHERE yes_no.name = 'No'
 ), p19 AS (
-    INSERT INTO search_preference_hidden (person_id, hidden_id)
-    SELECT new_person.id, yes_no.id
-    FROM new_person, yes_no
-    WHERE yes_no.name = 'No'
-), p20 AS (
-    INSERT INTO search_preference_blocked (person_id, blocked_id)
+    INSERT INTO search_preference_skipped (person_id, skipped_id)
     SELECT new_person.id, yes_no.id
     FROM new_person, yes_no
     WHERE yes_no.name = 'No'
@@ -527,21 +522,14 @@ WITH prospect AS (
     SELECT star_sign.name AS j
     FROM star_sign JOIN prospect ON star_sign_id = star_sign.id
     WHERE star_sign.name != 'Unanswered'
-), is_hidden AS (
+), is_skipped AS (
     SELECT
         EXISTS (
             SELECT 1
-            FROM hidden
-            WHERE subject_person_id = %(person_id)s
-            AND object_person_id = %(prospect_person_id)s
-        ) AS j
-), is_blocked AS (
-    SELECT
-        EXISTS (
-            SELECT 1
-            FROM blocked
-            WHERE subject_person_id = %(person_id)s
-            AND object_person_id = %(prospect_person_id)s
+            FROM skipped
+            WHERE
+                subject_person_id = %(person_id)s AND
+                object_person_id  = %(prospect_person_id)s
         ) AS j
 ), clubs AS (
     SELECT
@@ -594,8 +582,7 @@ SELECT
         'match_percentage',       (SELECT j             FROM match_percentage),
         'about',                  (SELECT about         FROM prospect),
         'count_answers',          (SELECT count_answers FROM prospect),
-        'is_blocked',             (SELECT j             FROM is_blocked),
-        'is_hidden',              (SELECT j             FROM is_hidden),
+        'is_skipped',             (SELECT j             FROM is_skipped),
 
         -- Basics
         'occupation',             (SELECT occupation    FROM prospect),
@@ -619,6 +606,17 @@ SELECT
         'mutual_clubs',           (SELECT j             FROM mutual_clubs_json),
         'other_clubs',            (SELECT j             FROM other_clubs_json)
     ) AS j
+WHERE
+    (SELECT activated FROM prospect)
+AND
+    NOT EXISTS (
+        SELECT 1
+        FROM skipped
+        WHERE
+            subject_person_id = %(prospect_person_id)s AND
+            object_person_id  = %(person_id)s
+        LIMIT 1
+    )
 """
 
 Q_SELECT_UNITS = """
@@ -630,14 +628,16 @@ WHERE
     id = %(person_id)s
 """
 
-Q_INSERT_BLOCKED = """
+Q_INSERT_SKIPPED = """
 WITH q1 AS (
-    INSERT INTO blocked (
+    INSERT INTO skipped (
         subject_person_id,
-        object_person_id
+        object_person_id,
+        reported
     ) VALUES (
         %(subject_person_id)s,
-        %(object_person_id)s
+        %(object_person_id)s,
+        %(reported)s
     ) ON CONFLICT DO NOTHING
 ), q2 AS (
     DELETE FROM search_cache
@@ -651,33 +651,8 @@ WITH q1 AS (
 SELECT 1
 """
 
-Q_DELETE_BLOCKED = """
-DELETE FROM blocked
-WHERE
-    subject_person_id = %(subject_person_id)s AND
-    object_person_id = %(object_person_id)s
-"""
-
-Q_INSERT_HIDDEN = """
-WITH q1 AS (
-    INSERT INTO hidden (
-        subject_person_id,
-        object_person_id
-    ) VALUES (
-        %(subject_person_id)s,
-        %(object_person_id)s
-    ) ON CONFLICT DO NOTHING
-), q2 AS (
-    DELETE FROM search_cache
-    WHERE
-        searcher_person_id = %(subject_person_id)s AND
-        prospect_person_id = %(object_person_id)s
-)
-SELECT 1
-"""
-
-Q_DELETE_HIDDEN = """
-DELETE FROM hidden
+Q_DELETE_SKIPPED = """
+DELETE FROM skipped
 WHERE
     subject_person_id = %(subject_person_id)s AND
     object_person_id = %(object_person_id)s
@@ -744,88 +719,151 @@ OFFSET %(o)s
 """
 
 Q_INBOX_INFO = """
+WITH person_info AS (
+    SELECT
+        id_table.id AS person_id,
+        prospect.id IS NULL AS is_prospect_deleted,
+        COALESCE(prospect.activated, FALSE) AS is_prospect_activated,
+        prospect.name AS name,
+        prospect.personality AS personality,
+        EXISTS (
+            SELECT
+                1
+            FROM
+                messaged
+            WHERE
+                subject_person_id = %(person_id)s
+            AND
+                object_person_id = id_table.id
+            LIMIT 1
+        ) AS person_messaged_prospect,
+        EXISTS (
+            SELECT
+                1
+            FROM
+                messaged
+            WHERE
+                subject_person_id = id_table.id
+            AND
+                object_person_id = %(person_id)s
+            LIMIT 1
+        ) AS prospect_messaged_person,
+        EXISTS (
+            SELECT
+                1
+            FROM
+                skipped
+            WHERE
+                subject_person_id = %(person_id)s
+            AND
+                object_person_id = id_table.id
+            LIMIT 1
+        ) AS person_skipped_prospect,
+        EXISTS (
+            SELECT
+                1
+            FROM
+                skipped
+            WHERE
+                subject_person_id = id_table.id
+            AND
+                object_person_id = %(person_id)s
+            LIMIT 1
+        ) AS prospect_skipped_person
+    FROM
+        (
+            SELECT UNNEST(%(prospect_person_ids)s) AS id
+        ) AS id_table
+    LEFT JOIN
+        person AS prospect
+    ON
+        prospect.id = id_table.id
+    LEFT JOIN
+        skipped
+    ON
+        subject_person_id = prospect.id
+    AND
+        object_person_id = %(person_id)s
+)
 SELECT
-    id AS person_id,
-    name,
-    CLAMP(
-        0,
-        99,
-        100 * (
-            1 - (
-                SELECT (
-                    SELECT personality FROM person WHERE id = %(person_id)s
-                ) <#> (
-                    prospect.personality
-                )
+    person_id,
+    CASE
+        WHEN is_prospect_activated AND NOT prospect_skipped_person
+        THEN
+            name
+        ELSE
+            NULL
+    END AS name,
+    CASE
+        WHEN is_prospect_activated AND NOT prospect_skipped_person
+        THEN
+            CLAMP(
+                0,
+                99,
+                100 * (
+                    1 - (
+                        SELECT (
+                            SELECT personality FROM person WHERE id = %(person_id)s
+                        ) <#> (
+                            prospect.personality
+                        )
+                    )
+                ) / 2
+            )::SMALLINT
+        ELSE
+            NULL
+    END AS match_percentage,
+    CASE
+        WHEN is_prospect_activated AND NOT prospect_skipped_person
+        THEN
+            (
+                SELECT
+                    uuid
+                FROM
+                    photo
+                WHERE
+                    person_id = prospect.person_id
+                ORDER BY
+                    position
+                LIMIT 1
             )
-        ) / 2
-    )::SMALLINT AS match_percentage,
-    (
-        SELECT
-            uuid
-        FROM
-            photo
-        WHERE
-            person_id = prospect.id
-        ORDER BY
-            position
-        LIMIT 1
-    ) AS image_uuid,
-    (
-        EXISTS (
-            SELECT
-                1
-            FROM
-                blocked
-            WHERE
-                subject_person_id = %(person_id)s
+        ELSE
+            NULL
+    END AS image_uuid,
+    CASE
+        WHEN
+                NOT is_prospect_deleted
             AND
-                object_person_id = prospect.id
-            LIMIT 1
-        )
-    OR
-        EXISTS (
-            SELECT
-                1
-            FROM
-                hidden
-            WHERE
-                subject_person_id = %(person_id)s
+                NOT prospect_messaged_person
+        THEN 'nowhere'
+        WHEN
+                is_prospect_activated
             AND
-                object_person_id = prospect.id
-            LIMIT 1
-        )
-    ) AS was_archived_by_me
+                NOT prospect_skipped_person
+            AND
+                NOT person_skipped_prospect
+            AND
+                prospect_messaged_person
+            AND
+                person_messaged_prospect
+        THEN 'chats'
+        WHEN
+                is_prospect_activated
+            AND
+                NOT prospect_skipped_person
+            AND
+                NOT person_skipped_prospect
+            AND
+                prospect_messaged_person
+            AND
+                NOT person_messaged_prospect
+        THEN 'intros'
+        ELSE 'archive'
+    END AS conversation_location
 FROM
-    person AS prospect
-WHERE
-    id = ANY(%(prospect_person_ids)s)
-AND
-    activated
-AND
-    NOT EXISTS (
-        SELECT
-            1
-        FROM
-            blocked
-        WHERE
-            subject_person_id = prospect.id
-        AND
-            object_person_id = %(person_id)s
-        LIMIT 1
-    )
-AND
-    NOT EXISTS (
-        SELECT
-            1
-        FROM
-            hidden
-        WHERE
-            subject_person_id = prospect.id
-        AND
-            object_person_id = %(person_id)s
-        LIMIT 1
-    )
+    person_info AS prospect
+ORDER BY
+    person_id
 """
 
 Q_DELETE_ACCOUNT = """
@@ -1109,20 +1147,15 @@ WITH answer AS (
     FROM search_preference_star_sign JOIN star_sign
     ON star_sign_id = star_sign.id
     WHERE person_id = %(person_id)s
-), people_messaged AS (
+), people_you_messaged AS (
     SELECT name AS j
     FROM search_preference_messaged JOIN yes_no
     ON messaged_id = yes_no.id
     WHERE person_id = %(person_id)s
-), people_hidden AS (
+), people_you_skipped AS (
     SELECT name AS j
-    FROM search_preference_hidden JOIN yes_no
-    ON hidden_id = yes_no.id
-    WHERE person_id = %(person_id)s
-), people_blocked AS (
-    SELECT name AS j
-    FROM search_preference_blocked JOIN yes_no
-    ON blocked_id = yes_no.id
+    FROM search_preference_skipped JOIN yes_no
+    ON skipped_id = yes_no.id
     WHERE person_id = %(person_id)s
 )
 SELECT
@@ -1147,20 +1180,9 @@ SELECT
         'religion',               (SELECT j FROM religion),
         'star_sign',              (SELECT j FROM star_sign),
 
-        'people_messaged',        (SELECT j FROM people_messaged),
-        'people_hidden',          (SELECT j FROM people_hidden),
-        'people_blocked',         (SELECT j FROM people_blocked)
+        'people_you_messaged',    (SELECT j FROM people_you_messaged),
+        'people_you_skipped',     (SELECT j FROM people_you_skipped)
     ) AS j
-"""
-
-Q_INSERT_MESSAGED = """
-INSERT INTO messaged (
-    subject_person_id,
-    object_person_id
-) VALUES (
-    %(subject_person_id)s,
-    %(object_person_id)s
-) ON CONFLICT DO NOTHING
 """
 
 Q_REPORT_EMAIL = """
