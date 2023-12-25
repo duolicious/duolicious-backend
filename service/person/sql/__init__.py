@@ -884,6 +884,8 @@ WITH photo AS (
     SELECT json_object_agg(position, uuid) AS j
     FROM photo
     WHERE person_id = %(person_id)s
+), name AS (
+    SELECT name AS j FROM person WHERE id = %(person_id)s
 ), about AS (
     SELECT about AS j FROM person WHERE id = %(person_id)s
 ), gender AS (
@@ -1001,6 +1003,7 @@ WITH photo AS (
 SELECT
     json_build_object(
         'photo',                  (SELECT j FROM photo),
+        'name',                   (SELECT j FROM name),
         'about',                  (SELECT j FROM about),
         'gender',                 (SELECT j FROM gender),
         'orientation',            (SELECT j FROM orientation),
