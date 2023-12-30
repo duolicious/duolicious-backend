@@ -52,10 +52,13 @@ def report_template(
     report_json,
     subject_person_id: int,
     object_person_id: int,
+    report_reason: str,
 ):
     json_string = json.dumps(report_json, indent=2)
 
     safe_json_string = html.escape(json_string)
+
+    safe_report_reason = html.escape(report_reason)
 
     return f"""
 <!DOCTYPE html>
@@ -68,6 +71,10 @@ def report_template(
 <body>
 <pre>
 {safe_json_string}
+</pre>
+
+<pre>
+{safe_report_reason}
 </pre>
 
 <pre>

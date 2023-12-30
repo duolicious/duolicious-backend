@@ -291,28 +291,28 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
-        -- The prospect did not block the searcher
+        -- The prospect did not skip the searcher
         NOT EXISTS (
             SELECT 1
             FROM
-                blocked
+                skipped
             WHERE
                 subject_person_id = prospect_person_id AND
                 object_person_id  = %(searcher_person_id)s
             LIMIT 1
         )
     AND
-        -- The searcher did not block the prospect, or the searcher wishes to
-        -- view blocked prospects
+        -- The searcher did not skip the prospect, or the searcher wishes to
+        -- view skipped prospects
         NOT EXISTS (
             SELECT 1
-            FROM search_preference_blocked AS preference
-            JOIN blocked
+            FROM search_preference_skipped AS preference
+            JOIN skipped
             ON
                 preference.person_id      = %(searcher_person_id)s AND
-                preference.blocked_id     = 2 AND
-                blocked.subject_person_id = %(searcher_person_id)s AND
-                blocked.object_person_id  = prospect_person_id
+                preference.skipped_id     = 2 AND
+                skipped.subject_person_id = %(searcher_person_id)s AND
+                skipped.object_person_id  = prospect_person_id
             LIMIT 1
         )
     AND
@@ -325,31 +325,6 @@ WITH searcher AS MATERIALIZED (
                 preference.messaged_id     = 2 AND
                 messaged.subject_person_id = %(searcher_person_id)s AND
                 messaged.object_person_id  = prospect_person_id
-            LIMIT 1
-        )
-    AND
-        -- The prospect did not hide the searcher
-        NOT EXISTS (
-            SELECT 1
-            FROM
-                hidden
-            WHERE
-                subject_person_id = prospect_person_id AND
-                object_person_id  = %(searcher_person_id)s
-            LIMIT 1
-        )
-    AND
-        -- The searcher did not hide the prospect, or the searcher wishes to
-        -- view hidden prospects
-       NOT EXISTS (
-            SELECT 1
-            FROM search_preference_hidden AS preference
-            JOIN hidden
-            ON
-                preference.person_id     = %(searcher_person_id)s AND
-                preference.hidden_id     = 2 AND
-                hidden.subject_person_id = %(searcher_person_id)s AND
-                hidden.object_person_id  = prospect_person_id
             LIMIT 1
         )
     AND

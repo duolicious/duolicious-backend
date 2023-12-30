@@ -231,9 +231,8 @@ class PostSearchFilter(BaseModel):
     religion: Optional[conlist(str, min_length=1)] = None
     star_sign: Optional[conlist(str, min_length=1)] = None
 
-    people_messaged: Optional[str] = None
-    people_hidden: Optional[str] = None
-    people_blocked: Optional[str] = None
+    people_you_messaged: Optional[str] = None
+    people_you_skipped: Optional[str] = None
 
     @model_validator(mode='after')
     def check_exactly_one(self):
@@ -266,3 +265,6 @@ class PostJoinClub(BaseModel):
 
 class PostLeaveClub(BaseModel):
     name: constr(pattern=CLUB_PATTERN, min_length=1, max_length=CLUB_MAX_LEN)
+
+class PostSkip(BaseModel):
+    report_reason: Optional[constr(min_length=1, max_length=3000)] = None

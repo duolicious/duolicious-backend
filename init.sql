@@ -424,6 +424,7 @@ CREATE TABLE IF NOT EXISTS search_preference_messaged (
     PRIMARY KEY (person_id)
 );
 
+-- TODO: Delete v
 CREATE TABLE IF NOT EXISTS search_preference_hidden (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     hidden_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
@@ -435,6 +436,13 @@ CREATE TABLE IF NOT EXISTS search_preference_blocked (
     blocked_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
     PRIMARY KEY (person_id)
 );
+-- TODO: Delete ^
+
+CREATE TABLE IF NOT EXISTS search_preference_skipped (
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    skipped_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
+    PRIMARY KEY (person_id)
+);
 
 CREATE TABLE IF NOT EXISTS messaged (
     subject_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -442,6 +450,7 @@ CREATE TABLE IF NOT EXISTS messaged (
     PRIMARY KEY (subject_person_id, object_person_id)
 );
 
+-- TODO: Delete v
 CREATE TABLE IF NOT EXISTS hidden (
     subject_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     object_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -451,6 +460,14 @@ CREATE TABLE IF NOT EXISTS hidden (
 CREATE TABLE IF NOT EXISTS blocked (
     subject_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     object_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    PRIMARY KEY (subject_person_id, object_person_id)
+);
+-- TODO: Delete ^
+
+CREATE TABLE IF NOT EXISTS skipped (
+    subject_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    object_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    reported BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (subject_person_id, object_person_id)
 );
 
@@ -1170,6 +1187,82 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
+
+-- TODO: Delete v
+INSERT INTO skipped (
+    subject_person_id,
+    object_person_id,
+    reported
+)
+SELECT
+    subject_person_id,
+    object_person_id,
+    reported
+FROM (
+    SELECT subject_person_id, object_person_id, FALSE AS reported FROM hidden
+    UNION
+    SELECT subject_person_id, object_person_id, TRUE  AS reported FROM blocked
+)
+WHERE NOT EXISTS (SELECT 1 FROM skipped)
+ORDER BY reported DESC
+ON CONFLICT DO NOTHING;
+
+INSERT INTO search_preference_skipped (person_id, skipped_id)
+SELECT
+    p.id AS person_id,
+    COALESCE(GREATEST(h.hidden_id, b.blocked_id), 2) AS skipped_id
+FROM
+    person p
+LEFT JOIN
+    search_preference_hidden h ON p.id = h.person_id
+LEFT JOIN
+    search_preference_blocked b ON p.id = b.person_id
+WHERE NOT EXISTS (SELECT 1 FROM search_preference_skipped)
+ON CONFLICT DO NOTHING;
+
+
+
+DO $$
+DECLARE
+    count_skipped INT;
+    count_hidden  INT;
+    count_blocked INT;
+BEGIN
+    SELECT COUNT(*) INTO count_skipped FROM skipped WHERE reported;
+    SELECT COUNT(*) INTO count_blocked FROM hidden;
+    SELECT COUNT(*) INTO count_blocked FROM blocked;
+
+    IF count_skipped != count_blocked THEN
+        RAISE EXCEPTION 'The number of records in skipped (%) does not match the number in blocked (%)', count_skipped, count_blocked;
+    END IF;
+
+    IF count_skipped > count_hidden + count_blocked THEN
+        RAISE EXCEPTION 'More records than expected';
+    END IF;
+END $$;
+
+DO $$
+DECLARE
+    count_person INT;
+    count_search_preference_skipped INT;
+BEGIN
+    SELECT COUNT(*) INTO count_person FROM person;
+    SELECT COUNT(*) INTO count_search_preference_skipped FROM search_preference_skipped;
+
+    IF count_person != count_search_preference_skipped THEN
+        RAISE EXCEPTION 'person count should equal search preference count';
+    END IF;
+END $$;
+
+-- TODO: Delete ^
+
+
+-- TODO: Run these if the migration is successful
+-- DROP TABLE IF EXISTS search_preference_hidden;
+-- DROP TABLE IF EXISTS search_preference_blocked;
+
+-- DROP TABLE IF EXISTS hidden;
+-- DROP TABLE IF EXISTS blocked;
 
 --------------------------------------------------------------------------------
 

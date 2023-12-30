@@ -118,11 +118,10 @@ GET /prospect-profile/<person-id> {
   other_clubs: [ name ]
 }
 
-POST /block/<person-id> { session-token }
-POST /unblock/<person-id> { session-token }
-
-POST /hide/<person-id> { session-token }
-POST /unhide/<person-id> { session-token }
+POST /skip/<person-id> { session-token }
+POST /unskip/<person-id> { session-token } {
+  report_reason?: string
+}
 
 GET /compare-personalities/<person-id>/('mbti' | 'big5' | 'attachment' | 'politics' | 'other') {
   session-token
@@ -224,10 +223,6 @@ POST /search-filter-answer {
 } ->
   | { error: string }
   | { answer: [ ... ] }
-
-POST /mark-messaged/<person-id> {
-  session-token
-}
 
 GET /search-clubs {
   session-token

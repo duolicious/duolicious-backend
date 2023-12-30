@@ -1,10 +1,11 @@
-from database import chat_tx
+from database import api_tx, chat_tx
 from lxml import etree
 import asyncio
 import base64
 import duohash
 import re
 import websockets
+import traceback
 
 # TODO: Push notifications, yay
 # TODO: async db ops
@@ -17,21 +18,32 @@ ON CONFLICT DO NOTHING
 RETURNING hash
 """
 
-Q_BLOCKED = """
+Q_IS_SKIPPED = """
 SELECT
     1
 FROM
-    privacy_list
-JOIN
-    privacy_list_data
-ON
-    privacy_list_data.id = privacy_list.id
+    skipped
 WHERE
-    (server = 'duolicious.app' AND username = %(fromUsername)s AND value = %(toUsername)s   || '@duolicious.app')
+    (
+        subject_person_id = %(from_username)s AND
+        object_person_id  = %(to_username)s
+    )
 OR
-    (server = 'duolicious.app' AND username = %(toUsername)s   AND value = %(fromUsername)s || '@duolicious.app')
-LIMIT
-    1
+    (
+        subject_person_id = %(to_username)s AND
+        object_person_id  = %(from_username)s
+    )
+LIMIT 1
+"""
+
+Q_SET_MESSAGED = """
+INSERT INTO messaged (
+    subject_person_id,
+    object_person_id
+) VALUES (
+    %(subject_person_id)s,
+    %(object_person_id)s
+) ON CONFLICT DO NOTHING
 """
 
 MAX_MESSAGE_LEN = 5000
@@ -100,22 +112,35 @@ def is_message_unique(message_str):
         else:
             return False
 
-def is_message_blocked(username, toJid):
+def is_message_blocked(username, to_jid):
     try:
-        fromUsername = username
-        toUsername = toJid.split('@')[0]
+        from_username = int(username)
+        to_username = int(to_jid.split('@')[0])
 
         params = dict(
-            fromUsername=fromUsername,
-            toUsername=toUsername,
+            from_username=from_username,
+            to_username=to_username,
         )
 
-        with chat_tx('READ COMMITTED') as tx:
-            return bool(tx.execute(Q_BLOCKED, params).fetchall())
+        with api_tx('READ COMMITTED') as tx:
+            return bool(tx.execute(Q_IS_SKIPPED, params).fetchall())
     except:
+        print(traceback.format_exc())
         return True
 
     return False
+
+def set_messaged(username, to_jid):
+    from_username = int(username)
+    to_username = int(to_jid.split('@')[0])
+
+    params = dict(
+        subject_person_id=from_username,
+        object_person_id=to_username,
+    )
+
+    with api_tx('READ COMMITTED') as tx:
+        tx.execute(Q_SET_MESSAGED, params)
 
 def process_auth(message_str, username):
     if username.username is not None:
@@ -141,37 +166,51 @@ def process_auth(message_str, username):
         pass
 
 def process_duo_message(message_xml, username):
-    id, toJid, do_check_uniqueness, maybe_message_body = get_message_attrs(
+    id, to_jid, do_check_uniqueness, maybe_message_body = get_message_attrs(
         message_xml)
 
     if id and maybe_message_body and is_message_too_long(maybe_message_body):
-        return f'<duo_message_too_long id="{id}"/>', None
+        return [f'<duo_message_too_long id="{id}"/>'], []
 
-    if id and is_message_blocked(username, toJid):
-        return f'<duo_message_blocked id="{id}"/>', None
+    if id and is_message_blocked(username, to_jid):
+        return [f'<duo_message_blocked id="{id}"/>'], []
 
     if id and maybe_message_body and do_check_uniqueness and \
             not is_message_unique(maybe_message_body):
-        return f'<duo_message_not_unique id="{id}"/>', None
+        return [f'<duo_message_not_unique id="{id}"/>'], []
 
     if id:
-        return f'<duo_message_delivered id="{id}"/>', message_xml
+        set_messaged(username, to_jid)
+        return (
+            [
+                f'<duo_message_delivered id="{id}"/>'
+            ],
+            [
+                message_xml,
+                f"<iq id='{duohash.duo_uuid()}' type='set'>"
+                f"  <query"
+                f"    xmlns='erlang-solutions.com:xmpp:inbox:0#conversation'"
+                f"    jid='{to_jid}'"
+                f"  >"
+                f"    <box>chats</box>"
+                f"  </query>"
+                f"</iq>"
 
-    return None, message_xml
+            ]
+        )
+
+    return [], [message_xml]
 
 async def process(src, dst, username):
     async for message in src:
         process_auth(message, username)
 
-        undeliverable_message, deliverable_message = process_duo_message(
-            message,
-            username.username
-        )
+        to_src, to_dst = process_duo_message(message, username.username)
 
-        if deliverable_message:
-            await dst.send(deliverable_message)
-        if undeliverable_message:
-            await src.send(undeliverable_message)
+        for m in to_dst:
+            await dst.send(m)
+        for m in to_src:
+            await src.send(m)
 
 async def forward(src, dst):
     async for message in src:
