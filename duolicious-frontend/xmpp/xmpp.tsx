@@ -45,7 +45,7 @@ type Conversation = {
   lastMessageRead: boolean
   lastMessageTimestamp: Date
   isAvailableUser: boolean
-  wasArchivedByMe: boolean
+  location: 'chats' | 'intros' | 'archive' | 'nowhere'
 };
 
 type ConversationsMap = { [key: string]: Conversation };
@@ -58,70 +58,51 @@ type Conversations = {
 type Inbox = {
   chats: Conversations
   intros: Conversations
+  archive: Conversations
 };
 
 const inboxStats = (inbox: Inbox): {
-  chats: {
-    numUnreadInbox: number
-    numUnreadArchive: number
-  }
-  intros: {
-    numUnreadInbox: number
-    numUnreadArchive: number
-  }
-  numUnreadInbox: number
+  numChats: number
+  numUnreadChats: number
+  numIntros: number
+  numUnreadIntros: number
+  numArchive: number
   numUnreadArchive: number
+  numChatsAndIntros: number
+  numUnreadChatsAndIntros: number
 } => {
-  const isArchived = (c: Conversation) =>
-    !c.isAvailableUser || c.wasArchivedByMe;
+  const unreadAcc = (sum: number, c: Conversation) =>
+    sum + (!c.lastMessageRead ? 1 : 0);
 
-  const unreadInbox = (sum: number, c: Conversation) =>
-    sum + (!isArchived(c) && !c.lastMessageRead ? 1 : 0);
+  const unreadSum = (conversations: Conversation[]) =>
+    conversations.reduce(unreadAcc, 0);
 
-  const unreadArchive = (sum: number, c: Conversation) =>
-    sum + ( isArchived(c) && !c.lastMessageRead ? 1 : 0);
+  const numChats = inbox.chats.conversations.length;
+  const numIntros = inbox.intros.conversations.length;
+  const numArchive = inbox.archive.conversations.length;
+  const numChatsAndIntros = numChats + numIntros;
 
-  const chats = {
-    numUnreadInbox: inbox.chats.conversations.reduce(
-       unreadInbox,
-       0
-     ),
-    numUnreadArchive: inbox.chats.conversations.reduce(
-       unreadArchive,
-       0
-     ),
-  };
-
-  const intros = {
-    numUnreadInbox: inbox.intros.conversations.reduce(
-       unreadInbox,
-       0
-     ),
-    numUnreadArchive: inbox.intros.conversations.reduce(
-       unreadArchive,
-       0
-     ),
-  };
-
-  const numUnreadInbox = (
-    chats .numUnreadInbox +
-    intros.numUnreadInbox);
-
-  const numUnreadArchive = (
-    chats .numUnreadArchive +
-    intros.numUnreadArchive);
+  const numUnreadChats = unreadSum(inbox.chats.conversations);
+  const numUnreadIntros = unreadSum(inbox.intros.conversations);
+  const numUnreadArchive = unreadSum(inbox.archive.conversations);
+  const numUnreadChatsAndIntros = numUnreadChats + numUnreadIntros;
 
   return {
-    chats,
-    intros,
-    numUnreadInbox,
+    numChats,
+    numUnreadChats,
+    numIntros,
+    numUnreadIntros,
+    numArchive,
     numUnreadArchive,
+    numChatsAndIntros,
+    numUnreadChatsAndIntros,
   };
 };
 
 const emptyInbox = (): Inbox => ({
-  chats:  { conversations: [], conversationsMap: {} },
-  intros: { conversations: [], conversationsMap: {} },
+  chats:   { conversations: [], conversationsMap: {} },
+  intros:  { conversations: [], conversationsMap: {} },
+  archive: { conversations: [], conversationsMap: {} },
 });
 
 let _xmpp: Client | undefined;
@@ -175,11 +156,16 @@ const populateConversationList = async (
   }, {});
 
   conversationList.forEach((c: Conversation) => {
-    c.name = personIdToInfo[c.personId]?.name ?? 'Unavailable Person';
-    c.matchPercentage = personIdToInfo[c.personId]?.match_percentage ?? 0;
-    c.imageUuid = personIdToInfo[c.personId]?.image_uuid ?? null;
-    c.isAvailableUser = personIdToInfo[c.personId] !== undefined;
-    c.wasArchivedByMe = personIdToInfo[c.personId]?.was_archived_by_me ?? false;
+    c.name =
+      personIdToInfo[c.personId]?.name ?? 'Unavailable Person';
+    c.matchPercentage =
+      personIdToInfo[c.personId]?.match_percentage ?? 0;
+    c.imageUuid =
+      personIdToInfo[c.personId]?.image_uuid ?? null;
+    c.isAvailableUser =
+      !!personIdToInfo[c.personId]?.name;
+    c.location =
+      personIdToInfo[c.personId]?.conversation_location ?? 'archive';
   });
 };
 
@@ -218,7 +204,7 @@ const setInboxSent = (recipientPersonId: number, message: string) => {
       matchPercentage: 0,
       imageUuid: null,
       isAvailableUser: true,
-      wasArchivedByMe: false,
+      location: 'archive',
       ...chatsConversation,
       ...introsConversation,
       lastMessage: message,
@@ -226,15 +212,13 @@ const setInboxSent = (recipientPersonId: number, message: string) => {
       lastMessageTimestamp: new Date(),
     };
 
-    // It's a new conversation!
+    // It's a new conversation. It will remain hidden until someone replies
     if (!chatsConversation && !introsConversation) {
-      await populateConversation(updatedConversation);
+      updatedConversation.location = 'nowhere';
     }
-
-    // Add it to chats if it wasn't already there
-    if (!chatsConversation) {
-      // Add conversation into chats
-      await moveToChats(recipientPersonId);
+    // It was an intro before the new message. Move it to chats
+    else if (!chatsConversation) {
+      updatedConversation.location = 'chats';
 
       i.chats.conversations.push(updatedConversation);
       i.chats.conversationsMap[recipientPersonId] = updatedConversation;
@@ -243,10 +227,11 @@ const setInboxSent = (recipientPersonId: number, message: string) => {
       deleteFromArray(i.intros.conversations, introsConversation);
       delete i.intros.conversationsMap[recipientPersonId];
     }
-    // Update existing chat otherwise
+    // It was a chat before the new message. Update the chat.
     else {
       Object.assign(chatsConversation, updatedConversation);
     }
+
 
     // We could've returned `i` instead of a shallow copy. But then it
     // wouldn't trigger re-renders when passed to a useState setter.
@@ -270,7 +255,7 @@ const setInboxRecieved = async (
       matchPercentage: 0,
       imageUuid: null,
       isAvailableUser: true,
-      wasArchivedByMe: false,
+      location: 'archive',
       ...chatsConversation,
       ...introsConversation,
       lastMessage: message,
@@ -279,11 +264,15 @@ const setInboxRecieved = async (
     };
 
     if (!chatsConversation && !introsConversation) {
-      // It's a new conversation! Put 'er in the intros!
       await populateConversation(updatedConversation);
-
-      inbox.intros.conversations.push(updatedConversation);
-      inbox.intros.conversationsMap[fromPersonId] = updatedConversation;
+      if (updatedConversation.location === 'chats') {
+        inbox.chats.conversations.push(updatedConversation);
+        inbox.chats.conversationsMap[fromPersonId] = updatedConversation;
+      }
+      if (updatedConversation.location === 'intros') {
+        inbox.intros.conversations.push(updatedConversation);
+        inbox.intros.conversationsMap[fromPersonId] = updatedConversation;
+      }
     } else if (chatsConversation) {
       Object.assign(chatsConversation, updatedConversation);
     } else if (introsConversation) {
@@ -488,33 +477,34 @@ const sendMessage = async (
   return await withTimeout(5000, __sendMessage);
 };
 
-const _setBlocked = (
-  personId: number,
-  doBlock: boolean,
-  callback: () => void,
-) => {
-  if (!_xmpp) return;
+const conversationsToInbox = (conversations: Conversation[]): Inbox => {
+  const chats = conversations
+    .filter((c) => c.location === 'chats');
+  const intros = conversations
+    .filter((c) => c.location === 'intros');
+  const archive = conversations
+    .filter((c) => c.location === 'archive');
 
-  const id = getRandomString(40);
-  const jid = personIdToJid(personId);
+  const inbox: Inbox = {
+    chats: {
+      conversations: chats,
+      conversationsMap: conversationListToMap(chats),
+    },
+    intros: {
+      conversations: intros,
+      conversationsMap: conversationListToMap(intros),
+    },
+    archive: {
+      conversations: archive,
+      conversationsMap: conversationListToMap(archive),
+    },
+  };
 
-  const blockStanza = parse(`
-    <iq type='set' id='${id}'>
-      <block xmlns='urn:xmpp:blocking'>
-        <item jid='${jid}'/>
-      </block>
-    </iq>
-  `);
+  return inbox;
+};
 
-  const unblockStanza = parse(`
-    <iq type='set' id='${id}'>
-      <unblock xmlns='urn:xmpp:blocking'>
-        <item jid='${jid}'/>
-      </unblock>
-    </iq>
-  `);
-
-  const updateInbox = () => setInbox((inbox) => {
+const setConversationArchived = (personId: number, isArchived: boolean) => {
+  setInbox((inbox) => {
     if (!inbox) {
       return inbox;
     }
@@ -524,44 +514,15 @@ const _setBlocked = (
       inbox.intros.conversationsMap[personId]) as Conversation | undefined;
 
     if (conversationToUpdate) {
-      conversationToUpdate.wasArchivedByMe = doBlock;
+      conversationToUpdate.location = 'archive';
     }
 
-    return {...inbox};
+    return conversationsToInbox([
+      ...inbox.chats.conversations,
+      ...inbox.intros.conversations,
+      ...inbox.archive.conversations,
+    ]);
   });
-
-  const _onReceiveStanza = async (stanza: Element) => {
-    const doc = new DOMParser().parseFromString(stanza.toString(), 'text/xml');
-
-    if (!doc) return;
-
-    const node = xpath.select1(
-      `/*[name()='iq'][@type='result'][@id='${id}']`,
-      doc,
-    );
-
-    if (!node) return;
-
-    updateInbox();
-
-    callback();
-
-    if (_xmpp) {
-      _xmpp.removeListener("input", _onReceiveStanza);
-    }
-  };
-
-  _xmpp.addListener("input", _onReceiveStanza);
-
-  _xmpp.send(doBlock ? blockStanza : unblockStanza);
-};
-
-const setBlocked = async (personId: number, isBlocked: boolean): Promise<'timeout' | undefined> => {
-  const __block = new Promise<undefined>(
-    (resolve) => _setBlocked(personId, isBlocked, () => resolve(undefined))
-  );
-
-  return await withTimeout(5000, __block);
 };
 
 const onReceiveMessage = (
@@ -630,24 +591,6 @@ const onReceiveMessage = (
   _xmpp.addListener("stanza", _onReceiveMessage);
   return _removeListener;
 }
-
-const moveToChats = async (personId: number) => {
-  if (!_xmpp) return;
-
-  const jid = personIdToJid(personId);
-
-  const queryId = getRandomString(10);
-
-  const queryStanza = parse(`
-    <iq id='${queryId}' type='set'>
-      <query xmlns='erlang-solutions.com:xmpp:inbox:0#conversation' jid='${jid}'>
-        <box>chats</box>
-      </query>
-    </iq>
-  `);
-
-  return await _xmpp.send(queryStanza);
-};
 
 const _fetchConversation = async (
   withPersonId: number,
@@ -770,9 +713,8 @@ const fetchConversation = async (
   return await withTimeout(5000, __fetchConversation);
 };
 
-const _fetchBox = async (
-  box: string,
-  callback: (conversations: Conversations | undefined) => void,
+const _fetchInbox = async (
+  callback: (conversations: Inbox | undefined) => void,
 ) => {
   if (!_xmpp) {
     return callback(undefined);
@@ -783,9 +725,7 @@ const _fetchBox = async (
   const queryStanza = parse(`
     <iq type='set' id='${queryId}'>
       <inbox xmlns='erlang-solutions.com:xmpp:inbox:0' queryid='${queryId}'>
-        <x xmlns='jabber:x:data' type='form'>
-          <field type='text-single' var='box'><value>${box}</value></field>
-        </x>
+        <x xmlns='jabber:x:data' type='form'/>
       </inbox>
     </iq>
   `);
@@ -831,7 +771,7 @@ const _fetchBox = async (
     const lastMessageRead = numUnread.toString() === '0';
     const lastMessageTimestamp = new Date(timestamp.toString());
     const isAvailableUser = true;
-    const wasArchivedByMe = false;
+    const location = 'archive';
 
     const conversation: Conversation = {
       personId,
@@ -842,7 +782,7 @@ const _fetchBox = async (
       lastMessageRead,
       lastMessageTimestamp,
       isAvailableUser,
-      wasArchivedByMe,
+      location,
     };
 
     conversationList.push(conversation);
@@ -866,7 +806,9 @@ const _fetchBox = async (
 
     await populateConversationList(conversations.conversations);
 
-    callback(conversations);
+    const inbox = conversationsToInbox(conversations.conversations);
+
+    callback(inbox);
 
     if (_xmpp) {
       _xmpp.removeListener("stanza", maybeCollect);
@@ -880,18 +822,15 @@ const _fetchBox = async (
   await _xmpp.send(queryStanza);
 };
 
-const fetchBox = async (box: string): Promise<Conversations | undefined> => {
-  return new Promise((resolve) => _fetchBox(box, resolve));
+const fetchInbox = async (): Promise<Inbox | undefined> => {
+  return new Promise((resolve) => _fetchInbox(resolve));
 };
 
 const refreshInbox = async (): Promise<void> => {
-  const chats  = await fetchBox('chats'); if (!chats)  return;
-  const intros = await fetchBox('inbox'); if (!intros) return;
+  const inbox = await fetchInbox();
+  if (!inbox) return;
 
-  setInbox((inbox: Inbox) => ({
-    chats,
-    intros,
-  }));
+  setInbox(() => inbox);
 };
 
 const logout = async () => {
@@ -914,7 +853,8 @@ export {
   logout,
   observeInbox,
   onReceiveMessage,
+  refreshInbox,
   sendMessage,
-  setBlocked,
+  setConversationArchived,
   setInbox,
 };

@@ -1235,7 +1235,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
 
 const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
-    title: "People You've Messaged",
+    title: "People You Messaged",
     description: "Would you like search results to include people you already messaged?",
     input: {
       buttons: {
@@ -1244,7 +1244,7 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           const ok = (await japi(
             'post',
             '/search-filter',
-            { people_messaged: peopleMessaged }
+            { people_you_messaged: peopleMessaged }
           )).ok;
           if (ok) this.currentValue = peopleMessaged;
           return ok;
@@ -1253,36 +1253,18 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     },
   },
   {
-    title: "People You've Hidden",
-    description: "Would you like search results to include people you hidden?",
+    title: "People You Skipped",
+    description: "Would you like search results to include people you skipped?",
     input: {
       buttons: {
         values: yesNo,
-        submit: async function(peopleHidden: string) {
+        submit: async function(peopleSkipped: string) {
           const ok = (await japi(
             'post',
             '/search-filter',
-            { people_hidden: peopleHidden }
+            { people_you_skipped: peopleSkipped }
           )).ok;
-          if (ok) this.currentValue = peopleHidden;
-          return ok;
-        }
-      }
-    },
-  },
-  {
-    title: "People You've Blocked",
-    description: "Would you like search results to include people you blocked?",
-    input: {
-      buttons: {
-        values: yesNo,
-        submit: async function(peopleBlocked: string) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { people_blocked: peopleBlocked }
-          )).ok;
-          if (ok) this.currentValue = peopleBlocked;
+          if (ok) this.currentValue = peopleSkipped;
           return ok;
         }
       }

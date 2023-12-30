@@ -27,7 +27,7 @@ import { api, japi } from '../api/api';
 import { quizQueue } from '../api/queue';
 import * as _ from "lodash";
 import { markTraitDataDirty } from './traits-tab';
-import { listen, unlisten } from '../events/events';
+import { listen } from '../events/events';
 
 const QuizCardMemo = memo(QuizCard);
 
@@ -332,20 +332,18 @@ const getBestProspects = (prospects: ProspectState[]) => {
 };
 
 const Prospect = ({navigation, style, personId, imageUuid, matchPercentage}) => {
-  const [isHidden, setIsHidden] = useState(false);
+  const [isSkipped, setIsSkipped] = useState(false);
 
-  const onHide = useCallback(() => setIsHidden(true), [setIsHidden]);
-  const onUnhide = useCallback(() => setIsHidden(false), [setIsHidden]);
+  const onHide = useCallback(() => setIsSkipped(true), [setIsSkipped]);
+  const onUnhide = useCallback(() => setIsSkipped(false), [setIsSkipped]);
 
-  useEffect(() => {
-    listen(`hide-profile-${personId}`, onHide);
-    listen(`unhide-profile-${personId}`, onUnhide);
+  useEffect(() =>
+    listen(`skip-profile-${personId}`, onHide),
+    [personId, onHide]);
 
-    return () => {
-      unlisten(`hide-profile-${personId}`, onHide);
-      unlisten(`unhide-profile-${personId}`, onUnhide);
-    };
-  }, [onHide, onUnhide, personId]);
+  useEffect(() =>
+    listen(`unskip-profile-${personId}`, onUnhide),
+    [personId, onUnhide]);
 
   return <Animated.View
     style={{
@@ -354,7 +352,6 @@ const Prospect = ({navigation, style, personId, imageUuid, matchPercentage}) => 
       alignItems: 'center',
       justifyContent: 'center',
       ...style,
-      ...(isHidden ? { opacity: 0 } : {})
     }}
   >
     <Avatar
@@ -363,6 +360,7 @@ const Prospect = ({navigation, style, personId, imageUuid, matchPercentage}) => 
       imageUuid={imageUuid}
       percentage={matchPercentage}
       shadow={true}
+      isSkipped={isSkipped}
     />
   </Animated.View>
 };

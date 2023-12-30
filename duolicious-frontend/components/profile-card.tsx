@@ -19,7 +19,8 @@ import {
 } from '../env/env';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { listen, unlisten } from '../events/events';
+import { listen } from '../events/events';
+import { X } from "react-native-feather";
 
 const ImageOrSkeleton = ({resolution, imageUuid, ...rest}) => {
   const {
@@ -83,7 +84,7 @@ const ImageOrSkeleton = ({resolution, imageUuid, ...rest}) => {
 };
 
 const ProfileCard = ({name, age, matchPercentage, imageUuid, personId, ...rest}) => {
-  const [isHidden, setIsHidden] = useState(false);
+  const [isSkipped, setIsSkipped] = useState(false);
 
   const navigation = useNavigation<any>();
 
@@ -97,25 +98,24 @@ const ProfileCard = ({name, age, matchPercentage, imageUuid, personId, ...rest})
     );
   }, [navigation, personId]);
 
-  const onHide = useCallback(() => setIsHidden(true), [setIsHidden]);
-  const onUnhide = useCallback(() => setIsHidden(false), [setIsHidden]);
+  const onHide = useCallback(() => setIsSkipped(true), [setIsSkipped]);
+  const onUnhide = useCallback(() => setIsSkipped(false), [setIsSkipped]);
 
-  useEffect(() => {
-    listen(`hide-profile-${personId}`, onHide);
-    listen(`unhide-profile-${personId}`, onUnhide);
+  useEffect(
+    () => listen(`skip-profile-${personId}`, onHide),
+    [personId, onHide]
+  );
 
-    return () => {
-      unlisten(`hide-profile-${personId}`, onHide);
-      unlisten(`unhide-profile-${personId}`, onUnhide);
-    };
-  }, [onHide, onUnhide, personId]);
+  useEffect(
+    () => listen(`unskip-profile-${personId}`, onUnhide),
+    [personId, onUnhide]
+  );
 
   return (
     <View
       style={{
         paddingTop: 5,
         paddingLeft: 5,
-        opacity: isHidden ? 0 : 1,
         ...rest.containerStyle,
       }}
     >
@@ -142,6 +142,27 @@ const ProfileCard = ({name, age, matchPercentage, imageUuid, personId, ...rest})
             containerStyle={rest.userDetailsContainerStyle}
           />
         </View>
+        {isSkipped &&
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: 'white',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <X
+              stroke="#70f"
+              strokeWidth={3}
+              height={48}
+              width={48}
+            />
+          </View>
+        }
       </Pressable>
     </View>
   );

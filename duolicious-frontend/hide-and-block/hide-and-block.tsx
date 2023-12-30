@@ -1,72 +1,39 @@
-import { api } from '../api/api';
+import { japi } from '../api/api';
 import { notify } from '../events/events';
-import { setBlocked as xmppSetBlocked } from '../xmpp/xmpp';
+import { setConversationArchived } from '../xmpp/xmpp';
 
-const setBlocked = async (
+const setSkipped = async (
   personId: number,
-  isBlocked: boolean
+  isSkipped: boolean,
+  reportReason?: string,
 ): Promise<boolean> => {
-  const status = await xmppSetBlocked(personId, isBlocked);
+  const endpoint = (
+    isSkipped ?
+    `/skip/${personId}` :
+    `/unskip/${personId}`);
 
-  if (status === undefined) {
-    const endpoint = (
-      isBlocked ?
-      `/block/${personId}` :
-      `/unblock/${personId}`);
+  const payload =
+    (isSkipped && reportReason) ?
+    { report_reason: reportReason } :
+    undefined;
 
-    const response = await api('post', endpoint);
+  const response = await japi('post', endpoint, payload);
 
-    if (response.ok) {
-      notify(
-        isBlocked ?
-        `hide-profile-${personId}` :
-        `unhide-profile-${personId}`
-      );
+  if (response.ok) {
+    notify(
+      isSkipped ?
+      `skip-profile-${personId}` :
+      `unskip-profile-${personId}`
+    );
 
-      return true;
-    }
-  } else if (status === 'timeout') {
-    ;
-  } else {
-    throw Error(`Unexpected status: ${status}`);
-  }
+    setConversationArchived(personId, isSkipped);
 
-  return false;
-};
-
-const setHidden = async (
-  personId: number,
-  isHidden: boolean
-): Promise<boolean> => {
-  const status = await xmppSetBlocked(personId, isHidden);
-
-  if (status === undefined) {
-    const endpoint = (
-      isHidden ?
-      `/hide/${personId}` :
-      `/unhide/${personId}`);
-
-    const response = await api('post', endpoint);
-
-    if (response.ok) {
-      notify(
-        isHidden ?
-        `hide-profile-${personId}` :
-        `unhide-profile-${personId}`
-      );
-
-      return true;
-    }
-  } else if (status === 'timeout') {
-    ;
-  } else {
-    throw Error(`Unexpected status: ${status}`);
+    return true;
   }
 
   return false;
 };
 
 export {
-  setBlocked,
-  setHidden,
+  setSkipped,
 };

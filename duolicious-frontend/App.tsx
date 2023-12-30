@@ -39,7 +39,7 @@ import { japi, SUPPORTED_API_VERSIONS } from './api/api';
 import { login, logout } from './xmpp/xmpp';
 import { STATUS_URL } from './env/env';
 import { delay } from './util/util';
-import { ClubSelector } from './components/club-selector'; // TODO
+import { ReportModal } from './components/report-modal';
 
 // TODO: iOS UI testing
 // TODO: Add the ability to reply to things (e.g. pictures, quiz responses) from people's profiles. You'll need to change the navigation to make it easier to reply to things. Consider breaking profiles into sections which can be replied to, each having one image or block of text. Letting people reply to specific things on the profile will improve intro quality.
@@ -338,6 +338,7 @@ const App = () => {
           </Stack.Navigator>
         </NavigationContainer>
       }
+      <ReportModal/>
       <WebSplashScreen loading={isLoading}/>
     </>
   );

@@ -12,6 +12,7 @@ import {
   IMAGES_URL,
 } from '../env/env';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { X } from "react-native-feather";
 
 const Avatar = ({percentage, ...props}) => {
   const {
@@ -20,9 +21,10 @@ const Avatar = ({percentage, ...props}) => {
     navigation,
     size,
     shadow = false,
+    isSkipped = false,
   } = props;
 
-  const shadowStyle = shadow ? {
+  const shadowStyle = (shadow && !isSkipped) ? {
     shadowOffset: {
       width: 0,
       height: 2,
@@ -102,6 +104,27 @@ const Avatar = ({percentage, ...props}) => {
           {percentage}%
         </DefaultText>
       </View>
+      {isSkipped &&
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: 'white',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <X
+            stroke="#70f"
+            strokeWidth={3}
+            height={48}
+            width={48}
+          />
+        </View>
+      }
     </Element>
   )
 };

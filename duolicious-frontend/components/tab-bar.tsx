@@ -32,30 +32,14 @@ const TabBar = ({state, descriptors, navigation}) => {
     unreadIndicatorOpacity.setValue(0);
   }, []);
 
-  const indicatorTransition = (v: number) => [
-    Animated.timing(unreadIndicatorOpacity, {
-      toValue: v,
-      duration: 0,
-      useNativeDriver: false,
-    }),
-    Animated.delay(200),
-  ];
-
-  const flashIndicator = useCallback(() => {
+  const showIndicator = useCallback(() => {
     unreadIndicatorOpacity.setValue(1);
-
-    Animated.sequence([
-      ...indicatorTransition(0),
-      ...indicatorTransition(1),
-      ...indicatorTransition(0),
-      ...indicatorTransition(1),
-    ]).start();
   }, []);
 
   const onChangeInbox = useCallback((inbox: Inbox | null) => {
     if (inbox) {
       prevNumUnread.current = numUnread.current;
-      numUnread.current = inboxStats(inbox).numUnreadInbox;
+      numUnread.current = inboxStats(inbox).numUnreadChatsAndIntros;
     } else {
       prevNumUnread.current = numUnread.current;
       numUnread.current = 0;
@@ -64,7 +48,7 @@ const TabBar = ({state, descriptors, navigation}) => {
     if (numUnread.current === 0) {
       hideIndicator();
     } else if (numUnread.current > prevNumUnread.current) {
-      flashIndicator();
+      showIndicator();
     }
   }, []);
 

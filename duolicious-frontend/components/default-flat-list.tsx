@@ -194,20 +194,19 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
   const EndTextNotice = useCallback(() => {
     if (props.endText) {
       return (
-        <Notice
-          style={[
-            {
-              marginTop: 5,
-              marginBottom: 5,
-              marginRight: 0,
-            },
-            props.endTextStyle,
-          ]}
-        >
-          <DefaultText style={{color: '#70f'}} >
-            {props.endText}
-          </DefaultText>
-        </Notice>
+        <DefaultText style={{
+          fontFamily: 'TruenoBold',
+          color: '#000',
+          fontSize: 16,
+          textAlign: 'center',
+          alignSelf: 'center',
+          marginTop: 30,
+          marginBottom: 30,
+          marginLeft: '15%',
+          marginRight: '15%',
+        }}>
+          {props.endText}
+        </DefaultText>
       );
     } else {
       return <></>;

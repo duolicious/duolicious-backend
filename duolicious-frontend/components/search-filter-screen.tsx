@@ -104,18 +104,8 @@ const getCurrentValueAsLabel = (og: OptionGroup<OptionGroupInputs> | undefined) 
   }
 };
 
-const optionGroupToDataKey = (og: OptionGroup<OptionGroupInputs>) => {
-  if (og.title === "People You've Messaged")
-    return 'people_messaged';
-
-  if (og.title === "People You've Hidden")
-    return 'people_hidden';
-
-  if (og.title === "People You've Blocked")
-    return 'people_blocked';
-
-  return og.title.toLowerCase().replaceAll(' ', '_');
-};
+const optionGroupToDataKey = (og: OptionGroup<OptionGroupInputs>) =>
+  og.title.toLowerCase().replaceAll(' ', '_');
 
 type AnswerItem = {
   question_id: number,

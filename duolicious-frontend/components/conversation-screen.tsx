@@ -24,13 +24,13 @@ import { SpeechBubble } from './speech-bubble';
 import { DefaultText } from './default-text';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
-import { DefaultFlatList } from './default-flat-list';
 import {
   Inbox,
   Message,
   MessageStatus,
   fetchConversation,
   onReceiveMessage,
+  refreshInbox,
   sendMessage,
   setInbox,
 } from '../xmpp/xmpp';
@@ -40,68 +40,87 @@ import {
 import { getRandomString } from '../random/string';
 import { api } from '../api/api';
 import { TopNavBarButton } from './top-nav-bar-button';
-import { RotateCcw, Slash, X } from "react-native-feather";
-import { setHidden, setBlocked } from '../hide-and-block/hide-and-block';
+import { RotateCcw, Flag, X } from "react-native-feather";
+import { setSkipped } from '../hide-and-block/hide-and-block';
 import { isMobile } from '../util/util';
+import { ReportModalInitialData } from './report-modal';
+import { listen, notify } from '../events/events';
 
-const Menu = ({navigation, personId}) => {
-  const [isBlocked, setIsBlocked] = useState<boolean | undefined>();
-  const [isHidden, setIsHidden] = useState<boolean | undefined>();
-  const [isUpdatingIsBlocked, setIsUpdatingIsBlocked] = useState(false);
-  const [isUpdatingIsHidden, setIsUpdatingIsHidden] = useState(false);
+const Menu = ({navigation, name, personId, messages, closeFn}) => {
+  const [isSkipped, setIsSkipped] = useState<boolean | undefined>();
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const isLoading = isBlocked === undefined || isHidden === undefined;
+  const isLoading = (
+    isSkipped === undefined ||
+    name === undefined ||
+    personId === undefined);
 
-  const onPressMatch = useCallback(async () => {
-    if (isHidden === undefined) {
+  const onPressSkip = useCallback(async () => {
+    if (isSkipped === undefined) {
       return;
     }
 
-    setIsUpdatingIsHidden(true);
-    const nextHiddenState = !isHidden;
-    if (await setHidden(personId, nextHiddenState)) {
-      setIsHidden(nextHiddenState);
-      setIsUpdatingIsHidden(false);
+    setIsUpdating(true);
+    const nextHiddenState = !isSkipped;
+    if (await setSkipped(personId, nextHiddenState)) {
+      setIsSkipped(nextHiddenState);
+      setIsUpdating(false);
+      closeFn();
       if (nextHiddenState) {
         navigation.popToTop();
+      } else {
+        refreshInbox();
       }
     }
-  }, [navigation, personId, isHidden]);
+  }, [navigation, personId, isSkipped, closeFn]);
 
-  const onPressBlock = useCallback(async () => {
-    if (isBlocked === undefined) {
-      return;
-    }
+  const onPressReport = useCallback(async () => {
+    closeFn();
 
-    setIsUpdatingIsBlocked(true);
-    const nextBlockedState = !isBlocked;
-    if (await setBlocked(personId, nextBlockedState)) {
-      setIsBlocked(nextBlockedState);
-      setIsUpdatingIsBlocked(false);
-      if (nextBlockedState) {
-        navigation.popToTop();
-      }
-    }
-  }, [navigation, personId, isBlocked]);
+    const data: ReportModalInitialData = {
+      name,
+      personId,
+      context: (
+        `Conversation Screen - ` +
+        `${String(JSON.stringify(messages, null, 2)).slice(0, 900)}`
+      ),
+    };
+
+    notify('open-report-modal', data);
+  }, [name, personId, messages, closeFn]);
 
   useEffect(() => {
     (async () => {
       const response = await api('get', `/prospect-profile/${personId}`);
       if (response.ok) {
-        setIsBlocked(response.json.is_blocked);
-        setIsHidden(response.json.is_hidden);
+        setIsSkipped(response.json.is_skipped);
       }
     })();
   }, [personId]);
+
+  useEffect(() => {
+    return listen(`skip-profile-${personId}`, () => {
+      navigation.popToTop();
+    });
+  }, [navigation, personId]);
 
   const pressableStyle: ViewStyle = {
     flexDirection: 'row',
     gap: 10,
   };
 
+  const iconContainerStyle: ViewStyle = {
+    flexGrow: 1,
+  };
+
   const iconStyle = {
     backgroundColor: isLoading ? '#ddd' : undefined,
     borderRadius: 3,
+  };
+
+  const labelContainerStyle: ViewStyle = {
+    gap: 5,
+    flexShrink: 1,
   };
 
   const labelStyle: TextStyle = {
@@ -112,14 +131,20 @@ const Menu = ({navigation, personId}) => {
     borderRadius: 3,
   };
 
+  const subLabelStyle: TextStyle = {
+    color: isLoading ? '#ddd' : '#aaa',
+    backgroundColor: isLoading ? '#ddd' : undefined,
+    borderRadius: 3,
+  };
+
   const iconStroke = isLoading ? "transparent" : "black";
 
   return (
     <View
       style={{
         position: 'absolute',
-        top: 25,
-        right: 50,
+        top: 45,
+        right: 5,
         padding: 25,
         gap: 40,
         flexDirection: 'column',
@@ -133,60 +158,83 @@ const Menu = ({navigation, personId}) => {
         shadowRadius: 10,
         elevation: 8,
         zIndex: 999,
+        overflow: 'hidden',
+        maxWidth: 350,
       }}
     >
-      <Pressable style={pressableStyle} onPress={onPressMatch}>
-        {isUpdatingIsHidden &&
-          <ActivityIndicator size="small" color="#70f" />
+      <Pressable style={pressableStyle} onPress={isLoading ? undefined : onPressSkip}>
+        {isSkipped &&
+          <View style={iconContainerStyle}>
+            <RotateCcw
+              style={iconStyle}
+              stroke={iconStroke}
+              strokeWidth={4}
+              height={18}
+              width={18}
+            />
+          </View>
         }
-        {!isUpdatingIsHidden && isHidden &&
-          <RotateCcw
-            style={iconStyle}
-            stroke={iconStroke}
-            strokeWidth={4}
-            height={18}
-            width={18}
-          />
+        {!isSkipped &&
+          <View style={iconContainerStyle}>
+            <X
+              style={iconStyle}
+              stroke={iconStroke}
+              strokeWidth={4}
+              height={18}
+              width={18}
+            />
+          </View>
         }
-        {!isUpdatingIsHidden && !isHidden &&
-          <X
-            style={iconStyle}
-            stroke={iconStroke}
-            strokeWidth={4}
-            height={18}
-            width={18}
-          />
-        }
-        <DefaultText style={labelStyle}>
-          {isHidden ? 'Undo unmatch' : 'Unmatch'}
-        </DefaultText>
+        <View style={labelContainerStyle}>
+          <DefaultText style={labelStyle}>
+            {isSkipped ? 'Undo skip' : 'Skip'}
+          </DefaultText>
+          <DefaultText style={subLabelStyle}>
+            {isSkipped ?
+              'Moves the conversation out of your archive' :
+              'Ends the conversation and moves it to your archive'
+            }
+          </DefaultText>
+        </View>
       </Pressable>
-      <Pressable style={pressableStyle} onPress={onPressBlock}>
-        {isUpdatingIsBlocked &&
-          <ActivityIndicator size="small" color="#70f" />
-        }
-        {!isUpdatingIsBlocked && isBlocked &&
-          <RotateCcw
-            style={iconStyle}
-            stroke={iconStroke}
-            strokeWidth={4}
-            height={18}
-            width={18}
-          />
-        }
-        {!isUpdatingIsBlocked && !isBlocked &&
-          <Slash
-            style={iconStyle}
-            stroke={iconStroke}
-            strokeWidth={4}
-            height={18}
-            width={18}
-          />
-        }
-        <DefaultText style={labelStyle}>
-          {isBlocked ? 'Unblock' : 'Block and report'}
-        </DefaultText>
-      </Pressable>
+      {!isSkipped &&
+        <Pressable style={pressableStyle} onPress={isLoading ? undefined : onPressReport}>
+          <View style={iconContainerStyle}>
+            <Flag
+              style={iconStyle}
+              stroke={iconStroke}
+              strokeWidth={3}
+              height={18}
+              width={18}
+            />
+          </View>
+          <View style={labelContainerStyle}>
+            <DefaultText style={labelStyle}>
+              Skip and report
+            </DefaultText>
+            <DefaultText style={subLabelStyle}>
+              Ends the conversation, moves it to your archive, and notifies
+              moderators
+            </DefaultText>
+          </View>
+        </Pressable>
+      }
+      {isUpdating &&
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'white',
+          }}
+        >
+          <ActivityIndicator size="large" color="#70f" />
+        </View>
+      }
     </View>
   );
 };
@@ -251,10 +299,6 @@ const ConversationScreen = ({navigation, route}) => {
     if (messageStatus === 'sent') {
       hasScrolled.current = false;
       setMessages(messages => [...(messages ?? []), message]);
-
-      // TODO: Ideally, you wouldn't have to mark messages as sent in this way;
-      //       The chat service already knows if a message was sent
-      api('post', `/mark-messaged/${personId}`);
     }
 
     setLastMessageStatus(messageStatus);
@@ -374,7 +418,13 @@ const ConversationScreen = ({navigation, route}) => {
           />
         }
         {showMenu &&
-          <Menu navigation={navigation} personId={personId} />
+          <Menu
+            navigation={navigation}
+            name={name}
+            personId={personId}
+            messages={(messages ?? []).slice(-10)}
+            closeFn={() => setShowMenu(false)}
+          />
         }
       </TopNavBar>
       {messages === null && !messageFetchTimeout &&
@@ -387,7 +437,7 @@ const ConversationScreen = ({navigation, route}) => {
           <DefaultText
             style={{fontFamily: 'Trueno'}}
           >
-            You're offline
+            You’re offline
           </DefaultText>
         </View>
       }

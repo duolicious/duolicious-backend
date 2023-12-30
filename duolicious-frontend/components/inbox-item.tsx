@@ -15,12 +15,12 @@ import { DefaultText } from './default-text';
 import { Avatar } from './avatar';
 import { useNavigation } from '@react-navigation/native';
 import { friendlyTimestamp } from '../util/util';
-import { setHidden } from '../hide-and-block/hide-and-block';
+import { setSkipped } from '../hide-and-block/hide-and-block';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
-import { RotateCcw, X } from "react-native-feather";
-
-
+import { Flag, X } from "react-native-feather";
+import { notify } from '../events/events';
+import { ReportModalInitialData } from './report-modal';
 
 const introVerb = (msg: string) => {
   return (
@@ -92,89 +92,130 @@ const IntrosItem = ({
     }
   ), [personId]);
 
+  const onPressReport = useCallback(async () => {
+    const contextData = {
+      name,
+      matchPercentage,
+      lastMessageTimestamp,
+      lastMessage,
+    };
+
+    const data: ReportModalInitialData = {
+      name,
+      personId,
+      context: (
+        `Inbox Item - ${JSON.stringify(contextData).slice(0, 900)}`
+      ),
+    };
+
+    notify('open-report-modal', data);
+  }, [
+    lastMessage,
+    lastMessageTimestamp,
+    matchPercentage,
+    name,
+    notify,
+    personId,
+  ]);
+
   return (
     <>
-    <Pressable
-      onPressIn={fadeIn}
-      onPressOut={fadeOut}
-      onPress={onPress}
-    >
-      <Animated.View
-        style={{
-          backgroundColor: backgroundColor,
-          borderRadius: 15,
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingTop: 12,
-          paddingBottom: 10,
-          paddingLeft: 10,
-          marginLeft: 5,
-          marginRight: 5,
-        }}
+      <Pressable
+        onPressIn={fadeIn}
+        onPressOut={fadeOut}
+        onPress={onPress}
       >
-        <Avatar percentage={matchPercentage} imageUuid={imageUuid}/>
-        <View
+        <Animated.View
           style={{
-            paddingLeft: 18,
-            paddingRight: 20,
-            flexDirection: 'column',
-            flex: 1,
-            flexGrow: 1,
-            marginBottom: 30,
+            backgroundColor: backgroundColor,
+            borderRadius: 15,
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingTop: 12,
+            paddingBottom: 10,
+            paddingLeft: 10,
+            marginLeft: 5,
+            marginRight: 5,
           }}
         >
+          <Avatar percentage={matchPercentage} imageUuid={imageUuid}/>
           <View
             style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
+              paddingLeft: 18,
+              paddingRight: 20,
+              flexDirection: 'column',
+              flex: 1,
+              flexGrow: 1,
             }}
           >
-            <DefaultText
+            <View
               style={{
-                fontSize: 20,
-                fontWeight: '700',
-                paddingBottom: 5,
-                overflow: 'hidden',
-                color: wasRead ? 'black' : '#70f',
-                flexWrap: 'wrap',
-                flexShrink: 1,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
               }}
             >
-              {name} {introVerb(lastMessage)}...
-            </DefaultText>
+              <DefaultText
+                style={{
+                  fontSize: 20,
+                  fontWeight: '700',
+                  paddingBottom: 5,
+                  overflow: 'hidden',
+                  color: wasRead ? 'black' : '#70f',
+                  flexWrap: 'wrap',
+                  flexShrink: 1,
+                }}
+              >
+                {name} {introVerb(lastMessage)}...
+              </DefaultText>
+              <DefaultText
+                style={{
+                  color: wasRead ? 'grey' : '#70f',
+                }}
+              >
+                {friendlyTimestamp(lastMessageTimestamp)}
+              </DefaultText>
+            </View>
             <DefaultText
+              numberOfLines={5}
               style={{
+                fontWeight: '400',
                 color: wasRead ? 'grey' : '#70f',
               }}
             >
-              {friendlyTimestamp(lastMessageTimestamp)}
+              {lastMessage}
             </DefaultText>
+            <View
+              style={{
+                marginTop: 20,
+                flexDirection: 'row',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <Pressable onPress={onPressReport}>
+                <Flag
+                  stroke="grey"
+                  strokeWidth={1}
+                  height={20}
+                  width={20}
+                />
+              </Pressable>
+            </View>
           </View>
-          <DefaultText
-            numberOfLines={5}
-            style={{
-              fontWeight: '400',
-              color: wasRead ? 'grey' : '#70f',
-            }}
-          >
-            {lastMessage}
-          </DefaultText>
-        </View>
-      </Animated.View>
-    </Pressable>
-    <View
-      style={{
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <Buttons
-        navigation={navigation}
-        personId={personId}
-        name={name}
-        imageUuid={imageUuid}
-      />
-    </View>
+        </Animated.View>
+      </Pressable>
+      <View
+        style={{
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Buttons
+          navigation={navigation}
+          personId={personId}
+          name={name}
+          imageUuid={imageUuid}
+        />
+      </View>
     </>
   );
 };
@@ -249,7 +290,7 @@ const FloatingHideButton = ({navigation, personId}) => {
     if (personId === undefined) return;
 
     setIsLoading(true);
-    if (await setHidden(personId, true)) {
+    if (await setSkipped(personId, true)) {
       setIsLoading(false);
     }
   }, [isLoading, personId]);

@@ -266,9 +266,6 @@ const InDepthScreen = (navigationRef) => ({navigation, route}) => {
           idx1 === 1 ? undefined : "No Q&A answers to show"}
         endText={
           idx1 === 1 ? undefined : "No more Q&A answers to show"}
-        endTextStyle={{
-          marginRight: 5,
-        }}
         fetchPage={
           idx1 === 1 ?
           fetchPersonalityPage(personId, idx4) :

@@ -25,7 +25,6 @@ import { DefaultFlatList } from './default-flat-list';
 import { Inbox, Conversation, inboxStats, observeInbox } from '../xmpp/xmpp';
 import { compareArrays } from '../util/util';
 import { TopNavBarButton } from './top-nav-bar-button';
-import { listen, unlisten } from '../events/events';
 import { inboxOrder, inboxSection } from '../kv-storage/inbox';
 
 const Stack = createNativeStackNavigator();
@@ -48,6 +47,8 @@ const InboxTab = ({navigation}) => {
 };
 
 const InboxTab_ = ({navigation}) => {
+  const maxIntros = 25;
+
   const [sectionIndex, setSectionIndex] = useState(0);
   const [sortByIndex, setSortByIndex] = useState(0);
   const [isTooManyTapped, setIsTooManyTapped] = useState(false);
@@ -57,25 +58,24 @@ const InboxTab_ = ({navigation}) => {
 
   const _inboxStats = inbox ? inboxStats(inbox) : null;
 
-  const numUnreadChats = (() => {
-    if (!_inboxStats) {
-      return 0;
-    }
+  const numUnreadChats  = _inboxStats?.numUnreadChats  ?? 0;
+  const numUnreadIntros = _inboxStats?.numUnreadIntros ?? 0;
+  const numIntros       = _inboxStats?.numIntros       ?? 0;
 
-    return showArchive ?
-      _inboxStats.chats.numUnreadArchive :
-      _inboxStats.chats.numUnreadInbox;
-  })();
+  const isIntrosTruncated = numIntros > maxIntros;
+  const isUnreadIntrosTruncated = numUnreadIntros > maxIntros;
+  const numUnreadIntrosTruncated = Math.min(numUnreadIntros, maxIntros);
 
-  const numUnreadIntros = (() => {
-    if (!_inboxStats) {
-      return 0;
-    }
+  const introsTruncationLabel = isUnreadIntrosTruncated ? '+' : '';
 
-    return showArchive ?
-      _inboxStats.intros.numUnreadArchive :
-      _inboxStats.intros.numUnreadInbox;
-  })();
+  const introsNumericalLabel = (
+    numUnreadIntrosTruncated ?
+      ` (${numUnreadIntrosTruncated}${introsTruncationLabel})` :
+      '');
+  const chatsNumericalLabel = (
+    numUnreadChats  ?
+    ` (${numUnreadChats})` :
+    '');
 
   const buttonOpacity = useRef(new Animated.Value(0)).current;
 
@@ -140,7 +140,7 @@ const InboxTab_ = ({navigation}) => {
   useEffect(maybeRefresh, [maybeRefresh, showArchive]);
 
   const fetchInboxPage = (
-    sectionName: 'chats' | 'intros'
+    sectionName: 'chats' | 'intros' | 'archive'
   ) => async (
     n: number
   ): Promise<Conversation[]> => {
@@ -148,13 +148,24 @@ const InboxTab_ = ({navigation}) => {
       return [];
     }
 
-    const section = sectionName === 'chats' ? inbox.chats : inbox.intros;
+    const section = (() => {
+      switch (sectionName) {
+        case 'chats':   return inbox.chats;
+        case 'intros':  return inbox.intros;
+        case 'archive': return inbox.archive;
+      }
+    })();
 
     const pageSize = 10;
-    const page = [...section.conversations]
-      .filter((c) => (!c.isAvailableUser || c.wasArchivedByMe) === showArchive)
+    const page = section
+      .conversations
       .sort((a, b) => {
-        if (sectionName === 'intros' && sortByIndex === 0) {
+        if (sectionName === 'archive') {
+          return compareArrays(
+            [+b.lastMessageTimestamp],
+            [+a.lastMessageTimestamp],
+          );
+        } else if (sectionName === 'intros' && sortByIndex === 0) {
           return compareArrays(
             [b.matchPercentage, +b.lastMessageTimestamp],
             [a.matchPercentage, +a.lastMessageTimestamp],
@@ -167,6 +178,10 @@ const InboxTab_ = ({navigation}) => {
         }
       })
       .slice(
+        0,
+        sectionName === 'intros' ? maxIntros : section.conversations.length
+      )
+      .slice(
         pageSize * (n - 1),
         pageSize * n
       );
@@ -174,8 +189,50 @@ const InboxTab_ = ({navigation}) => {
     return page;
   };
 
-  const fetchChatsPage  = fetchInboxPage('chats');
-  const fetchIntrosPage = fetchInboxPage('intros');
+  const fetchChatsPage   = fetchInboxPage('chats');
+  const fetchIntrosPage  = fetchInboxPage('intros');
+  const fetchArchivePage = fetchInboxPage('archive');
+
+  const fetchPage = (() => {
+    if (!showArchive && sectionIndex === 0)
+      return fetchIntrosPage;
+    if (!showArchive && sectionIndex === 1)
+      return fetchChatsPage;
+    if (showArchive)
+      return fetchArchivePage;
+    throw Error('Unhandled inbox section');
+  })();
+
+  const emptyText = (() => {
+    if (!showArchive && sectionIndex === 0)
+      return (
+        'This is where you’ll see messages from people who’ve reached out ' +
+        'to you first – Once you reply, they’ll move to your Chats 🗨️'
+      );
+    if (!showArchive && sectionIndex === 1)
+      return (
+        'This is where you’ll see active conversations – Chats start once ' +
+        'both people have exchanged messages 💬'
+      );
+    if (showArchive)
+      return 'No archived conversations to show';
+    throw Error('Unhandled inbox section');
+  })();
+
+  const endText = (() => {
+    if (!showArchive && sectionIndex === 0 && isIntrosTruncated)
+      return (
+        `You have more intros! Skip or reply to your top ${maxIntros} intros ` +
+        'to see the rest!'
+      );
+    if (!showArchive && sectionIndex === 0 && !isIntrosTruncated)
+      return 'Those are all the intros you have for now';
+    if (!showArchive && sectionIndex === 1)
+      return 'No more chats to show';
+    if (showArchive)
+      return 'No more archived conversations to show';
+    throw Error('Unhandled inbox section');
+  })();
 
   const ListHeaderComponent = () => {
     useEffect(() => {
@@ -190,8 +247,8 @@ const InboxTab_ = ({navigation}) => {
       <>
         <ButtonGroup
           buttons={[
-            'Intros' + (numUnreadIntros ? ` (${numUnreadIntros})` : ''),
-            'Chats'  + (numUnreadChats  ? ` (${numUnreadChats})`  : ''),
+            'Intros' + introsNumericalLabel,
+            'Chats'  + chatsNumericalLabel
           ]}
           selectedIndex={sectionIndex}
           onPress={setSectionIndex_}
@@ -274,19 +331,11 @@ const InboxTab_ = ({navigation}) => {
       {inbox !== null &&
         <DefaultFlatList
           ref={listRef}
-          emptyText={
-            sectionIndex === 0 ?
-            `No${showArchive ? ' archived ' : ' '}intros to show`:
-            `No${showArchive ? ' archived ' : ' '}chats to show`}
-          endText={
-            `No more${showArchive ? ' archived ' : ' '}messages to show`
-          }
-          endTextStyle={{
-            marginRight: 5,
-          }}
-          fetchPage={sectionIndex === 0 ? fetchIntrosPage : fetchChatsPage}
-          dataKey={String(sectionIndex)}
-          ListHeaderComponent={ListHeaderComponent}
+          emptyText={emptyText}
+          endText={endText}
+          fetchPage={fetchPage}
+          dataKey={JSON.stringify({showArchive, sectionIndex})}
+          ListHeaderComponent={showArchive ? undefined : ListHeaderComponent}
           renderItem={renderItem}
           disableRefresh={true}
         />

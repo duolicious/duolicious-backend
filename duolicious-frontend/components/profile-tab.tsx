@@ -189,7 +189,7 @@ const AboutPerson = ({navigation, data}) => {
   return (
     <View>
       <Title>
-        About {}
+        About {data.name} {}
         {aboutState !== 'unchanged' &&
           <DefaultText
             style={{

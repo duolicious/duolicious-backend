@@ -28,11 +28,13 @@ import { cmToFeetInchesStr } from '../units/units';
 import { signedInUser } from '../App';
 import { IMAGES_URL } from '../env/env';
 import { randomGagLocation } from '../data/gag-locations';
-import { setHidden, setBlocked } from '../hide-and-block/hide-and-block';
+import { setSkipped } from '../hide-and-block/hide-and-block';
 import { ImageCarousel } from './image-carousel';
 import { Pinchy } from './pinchy';
 import { Basic } from './basic';
 import { Club, Clubs } from './club';
+import { listen, notify } from '../events/events';
+import { ReportModalInitialData } from './report-modal';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
@@ -45,7 +47,7 @@ import { faPersonHalfDress } from '@fortawesome/free-solid-svg-icons/faPersonHal
 import { faVenusMars } from '@fortawesome/free-solid-svg-icons/faVenusMars'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
-import { RotateCcw, X } from "react-native-feather";
+import { RotateCcw, Flag, X } from "react-native-feather";
 
 const Stack = createNativeStackNavigator();
 
@@ -159,28 +161,34 @@ const FloatingProfileInteractionButton = ({
   );
 };
 
-const FloatingHideButton = ({navigation, personId, isHidden}) => {
+const FloatingSkipButton = ({navigation, personId, isSkipped}) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [isHiddenState, setIsHiddenState] = useState<
+  const [isSkippedState, setIsSkippedState] = useState<
     boolean | undefined
-  >(isHidden);
+  >(isSkipped);
 
   useEffect(() => {
-    setIsHiddenState(isHidden);
-  }, [isHidden]);
+    setIsSkippedState(isSkipped);
+  }, [isSkipped]);
+
+  useEffect(() => {
+    return listen(`unskip-profile-${personId}`, () => setIsSkippedState(false));
+  }, []);
+
+  useEffect(() => {
+    return listen(`skip-profile-${personId}`, () => setIsSkippedState(true));
+  }, []);
 
   const onPress = useCallback(async () => {
     if (personId === undefined) return;
 
-    const nextIsHiddenState = !isHiddenState;
+    const nextIsSkippedState = !isSkippedState;
 
     setIsLoading(true);
-    if (await setHidden(personId, nextIsHiddenState)) {
-      if (nextIsHiddenState) navigation.goBack();
-      setIsHiddenState(nextIsHiddenState);
+    if (await setSkipped(personId, nextIsSkippedState)) {
       setIsLoading(false);
     }
-  }, [isLoading, isHiddenState, personId]);
+  }, [isLoading, isSkippedState, personId]);
 
   return (
     <FloatingProfileInteractionButton
@@ -191,14 +199,14 @@ const FloatingHideButton = ({navigation, personId, isHidden}) => {
       {isLoading &&
         <ActivityIndicator size="large" color="#70f"/>
       }
-      {!isLoading && isHiddenState === true && <RotateCcw
+      {!isLoading && isSkippedState === true && <RotateCcw
           stroke="#70f"
           strokeWidth={3}
           height={24}
           width={24}
         />
       }
-      {!isLoading && isHiddenState === false && <X
+      {!isLoading && isSkippedState === false && <X
           stroke="#70f"
           strokeWidth={3}
           height={24}
@@ -284,34 +292,39 @@ const SeeQAndAButton = ({navigation, personId, name, countAnswers}) => {
   );
 };
 
-const BlockButton = ({navigation, name, personId, isBlocked}) => {
+const BlockButton = ({navigation, name, personId, isSkipped}) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [isBlockedState, setIsBlockedState] = useState(false);
+  const [isSkippedState, setIsSkippedState] = useState(false);
 
   useEffect(() => {
-    setIsBlockedState(isBlocked);
-  }, [isBlocked]);
+    setIsSkippedState(isSkipped);
+  }, [isSkipped]);
+
+  useEffect(() => {
+    return listen(`unskip-profile-${personId}`, () => setIsSkippedState(false));
+  }, []);
 
   const onPress = useCallback(async () => {
-    if (isLoading) return;
-
-    setIsLoading(true);
-
-    const nextIsBlockedState = !isBlockedState;
-
-    setIsLoading(true);
-    if (await setBlocked(personId, nextIsBlockedState)) {
-      setIsBlockedState(nextIsBlockedState);
-      setIsLoading(false);
-      if (nextIsBlockedState) {
-        navigation.popToTop();
+    if (isSkippedState) {
+      setIsLoading(true);
+      if (await setSkipped(personId, false)) {
+        setIsLoading(false);
       }
+    } else {
+      const data: ReportModalInitialData = {
+        name,
+        personId,
+        context: 'Prospect Profile Screen',
+      };
+      notify('open-report-modal', data);
     }
-  }, [isLoading, isBlockedState, personId]);
+  }, [notify, name, personId, isSkippedState]);
 
-  const text = isBlockedState
-    ? `You have blocked and reported ${name}. Press to unblock ${name}.` :
-    `Block and report ${name}`;
+  const text = isSkippedState ?
+    `You have skipped ${name}. Press to unskip.` :
+    `Skip and report ${name}`;
+
+  const iconStroke = isLoading ? "transparent" : "grey";
 
   return (
     <Pressable
@@ -320,10 +333,28 @@ const BlockButton = ({navigation, name, personId, isBlocked}) => {
         marginTop: 100,
         marginBottom: 100,
         alignSelf: 'center',
+        flexDirection: 'row',
+        gap: 7,
       }}
     >
       {isLoading &&
         <ActivityIndicator size="small" color="#70f"/>
+      }
+      {!isLoading && isSkippedState &&
+        <RotateCcw
+          stroke={iconStroke}
+          strokeWidth={2}
+          height={18}
+          width={18}
+        />
+      }
+      {!isLoading && !isSkippedState &&
+        <Flag
+          stroke={iconStroke}
+          strokeWidth={2}
+          height={18}
+          width={18}
+        />
       }
       {!isLoading &&
         <DefaultText
@@ -399,8 +430,7 @@ type UserData = {
   smoking: string | null,
   star_sign: string | null,
   wants_kids: string | null,
-  is_hidden: boolean,
-  is_blocked: boolean,
+  is_skipped: boolean,
 };
 
 const Content = (navigationRef) => ({navigation, route, ...props}) => {
@@ -421,6 +451,11 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
       setData(response?.json);
     })();
   }, [personId]);
+
+  useEffect(() =>
+    listen(`skip-profile-${personId}`, () => navigation.popToTop()),
+    [personId, navigation]
+  );
 
   const imageUuid = data === undefined ?
     undefined :
@@ -495,10 +530,10 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
               flexDirection: 'row',
             }}
           >
-            <FloatingHideButton
+            <FloatingSkipButton
               navigation={navigation}
               personId={personId}
-              isHidden={data?.is_hidden}
+              isSkipped={data?.is_skipped}
             />
             <FloatingSendIntroButton
               navigation={navigation}
@@ -744,7 +779,7 @@ const Body = ({
           navigation={navigation}
           name={data?.name}
           personId={personId}
-          isBlocked={data?.is_blocked}
+          isSkipped={data?.is_skipped}
         />
       </View>
     </>

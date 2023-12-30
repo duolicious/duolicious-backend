@@ -5,7 +5,7 @@ import * as _ from "lodash";
 import { sessionToken } from '../kv-storage/session-token';
 import { Buffer } from "buffer";
 
-const SUPPORTED_API_VERSIONS = [2];
+const SUPPORTED_API_VERSIONS = [3];
 
 type ApiResponse = {
   ok: boolean
@@ -36,7 +36,10 @@ const api = async (
       `${API_URL}${endpoint}`;
 
     const init_ = _.merge(
-      { method: method.toUpperCase() },
+      {
+        method: method.toUpperCase(),
+        cache: 'no-store',
+      },
       (
         existingSessionToken ? {
           headers: {
