@@ -22,9 +22,4 @@ ON last(username);
 CREATE INDEX IF NOT EXISTS duo_idx__last__seconds
 ON last(seconds);
 
--- TODO: Delete v
-DELETE FROM privacy_list_data;
-DELETE FROM privacy_list;
--- TODO: Delete ^
-
 COMMIT;
