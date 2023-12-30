@@ -42,11 +42,6 @@
 
 [modules.mod_adhoc]
 
-[modules.mod_privacy]
-  backend = "rdbms"
-
-[modules.mod_blocking]
-
 [modules.mod_disco]
   users_can_see_hidden_services = false
 

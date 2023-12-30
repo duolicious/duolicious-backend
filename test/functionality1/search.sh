@@ -219,19 +219,19 @@ test_quiz_search () {
   response2=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response2" != "$user1_id" ]]
 
-  # user2 has the highest match percentage but user2 is blocked by searcher
-  c POST "/block/${user2_id}"
+  # user2 has the highest match percentage but user2 is skipped by searcher
+  c POST "/skip/${user2_id}"
 
   response3=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response3" != "${user2_id}" ]]
 
   # Reset searcher's search cache
-  c POST "/unblock/${user2_id}"
+  c POST "/unskip/${user2_id}"
   c GET '/search?n=1&o=0'
 
-  # user2 has the highest match percentage but searcher is blocked by user2
+  # user2 has the highest match percentage but searcher is skipped by user2
   assume_role user2
-  c POST "/block/${searcher_id}"
+  c POST "/skip/${searcher_id}"
   assume_role searcher
 
   response4=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
@@ -239,7 +239,7 @@ test_quiz_search () {
 
   # Reset searcher's search cache
   assume_role user2
-  c POST "/unblock/${searcher_id}"
+  c POST "/unskip/${searcher_id}"
   assume_role searcher
   c GET '/search?n=1&o=0'
 
@@ -250,7 +250,7 @@ test_quiz_search () {
   [[ "$response2" = "$user2_id" ]]
 
   # user2 has the highest match percentage but user2 is hidden by searcher
-  c POST "/hide/${user2_id}"
+  c POST "/skip/${user2_id}"
 
   response3=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response3" != "${user2_id}" ]]
@@ -454,40 +454,18 @@ test_hide_me_from_strangers () {
   assert_search_names 'user1 user2'
 }
 
-test_interaction_in_standard_search_blocked_symmetry() {
+test_interaction_in_standard_search_skipped_symmetry() {
   setup
 
-  # Everyone wants to see people they blocked
-  q "update search_preference_blocked set blocked_id = 1"
+  # Everyone wants to see people they skipped
+  q "update search_preference_skipped set skipped_id = 1"
 
   # Searcher can see everyone
   assert_search_names 'user1 user2'
 
-  # But then... user1 blocks searcher :'(
+  # But then... user1 skips searcher :'(
   q "
-  insert into blocked (subject_person_id, object_person_id)
-  values (
-    (select id from person where email = 'user1@example.com'),
-    (select id from person where email = 'searcher@example.com')
-  )
-  "
-
-  # Searcher can no longer see user1 </3
-  assert_search_names 'user2'
-}
-
-test_interaction_in_standard_search_hidden_symmetry() {
-  setup
-
-  # Everyone wants to see people they've hidden
-  q "update search_preference_hidden set hidden_id = 1"
-
-  # Searcher can see everyone
-  assert_search_names 'user1 user2'
-
-  # But then... user1 hides searcher :'(
-  q "
-  insert into hidden (subject_person_id, object_person_id)
+  insert into skipped (subject_person_id, object_person_id)
   values (
     (select id from person where email = 'user1@example.com'),
     (select id from person where email = 'searcher@example.com')
@@ -550,11 +528,8 @@ test_quiz_search
 
 test_hide_me_from_strangers
 
-test_interaction_in_standard_search messaged /mark-messaged
-test_interaction_in_standard_search blocked /block /unblock
-test_interaction_in_standard_search_blocked_symmetry
-test_interaction_in_standard_search hidden /hide /unhide
-test_interaction_in_standard_search_hidden_symmetry
+test_interaction_in_standard_search skipped /skip /unskip
+test_interaction_in_standard_search_skipped_symmetry
 
 test_quiz_filters
 

@@ -35,7 +35,11 @@ bucket = s3.Bucket(R2_BUCKET_NAME)
 def init_db():
     pass
 
-def _send_report(subject_person_id: int, object_person_id: int):
+def _send_report(
+    subject_person_id: int,
+    object_person_id: int,
+    report_reason: str
+):
     try:
         params = dict(
             subject_person_id=subject_person_id,
@@ -52,6 +56,7 @@ def _send_report(subject_person_id: int, object_person_id: int):
                 report,
                 subject_person_id,
                 object_person_id,
+                report_reason,
             ),
             from_addr=REPORT_EMAIL,
         )
@@ -482,43 +487,29 @@ def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
         return profile
     return '', 500
 
-def post_block(s: t.SessionInfo, prospect_person_id: int):
+def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
+    agents = dict(
+        subject_person_id=s.person_id,
+        object_person_id=prospect_person_id,
+    )
+
+    q_params = agents | dict(reported=bool(req.report_reason))
+    r_params = agents | dict(report_reason=req.report_reason)
+
+    with api_tx() as tx:
+        tx.execute(Q_INSERT_SKIPPED, q_params)
+
+    if req.report_reason:
+        threading.Thread(target=_send_report, kwargs=r_params).start()
+
+def post_unskip(s: t.SessionInfo, prospect_person_id: int):
     params = dict(
         subject_person_id=s.person_id,
         object_person_id=prospect_person_id,
     )
 
     with api_tx() as tx:
-        tx.execute(Q_INSERT_BLOCKED, params)
-
-    threading.Thread(target=_send_report, kwargs=params).start()
-
-def post_unblock(s: t.SessionInfo, prospect_person_id: int):
-    params = dict(
-        subject_person_id=s.person_id,
-        object_person_id=prospect_person_id,
-    )
-
-    with api_tx() as tx:
-        tx.execute(Q_DELETE_BLOCKED, params)
-
-def post_hide(s: t.SessionInfo, prospect_person_id: int):
-    params = dict(
-        subject_person_id=s.person_id,
-        object_person_id=prospect_person_id,
-    )
-
-    with api_tx() as tx:
-        tx.execute(Q_INSERT_HIDDEN, params)
-
-def post_unhide(s: t.SessionInfo, prospect_person_id: int):
-    params = dict(
-        subject_person_id=s.person_id,
-        object_person_id=prospect_person_id,
-    )
-
-    with api_tx() as tx:
-        tx.execute(Q_DELETE_HIDDEN, params)
+        tx.execute(Q_DELETE_SKIPPED, params)
 
 def get_compare_personalities(
     s: t.SessionInfo,
@@ -1054,7 +1045,7 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
             SELECT %(person_id)s, id
             FROM star_sign WHERE name = ANY(%(field_value)s)
             """
-        elif field_name == 'people_messaged':
+        elif field_name == 'people_you_messaged':
             q1 = """
             DELETE FROM search_preference_messaged
             WHERE person_id = %(person_id)s"""
@@ -1066,26 +1057,14 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
             SELECT %(person_id)s, id
             FROM yes_no WHERE name = %(field_value)s
             """
-        elif field_name == 'people_hidden':
+        elif field_name == 'people_you_skipped':
             q1 = """
-            DELETE FROM search_preference_hidden
+            DELETE FROM search_preference_skipped
             WHERE person_id = %(person_id)s"""
 
             q2 = """
-            INSERT INTO search_preference_hidden (
-                person_id, hidden_id
-            )
-            SELECT %(person_id)s, id
-            FROM yes_no WHERE name = %(field_value)s
-            """
-        elif field_name == 'people_blocked':
-            q1 = """
-            DELETE FROM search_preference_blocked
-            WHERE person_id = %(person_id)s"""
-
-            q2 = """
-            INSERT INTO search_preference_blocked (
-                person_id, blocked_id
+            INSERT INTO search_preference_skipped (
+                person_id, skipped_id
             )
             SELECT %(person_id)s, id
             FROM yes_no WHERE name = %(field_value)s
@@ -1204,15 +1183,6 @@ def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo):
             return dict(error=error), 400
         else:
             return dict(answer=answer)
-
-def post_mark_messaged(s: t.SessionInfo, prospect_person_id: int):
-    params = dict(
-        subject_person_id=s.person_id,
-        object_person_id=prospect_person_id,
-    )
-
-    with api_tx() as tx:
-        tx.execute(Q_INSERT_MESSAGED, params)
 
 def get_search_clubs(s: t.SessionInfo, q: str):
     if not re.match(t.CLUB_PATTERN, q) or not len(q) <= t.CLUB_MAX_LEN:
