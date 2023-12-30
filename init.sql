@@ -1160,14 +1160,6 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
--- TODO: Delete v
-DROP TABLE IF EXISTS search_preference_hidden;
-DROP TABLE IF EXISTS search_preference_blocked;
-
-DROP TABLE IF EXISTS hidden;
-DROP TABLE IF EXISTS blocked;
--- TODO: Delete ^
-
 --------------------------------------------------------------------------------
 
 -- TODO: Periodically delete expired tokens
