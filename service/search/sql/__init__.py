@@ -390,7 +390,27 @@ SELECT
     profile_photo_uuid,
     name,
     age,
-    match_percentage
+    match_percentage,
+    EXISTS (
+        SELECT
+            1
+        FROM
+            messaged
+        WHERE
+            subject_person_id = %(searcher_person_id)s
+        AND
+            object_person_id = prospect_person_id
+    ) AS person_messaged_prospect,
+    EXISTS (
+        SELECT
+            1
+        FROM
+            messaged
+        WHERE
+            subject_person_id = prospect_person_id
+        AND
+            object_person_id = %(searcher_person_id)s
+    ) AS prospect_messaged_person
 FROM
     updated_search_cache
 ORDER BY
@@ -405,7 +425,27 @@ SELECT
     profile_photo_uuid,
     name,
     age,
-    match_percentage
+    match_percentage,
+    EXISTS (
+        SELECT
+            1
+        FROM
+            messaged
+        WHERE
+            subject_person_id = %(searcher_person_id)s
+        AND
+            object_person_id = prospect_person_id
+    ) AS person_messaged_prospect,
+    EXISTS (
+        SELECT
+            1
+        FROM
+            messaged
+        WHERE
+            subject_person_id = prospect_person_id
+        AND
+            object_person_id = %(searcher_person_id)s
+    ) AS prospect_messaged_person
 FROM
     search_cache
 WHERE
