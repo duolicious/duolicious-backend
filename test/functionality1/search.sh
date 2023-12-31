@@ -20,6 +20,10 @@ setup () {
   ../util/create-user.sh user1 0
   ../util/create-user.sh user2 0
 
+  searcher_id=$(q "select id from person where email = 'searcher@example.com'")
+  user1_id=$(q "select id from person where email = 'user1@example.com'")
+  user2_id=$(q "select id from person where email = 'user2@example.com'")
+
   assume_role searcher
 }
 
@@ -189,10 +193,6 @@ test_search_cache () {
 
 test_quiz_search () {
   setup
-
-  local searcher_id=$(q "select id from person where email = 'searcher@example.com'")
-  local user1_id=$(q "select id from person where email = 'user1@example.com'")
-  local user2_id=$(q "select id from person where email = 'user2@example.com'")
 
   q "
   update person set personality = array_full(47, 1)
@@ -376,10 +376,6 @@ test_interaction_in_standard_search () {
 
   setup
 
-  local searcher_id=$(q "select id from person where email = 'searcher@example.com'")
-  local user1_id=$(q "select id from person where email = 'user1@example.com'")
-  local user2_id=$(q "select id from person where email = 'user2@example.com'")
-
   # searcher messaged/blocked/etc'd user1
   if [[ -n "${do_endpoint}" ]]
   then
@@ -524,6 +520,62 @@ test_mutual_club_members_promoted () {
   [[ "$response2" = "user3 user4 user1 user2" ]]
 }
 
+test_json_format () {
+  setup
+
+  # Q_UNCACHED_SEARCH_2 yields the right format
+  response=$(c GET '/search?n=1&o=0')
+  expected=$(jq -r . << EOF
+[
+  {
+    "age": 26,
+    "match_percentage": 50,
+    "name": "user1",
+    "person_messaged_prospect": false,
+    "profile_photo_uuid": null,
+    "prospect_messaged_person": false,
+    "prospect_person_id": ${user1_id}
+  }
+]
+EOF
+)
+  [[ "$response" == "$expected" ]]
+
+  # Q_CACHED_SEARCH yields the right format
+  response=$(c GET '/search?n=1&o=1')
+  expected=$(jq -r . << EOF
+[
+  {
+    "age": 26,
+    "match_percentage": 50,
+    "name": "user2",
+    "person_messaged_prospect": false,
+    "profile_photo_uuid": null,
+    "prospect_messaged_person": false,
+    "prospect_person_id": ${user2_id}
+  }
+]
+EOF
+)
+  [[ "$response" == "$expected" ]]
+
+  # Q_QUIZ_SEARCH yields the right format
+  response=$(c GET '/search')
+  expected=$(jq -r . << EOF
+[
+  {
+    "age": 26,
+    "match_percentage": 50,
+    "name": "user1",
+    "profile_photo_uuid": null,
+    "prospect_person_id": ${user1_id}
+  }
+]
+EOF
+)
+  [[ "$response" == "$expected" ]]
+}
+
 test_quiz_search
 
 test_hide_me_from_strangers
@@ -558,3 +610,5 @@ test_basic religion 'Buddhist'
 test_basic star_sign 'Leo'
 
 test_mutual_club_members_promoted
+
+test_json_format
