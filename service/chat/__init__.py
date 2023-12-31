@@ -3,7 +3,7 @@ from lxml import etree
 import asyncio
 import base64
 import duohash
-import re
+import regex
 import websockets
 import traceback
 
@@ -48,6 +48,9 @@ INSERT INTO messaged (
 
 MAX_MESSAGE_LEN = 5000
 
+NON_ALPHANUMERIC_RE = regex.compile(r'[^\p{L}\p{N}]')
+REPEATED_CHARACTERS_RE = regex.compile(r'(.)\1{1,}')
+
 class Username:
     def __init__(self):
         self.username = None
@@ -90,10 +93,10 @@ def normalize_message(message_str):
     message_str = message_str.lower()
 
     # Remove everything but non-alphanumeric characters
-    message_str = re.sub(r'[^a-z0-9]', '', message_str)
+    message_str = NON_ALPHANUMERIC_RE.sub('', message_str)
 
     # Remove repeated characters
-    message_str = re.sub(r'(.)\1{1,}', r'\1', message_str)
+    message_str = REPEATED_CHARACTERS_RE.sub(r'\1', message_str)
 
     return message_str
 
