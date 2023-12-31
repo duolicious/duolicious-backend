@@ -21,6 +21,7 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { listen } from '../events/events';
 import { X } from "react-native-feather";
+import { PageItem } from './search-tab';
 
 const ImageOrSkeleton = ({resolution, imageUuid, ...rest}) => {
   const {
@@ -83,8 +84,31 @@ const ImageOrSkeleton = ({resolution, imageUuid, ...rest}) => {
   );
 };
 
-const ProfileCard = ({name, age, matchPercentage, imageUuid, personId, ...rest}) => {
+const ProfileCard = ({
+  item,
+}: {
+  item: PageItem,
+}) => {
+  const {
+    name: name,
+    age: age,
+    match_percentage: matchPercentage,
+    profile_photo_uuid: imageUuid,
+    prospect_person_id: personId,
+    person_messaged_prospect: personMessagedProspect,
+    prospect_messaged_person: prospectMessagedPerson,
+  } = item;
+
   const [isSkipped, setIsSkipped] = useState(false);
+
+  const [
+    personMessagedProspectState,
+    setPersonMessagedProspectState,
+  ] = useState(personMessagedProspect);
+  const [
+    prospectMessagedPersonState,
+    setProspectMessagedPersonState,
+  ] = useState(prospectMessagedPerson);
 
   const navigation = useNavigation<any>();
 
@@ -101,6 +125,22 @@ const ProfileCard = ({name, age, matchPercentage, imageUuid, personId, ...rest})
   const onHide = useCallback(() => setIsSkipped(true), [setIsSkipped]);
   const onUnhide = useCallback(() => setIsSkipped(false), [setIsSkipped]);
 
+  const onMessageFrom = useCallback(
+    () => {
+      setProspectMessagedPersonState(true);
+      item.prospect_messaged_person = true;
+    },
+    [setProspectMessagedPersonState, item]
+  );
+
+  const onMessageTo = useCallback(
+    () => {
+      setPersonMessagedProspectState(true);
+      item.person_messaged_prospect = true;
+    },
+    [setPersonMessagedProspectState, item]
+  );
+
   useEffect(
     () => listen(`skip-profile-${personId}`, onHide),
     [personId, onHide]
@@ -111,12 +151,22 @@ const ProfileCard = ({name, age, matchPercentage, imageUuid, personId, ...rest})
     [personId, onUnhide]
   );
 
+  useEffect(
+    () => listen(`message-from-${personId}`, onMessageFrom),
+    [personId, onMessageFrom]
+  );
+
+  useEffect(
+    () => listen(`message-to-${personId}`, onMessageTo),
+    [personId, onMessageTo]
+  );
+
   return (
     <View
       style={{
         paddingTop: 5,
         paddingLeft: 5,
-        ...rest.containerStyle,
+        width: '50%',
       }}
     >
       <Pressable
@@ -131,7 +181,6 @@ const ProfileCard = ({name, age, matchPercentage, imageUuid, personId, ...rest})
             height: '100%',
             borderRadius: 5,
             overflow: 'hidden',
-            ...rest.innerStyle,
           }}
         >
           <ImageOrSkeleton resolution={450} imageUuid={imageUuid}/>
@@ -139,8 +188,34 @@ const ProfileCard = ({name, age, matchPercentage, imageUuid, personId, ...rest})
             name={name}
             age={age}
             matchPercentage={matchPercentage}
-            containerStyle={rest.userDetailsContainerStyle}
           />
+          {prospectMessagedPersonState &&
+            <Ionicons
+              style={{
+                fontSize: 18,
+                color: 'white',
+                position: 'absolute',
+                bottom: 0,
+                right: 18,
+                padding: 5,
+              }}
+              name="chatbubble"
+            />
+          }
+          {personMessagedProspectState &&
+            <Ionicons
+              style={{
+                transform: [ { scaleX: -1 } ],
+                fontSize: 18,
+                color: 'white',
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                padding: 5,
+              }}
+              name="chatbubble"
+            />
+          }
         </View>
         {isSkipped &&
           <View

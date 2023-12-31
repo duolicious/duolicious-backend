@@ -51,6 +51,8 @@ type PageItem = {
   name: string
   age: number
   match_percentage: number
+  person_messaged_prospect: boolean
+  prospect_messaged_person: boolean
 };
 
 const fetchPage = async (pageNumber: number): Promise<PageItem[]> => {
@@ -92,20 +94,9 @@ const SearchScreen_ = ({navigation}) => {
     );
   }, []);
 
-  const itemContainerStyle = useRef({width: '50%'}).current;
-
   const renderItem = useCallback((x: any) => {
     const item: PageItem = x.item;
-    return (
-      <ProfileCardMemo
-        name={item.name}
-        age={item.age}
-        imageUuid={item.profile_photo_uuid}
-        personId={item.prospect_person_id}
-        matchPercentage={item.match_percentage}
-        containerStyle={itemContainerStyle}
-      />
-    );
+    return <ProfileCardMemo item={item} />
   }, []);
 
   return (
@@ -145,3 +136,6 @@ const SearchScreen_ = ({navigation}) => {
 };
 
 export default SearchScreen;
+export {
+  PageItem,
+};

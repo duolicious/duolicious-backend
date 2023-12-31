@@ -15,6 +15,8 @@ import { deviceId } from '../kv-storage/device-id';
 import { japi } from '../api/api';
 import { deleteFromArray, withTimeout, delay } from '../util/util';
 
+import { notify } from '../events/events';
+
 // TODO: Catch more exceptions. If a network request fails, that shouldn't crash the app.
 // TODO: Update match percentages when user answers some questions
 // TODO: When someone opens two windows, display a warning. Or get multiple sessions working
@@ -279,6 +281,8 @@ const setInboxRecieved = async (
       Object.assign(introsConversation, updatedConversation);
     }
 
+    notify(`message-to-${fromPersonId}`);
+
     // We could've returned `inbox` instead of a shallow copy. But then it
     // wouldn't trigger re-renders when passed to a useState setter.
     return {...inbox};
@@ -451,6 +455,7 @@ const _sendMessage = (
       callback('too long');
     } else if (messageDeliveredNode) {
       setInboxSent(recipientPersonId, message);
+      notify(`message-to-${recipientPersonId}`);
       callback('sent');
     }
 
