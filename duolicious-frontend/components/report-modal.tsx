@@ -56,7 +56,7 @@ const ReportModal = () => {
 
 
     setIsLoading(true);
-    const completeReportText = `${context} - ${reportText}`;
+    const completeReportText = `${context.slice(0, 7999)}\n${reportText}`;
     if (await setSkipped(personId, true, completeReportText)) {
       setIsVisible(false);
     } else {

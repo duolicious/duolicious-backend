@@ -103,9 +103,7 @@ const IntrosItem = ({
     const data: ReportModalInitialData = {
       name,
       personId,
-      context: (
-        `Inbox Item - ${JSON.stringify(contextData).slice(0, 900)}`
-      ),
+      context: `Inbox Item\n${JSON.stringify(contextData)}`,
     };
 
     notify('open-report-modal', data);

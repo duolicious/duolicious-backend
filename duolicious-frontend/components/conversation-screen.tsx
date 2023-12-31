@@ -81,8 +81,7 @@ const Menu = ({navigation, name, personId, messages, closeFn}) => {
       name,
       personId,
       context: (
-        `Conversation Screen - ` +
-        `${String(JSON.stringify(messages, null, 2)).slice(0, 900)}`
+        `Conversation Screen\n${String(JSON.stringify(messages, null, 2))}`
       ),
     };
 
@@ -97,12 +96,6 @@ const Menu = ({navigation, name, personId, messages, closeFn}) => {
       }
     })();
   }, [personId]);
-
-  useEffect(() => {
-    return listen(`skip-profile-${personId}`, () => {
-      navigation.popToTop();
-    });
-  }, [navigation, personId]);
 
   const pressableStyle: ViewStyle = {
     flexDirection: 'row',
@@ -374,6 +367,12 @@ const ConversationScreen = ({navigation, route}) => {
   const toggleMenu = useCallback(() => {
     setShowMenu(x => !x);
   }, []);
+
+  useEffect(() => {
+    return listen(`skip-profile-${personId}`, () => {
+      navigation.popToTop();
+    });
+  }, [navigation, personId]);
 
   return (
     <>
