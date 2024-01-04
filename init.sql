@@ -466,7 +466,6 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     position SMALLINT,
     prospect_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     has_mutual_club BOOLEAN NOT NULL DEFAULT FALSE,
-    prospect_is_looking_for_searcher BOOLEAN NOT NULL DEFAULT TRUE,
     profile_photo_uuid TEXT,
     name TEXT NOT NULL,
     age SMALLINT,
@@ -1159,6 +1158,8 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
+
+ALTER TABLE search_cache DROP COLUMN IF EXISTS prospect_is_looking_for_searcher;
 
 --------------------------------------------------------------------------------
 
