@@ -16,6 +16,8 @@ import threading
 import re
 from smtp import aws_smtp
 
+DUO_ENV = os.environ['DUO_ENV']
+
 REPORT_EMAIL = os.environ['DUO_REPORT_EMAIL']
 
 R2_ACCT_ID = os.environ['DUO_R2_ACCT_ID']
@@ -195,7 +197,7 @@ def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
         tx.execute(Q_UPDATE_ANSWER, params)
 
 def _generate_otp(email: str):
-    if email.endswith('@example.com'):
+    if DUO_ENV == 'dev':
         return '0' * 6
     else:
         return '{:06d}'.format(secrets.randbelow(10**6))
