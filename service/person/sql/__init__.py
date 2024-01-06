@@ -147,26 +147,60 @@ ORDER BY
     trait_name ASC
 """
 
-Q_INSERT_DUO_SESSION = """
+_OTP_CTE = """
+WITH random_otp AS (
+    SELECT LPAD(FLOOR(RANDOM() * (10e5 + 1))::TEXT, 6, '0') AS otp
+), zero_otp AS (
+    SELECT '000000' AS otp
+), otp AS (
+    SELECT
+        CASE
+        WHEN
+                %(email)s::TEXT ILIKE '%%@example.com'
+            AND
+                EXISTS (SELECT 1 FROM person WHERE email = %(email)s)
+            OR
+                %(email)s::TEXT ILIKE '%%@example.com'
+            AND
+                %(is_dev)s
+        THEN
+            (SELECT otp FROM zero_otp)
+        ELSE
+            (SELECT otp FROM random_otp)
+        END AS otp
+)
+"""
+
+Q_INSERT_DUO_SESSION = f"""
+{_OTP_CTE}
 INSERT INTO duo_session (
     session_token_hash,
     person_id,
     email,
     otp
-) VALUES (
+)
+SELECT
     %(session_token_hash)s,
     (SELECT id FROM person WHERE email = %(email)s),
     %(email)s,
-    %(otp)s
-)
+    otp
+FROM
+    otp
+RETURNING
+    otp
 """
 
-Q_UPDATE_OTP = """
-UPDATE duo_session
+Q_UPDATE_OTP = f"""
+{_OTP_CTE}
+UPDATE
+    duo_session
 SET
-    otp = %(otp)s,
+    otp = (SELECT otp FROM otp),
     otp_expiry = NOW() + INTERVAL '10 minutes'
-WHERE session_token_hash = %(session_token_hash)s
+WHERE
+    session_token_hash = %(session_token_hash)s
+RETURNING
+    otp
 """
 
 Q_MAYBE_DELETE_ONBOARDEE = """
