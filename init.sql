@@ -1159,8 +1159,6 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
-ALTER TABLE search_cache DROP COLUMN IF EXISTS prospect_is_looking_for_searcher;
-
 --------------------------------------------------------------------------------
 
 -- TODO: Periodically delete expired tokens
