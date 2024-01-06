@@ -209,20 +209,20 @@ test_quiz_search () {
   q "
   update person set personality = array_full(47, 1)
   where id = ${searcher_id}"
-  response1=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
+  local response1=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response1" = "$user1_id" ]]
 
   # user1 has the lower match percentage
   q "
   update person set personality = array_full(47, -1)
   where id = ${searcher_id}"
-  response2=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
+  local response2=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response2" != "$user1_id" ]]
 
   # user2 has the highest match percentage but user2 is skipped by searcher
   c POST "/skip/${user2_id}"
 
-  response3=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
+  local response3=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response3" != "${user2_id}" ]]
 
   # Reset searcher's search cache
@@ -234,7 +234,7 @@ test_quiz_search () {
   c POST "/skip/${searcher_id}"
   assume_role searcher
 
-  response4=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
+  local response4=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response4" != "${user2_id}" ]]
 
   # Reset searcher's search cache
@@ -246,13 +246,13 @@ test_quiz_search () {
 
 
   # user2 has the highest match percentage
-  response2=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
+  local response2=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response2" = "$user2_id" ]]
 
   # user2 has the highest match percentage but user2 is hidden by searcher
   c POST "/skip/${user2_id}"
 
-  response3=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
+  local response3=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response3" != "${user2_id}" ]]
 }
 
@@ -300,7 +300,7 @@ test_photos_promoted () {
   set personality = array_full(47, 6e-2)
   where email IN ('user4@example.com')"
 
-  response1=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
+  local response1=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
 
   q "
   insert into photo (person_id, position, uuid)
@@ -315,7 +315,7 @@ test_photos_promoted () {
     1,
     'user4-uuid'"
 
-  response2=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
+  local response2=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
 
   [[ "$response1" = "user1 user2 user3 user4" ]]
   [[ "$response2" = "user3 user4 user1 user2" ]]
@@ -496,7 +496,7 @@ test_mutual_club_members_promoted () {
   set personality = array_full(47, 6e-2)
   where email IN ('user4@example.com')"
 
-  response1=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
+  local response1=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
 
   assume_role user3
   jc POST /join-club -d '{ "name": "my-club-shared-1" }'
@@ -514,7 +514,7 @@ test_mutual_club_members_promoted () {
   jc POST /join-club -d '{ "name": "my-club-unshared-12" }'
   jc POST /join-club -d '{ "name": "my-club-unshared-22" }'
 
-  response2=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
+  local response2=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
 
   [[ "$response1" = "user1 user2 user3 user4" ]]
   [[ "$response2" = "user3 user4 user1 user2" ]]
@@ -524,8 +524,8 @@ test_json_format () {
   setup
 
   # Q_UNCACHED_SEARCH_2 yields the right format
-  response=$(c GET '/search?n=1&o=0')
-  expected=$(jq -r . << EOF
+  local response=$(c GET '/search?n=1&o=0')
+  local expected=$(jq -r . << EOF
 [
   {
     "age": 26,
@@ -542,8 +542,8 @@ EOF
   [[ "$response" == "$expected" ]]
 
   # Q_CACHED_SEARCH yields the right format
-  response=$(c GET '/search?n=1&o=1')
-  expected=$(jq -r . << EOF
+  local response=$(c GET '/search?n=1&o=1')
+  local expected=$(jq -r . << EOF
 [
   {
     "age": 26,
@@ -560,8 +560,8 @@ EOF
   [[ "$response" == "$expected" ]]
 
   # Q_QUIZ_SEARCH yields the right format
-  response=$(c GET '/search')
-  expected=$(jq -r . << EOF
+  local response=$(c GET '/search')
+  local expected=$(jq -r . << EOF
 [
   {
     "age": 26,
@@ -574,6 +574,108 @@ EOF
 EOF
 )
   [[ "$response" == "$expected" ]]
+}
+
+test_bidirectional_gender_filter () {
+  setup
+
+  assume_role user1
+  jc PATCH /profile-info  -d '{ "gender": "Man" }'
+  jc POST  /search-filter -d '{ "gender": ["Woman"] }'
+
+  assume_role user2
+  jc PATCH /profile-info  -d '{ "gender": "Non-binary" }'
+  jc POST  /search-filter -d '{ "gender": ["Woman"] }'
+
+  assume_role searcher
+  jc PATCH /profile-info  -d '{ "gender": "Woman" }'
+  jc POST  /search-filter -d '{ "gender": ["Man"] }'
+
+  assume_role user1
+  assert_search_names "searcher"
+
+  assume_role user2
+  assert_search_names ""
+
+  assume_role searcher
+  assert_search_names "user1"
+}
+
+test_bidirectional_location_filter () {
+  setup
+
+  assume_role user1
+  jc PATCH /profile-info  -d '{ "location": "Brisbane, Queensland, Australia" }'
+  jc POST  /search-filter -d '{ "furthest_distance": 1000 }'
+
+  assume_role user2
+  jc PATCH /profile-info  -d '{ "location": "Sydney, New South Wales, Australia" }'
+  jc POST  /search-filter -d '{ "furthest_distance": 1000 }'
+
+  assume_role searcher
+  jc PATCH /profile-info  -d '{ "location": "Canberra, ACT, Australia" }'
+  jc POST  /search-filter -d '{ "furthest_distance": 500 }'
+
+  assume_role user1
+  assert_search_names "user2"
+
+  assume_role user2
+  assert_search_names "searcher user1"
+
+  assume_role searcher
+  assert_search_names "user2"
+
+  assume_role user1
+  jc POST  /search-filter -d '{ "furthest_distance": 5000 }'
+
+  assume_role user2
+  jc POST  /search-filter -d '{ "furthest_distance": 500 }'
+
+  assume_role searcher
+  jc POST  /search-filter -d '{ "furthest_distance": null }'
+
+  assume_role user1
+  assert_search_names "searcher"
+
+  assume_role user2
+  assert_search_names "searcher"
+
+  assume_role searcher
+  assert_search_names "user1 user2"
+}
+
+test_bidirectional_age_filter () {
+  setup
+
+  assume_role user1
+  q "
+  update person
+  set date_of_birth = now() - interval '50 years'
+  where name = 'user1'"
+  jc POST  /search-filter -d '{ "age": { "min_age": 20, "max_age": 60 }}'
+
+  assume_role user2
+  q "
+  update person
+  set date_of_birth = now() - interval '30 years'
+  where name = 'user2'"
+  jc POST  /search-filter -d '{ "age": { "min_age": 20, "max_age": 35 }}'
+
+  assume_role searcher
+  q "
+  update person
+  set date_of_birth = now() - interval '20 years'
+  where name = 'searcher'"
+  jc POST  /search-filter -d '{ "age": { "min_age": null, "max_age": null }}'
+
+  assume_role user1
+  assert_search_names "searcher"
+
+  assume_role user2
+  assert_search_names "searcher"
+
+  assume_role searcher
+  assert_search_names "user1 user2"
 }
 
 test_quiz_search
@@ -608,6 +710,10 @@ test_basic wants_kids 'No' yes_no_optional
 test_basic exercise 'Never' frequency
 test_basic religion 'Buddhist'
 test_basic star_sign 'Leo'
+
+test_bidirectional_gender_filter
+test_bidirectional_location_filter
+test_bidirectional_age_filter
 
 test_mutual_club_members_promoted
 

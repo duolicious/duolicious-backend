@@ -24,7 +24,8 @@ WITH searcher AS MATERIALIZED (
                 LIMIT 1
             ),
             1e9
-        ) AS distance_preference
+        ) AS distance_preference,
+        EXTRACT(YEAR FROM AGE(date_of_birth)) AS age
     FROM
         person
     WHERE
@@ -75,16 +76,7 @@ WITH searcher AS MATERIALIZED (
             SELECT club_name FROM person_club
             WHERE person_id = prospect.id
             LIMIT 1
-        ) AS has_mutual_club,
-
-        EXISTS (
-            SELECT 1
-            FROM search_preference_gender AS preference
-            WHERE
-                preference.person_id = id AND
-                preference.gender_id = (SELECT gender_id FROM searcher)
-            LIMIT 1
-        ) AS prospect_is_looking_for_searcher
+        ) AS has_mutual_club
 
     FROM
         person AS prospect
@@ -108,12 +100,46 @@ WITH searcher AS MATERIALIZED (
         )
     AND
         prospect.id != %(searcher_person_id)s
+    AND
+        -- The searcher meets the prospect's gender preference
+        EXISTS (
+            SELECT 1
+            FROM search_preference_gender AS preference
+            WHERE
+                preference.person_id = prospect.id AND
+                preference.gender_id = (SELECT gender_id FROM searcher)
+            LIMIT 1
+        )
+    AND
+        -- The searcher meets the prospect's location preference
+        ST_DWithin(
+            prospect.coordinates,
+            (SELECT coordinates FROM searcher),
+            (
+                SELECT
+                    COALESCE(
+                        (
+                            SELECT
+                                1000 * distance
+                            FROM
+                                person
+                            JOIN
+                                search_preference_distance
+                            ON
+                                person.id = person_id
+                            WHERE
+                                person.id = prospect.id
+                            LIMIT 1
+                        ),
+                        1e9
+                    )
+            )
+        )
 
     ORDER BY
         -- If this is changed, other queries will need changing too
         has_profile_picture_id,
         has_mutual_club DESC,
-        prospect_is_looking_for_searcher DESC,
         negative_dot_prod
 
     LIMIT
@@ -131,7 +157,6 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         ) AS profile_photo_uuid,
         has_mutual_club,
-        prospect_is_looking_for_searcher,
         name,
         CASE WHEN show_my_age THEN age ELSE NULL END AS age,
         CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2) AS match_percentage,
@@ -148,6 +173,7 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
+       -- The prospect meets the searcher's age preference
        EXISTS (
             SELECT 1
             FROM search_preference_age AS preference
@@ -155,6 +181,17 @@ WITH searcher AS MATERIALIZED (
                 preference.person_id = %(searcher_person_id)s AND
                 COALESCE(preference.min_age, 0)   <= prospect.age AND
                 COALESCE(preference.max_age, 999) >= prospect.age
+            LIMIT 1
+        )
+    AND
+       -- The searcher meets the prospect's age preference
+       EXISTS (
+            SELECT 1
+            FROM search_preference_age AS preference
+            WHERE
+                preference.person_id = prospect_person_id AND
+                COALESCE(preference.min_age, 0)   <= (SELECT age FROM searcher) AND
+                COALESCE(preference.max_age, 999) >= (SELECT age FROM searcher)
             LIMIT 1
         )
     AND
@@ -357,7 +394,6 @@ WITH searcher AS MATERIALIZED (
         prospect_person_id,
         profile_photo_uuid,
         has_mutual_club,
-        prospect_is_looking_for_searcher,
         name,
         age,
         match_percentage,
@@ -370,13 +406,11 @@ WITH searcher AS MATERIALIZED (
                 -- If this is changed, other queries will need changing too
                 (profile_photo_uuid IS NOT NULL) DESC,
                 has_mutual_club DESC,
-                prospect_is_looking_for_searcher DESC,
                 match_percentage DESC
         ) AS position,
         prospect_person_id,
         profile_photo_uuid,
         has_mutual_club,
-        prospect_is_looking_for_searcher,
         name,
         age,
         match_percentage,
@@ -484,7 +518,6 @@ ORDER BY
     -- If this is changed, other queries will need changing too
     (profile_photo_uuid IS NOT NULL) DESC,
     has_mutual_club DESC,
-    prospect_is_looking_for_searcher DESC,
     match_percentage DESC
 LIMIT
     1
