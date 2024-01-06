@@ -196,12 +196,6 @@ def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
     with api_tx() as tx:
         tx.execute(Q_UPDATE_ANSWER, params)
 
-def _generate_otp(email: str):
-    if DUO_ENV == 'dev':
-        return '0' * 6
-    else:
-        return '{:06d}'.format(secrets.randbelow(10**6))
-
 def _send_otp(email: str, otp: str):
     if email.endswith('@example.com'):
         return
@@ -214,35 +208,33 @@ def _send_otp(email: str, otp: str):
 
 def post_request_otp(req: t.PostRequestOtp):
     email = req.email
-    otp = _generate_otp(email)
     session_token = secrets.token_hex(64)
     session_token_hash = sha512(session_token)
 
     params = dict(
         email=email,
-        otp=otp,
+        is_dev=DUO_ENV == 'dev',
         session_token_hash=session_token_hash,
     )
 
     with api_tx() as tx:
-        tx.execute(Q_INSERT_DUO_SESSION, params)
+        otp = tx.execute(Q_INSERT_DUO_SESSION, params).fetchone()['otp']
 
     _send_otp(email, otp)
 
     return dict(session_token=session_token)
 
 def post_resend_otp(s: t.SessionInfo):
-    otp = _generate_otp(s.email)
-
     params = dict(
-        otp=otp,
+        email=s.email,
+        is_dev=DUO_ENV == 'dev',
         session_token_hash=s.session_token_hash,
     )
 
-    _send_otp(s.email, otp)
-
     with api_tx() as tx:
-        tx.execute(Q_UPDATE_OTP, params)
+        otp = tx.execute(Q_UPDATE_OTP, params).fetchone()['otp']
+
+    _send_otp(s.email, otp)
 
 def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
     params = dict(
