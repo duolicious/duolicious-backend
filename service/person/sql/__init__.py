@@ -168,6 +168,21 @@ WITH random_otp AS (
         ELSE
             (SELECT otp FROM random_otp)
         END AS otp
+    WHERE
+        NOT EXISTS (
+            SELECT
+                1
+            FROM
+                banned_person
+            WHERE
+                email = %(email)s
+            AND
+                expires_at > NOW()
+            OR
+                ip_address = %(ip_address)s
+            AND
+                expires_at > NOW()
+        )
 )
 """
 
@@ -197,12 +212,14 @@ Q_UPDATE_OTP = f"""
 UPDATE
     duo_session
 SET
-    otp = (SELECT otp FROM otp),
+    otp = otp.otp,
     otp_expiry = NOW() + INTERVAL '10 minutes'
+FROM
+    otp
 WHERE
     session_token_hash = %(session_token_hash)s
 RETURNING
-    otp
+    otp.otp
 """
 
 Q_MAYBE_DELETE_ONBOARDEE = """
@@ -1391,7 +1408,32 @@ SELECT
     ) AS j
 """
 
-Q_REPORT_EMAIL = """
+Q_MAKE_REPORT = """
+WITH token AS (
+    INSERT INTO banned_person_admin_token (
+        person_id
+    )
+    VALUES (
+        %(object_person_id)s
+    )
+    RETURNING
+        person_id, token
+), photo_ban AS (
+    INSERT INTO deleted_photo_admin_token (
+        photo_uuid
+    )
+    SELECT
+        uuid AS photo_uuid
+    FROM
+        photo
+    JOIN
+        token
+    ON
+        photo.person_id = token.person_id
+    RETURNING
+        photo_uuid AS uuid,
+        token AS token
+)
 SELECT
     CASE
         WHEN id = %(subject_person_id)s
@@ -1399,7 +1441,13 @@ SELECT
         ELSE 'Accused'
     END AS role,
     id,
-    email,
+    EXTRACT(YEAR FROM AGE(date_of_birth))::int AS age,
+    (
+        SELECT long_friendly
+        FROM location
+        ORDER BY location.coordinates <-> p.coordinates
+        LIMIT 1
+    ) AS location,
     name,
     gender_id,
     count_answers,
@@ -1407,14 +1455,22 @@ SELECT
     education,
     ARRAY(
         SELECT
-            ('https://user-images.duolicious.app/original-' || uuid || '.jpg') AS image_url
+            'https://user-images.duolicious.app/original-' || uuid || '.jpg'
         FROM photo
         WHERE person_id = id
         ORDER BY position
-    ) AS photo_uuids,
-    about
+    ) AS photo_links,
+    ARRAY(
+        SELECT
+            uuid || ': https://api.duolicious.app/admin/delete-photo-link/' || token
+        FROM photo_ban
+        WHERE id = %(object_person_id)s
+    ) AS photo_deletion_links,
+    about,
+    token::text
 FROM
-    person
+    person AS p,
+    token
 WHERE
     id IN (
         %(subject_person_id)s,
@@ -1575,4 +1631,77 @@ SELECT
     count(*) > 0 AS ok
 FROM
     updated_rows
+"""
+
+Q_CHECK_ADMIN_BAN_TOKEN = """
+SELECT 1 FROM banned_person_admin_token WHERE token = %(token)s
+"""
+
+Q_ADMIN_BAN = """
+WITH deleted_token AS (
+    DELETE FROM
+        banned_person_admin_token
+    WHERE
+        token = %(token)s
+    AND
+        expires_at > NOW()
+    RETURNING
+        person_id
+), deleted_person AS (
+    DELETE FROM
+        person
+    USING
+        deleted_token
+    WHERE
+        person.id = deleted_token.person_id
+    RETURNING
+        email
+), _duo_session AS (
+    SELECT
+        duo_session.email AS email,
+        duo_session.ip_address AS ip_address
+    FROM
+        duo_session
+    JOIN
+        deleted_person
+    ON
+        duo_session.email = deleted_person.email
+)
+INSERT INTO banned_person (
+    email,
+    ip_address
+)
+SELECT
+    email,
+    ip_address
+FROM
+    _duo_session
+ON CONFLICT DO NOTHING
+RETURNING
+    *
+"""
+
+Q_CHECK_ADMIN_DELETE_PHOTO_TOKEN = """
+SELECT 1 FROM deleted_photo_admin_token WHERE token = %(token)s
+"""
+
+Q_ADMIN_DELETE_PHOTO = """
+WITH deleted_token AS (
+    DELETE FROM
+        deleted_photo_admin_token
+    WHERE
+        token = %(token)s
+    AND
+        expires_at > NOW()
+    RETURNING
+        photo_uuid
+)
+DELETE FROM
+    photo
+USING
+    deleted_token
+WHERE
+    photo.uuid = deleted_token.photo_uuid
+RETURNING
+    photo.uuid
 """
