@@ -1160,9 +1160,6 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
--- TODO: Remove
-ALTER TABLE duo_session ADD COLUMN IF NOT EXISTS ip_address inet;
-
 --------------------------------------------------------------------------------
 
 -- TODO: Periodically delete expired tokens
