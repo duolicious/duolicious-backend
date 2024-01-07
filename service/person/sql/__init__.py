@@ -177,13 +177,15 @@ INSERT INTO duo_session (
     session_token_hash,
     person_id,
     email,
-    otp
+    otp,
+    ip_address
 )
 SELECT
     %(session_token_hash)s,
     (SELECT id FROM person WHERE email = %(email)s),
     %(email)s,
-    otp
+    otp,
+    %(ip_address)s
 FROM
     otp
 RETURNING
