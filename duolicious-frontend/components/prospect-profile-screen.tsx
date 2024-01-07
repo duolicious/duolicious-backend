@@ -43,7 +43,6 @@ import { faRulerVertical } from '@fortawesome/free-solid-svg-icons/faRulerVertic
 import { faHandsPraying } from '@fortawesome/free-solid-svg-icons/faHandsPraying'
 import { faPills } from '@fortawesome/free-solid-svg-icons/faPills'
 import { faSmoking } from '@fortawesome/free-solid-svg-icons/faSmoking'
-import { faPersonHalfDress } from '@fortawesome/free-solid-svg-icons/faPersonHalfDress'
 import { faVenusMars } from '@fortawesome/free-solid-svg-icons/faVenusMars'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'

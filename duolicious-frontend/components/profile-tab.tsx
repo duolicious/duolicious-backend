@@ -366,17 +366,7 @@ const Options = ({navigation, data}) => {
         search results
       </DefaultText>
 
-      <Title style={{ marginTop: 70 }}>General Settings</Title>
-      {
-        _generalSettingsOptionGroups.map((og, i) =>
-          <Button_
-            key={i}
-            setting={getCurrentValue(og.input)}
-            optionGroups={_generalSettingsOptionGroups.slice(i)}
-          />
-        )
-      }
-      <Title>Notification Settings</Title>
+      <Title style={{ marginTop: 70 }}>Notification Settings</Title>
       {
         _notificationSettingsOptionGroups.map((og, i) =>
           <Button_
@@ -393,6 +383,16 @@ const Options = ({navigation, data}) => {
             key={i}
             setting={getCurrentValue(og.input)}
             optionGroups={_privacySettingsOptionGroups.slice(i)}
+          />
+        )
+      }
+      <Title>General Settings</Title>
+      {
+        _generalSettingsOptionGroups.map((og, i) =>
+          <Button_
+            key={i}
+            setting={getCurrentValue(og.input)}
+            optionGroups={_generalSettingsOptionGroups.slice(i)}
           />
         )
       }

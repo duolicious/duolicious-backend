@@ -311,6 +311,7 @@ const SearchFilterScreen_ = ({navigation, route}) => {
             alignSelf: 'center',
             alignItems: 'stretch',
             padding: 10,
+            paddingBottom: 50,
           }}
         >
           <Title>Q&A Answers</Title>

@@ -48,7 +48,7 @@ const InboxTab = ({navigation}) => {
 };
 
 const InboxTab_ = ({navigation}) => {
-  const maxIntros = 25;
+  const maxIntros = 20;
 
   const [sectionIndex, setSectionIndex] = useState(0);
   const [sortByIndex, setSortByIndex] = useState(0);
@@ -224,7 +224,7 @@ const InboxTab_ = ({navigation}) => {
     if (!showArchive && sectionIndex === 0 && isIntrosTruncated)
       return (
         `You have more intros! Skip or reply to your top ${maxIntros} intros ` +
-        'to see the rest!'
+        'to see the rest'
       );
     if (!showArchive && sectionIndex === 0 && !isIntrosTruncated)
       return 'Those are all the intros you have for now';

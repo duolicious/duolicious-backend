@@ -2,6 +2,20 @@ import * as _ from "lodash";
 import { mapi, japi } from '../api/api';
 import { setSignedInUser } from '../App';
 import { sessionToken } from '../kv-storage/session-token';
+import { X } from "react-native-feather";
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
+import { faRulerVertical } from '@fortawesome/free-solid-svg-icons/faRulerVertical'
+import { faRuler } from '@fortawesome/free-solid-svg-icons/faRuler'
+import { faHandsPraying } from '@fortawesome/free-solid-svg-icons/faHandsPraying'
+import { faPills } from '@fortawesome/free-solid-svg-icons/faPills'
+import { faSmoking } from '@fortawesome/free-solid-svg-icons/faSmoking'
+import { faVenusMars } from '@fortawesome/free-solid-svg-icons/faVenusMars'
+import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
+import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
+import { faImage } from '@fortawesome/free-solid-svg-icons/faImage'
+import { faCalendar } from '@fortawesome/free-solid-svg-icons/faCalendar'
+import { faPeopleGroup } from '@fortawesome/free-solid-svg-icons/faPeopleGroup'
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 type OptionGroupButtons = {
   buttons: {
@@ -119,6 +133,7 @@ type OptionGroupInputs
 
 type OptionGroup<T extends OptionGroupInputs> = {
   title: string,
+  Icon?: any,
   description: string,
   input: T,
   scrollView?: boolean,
@@ -307,6 +322,13 @@ const immediacy = [
 
 const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
   title: 'Gender',
+  Icon: () => (
+    <FontAwesomeIcon
+      icon={faVenusMars}
+      size={14}
+      style={{color: 'black'}}
+    />
+  ),
   description: "What’s your gender?",
   input: {
     buttons: {
@@ -333,6 +355,13 @@ const yourPartnersGenderOptionGroup: OptionGroup<OptionGroupCheckChips> = {
 
 const locationOptionGroup: OptionGroup<OptionGroupLocationSelector> = {
   title: 'Location',
+  Icon: () => (
+    <FontAwesomeIcon
+      icon={faLocationDot}
+      size={14}
+      style={{color: 'black'}}
+    />
+  ),
   description: "What city do you live in?",
   input: {
     locationSelector: {
@@ -348,6 +377,7 @@ const locationOptionGroup: OptionGroup<OptionGroupLocationSelector> = {
 
 const orientationOptionGroup: OptionGroup<OptionGroupButtons> = {
   title: 'Orientation',
+  Icon: () => <Ionicons style={{fontSize: 16 }} name="person" />,
   description: "What’s your sexual orientation?",
   input: {
     buttons: {
@@ -363,6 +393,7 @@ const orientationOptionGroup: OptionGroup<OptionGroupButtons> = {
 
 const lookingForOptionGroup: OptionGroup<OptionGroupButtons> = {
   title: 'Looking For',
+  Icon: () => <Ionicons style={{fontSize: 16 }} name="eye" />,
   description: 'What are you mainly looking for on Duolicious?',
   input: {
     buttons: {
@@ -382,6 +413,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   locationOptionGroup,
   {
     title: 'Occupation',
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="briefcase" />,
     description: "What’s your profession?",
     input: {
       textShort: {
@@ -396,6 +428,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Education',
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="school" />,
     description: "Where did you study?",
     input: {
       textShort: {
@@ -410,6 +443,13 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Height',
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faRulerVertical}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: "How tall are you?",
     input: {
       slider: {
@@ -429,6 +469,13 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   lookingForOptionGroup,
   {
     title: 'Smoking',
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faSmoking}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: 'Do you smoke?',
     input: {
       buttons: {
@@ -443,6 +490,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Drinking',
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="wine" />,
     description: 'How often do you drink?',
     input: {
       buttons: {
@@ -457,6 +505,13 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Drugs',
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faPills}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: 'Do you do drugs?',
     input: {
       buttons: {
@@ -471,6 +526,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Long Distance',
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="globe" />,
     description: 'Are you willing to enter a long-distance relationship?',
     input: {
       buttons: {
@@ -485,6 +541,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Relationship Status',
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="heart" />,
     description: "What’s your relationship status?",
     input: {
       buttons: {
@@ -501,6 +558,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Has Kids',
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="people" />,
     description: 'Do you have kids?',
     input: {
       buttons: {
@@ -515,6 +573,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Wants Kids',
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="people" />,
     description: 'Do you want kids?',
     input: {
       buttons: {
@@ -529,6 +588,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Exercise',
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="barbell" />,
     description: 'How often do you exercise?',
     input: {
       buttons: {
@@ -543,6 +603,13 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Religion',
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faHandsPraying}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: "What’s your religion?",
     input: {
       buttons: {
@@ -557,6 +624,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Star Sign',
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="star" />,
     description: "What’s your star sign?",
     input: {
       buttons: {
@@ -574,6 +642,13 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
 const generalSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
   {
     title: 'Units',
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faRuler}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: "Do you use the metric system, or the imperial system?",
     input: {
       buttons: {
@@ -603,6 +678,7 @@ const generalSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
 const notificationSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
   {
     title: 'Chats',
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="chatbubbles" />,
     description: "When do you want to be notified if anyone you’re chatting with sends a new message? (\"Daily\" still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
     input: {
       buttons: {
@@ -617,6 +693,7 @@ const notificationSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
   },
   {
     title: 'Intros',
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="chatbubble" />,
     description: "When do you want to be notified if someone you haven’t chatted with sends you an intro? (\"Daily\" still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
     input: {
       buttons: {
@@ -836,6 +913,13 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     ...yourPartnersGenderOptionGroup,
     title: "Gender",
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faVenusMars}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: "Which genders would you like to see in search results?",
     input: {
       checkChips: {
@@ -854,6 +938,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Orientation",
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="person" />,
     description: "Which orientations would you like to see in search results?",
     input: {
       checkChips: {
@@ -873,6 +958,13 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Age",
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faCalendar}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: "What ages would you like to see in search results?",
     input: {
       rangeSlider: {
@@ -903,6 +995,13 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Furthest Distance",
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faLocationDot}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: "How far away can people be?",
     input: {
       slider: {
@@ -928,6 +1027,13 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Height",
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faRulerVertical}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: "What heights of people would you like to see in search results?",
     input: {
       rangeSlider: {
@@ -958,6 +1064,13 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Has a Profile Picture",
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faImage}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: "Do you want to see people who have a profile picture? Selecting ‘Yes’ and ‘No’ includes everyone, though people who have pictures will be shown first.",
     input: {
       checkChips: {
@@ -980,6 +1093,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Looking For",
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="eye" />,
     description: "What kind of relationships would you like people in search results to be seeking?",
     input: {
       checkChips: {
@@ -1003,6 +1117,13 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Smoking",
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faSmoking}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: "Do you want to include people who smoke in search results?",
     input: {
       checkChips: {
@@ -1026,6 +1147,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Drinking",
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="wine" />,
     description: "Do you want to include people who drink alcohol in search results?",
     input: {
       checkChips: {
@@ -1049,6 +1171,13 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Drugs",
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faPills}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: "Do you want to include people who take drugs in search results?",
     input: {
       checkChips: {
@@ -1072,6 +1201,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Long Distance",
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="globe" />,
     description: "Do you want search results to include people willing to enter a long-distance relationship?",
     input: {
       checkChips: {
@@ -1095,6 +1225,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Relationship Status",
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="heart" />,
     description: "What relationship statuses are you willing to accept from people in your search results?",
     input: {
       checkChips: {
@@ -1118,6 +1249,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Has Kids",
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="people" />,
     description: "Do you want search results to include people who had kids?",
     input: {
       checkChips: {
@@ -1141,6 +1273,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Wants Kids",
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="people" />,
     description: "Do you want search results to include people who want kids?",
     input: {
       checkChips: {
@@ -1164,6 +1297,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Exercise",
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="barbell" />,
     description: "Do you want search results to include people who exercise?",
     input: {
       checkChips: {
@@ -1187,6 +1321,13 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Religion",
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faHandsPraying}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: "Do you want search results to include people who exercise?",
     input: {
       checkChips: {
@@ -1210,6 +1351,7 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "Star Sign",
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="star" />,
     description: "What star signs would you like to see in search results?",
     input: {
       checkChips: {
@@ -1236,6 +1378,13 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
 const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     title: "People You Messaged",
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faPaperPlane}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: "Would you like search results to include people you already messaged?",
     input: {
       buttons: {
@@ -1254,6 +1403,14 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: "People You Skipped",
+    Icon: () => (
+      <X
+        stroke="black"
+        strokeWidth={4}
+        height={14}
+        width={14}
+      />
+    ),
     description: "Would you like search results to include people you skipped?",
     input: {
       buttons: {
@@ -1274,6 +1431,15 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
 
 const hideMeFromStrangersOptionGroup: OptionGroup<OptionGroupInputs> = {
   title: 'Hide Me From Strangers',
+  Icon: () => (
+    <Ionicons
+      style={{
+        transform: [ { scaleX: -1 } ],
+        fontSize: 16,
+      }}
+      name="chatbubble"
+    />
+  ),
   description: "With this option set to ‘Yes’, people won’t see you anywhere in Duolicious until you message them first.",
   input: {
     buttons: {
@@ -1296,6 +1462,13 @@ const hideMeFromStrangersOptionGroup: OptionGroup<OptionGroupInputs> = {
 const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     title: 'Show My Location',
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faLocationDot}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: "Would you like your location to appear on your profile? Note that if you set this option to ‘No’, other people will still be able to filter your profile by distance when searching.",
     input: {
       buttons: {
@@ -1316,6 +1489,13 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Show My Age',
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faCalendar}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
     description: "Would you like your age to appear on your profile? Note that if you set this option to ‘No’, other people will still be able to filter your profile by age when searching.",
     input: {
       buttons: {
