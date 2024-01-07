@@ -15,6 +15,7 @@ import traceback
 import threading
 import re
 from smtp import aws_smtp
+from flask import request
 
 DUO_ENV = os.environ['DUO_ENV']
 
@@ -215,6 +216,7 @@ def post_request_otp(req: t.PostRequestOtp):
         email=email,
         is_dev=DUO_ENV == 'dev',
         session_token_hash=session_token_hash,
+        ip_address=request.remote_addr or "127.0.0.1",
     )
 
     with api_tx() as tx:

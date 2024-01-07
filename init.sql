@@ -240,6 +240,7 @@ CREATE TABLE IF NOT EXISTS duo_session (
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     email TEXT NOT NULL,
     otp TEXT NOT NULL,
+    ip_address inet,
     signed_in BOOLEAN NOT NULL DEFAULT FALSE,
     session_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '6 months'),
     otp_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '10 minutes'),
@@ -1158,6 +1159,9 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
+
+-- TODO: Remove
+ALTER TABLE duo_session ADD COLUMN IF NOT EXISTS ip_address inet;
 
 --------------------------------------------------------------------------------
 
