@@ -26,7 +26,6 @@ import { Inbox, Conversation, inboxStats, observeInbox } from '../xmpp/xmpp';
 import { compareArrays } from '../util/util';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { inboxOrder, inboxSection } from '../kv-storage/inbox';
-import { signedInUser } from '../App';
 
 const Stack = createNativeStackNavigator();
 
@@ -48,7 +47,7 @@ const InboxTab = ({navigation}) => {
 };
 
 const InboxTab_ = ({navigation}) => {
-  const maxIntros = 20;
+  const maxIntros = 10;
 
   const [sectionIndex, setSectionIndex] = useState(0);
   const [sortByIndex, setSortByIndex] = useState(0);
@@ -277,17 +276,6 @@ const InboxTab_ = ({navigation}) => {
             }}
           />
         </Animated.View>
-        {sectionIndex === 1 && signedInUser && signedInUser.personId < 7741 &&
-          <Notice>
-            <DefaultText style={{color: '#70f', fontWeight: '700'}} >
-              Update
-              <DefaultText style={{fontWeight: '400'}}>
-                {} – Conversations now only appear in your Chats once you get a
-                reply
-              </DefaultText>
-            </DefaultText>
-          </Notice>
-        }
       </>
     );
   };
