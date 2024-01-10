@@ -271,8 +271,7 @@ WHERE session_token_hash = %(session_token_hash)s
 """
 
 Q_FINISH_ONBOARDING = """
-WITH
-onboardee_country AS (
+WITH onboardee_country AS (
     SELECT country
     FROM location
     ORDER BY coordinates <-> (
@@ -320,7 +319,86 @@ onboardee_country AS (
         3 AS intros_notification
     FROM onboardee
     WHERE email = %(email)s
-    RETURNING id, email, unit_id
+    RETURNING id, email, unit_id, coordinates
+), best_distance AS (
+    -- Distance such that search results has as close as possible to 500 users
+    WITH RECURSIVE count_nearby_prospects(dist, cnt) AS (
+        VALUES (0::INT, 0::BIGINT)
+        UNION ALL
+        SELECT
+            (50 + dist * 1.5)::INT AS dist,
+            (
+                SELECT
+                    count(*)
+                FROM
+                    person AS prospect
+                WHERE
+                    activated
+                AND
+                    -- The prospect meets the new_person's gender preference
+                    prospect.gender_id IN (
+                        SELECT gender_id
+                        FROM onboardee_search_preference_gender AS preference
+                        WHERE preference.email = (SELECT email FROM new_person)
+                    )
+                AND
+                    -- The prospect meets the new_person's location preference
+                    ST_DWithin(
+                        prospect.coordinates,
+                        (SELECT coordinates FROM new_person),
+                        dist * 1000
+                    )
+                AND
+                    -- The new_person meets the prospect's gender preference
+                    EXISTS (
+                        SELECT 1
+                        FROM search_preference_gender AS preference
+                        WHERE
+                            preference.person_id = prospect.id AND
+                            preference.gender_id = (SELECT gender_id FROM new_person)
+                        LIMIT 1
+                    )
+                AND
+                    -- The new_person meets the prospect's location preference
+                    ST_DWithin(
+                        prospect.coordinates,
+                        (SELECT coordinates FROM new_person),
+                        (
+                            SELECT
+                                COALESCE(
+                                    (
+                                        SELECT
+                                            1000 * distance
+                                        FROM
+                                            person
+                                        JOIN
+                                            search_preference_distance
+                                        ON
+                                            person.id = person_id
+                                        WHERE
+                                            person.id = prospect.id
+                                        LIMIT 1
+                                    ),
+                                    1e9
+                                )
+                        )
+                    )
+            ) AS cnt
+        FROM
+            count_nearby_prospects
+        WHERE
+            dist <= 5000
+    )
+    SELECT
+        LEAST(dist, 4999) AS dist,
+        cnt
+    FROM
+        count_nearby_prospects
+    ORDER BY
+        ABS(cnt - 500),
+        dist DESC
+    LIMIT
+        1
 ), new_photo AS (
     INSERT INTO photo (
         person_id,
@@ -391,8 +469,14 @@ onboardee_country AS (
     FROM new_person
 ), p4 AS (
     INSERT INTO search_preference_distance (person_id, distance)
-    SELECT new_person.id, NULL
-    FROM new_person
+    SELECT
+        new_person.id,
+        CASE
+            WHEN best_distance.cnt < 50
+            THEN NULL
+            ELSE best_distance.dist
+        END AS distance
+    FROM new_person, best_distance
 ), p5 AS (
     INSERT INTO search_preference_height_cm (person_id, min_height_cm, max_height_cm)
     SELECT new_person.id, NULL, NULL
