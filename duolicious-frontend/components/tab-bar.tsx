@@ -39,7 +39,12 @@ const TabBar = ({state, descriptors, navigation}) => {
   const onChangeInbox = useCallback((inbox: Inbox | null) => {
     if (inbox) {
       prevNumUnread.current = numUnread.current;
-      numUnread.current = inboxStats(inbox).numUnreadChatsAndIntros;
+
+      const stats = inboxStats(inbox);
+      numUnread.current = stats.numChats ?
+        stats.numUnreadChats :
+        stats.numUnreadIntros;
+
     } else {
       prevNumUnread.current = numUnread.current;
       numUnread.current = 0;
