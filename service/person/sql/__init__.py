@@ -326,7 +326,7 @@ WITH onboardee_country AS (
         VALUES (0::INT, 0::BIGINT)
         UNION ALL
         SELECT
-            (50 + dist * 1.5)::INT AS dist,
+            (100 + dist * 1.3)::INT AS dist,
             (
                 SELECT
                     count(*)
@@ -387,10 +387,10 @@ WITH onboardee_country AS (
         FROM
             count_nearby_prospects
         WHERE
-            dist <= 5000
+            dist <= 10000
     )
     SELECT
-        LEAST(dist, 4999) AS dist,
+        LEAST(dist, 9999) AS dist,
         cnt
     FROM
         count_nearby_prospects
