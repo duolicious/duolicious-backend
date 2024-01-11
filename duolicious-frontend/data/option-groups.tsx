@@ -1006,8 +1006,8 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       slider: {
         sliderMin: 5,
-        sliderMax: 5000,
-        defaultValue: 5000,
+        sliderMax: 10000,
+        defaultValue: 10000,
         step: 1,
         unitsLabel: 'km',
         addPlusAtMax: true,

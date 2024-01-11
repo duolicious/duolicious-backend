@@ -207,12 +207,12 @@ const InboxTab_ = ({navigation}) => {
     if (!showArchive && sectionIndex === 0)
       return (
         'This is where you’ll see messages from people who’ve reached out ' +
-        'to you first – Once you reply, they’ll move to your Chats 🗨️'
+        'to you first – Once you reply, they’ll move to your Chats\xa0💬'
       );
     if (!showArchive && sectionIndex === 1)
       return (
         'This is where you’ll see active conversations – Chats start once ' +
-        'both people have exchanged messages 💬'
+        'both people have exchanged messages\xa0💬'
       );
     if (showArchive)
       return 'No archived conversations to show';
