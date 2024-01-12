@@ -249,7 +249,7 @@ WITH valid_session AS (
 SELECT
     person_id,
     email,
-    (SELECT name FROM unit where id = existing_person.unit_id) AS units
+    (SELECT name FROM unit WHERE id = existing_person.unit_id) AS units
 FROM
     valid_session
 LEFT JOIN
@@ -321,17 +321,38 @@ WITH onboardee_country AS (
     WHERE email = %(email)s
     RETURNING id, email, unit_id, coordinates
 ), best_distance AS (
-    -- Distance such that search results has as close as possible to 500 users
-    WITH RECURSIVE count_nearby_prospects(dist, cnt) AS (
-        VALUES (0::INT, 0::BIGINT)
-        UNION ALL
-        SELECT
-            (100 + dist * 1.3)::INT AS dist,
-            (
-                SELECT
-                    count(*)
+    -- Use a binary search to compute the "furthest distance" search preference
+    -- which causes search results to contain as close as possible to 500 users
+    WITH RECURSIVE t(dist, cnt, iters) AS (
+        VALUES
+            (    0.0,     0.0, 0),
+            (20000.0,  1.0e12, 0)
+        UNION ALL (
+            WITH two_closest AS (
+                select
+                    dist,
+                    cnt,
+                    iters
                 FROM
-                    person AS prospect
+                    t
+                ORDER BY
+                    iters DESC,
+                    ABS(cnt - 500),
+                    dist DESC
+                LIMIT 2
+            ), midpoint AS (
+                SELECT
+                    AVG(dist) AS dist,
+                    MAX(iters) AS iters
+                FROM
+                    two_closest
+            ), evaluated_midpoint AS (
+                SELECT
+                    MAX(midpoint.dist) AS dist,
+                    COUNT(*) AS cnt,
+                    MAX(midpoint.iters) AS iters
+                FROM
+                    person AS prospect, midpoint
                 WHERE
                     activated
                 AND
@@ -383,21 +404,25 @@ WITH onboardee_country AS (
                                 )
                         )
                     )
-            ) AS cnt
-        FROM
-            count_nearby_prospects
-        WHERE
-            dist <= 10000
+            ), points AS (
+                SELECT * FROM evaluated_midpoint
+                UNION
+                SELECT * FROM two_closest
+            )
+            SELECT dist, cnt, iters + 1 FROM points WHERE iters < 10
+        )
     )
     SELECT
         LEAST(dist, 9999) AS dist,
         cnt
     FROM
-        count_nearby_prospects
+        t
     ORDER BY
-        ABS(cnt - 500),
-        dist DESC
+        iters DESC,
+        dist
     LIMIT
+        1
+    OFFSET
         1
 ), new_photo AS (
     INSERT INTO photo (
