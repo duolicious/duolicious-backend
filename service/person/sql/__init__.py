@@ -309,7 +309,7 @@ WITH onboardee_country AS (
             WHERE name IN (
                 SELECT
                     CASE
-                        WHEN country = 'United States'
+                        WHEN country IN ('United States', 'United Kingdom')
                         THEN 'Imperial'
                         ELSE 'Metric'
                     END AS name
