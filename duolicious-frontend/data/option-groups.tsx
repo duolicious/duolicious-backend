@@ -409,8 +409,8 @@ const lookingForOptionGroup: OptionGroup<OptionGroupButtons> = {
 
 const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   genderOptionGroup,
-  orientationOptionGroup,
   locationOptionGroup,
+  orientationOptionGroup,
   {
     title: 'Occupation',
     Icon: () => <Ionicons style={{fontSize: 16 }} name="briefcase" />,
@@ -679,7 +679,7 @@ const notificationSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
   {
     title: 'Chats',
     Icon: () => <Ionicons style={{fontSize: 16 }} name="chatbubbles" />,
-    description: "When do you want to be notified if anyone you’re chatting with sends a new message? (\"Daily\" still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
+    description: "When do you want to be notified if anyone you’re chatting with sends a new message? (“Daily” still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
     input: {
       buttons: {
         values: immediacy,
@@ -694,7 +694,7 @@ const notificationSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
   {
     title: 'Intros',
     Icon: () => <Ionicons style={{fontSize: 16 }} name="chatbubble" />,
-    description: "When do you want to be notified if someone you haven’t chatted with sends you an intro? (\"Daily\" still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
+    description: "When do you want to be notified if someone you haven’t chatted with sends you an intro? (“Daily” still sends the first notification of the day immediately, but snoozes later notifications so that you get at-most one notification per 24 hours.)",
     input: {
       buttons: {
         values: immediacy,
@@ -711,7 +711,7 @@ const notificationSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
 const deletionOptionGroups: OptionGroup<OptionGroupTextShort>[] = [
   {
     title: 'Delete My Account',
-    description: `Are you sure you want to delete your account? This will immediately log you out and permanently delete your account data. If you’re sure, type "delete" to confirm.`,
+    description: `Are you sure you want to delete your account? This will immediately log you out and permanently delete your account data. If you’re sure, type “delete” to confirm.`,
     input: {
       textShort: {
         submit: async (input: string) => {
@@ -734,7 +734,7 @@ const deletionOptionGroups: OptionGroup<OptionGroupTextShort>[] = [
 const deactivationOptionGroups: OptionGroup<OptionGroupNone>[] = [
   {
     title: 'Deactivate My Account',
-    description: 'Are you sure you want to deactivate your account? This will hide you from other users and log you out. The next time you sign in, your account will be reactivated. Press "continue" to deactivate your account.',
+    description: 'Are you sure you want to deactivate your account? This will hide you from other users and log you out. The next time you sign in, your account will be reactivated. Press “continue” to deactivate your account.',
     input: {
       none: {
         submit: async () => {
@@ -909,7 +909,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
 ];
 
-const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
+const searchTwoWayBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     ...yourPartnersGenderOptionGroup,
     title: "Gender",
@@ -937,23 +937,35 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     },
   },
   {
-    title: "Orientation",
-    Icon: () => <Ionicons style={{fontSize: 16 }} name="person" />,
-    description: "Which orientations would you like to see in search results?",
+    title: "Furthest Distance",
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faLocationDot}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
+    description: "How far away can people be?",
     input: {
-      checkChips: {
-        values: [
-          ...orientations.map((x) => ({checked: true, label: x})),
-          {checked: true, label: 'Unanswered'},
-        ],
-        submit: async function(orientation: string[]) {
-          const ok = (await japi('post', '/search-filter', { orientation })).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, orientation);
-          }
+      slider: {
+        sliderMin: 5,
+        sliderMax: 10000,
+        defaultValue: 10000,
+        step: 1,
+        unitsLabel: 'km',
+        addPlusAtMax: true,
+        submit: async function(furthestDistance: number | null) {
+          const ok = (
+            await japi(
+              'post',
+              '/search-filter',
+              { furthest_distance: furthestDistance }
+            )
+          ).ok;
+          if (ok) this.currentValue = furthestDistance;
           return ok;
-        }
-      }
+        },
+      },
     },
   },
   {
@@ -993,36 +1005,27 @@ const searchBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       }
     },
   },
+];
+
+const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
-    title: "Furthest Distance",
-    Icon: () => (
-      <FontAwesomeIcon
-        icon={faLocationDot}
-        size={14}
-        style={{color: 'black'}}
-      />
-    ),
-    description: "How far away can people be?",
+    title: "Orientation",
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="person" />,
+    description: "Which orientations would you like to see in search results?",
     input: {
-      slider: {
-        sliderMin: 5,
-        sliderMax: 10000,
-        defaultValue: 10000,
-        step: 1,
-        unitsLabel: 'km',
-        addPlusAtMax: true,
-        submit: async function(furthestDistance: number | null) {
-          const ok = (
-            await japi(
-              'post',
-              '/search-filter',
-              { furthest_distance: furthestDistance }
-            )
-          ).ok;
-          if (ok) this.currentValue = furthestDistance;
+      checkChips: {
+        values: [
+          ...orientations.map((x) => ({checked: true, label: x})),
+          {checked: true, label: 'Unanswered'},
+        ],
+        submit: async function(orientation: string[]) {
+          const ok = (await japi('post', '/search-filter', { orientation })).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, orientation);
+          }
           return ok;
-        },
-      },
+        }
+      }
     },
   },
   {
@@ -1553,6 +1556,7 @@ export {
   isOptionGroupTextShort,
   notificationSettingsOptionGroups,
   privacySettingsOptionGroups,
-  searchBasicsOptionGroups,
+  searchTwoWayBasicsOptionGroups,
+  searchOtherBasicsOptionGroups,
   searchInteractionsOptionGroups,
 };

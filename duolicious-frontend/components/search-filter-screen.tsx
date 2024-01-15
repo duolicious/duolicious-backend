@@ -22,7 +22,8 @@ import { Title } from './title';
 import {
   OptionGroup,
   OptionGroupInputs,
-  searchBasicsOptionGroups,
+  searchTwoWayBasicsOptionGroups,
+  searchOtherBasicsOptionGroups,
   searchInteractionsOptionGroups,
   getCurrentValue,
   isOptionGroupCheckChips,
@@ -241,18 +242,20 @@ const SearchFilterScreen_ = ({navigation, route}) => {
   }, []);
 
   const [
-    _searchBasicsOptionGroups,
+    _searchTwoWayBasicsOptionGroups,
+    _searchOtherBasicsOptionGroups,
     _searchInteractionsOptionGroups,
   ] = useMemo(
     () => [
-      addCurrentValue(searchBasicsOptionGroups),
+      addCurrentValue(searchTwoWayBasicsOptionGroups),
+      addCurrentValue(searchOtherBasicsOptionGroups),
       addCurrentValue(searchInteractionsOptionGroups),
     ],
     [data]
   );
 
   useEffect(() => {
-    _searchBasicsOptionGroups.forEach((og: OptionGroup<OptionGroupInputs>) => {
+    _searchTwoWayBasicsOptionGroups.forEach((og: OptionGroup<OptionGroupInputs>) => {
       if (isOptionGroupSlider(og.input) && og.title === 'Furthest Distance') {
         og.input.slider.unitsLabel = (
           signedInUser?.units === 'Imperial' ?
@@ -262,7 +265,14 @@ const SearchFilterScreen_ = ({navigation, route}) => {
           signedInUser?.units === 'Imperial' ?
           kmToMilesStr : undefined);
       }
+    });
+  }, [
+    _searchTwoWayBasicsOptionGroups,
+    signedInUser?.units
+  ]);
 
+  useEffect(() => {
+    _searchOtherBasicsOptionGroups.forEach((og: OptionGroup<OptionGroupInputs>) => {
       if (isOptionGroupRangeSlider(og.input) && og.title === 'Height') {
         og.input.rangeSlider.unitsLabel = (
           signedInUser?.units === 'Imperial' ?
@@ -273,7 +283,10 @@ const SearchFilterScreen_ = ({navigation, route}) => {
           cmToFeetInchesStr : undefined);
       }
     });
-  }, [_searchBasicsOptionGroups, signedInUser?.units]);
+  }, [
+    _searchOtherBasicsOptionGroups,
+    signedInUser?.units
+  ]);
 
   const goBack = useCallback(() => {
     onPressRefresh && onPressRefresh();
@@ -314,7 +327,39 @@ const SearchFilterScreen_ = ({navigation, route}) => {
             paddingBottom: 50,
           }}
         >
-          <Title>Q&A Answers</Title>
+          <Title>Basics (Two-way Filters)</Title>
+          {
+            _searchTwoWayBasicsOptionGroups.map((og, i) =>
+              <Button_
+                key={i}
+                setting={getCurrentValueAsLabel(og)}
+                optionGroups={_searchTwoWayBasicsOptionGroups.slice(i)}
+              />
+            )
+          }
+          <DefaultText
+            style={{
+              color: '#999',
+              textAlign: 'center',
+              marginRight: 10,
+              marginLeft: 10,
+            }}
+          >
+            Only people who match these filters can see you in their search
+            results
+          </DefaultText>
+
+          <Title style={{marginTop: 40}}>Basics (Other Filters)</Title>
+          {
+            _searchOtherBasicsOptionGroups.map((og, i) =>
+              <Button_
+                key={i}
+                setting={getCurrentValueAsLabel(og)}
+                optionGroups={_searchOtherBasicsOptionGroups.slice(i)}
+              />
+            )
+          }
+          <Title style={{marginTop: 40}}>Q&A Answers</Title>
           <ButtonForOption
             label="Q&A Answers"
             setting={
@@ -325,17 +370,7 @@ const SearchFilterScreen_ = ({navigation, route}) => {
             noSettingText="Any"
             onPress={onPressQAndAAnswers}
           />
-          <Title>Basics</Title>
-          {
-            _searchBasicsOptionGroups.map((og, i) =>
-              <Button_
-                key={i}
-                setting={getCurrentValueAsLabel(og)}
-                optionGroups={_searchBasicsOptionGroups.slice(i)}
-              />
-            )
-          }
-          <Title>Interactions</Title>
+          <Title style={{marginTop: 40}}>Interactions</Title>
           {
             _searchInteractionsOptionGroups.map((og, i) =>
               <Button_
