@@ -345,8 +345,8 @@ const SearchFilterScreen_ = ({navigation, route}) => {
               marginLeft: 10,
             }}
           >
-            Only people who match these filters can see you in their search
-            results
+            Anyone you filter out with your two-way search settings won’t
+            see you in their searches either
           </DefaultText>
 
           <Title style={{marginTop: 40}}>Basics (Other Filters)</Title>
