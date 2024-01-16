@@ -1,7 +1,8 @@
 import {
   Animated,
-  View,
   StyleProp,
+  StyleSheet,
+  View,
   ViewStyle,
 } from 'react-native';
 import {
@@ -17,7 +18,7 @@ import {
   NoMoreCards,
   QuizCard,
 } from './quiz-card';
-import { Direction } from 'react-tinder-card'
+import { Direction } from './base-quiz-card';
 import { Avatar } from './avatar';
 import { DonutChart } from './donut-chart';
 import { DefaultText } from './default-text';
@@ -28,6 +29,17 @@ import { quizQueue } from '../api/queue';
 import * as _ from "lodash";
 import { markTraitDataDirty } from './traits-tab';
 import { listen } from '../events/events';
+
+const styles = StyleSheet.create({
+  stackContainerStyle: {
+    touchAction: 'none',
+    flexGrow: 1,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 600,
+  },
+});
+
 
 const QuizCardMemo = memo(QuizCard);
 
@@ -540,19 +552,12 @@ const QuizCardStack_ = ({
   onSwipe,
   onCardLeftScreen,
 }) => {
-  const stackContainerStyle = useRef<StyleProp<ViewStyle>>({
-    flexGrow: 1,
-    alignSelf: 'center',
-    width: '100%',
-    maxWidth: 600,
-  }).current;
-
   const cards: CardState[] = [card1, card2, card3].filter(Boolean);
 
   const onScreenCards = cards.filter(c => c.isFetched && !c.swipeDirection);
 
   return (
-    <View style={stackContainerStyle}>
+    <View style={styles.stackContainerStyle}>
       {!onScreenCards.length && <NoMoreCards/>}
       {
         cards.map((card, i) => {

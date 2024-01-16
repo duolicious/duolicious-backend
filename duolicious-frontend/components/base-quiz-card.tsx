@@ -403,4 +403,5 @@ const BaseQuizCard = forwardRef(
 
 export {
   BaseQuizCard,
+  Direction,
 }
