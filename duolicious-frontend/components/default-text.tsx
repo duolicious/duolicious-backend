@@ -1,8 +1,6 @@
 import {
   Text,
   TextProps,
-  StyleProp,
-  TextStyle,
 } from 'react-native';
 
 const DefaultText = (props: TextProps) => {

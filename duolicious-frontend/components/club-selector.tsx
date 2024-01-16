@@ -23,7 +23,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { OptionScreen } from './option-screen';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultTextInput } from './default-text-input';
-import { SearchQuizCard } from './quiz-card';
 import { api, japi } from '../api/api';
 import * as _ from "lodash";
 import { signedInUser } from '../App';
