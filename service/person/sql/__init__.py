@@ -322,7 +322,7 @@ WITH onboardee_country AS (
     RETURNING id, email, unit_id, coordinates
 ), best_distance AS (
     -- Use a binary search to compute the "furthest distance" search preference
-    -- which causes search results to contain as close as possible to 500 users
+    -- which causes search results to contain as close as possible to 1000 users
     WITH RECURSIVE t(dist, cnt, iters) AS (
         VALUES
             (    0.0,     0.0, 0),
@@ -337,7 +337,7 @@ WITH onboardee_country AS (
                     t
                 ORDER BY
                     iters DESC,
-                    ABS(cnt - 500),
+                    ABS(cnt - 1000),
                     dist DESC
                 LIMIT 2
             ), midpoint AS (
@@ -497,7 +497,7 @@ WITH onboardee_country AS (
     SELECT
         new_person.id,
         CASE
-            WHEN best_distance.cnt < 50
+            WHEN best_distance.cnt < 250
             THEN NULL
             ELSE best_distance.dist
         END AS distance
