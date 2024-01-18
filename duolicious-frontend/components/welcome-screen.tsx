@@ -1,5 +1,7 @@
 import {
   Linking,
+  Platform,
+  StatusBar,
   Text,
   View,
 } from 'react-native';
@@ -16,6 +18,7 @@ import { createAccountOptionGroups } from '../data/option-groups';
 import { OptionScreen } from './option-screen';
 import { japi } from '../api/api';
 import { sessionToken } from '../kv-storage/session-token';
+import { Logo16 } from './logo';
 
 const Stack = createNativeStackNavigator();
 
@@ -114,34 +117,54 @@ const WelcomeScreen_ = ({navigation}) => {
           flexDirection: 'column',
         }}
       >
-        <View style={{
-          justifyContent: 'center',
-          flexGrow: 1
-        }}>
+        <View
+          style={{
+            marginTop: 10 + (Platform.OS === 'web' ? 0 : StatusBar.currentHeight ?? 0),
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 5,
+          }}
+        >
+          <Logo16 size={32} rectSize={0.3} />
           <Text
             style={{
               color: 'white',
               alignSelf: 'center',
               fontFamily: 'TruenoBold',
-              fontSize: 60,
+              fontSize: 20,
             }}
           >
             Duolicious
           </Text>
+        </View>
+        <View
+          style={{
+            flex: 1,
+            alignSelf: 'center',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           <DefaultText
             style={{
-              alignSelf: 'center',
+              width: 320,
               textAlign: 'center',
               color: 'white',
-              fontSize: 20,
+              fontSize: 26,
+              fontFamily: 'MontserratBlack',
             }}
           >
             {/* Date, chat & make new friends */}
             Online dating exclusively for 4chan
           </DefaultText>
+        </View>
+        <View style={{
+          justifyContent: 'center',
+          flex: 2,
+        }}>
           <DefaultTextInput
             style={{
-              marginTop: 80,
             }}
             placeholder="Enter your email to begin"
             keyboardType="email-address"
@@ -163,7 +186,7 @@ const WelcomeScreen_ = ({navigation}) => {
               opacity: emailNotSent ? 1 : 0,
             }}
           >
-            We couldn't send an email there. Try again.
+            We couldn’t send an email there
           </DefaultText>
           <View
             style={{
@@ -184,7 +207,7 @@ const WelcomeScreen_ = ({navigation}) => {
           style={{
             justifyContent: 'center',
             padding: 20,
-            paddingBottom: 40,
+            paddingBottom: 20,
             alignSelf: 'flex-start',
             width: '100%',
           }}

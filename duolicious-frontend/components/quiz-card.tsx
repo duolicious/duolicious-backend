@@ -25,6 +25,7 @@ import { japi } from '../api/api';
 import { quizQueue } from '../api/queue';
 import { markTraitDataDirty } from './traits-tab';
 import { IndeterminateProgressBar } from './indeterminate-progress-bar';
+import { Logo14 } from './logo';
 
 const cardBorders = {
   borderRadius: 10,
@@ -302,9 +303,9 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
               flexDirection: 'row',
               justifyContent: 'space-between',
               width: '100%',
-              paddingTop: 10,
+              paddingTop: 5,
               paddingLeft: 15,
-              paddingRight: 15,
+              paddingRight: 12,
               alignItems: 'center',
             }}
           >
@@ -323,17 +324,27 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
               </DefaultText>
             }
             {questionNumber && topic &&
-              <DefaultText
+              <View
                 style={{
                   flex: 1,
-                  fontFamily: 'TruenoBold',
-                  fontSize: 16,
-                  color: '#70f',
-                  textAlign: 'right',
+                  flexDirection: 'row',
+                  gap: 3,
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
                 }}
               >
-                Duolicious
-              </DefaultText>
+                <DefaultText
+                  style={{
+                    fontFamily: 'TruenoBold',
+                    fontSize: 16,
+                    color: '#70f',
+                    textAlign: 'right',
+                  }}
+                >
+                  Duolicious
+                </DefaultText>
+                <Logo14 size={14 * 2} color="#70f" rectSize={0.3} />
+              </View>
             }
           </View>
           <View
@@ -612,8 +623,6 @@ const AnsweredQuizCard = ({
   }, [state.answer])();
 
   const onPressAnswerIconGroup = useCallback(async (pressedButton: boolean) => {
-    console.log(pressedButton); // TODO
-
     setState((state: CardState): CardState => {
       const nextAnswer_ = nextAnswer(state.answer, pressedButton);
 

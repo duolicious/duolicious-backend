@@ -4,6 +4,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBarSpacer } from './status-bar-spacer';
 import { DefaultText } from './default-text';
+import { Logo16 } from './logo';
 
 const shadow = {
   shadowOffset: {
@@ -52,15 +53,18 @@ const DuoliciousTopNavBar = (props) => {
       style={{
         alignItems: 'center',
         justifyContent: 'center',
+        flexDirection: 'row',
+        gap: 1,
         ...style,
       }}
       backgroundColor={backgroundColor}
     >
+      <Logo16 size={16 * 2} color="#70f" rectSize={0.35} />
       <DefaultText
         style={{
           fontFamily: 'TruenoBold',
           color: textColor || '#70f',
-          fontSize: 24,
+          fontSize: 22,
         }}
       >
         Duolicious
