@@ -26,6 +26,11 @@ R2_ACCESS_KEY_ID     = os.environ['DUO_R2_ACCESS_KEY_ID']
 R2_ACCESS_KEY_SECRET = os.environ['DUO_R2_ACCESS_KEY_SECRET']
 R2_BUCKET_NAME       = os.environ['DUO_R2_BUCKET_NAME']
 
+BOTO_ENDPOINT_URL = os.getenv(
+    'DUO_BOTO_ENDPOINT_URL',
+    f'https://{R2_ACCT_ID}.r2.cloudflarestorage.com'
+)
+
 _api_conninfo = psycopg.conninfo.make_conninfo(
     host=DB_HOST,
     port=DB_PORT,
@@ -43,7 +48,7 @@ async def delete_images_from_object_store(api_conn, uuids: list[str]):
 
     s3_client = boto3.client(
         's3',
-        endpoint_url=f'https://{R2_ACCT_ID}.r2.cloudflarestorage.com',
+        endpoint_url=BOTO_ENDPOINT_URL,
         aws_access_key_id=R2_ACCESS_KEY_ID,
         aws_secret_access_key=R2_ACCESS_KEY_SECRET,
     )
