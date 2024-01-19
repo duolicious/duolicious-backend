@@ -340,7 +340,7 @@ WITH onboardee_country AS (
         unbounded_age_preference
 ), best_distance AS (
     -- Use a binary search to compute the "furthest distance" search preference
-    -- which causes search results to contain as close as possible to 1000 users
+    -- which causes search results to contain as close as possible to 500 users
     WITH RECURSIVE t(dist, cnt, iters) AS (
         VALUES
             (    0.0,     0.0, 0),
@@ -355,7 +355,7 @@ WITH onboardee_country AS (
                     t
                 ORDER BY
                     iters DESC,
-                    ABS(cnt - 1000),
+                    ABS(cnt - 500),
                     dist DESC
                 LIMIT 2
             ), midpoint AS (
