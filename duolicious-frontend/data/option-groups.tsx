@@ -824,7 +824,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Step 4 of 7: Birth Date',
-    description: "When were you born?",
+    description: "When were you born? We use your age to pick your matches",
     input: {
       date: {
         submit: async (input) => (await japi(
