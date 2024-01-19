@@ -319,7 +319,25 @@ WITH onboardee_country AS (
         3 AS intros_notification
     FROM onboardee
     WHERE email = %(email)s
-    RETURNING id, email, unit_id, coordinates
+    RETURNING id, email, unit_id, coordinates, date_of_birth
+), best_age AS (
+    WITH new_person_age AS (
+        SELECT
+            EXTRACT(YEAR FROM AGE(date_of_birth)) AS age
+        FROM
+            new_person
+    ), unbounded_age_preference AS (
+        SELECT
+            age - 5 AS min_age,
+            age + 5 AS max_age
+        FROM
+            new_person_age
+    )
+    SELECT
+        CASE WHEN min_age <= 18 THEN NULL ELSE min_age END AS min_age,
+        CASE WHEN max_age >= 99 THEN NULL ELSE max_age END AS max_age
+    FROM
+        unbounded_age_preference
 ), best_distance AS (
     -- Use a binary search to compute the "furthest distance" search preference
     -- which causes search results to contain as close as possible to 1000 users
@@ -490,8 +508,8 @@ WITH onboardee_country AS (
     FROM new_person, orientation
 ), p3 AS (
     INSERT INTO search_preference_age (person_id, min_age, max_age)
-    SELECT new_person.id, NULL, NULL
-    FROM new_person
+    SELECT new_person.id, min_age, max_age
+    FROM new_person, best_age
 ), p4 AS (
     INSERT INTO search_preference_distance (person_id, distance)
     SELECT
