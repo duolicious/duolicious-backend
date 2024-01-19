@@ -25,7 +25,7 @@ WITH searcher AS MATERIALIZED (
             ),
             1e9
         ) AS distance_preference,
-        EXTRACT(YEAR FROM AGE(date_of_birth)) AS age
+        date_of_birth
     FROM
         person
     WHERE
@@ -135,6 +135,48 @@ WITH searcher AS MATERIALIZED (
                     )
             )
         )
+    AND
+       -- The prospect meets the searcher's age preference
+       EXISTS (
+            SELECT 1
+            FROM search_preference_age AS preference
+            WHERE
+                preference.person_id = %(searcher_person_id)s
+            AND
+                prospect.date_of_birth <= (
+                    CURRENT_DATE -
+                    INTERVAL '1 year' *
+                    COALESCE(preference.min_age, 0)
+                )
+            AND
+                prospect.date_of_birth >= (
+                    CURRENT_DATE -
+                    INTERVAL '1 year' *
+                    COALESCE(preference.max_age, 999)
+                )
+            LIMIT 1
+        )
+    AND
+       -- The searcher meets the prospect's age preference
+       EXISTS (
+            SELECT 1
+            FROM search_preference_age AS preference
+            WHERE
+                preference.person_id = prospect.id
+            AND
+                (SELECT date_of_birth FROM searcher) <= (
+                    CURRENT_DATE -
+                    INTERVAL '1 year' *
+                    COALESCE(preference.min_age, 0)
+                )
+            AND
+                (SELECT date_of_birth FROM searcher) >= (
+                    CURRENT_DATE -
+                    INTERVAL '1 year' *
+                    COALESCE(preference.max_age, 999)
+                )
+            LIMIT 1
+        )
 
     ORDER BY
         -- If this is changed, other queries will need changing too
@@ -170,28 +212,6 @@ WITH searcher AS MATERIALIZED (
             WHERE
                 preference.person_id      = %(searcher_person_id)s AND
                 preference.orientation_id = prospect.orientation_id
-            LIMIT 1
-        )
-    AND
-       -- The prospect meets the searcher's age preference
-       EXISTS (
-            SELECT 1
-            FROM search_preference_age AS preference
-            WHERE
-                preference.person_id = %(searcher_person_id)s AND
-                COALESCE(preference.min_age, 0)   <= prospect.age AND
-                COALESCE(preference.max_age, 999) >= prospect.age
-            LIMIT 1
-        )
-    AND
-       -- The searcher meets the prospect's age preference
-       EXISTS (
-            SELECT 1
-            FROM search_preference_age AS preference
-            WHERE
-                preference.person_id = prospect_person_id AND
-                COALESCE(preference.min_age, 0)   <= (SELECT age FROM searcher) AND
-                COALESCE(preference.max_age, 999) >= (SELECT age FROM searcher)
             LIMIT 1
         )
     AND

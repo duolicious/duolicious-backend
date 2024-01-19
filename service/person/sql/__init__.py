@@ -422,6 +422,46 @@ WITH onboardee_country AS (
                                 )
                         )
                     )
+                AND
+                   -- The prospect meets the new_person's age preference
+                   EXISTS (
+                        SELECT 1
+                        FROM best_age AS preference
+                        WHERE
+                            prospect.date_of_birth <= (
+                                CURRENT_DATE -
+                                INTERVAL '1 year' *
+                                COALESCE(preference.min_age, 0)
+                            )
+                        AND
+                            prospect.date_of_birth >= (
+                                CURRENT_DATE -
+                                INTERVAL '1 year' *
+                                COALESCE(preference.max_age, 999)
+                            )
+                        LIMIT 1
+                    )
+                AND
+                   -- The new_person meets the prospect's age preference
+                   EXISTS (
+                        SELECT 1
+                        FROM search_preference_age AS preference
+                        WHERE
+                            preference.person_id = prospect.id
+                        AND
+                            (SELECT date_of_birth FROM new_person) <= (
+                                CURRENT_DATE -
+                                INTERVAL '1 year' *
+                                COALESCE(preference.min_age, 0)
+                            )
+                        AND
+                            (SELECT date_of_birth FROM new_person) >= (
+                                CURRENT_DATE -
+                                INTERVAL '1 year' *
+                                COALESCE(preference.max_age, 999)
+                            )
+                        LIMIT 1
+                    )
             ), points AS (
                 SELECT * FROM evaluated_midpoint
                 UNION

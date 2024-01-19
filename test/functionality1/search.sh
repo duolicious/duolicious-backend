@@ -177,8 +177,13 @@ test_search_cache () {
 
   # Ensure `user1` is ranked first in search results
   q "
-  update person set personality = array_full(47, 1)
-  where email IN ('searcher@example.com', 'user1@example.com')"
+  update
+    person
+  set
+    personality = array_full(47, 1),
+    count_answers = 1
+  where
+    email IN ('searcher@example.com', 'user1@example.com')"
 
   assert_search_names ''            10 1
   assert_search_names 'user1 user2' 10 0
@@ -524,13 +529,23 @@ test_mutual_club_members_promoted () {
 test_json_format () {
   setup
 
+  # Ensure `user1` is ranked first in search results
+  q "
+  update
+    person
+  set
+    personality = array_full(47, 1),
+    count_answers = 1
+  where
+    email IN ('searcher@example.com', 'user1@example.com')"
+
   # Q_UNCACHED_SEARCH_2 yields the right format
   local response=$(c GET '/search?n=1&o=0')
   local expected=$(jq -r . << EOF
 [
   {
     "age": 26,
-    "match_percentage": 50,
+    "match_percentage": 99,
     "name": "user1",
     "person_messaged_prospect": false,
     "profile_photo_uuid": null,
@@ -566,7 +581,7 @@ EOF
 [
   {
     "age": 26,
-    "match_percentage": 50,
+    "match_percentage": 99,
     "name": "user1",
     "profile_photo_uuid": null,
     "prospect_person_id": ${user1_id}
