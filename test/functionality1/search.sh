@@ -133,6 +133,7 @@ test_range () {
 
 test_basic_age () {
   setup
+  q "update search_preference_age set min_age = NULL, max_age = NULL"
   q "
   update person set date_of_birth = (now() - interval '50 years')::date
   where email = 'user1@example.com'"

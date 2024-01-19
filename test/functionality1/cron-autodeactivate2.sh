@@ -48,9 +48,6 @@ do_test () {
   q "delete from last" duo_chat
   q "delete from inbox" duo_chat
 
-  mkdir -p    ../../test/output/
-  printf '' > ../../test/output/cron-autodeactivate2-email
-
   ../util/create-user.sh will-be-deactivated 0 0
 
   ../util/create-user.sh will-remain-active1 0 0
