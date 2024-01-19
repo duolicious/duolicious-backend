@@ -160,8 +160,8 @@ const WelcomeScreen_ = ({navigation}) => {
           </DefaultText>
         </View>
         <View style={{
-          justifyContent: 'center',
-          flex: 2,
+          justifyContent: 'flex-start',
+          flex: 1,
         }}>
           <DefaultTextInput
             style={{
