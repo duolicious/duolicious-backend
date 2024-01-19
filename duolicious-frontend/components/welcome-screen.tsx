@@ -123,7 +123,7 @@ const WelcomeScreen_ = ({navigation}) => {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 5,
+            gap: 1,
           }}
         >
           <Logo16 size={32} rectSize={0.3} />
