@@ -3,8 +3,8 @@ SESSION_TOKEN=""
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 
-mkdir ../../test/input
-mkdir ../../test/ouput
+mkdir ../../test/input  2>/dev/null
+mkdir ../../test/output 2>/dev/null
 
 printf 1  > ../../test/input/disable-rate-limit
 printf '' > ../../test/output/cron-autodeactivate2-email

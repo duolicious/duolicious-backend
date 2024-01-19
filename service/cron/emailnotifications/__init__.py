@@ -7,6 +7,7 @@ import json
 import os
 import psycopg
 from smtp import aws_smtp
+from pathlib import Path
 
 DRY_RUN = os.environ.get(
     'DUO_CRON_EMAIL_DRY_RUN',
@@ -25,9 +26,11 @@ DB_PASS      = os.environ['DUO_DB_PASS']
 DB_CHAT_NAME = os.environ['DUO_DB_CHAT_NAME']
 DB_API_NAME  = os.environ['DUO_DB_API_NAME']
 
-_emails_file = os.path.join(
-        os.path.dirname(__file__), '..', '..', '..',
-        'test/output/cron-emails')
+_emails_file = (
+    Path(__file__).parent.parent.parent.parent /
+    'test' /
+    'output' /
+    'cron-emails')
 
 _api_conninfo = psycopg.conninfo.make_conninfo(
     host=DB_HOST,
@@ -105,7 +108,9 @@ def send_notification(row: PersonNotification):
 
         email_data_str = json.dumps(send_args, indent=4) + '\n'
 
-        with open(_emails_file, 'a') as f:
+        _emails_file.parent.mkdir(parents=True, exist_ok=True)
+        _emails_file.touch(exist_ok=True)
+        with _emails_file.open('a') as f:
             f.write(email_data_str)
     else:
         aws_smtp.send(**send_args)
