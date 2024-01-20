@@ -1,5 +1,90 @@
-{
-    "to": "user1@duolicious.app",
-    "subject": "You have a new message \ud83d\ude0d",
-    "body": "\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>You have a new message \ud83d\ude0d</title>\n</head>\n<body style=\"margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif;\">\n    <table width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" align=\"center\">\n        <tr>\n            <td align=\"center\">\n                <table style=\"max-width: 600px; width: 100%;\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" align=\"center\">\n                    <tr>\n                        <td bgcolor=\"#70f\" align=\"center\">\n                            <img src=\"https://email-assets.duolicious.app/header-logo.png\" alt=\"Duolicious Logo\" width=\"108\" height=\"50\" />\n                        </td>\n                    </tr>\n                    <tr>\n                        <td bgcolor=\"#f1e5ff\" height=\"20\">&nbsp;</td>\n                    </tr>\n                    <tr>\n                        <td bgcolor=\"#f1e5ff\" align=\"center\" style=\"color: #70f; padding-left: 20px; padding-right: 20px; padding-bottom: 40px;\">\n                            <p style=\"color: #70f; font-size: 24px; font-weight: 900;\">You have a new message in your chats!</p>\n                            <p style=\"color: #70f; font-size: 16px\">Open the app to read it</p>\n                        </td>\n                    </tr>\n                    <tr>\n                      <td bgcolor=\"#f1e5ff\" align=\"center\" style=\"padding-bottom:25px\">\n                        <table border=\"0\" cellspacing=\"0\" cellpadding=\"0\">\n                          <tbody><tr>\n                            <td style=\"border-radius:50px; border:3px solid #70f; font-size: 20px; line-height:26px; color: #70f; text-align:center; min-width:auto!important\">\n                              <a href=\"https://web.duolicious.app/\" style=\"display:block;padding:11px 40px;text-decoration:none;color:#70f\" target=\"_blank\">\n                                <span style=\"text-decoration:none;color:#70f\">\n                                  <strong>\n                                    Open Duolicious\n                                  </strong>\n                                </span>\n                              </a>\n                            </td>\n                          </tr>\n                        </tbody></table>\n                      </td>\n                    </tr>\n                    <tr>\n                        <td bgcolor=\"#f1e5ff\" height=\"20\">&nbsp;</td>\n                    </tr>\n                    <tr>\n                        <td bgcolor=\"#70f\" height=\"50\">&nbsp;</td>\n                    </tr>\n                    <tr>\n                        <td style=\"font-weight: 900; color: #999; font-size: 13px; background-color: #fff; padding: 10px 0; text-align: center;\">\n                            <div>\n                                <p>Getting too many notifications? You can put a cap on how often you get them:</p>\n                                <span>Chats:\n                                    <a href=\"https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Chats&frequency=Immediately\"  style=\"font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;\">Immediately</a> |\n                                    <a href=\"https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Chats&frequency=Daily\"        style=\"font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;\">Daily</a> |\n                                    <a href=\"https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Chats&frequency=Every+3+days\" style=\"font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;\">Every 3 days</a> |\n                                    <a href=\"https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Chats&frequency=Weekly\"       style=\"font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;\">Weekly</a> |\n                                    <a href=\"https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Chats&frequency=Never\"        style=\"font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;\">Never</a>\n                                </span>\n                                <br/>\n                                <br/>\n                                <span>Intros:\n                                    <a href=\"https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Intros&frequency=Immediately\"  style=\"font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;\">Immediately</a> |\n                                    <a href=\"https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Intros&frequency=Daily\"        style=\"font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;\">Daily</a> |\n                                    <a href=\"https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Intros&frequency=Every+3+days\" style=\"font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;\">Every 3 days</a> |\n                                    <a href=\"https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Intros&frequency=Weekly\"       style=\"font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;\">Weekly</a> |\n                                    <a href=\"https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Intros&frequency=Never\"        style=\"font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;\">Never</a>\n                                </span>\n                                <p>\n                                    <a href=\"https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Every&frequency=Never\" style=\"font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;\">Unsubscribe all</a>\n                                </p>\n                            </div>\n                        </td>\n                    </tr>\n                </table>\n            </td>\n        </tr>\n    </table>\n</body>\n</html>\n    "
-}
+To: [
+  "user1@duolicious.app"
+]
+From: [
+  "Duolicious <no-reply@duolicious.app>"
+]
+Subj: [
+  "=?utf-8?q?You_have_a_new_message_=F0=9F=98=8D?="
+]
+Body: <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You have a new message 😍</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif;">
+    <table width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
+        <tr>
+            <td align="center">
+                <table style="max-width: 600px; width: 100%;" cellspacing="0" cellpadding="0" border="0" align="center">
+                    <tr>
+                        <td bgcolor="#70f" align="center">
+                            <img src="https://email-assets.duolicious.app/header-logo.png" alt="Duolicious Logo" width="108" height="50" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#f1e5ff" height="20">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#f1e5ff" align="center" style="color: #70f; padding-left: 20px; padding-right: 20px; padding-bottom: 40px;">
+                            <p style="color: #70f; font-size: 24px; font-weight: 900;">You have a new message in your chats!</p>
+                            <p style="color: #70f; font-size: 16px">Open the app to read it</p>
+                        </td>
+                    </tr>
+                    <tr>
+                      <td bgcolor="#f1e5ff" align="center" style="padding-bottom:25px">
+                        <table border="0" cellspacing="0" cellpadding="0">
+                          <tbody><tr>
+                            <td style="border-radius:50px; border:3px solid #70f; font-size: 20px; line-height:26px; color: #70f; text-align:center; min-width:auto!important">
+                              <a href="https://web.duolicious.app/" style="display:block;padding:11px 40px;text-decoration:none;color:#70f" target="_blank">
+                                <span style="text-decoration:none;color:#70f">
+                                  <strong>
+                                    Open Duolicious
+                                  </strong>
+                                </span>
+                              </a>
+                            </td>
+                          </tr>
+                        </tbody></table>
+                      </td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#f1e5ff" height="20">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#70f" height="50">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 900; color: #999; font-size: 13px; background-color: #fff; padding: 10px 0; text-align: center;">
+                            <div>
+                                <p>Getting too many notifications? You can put a cap on how often you get them:</p>
+                                <span>Chats:
+                                    <a href="https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Chats&frequency=Immediately"  style="font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;">Immediately</a> |
+                                    <a href="https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Chats&frequency=Daily"        style="font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;">Daily</a> |
+                                    <a href="https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Chats&frequency=Every+3+days" style="font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;">Every 3 days</a> |
+                                    <a href="https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Chats&frequency=Weekly"       style="font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;">Weekly</a> |
+                                    <a href="https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Chats&frequency=Never"        style="font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;">Never</a>
+                                </span>
+                                <br/>
+                                <br/>
+                                <span>Intros:
+                                    <a href="https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Intros&frequency=Immediately"  style="font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;">Immediately</a> |
+                                    <a href="https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Intros&frequency=Daily"        style="font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;">Daily</a> |
+                                    <a href="https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Intros&frequency=Every+3+days" style="font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;">Every 3 days</a> |
+                                    <a href="https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Intros&frequency=Weekly"       style="font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;">Weekly</a> |
+                                    <a href="https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Intros&frequency=Never"        style="font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;">Never</a>
+                                </span>
+                                <p>
+                                    <a href="https://api.duolicious.app/update-notifications?email=user1%40duolicious.app&type=Every&frequency=Never" style="font-weight: 400; color: #bbb; padding: 3px; text-decoration: none;">Unsubscribe all</a>
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

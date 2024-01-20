@@ -40,10 +40,10 @@ services:
     environment:
       DUO_ENV: dev
 
-      DUO_SMTP_HOST: ${DUO_SMTP_HOST}
-      DUO_SMTP_PORT: ${DUO_SMTP_PORT}
-      DUO_SMTP_USER: ${DUO_SMTP_USER}
-      DUO_SMTP_PASS: ${DUO_SMTP_PASS}
+      DUO_SMTP_HOST: smtp
+      DUO_SMTP_PORT: 1025
+      DUO_SMTP_USER: unused-in-dev-env
+      DUO_SMTP_PASS: unused-in-dev-env
 
       DUO_REPORT_EMAIL: ${DUO_REPORT_EMAIL}
 
@@ -109,10 +109,10 @@ services:
     volumes:
       - .:/app
     environment:
-      DUO_SMTP_HOST: ${DUO_SMTP_HOST}
-      DUO_SMTP_PORT: ${DUO_SMTP_PORT}
-      DUO_SMTP_USER: ${DUO_SMTP_USER}
-      DUO_SMTP_PASS: ${DUO_SMTP_PASS}
+      DUO_SMTP_HOST: smtp
+      DUO_SMTP_PORT: 1025
+      DUO_SMTP_USER: unused-in-dev-env
+      DUO_SMTP_PASS: unused-in-dev-env
 
       DUO_DB_HOST: postgres
       DUO_DB_PORT: 5432
@@ -128,11 +128,9 @@ services:
 
       DUO_BOTO_ENDPOINT_URL: http://s3mock:9090
 
-      DUO_CRON_EMAIL_DRY_RUN: 'true'
       DUO_CRON_EMAIL_POLL_SECONDS: '1'
 
       DUO_CRON_AUTODEACTIVATE2_DRY_RUN: 'false'
-      DUO_CRON_AUTODEACTIVATE2_DEBUG_EMAIL: 'true'
       DUO_CRON_AUTODEACTIVATE2_POLL_SECONDS: '1'
 
       DUO_CRON_INSERT_LAST_POLL_SECONDS: '1'
@@ -150,6 +148,13 @@ services:
 
     ports:
       - 9090:9090
+
+  smtp:
+    image: mailhog/mailhog
+
+    ports:
+      - "1025:1025"
+      - "8025:8025"
 
 networks:
   default:
