@@ -26,6 +26,7 @@ import { Inbox, Conversation, inboxStats, observeInbox } from '../xmpp/xmpp';
 import { compareArrays } from '../util/util';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { inboxOrder, inboxSection } from '../kv-storage/inbox';
+import { signedInUser } from '../App';
 
 const Stack = createNativeStackNavigator();
 
@@ -47,7 +48,11 @@ const InboxTab = ({navigation}) => {
 };
 
 const InboxTab_ = ({navigation}) => {
-  const maxIntros = 10;
+  const personIdThreshold = 9765;
+
+  const maxIntros = (signedInUser && signedInUser.personId < personIdThreshold)
+    ? 10
+    : 1000;
 
   const [sectionIndex, setSectionIndex] = useState(0);
   const [sortByIndex, setSortByIndex] = useState(0);
