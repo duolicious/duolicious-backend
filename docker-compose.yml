@@ -54,10 +54,12 @@ services:
 
       DUO_CORS_ORIGINS: '*'
 
-      DUO_R2_BUCKET_NAME: ${DUO_R2_BUCKET_NAME}
-      DUO_R2_ACCT_ID: ${DUO_R2_ACCT_ID}
-      DUO_R2_ACCESS_KEY_ID: ${DUO_R2_ACCESS_KEY_ID}
-      DUO_R2_ACCESS_KEY_SECRET: ${DUO_R2_ACCESS_KEY_SECRET}
+      DUO_R2_BUCKET_NAME: s3-mock-bucket
+      DUO_R2_ACCT_ID: unused-in-dev-env
+      DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
+      DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
+
+      DUO_BOTO_ENDPOINT_URL: http://s3mock:9090
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
@@ -119,10 +121,12 @@ services:
       DUO_DB_CHAT_NAME: duo_chat
       DUO_DB_API_NAME: duo_api
 
-      DUO_R2_BUCKET_NAME: ${DUO_R2_BUCKET_NAME}
-      DUO_R2_ACCT_ID: ${DUO_R2_ACCT_ID}
-      DUO_R2_ACCESS_KEY_ID: ${DUO_R2_ACCESS_KEY_ID}
-      DUO_R2_ACCESS_KEY_SECRET: ${DUO_R2_ACCESS_KEY_SECRET}
+      DUO_R2_BUCKET_NAME: s3-mock-bucket
+      DUO_R2_ACCT_ID: unused-in-dev-env
+      DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
+      DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
+
+      DUO_BOTO_ENDPOINT_URL: http://s3mock:9090
 
       DUO_CRON_EMAIL_DRY_RUN: 'true'
       DUO_CRON_EMAIL_POLL_SECONDS: '1'
@@ -135,6 +139,17 @@ services:
 
       DUO_CRON_PHOTO_CLEANER_DRY_RUN: ${DUO_CRON_PHOTO_CLEANER_DRY_RUN:-false}
       DUO_CRON_PHOTO_CLEANER_POLL_SECONDS: '1'
+
+  s3mock:
+    image: adobe/s3mock
+
+    environment:
+      initialBuckets: s3-mock-bucket
+      AWS_ACCESS_KEY_ID: s3-mock-access-key-id
+      AWS_SECRET_ACCESS_KEY: s3-mock-secret-access-key-secret
+
+    ports:
+      - 9090:9090
 
 networks:
   default:
