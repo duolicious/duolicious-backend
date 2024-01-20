@@ -3,12 +3,8 @@ SESSION_TOKEN=""
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 
-mkdir ../../test/input  2>/dev/null
-mkdir ../../test/output 2>/dev/null
-
+mkdir ../../test/input 2>/dev/null
 printf 1  > ../../test/input/disable-rate-limit
-printf '' > ../../test/output/cron-autodeactivate2-email
-printf '' > ../../test/output/cron-emails
 
 trim () {
   local trimmed=$(cat)
@@ -120,4 +116,48 @@ assume_role () {
 
 get_id () {
   q "select id from person where email = '$1'"
+}
+
+delete_emails () {
+  curl -s -X DELETE 'http://localhost:8025/api/v1/messages'
+}
+
+is_inbox_empty () {
+  [[ $(curl -s 'http://localhost:8025/api/v1/messages') == '[]' ]]
+}
+
+get_emails () {
+  (
+    set +x
+
+    local resp=$(curl -s 'http://localhost:8025/api/v1/messages')
+
+    local to=$(  printf "%s" "$resp" | jq -r '.[].Content.Headers.To')
+    local from=$(printf "%s" "$resp" | jq -r '.[].Content.Headers.From')
+    local subj=$(printf "%s" "$resp" | jq -r '.[].Content.Headers.Subject')
+    local maybe_encoded_body=$(
+      printf "%s" "$resp" \
+        | jq -r '.[].Content.Body' \
+        | grep -v -- '--===============' \
+        | tr -d '\r' \
+        | tail -n +4)
+
+    if printf "%s" "$maybe_encoded_body" | base64 --decode >/dev/null 2>&1
+    then
+      local body=$(printf "%s" "$maybe_encoded_body" | base64 --decode)
+    else
+      local body=${maybe_encoded_body}
+    fi
+
+    local body=$(
+      echo "$body" \
+      | tr -d '\r' \
+      | grep -v '^[ \t]*$'
+    )
+
+    printf "%s\n" "To: $to"
+    printf "%s\n" "From: $from"
+    printf "%s\n" "Subj: $subj"
+    printf "%s\n" "Body: $body"
+  )
 }
