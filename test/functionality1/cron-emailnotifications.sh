@@ -44,8 +44,7 @@ setup () {
   q "delete from last" duo_chat
   q "delete from duo_last_notification" duo_chat
 
-  mkdir -p    ../../test/output/
-  printf '' > ../../test/output/cron-emails
+  delete_emails
 
   ../util/create-user.sh user1 0 0
   ../util/create-user.sh user2 0 0
@@ -109,7 +108,7 @@ test_happy_path_intros () {
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 1 ]]
 
   diff \
-    ../../test/output/cron-emails \
+    <(get_emails) \
     ../../test/fixtures/cron-emails-happy-path-intros
 }
 
@@ -132,7 +131,7 @@ test_happy_path_chats () {
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 1 ]]
 
   diff \
-    ../../test/output/cron-emails \
+    <(get_emails) \
     ../../test/fixtures/cron-emails-happy-path-chats
 }
 
@@ -181,7 +180,7 @@ test_happy_path_chat_not_deferred_by_intro () {
   [[ "$rows" = 1 ]]
 
   diff \
-    ../../test/output/cron-emails \
+    <(get_emails) \
     ../../test/fixtures/cron-emails-happy-path-chat-not-deffered-by-intro
 }
 
@@ -191,7 +190,7 @@ test_sad_sent_9_minutes_ago () {
   local time_interval=$(db_now as-microseconds '- 9 minutes')
 
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
-  [[ ! -s ../../test/output/cron-emails ]]
+  is_inbox_empty
 
   q "
   insert into inbox
@@ -204,7 +203,7 @@ test_sad_sent_9_minutes_ago () {
   sleep 2
 
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
-  [[ ! -s ../../test/output/cron-emails ]]
+  is_inbox_empty
 }
 
 test_sad_sent_11_days_ago () {
@@ -213,7 +212,7 @@ test_sad_sent_11_days_ago () {
   local time_interval=$(db_now as-microseconds '- 11 days')
 
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
-  [[ ! -s ../../test/output/cron-emails ]]
+  is_inbox_empty
 
   q "
   insert into inbox
@@ -226,7 +225,7 @@ test_sad_sent_11_days_ago () {
   sleep 2
 
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
-  [[ ! -s ../../test/output/cron-emails ]]
+  is_inbox_empty
 }
 
 test_sad_only_read_messages () {
@@ -235,7 +234,7 @@ test_sad_only_read_messages () {
   local time_interval=$(db_now as-microseconds '- 11 minutes')
 
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
-  [[ ! -s ../../test/output/cron-emails ]]
+  is_inbox_empty
 
   q "
   insert into inbox
@@ -248,7 +247,7 @@ test_sad_only_read_messages () {
   sleep 2
 
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
-  [[ ! -s ../../test/output/cron-emails ]]
+  is_inbox_empty
 }
 
 test_sad_still_online_at_poll_time () {
@@ -283,7 +282,7 @@ test_sad_still_online_at_poll_time () {
 
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
 
-  [[ ! -s ../../test/output/cron-emails ]]
+  is_inbox_empty
 }
 
 test_sad_still_online_after_message_time () {
@@ -318,7 +317,7 @@ test_sad_still_online_after_message_time () {
 
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
 
-  [[ ! -s ../../test/output/cron-emails ]]
+  is_inbox_empty
 }
 
 test_sad_already_notified_for_particular_message () {
@@ -330,7 +329,7 @@ test_sad_already_notified_for_particular_message () {
   local t4=$(db_now as-microseconds '- 13 minutes') # 1st message to user3
 
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
-  [[ ! -s ../../test/output/cron-emails ]]
+  is_inbox_empty
 
   q "
   insert into duo_last_notification
@@ -353,7 +352,7 @@ test_sad_already_notified_for_particular_message () {
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 2 ]]
 
   diff \
-    ../../test/output/cron-emails \
+    <(get_emails) \
     ../../test/fixtures/cron-emails-sad-already-notified-for-particular-message
 }
 
@@ -400,7 +399,7 @@ test_sad_already_notified_for_other_intro_in_drift_period () {
   )
   [[ "$rows" = 1 ]]
 
-  [[ ! -s ../../test/output/cron-emails ]]
+  is_inbox_empty
 }
 
 # The user has already received an intro in the past day and a chat in the past
@@ -453,7 +452,7 @@ test_sad_intro_within_day_and_chat_within_past_10_minutes () {
   )
   [[ "$rows" = 1 ]]
 
-  [[ ! -s ../../test/output/cron-emails ]]
+  is_inbox_empty
 }
 
 test_sad_not_activated () {

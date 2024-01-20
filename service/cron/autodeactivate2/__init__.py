@@ -14,11 +14,6 @@ DRY_RUN = os.environ.get(
     'true',
 ).lower() not in ['false', 'f', '0', 'no']
 
-DEBUG_EMAIL = os.environ.get(
-    'DUO_CRON_AUTODEACTIVATE2_DEBUG_EMAIL',
-    'true',
-).lower() not in ['false', 'f', '0', 'no']
-
 AUTODEACTIVATE2_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_AUTODEACTIVATE2_POLL_SECONDS',
     10,
@@ -30,12 +25,6 @@ DB_USER      = os.environ['DUO_DB_USER']
 DB_PASS      = os.environ['DUO_DB_PASS']
 DB_CHAT_NAME = os.environ['DUO_DB_CHAT_NAME']
 DB_API_NAME  = os.environ['DUO_DB_API_NAME']
-
-_emails_file = (
-    Path(__file__).parent.parent.parent.parent /
-    'test' /
-    'output' /
-    'cron-autodeactivate2-email')
 
 _api_conninfo = psycopg.conninfo.make_conninfo(
     host=DB_HOST,
@@ -65,19 +54,8 @@ def maybe_send_email(email: str):
         body=emailtemplate()
     )
 
-    if DEBUG_EMAIL:
-        print(
-            'autodeactivate2: DUO_CRON_AUTODEACTIVATE2_DEBUG_EMAIL env var '
-            'prevented email from being sent'
-        )
-
-        _emails_file.parent.mkdir(parents=True, exist_ok=True)
-        _emails_file.touch(exist_ok=True)
-        with _emails_file.open('a') as f:
-            f.write(json.dumps(send_args, indent=4) + '\n')
-    else:
-        print('autodeactivate2: sending deactivation email to', email)
-        aws_smtp.send(**send_args)
+    print('autodeactivate2: sending deactivation email to', email)
+    aws_smtp.send(**send_args)
 
 async def autodeactivate2_once():
     api_conn = await psycopg.AsyncConnection.connect(

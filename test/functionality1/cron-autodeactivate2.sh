@@ -48,6 +48,8 @@ do_test () {
   q "delete from last" duo_chat
   q "delete from inbox" duo_chat
 
+  delete_emails
+
   ../util/create-user.sh will-be-deactivated 0 0
 
   ../util/create-user.sh will-remain-active1 0 0
@@ -150,7 +152,7 @@ do_test () {
   [[ "$(q "select count(*) from duo_session ")" = "4" ]]
 
   diff \
-    ../../test/output/cron-autodeactivate2-email \
+    <(get_emails) \
     ../../test/fixtures/cron-autodeactivate2-email
 }
 
