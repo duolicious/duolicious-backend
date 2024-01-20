@@ -10,9 +10,9 @@ set -ex
 assert_photos_downloadable_by_uuid () {
   local uuid=$1
 
-  c GET "https://test-user-images.duolicious.app/original-${uuid}.jpg" > /dev/null || return 1
-  c GET "https://test-user-images.duolicious.app/900-${uuid}.jpg" > /dev/null || return 1
-  c GET "https://test-user-images.duolicious.app/450-${uuid}.jpg" > /dev/null || return 1
+  c GET "http://localhost:9090/s3-mock-bucket/original-${uuid}.jpg" > /dev/null || return 1
+  c GET "http://localhost:9090/s3-mock-bucket/900-${uuid}.jpg" > /dev/null || return 1
+  c GET "http://localhost:9090/s3-mock-bucket/450-${uuid}.jpg" > /dev/null || return 1
 }
 
 wait_for_deletion_by_uuid () {

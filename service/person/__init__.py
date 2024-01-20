@@ -26,11 +26,16 @@ R2_ACCESS_KEY_ID = os.environ['DUO_R2_ACCESS_KEY_ID']
 R2_ACCESS_KEY_SECRET = os.environ['DUO_R2_ACCESS_KEY_SECRET']
 R2_BUCKET_NAME = os.environ['DUO_R2_BUCKET_NAME']
 
+BOTO_ENDPOINT_URL = os.getenv(
+    'DUO_BOTO_ENDPOINT_URL',
+    f'https://{R2_ACCT_ID}.r2.cloudflarestorage.com'
+)
+
 s3 = boto3.resource(
     's3',
-    endpoint_url = f'https://{R2_ACCT_ID}.r2.cloudflarestorage.com',
-    aws_access_key_id = R2_ACCESS_KEY_ID,
-    aws_secret_access_key = R2_ACCESS_KEY_SECRET,
+    endpoint_url=BOTO_ENDPOINT_URL,
+    aws_access_key_id=R2_ACCESS_KEY_ID,
+    aws_secret_access_key=R2_ACCESS_KEY_SECRET,
 )
 
 bucket = s3.Bucket(R2_BUCKET_NAME)
