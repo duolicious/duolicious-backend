@@ -439,16 +439,21 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
         # from the object store easier, which is important because storing
         # objects is expensive.
         q_set_onboardee_field = """
-            INSERT INTO onboardee_photo (
-                email,
-                position,
-                uuid
-            ) VALUES (
-                %(email)s,
-                %(position)s,
-                %(uuid)s
-            ) ON CONFLICT (email, position) DO UPDATE SET
-                uuid = EXCLUDED.uuid
+            WITH q1 AS (
+                INSERT INTO onboardee_photo (
+                    email,
+                    position,
+                    uuid
+                ) VALUES (
+                    %(email)s,
+                    %(position)s,
+                    %(uuid)s
+                ) ON CONFLICT (email, position) DO UPDATE SET
+                    uuid = EXCLUDED.uuid
+            ), q2 AS (
+                INSERT INTO undeleted_photo (uuid) VALUES (%(uuid)s)
+            )
+            SELECT 1
             """
 
         with api_tx() as tx:
@@ -482,16 +487,21 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
         # from the object store easier, which is important because storing
         # objects is expensive.
         q_set_onboardee_field = """
-            INSERT INTO onboardee_photo (
-                email,
-                position,
-                uuid
-            ) VALUES (
-                %(email)s,
-                %(position)s,
-                %(uuid)s
-            ) ON CONFLICT (email, position) DO UPDATE SET
-                uuid = EXCLUDED.uuid
+            WITH q1 AS (
+                INSERT INTO onboardee_photo (
+                    email,
+                    position,
+                    uuid
+                ) VALUES (
+                    %(email)s,
+                    %(position)s,
+                    %(uuid)s
+                ) ON CONFLICT (email, position) DO UPDATE SET
+                    uuid = EXCLUDED.uuid
+            ), q2 AS (
+                INSERT INTO undeleted_photo (uuid) VALUES (%(uuid)s)
+            )
+            SELECT 1
             """
 
         with api_tx() as tx:
@@ -726,16 +736,21 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             ]
 
             q = """
-            INSERT INTO photo (
-                person_id,
-                position,
-                uuid
-            ) VALUES (
-                %(person_id)s,
-                %(position)s,
-                %(uuid)s
-            ) ON CONFLICT (person_id, position) DO UPDATE SET
-                uuid = EXCLUDED.uuid
+            WITH q1 AS (
+                INSERT INTO photo (
+                    person_id,
+                    position,
+                    uuid
+                ) VALUES (
+                    %(person_id)s,
+                    %(position)s,
+                    %(uuid)s
+                ) ON CONFLICT (person_id, position) DO UPDATE SET
+                    uuid = EXCLUDED.uuid
+            ), q2 AS (
+                INSERT INTO undeleted_photo (uuid) VALUES (%(uuid)s)
+            )
+            SELECT 1
             """
 
             tx.executemany(q, params)
@@ -764,16 +779,21 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             )
 
             q = """
-            INSERT INTO photo (
-                person_id,
-                position,
-                uuid
-            ) VALUES (
-                %(person_id)s,
-                %(position)s,
-                %(uuid)s
-            ) ON CONFLICT (person_id, position) DO UPDATE SET
-                uuid = EXCLUDED.uuid
+            WITH q1 AS (
+                INSERT INTO photo (
+                    person_id,
+                    position,
+                    uuid
+                ) VALUES (
+                    %(person_id)s,
+                    %(position)s,
+                    %(uuid)s
+                ) ON CONFLICT (person_id, position) DO UPDATE SET
+                    uuid = EXCLUDED.uuid
+            ), q2 AS (
+                INSERT INTO undeleted_photo (uuid) VALUES (%(uuid)s)
+            )
+            SELECT 1
             """
 
             with api_tx() as tx:
