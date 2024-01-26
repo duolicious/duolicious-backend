@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from werkzeug.middleware.proxy_fix import ProxyFix
 import ipaddress
+import traceback
 
 disable_rate_limit_file = (
     Path(__file__).parent.parent.parent /
@@ -102,8 +103,8 @@ def validate(RequestType):
                     req = RequestType(**{**j, **f})
                 else:
                     req = RequestType(j, **f)
-            except Exception as e:
-                print(e)
+            except:
+                print(traceback.format_exc())
                 return f'Bad Request', 400
             return func(req, *args, **kwargs)
         go1.__name__ = func.__name__

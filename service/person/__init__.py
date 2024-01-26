@@ -16,6 +16,7 @@ import threading
 import re
 from smtp import aws_smtp
 from flask import request
+from dataclasses import dataclass
 
 DUO_ENV = os.environ['DUO_ENV']
 
@@ -42,6 +43,11 @@ bucket = s3.Bucket(R2_BUCKET_NAME)
 
 def init_db():
     pass
+
+@dataclass
+class CropSize:
+    top: int
+    left: int
 
 def _send_report(
     subject_person_id: int,
@@ -73,7 +79,8 @@ def _send_report(
 
 def process_image(
     image: Image.Image,
-    output_size: Optional[int] = None
+    output_size: Optional[int] = None,
+    crop_size: Optional[CropSize] = None,
 ) -> io.BytesIO:
     output_bytes = io.BytesIO()
 
@@ -120,13 +127,28 @@ def process_image(
         min_dim = min(width, height)
 
         # Compute the area to crop
-        left = (width - min_dim) // 2
-        top = (height - min_dim) // 2
-        right = (width + min_dim) // 2
-        bottom = (height + min_dim) // 2
+        if crop_size is None:
+            left = (width - min_dim) // 2
+            top = (height - min_dim) // 2
+            right = (width + min_dim) // 2
+            bottom = (height + min_dim) // 2
+        else:
+            # Ensure the top left point is within range
+            crop_size.top  = max(0, crop_size.top)
+            crop_size.left = max(0, crop_size.left)
+
+            crop_size.top  = min(height - min_dim, crop_size.top)
+            crop_size.left = min(width  - min_dim, crop_size.left)
+
+            # Compute the area to crop
+            left = crop_size.left
+            top = crop_size.top
+            right = crop_size.left + min_dim
+            bottom = crop_size.top + min_dim
 
         # Crop the image to be square
-        image = image.crop((left, top, right, bottom))
+        crop_box = (left, top, right, bottom)
+        image = image.crop(crop_box)
 
     # Scale the image to the desired size
     if output_size is not None and output_size != min_dim:
@@ -150,6 +172,7 @@ def process_image(
 def put_object(key: str, io_bytes: io.BytesIO):
     bucket.put_object(Key=key, Body=io_bytes)
 
+# TODO: Delete
 def put_images_in_object_store(uuid_img: Iterable[Tuple[str, io.BytesIO]]):
     key_img = [
         (key, converted_img)
@@ -158,6 +181,28 @@ def put_images_in_object_store(uuid_img: Iterable[Tuple[str, io.BytesIO]]):
             (f'original-{uuid}.jpg', process_image(img, output_size=None)),
             (f'900-{uuid}.jpg', process_image(img, output_size=900)),
             (f'450-{uuid}.jpg', process_image(img, output_size=450)),
+        ]
+    ]
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {
+            executor.submit(put_object, key, img)
+            for key, img in key_img}
+
+        for future in as_completed(futures):
+            future.result()
+
+def put_image_in_object_store(
+    uuid: str,
+    img: Image.Image,
+    crop_size: CropSize,
+):
+    key_img = [
+        (key, converted_img)
+        for key, converted_img in [
+            (f'original-{uuid}.jpg', process_image(img, output_size=None)),
+            (f'900-{uuid}.jpg', process_image(img, output_size=900, crop_size=crop_size)),
+            (f'450-{uuid}.jpg', process_image(img, output_size=450, crop_size=crop_size)),
         ]
     ]
 
@@ -374,6 +419,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
 
         with api_tx() as tx:
             tx.execute(q_set_onboardee_field, params)
+    # TODO: Delete this branch
     elif field_name == 'files':
         pos_uuid_img = [
             (pos, secrets.token_hex(32), img)
@@ -411,6 +457,48 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
         try:
             put_images_in_object_store(
                 (uuid, img) for _, uuid, img in pos_uuid_img)
+        except Exception as e:
+            print('Upload failed with exception:', e)
+            return '', 500
+    elif field_name == 'base64_file':
+        position = field_value['position']
+        image = field_value['image']
+        top = field_value['top']
+        left = field_value['left']
+
+        uuid = secrets.token_hex(32)
+
+        params = dict(
+            email=s.email,
+            position=position,
+            uuid=uuid,
+        )
+
+        # Create new onboardee photos. Because we:
+        #   1. Create DB entries; then
+        #   2. Create photos,
+        # the DB might refer to DB entries that don't exist. The front end needs
+        # to handle that possibility. Doing it like this makes later deletion
+        # from the object store easier, which is important because storing
+        # objects is expensive.
+        q_set_onboardee_field = """
+            INSERT INTO onboardee_photo (
+                email,
+                position,
+                uuid
+            ) VALUES (
+                %(email)s,
+                %(position)s,
+                %(uuid)s
+            ) ON CONFLICT (email, position) DO UPDATE SET
+                uuid = EXCLUDED.uuid
+            """
+
+        with api_tx() as tx:
+            tx.execute(q_set_onboardee_field, params)
+
+        try:
+            put_image_in_object_store(uuid, image, CropSize(top=top, left=left))
         except Exception as e:
             print('Upload failed with exception:', e)
             return '', 500
@@ -625,6 +713,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
     )
 
     with api_tx('READ COMMITTED') as tx:
+        # TODO: Delete this branch
         if field_name == 'files':
             pos_uuid_img = [
                 (pos, secrets.token_hex(32), img)
@@ -654,6 +743,45 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             try:
                 put_images_in_object_store(
                     (uuid, img) for _, uuid, img in pos_uuid_img)
+            except Exception as e:
+                print('Upload failed with exception:', e)
+                return '', 500
+
+            return
+        elif field_name == 'base64_file':
+            position = field_value['position']
+            image = field_value['image']
+            top = field_value['top']
+            left = field_value['left']
+
+            uuid = secrets.token_hex(32)
+
+            params = dict(
+                person_id=s.person_id,
+                email=s.email,
+                position=position,
+                uuid=uuid,
+            )
+
+            q = """
+            INSERT INTO photo (
+                person_id,
+                position,
+                uuid
+            ) VALUES (
+                %(person_id)s,
+                %(position)s,
+                %(uuid)s
+            ) ON CONFLICT (person_id, position) DO UPDATE SET
+                uuid = EXCLUDED.uuid
+            """
+
+            with api_tx() as tx:
+                tx.execute(q, params)
+
+            try:
+                put_image_in_object_store(
+                    uuid, image, CropSize(top=top, left=left))
             except Exception as e:
                 print('Upload failed with exception:', e)
                 return '', 500
