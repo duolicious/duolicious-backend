@@ -17,6 +17,8 @@ img1=$(rand_image)
 img2=$(rand_image)
 img3=$(rand_image)
 
+base64_img3=$(base64 -w 0 "${img1}")
+
 trap "rm $img1 $img2 $img3" EXIT
 
 response=$(jc POST /request-otp -d '{ "email": "MAIL@example.com" }')
@@ -53,17 +55,21 @@ c PATCH /onboardee-info \
   -F "1.jpg=@${img1}" \
   -F "2.jpg=@${img2}"
 
-c PATCH /onboardee-info \
-  --header "Content-Type: multipart/form-data" \
-  -F "3.jpg=@${img3}"
+jc PATCH /onboardee-info \
+  -d "{
+          \"base64_file\": {
+              \"position\": 3,
+              \"base64\": \"${base64_img3}\",
+              \"top\": 0,
+              \"left\": 0
+          }
+      }"
 
 c PATCH /onboardee-info \
   --header "Content-Type: multipart/form-data" \
   -F "1.jpg=@${img1}"
 
-c GET "http://localhost:9090/s3-mock-bucket/original-$(q "select uuid from onboardee_photo limit 1").jpg" > /dev/null
-c GET "http://localhost:9090/s3-mock-bucket/900-$(q "select uuid from onboardee_photo limit 1").jpg" > /dev/null
-c GET "http://localhost:9090/s3-mock-bucket/450-$(q "select uuid from onboardee_photo limit 1").jpg" > /dev/null
+wait_for_creation_by_uuid "$(q "select uuid from onboardee_photo limit 1")"
 
 [[ "$(q "select COUNT(*) from onboardee_photo")" -eq 3 ]]
 

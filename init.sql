@@ -1087,31 +1087,6 @@ RETURNS TABLE(trait_id SMALLINT, ratio FLOAT4) AS $$
 $$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
 
 --------------------------------------------------------------------------------
--- TRIGGER - undeleted_photo
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION trigger_fn_insert_into_undeleted_photo()
-RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO undeleted_photo (uuid)
-    VALUES (NEW.uuid)
-    ON CONFLICT DO NOTHING;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE TRIGGER trigger_fn_insert_into_undeleted_photo_on_insert_photo
-AFTER INSERT OR UPDATE ON photo
-FOR EACH ROW
-EXECUTE FUNCTION trigger_fn_insert_into_undeleted_photo();
-
-CREATE OR REPLACE TRIGGER trigger_fn_insert_into_undeleted_photo_on_insert_onboardee_photo
-AFTER INSERT OR UPDATE ON onboardee_photo
-FOR EACH ROW
-EXECUTE FUNCTION trigger_fn_insert_into_undeleted_photo();
-
---------------------------------------------------------------------------------
 -- TRIGGER - refresh_has_profile_picture_id
 --------------------------------------------------------------------------------
 
@@ -1159,6 +1134,11 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
+
+-- TODO: Delete
+DROP TRIGGER IF EXISTS trigger_fn_insert_into_undeleted_photo_on_insert_photo ON photo;
+DROP TRIGGER IF EXISTS trigger_fn_insert_into_undeleted_photo_on_insert_onboardee_photo ON onboardee_photo;
+DROP FUNCTION IF EXISTS trigger_fn_insert_into_undeleted_photo();
 
 --------------------------------------------------------------------------------
 
