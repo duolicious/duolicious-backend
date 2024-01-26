@@ -18,60 +18,6 @@ import base64
 CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42
 
-def file_names(files):
-    if files is None:
-        return files
-
-    for k in files.keys():
-        if len(files.getlist(k)) > 2:
-            raise ValueError('Files must have distinct names')
-
-    filename_to_bytes: Dict[str, io.BytesIO] = {
-        k: io.BytesIO(files[k].read()) for k in files
-    }
-
-    for k, v in filename_to_bytes.items():
-        if v.getbuffer().nbytes > constants.MAX_IMAGE_SIZE:
-            raise ValueError(
-                f'{k} exceeds {constants.MAX_IMAGE_SIZE} bytes')
-
-    try:
-        filename_to_image: Dict[str, Image.Image] = {
-            k: Image.open(v) for k, v in filename_to_bytes.items()
-        }
-    except:
-        raise ValueError(f'{k} is not a valid image')
-
-    for k, v in filename_to_image.items():
-        width, height = v.size
-
-        larger_dim = max(width, height)
-        smaller_dim = min(width, height)
-
-        if larger_dim > constants.MAX_IMAGE_DIM:
-            raise ValueError(
-                    f'{k} is greater than '
-                    f'{constants.MAX_IMAGE_DIM}x{constants.MAX_IMAGE_DIM} '
-                    'pixels')
-
-        if smaller_dim < constants.MIN_IMAGE_DIM:
-            raise ValueError(
-                    f'{k} is less than '
-                    f'{constants.MIN_IMAGE_DIM}x{constants.MIN_IMAGE_DIM} '
-                    'pixels')
-
-    for v in filename_to_image.values():
-        try:
-            v.load()
-        except:
-            raise ValueError(f'{k} is not a valid image')
-
-    order_to_image: Dict[int, Image.Image] = {
-        int(k[0]): v for k, v in filename_to_image.items()
-    }
-
-    return order_to_image
-
 
 class Base64File(BaseModel):
     position: conint(ge=1, le=7)
@@ -168,7 +114,6 @@ class PatchOnboardeeInfo(BaseModel):
     location: Optional[constr(min_length=1)] = None
     gender: Optional[constr(min_length=1)] = None
     other_peoples_genders: Optional[conlist(constr(min_length=1), min_length=1)] = None
-    files: Optional[Dict[conint(ge=1, le=7), Image.Image]] = None
     base64_file: Optional[Base64File] = None
     about: Optional[constr(min_length=0, max_length=10000)] = None
 
@@ -182,10 +127,6 @@ class PatchOnboardeeInfo(BaseModel):
         if age < 18:
             raise ValueError(f'Age must be 18 or up.')
         return date_of_birth
-
-    @field_validator('files', mode='before')
-    def file_names(cls, files):
-        return file_names(files)
 
     @field_validator('about', mode='before')
     def strip_about(cls, about):
@@ -214,9 +155,6 @@ class DeleteProfileInfo(BaseModel):
     files: List[conint(ge=1, le=7)]
 
 class PatchProfileInfo(BaseModel):
-    # TODO: Delete and update API version
-    files: Optional[Dict[conint(ge=1, le=7), Image.Image]] = None
-
     base64_file: Optional[Base64File] = None
     about: Optional[constr(min_length=0, max_length=10000)] = None
     gender: Optional[str] = None
@@ -242,10 +180,6 @@ class PatchProfileInfo(BaseModel):
     show_my_location: Optional[str] = None
     show_my_age: Optional[str] = None
     hide_me_from_strangers: Optional[str] = None
-
-    @field_validator('files', mode='before')
-    def file_names(cls, files):
-        return file_names(files)
 
     @model_validator(mode='after')
     def check_exactly_one(self):

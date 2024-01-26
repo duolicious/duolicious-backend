@@ -1135,11 +1135,6 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
--- TODO: Delete
-DROP TRIGGER IF EXISTS trigger_fn_insert_into_undeleted_photo_on_insert_photo ON photo;
-DROP TRIGGER IF EXISTS trigger_fn_insert_into_undeleted_photo_on_insert_onboardee_photo ON onboardee_photo;
-DROP FUNCTION IF EXISTS trigger_fn_insert_into_undeleted_photo();
-
 --------------------------------------------------------------------------------
 
 -- TODO: Periodically delete expired tokens

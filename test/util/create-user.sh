@@ -48,11 +48,17 @@ EOF
 add_photos () {
   for i in $(seq 1 $1)
   do
-    local filename=$(rand_image)
-    c PATCH /onboardee-info \
-      --header "Content-Type: multipart/form-data" \
-      -F "${i}.jpg=@$filename"
-    rm "$filename"
+    local img=$(rand_image)
+
+    jc PATCH /onboardee-info \
+      -d "{
+              \"base64_file\": {
+                  \"position\": ${i},
+                  \"base64\": \"${img}\",
+                  \"top\": 0,
+                  \"left\": 0
+              }
+          }"
   done
 }
 

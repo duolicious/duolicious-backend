@@ -17,10 +17,6 @@ q "update question set count_yes = 0, count_no = 0"
 
 img1=$(rand_image)
 
-base64_img1=$(base64 -w 0 "${img1}")
-
-trap "rm $img1" EXIT
-
 ../util/create-user.sh user1 0 0
 ../util/create-user.sh user2 0 0
 
@@ -123,7 +119,7 @@ test_photo () {
     -d "{
             \"base64_file\": {
                 \"position\": 1,
-                \"base64\": \"${base64_img1}\",
+                \"base64\": \"${img1}\",
                 \"top\": 0,
                 \"left\": 0
             }
