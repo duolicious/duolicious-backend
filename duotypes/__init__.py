@@ -214,7 +214,7 @@ class DeleteProfileInfo(BaseModel):
     files: List[conint(ge=1, le=7)]
 
 class PatchProfileInfo(BaseModel):
-    # TODO: Delete
+    # TODO: Delete and update API version
     files: Optional[Dict[conint(ge=1, le=7), Image.Image]] = None
 
     base64_file: Optional[Base64File] = None
