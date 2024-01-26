@@ -66,13 +66,13 @@ c () {
 jc () { c "$@" --header "Content-Type: application/json"; }
 
 q () {
-  PGPASSWORD="$DUO_DB_PASS" psql \
-    -U "$DUO_DB_USER" \
+  PGPASSWORD="${DUO_DB_PASS:-password}" psql \
+    -U "${DUO_DB_USER:-postgres}" \
     -d "${2:-duo_api}" \
     -c "$1;" \
     -t \
-    -h "$DUO_DB_HOST" \
-    -p "$DUO_DB_PORT" \
+    -h "${DUO_DB_HOST:-localhost}" \
+    -p "${DUO_DB_PORT:-5432}" \
     | grep -v '^$' \
     | trim
 }
@@ -160,4 +160,56 @@ get_emails () {
     printf "%s\n" "Subj: $subj"
     printf "%s\n" "Body: $body"
   )
+}
+
+assert_photos_downloadable_by_uuid () {
+  local uuid=$1
+
+  c GET "http://localhost:9090/s3-mock-bucket/original-${uuid}.jpg" > /dev/null || return 1
+  c GET "http://localhost:9090/s3-mock-bucket/900-${uuid}.jpg" > /dev/null || return 1
+  c GET "http://localhost:9090/s3-mock-bucket/450-${uuid}.jpg" > /dev/null || return 1
+}
+
+wait_for_deletion_by_uuid () {
+  local uuid=$1
+
+  local url=$1
+
+  local elapsed=0
+
+  while (( elapsed < 5 ))
+  do
+    if ! assert_photos_downloadable_by_uuid "${uuid}"
+    then
+      return 0
+    fi
+
+    sleep 1
+
+    (( elapsed += 1 )) || true
+  done
+
+  return 1
+}
+
+wait_for_creation_by_uuid () {
+  local uuid=$1
+
+  local url=$1
+
+  local elapsed=0
+
+  while (( elapsed < 5 ))
+  do
+    if assert_photos_downloadable_by_uuid "${uuid}"
+    then
+      return 0
+    fi
+
+    sleep 1
+
+    (( elapsed += 1 )) || true
+  done
+
+  return 1
 }

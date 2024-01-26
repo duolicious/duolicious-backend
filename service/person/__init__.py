@@ -16,6 +16,7 @@ import threading
 import re
 from smtp import aws_smtp
 from flask import request
+from dataclasses import dataclass
 
 DUO_ENV = os.environ['DUO_ENV']
 
@@ -42,6 +43,11 @@ bucket = s3.Bucket(R2_BUCKET_NAME)
 
 def init_db():
     pass
+
+@dataclass
+class CropSize:
+    top: int
+    left: int
 
 def _send_report(
     subject_person_id: int,
@@ -73,7 +79,8 @@ def _send_report(
 
 def process_image(
     image: Image.Image,
-    output_size: Optional[int] = None
+    output_size: Optional[int] = None,
+    crop_size: Optional[CropSize] = None,
 ) -> io.BytesIO:
     output_bytes = io.BytesIO()
 
@@ -120,13 +127,28 @@ def process_image(
         min_dim = min(width, height)
 
         # Compute the area to crop
-        left = (width - min_dim) // 2
-        top = (height - min_dim) // 2
-        right = (width + min_dim) // 2
-        bottom = (height + min_dim) // 2
+        if crop_size is None:
+            left = (width - min_dim) // 2
+            top = (height - min_dim) // 2
+            right = (width + min_dim) // 2
+            bottom = (height + min_dim) // 2
+        else:
+            # Ensure the top left point is within range
+            crop_size.top  = max(0, crop_size.top)
+            crop_size.left = max(0, crop_size.left)
+
+            crop_size.top  = min(height - min_dim, crop_size.top)
+            crop_size.left = min(width  - min_dim, crop_size.left)
+
+            # Compute the area to crop
+            left = crop_size.left
+            top = crop_size.top
+            right = crop_size.left + min_dim
+            bottom = crop_size.top + min_dim
 
         # Crop the image to be square
-        image = image.crop((left, top, right, bottom))
+        crop_box = (left, top, right, bottom)
+        image = image.crop(crop_box)
 
     # Scale the image to the desired size
     if output_size is not None and output_size != min_dim:
@@ -150,6 +172,7 @@ def process_image(
 def put_object(key: str, io_bytes: io.BytesIO):
     bucket.put_object(Key=key, Body=io_bytes)
 
+# TODO: Delete
 def put_images_in_object_store(uuid_img: Iterable[Tuple[str, io.BytesIO]]):
     key_img = [
         (key, converted_img)
@@ -158,6 +181,28 @@ def put_images_in_object_store(uuid_img: Iterable[Tuple[str, io.BytesIO]]):
             (f'original-{uuid}.jpg', process_image(img, output_size=None)),
             (f'900-{uuid}.jpg', process_image(img, output_size=900)),
             (f'450-{uuid}.jpg', process_image(img, output_size=450)),
+        ]
+    ]
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {
+            executor.submit(put_object, key, img)
+            for key, img in key_img}
+
+        for future in as_completed(futures):
+            future.result()
+
+def put_image_in_object_store(
+    uuid: str,
+    img: Image.Image,
+    crop_size: CropSize,
+):
+    key_img = [
+        (key, converted_img)
+        for key, converted_img in [
+            (f'original-{uuid}.jpg', process_image(img, output_size=None)),
+            (f'900-{uuid}.jpg', process_image(img, output_size=900, crop_size=crop_size)),
+            (f'450-{uuid}.jpg', process_image(img, output_size=450, crop_size=crop_size)),
         ]
     ]
 
@@ -374,6 +419,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
 
         with api_tx() as tx:
             tx.execute(q_set_onboardee_field, params)
+    # TODO: Delete this branch
     elif field_name == 'files':
         pos_uuid_img = [
             (pos, secrets.token_hex(32), img)
@@ -393,16 +439,21 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
         # from the object store easier, which is important because storing
         # objects is expensive.
         q_set_onboardee_field = """
-            INSERT INTO onboardee_photo (
-                email,
-                position,
-                uuid
-            ) VALUES (
-                %(email)s,
-                %(position)s,
-                %(uuid)s
-            ) ON CONFLICT (email, position) DO UPDATE SET
-                uuid = EXCLUDED.uuid
+            WITH q1 AS (
+                INSERT INTO onboardee_photo (
+                    email,
+                    position,
+                    uuid
+                ) VALUES (
+                    %(email)s,
+                    %(position)s,
+                    %(uuid)s
+                ) ON CONFLICT (email, position) DO UPDATE SET
+                    uuid = EXCLUDED.uuid
+            ), q2 AS (
+                INSERT INTO undeleted_photo (uuid) VALUES (%(uuid)s)
+            )
+            SELECT 1
             """
 
         with api_tx() as tx:
@@ -411,6 +462,53 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
         try:
             put_images_in_object_store(
                 (uuid, img) for _, uuid, img in pos_uuid_img)
+        except Exception as e:
+            print('Upload failed with exception:', e)
+            return '', 500
+    elif field_name == 'base64_file':
+        position = field_value['position']
+        image = field_value['image']
+        top = field_value['top']
+        left = field_value['left']
+
+        uuid = secrets.token_hex(32)
+
+        params = dict(
+            email=s.email,
+            position=position,
+            uuid=uuid,
+        )
+
+        # Create new onboardee photos. Because we:
+        #   1. Create DB entries; then
+        #   2. Create photos,
+        # the DB might refer to DB entries that don't exist. The front end needs
+        # to handle that possibility. Doing it like this makes later deletion
+        # from the object store easier, which is important because storing
+        # objects is expensive.
+        q_set_onboardee_field = """
+            WITH q1 AS (
+                INSERT INTO onboardee_photo (
+                    email,
+                    position,
+                    uuid
+                ) VALUES (
+                    %(email)s,
+                    %(position)s,
+                    %(uuid)s
+                ) ON CONFLICT (email, position) DO UPDATE SET
+                    uuid = EXCLUDED.uuid
+            ), q2 AS (
+                INSERT INTO undeleted_photo (uuid) VALUES (%(uuid)s)
+            )
+            SELECT 1
+            """
+
+        with api_tx() as tx:
+            tx.execute(q_set_onboardee_field, params)
+
+        try:
+            put_image_in_object_store(uuid, image, CropSize(top=top, left=left))
         except Exception as e:
             print('Upload failed with exception:', e)
             return '', 500
@@ -624,19 +722,20 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         field_value=field_value,
     )
 
-    with api_tx('READ COMMITTED') as tx:
-        if field_name == 'files':
-            pos_uuid_img = [
-                (pos, secrets.token_hex(32), img)
-                for pos, img in field_value.items()
-            ]
+    # TODO: Delete this branch
+    if field_name == 'files':
+        pos_uuid_img = [
+            (pos, secrets.token_hex(32), img)
+            for pos, img in field_value.items()
+        ]
 
-            params = [
-                dict(person_id=s.person_id, position=pos, uuid=uuid)
-                for pos, uuid, _ in pos_uuid_img
-            ]
+        params = [
+            dict(person_id=s.person_id, position=pos, uuid=uuid)
+            for pos, uuid, _ in pos_uuid_img
+        ]
 
-            q = """
+        q = """
+        WITH q1 AS (
             INSERT INTO photo (
                 person_id,
                 position,
@@ -647,182 +746,232 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
                 %(uuid)s
             ) ON CONFLICT (person_id, position) DO UPDATE SET
                 uuid = EXCLUDED.uuid
-            """
+        ), q2 AS (
+            INSERT INTO undeleted_photo (uuid) VALUES (%(uuid)s)
+        )
+        SELECT 1
+        """
 
+        with api_tx() as tx:
             tx.executemany(q, params)
 
-            try:
-                put_images_in_object_store(
-                    (uuid, img) for _, uuid, img in pos_uuid_img)
-            except Exception as e:
-                print('Upload failed with exception:', e)
-                return '', 500
+        try:
+            put_images_in_object_store(
+                (uuid, img) for _, uuid, img in pos_uuid_img)
+        except Exception as e:
+            print('Upload failed with exception:', e)
+            return '', 500
 
-            return
-        elif field_name == 'about':
-            q = """
-            UPDATE person
-            SET about = %(field_value)s
-            WHERE id = %(person_id)s
-            """
-        elif field_name == 'gender':
-            q = """
-            UPDATE person SET gender_id = gender.id
-            FROM gender
-            WHERE person.id = %(person_id)s
-            AND gender.name = %(field_value)s
-            """
-        elif field_name == 'orientation':
-            q = """
-            UPDATE person SET orientation_id = orientation.id
-            FROM orientation
-            WHERE person.id = %(person_id)s
-            AND orientation.name = %(field_value)s
-            """
-        elif field_name == 'location':
-            q = """
-            UPDATE person SET coordinates = location.coordinates
-            FROM location
-            WHERE person.id = %(person_id)s
-            AND long_friendly = %(field_value)s
-            """
-        elif field_name == 'occupation':
-            q = """
-            UPDATE person SET occupation = %(field_value)s
-            WHERE person.id = %(person_id)s
-            """
-        elif field_name == 'education':
-            q = """
-            UPDATE person SET education = %(field_value)s
-            WHERE person.id = %(person_id)s
-            """
-        elif field_name == 'height':
-            q = """
-            UPDATE person SET height_cm = %(field_value)s
-            WHERE person.id = %(person_id)s
-            """
-        elif field_name == 'looking_for':
-            q = """
-            UPDATE person SET looking_for_id = looking_for.id
-            FROM looking_for
-            WHERE person.id = %(person_id)s
-            AND looking_for.name = %(field_value)s
-            """
-        elif field_name == 'smoking':
-            q = """
-            UPDATE person SET smoking_id = yes_no_optional.id
-            FROM yes_no_optional
-            WHERE person.id = %(person_id)s
-            AND yes_no_optional.name = %(field_value)s
-            """
-        elif field_name == 'drinking':
-            q = """
-            UPDATE person SET drinking_id = frequency.id
-            FROM frequency
-            WHERE person.id = %(person_id)s
-            AND frequency.name = %(field_value)s
-            """
-        elif field_name == 'drugs':
-            q = """
-            UPDATE person SET drugs_id = yes_no_optional.id
-            FROM yes_no_optional
-            WHERE person.id = %(person_id)s
-            AND yes_no_optional.name = %(field_value)s
-            """
-        elif field_name == 'long_distance':
-            q = """
-            UPDATE person SET long_distance_id = yes_no_optional.id
-            FROM yes_no_optional
-            WHERE person.id = %(person_id)s
-            AND yes_no_optional.name = %(field_value)s
-            """
-        elif field_name == 'relationship_status':
-            q = """
-            UPDATE person SET relationship_status_id = relationship_status.id
-            FROM relationship_status
-            WHERE person.id = %(person_id)s
-            AND relationship_status.name = %(field_value)s
-            """
-        elif field_name == 'has_kids':
-            q = """
-            UPDATE person SET has_kids_id = yes_no_maybe.id
-            FROM yes_no_maybe
-            WHERE person.id = %(person_id)s
-            AND yes_no_maybe.name = %(field_value)s
-            """
-        elif field_name == 'wants_kids':
-            q = """
-            UPDATE person SET wants_kids_id = yes_no_maybe.id
-            FROM yes_no_maybe
-            WHERE person.id = %(person_id)s
-            AND yes_no_maybe.name = %(field_value)s
-            """
-        elif field_name == 'exercise':
-            q = """
-            UPDATE person SET exercise_id = frequency.id
-            FROM frequency
-            WHERE person.id = %(person_id)s
-            AND frequency.name = %(field_value)s
-            """
-        elif field_name == 'religion':
-            q = """
-            UPDATE person SET religion_id = religion.id
-            FROM religion
-            WHERE person.id = %(person_id)s
-            AND religion.name = %(field_value)s
-            """
-        elif field_name == 'star_sign':
-            q = """
-            UPDATE person SET star_sign_id = star_sign.id
-            FROM star_sign
-            WHERE person.id = %(person_id)s
-            AND star_sign.name = %(field_value)s
-            """
-        elif field_name == 'units':
-            q = """
-            UPDATE person SET unit_id = unit.id
-            FROM unit
-            WHERE person.id = %(person_id)s
-            AND unit.name = %(field_value)s
-            """
-        elif field_name == 'chats':
-            q = """
-            UPDATE person SET chats_notification = immediacy.id
-            FROM immediacy
-            WHERE person.id = %(person_id)s
-            AND immediacy.name = %(field_value)s
-            """
-        elif field_name == 'intros':
-            q = """
-            UPDATE person SET intros_notification = immediacy.id
-            FROM immediacy
-            WHERE person.id = %(person_id)s
-            AND immediacy.name = %(field_value)s
-            """
-        elif field_name == 'show_my_location':
-            q = """
-            UPDATE person
-            SET show_my_location = (
-                CASE WHEN %(field_value)s = 'Yes' THEN TRUE ELSE FALSE END)
-            WHERE id = %(person_id)s
-            """
-        elif field_name == 'show_my_age':
-            q = """
-            UPDATE person
-            SET show_my_age = (
-                CASE WHEN %(field_value)s = 'Yes' THEN TRUE ELSE FALSE END)
-            WHERE id = %(person_id)s
-            """
-        elif field_name == 'hide_me_from_strangers':
-            q = """
-            UPDATE person
-            SET hide_me_from_strangers = (
-                CASE WHEN %(field_value)s = 'Yes' THEN TRUE ELSE FALSE END)
-            WHERE id = %(person_id)s
-            """
-        else:
-            return f'Invalid field name {field_name}', 400
+        return
+    elif field_name == 'base64_file':
+        position = field_value['position']
+        image = field_value['image']
+        top = field_value['top']
+        left = field_value['left']
 
+        uuid = secrets.token_hex(32)
+
+        params = dict(
+            person_id=s.person_id,
+            email=s.email,
+            position=position,
+            uuid=uuid,
+        )
+
+        q = """
+        WITH q1 AS (
+            INSERT INTO photo (
+                person_id,
+                position,
+                uuid
+            ) VALUES (
+                %(person_id)s,
+                %(position)s,
+                %(uuid)s
+            ) ON CONFLICT (person_id, position) DO UPDATE SET
+                uuid = EXCLUDED.uuid
+        ), q2 AS (
+            INSERT INTO undeleted_photo (uuid) VALUES (%(uuid)s)
+        )
+        SELECT 1
+        """
+
+        with api_tx() as tx:
+            tx.execute(q, params)
+
+        try:
+            put_image_in_object_store(
+                uuid, image, CropSize(top=top, left=left))
+        except Exception as e:
+            print('Upload failed with exception:', e)
+            return '', 500
+
+        return
+    elif field_name == 'about':
+        q = """
+        UPDATE person
+        SET about = %(field_value)s
+        WHERE id = %(person_id)s
+        """
+    elif field_name == 'gender':
+        q = """
+        UPDATE person SET gender_id = gender.id
+        FROM gender
+        WHERE person.id = %(person_id)s
+        AND gender.name = %(field_value)s
+        """
+    elif field_name == 'orientation':
+        q = """
+        UPDATE person SET orientation_id = orientation.id
+        FROM orientation
+        WHERE person.id = %(person_id)s
+        AND orientation.name = %(field_value)s
+        """
+    elif field_name == 'location':
+        q = """
+        UPDATE person SET coordinates = location.coordinates
+        FROM location
+        WHERE person.id = %(person_id)s
+        AND long_friendly = %(field_value)s
+        """
+    elif field_name == 'occupation':
+        q = """
+        UPDATE person SET occupation = %(field_value)s
+        WHERE person.id = %(person_id)s
+        """
+    elif field_name == 'education':
+        q = """
+        UPDATE person SET education = %(field_value)s
+        WHERE person.id = %(person_id)s
+        """
+    elif field_name == 'height':
+        q = """
+        UPDATE person SET height_cm = %(field_value)s
+        WHERE person.id = %(person_id)s
+        """
+    elif field_name == 'looking_for':
+        q = """
+        UPDATE person SET looking_for_id = looking_for.id
+        FROM looking_for
+        WHERE person.id = %(person_id)s
+        AND looking_for.name = %(field_value)s
+        """
+    elif field_name == 'smoking':
+        q = """
+        UPDATE person SET smoking_id = yes_no_optional.id
+        FROM yes_no_optional
+        WHERE person.id = %(person_id)s
+        AND yes_no_optional.name = %(field_value)s
+        """
+    elif field_name == 'drinking':
+        q = """
+        UPDATE person SET drinking_id = frequency.id
+        FROM frequency
+        WHERE person.id = %(person_id)s
+        AND frequency.name = %(field_value)s
+        """
+    elif field_name == 'drugs':
+        q = """
+        UPDATE person SET drugs_id = yes_no_optional.id
+        FROM yes_no_optional
+        WHERE person.id = %(person_id)s
+        AND yes_no_optional.name = %(field_value)s
+        """
+    elif field_name == 'long_distance':
+        q = """
+        UPDATE person SET long_distance_id = yes_no_optional.id
+        FROM yes_no_optional
+        WHERE person.id = %(person_id)s
+        AND yes_no_optional.name = %(field_value)s
+        """
+    elif field_name == 'relationship_status':
+        q = """
+        UPDATE person SET relationship_status_id = relationship_status.id
+        FROM relationship_status
+        WHERE person.id = %(person_id)s
+        AND relationship_status.name = %(field_value)s
+        """
+    elif field_name == 'has_kids':
+        q = """
+        UPDATE person SET has_kids_id = yes_no_maybe.id
+        FROM yes_no_maybe
+        WHERE person.id = %(person_id)s
+        AND yes_no_maybe.name = %(field_value)s
+        """
+    elif field_name == 'wants_kids':
+        q = """
+        UPDATE person SET wants_kids_id = yes_no_maybe.id
+        FROM yes_no_maybe
+        WHERE person.id = %(person_id)s
+        AND yes_no_maybe.name = %(field_value)s
+        """
+    elif field_name == 'exercise':
+        q = """
+        UPDATE person SET exercise_id = frequency.id
+        FROM frequency
+        WHERE person.id = %(person_id)s
+        AND frequency.name = %(field_value)s
+        """
+    elif field_name == 'religion':
+        q = """
+        UPDATE person SET religion_id = religion.id
+        FROM religion
+        WHERE person.id = %(person_id)s
+        AND religion.name = %(field_value)s
+        """
+    elif field_name == 'star_sign':
+        q = """
+        UPDATE person SET star_sign_id = star_sign.id
+        FROM star_sign
+        WHERE person.id = %(person_id)s
+        AND star_sign.name = %(field_value)s
+        """
+    elif field_name == 'units':
+        q = """
+        UPDATE person SET unit_id = unit.id
+        FROM unit
+        WHERE person.id = %(person_id)s
+        AND unit.name = %(field_value)s
+        """
+    elif field_name == 'chats':
+        q = """
+        UPDATE person SET chats_notification = immediacy.id
+        FROM immediacy
+        WHERE person.id = %(person_id)s
+        AND immediacy.name = %(field_value)s
+        """
+    elif field_name == 'intros':
+        q = """
+        UPDATE person SET intros_notification = immediacy.id
+        FROM immediacy
+        WHERE person.id = %(person_id)s
+        AND immediacy.name = %(field_value)s
+        """
+    elif field_name == 'show_my_location':
+        q = """
+        UPDATE person
+        SET show_my_location = (
+            CASE WHEN %(field_value)s = 'Yes' THEN TRUE ELSE FALSE END)
+        WHERE id = %(person_id)s
+        """
+    elif field_name == 'show_my_age':
+        q = """
+        UPDATE person
+        SET show_my_age = (
+            CASE WHEN %(field_value)s = 'Yes' THEN TRUE ELSE FALSE END)
+        WHERE id = %(person_id)s
+        """
+    elif field_name == 'hide_me_from_strangers':
+        q = """
+        UPDATE person
+        SET hide_me_from_strangers = (
+            CASE WHEN %(field_value)s = 'Yes' THEN TRUE ELSE FALSE END)
+        WHERE id = %(person_id)s
+        """
+    else:
+        return f'Invalid field name {field_name}', 400
+
+    with api_tx() as tx:
         tx.execute(q, params)
 
 def get_search_filters(s: t.SessionInfo):

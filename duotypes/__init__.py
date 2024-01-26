@@ -13,6 +13,7 @@ from dateutil.relativedelta import relativedelta
 from PIL import Image
 import constants
 import io
+import base64
 
 CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42
@@ -72,6 +73,64 @@ def file_names(files):
     return order_to_image
 
 
+class Base64File(BaseModel):
+    position: conint(ge=1, le=7)
+    base64: str
+    image: Image.Image
+    top: int
+    left: int
+
+    @model_validator(mode='before')
+    def convert_base64(cls, values):
+        try:
+            base64_value = values['base64'].split(',')[-1]
+        except:
+            raise ValueError('Field base64 must be a valid base64 string')
+
+        try:
+            decoded_bytes = base64.b64decode(base64_value)
+        except base64.binascii.Error as e:
+            raise ValueError(f'Field base64 must be a valid base64 string')
+
+        if len(decoded_bytes) > constants.MAX_IMAGE_SIZE:
+            raise ValueError(
+                'Decoded file exceeds {constants.MAX_IMAGE_SIZE} bytes')
+
+        try:
+            image = Image.open(io.BytesIO(decoded_bytes))
+        except:
+            raise ValueError(f'Base64 string is valid but is not an image')
+
+        width, height = image.size
+
+        larger_dim = max(width, height)
+        smaller_dim = min(width, height)
+
+        if larger_dim > constants.MAX_IMAGE_DIM:
+            raise ValueError(
+                    f'image is greater than '
+                    f'{constants.MAX_IMAGE_DIM}x{constants.MAX_IMAGE_DIM} '
+                    'pixels')
+
+        if smaller_dim < constants.MIN_IMAGE_DIM:
+            raise ValueError(
+                    f'image is less than '
+                    f'{constants.MIN_IMAGE_DIM}x{constants.MIN_IMAGE_DIM} '
+                    'pixels')
+
+        try:
+            image.load()
+        except:
+            raise ValueError(f'Image is not valid')
+
+        values['image'] = image
+
+        return values
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
 class SessionInfo(BaseModel):
     email: str
     session_token_hash: str
@@ -110,6 +169,7 @@ class PatchOnboardeeInfo(BaseModel):
     gender: Optional[constr(min_length=1)] = None
     other_peoples_genders: Optional[conlist(constr(min_length=1), min_length=1)] = None
     files: Optional[Dict[conint(ge=1, le=7), Image.Image]] = None
+    base64_file: Optional[Base64File] = None
     about: Optional[constr(min_length=0, max_length=10000)] = None
 
     @field_validator('date_of_birth')
@@ -154,7 +214,10 @@ class DeleteProfileInfo(BaseModel):
     files: List[conint(ge=1, le=7)]
 
 class PatchProfileInfo(BaseModel):
+    # TODO: Delete and update API version
     files: Optional[Dict[conint(ge=1, le=7), Image.Image]] = None
+
+    base64_file: Optional[Base64File] = None
     about: Optional[constr(min_length=0, max_length=10000)] = None
     gender: Optional[str] = None
     orientation: Optional[str] = None
