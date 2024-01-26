@@ -1,8 +1,0 @@
-Example prompt:
-Please annotate these questions with "+1" when an affirmative answer indicates introversion, "-1" when an affirmative answer indicates extroversion, and "0" when the question is unrelated to introversion or extroversion. The first few have been provided for example:
-
-Example prompt:
-Between these two, which question do you think would give you more insight into someone's personality? Please indicate your answer only by saying "1" or "2" only. Do not use punctuation such as full stops. Only write the number "1" or "2".
-
-1. Are you a heavy sleeper?
-2. Do you often worry about things that are out of your control?

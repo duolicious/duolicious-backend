@@ -1,5 +1,5 @@
 import * as _ from "lodash";
-import { mapi, japi } from '../api/api';
+import { japi } from '../api/api';
 import { setSignedInUser } from '../App';
 import { sessionToken } from '../kv-storage/session-token';
 import { X } from "react-native-feather";
@@ -16,6 +16,7 @@ import { faImage } from '@fortawesome/free-solid-svg-icons/faImage'
 import { faCalendar } from '@fortawesome/free-solid-svg-icons/faCalendar'
 import { faPeopleGroup } from '@fortawesome/free-solid-svg-icons/faPeopleGroup'
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { NonNullImageCropperOutput } from '../components/image-cropper';
 
 type OptionGroupButtons = {
   buttons: {
@@ -47,7 +48,7 @@ type OptionGroupDate = {
 
 type OptionGroupPhotos = {
   photos: {
-    submit: (filename: string, pathOrBase64: string) => Promise<boolean>
+    submit: (position: number, cropperOutput: NonNullImageCropperOutput) => Promise<boolean>
     delete: (filename: string) => Promise<boolean>
     fetch?: (position: string, resolution: string) => Promise<string | null>
   }
@@ -857,11 +858,18 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: 'Profiles with photos are promoted in search results, but you can add these later',
     input: {
       photos: {
-        submit: async (filename, pathOrBase64) => (await mapi(
+        submit: async (position, cropperOutput) => (await japi(
           'patch',
           '/onboardee-info',
-          filename,
-          pathOrBase64
+          {
+            base64_file: {
+              position,
+              base64: cropperOutput.originalBase64,
+              top: cropperOutput.top,
+              left: cropperOutput.left,
+            },
+          },
+          2 * 60 * 1000 // 2 minutes
         )).ok,
         delete: async (filename) => (await japi(
           'delete',

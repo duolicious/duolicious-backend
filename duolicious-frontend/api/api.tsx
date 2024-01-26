@@ -1,11 +1,15 @@
 import {
+  Platform,
+} from 'react-native';
+import {
   API_URL,
 } from '../env/env';
 import * as _ from "lodash";
 import { sessionToken } from '../kv-storage/session-token';
 import { Buffer } from "buffer";
+import { NonNullImageCropperOutput } from '../components/image-cropper';
 
-const SUPPORTED_API_VERSIONS = [3];
+const SUPPORTED_API_VERSIONS = [3, 4];
 
 type ApiResponse = {
   ok: boolean
@@ -16,7 +20,8 @@ type ApiResponse = {
 const api = async (
   method: string,
   endpoint: string,
-  init?: RequestInit
+  init?: RequestInit,
+  timeout?: number,
 ): Promise<ApiResponse> => {
   let response, json;
   let numRetries = 0;
@@ -25,7 +30,7 @@ const api = async (
     [response, json] = [undefined, undefined];
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), timeout ?? 10000);
 
     const existingSessionToken = await sessionToken();
 
@@ -81,7 +86,8 @@ const api = async (
 const japi = async (
   method: string,
   endpoint: string,
-  body?: any
+  body?: any,
+  timeout?: number,
 ): Promise<ApiResponse> => {
   const init = body === undefined ? {} : {
     headers: {
@@ -91,55 +97,11 @@ const japi = async (
     body: JSON.stringify(body)
   }
 
-  return await api(method, endpoint, init);
-};
-
-const mapi = async (
-  method: string,
-  endpoint: string,
-  filename: string,
-  pathOrBase64: string
-): Promise<ApiResponse> => {
-
-  const formData = (() => {
-    const formData = new FormData();
-
-    if (pathOrBase64.startsWith('file://')) {
-      // If we're on a mobile device, Expo will provide a path to a file.
-      formData.append(
-        filename,
-        {
-          uri: pathOrBase64,
-          name: filename,
-          type: 'image/jpg',
-        } as any
-      );
-    } else {
-      // If we're on a web browser device, Expo will provide a base64-encoded
-      // string.
-      const base64Data = pathOrBase64.split(',')[1];
-      const binary = atob(base64Data);
-      const array = new Uint8Array(binary.length);
-      for (var i = 0; i < binary.length; i++) {
-          array[i] = binary.charCodeAt(i);
-      }
-      const blob = new Blob([array], { type: 'application/octet-stream' });
-      formData.append(filename, blob);
-    }
-
-    return formData;
-  })();
-
-  const init = {
-    body: formData,
-  };
-
-  return await api(method, endpoint, init);
+  return await api(method, endpoint, init, timeout);
 };
 
 export {
   SUPPORTED_API_VERSIONS,
   api,
   japi,
-  mapi,
 };

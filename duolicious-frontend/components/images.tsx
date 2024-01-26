@@ -15,9 +15,20 @@ import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faCircleXmark } from '@fortawesome/free-solid-svg-icons/faCircleXmark'
+import { notify, listen } from '../events/events';
+import { ImageCropperInput, ImageCropperOutput } from './image-cropper';
 
-// TODO: Image picker is shit and doesn't allow cropping on web
 // TODO: Image picker is shit and lets you upload any file type on web
+
+const isSquareish = (width: number, height: number) => {
+  if (width === 0) return true;
+  if (height === 0) return true;
+
+  const biggerDim = Math.max(width, height);
+  const smallerDim = Math.min(width, height);
+
+  return biggerDim / smallerDim < 1.1;
+};
 
 const Images = ({input, setIsLoading, setIsInvalid}) => {
   const isLoading1 = useRef(false);
@@ -68,6 +79,8 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
   const [image, setImage] = useState<string | null>(null);
   const [isLoading_, setIsLoading_] = useState(false);
 
+  const imageCropperCallback = `image-cropped-${fileNumber}`;
+
   const fetchImage = useCallback(async () => {
     const _fetchImage = input.photos.fetch;
 
@@ -85,33 +98,48 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
 
   const addImage = useCallback(async () => {
     // No permissions request is necessary for launching the image library
-    let result = await ImagePicker.launchImageLibraryAsync({
+    const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
       quality: 1,
       selectionLimit: 1,
+      base64: true,
     });
 
     if (result.canceled) return;
-    if (!result.assets[0].width) return;
-    if (!result.assets[0].height) return;
+    const width = result.assets[0].width;
+    const height = result.assets[0].height;
+    if (!width) return;
+    if (!height) return;
 
-    const uri = result.assets[0].uri;
+    const base64 = result.assets[0].base64;
+    if (!base64) {
+      throw Error('Unexpected output from launchImageLibraryAsync');
+    }
+
+    const base64Uri = `data:image/jpeg;base64,${base64}`;
 
     setIsLoading(true);
     setIsLoading_(true);
     setIsInvalid(false);
 
-    if (await input.photos.submit(String(fileNumber), uri)) {
-      setImage(uri);
-      setIsLoading(false);
-      setIsLoading_(false);
-      setIsInvalid(false);
+    if (isSquareish(width, height)) {
+      notify<ImageCropperOutput>(
+        imageCropperCallback,
+        {
+          originalBase64: base64Uri,
+          base64: base64Uri,
+          top:  (height - Math.min(width, height)) / 2,
+          left: (width  - Math.min(width, height)) / 2,
+        },
+      );
     } else {
-      setIsLoading(false);
-      setIsLoading_(false);
-      setIsInvalid(true);
+      notify<ImageCropperInput>(
+        'image-cropper-open',
+        {
+          base64: base64Uri,
+          callback: imageCropperCallback,
+        }
+      );
     }
   }, []);
 
@@ -133,6 +161,31 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
   }, []);
 
   useEffect(() => void fetchImage(), [fetchImage]);
+  useEffect(() => {
+    return listen<ImageCropperOutput>(
+      imageCropperCallback,
+      async (data) => {
+        if (data === undefined) {
+          return;
+        }
+
+        if (data === null) {
+          setIsLoading(false);
+          setIsLoading_(false);
+          setIsInvalid(false);
+        } else if (await input.photos.submit(fileNumber, data)) {
+          setImage(data.base64);
+          setIsLoading(false);
+          setIsLoading_(false);
+          setIsInvalid(false);
+        } else {
+          setIsLoading(false);
+          setIsLoading_(false);
+          setIsInvalid(true);
+        }
+      }
+    );
+  }, []);
 
   const Image_ = ({uri}) => {
     return (

@@ -35,7 +35,7 @@ import {
 import { Images } from './images';
 import { DefaultText } from './default-text';
 import { sessionToken } from '../kv-storage/session-token';
-import { api, mapi, japi } from '../api/api';
+import { api, japi } from '../api/api';
 import { signedInUser, setSignedInUser } from '../App';
 import { cmToFeetInchesStr } from '../units/units';
 import {
@@ -82,11 +82,18 @@ const Images_ = ({data}) => {
   const input: OptionGroupPhotos = useMemo(() => {
     return {
       photos: {
-        submit: async (filename, pathOrBase64) => (await mapi(
+        submit: async (position, cropperOutput) => (await japi(
           'patch',
           '/profile-info',
-          filename,
-          pathOrBase64
+          {
+            base64_file: {
+              position,
+              base64: cropperOutput.originalBase64,
+              top: cropperOutput.top,
+              left: cropperOutput.left,
+            },
+          },
+          2 * 60 * 1000 // 2 minutes
         )).ok,
         delete: async (filename) => (await japi(
           'delete',

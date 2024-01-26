@@ -39,7 +39,7 @@
       }
     },
     "ios": {
-      "bundleIdentifier": "us.duolicio"
+      "bundleIdentifier": "app.duolicious"
     }
   }
 }
