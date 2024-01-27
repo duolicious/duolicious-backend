@@ -1678,7 +1678,9 @@ FROM
     _duo_session
 ON CONFLICT DO NOTHING
 RETURNING
-    *
+    ip_address,
+    banned_at,
+    expires_at
 """
 
 Q_CHECK_ADMIN_DELETE_PHOTO_TOKEN = """
