@@ -516,7 +516,10 @@ CREATE INDEX IF NOT EXISTS idx__search_cache__searcher_person_id__position ON se
 CREATE INDEX IF NOT EXISTS idx__answer__question_id ON answer(question_id);
 CREATE INDEX IF NOT EXISTS idx__answer__person_id_public_answer ON answer(person_id, public_, answer);
 
-CREATE INDEX IF NOT EXISTS idx__duo_session__email ON duo_session(email);
+CREATE INDEX IF NOT EXISTS idx__duo_session__email
+    ON duo_session(email);
+CREATE INDEX IF NOT EXISTS idx__duo_session__session_expiry
+    ON duo_session(session_expiry);
 
 CREATE INDEX IF NOT EXISTS idx__location__coordinates ON location USING GIST(coordinates);
 CREATE INDEX IF NOT EXISTS idx__location__long_friendly ON location USING GIST(long_friendly gist_trgm_ops);
@@ -537,6 +540,9 @@ CREATE INDEX IF NOT EXISTS idx__banned_person_admin_token__expires_at
 
 CREATE INDEX IF NOT EXISTS idx__photo__uuid
     ON photo(uuid);
+
+CREATE INDEX IF NOT EXISTS idx__onboardee__created_at
+    ON onboardee(created_at);
 
 --------------------------------------------------------------------------------
 -- DATA
