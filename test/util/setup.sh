@@ -95,15 +95,12 @@ rand_image () {
       $(($RANDOM % 256))
   )
 
-  local filename=/tmp/${RANDOM}.png
-
-  # Create an image with a random letter, a random background color, and a shadow
+  # Create an image with a random letter, a random background color, and a shadow,
+  # then output it to stdout and pipe through base64
   convert -size 400x400 xc:"#${rand_color}" -gravity center -pointsize 320 \
       -fill black -annotate +10+10 "${characters[$index]}" \
       -fill white -annotate +0+0 "${characters[$index]}" \
-      "$filename"
-
-  echo "$filename"
+      png:- | base64 -w 0
 }
 
 assume_role () {
