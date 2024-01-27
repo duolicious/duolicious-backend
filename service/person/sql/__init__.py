@@ -1659,7 +1659,7 @@ WITH deleted_token AS (
 ), _duo_session AS (
     SELECT
         duo_session.email AS email,
-        duo_session.ip_address AS ip_address
+        COALESCE(duo_session.ip_address, '127.0.0.1') AS ip_address
     FROM
         duo_session
     JOIN

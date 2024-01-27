@@ -17,7 +17,7 @@ WITH q1 AS (
 SELECT
     COUNT(*) AS count
 FROM (
-    SELECT 1 FROM q1 UNION
+    SELECT 1 FROM q1 UNION ALL
     SELECT 1 FROM q2
 )
 """
