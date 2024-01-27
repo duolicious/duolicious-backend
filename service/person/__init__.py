@@ -17,6 +17,7 @@ import re
 from smtp import aws_smtp
 from flask import request
 from dataclasses import dataclass
+import psycopg
 
 DUO_ENV = os.environ['DUO_ENV']
 
@@ -61,16 +62,16 @@ def _send_report(
         )
 
         with api_tx('READ COMMITTED') as tx:
-            report = tx.execute(Q_REPORT_EMAIL, params).fetchall()
+            report = tx.execute(Q_MAKE_REPORT, params).fetchall()
 
         aws_smtp.send(
             to=REPORT_EMAIL,
             subject=f"Report: {subject_person_id} - {object_person_id}",
             body=report_template(
-                report,
-                subject_person_id,
-                object_person_id,
-                report_reason,
+                report_json=report,
+                subject_person_id=subject_person_id,
+                object_person_id=object_person_id,
+                report_reason=report_reason,
             ),
             from_addr=REPORT_EMAIL,
         )
@@ -250,7 +251,13 @@ def post_request_otp(req: t.PostRequestOtp):
     )
 
     with api_tx() as tx:
-        otp = tx.execute(Q_INSERT_DUO_SESSION, params).fetchone()['otp']
+        rows = tx.execute(Q_INSERT_DUO_SESSION, params).fetchall()
+
+    try:
+        row, *_ = rows
+        otp = row['otp']
+    except:
+        return 'Banned', 403
 
     _send_otp(email, otp)
 
@@ -261,10 +268,17 @@ def post_resend_otp(s: t.SessionInfo):
         email=s.email,
         is_dev=DUO_ENV == 'dev',
         session_token_hash=s.session_token_hash,
+        ip_address=request.remote_addr or "127.0.0.1",
     )
 
     with api_tx() as tx:
-        otp = tx.execute(Q_UPDATE_OTP, params).fetchone()['otp']
+        rows = tx.execute(Q_UPDATE_OTP, params).fetchall()
+
+    try:
+        row, *_ = rows
+        otp = row['otp']
+    except:
+        return 'Banned', 403
 
     _send_otp(s.email, otp)
 
@@ -1283,3 +1297,58 @@ def get_update_notifications(email: str, type: str, frequency: str):
             f"<b>{email}</b>")
     else:
         return 'Invalid email address or notification frequency', 400
+
+def get_admin_ban_link(token: str):
+    params = dict(token=token)
+
+    try:
+        with api_tx('READ COMMITTED') as tx:
+            rows = tx.execute(Q_CHECK_ADMIN_BAN_TOKEN, params).fetchall()
+    except psycopg.errors.InvalidTextRepresentation:
+        return 'Invalid token', 401
+
+    if rows:
+        link = f'https://api.duolicious.app/admin/ban/{token}'
+        return f'<a href="{link}">{link}</a>'
+    else:
+        return 'Invalid token', 401
+
+def get_admin_ban(token: str):
+    params = dict(token=token)
+
+    with api_tx('READ COMMITTED') as tx:
+        rows = tx.execute(Q_ADMIN_BAN, params).fetchall()
+
+    if rows:
+        return f'Banned {rows}'
+    else:
+        return 'Ban failed', 401
+
+def get_admin_delete_photo_link(token: str):
+    params = dict(token=token)
+
+    try:
+        with api_tx('READ COMMITTED') as tx:
+            rows = tx.execute(
+                Q_CHECK_ADMIN_DELETE_PHOTO_TOKEN,
+                params
+            ).fetchall()
+    except psycopg.errors.InvalidTextRepresentation:
+        return 'Invalid token', 401
+
+    if rows:
+        link = f'https://api.duolicious.app/admin/delete-photo/{token}'
+        return f'<a href="{link}">{link}</a>'
+    else:
+        return 'Invalid token', 401
+
+def get_admin_delete_photo(token: str):
+    params = dict(token=token)
+
+    with api_tx('READ COMMITTED') as tx:
+        rows = tx.execute(Q_ADMIN_DELETE_PHOTO, params).fetchall()
+
+    if rows:
+        return f'Deleted photo {rows}'
+    else:
+        return 'Photo deletion failed', 401

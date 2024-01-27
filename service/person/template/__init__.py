@@ -54,6 +54,8 @@ def report_template(
     object_person_id: int,
     report_reason: str,
 ):
+    token = report_json[0]['token']
+
     json_string = json.dumps(report_json, indent=2)
 
     safe_json_string = html.escape(json_string)
@@ -86,6 +88,10 @@ duo_last_50 {subject_person_id}
 # Accused
 duo_last_50 {object_person_id}
 </pre>
+
+Ban accused user for one month:
+<br/>
+https://api.duolicious.app/admin/ban-link/{token}
 
 </body>
 </html>

@@ -458,6 +458,28 @@ CREATE TABLE IF NOT EXISTS person_club (
     PRIMARY KEY (person_id, club_name)
 );
 
+CREATE TABLE IF NOT EXISTS deleted_photo_admin_token (
+    token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    photo_uuid TEXT NOT NULL,
+    generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month')
+);
+
+CREATE TABLE IF NOT EXISTS banned_person_admin_token (
+    token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month')
+);
+
+CREATE TABLE IF NOT EXISTS banned_person (
+    email TEXT NOT NULL,
+    ip_address inet NOT NULL DEFAULT '127.0.0.1',
+    banned_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month'),
+    PRIMARY KEY (email, ip_address)
+);
+
 --------------------------------------------------------------------------------
 -- TABLES TO SPEED UP SEARCHING
 --------------------------------------------------------------------------------
@@ -506,6 +528,15 @@ CREATE INDEX IF NOT EXISTS idx__person__tiny_id ON person(tiny_id);
 CREATE INDEX IF NOT EXISTS idx__person__email ON person(email);
 
 CREATE INDEX IF NOT EXISTS idx__club__name ON club USING GIST(name gist_trgm_ops);
+
+CREATE INDEX IF NOT EXISTS idx__banned_person__ip_address ON banned_person(ip_address);
+CREATE INDEX IF NOT EXISTS idx__banned_person__expires_at ON banned_person(expires_at);
+
+CREATE INDEX IF NOT EXISTS idx__banned_person_admin_token__expires_at
+    ON banned_person_admin_token(expires_at);
+
+CREATE INDEX IF NOT EXISTS idx__photo__uuid
+    ON photo(uuid);
 
 --------------------------------------------------------------------------------
 -- DATA

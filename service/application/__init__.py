@@ -241,8 +241,18 @@ def get_update_notifications():
         frequency=request.args.get('frequency', ''),
     )
 
-# TODO
-@post('/test-rate-limit', limiter=shared_test_rate_limit)
-@validate(t.PostRequestOtp)
-def post_test_rate_limit(req: t.PostRequestOtp):
-    return 'ok'
+@get('/admin/ban-link/<token>')
+def get_admin_ban_link(token: str):
+    return person.get_admin_ban_link(token)
+
+@get('/admin/ban/<token>')
+def get_admin_ban(token: str):
+    return person.get_admin_ban(token)
+
+@get('/admin/delete-photo-link/<token>')
+def get_admin_delete_photo_link(token: str):
+    return person.get_admin_delete_photo_link(token)
+
+@get('/admin/delete-photo/<token>')
+def get_admin_delete_photo(token: str):
+    return person.get_admin_delete_photo(token)
