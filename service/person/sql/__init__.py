@@ -669,6 +669,29 @@ WITH prospect AS (
         person AS p
     WHERE
         id = %(prospect_person_id)s
+    AND
+        activated
+    AND (
+            NOT hide_me_from_strangers
+        OR
+            EXISTS (
+                SELECT 1
+                FROM messaged
+                WHERE
+                    messaged.subject_person_id = %(prospect_person_id)s
+                AND
+                    messaged.object_person_id = %(person_id)s
+            )
+    )
+    AND
+        NOT EXISTS (
+            SELECT 1
+            FROM skipped
+            WHERE
+                subject_person_id = %(prospect_person_id)s AND
+                object_person_id  = %(person_id)s
+            LIMIT 1
+        )
     LIMIT
         1
 ), negative_dot_prod AS (
@@ -827,16 +850,7 @@ SELECT
         'other_clubs',            (SELECT j             FROM other_clubs_json)
     ) AS j
 WHERE
-    (SELECT activated FROM prospect)
-AND
-    NOT EXISTS (
-        SELECT 1
-        FROM skipped
-        WHERE
-            subject_person_id = %(prospect_person_id)s AND
-            object_person_id  = %(person_id)s
-        LIMIT 1
-    )
+    EXISTS (SELECT 1 FROM prospect)
 """
 
 Q_SELECT_UNITS = """
