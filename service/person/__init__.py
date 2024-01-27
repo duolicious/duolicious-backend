@@ -172,26 +172,6 @@ def process_image(
 def put_object(key: str, io_bytes: io.BytesIO):
     bucket.put_object(Key=key, Body=io_bytes)
 
-# TODO: Delete
-def put_images_in_object_store(uuid_img: Iterable[Tuple[str, io.BytesIO]]):
-    key_img = [
-        (key, converted_img)
-        for uuid, img in uuid_img
-        for key, converted_img in [
-            (f'original-{uuid}.jpg', process_image(img, output_size=None)),
-            (f'900-{uuid}.jpg', process_image(img, output_size=900)),
-            (f'450-{uuid}.jpg', process_image(img, output_size=450)),
-        ]
-    ]
-
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        futures = {
-            executor.submit(put_object, key, img)
-            for key, img in key_img}
-
-        for future in as_completed(futures):
-            future.result()
-
 def put_image_in_object_store(
     uuid: str,
     img: Image.Image,
@@ -419,52 +399,6 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
 
         with api_tx() as tx:
             tx.execute(q_set_onboardee_field, params)
-    # TODO: Delete this branch
-    elif field_name == 'files':
-        pos_uuid_img = [
-            (pos, secrets.token_hex(32), img)
-            for pos, img in field_value.items()
-        ]
-
-        params = [
-            dict(email=s.email, position=pos, uuid=uuid)
-            for pos, uuid, _ in pos_uuid_img
-        ]
-
-        # Create new onboardee photos. Because we:
-        #   1. Create DB entries; then
-        #   2. Create photos,
-        # the DB might refer to DB entries that don't exist. The front end needs
-        # to handle that possibility. Doing it like this makes later deletion
-        # from the object store easier, which is important because storing
-        # objects is expensive.
-        q_set_onboardee_field = """
-            WITH q1 AS (
-                INSERT INTO onboardee_photo (
-                    email,
-                    position,
-                    uuid
-                ) VALUES (
-                    %(email)s,
-                    %(position)s,
-                    %(uuid)s
-                ) ON CONFLICT (email, position) DO UPDATE SET
-                    uuid = EXCLUDED.uuid
-            ), q2 AS (
-                INSERT INTO undeleted_photo (uuid) VALUES (%(uuid)s)
-            )
-            SELECT 1
-            """
-
-        with api_tx() as tx:
-            tx.executemany(q_set_onboardee_field, params)
-
-        try:
-            put_images_in_object_store(
-                (uuid, img) for _, uuid, img in pos_uuid_img)
-        except Exception as e:
-            print('Upload failed with exception:', e)
-            return '', 500
     elif field_name == 'base64_file':
         position = field_value['position']
         image = field_value['image']
@@ -722,48 +656,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         field_value=field_value,
     )
 
-    # TODO: Delete this branch
-    if field_name == 'files':
-        pos_uuid_img = [
-            (pos, secrets.token_hex(32), img)
-            for pos, img in field_value.items()
-        ]
-
-        params = [
-            dict(person_id=s.person_id, position=pos, uuid=uuid)
-            for pos, uuid, _ in pos_uuid_img
-        ]
-
-        q = """
-        WITH q1 AS (
-            INSERT INTO photo (
-                person_id,
-                position,
-                uuid
-            ) VALUES (
-                %(person_id)s,
-                %(position)s,
-                %(uuid)s
-            ) ON CONFLICT (person_id, position) DO UPDATE SET
-                uuid = EXCLUDED.uuid
-        ), q2 AS (
-            INSERT INTO undeleted_photo (uuid) VALUES (%(uuid)s)
-        )
-        SELECT 1
-        """
-
-        with api_tx() as tx:
-            tx.executemany(q, params)
-
-        try:
-            put_images_in_object_store(
-                (uuid, img) for _, uuid, img in pos_uuid_img)
-        except Exception as e:
-            print('Upload failed with exception:', e)
-            return '', 500
-
-        return
-    elif field_name == 'base64_file':
+    if field_name == 'base64_file':
         position = field_value['position']
         image = field_value['image']
         top = field_value['top']

@@ -5,11 +5,11 @@ cd "$script_dir"
 
 source ../util/setup.sh
 
-set -xe
-
 img1=$(rand_image)
+img2=$(rand_image)
+img3=$(rand_image)
 
-trap "rm $img1" EXIT
+set -xe
 
 echo Create a user who added a photo during onboarding
 q "delete from duo_session"
@@ -27,9 +27,15 @@ q "delete from undeleted_photo"
 assume_role user1
 
 echo Change the first photo
-c PATCH /profile-info \
-  --header "Content-Type: multipart/form-data" \
-  -F "1.jpg=@${img1}"
+jc PATCH /profile-info \
+  -d "{
+          \"base64_file\": {
+              \"position\": 1,
+              \"base64\": \"${img1}\",
+              \"top\": 0,
+              \"left\": 0
+          }
+      }"
 
 [[ "$(q "select count(*) from photo")" == "1" ]]
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "1" ]]
@@ -60,9 +66,15 @@ assume_role user1
 [[ "$(q "select count(*) from undeleted_photo")" == "0" ]]
 
 echo Add a photo
-c PATCH /profile-info \
-  --header "Content-Type: multipart/form-data" \
-  -F "1.jpg=@${img1}"
+jc PATCH /profile-info \
+  -d "{
+          \"base64_file\": {
+              \"position\": 1,
+              \"base64\": \"${img1}\",
+              \"top\": 0,
+              \"left\": 0
+          }
+      }"
 
 [[ "$(q "select count(*) from photo")" == "1" ]]
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "1" ]]
@@ -79,10 +91,25 @@ q "delete from undeleted_photo"
 assume_role user1
 
 echo Upload onboardee photos 1.jpg and 2.jpg
-c PATCH /onboardee-info \
-  --header "Content-Type: multipart/form-data" \
-  -F "1.jpg=@${img1}" \
-  -F "2.jpg=@${img1}"
+jc PATCH /onboardee-info \
+  -d "{
+          \"base64_file\": {
+              \"position\": 1,
+              \"base64\": \"${img1}\",
+              \"top\": 0,
+              \"left\": 0
+          }
+      }"
+
+jc PATCH /onboardee-info \
+  -d "{
+          \"base64_file\": {
+              \"position\": 2,
+              \"base64\": \"${img2}\",
+              \"top\": 0,
+              \"left\": 0
+          }
+      }"
 
 [[ "$(q "select count(*) from photo")" == "0" ]]
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "0" ]]
@@ -90,10 +117,25 @@ c PATCH /onboardee-info \
 [[ "$(q "select count(*) from undeleted_photo")" == "2" ]]
 
 echo Upload onboardee photos 2.jpg and 3.jpg
-c PATCH /onboardee-info \
-  --header "Content-Type: multipart/form-data" \
-  -F "2.jpg=@${img1}" \
-  -F "3.jpg=@${img1}"
+jc PATCH /onboardee-info \
+  -d "{
+          \"base64_file\": {
+              \"position\": 2,
+              \"base64\": \"${img2}\",
+              \"top\": 0,
+              \"left\": 0
+          }
+      }"
+
+jc PATCH /onboardee-info \
+  -d "{
+          \"base64_file\": {
+              \"position\": 3,
+              \"base64\": \"${img3}\",
+              \"top\": 0,
+              \"left\": 0
+          }
+      }"
 
 [[ "$(q "select count(*) from photo")" == "0" ]]
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "0" ]]

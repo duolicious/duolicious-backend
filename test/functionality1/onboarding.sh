@@ -5,6 +5,10 @@ cd "$script_dir"
 
 source ../util/setup.sh
 
+img1=$(rand_image)
+img2=$(rand_image)
+img3=$(rand_image)
+
 set -xe
 
 q "delete from duo_session"
@@ -12,14 +16,6 @@ q "delete from person"
 q "delete from onboardee"
 q "delete from undeleted_photo"
 q "update question set count_yes = 0, count_no = 0"
-
-img1=$(rand_image)
-img2=$(rand_image)
-img3=$(rand_image)
-
-base64_img3=$(base64 -w 0 "${img1}")
-
-trap "rm $img1 $img2 $img3" EXIT
 
 response=$(jc POST /request-otp -d '{ "email": "MAIL@example.com" }')
 
@@ -50,24 +46,35 @@ jc PATCH /onboardee-info -d '{ "location": "Sydney, New South Wales, Australia" 
 jc PATCH /onboardee-info -d '{ "gender": "Man" }'
 jc PATCH /onboardee-info -d '{ "other_peoples_genders": ["Man", "Woman", "Other"] }'
 
-c PATCH /onboardee-info \
-  --header "Content-Type: multipart/form-data" \
-  -F "1.jpg=@${img1}" \
-  -F "2.jpg=@${img2}"
-
 jc PATCH /onboardee-info \
   -d "{
           \"base64_file\": {
-              \"position\": 3,
-              \"base64\": \"${base64_img3}\",
+              \"position\": 1,
+              \"base64\": \"${img1}\",
               \"top\": 0,
               \"left\": 0
           }
       }"
 
-c PATCH /onboardee-info \
-  --header "Content-Type: multipart/form-data" \
-  -F "1.jpg=@${img1}"
+jc PATCH /onboardee-info \
+  -d "{
+          \"base64_file\": {
+              \"position\": 2,
+              \"base64\": \"${img2}\",
+              \"top\": 0,
+              \"left\": 0
+          }
+      }"
+
+jc PATCH /onboardee-info \
+  -d "{
+          \"base64_file\": {
+              \"position\": 3,
+              \"base64\": \"${img3}\",
+              \"top\": 0,
+              \"left\": 0
+          }
+      }"
 
 wait_for_creation_by_uuid "$(q "select uuid from onboardee_photo limit 1")"
 
