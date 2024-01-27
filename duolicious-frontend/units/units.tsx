@@ -1,7 +1,7 @@
 const cmToFeetInches = (cm: number): {feet: number, inches: number} => {
     const inches = cm / 2.54;
     const feet = Math.floor(inches / 12);
-    const remainingInches = Math.round(inches % 12);
+    const remainingInches = Math.floor(inches % 12);
 
     return {feet, inches: remainingInches};
 };
