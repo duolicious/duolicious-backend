@@ -22,7 +22,6 @@ import {
 } from 'react-native'
 import { DefaultText } from './default-text';
 import { listen, notify } from '../events/events';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 const buttonHeight = 110; // Define the height for the button
 
@@ -33,36 +32,12 @@ type ImageCropperInput = {
 
 type ImageCropperOutput = {
   originalBase64: string
-  base64: string
   top: number
   left: number
+  size: number
 } | null;
 
 type NonNullImageCropperOutput = Exclude<ImageCropperOutput, null>;
-
-const cropImage = async (
-  base64: string,
-  height: number,
-  originX: number,
-  originY: number,
-  width: number,
-): Promise<string> => {
-  const result = await manipulateAsync(
-    base64,
-    [{ crop: { height, originX, originY, width }}],
-    {
-      base64: true,
-      compress: 1,
-      format: SaveFormat.JPEG
-    }
-  );
-
-  if (!result.base64) {
-    throw Error('Unexpected output from manipulateAsync');
-  }
-
-  return `data:image/jpeg;base64,${result.base64}`;
-};
 
 const ImageCropper = () => {
   const [data, setData] = useState<ImageCropperInput>();
@@ -212,26 +187,18 @@ const ImageCropper = () => {
     }
 
     const realCropArea = {
-      top: Math.round(realImageSize.height / imageSize.current.height * cropArea.current.top),
-      left: Math.round(realImageSize.width / imageSize.current.width * cropArea.current.left),
+      top: realImageSize.height / imageSize.current.height * cropArea.current.top,
+      left: realImageSize.width / imageSize.current.width * cropArea.current.left,
       size: Math.min(realImageSize.height, realImageSize.width),
     };
-
-    const base64 = await cropImage(
-      data.base64,
-      realCropArea.size,
-      realCropArea.left,
-      realCropArea.top,
-      realCropArea.size,
-    );
 
     notify<ImageCropperOutput>(
       data.callback,
       {
         originalBase64: data.base64,
-        base64,
-        top: realCropArea.top,
-        left: realCropArea.left,
+        top:  Math.round(realCropArea.top),
+        left: Math.round(realCropArea.left),
+        size: realCropArea.size,
       }
     );
 

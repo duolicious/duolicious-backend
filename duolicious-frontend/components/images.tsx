@@ -17,6 +17,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faCircleXmark } from '@fortawesome/free-solid-svg-icons/faCircleXmark'
 import { notify, listen } from '../events/events';
 import { ImageCropperInput, ImageCropperOutput } from './image-cropper';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 // TODO: Image picker is shit and lets you upload any file type on web
 
@@ -28,6 +29,30 @@ const isSquareish = (width: number, height: number) => {
   const smallerDim = Math.min(width, height);
 
   return biggerDim / smallerDim < 1.1;
+};
+
+const cropImage = async (
+  base64: string,
+  height: number,
+  originX: number,
+  originY: number,
+  width: number,
+): Promise<string> => {
+  const result = await manipulateAsync(
+    base64,
+    [{ crop: { height, originX, originY, width }}],
+    {
+      base64: true,
+      compress: 1,
+      format: SaveFormat.JPEG
+    }
+  );
+
+  if (!result.base64) {
+    throw Error('Unexpected output from manipulateAsync');
+  }
+
+  return `data:image/jpeg;base64,${result.base64}`;
 };
 
 const Images = ({input, setIsLoading, setIsInvalid}) => {
@@ -123,13 +148,15 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
     setIsInvalid(false);
 
     if (isSquareish(width, height)) {
+      const size = Math.min(width, height);
+
       notify<ImageCropperOutput>(
         imageCropperCallback,
         {
           originalBase64: base64Uri,
-          base64: base64Uri,
-          top:  (height - Math.min(width, height)) / 2,
-          left: (width  - Math.min(width, height)) / 2,
+          top:  Math.round((height - size) / 2),
+          left: Math.round((width  - size) / 2),
+          size,
         },
       );
     } else {
@@ -174,7 +201,15 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
           setIsLoading_(false);
           setIsInvalid(false);
         } else if (await input.photos.submit(fileNumber, data)) {
-          setImage(data.base64);
+          const base64 = await cropImage(
+            data.originalBase64,
+            data.size,
+            data.left,
+            data.top,
+            data.size,
+          );
+
+          setImage(base64);
           setIsLoading(false);
           setIsLoading_(false);
           setIsInvalid(false);
