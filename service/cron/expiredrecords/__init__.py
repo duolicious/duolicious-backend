@@ -1,11 +1,11 @@
-from service.cron.admintokens.sql import *
+from service.cron.expiredrecords.sql import *
 from service.cron.util import print_stacktrace
 import asyncio
 import os
 import psycopg
 
-INSERT_LAST_POLL_SECONDS = int(os.environ.get(
-    'DUO_CRON_ADMIN_TOKENS_POLL_SECONDS',
+EXPIRED_RECORDS_POLL_SECONDS = int(os.environ.get(
+    'DUO_CRON_EXPIRED_RECORDS_POLL_SECONDS',
     10,
 ))
 
@@ -24,15 +24,16 @@ _api_conninfo = psycopg.conninfo.make_conninfo(
     password=DB_PASS,
 )
 
-print('Hello from cron module: admintokens')
+print('Hello from cron module: expiredrecords')
 
-async def clean_admin_tokens_once():
+async def delete_expired_records_once():
     api_conn = await psycopg.AsyncConnection.connect(
         _api_conninfo,
         row_factory=psycopg.rows.dict_row
     )
 
-    cur = await api_conn.execute(Q_CLEAN_ADMIN_TOKENS)
+    cur = await api_conn.execute(Q_DELETE_EXPIRED_RECORDS)
+    await api_conn.commit()
     rows = await cur.fetchall()
 
     try:
@@ -41,11 +42,11 @@ async def clean_admin_tokens_once():
         count = 0
 
     if count:
-        print('Cleaned {count} admin token(s)')
+        print(f'Deleted {count} expired record(s)')
 
     await api_conn.close()
 
-async def clean_admin_tokens_forever():
+async def delete_expired_records_forever():
     while True:
-        await print_stacktrace(clean_admin_tokens_once)
-        await asyncio.sleep(INSERT_LAST_POLL_SECONDS)
+        await print_stacktrace(delete_expired_records_once)
+        await asyncio.sleep(EXPIRED_RECORDS_POLL_SECONDS)
