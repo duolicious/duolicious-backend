@@ -177,6 +177,13 @@ WITH searcher AS MATERIALIZED (
                 )
             LIMIT 1
         )
+    AND (
+            -- The users have at least a 50%% match
+            (personality <#> (SELECT personality FROM searcher)) < 1e-5
+        OR
+            -- Both users signed up before the introduction of the 50%% cut-off
+            prospect.id < 10630 AND %(searcher_person_id)s < 10630
+    )
 
     ORDER BY
         -- If this is changed, other queries will need changing too
