@@ -333,6 +333,9 @@ const login = async (username: string, password: string) => {
 
     _xmpp.on("error", (err) => {
       console.error(err);
+      if (err.message === "conflict - Replaced by new connection") {
+        notify('stream-error');
+      }
     });
 
 

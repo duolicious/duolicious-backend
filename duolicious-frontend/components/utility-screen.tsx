@@ -87,6 +87,7 @@ const UtilityScreen = ({
             fontSize: 24,
             textAlign: 'center',
           }}
+          selectable={false}
         >
           Duolicious
         </Text>

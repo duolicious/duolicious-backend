@@ -41,6 +41,7 @@ import { STATUS_URL } from './env/env';
 import { delay } from './util/util';
 import { ReportModal } from './components/report-modal';
 import { ImageCropper } from './components/image-cropper';
+import { StreamErrorModal } from './components/stream-error-modal';
 
 // TODO: iOS UI testing
 // TODO: Add the ability to reply to things (e.g. pictures, quiz responses) from people's profiles. You'll need to change the navigation to make it easier to reply to things. Consider breaking profiles into sections which can be replied to, each having one image or block of text. Letting people reply to specific things on the profile will improve intro quality.
@@ -342,6 +343,7 @@ const App = () => {
       <ReportModal/>
       <ImageCropper/>
       <WebSplashScreen loading={isLoading}/>
+      <StreamErrorModal/>
     </>
   );
 };

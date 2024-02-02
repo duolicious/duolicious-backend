@@ -134,6 +134,7 @@ const WelcomeScreen_ = ({navigation}) => {
               fontFamily: 'TruenoBold',
               fontSize: 20,
             }}
+            selectable={false}
           >
             Duolicious
           </Text>
