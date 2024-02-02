@@ -1298,6 +1298,10 @@ def get_update_notifications(email: str, type: str, frequency: str):
     else:
         return 'Invalid email address or notification frequency', 400
 
+def get_stats():
+    with api_tx('READ COMMITTED') as tx:
+        return tx.execute(Q_STATS).fetchone()
+
 def get_admin_ban_link(token: str):
     params = dict(token=token)
 
