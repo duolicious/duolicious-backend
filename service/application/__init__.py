@@ -241,6 +241,10 @@ def get_update_notifications():
         frequency=request.args.get('frequency', ''),
     )
 
+@get('/stats')
+def get_stats():
+    return person.get_stats()
+
 @get('/admin/ban-link/<token>')
 def get_admin_ban_link(token: str):
     return person.get_admin_ban_link(token)
