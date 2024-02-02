@@ -66,8 +66,8 @@ const StreamErrorModal = () => {
             textAlign: 'center',
           }}
         >
-          Duolicious is open another tab. Close all other tabs and refresh this
-          page.
+          Duolicious is open in another tab. Close all other tabs and refresh
+          this page.
         </DefaultText>
       </View>
     </View>
