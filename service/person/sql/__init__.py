@@ -1721,3 +1721,12 @@ WHERE
 RETURNING
     photo.uuid
 """
+
+Q_STATS = """
+SELECT
+    count(*) AS num_active_users
+FROM
+    person
+WHERE
+    activated
+"""
