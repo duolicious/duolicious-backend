@@ -1485,6 +1485,13 @@ SELECT
         LIMIT 1
     ) AS location,
     name,
+    email,
+    ARRAY(
+        SELECT
+            ip_address::TEXT
+        FROM duo_session
+        WHERE email = p.email
+    ) AS ip_addresses,
     gender_id,
     count_answers,
     occupation,
