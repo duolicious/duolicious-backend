@@ -152,15 +152,22 @@ WITH random_otp AS (
     SELECT LPAD(FLOOR(RANDOM() * (10e5 + 1))::TEXT, 6, '0') AS otp
 ), zero_otp AS (
     SELECT '000000' AS otp
+), is_registered AS (
+    SELECT 1 WHERE     EXISTS (SELECT 1 FROM person WHERE email = %(email)s)
+), is_unregistered AS (
+    SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM person WHERE email = %(email)s)
+), domain AS (
+    SELECT
+        SUBSTRING(%(email)s FROM POSITION('@' IN %(email)s) + 1) AS domain
 ), otp AS (
     SELECT
         CASE
         WHEN
-                %(email)s::TEXT ILIKE '%%@example.com'
+                EXISTS (SELECT 1 FROM domain WHERE domain = 'example.com')
             AND
-                EXISTS (SELECT 1 FROM person WHERE email = %(email)s)
+                EXISTS (SELECT 1 FROM is_registered)
             OR
-                %(email)s::TEXT ILIKE '%%@example.com'
+                EXISTS (SELECT 1 FROM domain WHERE domain = 'example.com')
             AND
                 %(is_dev)s
         THEN
@@ -182,6 +189,21 @@ WITH random_otp AS (
                 ip_address = %(ip_address)s
             AND
                 expires_at > NOW()
+        )
+    AND
+        NOT EXISTS (
+            SELECT
+                1
+            FROM
+                bad_email_domain
+            JOIN
+                domain
+            ON
+                domain.domain = bad_email_domain.domain
+            JOIN
+                is_unregistered
+            ON
+                TRUE
         )
 )
 """

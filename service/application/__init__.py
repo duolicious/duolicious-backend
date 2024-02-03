@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 from flask import request
 import duotypes as t
 from service import (
@@ -27,16 +27,34 @@ from service.application.decorators import (
     shared_test_rate_limit,
 )
 
-_init_sql_file = os.path.join(
-        os.path.dirname(__file__), '..', '..',
-        'init.sql')
+_init_sql_file = (
+    Path(__file__).parent.parent.parent / 'init.sql')
+
+_email_domains_bad_file = (
+    Path(__file__).parent.parent.parent / 'email-domains-bad.sql')
+
+_email_domains_good_file = (
+    Path(__file__).parent.parent.parent / 'email-domains-good.sql')
+
 
 def init_db():
     with open(_init_sql_file, 'r') as f:
         init_sql_file = f.read()
 
+    with open(_email_domains_bad_file, 'r') as f:
+        email_domains_bad_file = f.read()
+
+    with open(_email_domains_good_file, 'r') as f:
+        email_domains_good_file = f.read()
+
     with api_tx() as tx:
         tx.execute(init_sql_file)
+
+    with api_tx() as tx:
+        tx.execute(email_domains_bad_file)
+
+    with api_tx() as tx:
+        tx.execute(email_domains_good_file)
 
 @post('/request-otp', limiter=shared_otp_limit)
 @validate(t.PostRequestOtp)
