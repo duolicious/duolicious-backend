@@ -168,8 +168,7 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
               opacity: numUsers < 0 ? 0 : 1,
             }}
           >
-            Join {numUsers.toLocaleString()} active
-            user{numUsers === 1 ? '' : 's'}
+            {numUsers.toLocaleString()} active member{numUsers === 1 ? '' : 's'}
           </DefaultText>
         </View>
         <View style={{
