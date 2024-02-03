@@ -22,7 +22,7 @@ import { Logo16 } from './logo';
 
 const Stack = createNativeStackNavigator();
 
-const WelcomeScreen = () => {
+const WelcomeScreen = (numUsers: number) => () => {
   return (
     <Stack.Navigator
       screenOptions={{
@@ -30,14 +30,14 @@ const WelcomeScreen = () => {
         animation: 'slide_from_right',
       }}
     >
-      <Stack.Screen name="Welcome Screen" component={WelcomeScreen_} />
+      <Stack.Screen name="Welcome Screen" component={WelcomeScreen_(numUsers)} />
 
       <Stack.Screen name="Create Account Or Sign In Screen" component={OptionScreen} />
     </Stack.Navigator>
   );
 };
 
-const WelcomeScreen_ = ({navigation}) => {
+const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [emailNotSent, setEmailNotSent] = useState(false);
@@ -158,6 +158,18 @@ const WelcomeScreen_ = ({navigation}) => {
           >
             {/* Date, chat & make new friends */}
             Online dating exclusively for 4chan
+          </DefaultText>
+          <DefaultText
+            style={{
+              marginTop: 10,
+              width: 320,
+              textAlign: 'center',
+              color: 'white',
+              opacity: numUsers < 0 ? 0 : 1,
+            }}
+          >
+            Join {numUsers.toLocaleString()} active
+            user{numUsers === 1 ? '' : 's'}
           </DefaultText>
         </View>
         <View style={{

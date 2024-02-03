@@ -131,6 +131,7 @@ let signedInUser: SignedInUser | undefined;
 let setSignedInUser: React.Dispatch<React.SetStateAction<typeof signedInUser>>;
 
 const App = () => {
+  const [numUsers, setNumUsers] = useState(-1);
   const [isLoading, setIsLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
   [signedInUser, setSignedInUser] = useState<SignedInUser | undefined>();
@@ -222,6 +223,13 @@ const App = () => {
     setReferrerId(referrerId_);
   }, []);
 
+  const fetchNumUsers = useCallback(async () => {
+    const response = await japi('GET', '/stats');
+    if (response.ok) {
+      setNumUsers(response.json.num_active_users);
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
       await Promise.all([
@@ -230,6 +238,7 @@ const App = () => {
         fetchSignInState(),
         updateReferrerId(),
         fetchServerStatusState(),
+        fetchNumUsers(),
       ]);
 
       setIsLoading(false);
@@ -333,7 +342,7 @@ const App = () => {
                 </>
               ) : (
                 <>
-                  <Tab.Screen name="Welcome" component={WelcomeScreen} />
+                  <Tab.Screen name="Welcome" component={WelcomeScreen(numUsers)} />
                 </>
               )
             }
