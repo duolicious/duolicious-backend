@@ -258,11 +258,11 @@ const GivenName = forwardRef((props: InputProps<OptionGroupGivenName>, ref) => {
         style={{
           textAlign: 'center',
           color: 'white',
-          marginTop: 5,
+          marginTop: 15,
           opacity: isInvalid ? 1 : 0,
         }}
       >
-        That doesn't look like a real name 🤨
+        That doesn’t look like a real name 🤨
       </DefaultText>
     </>
   );

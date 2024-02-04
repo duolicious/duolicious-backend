@@ -165,11 +165,11 @@ const DatePicker = forwardRef((
           elevation: -1,
           textAlign: 'center',
           color: 'white',
-          marginTop: 5,
+          marginTop: 15,
           opacity: isInvalid ? 1 : 0
         }}
       >
-        That doesn't look like a valid date of birth 🤨
+        That doesn’t look like a valid date of birth 🤨
       </DefaultText>
     </>
   );
