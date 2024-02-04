@@ -88,7 +88,9 @@ q "delete from onboardee"
 q "delete from undeleted_photo"
 ../util/create-user.sh unchanged 0 0
 
-assume_role user1
+response=$(jc POST /request-otp -d '{ "email": "user1@example.com" }')
+SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
+jc POST /check-otp -d '{ "otp": "000000" }'
 
 echo Upload onboardee photos 1.jpg and 2.jpg
 jc PATCH /onboardee-info \
