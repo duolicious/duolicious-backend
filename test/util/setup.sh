@@ -104,11 +104,46 @@ rand_image () {
 }
 
 assume_role () {
-  local username=$1
-  local response=$(jc POST /request-otp -d '{ "email": "'"$username"'@example.com" }')
+  local username_or_email=$1
+  local email
+
+  # Check if the username_or_email contains an '@' symbol
+  if [[ "$username_or_email" == *@* ]]; then
+    # Input is an email
+    email="$username_or_email"
+  else
+    # Input is a username, append domain
+    email="$username_or_email@example.com"
+  fi
+
+  local response=$(jc POST /request-otp -d '{ "email": "'"$email"'" }')
   SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
-  jc POST /check-otp -d '{ "otp": "000000" }'
-  export SESSION_TOKEN
+
+  if [[ "$username_or_email" == *@example.com ]]
+  then
+    response=$(jc POST /check-otp -d '{ "otp": "000000" }')
+  else
+    # If we were given a non-@example.com email then the OTP probably won't be
+    # 000000.
+    local otp=$(
+      q "
+        select otp
+        from duo_session
+        where email='$email'
+        order by otp_expiry desc
+        limit 1
+      "
+    )
+    response=$(jc POST /check-otp -d '{ "otp": "'"$otp"'" }')
+  fi
+
+  local onboarded=$(echo "$response" | jq -r '.onboarded')
+
+  if [[ "$onboarded" != true ]]; then
+    return 1
+  else
+    export SESSION_TOKEN
+  fi
 }
 
 get_id () {

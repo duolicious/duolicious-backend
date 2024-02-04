@@ -48,6 +48,18 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE STRICT;
 
 --------------------------------------------------------------------------------
+-- BLOCKED EMAIL DOMAINS
+--------------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS bad_email_domain (
+    domain TEXT PRIMARY KEY
+);
+
+CREATE TABLE IF NOT EXISTS good_email_domain (
+    domain TEXT PRIMARY KEY
+);
+
+--------------------------------------------------------------------------------
 -- BASICS
 --------------------------------------------------------------------------------
 
