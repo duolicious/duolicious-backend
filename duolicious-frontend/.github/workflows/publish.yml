@@ -19,6 +19,7 @@ jobs:
               X-Frame-Options: DENY
               Access-Control-Allow-Origin: ${DUO_API_URL}
           EOF
+          sed -i 's|<meta charset="utf-8"/>|&<meta name="description" content="Free dating online. Zero ads. Unlimited messages. Over 2000 match questions from anime to life goals. Fall in love and find a relationship at Duolicious."/>|g' web-build/index.html
         env:
           NODE_OPTIONS: --openssl-legacy-provider
           DUO_API_URL:            https://api.duolicious.app

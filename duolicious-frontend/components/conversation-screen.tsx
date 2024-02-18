@@ -4,11 +4,12 @@ import {
   Image,
   ImageBackground,
   ListRenderItemInfo,
+  Platform,
   Pressable,
   ScrollView,
   Text,
-  TextStyle,
   TextInput,
+  TextStyle,
   View,
   ViewStyle,
 } from 'react-native';
@@ -29,6 +30,7 @@ import {
   Message,
   MessageStatus,
   fetchConversation,
+  markDisplayed,
   onReceiveMessage,
   refreshInbox,
   sendMessage,
@@ -243,11 +245,15 @@ const ConversationScreen = ({navigation, route}) => {
   const hasFetchedAll = useRef(false);
   const hasFinishedFirstLoad = useRef(false);
   const isFetchingNextPage = useRef(false);
+  const [isFocused, setIsFocused] = useState(true);
 
   const personId: number = route?.params?.personId;
   const name: string = route?.params?.name;
   const imageUuid: number = route?.params?.imageUuid;
   const isAvailableUser: boolean = route?.params?.isAvailableUser ?? true;
+  const lastMessage = (messages && messages.length) ?
+    messages[messages.length - 1] :
+    null;
 
   const listRef = useRef<ScrollView>(null)
 
@@ -265,9 +271,9 @@ const ConversationScreen = ({navigation, route}) => {
   const scrollToEnd = useCallback(() => {
     if (listRef.current && !hasScrolled.current) {
       listRef.current.scrollToEnd({animated: true});
-      hasScrolled.current = true;
     }
   }, [listRef.current]);
+  scrollToEnd();
 
   const onPressSend = useCallback(async (text: string): Promise<MessageStatus> => {
     const isFirstMessage = messages === null || messages.length === 0;
@@ -348,6 +354,9 @@ const ConversationScreen = ({navigation, route}) => {
     return layoutMeasurement.height + contentOffset.y >=
       contentSize.height - paddingToBottom;
   };
+  const isAtBottom = ({layoutMeasurement, contentOffset, contentSize}) => {
+    return layoutMeasurement.height + contentOffset.y >= contentSize.height;
+  };
 
   const onScroll = useCallback(({nativeEvent}) => {
     if (isCloseToTop(nativeEvent) && hasFinishedFirstLoad.current) {
@@ -356,23 +365,63 @@ const ConversationScreen = ({navigation, route}) => {
     if (isCloseToBottom(nativeEvent)) {
       hasFinishedFirstLoad.current = true;
     }
+    if (isAtBottom(nativeEvent)) {
+      hasScrolled.current = true;
+    }
   }, [maybeLoadNextPage]);
 
   useEffect(() => {
     maybeLoadNextPage();
 
-    return onReceiveMessage(_onReceiveMessage, personId);
-  }, []);
+    return onReceiveMessage(_onReceiveMessage, personId, isFocused);
+  }, [
+    maybeLoadNextPage,
+    onReceiveMessage,
+    _onReceiveMessage,
+    personId,
+    isFocused,
+  ]);
 
   const toggleMenu = useCallback(() => {
     setShowMenu(x => !x);
   }, []);
+
+  const markLastMessageRead = useCallback(async () => {
+    if (!lastMessage) {
+      return;
+    }
+
+    await markDisplayed(lastMessage);
+  }, [lastMessage]);
 
   useEffect(() => {
     return listen(`skip-profile-${personId}`, () => {
       navigation.popToTop();
     });
   }, [navigation, personId]);
+
+  if (Platform.OS === 'web') {
+    useEffect(() => {
+      const handleFocus = () => {
+        markLastMessageRead();
+        setIsFocused(true);
+      };
+
+      const handleBlur = () => {
+        setIsFocused(false);
+      };
+
+      // Add event listeners
+      window.addEventListener('focus', handleFocus);
+      window.addEventListener('blur', handleBlur);
+
+      // Clean up
+      return () => {
+        window.removeEventListener('focus', handleFocus);
+        window.removeEventListener('blur', handleBlur);
+      };
+    }, [markLastMessageRead]);
+  }
 
   return (
     <>

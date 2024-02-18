@@ -377,7 +377,7 @@ const login = async (username: string, password: string) => {
   }
 }
 
-const _markDisplayed = async (message: Message) => {
+const markDisplayed = async (message: Message) => {
   if (!_xmpp) return;
   if (message.fromCurrentUser) return;
 
@@ -536,6 +536,7 @@ const setConversationArchived = (personId: number, isArchived: boolean) => {
 const onReceiveMessage = (
   callback?: (message: Message) => void,
   otherPersonId?: number,
+  doMarkDisplayed?: boolean,
 ): (() => void) | undefined => {
   if (!_xmpp)
     return undefined;
@@ -583,9 +584,10 @@ const onReceiveMessage = (
       jidToPersonId(from.toString()),
       bodyText.toString(),
     );
-    if (otherPersonId !== undefined) {
-      await _markDisplayed(message);
+    if (otherPersonId !== undefined && doMarkDisplayed !== false) {
+      await markDisplayed(message);
     }
+
     if (callback !== undefined) {
       callback(message);
     }
@@ -694,7 +696,7 @@ const _fetchConversation = async (
 
     const lastMessage = collected[collected.length - 1];
     if (lastMessage) {
-      await _markDisplayed(lastMessage);
+      await markDisplayed(lastMessage);
     }
 
     if (_xmpp) {
@@ -859,6 +861,7 @@ export {
   inboxStats,
   login,
   logout,
+  markDisplayed,
   observeInbox,
   onReceiveMessage,
   refreshInbox,

@@ -42,6 +42,7 @@ import { delay } from './util/util';
 import { ReportModal } from './components/report-modal';
 import { ImageCropper } from './components/image-cropper';
 import { StreamErrorModal } from './components/stream-error-modal';
+import { Inbox, inboxStats, observeInbox } from './xmpp/xmpp';
 
 // TODO: iOS UI testing
 // TODO: Add the ability to reply to things (e.g. pictures, quiz responses) from people's profiles. You'll need to change the navigation to make it easier to reply to things. Consider breaking profiles into sections which can be replied to, each having one image or block of text. Letting people reply to specific things on the profile will improve intro quality.
@@ -131,6 +132,7 @@ let signedInUser: SignedInUser | undefined;
 let setSignedInUser: React.Dispatch<React.SetStateAction<typeof signedInUser>>;
 
 const App = () => {
+  const [numUnreadTitle, setNumUnreadTitle] = useState(0);
   const [numUsers, setNumUsers] = useState(-1);
   const [isLoading, setIsLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
@@ -276,6 +278,15 @@ const App = () => {
     history.pushState((history?.state ?? 0) + 1, "", "#");
   }, []);
 
+  const onChangeInbox = useCallback((inbox: Inbox | null) => {
+    const stats = inbox ? inboxStats(inbox) : undefined;
+    const num = stats?.numChats ?
+      stats?.numUnreadChats :
+      stats?.numUnreadIntros;
+
+    setNumUnreadTitle(num ?? 0);
+  }, [inboxStats, setNumUnreadTitle]);
+
   if (Platform.OS === 'web') {
     useEffect(() => {
       const handlePopstate = (ev) => {
@@ -290,6 +301,10 @@ const App = () => {
 
       window.addEventListener('popstate', handlePopstate);
     }, []);
+
+    useEffect(() => {
+      return observeInbox(onChangeInbox);
+    }, [observeInbox, onChangeInbox]);
   }
 
   const onLayoutRootView = useCallback(async () => {
@@ -317,7 +332,8 @@ const App = () => {
           }}
           onReady={onLayoutRootView}
           documentTitle={{
-            formatter: () => "Duolicious"
+            formatter: () =>
+              (numUnreadTitle ? `(${numUnreadTitle}) ` : '') + 'Duolicious'
           }}
         >
           <StatusBar
