@@ -1,41 +1,17 @@
+from database.asyncdatabase import api_tx, chat_tx
 from dataclasses import dataclass
 from service.cron.emailnotifications.sql import *
 from service.cron.emailnotifications.template import emailtemplate
-from service.cron.util import join_lists_of_dicts, print_stacktrace
-import asyncio
-import json
-import os
-import psycopg
+from service.cron.util import join_lists_of_dicts, print_stacktrace, MAX_RANDOM_START_DELAY
 from smtp import aws_smtp
-from pathlib import Path
+import asyncio
+import os
+import random
 
 EMAIL_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_EMAIL_POLL_SECONDS',
     '10',
 ))
-
-DB_HOST      = os.environ['DUO_DB_HOST']
-DB_PORT      = os.environ['DUO_DB_PORT']
-DB_USER      = os.environ['DUO_DB_USER']
-DB_PASS      = os.environ['DUO_DB_PASS']
-DB_CHAT_NAME = os.environ['DUO_DB_CHAT_NAME']
-DB_API_NAME  = os.environ['DUO_DB_API_NAME']
-
-_api_conninfo = psycopg.conninfo.make_conninfo(
-    host=DB_HOST,
-    port=DB_PORT,
-    dbname=DB_API_NAME,
-    user=DB_USER,
-    password=DB_PASS,
-)
-
-_chat_conninfo = psycopg.conninfo.make_conninfo(
-    host=DB_HOST,
-    port=DB_PORT,
-    dbname=DB_CHAT_NAME,
-    user=DB_USER,
-    password=DB_PASS,
-)
 
 print('Hello from cron module: emailnotifications')
 
@@ -94,42 +70,34 @@ def send_notification(row: PersonNotification):
 
     aws_smtp.send(**send_args)
 
-async def update_last_notification_time(chat_conn, row: PersonNotification):
+async def update_last_notification_time(row: PersonNotification):
     params = dict(username=row.username)
 
-    if row.has_intro:
-        await chat_conn.execute(Q_UPDATE_LAST_INTRO_NOTIFICATION_TIME, params)
-    if row.has_chat:
-        await chat_conn.execute(Q_UPDATE_LAST_CHAT_NOTIFICATION_TIME, params)
-    await chat_conn.commit()
+    async with chat_tx() as tx:
+        if row.has_intro:
+            await tx.execute(Q_UPDATE_LAST_INTRO_NOTIFICATION_TIME, params)
+        if row.has_chat:
+            await tx.execute(Q_UPDATE_LAST_CHAT_NOTIFICATION_TIME, params)
 
-async def maybe_send_notification(chat_conn, row: PersonNotification):
+async def maybe_send_notification(row: PersonNotification):
     if not do_send(row):
         return
     print('SENDING:', str(row))
 
     send_notification(row)
-    await update_last_notification_time(chat_conn, row)
+    await update_last_notification_time(row)
 
 async def send_notifications_once():
-    api_conn  = await psycopg.AsyncConnection.connect(
-        _api_conninfo,
-        row_factory=psycopg.rows.dict_row
-    )
+    async with chat_tx() as tx:
+        cur_unread_inbox = await tx.execute(Q_UNREAD_INBOX)
+        rows_unread_inbox = await cur_unread_inbox.fetchall()
 
-    chat_conn = await psycopg.AsyncConnection.connect(
-        _chat_conninfo,
-        row_factory=psycopg.rows.dict_row
-    )
-
-    cur_unread_inbox = await chat_conn.execute(Q_UNREAD_INBOX)
-    rows_unread_inbox = await cur_unread_inbox.fetchall()
-
-    cur_notification_settings = await api_conn.execute(
-        Q_NOTIFICATION_SETTINGS,
-        params=dict(ids=[r['person_id'] for r in rows_unread_inbox])
-    )
-    rows_notification_settings = await cur_notification_settings.fetchall()
+    async with api_tx() as tx:
+        cur_notification_settings = await tx.execute(
+            Q_NOTIFICATION_SETTINGS,
+            params=dict(ids=[r['person_id'] for r in rows_unread_inbox])
+        )
+        rows_notification_settings = await cur_notification_settings.fetchall()
 
     joined = join_lists_of_dicts(
         rows_unread_inbox,
@@ -139,12 +107,10 @@ async def send_notifications_once():
     person_notifications = [PersonNotification(**j) for j in joined]
 
     for row in person_notifications:
-        await maybe_send_notification(chat_conn, row)
-
-    await api_conn.close()
-    await chat_conn.close()
+        await maybe_send_notification(row)
 
 async def send_notifications_forever():
+    await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(send_notifications_once)
         await asyncio.sleep(EMAIL_POLL_SECONDS)

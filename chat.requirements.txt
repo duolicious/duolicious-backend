@@ -1,4 +1,5 @@
 lxml
-psycopg[pool]
+psycopg-binary==3.1.8
+psycopg==3.1.8
 regex
 websockets

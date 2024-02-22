@@ -1184,6 +1184,11 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
+-- TODO: Take duolicious down
+-- TODO: Delete this line and the ones in the cron module
+-- TODO: bring duolicious up
+DELETE FROM undeleted_photo;
+
 --------------------------------------------------------------------------------
 
 -- TODO: Periodically delete expired tokens

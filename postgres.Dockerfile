@@ -1,4 +1,4 @@
-FROM postgres
+FROM postgres:16
 
 RUN : \
   && pgversion=$(psql --version | awk '{print $3}' | cut -d'.' -f1) \

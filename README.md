@@ -69,3 +69,9 @@ Terminal A:
 ^C
 docker-compose up
 ```
+
+## Database logs and config
+
+* /var/lib/postgresql/data/postgresql.conf
+* /var/lib/postgresql/data/log/*
+

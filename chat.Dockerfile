@@ -3,6 +3,7 @@ FROM mongooseim/mongooseim:6.1.0-5-gabdcd0b48
 ENV JOIN_CLUSTER=false
 ENV DUO_API_HOST=http://localhost:5000
 ENV DUO_USE_VENV=false
+ENV PYTHONUNBUFFERED=true
 
 # MongooseIM config
 COPY service/chat/container/auth.sh /usr/lib/mongooseim/etc/auth.sh

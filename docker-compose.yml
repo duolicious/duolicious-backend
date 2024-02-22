@@ -13,7 +13,29 @@ services:
     build:
       context: .
       dockerfile: postgres.Dockerfile
-    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all -c max_connections=200
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c logging_collector=on
+      -c log_connections=on
+      -c log_disconnections=on
+      -c client_min_messages=NOTICE
+      -c log_min_messages=NOTICE
+      -c log_error_verbosity=DEFAULT
+      -c max_connections=100
+      -c shared_buffers=2GB
+      -c effective_cache_size=6GB
+      -c maintenance_work_mem=512MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=4
+      -c effective_io_concurrency=2
+      -c work_mem=10485kB
+      -c huge_pages=off
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
     ports:
       - "5433:5432"
     environment:
@@ -77,6 +99,8 @@ services:
       - "5442:5442"
       - "5443:5443"
     volumes:
+      - ./database/__init__.py:/app/database/__init__.py:ro
+      - ./database/asyncdatabase/__init__.py:/app/database/asyncdatabase/__init__.py:ro
       - ./service/chat/__init__.py:/app/service/chat/__init__.py:ro
       - ./service/chat/container/mongooseim.toml:/mongooseim.template.toml:ro
       - ./service/chat/container/init.sql:/init.sql:ro
@@ -140,6 +164,8 @@ services:
 
       DUO_CRON_EXPIRED_RECORDS_POLL_SECONDS: '1'
 
+      DUO_CRON_MAX_RANDOM_START_DELAY: '0'
+
   s3mock:
     image: adobe/s3mock
 
@@ -157,6 +183,16 @@ services:
     ports:
       - "1025:1025"
       - "8025:8025"
+
+  pgadmin:
+    image: dpage/pgadmin4:7.3
+
+    ports:
+      - "8090:80"
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: user@example.com
+      PGADMIN_DEFAULT_PASSWORD: password
 
 networks:
   default:

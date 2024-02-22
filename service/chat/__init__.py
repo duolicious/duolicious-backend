@@ -1,11 +1,27 @@
-from database import api_tx, chat_tx
+from database.asyncdatabase import api_tx, chat_tx, check_connections_forever
 from lxml import etree
 import asyncio
 import base64
 import duohash
 import regex
-import websockets
 import traceback
+import websockets
+
+
+# TODO
+import time
+
+class Timer:
+    def __init__(self, name="Timer"):
+        self.name = name
+
+    def __enter__(self):
+        self.start_time = time.time()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        end_time = time.time()
+        elapsed_time = end_time - self.start_time
+        print(f"{self.name}: {elapsed_time:.6f} seconds")
 
 # TODO: Push notifications, yay
 # TODO: async db ops
@@ -103,19 +119,22 @@ def normalize_message(message_str):
 def is_message_too_long(message_str):
     return len(message_str) > MAX_MESSAGE_LEN
 
-def is_message_unique(message_str):
+async def is_message_unique(message_str):
     normalized = normalize_message(message_str)
     hashed = duohash.md5(normalized)
 
     params = dict(hash=hashed)
 
-    with chat_tx('READ COMMITTED') as tx:
-        if tx.execute(Q_UNIQUENESS, params).fetchall():
-            return True
-        else:
-            return False
+    with Timer('is_message_unique'):
+        async with chat_tx('READ COMMITTED') as tx:
+            cursor = await tx.execute(Q_UNIQUENESS, params)
+            rows = await cursor.fetchall()
+            if rows:
+                return True
+            else:
+                return False
 
-def is_message_blocked(username, to_jid):
+async def is_message_blocked(username, to_jid):
     try:
         from_username = int(username)
         to_username = int(to_jid.split('@')[0])
@@ -125,15 +144,21 @@ def is_message_blocked(username, to_jid):
             to_username=to_username,
         )
 
-        with api_tx('READ COMMITTED') as tx:
-            return bool(tx.execute(Q_IS_SKIPPED, params).fetchall())
+        with Timer('is_message_blocked'):
+            async with api_tx('READ COMMITTED') as tx:
+                with Timer('is_message_blocked - cursor'):
+                    cursor = await tx.execute(Q_IS_SKIPPED, params)
+                with Timer('is_message_blocked - fetched'):
+                    fetched = await cursor.fetchall()
+                with Timer('is_message_blocked - return'):
+                    return bool(fetched)
     except:
         print(traceback.format_exc())
         return True
 
     return False
 
-def set_messaged(username, to_jid):
+async def set_messaged(username, to_jid):
     from_username = int(username)
     to_username = int(to_jid.split('@')[0])
 
@@ -142,8 +167,9 @@ def set_messaged(username, to_jid):
         object_person_id=to_username,
     )
 
-    with api_tx('READ COMMITTED') as tx:
-        tx.execute(Q_SET_MESSAGED, params)
+    with Timer('set_messaged'):
+        async with api_tx('READ COMMITTED') as tx:
+            await tx.execute(Q_SET_MESSAGED, params)
 
 def process_auth(message_str, username):
     if username.username is not None:
@@ -168,22 +194,22 @@ def process_auth(message_str, username):
     except Exception as e:
         pass
 
-def process_duo_message(message_xml, username):
+async def process_duo_message(message_xml, username):
     id, to_jid, do_check_uniqueness, maybe_message_body = get_message_attrs(
         message_xml)
 
     if id and maybe_message_body and is_message_too_long(maybe_message_body):
         return [f'<duo_message_too_long id="{id}"/>'], []
 
-    if id and is_message_blocked(username, to_jid):
+    if id and await is_message_blocked(username, to_jid):
         return [f'<duo_message_blocked id="{id}"/>'], []
 
     if id and maybe_message_body and do_check_uniqueness and \
-            not is_message_unique(maybe_message_body):
+            not await is_message_unique(maybe_message_body):
         return [f'<duo_message_not_unique id="{id}"/>'], []
 
     if id:
-        set_messaged(username, to_jid)
+        await set_messaged(username, to_jid)
         return (
             [
                 f'<duo_message_delivered id="{id}"/>'
@@ -208,7 +234,7 @@ async def process(src, dst, username):
     async for message in src:
         process_auth(message, username)
 
-        to_src, to_dst = process_duo_message(message, username.username)
+        to_src, to_dst = await process_duo_message(message, username.username)
 
         for m in to_dst:
             await dst.send(m)
@@ -234,7 +260,15 @@ async def proxy(local_ws, path):
         for task in pending:
             task.cancel()
 
-start_server = websockets.serve(proxy, '0.0.0.0', 5443, subprotocols=['xmpp'])
+async def serve():
+    async with websockets.serve(proxy, '0.0.0.0', 5443, subprotocols=['xmpp']):
+        await asyncio.Future()
 
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+
+async def main():
+    await asyncio.gather(
+        serve(),
+        check_connections_forever(),
+    )
+
+asyncio.run(main())

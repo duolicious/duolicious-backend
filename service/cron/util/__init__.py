@@ -1,3 +1,4 @@
+import os
 import traceback
 
 def join_lists_of_dicts(list1, list2, join_key):
@@ -13,3 +14,8 @@ async def print_stacktrace(fun):
         await fun()
     except:
         print(traceback.format_exc())
+
+MAX_RANDOM_START_DELAY = int(os.environ.get(
+    'DUO_CRON_MAX_RANDOM_START_DELAY',
+    15,
+))
