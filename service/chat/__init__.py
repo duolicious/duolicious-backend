@@ -7,24 +7,7 @@ import regex
 import traceback
 import websockets
 
-
-# TODO
-import time
-
-class Timer:
-    def __init__(self, name="Timer"):
-        self.name = name
-
-    def __enter__(self):
-        self.start_time = time.time()
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        end_time = time.time()
-        elapsed_time = end_time - self.start_time
-        print(f"{self.name}: {elapsed_time:.6f} seconds")
-
 # TODO: Push notifications, yay
-# TODO: async db ops
 # TODO: Lock down the XMPP server by only allowing certain types of message
 
 Q_UNIQUENESS = """
@@ -125,14 +108,13 @@ async def is_message_unique(message_str):
 
     params = dict(hash=hashed)
 
-    with Timer('is_message_unique'):
-        async with chat_tx('READ COMMITTED') as tx:
-            cursor = await tx.execute(Q_UNIQUENESS, params)
-            rows = await cursor.fetchall()
-            if rows:
-                return True
-            else:
-                return False
+    async with chat_tx() as tx:
+        cursor = await tx.execute(Q_UNIQUENESS, params)
+        rows = await cursor.fetchall()
+        if rows:
+            return True
+        else:
+            return False
 
 async def is_message_blocked(username, to_jid):
     try:
@@ -144,14 +126,10 @@ async def is_message_blocked(username, to_jid):
             to_username=to_username,
         )
 
-        with Timer('is_message_blocked'):
-            async with api_tx('READ COMMITTED') as tx:
-                with Timer('is_message_blocked - cursor'):
-                    cursor = await tx.execute(Q_IS_SKIPPED, params)
-                with Timer('is_message_blocked - fetched'):
-                    fetched = await cursor.fetchall()
-                with Timer('is_message_blocked - return'):
-                    return bool(fetched)
+        async with api_tx() as tx:
+            cursor = await tx.execute(Q_IS_SKIPPED, params)
+            fetched = await cursor.fetchall()
+            return bool(fetched)
     except:
         print(traceback.format_exc())
         return True
@@ -167,9 +145,8 @@ async def set_messaged(username, to_jid):
         object_person_id=to_username,
     )
 
-    with Timer('set_messaged'):
-        async with api_tx('READ COMMITTED') as tx:
-            await tx.execute(Q_SET_MESSAGED, params)
+    async with api_tx() as tx:
+        await tx.execute(Q_SET_MESSAGED, params)
 
 def process_auth(message_str, username):
     if username.username is not None:

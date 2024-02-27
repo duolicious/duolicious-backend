@@ -7,19 +7,6 @@ import threading
 import time
 import traceback
 
-# TODO
-class Timer:
-    def __init__(self, name="Timer"):
-        self.name = name
-
-    def __enter__(self):
-        self.start_time = time.time()
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        end_time = time.time()
-        elapsed_time = end_time - self.start_time
-        print(f"{self.name}: {elapsed_time:.6f} seconds")
-
 DB_HOST = os.environ['DUO_DB_HOST']
 DB_PORT = os.environ['DUO_DB_PORT']
 DB_USER = os.environ['DUO_DB_USER']
@@ -62,40 +49,35 @@ _chat_conn_lock = asyncio.Lock()
 
 class api_tx:
     def __init__(self, isolation_level=_default_transaction_isolation):
-        with Timer('api init'):
-            normalized_isolation_level = isolation_level.upper()
+        normalized_isolation_level = isolation_level.upper()
 
-            if normalized_isolation_level not in _valid_isolation_levels:
-                raise ValueError(isolation_level)
+        if normalized_isolation_level not in _valid_isolation_levels:
+            raise ValueError(isolation_level)
 
-            self.isolation_level = normalized_isolation_level
+        self.isolation_level = normalized_isolation_level
 
-            self.cur = None
+        self.cur = None
 
     async def __aenter__(self):
         await _api_conn_lock.acquire()
 
         global _api_conn
-        with Timer('api maybe create connection'):
-            if not _api_conn or _api_conn.closed:
-                with Timer('api create connection'):
-                    try:
-                        _api_conn = await psycopg.AsyncConnection.connect(
-                            conninfo=_api_conninfo,
-                            row_factory=psycopg.rows.dict_row,
-                        )
-                    except:
-                        print(traceback.format_exc())
-                        raise
+        if not _api_conn or _api_conn.closed:
+            try:
+                _api_conn = await psycopg.AsyncConnection.connect(
+                    conninfo=_api_conninfo,
+                    row_factory=psycopg.rows.dict_row,
+                )
+            except:
+                print(traceback.format_exc())
+                raise
 
-        with Timer('api get cursor'):
-            self.cur = _api_conn.cursor()
+        self.cur = _api_conn.cursor()
 
         if self.isolation_level != _default_transaction_isolation:
-            with Timer('api set isolation level'):
-                await self.cur.execute(
-                    f'SET TRANSACTION ISOLATION LEVEL {self.isolation_level}'
-                )
+            await self.cur.execute(
+                f'SET TRANSACTION ISOLATION LEVEL {self.isolation_level}'
+            )
         return self.cur
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
