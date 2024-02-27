@@ -1,3 +1,2 @@
 boto3
-psycopg-binary==3.1.8
-psycopg==3.1.8
+psycopg

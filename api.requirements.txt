@@ -4,7 +4,6 @@ boto3
 flask-cors
 gunicorn
 openai
-psycopg-binary==3.1.8
-psycopg==3.1.8
+psycopg
 pydantic[email]
 Flask-Limiter
