@@ -3,9 +3,6 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 
-# TODO: Modification of photo during onboarding
-# TODO: Modification of photo after onboarding
-
 source ../util/setup.sh
 
 img1=$(rand_image)
@@ -178,8 +175,6 @@ c GET "/admin/delete-photo/${uuid}"
 [[ "$(q "select count(*) from onboardee_photo")" == "0" ]]
 [[ "$(q "select count(*) from undeleted_photo")" == "1" ]]
 
-# TODO: Will this work? I think the cron service needs to be disabled for the other
-# tests to run reliably. But this particular test needs it enabled
 echo Expired onboardee
 q "delete from banned_person"
 q "delete from duo_session"
