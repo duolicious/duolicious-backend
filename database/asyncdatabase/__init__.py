@@ -168,7 +168,7 @@ async def _check_api_connection_forever():
                 await tx.execute('SELECT 1')
         except:
             print(traceback.format_exc())
-        await asyncio.sleep(1)
+        await asyncio.sleep(random.randint(30, 90))
 
 async def _check_chat_connection_forever():
     while True:
@@ -177,7 +177,7 @@ async def _check_chat_connection_forever():
                 await tx.execute('SELECT 1')
         except:
             print(traceback.format_exc())
-        await asyncio.sleep(1)
+        await asyncio.sleep(random.randint(30, 90))
 
 async def check_connections_forever():
     await asyncio.gather(
