@@ -513,11 +513,6 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
 -- INDEXES
 --------------------------------------------------------------------------------
 
-CREATE INDEX IF NOT EXISTS idx__person__activated__gender_id__coordinates
-    ON person
-    USING GIST(gender_id, coordinates)
-    WHERE activated;
-
 CREATE INDEX IF NOT EXISTS idx__person__activated__coordinates__gender_id
     ON person
     USING GIST(coordinates, gender_id)
@@ -1188,6 +1183,8 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- TODO: Delete this line and the ones in the cron module
 -- TODO: bring duolicious up
 DELETE FROM undeleted_photo;
+
+DROP INDEX IF EXISTS idx__person__activated__gender_id__coordinates;
 
 --------------------------------------------------------------------------------
 
