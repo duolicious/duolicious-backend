@@ -13,7 +13,7 @@ DRY_RUN = os.environ.get(
 
 PHOTO_CLEANER_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_PHOTO_CLEANER_POLL_SECONDS',
-    10,
+    str(60), # 1 minute
 ))
 
 R2_ACCT_ID           = os.environ['DUO_R2_ACCT_ID']

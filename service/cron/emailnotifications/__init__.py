@@ -10,7 +10,7 @@ import random
 
 EMAIL_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_EMAIL_POLL_SECONDS',
-    '10',
+    str(10), # 10 seconds
 ))
 
 print('Hello from cron module: emailnotifications')

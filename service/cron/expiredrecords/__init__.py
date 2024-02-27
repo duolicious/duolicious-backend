@@ -7,7 +7,7 @@ import random
 
 EXPIRED_RECORDS_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_EXPIRED_RECORDS_POLL_SECONDS',
-    10,
+    str(60 * 30), # 30 minutes
 ))
 
 print('Hello from cron module: expiredrecords')
