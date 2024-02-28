@@ -70,8 +70,13 @@ Terminal A:
 docker-compose up
 ```
 
-## Database logs and config
+## Database logs and config (docker)
 
 * /var/lib/postgresql/data/postgresql.conf
 * /var/lib/postgresql/data/log/*
 
+## Database logs and config (production)
+
+* /etc/postgresql/16/main/postgresql.conf
+* /var/lib/postgresql/16/main/postgresql.auto.conf
+* /var/log/postgresql/postgresql-16-main.log
