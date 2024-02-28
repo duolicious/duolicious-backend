@@ -4,7 +4,7 @@ kind: Deployment
 metadata:
   name: api
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: api
@@ -96,7 +96,7 @@ kind: Deployment
 metadata:
   name: chat
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: chat
@@ -138,7 +138,7 @@ kind: Deployment
 metadata:
   name: cron
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: cron
