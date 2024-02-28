@@ -1,6 +1,6 @@
 import os
-from database import api_tx, fetchall_sets
-from typing import Optional, Iterable, Tuple
+from database import api_tx, chat_tx, fetchall_sets
+from typing import Any, Optional, Iterable, Tuple
 import duotypes as t
 import json
 import secrets
@@ -53,17 +53,10 @@ class CropSize:
 def _send_report(
     subject_person_id: int,
     object_person_id: int,
-    report_reason: str
+    report_reason: str,
+    report: Any,
 ):
     try:
-        params = dict(
-            subject_person_id=subject_person_id,
-            object_person_id=object_person_id,
-        )
-
-        with api_tx('READ COMMITTED') as tx:
-            report = tx.execute(Q_MAKE_REPORT, params).fetchall()
-
         aws_smtp.send(
             to=REPORT_EMAIL,
             subject=f"Report: {subject_person_id} - {object_person_id}",
@@ -435,7 +428,24 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
         # from the object store easier, which is important because storing
         # objects is expensive.
         q_set_onboardee_field = """
-            WITH q1 AS (
+            WITH existing_uuid AS (
+                SELECT
+                    uuid
+                FROM
+                    onboardee_photo
+                WHERE
+                    email = %(email)s
+                AND
+                    position = %(position)s
+            ), undeleted_photo_insertion AS (
+                INSERT INTO undeleted_photo (
+                    uuid
+                )
+                SELECT
+                    uuid
+                FROM
+                    existing_uuid
+            ), onboardee_photo_insertion AS (
                 INSERT INTO onboardee_photo (
                     email,
                     position,
@@ -446,8 +456,6 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
                     %(uuid)s
                 ) ON CONFLICT (email, position) DO UPDATE SET
                     uuid = EXCLUDED.uuid
-            ), q2 AS (
-                INSERT INTO undeleted_photo (uuid) VALUES (%(uuid)s)
             )
             SELECT 1
             """
@@ -474,12 +482,17 @@ def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo):
         tx.executemany(Q_DELETE_ONBOARDEE_PHOTO, params)
 
 def post_finish_onboarding(s: t.SessionInfo):
-    params = dict(
-        email=s.email
-    )
+    api_params = dict(email=s.email)
 
     with api_tx() as tx:
-        return tx.execute(Q_FINISH_ONBOARDING, params).fetchone()
+        row = tx.execute(Q_FINISH_ONBOARDING, params=api_params).fetchone()
+
+    chat_params = dict(person_id=row['person_id'])
+
+    with chat_tx() as tx:
+        tx.execute(Q_INSERT_LAST, params=chat_params)
+
+    return row
 
 def get_me(
     person_id_as_int: int | None = None,
@@ -540,14 +553,19 @@ def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
         object_person_id=prospect_person_id,
     )
 
-    q_params = agents | dict(reported=bool(req.report_reason))
-    r_params = agents | dict(report_reason=req.report_reason)
+    params = agents | dict(reported=bool(req.report_reason))
 
     with api_tx() as tx:
-        tx.execute(Q_INSERT_SKIPPED, q_params)
+        tx.execute(Q_INSERT_SKIPPED, params=params)
 
     if req.report_reason:
-        threading.Thread(target=_send_report, kwargs=r_params).start()
+        with api_tx() as tx:
+            report = tx.execute(Q_MAKE_REPORT, params=agents).fetchall()
+
+        threading.Thread(
+            target=_send_report,
+            kwargs=agents | dict(report_reason=req.report_reason, report=report)
+        ).start()
 
 def post_unskip(s: t.SessionInfo, prospect_person_id: int):
     params = dict(
@@ -686,7 +704,24 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         )
 
         q = """
-        WITH q1 AS (
+        WITH existing_uuid AS (
+            SELECT
+                uuid
+            FROM
+                photo
+            WHERE
+                person_id = %(person_id)s
+            AND
+                position = %(position)s
+        ), undeleted_photo_insertion AS (
+            INSERT INTO undeleted_photo (
+                uuid
+            )
+            SELECT
+                uuid
+            FROM
+                existing_uuid
+        ), photo_insertion AS (
             INSERT INTO photo (
                 person_id,
                 position,
@@ -697,8 +732,6 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
                 %(uuid)s
             ) ON CONFLICT (person_id, position) DO UPDATE SET
                 uuid = EXCLUDED.uuid
-        ), q2 AS (
-            INSERT INTO undeleted_photo (uuid) VALUES (%(uuid)s)
         )
         SELECT 1
         """

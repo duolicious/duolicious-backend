@@ -1,4 +1,5 @@
 from typing import Any
+import asyncio
 import os
 import psycopg
 import random
@@ -40,11 +41,11 @@ _chat_conninfo = psycopg.conninfo.make_conninfo(
     **(_coninfo_args | dict(dbname='duo_chat'))
 )
 
-_api_conn  = None
+_api_conn = None
 _chat_conn = None
 
-_api_conn_lock  = threading.Lock()
-_chat_conn_lock = threading.Lock()
+_api_conn_lock = asyncio.Lock()
+_chat_conn_lock = asyncio.Lock()
 
 class api_tx:
     def __init__(self, isolation_level=_default_transaction_isolation):
@@ -57,13 +58,13 @@ class api_tx:
 
         self.cur = None
 
-    def __enter__(self):
-        _api_conn_lock.acquire()
+    async def __aenter__(self):
+        await _api_conn_lock.acquire()
 
         global _api_conn
         if not _api_conn or _api_conn.closed:
             try:
-                _api_conn = psycopg.Connection.connect(
+                _api_conn = await psycopg.AsyncConnection.connect(
                     conninfo=_api_conninfo,
                     row_factory=psycopg.rows.dict_row,
                 )
@@ -74,21 +75,21 @@ class api_tx:
         self.cur = _api_conn.cursor()
 
         if self.isolation_level != _default_transaction_isolation:
-            self.cur.execute(
+            await self.cur.execute(
                 f'SET TRANSACTION ISOLATION LEVEL {self.isolation_level}'
             )
         return self.cur
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         try:
             if exc_type is None:
-                _api_conn.commit()
+                await _api_conn.commit()
             else:
-                _api_conn.rollback()
+                await _api_conn.rollback()
                 traceback.print_exception(exc_type, exc_val, exc_tb)
         finally:
             try:
-                self.cur.close()
+                await self.cur.close()
             except:
                 print(traceback.format_exc())
 
@@ -105,13 +106,13 @@ class chat_tx:
 
         self.cur = None
 
-    def __enter__(self):
-        _chat_conn_lock.acquire()
+    async def __aenter__(self):
+        await _chat_conn_lock.acquire()
 
         global _chat_conn
         if not _chat_conn or _chat_conn.closed:
             try:
-                _chat_conn = psycopg.Connection.connect(
+                _chat_conn = await psycopg.AsyncConnection.connect(
                     conninfo=_chat_conninfo,
                     row_factory=psycopg.rows.dict_row,
                 )
@@ -122,52 +123,46 @@ class chat_tx:
         self.cur = _chat_conn.cursor()
 
         if self.isolation_level != _default_transaction_isolation:
-            self.cur.execute(
+            await self.cur.execute(
                 f'SET TRANSACTION ISOLATION LEVEL {self.isolation_level}'
             )
         return self.cur
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         try:
             if exc_type is None:
-                _chat_conn.commit()
+                await _chat_conn.commit()
             else:
-                _chat_conn.rollback()
+                await _chat_conn.rollback()
                 traceback.print_exception(exc_type, exc_val, exc_tb)
         finally:
             try:
-                self.cur.close()
+                await self.cur.close()
             except:
                 print(traceback.format_exc())
 
         _chat_conn_lock.release()
 
-def fetchall_sets(tx: psycopg.Cursor[Any]):
-    result = []
-    while True:
-        result.extend(tx.fetchall())
-        nextset = tx.nextset()
-        if nextset is None:
-            break
-    return result
-
-def _check_api_connection_forever():
+async def _check_api_connection_forever():
     while True:
         try:
-            with api_tx() as tx:
-                tx.execute('SELECT 1')
+            async with api_tx() as tx:
+                await tx.execute('SELECT 1')
         except:
             print(traceback.format_exc())
-        time.sleep(random.randint(30, 90))
+        await asyncio.sleep(random.randint(30, 90))
 
-def _check_chat_connection_forever():
+async def _check_chat_connection_forever():
     while True:
         try:
-            with chat_tx() as tx:
-                tx.execute('SELECT 1')
+            async with chat_tx() as tx:
+                await tx.execute('SELECT 1')
         except:
             print(traceback.format_exc())
-        time.sleep(random.randint(30, 90))
+        await asyncio.sleep(random.randint(30, 90))
 
-threading.Thread(target=_check_api_connection_forever,  daemon=True).start()
-threading.Thread(target=_check_chat_connection_forever, daemon=True).start()
+async def check_connections_forever():
+    await asyncio.gather(
+        _check_api_connection_forever(),
+        _check_chat_connection_forever(),
+    )

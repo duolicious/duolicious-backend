@@ -4,6 +4,6 @@ boto3
 flask-cors
 gunicorn
 openai
-psycopg[pool]
+psycopg
 pydantic[email]
 Flask-Limiter

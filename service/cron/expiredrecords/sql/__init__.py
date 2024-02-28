@@ -33,15 +33,29 @@ WITH q1 AS (
     WHERE
         created_at < NOW() - INTERVAL '1 week'
     RETURNING
+        email
+), q6 AS (
+    INSERT INTO
+        undeleted_photo (uuid)
+    SELECT
+        op.uuid
+    FROM
+        onboardee_photo op
+    JOIN
+        q5
+    ON
+        op.email = q5.email
+    RETURNING
         1
 )
 SELECT
-    COUNT(*) AS count
+    SUM(n) AS count
 FROM (
-    SELECT 1 FROM q1 UNION ALL
-    SELECT 1 FROM q2 UNION ALL
-    SELECT 1 FROM q3 UNION ALL
-    SELECT 1 FROM q4 UNION ALL
-    SELECT 1 FROM q5
-)
+    SELECT 1 AS n FROM q1 UNION ALL
+    SELECT 1 AS n FROM q2 UNION ALL
+    SELECT 1 AS n FROM q3 UNION ALL
+    SELECT 1 AS n FROM q4 UNION ALL
+    SELECT 1 AS n FROM q5 UNION ALL
+    SELECT 0 AS n FROM q6
+) AS t(n)
 """

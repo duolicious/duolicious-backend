@@ -12,41 +12,14 @@ SMTP_USER = os.environ['DUO_SMTP_USER']
 SMTP_PASS = os.environ['DUO_SMTP_PASS']
 
 class Smtp:
-    def __init__(self, host: str, port: int, username: str, password: str, noop_interval: int = 5):
+    def __init__(self, host: str, port: int, username: str, password: str):
         self.host = host
         self.port = port
         self.username = username
         self.password = password
-        self.noop_interval = noop_interval
         self.smtp = None
-        self.keep_running = threading.Event()
-        self.noop_thread = threading.Thread(target=self._send_noop, daemon=True)
 
         self._connect()
-        self._start_noop_thread()
-
-    def _start_noop_thread(self):
-        self.keep_running.set()
-        if not self.noop_thread.is_alive():
-            self.noop_thread.start()
-
-    def _stop_noop_thread(self):
-        self.keep_running.clear()
-        if self.noop_thread.is_alive():
-            self.noop_thread.join()
-
-    def _send_noop(self):
-        while self.keep_running.is_set():
-            if self.smtp:
-                try:
-                    self.smtp.noop()
-                except Exception as e:
-                    print(
-                        f'Error sending NOOP command:\n' +
-                        traceback.format_exc()
-                    )
-                    self._reconnect()
-            time.sleep(self.noop_interval)
 
     def _connect(self):
         try:
@@ -67,7 +40,6 @@ class Smtp:
         self._connect()
 
     def __del__(self):
-        self._stop_noop_thread()
         if self.smtp:
             try:
                 self.smtp.quit()

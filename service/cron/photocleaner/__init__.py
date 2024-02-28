@@ -1,9 +1,10 @@
+from database.asyncdatabase import api_tx, chat_tx
 from service.cron.photocleaner.sql import *
-from service.cron.util import print_stacktrace
+from service.cron.util import print_stacktrace, MAX_RANDOM_START_DELAY
 import asyncio
 import boto3
 import os
-import psycopg
+import random
 
 DRY_RUN = os.environ.get(
     'DUO_CRON_PHOTO_CLEANER_DRY_RUN',
@@ -12,14 +13,8 @@ DRY_RUN = os.environ.get(
 
 PHOTO_CLEANER_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_PHOTO_CLEANER_POLL_SECONDS',
-    10,
+    str(60), # 1 minute
 ))
-
-DB_HOST     = os.environ['DUO_DB_HOST']
-DB_PORT     = os.environ['DUO_DB_PORT']
-DB_USER     = os.environ['DUO_DB_USER']
-DB_PASS     = os.environ['DUO_DB_PASS']
-DB_API_NAME = os.environ['DUO_DB_API_NAME']
 
 R2_ACCT_ID           = os.environ['DUO_R2_ACCT_ID']
 R2_ACCESS_KEY_ID     = os.environ['DUO_R2_ACCESS_KEY_ID']
@@ -31,17 +26,9 @@ BOTO_ENDPOINT_URL = os.getenv(
     f'https://{R2_ACCT_ID}.r2.cloudflarestorage.com'
 )
 
-_api_conninfo = psycopg.conninfo.make_conninfo(
-    host=DB_HOST,
-    port=DB_PORT,
-    dbname=DB_API_NAME,
-    user=DB_USER,
-    password=DB_PASS,
-)
-
 print('Hello from cron module: photocleaner')
 
-async def delete_images_from_object_store(api_conn, uuids: list[str]):
+async def delete_images_from_object_store(uuids: list[str]):
     # Split the uuids list into chunks of 300 since the limit is 1000 and
     # there's three objects to delete per uuid
     chunks = [uuids[i:i+300] for i in range(0, len(uuids), 300)]
@@ -93,26 +80,22 @@ async def delete_images_from_object_store(api_conn, uuids: list[str]):
         else:
             for key in keys_to_delete:
                 print('Deleted object', key)
-            await api_conn.execute(Q_MARK_PHOTO_DELETED, dict(uuids=chunk))
-            await api_conn.commit()
+            async with api_tx() as tx:
+                await tx.execute(Q_MARK_PHOTO_DELETED, dict(uuids=chunk))
             print('Objects have been marked as deleted')
 
 async def clean_photos_once():
-    api_conn = await psycopg.AsyncConnection.connect(
-        _api_conninfo,
-        row_factory=psycopg.rows.dict_row
-    )
-
     params = dict(polling_interval_seconds=PHOTO_CLEANER_POLL_SECONDS)
-    cur_unused_photos = await api_conn.execute(Q_UNUSED_PHOTOS, params)
-    rows_unused_photos = await cur_unused_photos.fetchall()
+
+    async with api_tx() as tx:
+        cur_unused_photos = await tx.execute(Q_UNUSED_PHOTOS, params)
+        rows_unused_photos = await cur_unused_photos.fetchall()
 
     uuids = [r['uuid'] for r in rows_unused_photos]
-    await delete_images_from_object_store(api_conn, uuids)
-
-    await api_conn.close()
+    await delete_images_from_object_store(uuids)
 
 async def clean_photos_forever():
+    await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(clean_photos_once)
         await asyncio.sleep(PHOTO_CLEANER_POLL_SECONDS)
