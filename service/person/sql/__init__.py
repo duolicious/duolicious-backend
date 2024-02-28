@@ -298,10 +298,22 @@ ON
 """
 
 Q_DELETE_ONBOARDEE_PHOTO = """
-DELETE FROM onboardee_photo
-WHERE
-    email = %(email)s AND
-    position = %(position)s
+WITH deleted_uuid AS (
+    DELETE FROM
+        onboardee_photo
+    WHERE
+        email = %(email)s AND
+        position = %(position)s
+    RETURNING
+        uuid
+)
+INSERT INTO undeleted_photo (
+    uuid
+)
+SELECT
+    uuid
+FROM
+    deleted_uuid
 """
 
 Q_DELETE_DUO_SESSION = """
@@ -1123,7 +1135,26 @@ ORDER BY
 """
 
 Q_DELETE_ACCOUNT = """
-DELETE FROM person WHERE id = %(person_id)s
+WITH deleted_photo AS (
+    SELECT
+        uuid
+    FROM
+        photo
+    WHERE
+        person_id = %(person_id)s
+), deleted_person AS (
+    DELETE FROM
+        person
+    WHERE
+        id = %(person_id)s
+)
+INSERT INTO undeleted_photo (
+    uuid
+)
+SELECT
+    uuid
+FROM
+    deleted_photo
 """
 
 Q_POST_DEACTIVATE = """
@@ -1293,10 +1324,22 @@ SELECT
 """
 
 Q_DELETE_PROFILE_INFO = """
-DELETE FROM photo
-WHERE
-    person_id = %(person_id)s AND
-    position = %(position)s
+WITH deleted_photo AS (
+    DELETE FROM
+        photo
+    WHERE
+        person_id = %(person_id)s AND
+        position = %(position)s
+    RETURNING
+        uuid
+)
+INSERT INTO undeleted_photo (
+    uuid
+)
+SELECT
+    uuid
+FROM
+    deleted_photo
 """
 
 Q_GET_SEARCH_FILTERS = """
@@ -1487,7 +1530,7 @@ SELECT
     name,
     email,
     ARRAY(
-        SELECT
+        SELECT DISTINCT
             ip_address::TEXT
         FROM duo_session
         WHERE email = p.email
@@ -1690,6 +1733,23 @@ WITH deleted_token AS (
         expires_at > NOW()
     RETURNING
         person_id
+), deleted_photo AS (
+    SELECT
+        uuid
+    FROM
+        photo
+    JOIN
+        deleted_token
+    ON
+        photo.person_id = deleted_token.person_id
+), undeleted_photo_insertion AS (
+    INSERT INTO undeleted_photo (
+        uuid
+    )
+    SELECT
+        uuid
+    FROM
+        deleted_photo
 ), deleted_person AS (
     DELETE FROM
         person
@@ -1740,15 +1800,25 @@ WITH deleted_token AS (
         expires_at > NOW()
     RETURNING
         photo_uuid
+), deleted_photo AS (
+    DELETE FROM
+        photo
+    USING
+        deleted_token
+    WHERE
+        photo.uuid = deleted_token.photo_uuid
+    RETURNING
+        photo.uuid
 )
-DELETE FROM
-    photo
-USING
-    deleted_token
-WHERE
-    photo.uuid = deleted_token.photo_uuid
+INSERT INTO undeleted_photo (
+    uuid
+)
+SELECT
+    uuid
+FROM
+    deleted_photo
 RETURNING
-    photo.uuid
+    uuid
 """
 
 Q_STATS = """
@@ -1758,4 +1828,11 @@ FROM
     person
 WHERE
     activated
+"""
+
+Q_INSERT_LAST = """
+INSERT INTO
+    last (server, username, seconds, state)
+VALUES
+    ('duolicious.app', %(person_id)s, EXTRACT(EPOCH FROM NOW())::BIGINT, '')
 """

@@ -1,4 +1,4 @@
 lxml
-psycopg[pool]
+psycopg
 regex
 websockets
