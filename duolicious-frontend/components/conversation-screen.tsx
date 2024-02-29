@@ -271,9 +271,9 @@ const ConversationScreen = ({navigation, route}) => {
   const scrollToEnd = useCallback(() => {
     if (listRef.current && !hasScrolled.current) {
       listRef.current.scrollToEnd({animated: true});
+      hasScrolled.current = true;
     }
   }, [listRef.current]);
-  scrollToEnd();
 
   const onPressSend = useCallback(async (text: string): Promise<MessageStatus> => {
     const isFirstMessage = messages === null || messages.length === 0;
@@ -354,9 +354,6 @@ const ConversationScreen = ({navigation, route}) => {
     return layoutMeasurement.height + contentOffset.y >=
       contentSize.height - paddingToBottom;
   };
-  const isAtBottom = ({layoutMeasurement, contentOffset, contentSize}) => {
-    return layoutMeasurement.height + contentOffset.y >= contentSize.height;
-  };
 
   const onScroll = useCallback(({nativeEvent}) => {
     if (isCloseToTop(nativeEvent) && hasFinishedFirstLoad.current) {
@@ -364,9 +361,6 @@ const ConversationScreen = ({navigation, route}) => {
     }
     if (isCloseToBottom(nativeEvent)) {
       hasFinishedFirstLoad.current = true;
-    }
-    if (isAtBottom(nativeEvent)) {
-      hasScrolled.current = true;
     }
   }, [maybeLoadNextPage]);
 
