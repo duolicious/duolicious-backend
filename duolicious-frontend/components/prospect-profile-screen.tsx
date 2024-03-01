@@ -88,7 +88,7 @@ const EnlargeableImage = ({
   style,
   isPrimary,
 }: {
-  imageUuid: string | undefined,
+  imageUuid: string | undefined | null,
   onChangeEmbiggened: (uuid: string) => void,
   style?: any,
   isPrimary: boolean,
@@ -500,7 +500,15 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
     undefined :
     data.photo_uuids;
 
-  const imageUuid0 = imageUuids && imageUuids[0];
+  const imageUuid0 = (() => {
+    if (imageUuids === undefined) {
+      return undefined;
+    }
+    if (imageUuids.length === 0) {
+      return null;
+    }
+    return imageUuids[0];
+  })();
 
   const numMorePics = Math.max(0, (imageUuids ?? []).length - 1);
 
