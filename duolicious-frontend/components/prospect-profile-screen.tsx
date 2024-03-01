@@ -3,9 +3,10 @@ import {
   Animated,
   Pressable,
   ScrollView,
-  View,
   StyleProp,
+  StyleSheet,
   TextStyle,
+  View,
   ViewStyle,
 } from 'react-native';
 import {
@@ -26,7 +27,7 @@ import { api } from '../api/api';
 import { cmToFeetInchesStr } from '../units/units';
 import { signedInUser } from '../App';
 import { setSkipped } from '../hide-and-block/hide-and-block';
-import { ImageCarousel } from './image-carousel';
+import { ImageOrSkeleton } from './profile-card';
 import { Pinchy } from './pinchy';
 import { Basic } from './basic';
 import { Club, Clubs } from './club';
@@ -47,10 +48,67 @@ import { RotateCcw, Flag, X } from "react-native-feather";
 
 const Stack = createNativeStackNavigator();
 
-const goToGallery = (navigation, imageUuids) => () => {
-  if ((imageUuids ?? []).length > 0) {
-    navigation.navigate('Gallery Screen', { imageUuids } );
+const ProspectProfileScreen = ({navigation, route}) => {
+  const navigationRef = useRef(undefined);
+  const personId = route.params.personId;
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        presentation: 'modal',
+        animation: 'slide_from_right',
+      }}
+    >
+      <Stack.Screen name="Prospect Profile" component={Content(navigationRef)} />
+      <Stack.Screen name="In-Depth" component={InDepthScreen(navigationRef)} />
+      <Stack.Screen name="Gallery Screen" component={GalleryScreen} />
+    </Stack.Navigator>
+  );
+};
+
+const GalleryScreen = ({navigation, route}) => {
+  const { imageUuid } = route.params;
+
+  return (
+    <>
+      <Pinchy uuid={imageUuid}/>
+      <StatusBarSpacer/>
+      <FloatingBackButton onPress={() => navigation.goBack()}/>
+    </>
+  );
+};
+
+const goToGallery = (navigation, imageUuid) => () =>
+  navigation.navigate('Gallery Screen', { imageUuid } );
+
+const EnlargeableImage = ({
+  imageUuid,
+  onChangeEmbiggened,
+  style,
+  isPrimary,
+}: {
+  imageUuid: string | undefined,
+  onChangeEmbiggened: (uuid: string) => void,
+  style?: any,
+  isPrimary: boolean,
+}) => {
+  if (imageUuid === undefined && !isPrimary) {
+    return <></>;
   }
+
+  return (
+    <Pressable
+      onPress={() => imageUuid && onChangeEmbiggened(imageUuid)}
+    >
+      <ImageOrSkeleton
+        resolution={900}
+        imageUuid={imageUuid}
+        style={style}
+        showGradient={false}
+      />
+    </Pressable>
+  );
 };
 
 const FloatingBackButton = (props) => {
@@ -382,24 +440,6 @@ const Columns = ({children, ...rest}) => {
   );
 };
 
-const ProspectProfileScreen = ({navigation, route}) => {
-  const navigationRef = useRef(undefined);
-  const personId = route.params.personId;
-
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-        presentation: 'modal',
-        animation: 'slide_from_right',
-      }}
-    >
-      <Stack.Screen name="Prospect Profile" component={Content(navigationRef)} />
-      <Stack.Screen name="In-Depth" component={InDepthScreen(navigationRef)} />
-    </Stack.Navigator>
-  );
-};
-
 type UserData = {
   name: string,
   about: string,
@@ -437,9 +477,6 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
 
   const [data, setData] = useState<UserData | undefined>(undefined);
 
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [embiggenedUuid, setEmbiggenedUuid] = useState<string | null>(null);
-
   useEffect(() => {
     setData(undefined);
     (async () => {
@@ -463,17 +500,9 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
     undefined :
     data.photo_uuids;
 
-  const numMorePics = Math.max(0, (imageUuids ?? []).length - 1);
+  const imageUuid0 = imageUuids && imageUuids[0];
 
-  if (embiggenedUuid) {
-    return (
-      <>
-        <Pinchy uuid={embiggenedUuid}/>
-        <StatusBarSpacer/>
-        <FloatingBackButton onPress={() => setEmbiggenedUuid(null)}/>
-      </>
-    );
-  }
+  const numMorePics = Math.max(0, (imageUuids ?? []).length - 1);
 
   return (
     <>
@@ -485,11 +514,10 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
           paddingBottom: 100,
         }}
       >
-        <ImageCarousel
-          uuids={imageUuids}
-          activeIndex={activeIndex}
-          onChangeActiveIndex={setActiveIndex}
-          onChangeEmbiggened={setEmbiggenedUuid}
+        <EnlargeableImage
+          imageUuid={imageUuid0}
+          onChangeEmbiggened={goToGallery(navigation, imageUuid0)}
+          isPrimary={true}
         />
         <ProspectUserDetails
           navigation={navigation}
@@ -504,6 +532,8 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
           navigation={navigation}
           personId={personId}
           data={data}
+          imageUuids={imageUuids}
+          onChangeEmbiggened={() => {}}
         />
       </ScrollView>
       {showBottomButtons &&
@@ -648,11 +678,22 @@ const Body = ({
   navigation,
   personId,
   data,
+  imageUuids,
+  onChangeEmbiggened,
 }: {
   navigation: any,
   personId: number,
   data: UserData | undefined,
+  imageUuids: string[] | undefined,
+  onChangeEmbiggened: (uuid: string) => void,
 }) => {
+  const imageUuid1 = imageUuids && imageUuids[1];
+  const imageUuid2 = imageUuids && imageUuids[2];
+  const imageUuid3 = imageUuids && imageUuids[3];
+  const imageUuid4 = imageUuids && imageUuids[4];
+  const imageUuid5 = imageUuids && imageUuids[5];
+  const imageUuid6 = imageUuids && imageUuids[6];
+
   return (
     <>
       <View
@@ -724,6 +765,14 @@ const Body = ({
           {data?.height_cm && signedInUser?.units === 'Imperial' &&
             <Basic icon={faRulerVertical}>{cmToFeetInchesStr(data.height_cm)}</Basic>}
         </Basics>
+
+        <EnlargeableImage
+          imageUuid={imageUuid1}
+          onChangeEmbiggened={goToGallery(navigation, imageUuid1)}
+          style={styles.secondaryEnlargeableImage}
+          isPrimary={false}
+        />
+
         {!data?.name &&
           <Title>About ...</Title>
         }
@@ -735,6 +784,14 @@ const Body = ({
             </DefaultText>
           </>
         }
+
+        <EnlargeableImage
+          imageUuid={imageUuid2}
+          onChangeEmbiggened={goToGallery(navigation, imageUuid2)}
+          style={styles.secondaryEnlargeableImage}
+          isPrimary={false}
+        />
+
         {data !== undefined && data.mutual_clubs.length > 0 &&
           <>
             <Title>Mutual clubs</Title>
@@ -749,6 +806,14 @@ const Body = ({
             </Clubs>
           </>
         }
+
+        <EnlargeableImage
+          imageUuid={imageUuid3}
+          onChangeEmbiggened={goToGallery(navigation, imageUuid3)}
+          style={styles.secondaryEnlargeableImage}
+          isPrimary={false}
+        />
+
         {data !== undefined && data.other_clubs.length > 0 &&
           <>
             <Title>{data.mutual_clubs.length > 0 ? 'Other clubs' : 'Clubs'}</Title>
@@ -763,6 +828,28 @@ const Body = ({
             </Clubs>
           </>
         }
+
+        <EnlargeableImage
+          imageUuid={imageUuid4}
+          onChangeEmbiggened={goToGallery(navigation, imageUuid4)}
+          style={styles.secondaryEnlargeableImage}
+          isPrimary={false}
+        />
+
+        <EnlargeableImage
+          imageUuid={imageUuid5}
+          onChangeEmbiggened={goToGallery(navigation, imageUuid5)}
+          style={styles.secondaryEnlargeableImage}
+          isPrimary={false}
+        />
+
+        <EnlargeableImage
+          imageUuid={imageUuid6}
+          onChangeEmbiggened={goToGallery(navigation, imageUuid6)}
+          style={styles.secondaryEnlargeableImage}
+          isPrimary={false}
+        />
+
         <SeeQAndAButton
           navigation={navigation}
           personId={personId}
@@ -780,8 +867,18 @@ const Body = ({
   );
 };
 
+const styles = StyleSheet.create({
+  secondaryEnlargeableImage: {
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+});
+
 export {
   FloatingBackButton,
+  GalleryScreen,
   InDepthScreen,
   ProspectProfileScreen,
 };
