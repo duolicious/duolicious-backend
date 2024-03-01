@@ -38,9 +38,10 @@ type DefaultFlatListProps<ItemT> =
   Omit<
     FlatListProps<ItemT> & {
       emptyText?: string,
+      errorText?: string,
       endText?: string,
       endTextStyle?: StyleProp<ViewStyle>,
-      fetchPage: (pageNumber: number) => Promise<ItemT[]>,
+      fetchPage: (pageNumber: number) => Promise<ItemT[] | null>,
       firstPage?: number,
       initialNumberOfPages?: number
       hideListHeaderComponentWhenEmpty?: boolean,
@@ -95,6 +96,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
   ]);
   // A horrible hack. Fuck React Native.
   const scrollToEndNTimes = useRef<{[dataKey: string]: number}>({});
+  const [isError, setIsError] = useState(false);
 
   const dataKey = props.dataKey ?? 'default-key';
   const data = datas[dataKey];
@@ -128,6 +130,11 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
     const page = await props.fetchPage(pageNumberToFetch);
     isFetchingRef.current[dataKey] = false;
 
+    if (page === null) {
+      setIsError(true);
+      return;
+    }
+
     lastFetchedPageNumbers.current[dataKey] = page.length === 0 ?
       lastFetchedPageNumbers.current[dataKey] :
       pageNumberToFetch;
@@ -144,7 +151,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
       }
       return newDatas;
     })
-  }, [props.fetchPage, firstPage, dataKey]);
+  }, [props.fetchPage, firstPage, dataKey, setIsError]);
 
   const onPressLoadMore = useCallback(async () => {
     setIsFetchingOnPressState(state => {
@@ -164,6 +171,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
     if (isRefreshing) return;
 
     setIsRefreshing(true);
+    setIsError(false);
 
     const newDatas = {...datas};
     delete newDatas[dataKey];
@@ -174,7 +182,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
     setDatas(newDatas);
 
     setIsRefreshing(false);
-  }, [setIsRefreshing, isRefreshing, datas, dataKey]);
+  }, [setIsRefreshing, isRefreshing, datas, dataKey, setIsError]);
   const onRefresh = props.disableRefresh === true ? undefined : onRefresh_;
 
   const ListEmptyComponent = useCallback(() => {
@@ -335,7 +343,8 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
     firstPage,
     lastFetchedPageNumbers.current[dataKey],
     initialNumberOfPages,
-    fetchNextPage
+    fetchNextPage,
+    isError,
   ]);
 
   const onViewableItemsChanged = useCallback((x: any) => {
@@ -346,6 +355,20 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
       forceRender();
     }
   }, []);
+
+  if (isError) {
+    return (
+      <DefaultText
+        style={{
+          fontFamily: 'Trueno',
+          margin: '20%',
+          textAlign: 'center'
+        }}
+      >
+        {props.errorText ? props.errorText : "Something went wrong"}
+      </DefaultText>
+    );
+  }
 
   if (data === undefined) {
     return (
@@ -361,28 +384,28 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
         <ActivityIndicator size="large" color="#70f" />
       </View>
     );
-  } else {
-    return (
-      <FlatList
-        ref={flatList}
-        refreshing={isRefreshing}
-        onRefresh={onRefresh}
-        onEndReachedThreshold={onEndReachedThreshold}
-        onEndReached={onEndReached}
-        data={data}
-        ListEmptyComponent={ListEmptyComponent}
-        ListFooterComponent={ListFooterComponent}
-        {...props}
-        inverted={false}
-        contentContainerStyle={contentContainerStyle.current}
-        ListHeaderComponent={ListHeaderComponent}
-        onContentSizeChange={onContentSizeChange}
-        keyExtractor={keyExtractor}
-        onViewableItemsChanged={onViewableItemsChanged}
-        initialNumToRender={1}
-      />
-    );
   }
+
+  return (
+    <FlatList
+      ref={flatList}
+      refreshing={isRefreshing}
+      onRefresh={onRefresh}
+      onEndReachedThreshold={onEndReachedThreshold}
+      onEndReached={onEndReached}
+      data={data}
+      ListEmptyComponent={ListEmptyComponent}
+      ListFooterComponent={ListFooterComponent}
+      {...props}
+      inverted={false}
+      contentContainerStyle={contentContainerStyle.current}
+      ListHeaderComponent={ListHeaderComponent}
+      onContentSizeChange={onContentSizeChange}
+      keyExtractor={keyExtractor}
+      onViewableItemsChanged={onViewableItemsChanged}
+      initialNumToRender={1}
+    />
+  );
 });
 
 export {

@@ -55,12 +55,12 @@ type PageItem = {
   prospect_messaged_person: boolean
 };
 
-const fetchPage = async (pageNumber: number): Promise<PageItem[]> => {
+const fetchPage = async (pageNumber: number): Promise<PageItem[] | null> => {
   const resultsPerPage = 10;
   const offset = resultsPerPage * (pageNumber - 1);
   const response = await japi('get', `/search?n=${resultsPerPage}&o=${offset}`);
 
-  return response.ok ? response.json : [];
+  return response.ok ? response.json : null;
 };
 
 const SearchScreen_ = ({navigation}) => {
@@ -120,6 +120,9 @@ const SearchScreen_ = ({navigation}) => {
         emptyText={
           "No matches found. Try adjusting your search filters to include " +
           "more people."
+        }
+        errorText={
+          "Something went wrong while fetching search results"
         }
         endText={
           "No more matches to show"
