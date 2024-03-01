@@ -716,7 +716,7 @@ const deletionOptionGroups: OptionGroup<OptionGroupTextShort>[] = [
     input: {
       textShort: {
         submit: async (input: string) => {
-          if ((input ?? '').trim() !== 'delete') return false;
+          if ((input ?? '').toLowerCase().trim() !== 'delete') return false;
 
           const response = await japi('delete', '/account');
 
