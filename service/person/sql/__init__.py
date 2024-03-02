@@ -1836,3 +1836,14 @@ INSERT INTO
 VALUES
     ('duolicious.app', %(person_id)s, EXTRACT(EPOCH FROM NOW())::BIGINT, '')
 """
+
+Q_UPDATE_LAST = """
+UPDATE
+    last
+SET
+    seconds = EXTRACT(EPOCH FROM NOW())::BIGINT
+WHERE
+    server = 'duolicious.app'
+AND
+    username = %(person_id)s::TEXT
+"""
