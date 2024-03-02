@@ -1,22 +1,12 @@
 Q_INACTIVE = """
 SELECT DISTINCT
-    inbox.luser AS person_id
+    username AS person_id
 FROM
-    inbox
-JOIN
     last
-ON
-    inbox.lserver = 'duolicious.app'
-AND
-    last.username = inbox.luser
-AND
-    inbox.timestamp > last.seconds::bigint * 1000000
-AND
-    inbox.timestamp <=
-        extract(epoch from now() - interval '10 days')::bigint * 1000000
-AND
-    inbox.timestamp >=
-        extract(epoch from now() - interval '11 days')::bigint * 1000000
+WHERE
+    seconds < EXTRACT(EPOCH FROM NOW() - INTERVAL '150 days')
+-- AND
+--     seconds > EXTRACT(EPOCH FROM NOW() - INTERVAL '160 days')
 """
 
 Q_DEACTIVATE = """

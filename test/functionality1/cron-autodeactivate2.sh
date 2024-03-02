@@ -55,7 +55,6 @@ do_test () {
   ../util/create-user.sh will-remain-active1 0 0
   ../util/create-user.sh will-remain-active2 0 0
   ../util/create-user.sh will-remain-active3 0 0
-  ../util/create-user.sh will-remain-active4 0 0
 
   q "
   update person set
@@ -76,71 +75,24 @@ do_test () {
   local user2id=$(get_id 'will-remain-active1@duolicious.app')
   local user3id=$(get_id 'will-remain-active2@duolicious.app')
   local user4id=$(get_id 'will-remain-active3@duolicious.app')
-  local user5id=$(get_id 'will-remain-active4@duolicious.app')
 
-  local  days_ago_0=$(  db_now as-seconds)
-  local  days_ago_7=$(  db_now as-seconds '-  7   days')
-  local  days_ago_8=$(  db_now as-seconds '-  8   days')
-  local  days_ago_9=$(  db_now as-seconds '-  9   days')
-  local days_ago_10=$(  db_now as-seconds '- 10   days')
-  local days_ago_10_5=$(db_now as-seconds '- 10.5 days')
-  local days_ago_11=$(  db_now as-seconds '- 11   days')
-  local days_ago_12=$(  db_now as-seconds '- 12   days')
-  local days_ago_13=$(  db_now as-seconds '- 13   days')
-  local days_ago_14=$(  db_now as-seconds '- 14   days')
-  local days_ago_15=$(  db_now as-seconds '- 15   days')
+  local  days_ago_0=$(db_now as-seconds)
+  local  days_ago_1=$(db_now as-seconds '- 131   days')
+  local  days_ago_2=$(db_now as-seconds '- 141   days')
+  local  days_ago_3=$(db_now as-seconds '- 151   days')
 
   q "
   insert into last (server, username, seconds, state)
   values
-    ('duolicious.app', '$user1id', $days_ago_10_5, ''),
-    ('duolicious.app', '$user2id', $days_ago_10_5, ''),
-    ('duolicious.app', '$user3id', $days_ago_10_5, ''),
-    ('duolicious.app', '$user4id', $days_ago_10_5, ''),
-    ('duolicious.app', '$user5id', $days_ago_0,  '')
+    ('duolicious.app', '$user4id', $days_ago_0, ''),
+    ('duolicious.app', '$user3id', $days_ago_1, ''),
+    ('duolicious.app', '$user2id', $days_ago_2, ''),
+    ('duolicious.app', '$user1id', $days_ago_3, '')
   ON CONFLICT (server, username) DO UPDATE SET
     server   = EXCLUDED.server,
     username = EXCLUDED.username,
     seconds  = EXCLUDED.seconds,
     state    = EXCLUDED.state
-  " duo_chat
-
-  q "
-  insert into inbox
-    (luser, lserver, remote_bare_jid, msg_id, box, content, timestamp, muted_until, unread_count)
-  values
-    ('$user1id', 'duolicious.app',  '0@duolicious.app', '', 'inbox', '',  ${days_ago_0}::bigint * 1000000, 0, 0),
-    ('$user1id', 'duolicious.app',  '7@duolicious.app', '', 'inbox', '',  ${days_ago_7}::bigint * 1000000, 0, 0),
-    ('$user1id', 'duolicious.app',  '8@duolicious.app', '', 'inbox', '',  ${days_ago_8}::bigint * 1000000, 0, 0),
-    ('$user1id', 'duolicious.app',  '9@duolicious.app', '', 'inbox', '',  ${days_ago_9}::bigint * 1000000, 0, 0),
-    ('$user1id', 'duolicious.app', '10@duolicious.app', '', 'inbox', '', ${days_ago_10}::bigint * 1000000, 0, 0),
-    ('$user1id', 'duolicious.app', '11@duolicious.app', '', 'inbox', '', ${days_ago_11}::bigint * 1000000, 0, 0),
-    ('$user1id', 'duolicious.app', '12@duolicious.app', '', 'inbox', '', ${days_ago_12}::bigint * 1000000, 0, 0),
-    ('$user1id', 'duolicious.app', '13@duolicious.app', '', 'inbox', '', ${days_ago_13}::bigint * 1000000, 0, 0),
-    ('$user1id', 'duolicious.app', '14@duolicious.app', '', 'inbox', '', ${days_ago_14}::bigint * 1000000, 0, 0),
-    ('$user1id', 'duolicious.app', '15@duolicious.app', '', 'inbox', '', ${days_ago_15}::bigint * 1000000, 0, 0),
-
-    ('$user2id', 'duolicious.app',  '0@duolicious.app', '', 'inbox', '',  ${days_ago_0}::bigint * 1000000, 0, 0),
-    ('$user2id', 'duolicious.app',  '7@duolicious.app', '', 'inbox', '',  ${days_ago_7}::bigint * 1000000, 0, 0),
-    ('$user2id', 'duolicious.app',  '8@duolicious.app', '', 'inbox', '',  ${days_ago_8}::bigint * 1000000, 0, 0),
-    ('$user2id', 'duolicious.app',  '9@duolicious.app', '', 'inbox', '',  ${days_ago_9}::bigint * 1000000, 0, 0),
- -- ('$user2id', 'duolicious.app', '10@duolicious.app', '', 'inbox', '', ${days_ago_10}::bigint * 1000000, 0, 0),
- -- ('$user2id', 'duolicious.app', '11@duolicious.app', '', 'inbox', '', ${days_ago_11}::bigint * 1000000, 0, 0),
-    ('$user2id', 'duolicious.app', '12@duolicious.app', '', 'inbox', '', ${days_ago_12}::bigint * 1000000, 0, 0),
-    ('$user2id', 'duolicious.app', '13@duolicious.app', '', 'inbox', '', ${days_ago_13}::bigint * 1000000, 0, 0),
-    ('$user2id', 'duolicious.app', '14@duolicious.app', '', 'inbox', '', ${days_ago_14}::bigint * 1000000, 0, 0),
-    ('$user2id', 'duolicious.app', '15@duolicious.app', '', 'inbox', '', ${days_ago_15}::bigint * 1000000, 0, 0),
-
- -- ('$user3id', 'duolicious.app',  '0@duolicious.app', '', 'inbox', '',  ${days_ago_0}::bigint * 1000000, 0, 0),
- -- ('$user3id', 'duolicious.app',  '7@duolicious.app', '', 'inbox', '',  ${days_ago_7}::bigint * 1000000, 0, 0),
- -- ('$user3id', 'duolicious.app',  '8@duolicious.app', '', 'inbox', '',  ${days_ago_8}::bigint * 1000000, 0, 0),
- -- ('$user3id', 'duolicious.app',  '9@duolicious.app', '', 'inbox', '',  ${days_ago_9}::bigint * 1000000, 0, 0),
- -- ('$user3id', 'duolicious.app', '10@duolicious.app', '', 'inbox', '', ${days_ago_10}::bigint * 1000000, 0, 0),
- -- ('$user3id', 'duolicious.app', '11@duolicious.app', '', 'inbox', '', ${days_ago_11}::bigint * 1000000, 0, 0),
-    ('$user3id', 'duolicious.app', '12@duolicious.app', '', 'inbox', '', ${days_ago_12}::bigint * 1000000, 0, 0),
-    ('$user3id', 'duolicious.app', '13@duolicious.app', '', 'inbox', '', ${days_ago_13}::bigint * 1000000, 0, 0),
-    ('$user3id', 'duolicious.app', '14@duolicious.app', '', 'inbox', '', ${days_ago_14}::bigint * 1000000, 0, 0),
-    ('$user3id', 'duolicious.app', '15@duolicious.app', '', 'inbox', '', ${days_ago_15}::bigint * 1000000, 0, 0)
   " duo_chat
 
   sleep 2
@@ -149,8 +101,7 @@ do_test () {
   [[ "$(q "select 1 from person where activated = true  and email like 'will-remain-active1%' ")" = "1" ]]
   [[ "$(q "select 1 from person where activated = true  and email like 'will-remain-active2%' ")" = "1" ]]
   [[ "$(q "select 1 from person where activated = true  and email like 'will-remain-active3%' ")" = "1" ]]
-  [[ "$(q "select 1 from person where activated = true  and email like 'will-remain-active4%' ")" = "1" ]]
-  [[ "$(q "select count(*) from duo_session ")" = "4" ]]
+  [[ "$(q "select count(*) from duo_session ")" = "3" ]]
 
   diff \
     <(get_emails) \

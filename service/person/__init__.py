@@ -285,14 +285,19 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
         tx.execute(Q_MAYBE_DELETE_ONBOARDEE, params)
         tx.execute(Q_MAYBE_SIGN_IN, params)
         row = tx.fetchone()
-        if row:
-            return dict(
-                person_id=row['person_id'],
-                onboarded=row['person_id'] is not None,
-                units=row['units'],
-            )
-        else:
+        if not row:
             return 'Invalid OTP', 401
+
+    params = dict(person_id=row['person_id'])
+
+    with chat_tx() as tx:
+        tx.execute(Q_UPDATE_LAST, params)
+
+    return dict(
+        person_id=row['person_id'],
+        onboarded=row['person_id'] is not None,
+        units=row['units'],
+    )
 
 def post_sign_out(s: t.SessionInfo):
     params = dict(session_token_hash=s.session_token_hash)
