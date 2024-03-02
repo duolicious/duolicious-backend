@@ -843,48 +843,54 @@ const OptionScreen = ({navigation, route}) => {
         }}
       >
         <StatusBarSpacer/>
-        {showCloseButton &&
-          <Pressable onPress={() => navigation.popToTop()}>
-            <Ionicons
-              style={{
-                marginTop: 10,
-                marginLeft: 10,
-                fontSize: 30,
-              }}
-              name="close"
-            />
-          </Pressable>
-        }
-        {showBackButton &&
-          <Pressable onPress={() => navigation.goBack()}>
-            <FontAwesomeIcon
-              style={{
-                margin: 15,
-                color: 'white',
-              }}
-              icon={faArrowLeft}
-              size={24}
-              color="white"
-            />
-          </Pressable>
-        }
         <View
           style={{
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 1,
-            paddingTop: showCloseButton || showBackButton ? 0 : 40,
+            paddingTop: 10,
             paddingBottom: 20,
           }}
         >
+          {showCloseButton &&
+            <Pressable
+              onPress={() => navigation.popToTop()}
+              style={{position: 'absolute', top: 0, left: 0, zIndex: 99}}
+            >
+              <Ionicons
+                style={{
+                  marginTop: 10,
+                  marginLeft: 10,
+                  fontSize: 30,
+                }}
+                name="close"
+              />
+            </Pressable>
+          }
+          {showBackButton &&
+            <Pressable
+              onPress={() => navigation.goBack()}
+              style={{position: 'absolute', top: 0, left: 0, zIndex: 99}}
+            >
+              <FontAwesomeIcon
+                style={{
+                  margin: 15,
+                  color: 'white',
+                }}
+                icon={faArrowLeft}
+                size={24}
+                color="white"
+              />
+            </Pressable>
+          }
           <DefaultText
             style={{
               textAlign: 'center',
               fontWeight: '700',
               fontSize: 28,
               color: color,
-              paddingLeft: 20,
-              paddingRight: 20,
+              paddingLeft: 40,
+              paddingRight: 40,
             }}
           >
             {title}

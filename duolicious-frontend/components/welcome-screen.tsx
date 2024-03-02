@@ -156,8 +156,7 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
               fontFamily: 'MontserratBlack',
             }}
           >
-            {/* Date, chat & make new friends */}
-            Online dating exclusively for 4chan
+            Online dating{'\n'}for nerds like you
           </DefaultText>
           <DefaultText
             style={{
@@ -239,6 +238,7 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
               color: 'white',
               textAlign: 'center',
               alignSelf: 'center',
+              lineHeight: 28,
             }}
           >
             By signing up you agree to our {}
@@ -250,12 +250,19 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
             >
               Terms
             </DefaultText>
-            {} and {}
+            {}, {}
             <DefaultText
               style={{ fontWeight: '600' }}
               onPress={() => Linking.openURL('https://duolicious.app/privacy')}
             >
               Privacy Policy
+            </DefaultText>
+            {} and {}
+            <DefaultText
+              style={{ fontWeight: '600' }}
+              onPress={() => Linking.openURL('https://duolicious.app/guidelines')}
+            >
+              Community Guidelines
             </DefaultText>
           </DefaultText>
         </View>
