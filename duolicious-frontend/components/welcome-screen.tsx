@@ -156,7 +156,7 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
               fontFamily: 'MontserratBlack',
             }}
           >
-            Online dating{'\n'}for nerds like you
+            Cute dates & dank memes await...
           </DefaultText>
           <DefaultText
             style={{
