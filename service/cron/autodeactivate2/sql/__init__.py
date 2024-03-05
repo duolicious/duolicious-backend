@@ -4,9 +4,9 @@ SELECT DISTINCT
 FROM
     last
 WHERE
-    seconds < EXTRACT(EPOCH FROM NOW() - INTERVAL '130 days')
+    seconds < EXTRACT(EPOCH FROM NOW() - INTERVAL '120 days')
 AND
-    seconds > EXTRACT(EPOCH FROM NOW() - INTERVAL '150 days')
+    seconds > EXTRACT(EPOCH FROM NOW() - INTERVAL '140 days')
 """
 
 Q_DEACTIVATE = """
