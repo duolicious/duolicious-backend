@@ -1,25 +1,25 @@
 diff --git a/node_modules/expo-font/build/ExpoFontLoader.web.js b/node_modules/expo-font/build/ExpoFontLoader.web.js
-index 3784a6a..91b1dbf 100644
+index ef2f136..44dadb2 100644
 --- a/node_modules/expo-font/build/ExpoFontLoader.web.js
 +++ b/node_modules/expo-font/build/ExpoFontLoader.web.js
-@@ -65,7 +65,7 @@ export default {
+@@ -127,7 +127,7 @@ export default {
          if (!isFontLoadingListenerSupported()) {
-             return;
+             return Promise.resolve();
          }
--        return new FontObserver(fontFamilyName, { display: resource.display }).load();
+-        return new FontObserver(fontFamilyName, { display: resource.display }).load(null, 6000);
 +        return new FontObserver(fontFamilyName, { display: resource.display }).load(null, 60000);
      },
  };
  const ID = 'expo-generated-fonts';
 diff --git a/node_modules/expo-font/src/ExpoFontLoader.web.ts b/node_modules/expo-font/src/ExpoFontLoader.web.ts
-index 380f1ae..a745f85 100644
+index 361b15a..6fb09d2 100644
 --- a/node_modules/expo-font/src/ExpoFontLoader.web.ts
 +++ b/node_modules/expo-font/src/ExpoFontLoader.web.ts
-@@ -89,7 +89,7 @@ export default {
-       return;
+@@ -167,7 +167,7 @@ export default {
+       return Promise.resolve();
      }
  
--    return new FontObserver(fontFamilyName, { display: resource.display }).load();
+-    return new FontObserver(fontFamilyName, { display: resource.display }).load(null, 6000);
 +    return new FontObserver(fontFamilyName, { display: resource.display }).load(null, 60000);
    },
  };

@@ -30,7 +30,11 @@ const config: ExpoConfig = {
   },
   ios: {
     bundleIdentifier: "app.duolicious"
-  }
+  },
+  plugins: [
+    "expo-secure-store"
+  ]
+
 };
 
 export default config;

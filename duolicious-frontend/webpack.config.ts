@@ -4,6 +4,7 @@ import { Arguments, Environment } from '@expo/webpack-config/webpack/types';
 
 module.exports = async function(env, argv) {
   const config = await createExpoWebpackConfigAsync(env, argv);
+
   (config.module?.rules ?? []).forEach(r => {
     if (r && r !== '...' && r.oneOf) {
       r.oneOf.forEach(o => {
@@ -15,5 +16,13 @@ module.exports = async function(env, argv) {
       })
     }
   })
+
+  if (config.resolve) {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      crypto: require.resolve('expo-crypto'),
+    };
+  }
+
   return config;
 };
