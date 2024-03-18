@@ -115,7 +115,6 @@ def normalize_message(message_str):
 def is_message_too_long(message_str):
     return len(message_str) > MAX_MESSAGE_LEN
 
-# TODO
 async def maybe_register(message_xml, username):
     try:
         # Create a safe XML parser
@@ -126,9 +125,22 @@ async def maybe_register(message_xml, username):
 
         token = root.attrib.get('token')
 
+        if not token:
+            raise Exception('Token not set in duo_register_push_token')
 
+        params = dict(
+            username=username,
+            token=token,
+        )
+
+        async with chat_tx() as tx:
+            await tx.execute(Q_SET_TOKEN, params)
+
+        return True
     except Exception as e:
         pass
+
+    return False
 
 async def is_message_unique(message_str):
     normalized = normalize_message(message_str)
@@ -139,10 +151,7 @@ async def is_message_unique(message_str):
     async with chat_tx() as tx:
         cursor = await tx.execute(Q_UNIQUENESS, params)
         rows = await cursor.fetchall()
-        if rows:
-            return True
-        else:
-            return False
+        return bool(rows)
 
 async def is_message_blocked(username, to_jid):
     try:
