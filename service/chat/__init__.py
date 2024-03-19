@@ -7,9 +7,7 @@ import regex
 import traceback
 import websockets
 
-# TODO: Use tokens to notify users
-# * Should users be notified immediately after new messages, or at the same time
-#   as emails?
+# TODO: Remove tokens of inaccessible devices
 
 # TODO: Lock down the XMPP server by only allowing certain types of message
 
@@ -118,7 +116,7 @@ def is_message_too_long(message_str):
 async def maybe_register(message_xml, username):
     try:
         # Create a safe XML parser
-        root = parse_xml(message_str)
+        root = parse_xml(message_xml)
 
         if root.tag != 'duo_register_push_token':
             raise Exception('Not a duo_register_push_token message')
@@ -209,7 +207,7 @@ def process_auth(message_str, username):
         pass
 
 async def process_duo_message(message_xml, username):
-    if maybe_register(message_xml, username):
+    if await maybe_register(message_xml, username):
         return ['<duo_registration_successful />'], []
 
     id, to_jid, do_check_uniqueness, maybe_message_body = get_message_attrs(
