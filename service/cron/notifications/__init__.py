@@ -1,7 +1,7 @@
 from database.asyncdatabase import api_tx, chat_tx
 from dataclasses import dataclass
-from service.cron.emailnotifications.sql import *
-from service.cron.emailnotifications.template import emailtemplate
+from service.cron.notifications.sql import *
+from service.cron.notifications.template import emailtemplate
 from service.cron.util import join_lists_of_dicts, print_stacktrace, MAX_RANDOM_START_DELAY
 from smtp import aws_smtp
 import asyncio
@@ -13,7 +13,7 @@ EMAIL_POLL_SECONDS = int(os.environ.get(
     str(10), # 10 seconds
 ))
 
-print('Hello from cron module: emailnotifications')
+print('Hello from cron module: notifications')
 
 @dataclass
 class PersonNotification:

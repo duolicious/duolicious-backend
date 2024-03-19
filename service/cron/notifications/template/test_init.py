@@ -1,5 +1,5 @@
 import unittest
-from service.cron.emailnotifications.template import emailtemplate
+from service.cron.notifications.template import emailtemplate
 
 class TestEmailTemplate(unittest.TestCase):
 

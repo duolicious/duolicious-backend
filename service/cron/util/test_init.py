@@ -1,5 +1,5 @@
 import unittest
-from service.cron.emailnotifications import (
+from service.cron.notifications import (
     PersonNotification,
     do_send,
     join_lists_of_dicts,
