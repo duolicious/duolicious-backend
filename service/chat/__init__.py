@@ -7,8 +7,6 @@ import regex
 import traceback
 import websockets
 
-# TODO: Remove tokens of inaccessible devices
-
 # TODO: Lock down the XMPP server by only allowing certain types of message
 
 Q_UNIQUENESS = """
