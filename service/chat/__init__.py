@@ -7,7 +7,6 @@ import regex
 import traceback
 import websockets
 
-# TODO: Push notifications, yay
 # TODO: Lock down the XMPP server by only allowing certain types of message
 
 Q_UNIQUENESS = """
@@ -42,6 +41,16 @@ INSERT INTO messaged (
 ) VALUES (
     %(subject_person_id)s,
     %(object_person_id)s
+) ON CONFLICT DO NOTHING
+"""
+
+Q_SET_TOKEN = """
+INSERT INTO duo_push_token (
+    username,
+    token
+) VALUES (
+    %(username)s,
+    %(token)s
 ) ON CONFLICT DO NOTHING
 """
 
@@ -102,6 +111,36 @@ def normalize_message(message_str):
 def is_message_too_long(message_str):
     return len(message_str) > MAX_MESSAGE_LEN
 
+async def maybe_register(message_xml, username):
+    if not username:
+        return False
+
+    try:
+        # Create a safe XML parser
+        root = parse_xml(message_xml)
+
+        if root.tag != 'duo_register_push_token':
+            raise Exception('Not a duo_register_push_token message')
+
+        token = root.attrib.get('token')
+
+        if not token:
+            raise Exception('Token not set in duo_register_push_token')
+
+        params = dict(
+            username=username,
+            token=token,
+        )
+
+        async with chat_tx() as tx:
+            await tx.execute(Q_SET_TOKEN, params)
+
+        return True
+    except Exception as e:
+        pass
+
+    return False
+
 async def is_message_unique(message_str):
     normalized = normalize_message(message_str)
     hashed = duohash.md5(normalized)
@@ -111,10 +150,7 @@ async def is_message_unique(message_str):
     async with chat_tx() as tx:
         cursor = await tx.execute(Q_UNIQUENESS, params)
         rows = await cursor.fetchall()
-        if rows:
-            return True
-        else:
-            return False
+        return bool(rows)
 
 async def is_message_blocked(username, to_jid):
     try:
@@ -172,6 +208,9 @@ def process_auth(message_str, username):
         pass
 
 async def process_duo_message(message_xml, username):
+    if await maybe_register(message_xml, username):
+        return ['<duo_registration_successful />'], []
+
     id, to_jid, do_check_uniqueness, maybe_message_body = get_message_attrs(
         message_xml)
 

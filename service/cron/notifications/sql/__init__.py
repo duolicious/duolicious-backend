@@ -86,16 +86,21 @@ WITH ten_days_ago AS (
         duo_last_notification.username = inbox_first_pass.username
 )
 SELECT
-    username,
-    username::int AS person_id,
+    inbox_second_pass.username,
+    inbox_second_pass.username::int AS person_id,
     last_intro_seconds,
     last_chat_seconds,
     last_intro_notification_seconds,
     last_chat_notification_seconds,
     has_intro,
-    has_chat
+    has_chat,
+    token
 FROM
     inbox_second_pass
+LEFT JOIN
+    duo_push_token
+ON
+    duo_push_token.username = inbox_second_pass.username
 WHERE
     has_intro
 OR
@@ -150,4 +155,8 @@ INSERT INTO duo_last_notification (username, chat_seconds)
 VALUES (%(username)s, extract(epoch from now())::int)
 ON CONFLICT (username) DO UPDATE SET
     chat_seconds = extract(epoch from now())::int
+"""
+
+Q_DELETE_MOBILE_TOKEN = """
+DELETE FROM duo_push_token WHERE username = %(username)s
 """

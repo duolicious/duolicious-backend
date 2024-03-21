@@ -5,9 +5,16 @@ CREATE TABLE IF NOT EXISTS intro_hash (
 );
 
 CREATE TABLE IF NOT EXISTS duo_last_notification (
-    username text NOT NULL,
+    username TEXT NOT NULL,
     intro_seconds INT NOT NULL DEFAULT 0,
     chat_seconds INT NOT NULL DEFAULT 0,
+
+    PRIMARY KEY (username)
+);
+
+CREATE TABLE IF NOT EXISTS duo_push_token (
+    username TEXT NOT NULL,
+    token TEXT,
 
     PRIMARY KEY (username)
 );
