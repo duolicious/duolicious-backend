@@ -8,7 +8,7 @@ def big_part(has_intro, has_chat):
     if has_chat:
         return 'You have a new message in your chats!'
     return (
-        "Our email notifier is broken 😵‍💫. Please report this "
+        "Our notifier is broken 😵‍💫. Please report this "
         "to support@duolicious.app")
 
 def little_part(has_intro, has_chat):

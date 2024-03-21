@@ -1,7 +1,7 @@
 import unittest
-from service.cron.emailnotifications import (
+from service.cron.notifications import (
     PersonNotification,
-    do_send,
+    do_send_email_notification,
     join_lists_of_dicts,
 )
 
@@ -50,9 +50,14 @@ class TestJoinListsOfDicts(unittest.TestCase):
 class TestDoSend(unittest.TestCase):
 
     def test_stuff(self):
-        dont_care = dict(person_id=0, username='0', name='user0')
+        dont_care = dict(
+            person_id=0,
+            username='0',
+            name='user0',
+            token=None,
+        )
 
-        self.assertFalse(do_send(PersonNotification(
+        self.assertFalse(do_send_email_notification(PersonNotification(
             **dont_care,
             email='asdf@exaMPle.com',
             has_intro=True,
@@ -64,7 +69,7 @@ class TestDoSend(unittest.TestCase):
             intros_drift_seconds=0,
             chats_drift_seconds=0)))
 
-        self.assertFalse(do_send(PersonNotification(
+        self.assertFalse(do_send_email_notification(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
             has_intro=True,
@@ -76,7 +81,7 @@ class TestDoSend(unittest.TestCase):
             intros_drift_seconds=-1,
             chats_drift_seconds=-1)))
 
-        self.assertFalse(do_send(PersonNotification(
+        self.assertFalse(do_send_email_notification(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
             has_intro=False,
@@ -88,7 +93,7 @@ class TestDoSend(unittest.TestCase):
             intros_drift_seconds=0,
             chats_drift_seconds=-1)))
 
-        self.assertFalse(do_send(PersonNotification(
+        self.assertFalse(do_send_email_notification(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
             has_intro=True,
@@ -100,7 +105,7 @@ class TestDoSend(unittest.TestCase):
             intros_drift_seconds=-1,
             chats_drift_seconds=0)))
 
-        self.assertTrue(do_send(PersonNotification(
+        self.assertTrue(do_send_email_notification(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
             has_intro=True,
@@ -112,7 +117,7 @@ class TestDoSend(unittest.TestCase):
             intros_drift_seconds=0,
             chats_drift_seconds=0)))
 
-        self.assertTrue(do_send(PersonNotification(
+        self.assertTrue(do_send_email_notification(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
             has_intro=True,
@@ -124,7 +129,7 @@ class TestDoSend(unittest.TestCase):
             intros_drift_seconds=5,
             chats_drift_seconds=50)))
 
-        self.assertTrue(do_send(PersonNotification(
+        self.assertTrue(do_send_email_notification(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
             has_intro=False,
@@ -136,7 +141,7 @@ class TestDoSend(unittest.TestCase):
             intros_drift_seconds=50,
             chats_drift_seconds=5)))
 
-        self.assertFalse(do_send(PersonNotification(
+        self.assertFalse(do_send_email_notification(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
             has_intro=True,
@@ -148,7 +153,7 @@ class TestDoSend(unittest.TestCase):
             intros_drift_seconds=50,
             chats_drift_seconds=5)))
 
-        self.assertFalse(do_send(PersonNotification(
+        self.assertFalse(do_send_email_notification(PersonNotification(
             **dont_care,
             email='asdf@notexample.com',
             has_intro=False,
@@ -173,9 +178,10 @@ class TestDoSend(unittest.TestCase):
             email='user.1@gmail.com',
             chats_drift_seconds=0,
             intros_drift_seconds=86400,
+            token=None,
         )
 
-        self.assertFalse(do_send(real_notification))
+        self.assertFalse(do_send_email_notification(real_notification))
 
 if __name__ == '__main__':
     unittest.main()
