@@ -112,6 +112,9 @@ def is_message_too_long(message_str):
     return len(message_str) > MAX_MESSAGE_LEN
 
 async def maybe_register(message_xml, username):
+    if not username:
+        return False
+
     try:
         # Create a safe XML parser
         root = parse_xml(message_xml)
