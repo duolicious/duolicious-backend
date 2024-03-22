@@ -120,6 +120,18 @@ const WebSplashScreen = ({loading}) => {
   }
 };
 
+// This fixes inconsistent behavior between the mobile and web apps.
+// Without this, the keyboard in the mobile app squashes everything together.
+const KeyboardFixingContainer = ({children}) => {
+  const { height, width } = useWindowDimensions();
+
+  if (Platform.OS === 'web') {
+    return <>{children}</>;
+  } else {
+    return <View style={{ height, width }}>{children}</View>
+  }
+};
+
 type SignedInUser = {
   personId: number
   units: 'Metric' | 'Imperial'
@@ -142,7 +154,6 @@ const App = () => {
   [signedInUser, setSignedInUser] = useState<SignedInUser | undefined>();
   [referrerId, setReferrerId] = useState<string | undefined>();
   const navigationContainerRef = useRef<any>();
-  const { height, width } = useWindowDimensions();
 
   const loadFonts = useCallback(async () => {
     await Font.loadAsync({
@@ -324,10 +335,7 @@ const App = () => {
   return (
     <>
       {!isLoading &&
-        <View style={{
-          height: height,
-          width: width,
-        }}>
+        <KeyboardFixingContainer>
           <NavigationContainer
             ref={navigationContainerRef}
             onStateChange={pushBrowserState}
@@ -372,7 +380,7 @@ const App = () => {
               }
             </Stack.Navigator>
           </NavigationContainer>
-        </View>
+        </KeyboardFixingContainer>
       }
       <ReportModal/>
       <ImageCropper/>
