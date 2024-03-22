@@ -3,6 +3,7 @@ import {
   Animated,
   Image,
   ImageBackground,
+  KeyboardAvoidingView,
   ListRenderItemInfo,
   Platform,
   Pressable,
@@ -666,10 +667,10 @@ const TextInputWithButton = ({
   }, [sendMessage]);
 
   return (
-    <View
+    <KeyboardAvoidingView
+      behavior="padding"
       style={{
         flexDirection: 'row',
-        padding: 10,
         maxWidth: 600,
         width: '100%',
         alignSelf: 'center',
@@ -684,6 +685,7 @@ const TextInputWithButton = ({
           fontSize: 16,
           flex: 1,
           flexGrow: 1,
+          margin: 10,
           marginRight: 5,
         }}
         readOnly={isLoading}
@@ -698,6 +700,8 @@ const TextInputWithButton = ({
       <View
         style={{
           width: 50,
+          marginLeft: 0,
+          margin: 10,
         }}
       >
         <View
@@ -748,7 +752,7 @@ const TextInputWithButton = ({
           </Pressable>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

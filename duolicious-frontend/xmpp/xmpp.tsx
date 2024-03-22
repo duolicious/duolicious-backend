@@ -5,7 +5,7 @@ import { Client, client, xml } from '@xmpp/client';
 import { Element } from '@xmpp/xml';
 import { parse } from 'ltx';
 
-import { DOMParser } from 'xmldom';
+import { DOMParser } from '@xmldom/xmldom';
 import xpath from 'xpath';
 
 import { signedInUser } from '../App';
@@ -17,9 +17,10 @@ import { deleteFromArray, withTimeout, delay } from '../util/util';
 
 import { notify } from '../events/events';
 
+import { registerForPushNotificationsAsync } from '../notifications/notifications';
+
 // TODO: Catch more exceptions. If a network request fails, that shouldn't crash the app.
 // TODO: Update match percentages when user answers some questions
-// TODO: When someone opens two windows, display a warning. Or get multiple sessions working
 
 type MessageStatus =
   | 'sent'
@@ -344,6 +345,8 @@ const login = async (username: string, password: string) => {
         await _xmpp.send(xml("presence", { type: "available" }));
 
         await refreshInbox();
+
+        await registerForPushNotificationsAsync();
 
         // This is a hack to help figure out if the user is online. The
         // server-side notification logic relies on coarse-grained last-online
@@ -851,6 +854,14 @@ const logout = async () => {
   }
 };
 
+const registerPushToken = async (token: string) => {
+  if (!_xmpp) return;
+
+  const stanza = parse(`<duo_register_push_token token='${token}' />`);
+
+  await _xmpp.send(stanza);
+};
+
 export {
   Conversation,
   Conversations,
@@ -865,6 +876,7 @@ export {
   observeInbox,
   onReceiveMessage,
   refreshInbox,
+  registerPushToken,
   sendMessage,
   setConversationArchived,
   setInbox,

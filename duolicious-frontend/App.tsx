@@ -5,6 +5,8 @@ import {
   Platform,
   StatusBar,
   UIManager,
+  View,
+  useWindowDimensions,
 } from 'react-native';
 import {
   useCallback,
@@ -36,19 +38,20 @@ import { ProspectProfileScreen } from './components/prospect-profile-screen';
 import { WelcomeScreen } from './components/welcome-screen';
 import { sessionToken } from './kv-storage/session-token';
 import { japi, SUPPORTED_API_VERSIONS } from './api/api';
-import { login, logout } from './xmpp/xmpp';
+import { login, logout, Inbox, inboxStats, observeInbox } from './xmpp/xmpp';
 import { STATUS_URL } from './env/env';
 import { delay } from './util/util';
 import { ReportModal } from './components/report-modal';
 import { ImageCropper } from './components/image-cropper';
 import { StreamErrorModal } from './components/stream-error-modal';
-import { Inbox, inboxStats, observeInbox } from './xmpp/xmpp';
+import { setNofications } from './notifications/notifications';
 
 // TODO: iOS UI testing
 // TODO: Add the ability to reply to things (e.g. pictures, quiz responses) from people's profiles. You'll need to change the navigation to make it easier to reply to things. Consider breaking profiles into sections which can be replied to, each having one image or block of text. Letting people reply to specific things on the profile will improve intro quality.
 // TODO: A profile prompts. e.g. "If I had three wishes, I'd wish for...", "My favourite move is..."
 // TODO: Picture verification and a way to filter users by verified pics
 
+setNofications();
 
 SplashScreen.preventAutoHideAsync();
 
@@ -139,6 +142,7 @@ const App = () => {
   [signedInUser, setSignedInUser] = useState<SignedInUser | undefined>();
   [referrerId, setReferrerId] = useState<string | undefined>();
   const navigationContainerRef = useRef<any>();
+  const { height, width } = useWindowDimensions();
 
   const loadFonts = useCallback(async () => {
     await Font.loadAsync({
@@ -320,50 +324,55 @@ const App = () => {
   return (
     <>
       {!isLoading &&
-        <NavigationContainer
-          ref={navigationContainerRef}
-          onStateChange={pushBrowserState}
-          theme={{
-            ...DefaultTheme,
-            colors: {
-              ...DefaultTheme.colors,
-              background: 'white',
-            },
-          }}
-          onReady={onLayoutRootView}
-          documentTitle={{
-            formatter: () =>
-              (numUnreadTitle ? `(${numUnreadTitle}) ` : '') + 'Duolicious'
-          }}
-        >
-          <StatusBar
-            translucent={true}
-            backgroundColor="transparent"
-            barStyle="dark-content"
-          />
-          <Stack.Navigator
-            screenOptions={{
-              headerShown: false,
-              presentation: 'modal',
+        <View style={{
+          height: height,
+          width: width,
+        }}>
+          <NavigationContainer
+            ref={navigationContainerRef}
+            onStateChange={pushBrowserState}
+            theme={{
+              ...DefaultTheme,
+              colors: {
+                ...DefaultTheme.colors,
+                background: 'white',
+              },
+            }}
+            onReady={onLayoutRootView}
+            documentTitle={{
+              formatter: () =>
+                (numUnreadTitle ? `(${numUnreadTitle}) ` : '') + 'Duolicious'
             }}
           >
-            {
-              referrerId !== undefined ? (
-                <Tab.Screen name="Traits Screen" component={TraitsTab} />
-              ) : signedInUser ? (
-                <>
-                  <Tab.Screen name="Home" component={HomeTabs} />
-                  <Tab.Screen name="Conversation Screen" component={ConversationScreen} />
-                  <Tab.Screen name="Prospect Profile Screen" component={ProspectProfileScreen} />
-                </>
-              ) : (
-                <>
-                  <Tab.Screen name="Welcome" component={WelcomeScreen(numUsers)} />
-                </>
-              )
-            }
-          </Stack.Navigator>
-        </NavigationContainer>
+            <StatusBar
+              translucent={true}
+              backgroundColor="transparent"
+              barStyle="dark-content"
+            />
+            <Stack.Navigator
+              screenOptions={{
+                headerShown: false,
+                presentation: 'modal',
+              }}
+            >
+              {
+                referrerId !== undefined ? (
+                  <Tab.Screen name="Traits Screen" component={TraitsTab} />
+                ) : signedInUser ? (
+                  <>
+                    <Tab.Screen name="Home" component={HomeTabs} />
+                    <Tab.Screen name="Conversation Screen" component={ConversationScreen} />
+                    <Tab.Screen name="Prospect Profile Screen" component={ProspectProfileScreen} />
+                  </>
+                ) : (
+                  <>
+                    <Tab.Screen name="Welcome" component={WelcomeScreen(numUsers)} />
+                  </>
+                )
+              }
+            </Stack.Navigator>
+          </NavigationContainer>
+        </View>
       }
       <ReportModal/>
       <ImageCropper/>

@@ -21,7 +21,7 @@ const config: ExpoConfig = {
   },
   extra: {
     eas: {
-      projectId: "73076e4e-4594-49a9-9ed1-eac9c3ee05c8"
+      projectId: "a756e088-c07a-4034-b9c5-51f50139ac21"
     },
     apiUrl: process.env.DUO_API_URL,
     chatUrl: process.env.DUO_CHAT_URL,
@@ -33,8 +33,10 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-secure-store"
-  ]
-
+  ],
+  android: {
+    package: "app.duolicious"
+  }
 };
 
 export default config;

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "443037492722",
+    "project_id": "duolicious",
+    "storage_bucket": "duolicious.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:443037492722:android:33f137fb360884ba5ab76b",
+        "android_client_info": {
+          "package_name": "app.duolicious"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCc2FCgy-SIF1K07MOhkPqC7VAeSeOQsK0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

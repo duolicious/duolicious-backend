@@ -24,7 +24,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "googleServicesFile": "./google-services.json"
     },
     "androidNavigationBar": {
       "barStyle": "dark-content",
@@ -35,7 +36,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "73076e4e-4594-49a9-9ed1-eac9c3ee05c8"
+        "projectId": "a756e088-c07a-4034-b9c5-51f50139ac21"
       }
     },
     "ios": {
