@@ -1,0 +1,11 @@
+--- android/build.gradle	2024-03-22 20:00:55.657578943 +1100
++++ android/build.gradle.b	2024-03-22 20:01:09.837799023 +1100
+@@ -3,7 +3,7 @@
+ buildscript {
+     ext {
+         buildToolsVersion = findProperty('android.buildToolsVersion') ?: '34.0.0'
+-        minSdkVersion = Integer.parseInt(findProperty('android.minSdkVersion') ?: '23')
++        minSdkVersion = Integer.parseInt(findProperty('android.minSdkVersion') ?: '27')
+         compileSdkVersion = Integer.parseInt(findProperty('android.compileSdkVersion') ?: '34')
+         targetSdkVersion = Integer.parseInt(findProperty('android.targetSdkVersion') ?: '34')
+         kotlinVersion = findProperty('android.kotlinVersion') ?: '1.8.10'

@@ -128,7 +128,11 @@ const KeyboardFixingContainer = ({children}) => {
   if (Platform.OS === 'web') {
     return <>{children}</>;
   } else {
-    return <View style={{ height, width }}>{children}</View>
+    return (
+      <View style={{ height: height + (StatusBar.currentHeight ?? 0), width }}>
+        {children}
+      </View>
+    )
   }
 };
 
