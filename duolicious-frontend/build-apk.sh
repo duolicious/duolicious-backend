@@ -29,3 +29,5 @@ cp -r \
   android/app/src/main
 
 ( cd android && ./gradlew build )
+
+( cd android && ./gradlew bundleRelease )
