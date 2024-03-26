@@ -78,18 +78,40 @@ const SearchScreen_ = ({navigation}) => {
     });
   }, [onPressRefresh]);
 
+  const showListHeaderComponent = Math.random() < 0.5;
+
   const ListHeaderComponent = useCallback(() => {
+    if (!showListHeaderComponent)
+      return <></>;
+
     return (
       <Notice
-        onPress={() => navigation.navigate('Q&A')}
         style={{
           marginRight: 0,
+          flexDirection: 'column',
         }}
       >
-        <DefaultText style={{color: '#70f'}} >
-          Get better matches by playing Q&A{' '}
+        <DefaultText
+          style={{
+            color: '#70f',
+            fontSize: 16,
+            fontWeight: '900',
+            textAlign: 'center',
+          }}
+        >
+          Duolicious is growing because of users like you!
+          {'\n\n'}
         </DefaultText>
-        <QAndADevice color="#70f"/>
+        <DefaultText
+          style={{
+            color: '#70f',
+            textAlign: 'center',
+          }}
+        >
+          Everyone on Duolicious is here because someone told them about it. You
+          can help keep Duolicious free and attract users you want to see by
+          mentioning Duolicious in your favorite online communities.
+        </DefaultText>
       </Notice>
     );
   }, []);
