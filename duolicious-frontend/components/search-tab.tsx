@@ -95,11 +95,11 @@ const SearchScreen_ = ({navigation}) => {
           style={{
             color: '#70f',
             fontSize: 16,
-            fontWeight: '900',
+            fontWeight: '700',
             textAlign: 'center',
           }}
         >
-          Duolicious is growing because of users like you!
+          Support Duolicious by being a shill!
           {'\n\n'}
         </DefaultText>
         <DefaultText
@@ -108,9 +108,9 @@ const SearchScreen_ = ({navigation}) => {
             textAlign: 'center',
           }}
         >
-          Everyone on Duolicious is here because someone told them about it. You
-          can help keep Duolicious free and attract users you want to see by
-          mentioning Duolicious in your favorite online communities.
+          Everyone on Duolicious is here because somebody told them about
+          it—Please consider mentioning Duolicious to your favorite online
+          communities so we can have more users like you
         </DefaultText>
       </Notice>
     );
