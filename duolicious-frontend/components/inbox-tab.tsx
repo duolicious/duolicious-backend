@@ -48,11 +48,7 @@ const InboxTab = ({navigation}) => {
 };
 
 const InboxTab_ = ({navigation}) => {
-  const personIdThreshold = 9765;
-
-  const maxIntros = (signedInUser && signedInUser.personId < personIdThreshold)
-    ? 10
-    : 1000;
+  const maxIntros = 1000;
 
   const [sectionIndex, setSectionIndex] = useState(0);
   const [sortByIndex, setSortByIndex] = useState(0);
