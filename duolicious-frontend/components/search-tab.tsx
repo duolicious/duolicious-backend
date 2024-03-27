@@ -100,7 +100,7 @@ const SearchScreen_ = ({navigation}) => {
           }}
         >
           Support Duolicious by being a shill!
-          {'\n\n'}
+          {'\n'}
         </DefaultText>
         <DefaultText
           style={{
@@ -108,9 +108,9 @@ const SearchScreen_ = ({navigation}) => {
             textAlign: 'center',
           }}
         >
-          Everyone on Duolicious is here because somebody told them about
-          it—Please consider mentioning Duolicious to your favorite online
-          communities so we can have more users like you
+          If you like Duolicious and want to see it grow, please mention us
+          wherever you lurk—Because Duolicious is free, we only have a small
+          advertising budget, so your word-of-mouth shilling is much appreciated
         </DefaultText>
       </Notice>
     );
