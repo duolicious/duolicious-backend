@@ -78,40 +78,18 @@ const SearchScreen_ = ({navigation}) => {
     });
   }, [onPressRefresh]);
 
-  const showListHeaderComponent = Math.random() < 0.5;
-
   const ListHeaderComponent = useCallback(() => {
-    if (!showListHeaderComponent)
-      return <></>;
-
     return (
       <Notice
+        onPress={() => navigation.navigate('Q&A')}
         style={{
           marginRight: 0,
-          flexDirection: 'column',
         }}
       >
-        <DefaultText
-          style={{
-            color: '#70f',
-            fontSize: 16,
-            fontWeight: '700',
-            textAlign: 'center',
-          }}
-        >
-          Support Duolicious by being a shill!
-          {'\n'}
+        <DefaultText style={{color: '#70f'}} >
+          Get better matches by playing Q&A{' '}
         </DefaultText>
-        <DefaultText
-          style={{
-            color: '#70f',
-            textAlign: 'center',
-          }}
-        >
-          If you like Duolicious and want to see it grow, please mention us
-          wherever you lurk—Because Duolicious is free, we only have a small
-          advertising budget, so your word-of-mouth shilling is much appreciated
-        </DefaultText>
+        <QAndADevice color="#70f"/>
       </Notice>
     );
   }, []);
