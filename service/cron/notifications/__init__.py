@@ -109,6 +109,7 @@ def send_mobile_notification(row: PersonNotification):
         sound='default',
         title='You have a new message 😍',
         body=big_part(row.has_intro, row.has_chat),
+        priority='high',
     )
 
     headers = {
