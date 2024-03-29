@@ -1,9 +1,20 @@
+#!/usr/bin/env bash
+
 set -ex
 
-export DUO_STATUS_URL=https://status.duolicious.app
-export DUO_API_URL=https://api.duolicious.app
-export DUO_CHAT_URL=wss://chat.duolicious.app
-export DUO_IMAGES_URL=https://user-images.duolicious.app
+export DUO_STATUS_URL=${DUO_STATUS_URL:-https://status.duolicious.app}
+export DUO_API_URL=${DUO_API_URL:-https://api.duolicious.app}
+export DUO_CHAT_URL=${DUO_CHAT_URL:-wss://chat.duolicious.app}
+export DUO_IMAGES_URL=${DUO_IMAGES_URL:-https://user-images.duolicious.app}
+
+USES_CLEARTEXT_TRAFFIC=0
+
+for url in "$DUO_STATUS_URL" "$DUO_API_URL" "$DUO_CHAT_URL" "$DUO_IMAGES_URL"; do
+    if [[ ! $url =~ ^(https://|wss://) ]]; then
+        USES_CLEARTEXT_TRAFFIC=1
+        break
+    fi
+done
 
 rm -rf android ios
 
@@ -18,6 +29,14 @@ patch android/build.gradle \
 patch android/app/build.gradle \
   < apk-build-resources/app/build.gradle.patch
 
+patch android/app/src/main/AndroidManifest.xml \
+  < apk-build-resources/app/src/main/AndroidManifest.xml.notification.patch
+
+if [ "$USES_CLEARTEXT_TRAFFIC" -eq 1 ]; then
+  patch android/app/src/main/AndroidManifest.xml \
+    < apk-build-resources/app/src/main/AndroidManifest.xml.patch
+fi
+
 find android/app/src/main/res -mindepth 1 -type d -exec rm -r {} +
 
 cp -r \
@@ -30,4 +49,6 @@ cp -r \
 
 ( cd android && ./gradlew build )
 
-( cd android && ./gradlew bundleRelease )
+if [ "$USES_CLEARTEXT_TRAFFIC" -eq 0 ]; then
+  ( cd android && ./gradlew bundleRelease )
+fi

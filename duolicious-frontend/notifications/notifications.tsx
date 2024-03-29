@@ -5,6 +5,10 @@ import Constants from 'expo-constants';
 import { registerPushToken } from '../xmpp/xmpp';
 
 const setNofications = () => {
+  if (!Device.isDevice) {
+    return;
+  }
+
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: AppState.currentState !== 'active',

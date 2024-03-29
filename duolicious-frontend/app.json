@@ -2,7 +2,7 @@
   "expo": {
     "name": "duolicious",
     "slug": "duolicious",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -25,7 +25,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "package": "app.duolicious"
     },
     "androidNavigationBar": {
       "barStyle": "dark-content",

@@ -1,0 +1,12 @@
+--- android/app/src/main/AndroidManifest.xml	2024-03-29 03:09:36.154953662 +1100
++++ android/app/src/main/AndroidManifest.xml.b	2024-03-29 03:10:46.435882091 +1100
+@@ -32,5 +32,7 @@
+       </intent-filter>
+     </activity>
+     <activity android:name="com.facebook.react.devsupport.DevSettingsActivity" android:exported="false"/>
++    <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/notification_icon_color"/>
++    <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/notification_icon"/>
+   </application>
+-</manifest>
+\ No newline at end of file
++</manifest>

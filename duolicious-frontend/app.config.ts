@@ -32,9 +32,20 @@ const config: ExpoConfig = {
     bundleIdentifier: "app.duolicious"
   },
   plugins: [
-    "expo-secure-store"
+    "expo-secure-store",
+    [
+      "expo-notifications",
+      {
+        "icon": "./assets/notification.png",
+        "color": "#7700ff",
+        "sounds": [
+          "./assets/audio/notification.mp3"
+        ]
+      }
+    ]
   ],
   android: {
+    googleServicesFile: "./google-services.json",
     package: "app.duolicious"
   }
 };
