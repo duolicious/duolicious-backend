@@ -118,7 +118,7 @@ def send_mobile_notification(row: PersonNotification):
     }
 
     req = urllib.request.Request(
-        url='https://exp.host/--/api/v2/push/send',
+        url='https://exp.host/--/api/v2/push/send?useFcmV1=true',
         data=json.dumps(message).encode('utf-8'),
         headers=headers,
         method='POST'
