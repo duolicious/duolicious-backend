@@ -18,7 +18,7 @@ Then run this:
 You can also do this in one terminal:
 
 ```bash
-docker-compose up
+docker compose up
 ```
 
 ...Then run this in another:
@@ -47,8 +47,8 @@ duo_api=# select pg_stat_statements_reset();
 Terminal A:
 
 ```bash
-docker-compose down --remove-orphans
-docker-compose up postgres
+docker compose down --remove-orphans
+docker compose up postgres
 ```
 
 Terminal B:
@@ -67,7 +67,7 @@ Terminal A:
 
 ```bash
 ^C
-docker-compose up
+docker compose up
 ```
 
 ## Database logs and config (docker)
