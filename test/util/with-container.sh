@@ -2,8 +2,8 @@
 
 set -e
 
-docker-compose -f docker-compose.yml -f docker-compose.test.yml up -d
-docker-compose logs -f &
+docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+docker compose logs -f &
 
 echo 'Waiting for the API to start...'
 timeout=60
@@ -37,5 +37,5 @@ export DUO_DB_PASS=password
 # Run tests
 "$@"
 
-docker-compose kill || true
-docker-compose down || true
+docker compose kill || true
+docker compose down || true

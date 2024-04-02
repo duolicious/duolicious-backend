@@ -51,7 +51,8 @@ INSERT INTO duo_push_token (
 ) VALUES (
     %(username)s,
     %(token)s
-) ON CONFLICT DO NOTHING
+) ON CONFLICT (username) DO UPDATE SET
+    token = EXCLUDED.token
 """
 
 MAX_MESSAGE_LEN = 5000
