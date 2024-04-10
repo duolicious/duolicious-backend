@@ -458,7 +458,7 @@ const MaybeDonate = () => {
         }}
       >
         Did you find someone special on Duolicious? If so, please consider
-        donating. We accept donations via our Ko-fi page:{'\n'}
+        donating via our Ko-fi page:{'\n'}
 
         <DefaultText
           style={{
@@ -476,7 +476,7 @@ const MaybeDonate = () => {
       >
         {'\n'}
         If you can’t donate but still want to help, you can tell your friends
-        and share on social media.{'\u00A0'}🙏
+        and share on social media{'\u00A0'}🙏
       </DefaultText>
     </Notice>
   );
