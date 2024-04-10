@@ -28,7 +28,6 @@ import * as _ from "lodash";
 import { signedInUser } from '../App';
 import { cmToFeetInchesStr, kmToMilesStr } from '../units/units';
 import debounce from 'lodash/debounce';
-import { Notice } from './notice';
 import { Basic } from './basic';
 import { notify } from '../events/events';
 

@@ -18,7 +18,6 @@ import { TopNavBar } from './top-nav-bar';
 import { IntrosItem, ChatsItem } from './inbox-item';
 import { DefaultText } from './default-text';
 import { ButtonGroup } from './button-group';
-import { Notice } from './notice';
 import { OptionScreen } from './option-screen';
 import { hideMeFromStrangersOptionGroup } from '../data/option-groups';
 import { DefaultFlatList } from './default-flat-list';

@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   Linking,
+  Platform,
   ScrollView,
   View,
 } from 'react-native';
@@ -16,6 +17,7 @@ import { DuoliciousTopNavBar } from './top-nav-bar';
 import { OptionScreen } from './option-screen';
 import { Title } from './title';
 import { DefaultLongTextInput } from './default-long-text-input';
+import { Notice } from './notice';
 import {
   OptionGroup,
   OptionGroupInputs,
@@ -404,6 +406,8 @@ const Options = ({navigation, data}) => {
         )
       }
 
+      <MaybeDonate/>
+
       <Title style={{ marginTop: 70 }}>Sign Out</Title>
       <ButtonForOption
         onPress={signOut}
@@ -418,6 +422,63 @@ const Options = ({navigation, data}) => {
       <Title>Delete My Account</Title>
       <Button_ optionGroups={deletionOptionGroups} setting=""/>
     </View>
+  );
+};
+
+const MaybeDonate = () => {
+  if (Platform.OS !== 'web') {
+    return <></>;
+  }
+
+  return (
+    <Notice
+      onPress={() => Linking.openURL('https://ko-fi.com/duolicious')}
+      style={{
+        marginLeft: 0,
+        marginRight: 0,
+        marginTop: 70,
+        flexDirection: 'column',
+
+      }}
+    >
+      <DefaultText
+        style={{
+          color: '#70f',
+          fontWeight: '700',
+          fontSize: 18,
+          marginBottom: 10,
+        }}
+      >
+        Support Duolicious
+      </DefaultText>
+      <DefaultText
+        style={{
+          color: '#70f',
+          textAlign: 'center',
+        }}
+      >
+        Did you find someone special on Duolicious? If so, please consider
+        donating. We accept donations via our Ko-fi page:{'\n'}
+
+        <DefaultText
+          style={{
+            fontWeight: '700',
+          }}
+        >
+          https://ko-fi.com/duolicious
+        </DefaultText>
+      </DefaultText>
+      <DefaultText
+        style={{
+          color: '#70f',
+          textAlign: 'center',
+        }}
+      >
+        {'\n'}
+        If you can’t donate but still want to help, you can tell your friends
+        and share on social media.{'\u00A0'}🙏
+      </DefaultText>
+    </Notice>
   );
 };
 
