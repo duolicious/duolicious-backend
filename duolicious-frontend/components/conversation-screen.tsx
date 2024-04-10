@@ -484,59 +484,7 @@ const ConversationScreen = ({navigation, route}) => {
           </DefaultText>
         </View>
       }
-      {messages !== null && messages.length === 0 &&
-        <View style={{
-          flexGrow: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          alignSelf: 'center',
-        }}>
-          <ImageBackground
-            source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
-            style={{
-              height: 200,
-              width: 200,
-              margin: 2,
-              borderRadius: 999,
-              borderColor: 'white',
-              backgroundColor: imageUuid ? 'white' : '#f1e5ff',
-              overflow: 'hidden',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            {!imageUuid &&
-              <Ionicons
-                style={{fontSize: 40, color: 'rgba(119, 0, 255, 0.2)'}}
-                name={'person'}
-              />
-            }
-          </ImageBackground>
-          <Text
-            style={{
-              marginTop: 20,
-              marginBottom: 10,
-              fontFamily: 'Trueno',
-              textAlign: 'center',
-              marginLeft: '15%',
-              marginRight: '15%',
-            }}
-          >
-            This is the start of your conversation with {name}
-          </Text>
-          <DefaultText
-            style={{
-              textAlign: 'center',
-              marginLeft: '10%',
-              marginRight: '10%',
-            }}
-          >
-            Intros on Duolicious have to be totally unique! Try
-            asking {name} about something interesting on their profile...
-          </DefaultText>
-        </View>
-      }
-      {messages !== null && messages.length > 0 &&
+      {messages !== null &&
         <ScrollView
           ref={listRef}
           onLayout={scrollToEnd}
@@ -552,9 +500,62 @@ const ConversationScreen = ({navigation, route}) => {
             maxWidth: 600,
             width: '100%',
             alignSelf: 'center',
+            ...(messages.length === 0 ? {
+              justifyContent: 'center',
+              alignItems: 'center',
+              flexGrow: 1,
+            } : {}),
           }}
         >
-          {messages.map((x) =>
+          {messages.length === 0 &&
+            <>
+              <ImageBackground
+                source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
+                style={{
+                  height: 200,
+                  width: 200,
+                  margin: 2,
+                  borderRadius: 999,
+                  borderColor: 'white',
+                  backgroundColor: imageUuid ? 'white' : '#f1e5ff',
+                  overflow: 'hidden',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  alignSelf: 'center',
+                }}
+              >
+                {!imageUuid &&
+                  <Ionicons
+                    style={{fontSize: 40, color: 'rgba(119, 0, 255, 0.2)'}}
+                    name={'person'}
+                  />
+                }
+              </ImageBackground>
+              <Text
+                style={{
+                  marginTop: 20,
+                  marginBottom: 10,
+                  fontFamily: 'Trueno',
+                  textAlign: 'center',
+                  marginLeft: '15%',
+                  marginRight: '15%',
+                }}
+              >
+                This is the start of your conversation with {name}
+              </Text>
+              <DefaultText
+                style={{
+                  textAlign: 'center',
+                  marginLeft: '10%',
+                  marginRight: '10%',
+                }}
+              >
+                Intros on Duolicious have to be totally unique! Try
+                asking {name} about something interesting on their profile...
+              </DefaultText>
+            </>
+          }
+          {messages.length > 0 && messages.map((x) =>
             <SpeechBubble
               key={x.id}
               fromCurrentUser={x.fromCurrentUser}
