@@ -6,7 +6,6 @@ import {
   StatusBar,
   UIManager,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import {
   useCallback,
@@ -117,22 +116,6 @@ const WebSplashScreen = ({loading}) => {
         <ActivityIndicator size={60} color="white"/>
       </Animated.View>
     );
-  }
-};
-
-// This fixes inconsistent behavior between the mobile and web apps.
-// Without this, the keyboard in the mobile app squashes everything together.
-const KeyboardFixingContainer = ({children}) => {
-  const { height, width } = useWindowDimensions();
-
-  if (Platform.OS === 'web') {
-    return <>{children}</>;
-  } else {
-    return (
-      <View style={{ height: height + (StatusBar.currentHeight ?? 0), width }}>
-        {children}
-      </View>
-    )
   }
 };
 
@@ -339,52 +322,50 @@ const App = () => {
   return (
     <>
       {!isLoading &&
-        <KeyboardFixingContainer>
-          <NavigationContainer
-            ref={navigationContainerRef}
-            onStateChange={pushBrowserState}
-            theme={{
-              ...DefaultTheme,
-              colors: {
-                ...DefaultTheme.colors,
-                background: 'white',
-              },
-            }}
-            onReady={onLayoutRootView}
-            documentTitle={{
-              formatter: () =>
-                (numUnreadTitle ? `(${numUnreadTitle}) ` : '') + 'Duolicious'
+        <NavigationContainer
+          ref={navigationContainerRef}
+          onStateChange={pushBrowserState}
+          theme={{
+            ...DefaultTheme,
+            colors: {
+              ...DefaultTheme.colors,
+              background: 'white',
+            },
+          }}
+          onReady={onLayoutRootView}
+          documentTitle={{
+            formatter: () =>
+              (numUnreadTitle ? `(${numUnreadTitle}) ` : '') + 'Duolicious'
+          }}
+        >
+          <StatusBar
+            translucent={true}
+            backgroundColor="transparent"
+            barStyle="dark-content"
+          />
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              presentation: 'modal',
             }}
           >
-            <StatusBar
-              translucent={true}
-              backgroundColor="transparent"
-              barStyle="dark-content"
-            />
-            <Stack.Navigator
-              screenOptions={{
-                headerShown: false,
-                presentation: 'modal',
-              }}
-            >
-              {
-                referrerId !== undefined ? (
-                  <Tab.Screen name="Traits Screen" component={TraitsTab} />
-                ) : signedInUser ? (
-                  <>
-                    <Tab.Screen name="Home" component={HomeTabs} />
-                    <Tab.Screen name="Conversation Screen" component={ConversationScreen} />
-                    <Tab.Screen name="Prospect Profile Screen" component={ProspectProfileScreen} />
-                  </>
-                ) : (
-                  <>
-                    <Tab.Screen name="Welcome" component={WelcomeScreen(numUsers)} />
-                  </>
-                )
-              }
-            </Stack.Navigator>
-          </NavigationContainer>
-        </KeyboardFixingContainer>
+            {
+              referrerId !== undefined ? (
+                <Tab.Screen name="Traits Screen" component={TraitsTab} />
+              ) : signedInUser ? (
+                <>
+                  <Tab.Screen name="Home" component={HomeTabs} />
+                  <Tab.Screen name="Conversation Screen" component={ConversationScreen} />
+                  <Tab.Screen name="Prospect Profile Screen" component={ProspectProfileScreen} />
+                </>
+              ) : (
+                <>
+                  <Tab.Screen name="Welcome" component={WelcomeScreen(numUsers)} />
+                </>
+              )
+            }
+          </Stack.Navigator>
+        </NavigationContainer>
       }
       <ReportModal/>
       <ImageCropper/>

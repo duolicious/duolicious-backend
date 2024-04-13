@@ -3,7 +3,6 @@ import {
   Animated,
   Image,
   ImageBackground,
-  KeyboardAvoidingView,
   ListRenderItemInfo,
   Platform,
   Pressable,
@@ -668,8 +667,7 @@ const TextInputWithButton = ({
   }, [sendMessage]);
 
   return (
-    <KeyboardAvoidingView
-      behavior="padding"
+    <View
       style={{
         flexDirection: 'row',
         maxWidth: 600,
@@ -753,7 +751,7 @@ const TextInputWithButton = ({
           </Pressable>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 

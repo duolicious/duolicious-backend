@@ -4,6 +4,7 @@ import {
   StatusBar,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import {
   useCallback,
@@ -41,6 +42,8 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [emailNotSent, setEmailNotSent] = useState(false);
+
+  const { height } = useWindowDimensions();
 
   const submit = async (suffix?: string) => {
     const suffix_ = suffix ?? '';
@@ -158,17 +161,19 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
           >
             Cute dates & dank memes await...
           </DefaultText>
-          <DefaultText
-            style={{
-              marginTop: 10,
-              width: 320,
-              textAlign: 'center',
-              color: 'white',
-              opacity: numUsers < 0 ? 0 : 1,
-            }}
-          >
-            {numUsers.toLocaleString()} active member{numUsers === 1 ? '' : 's'}
-          </DefaultText>
+          {(Platform.OS === 'web' || height > 500) &&
+            <DefaultText
+              style={{
+                marginTop: 10,
+                width: 320,
+                textAlign: 'center',
+                color: 'white',
+                opacity: numUsers < 0 ? 0 : 1,
+              }}
+            >
+              {numUsers.toLocaleString()} active member{numUsers === 1 ? '' : 's'}
+            </DefaultText>
+          }
         </View>
         <View style={{
           justifyContent: 'flex-start',
@@ -199,20 +204,22 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
           >
             We couldn’t send an email there
           </DefaultText>
-          <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              marginLeft: 20,
-              marginRight: 20,
-            }}
-          >
-            <SuffixButton suffix="@gmail.com" />
-            <SuffixButton suffix="@proton.me" />
-            <SuffixButton suffix="@yahoo.com" />
-            <SuffixButton suffix="@hotmail.com" />
-            <SuffixButton suffix="@outlook.com" />
-          </View>
+          {(Platform.OS === 'web' || height > 500) &&
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                marginLeft: 20,
+                marginRight: 20,
+              }}
+            >
+              <SuffixButton suffix="@gmail.com" />
+              <SuffixButton suffix="@proton.me" />
+              <SuffixButton suffix="@yahoo.com" />
+              <SuffixButton suffix="@hotmail.com" />
+              <SuffixButton suffix="@outlook.com" />
+            </View>
+          }
         </View>
         <View
           style={{
