@@ -1,5 +1,7 @@
 import {
   View,
+  SafeAreaView,
+  StyleSheet,
 } from 'react-native';
 import {
   useRef,
@@ -14,9 +16,9 @@ import {
 } from "react-native-feather";
 
 const QuizTab = ({navigation}) => {
-  const stackRef = useRef(undefined);
+  const stackRef = useRef<any>(undefined);
 
-  const inputElementsRef = useRef(undefined);
+  const inputElementsRef = useRef<any>(undefined);
 
   const onPressUndo      = () => { stackRef.current.undo() };
   const onPressNo        = () => { stackRef.current.no() };
@@ -44,29 +46,31 @@ const QuizTab = ({navigation}) => {
   };
 
   return (
-    <>
-      <QuizCardStack
-        innerRef={stackRef}
-        onTopCardChanged={onTopCardChanged}
-        onSwipe={onSwipe}
-        navigation={navigation}
-      />
-      <UndoNoYesSkip
-        innerRef={inputElementsRef}
-        onPressNo={onPressNo}
-        onPressYes={onPressYes}
-        onPressSkip={onPressSkip}
-        onPressUndo={onPressUndo}
-      />
-    </>
+    <SafeAreaView style={styles.safeAreaView}>
+      <View style={styles.safeAreaView}>
+        <QuizCardStack
+          innerRef={stackRef}
+          onTopCardChanged={onTopCardChanged}
+          onSwipe={onSwipe}
+          navigation={navigation}
+        />
+        <UndoNoYesSkip
+          innerRef={inputElementsRef}
+          onPressNo={onPressNo}
+          onPressYes={onPressYes}
+          onPressSkip={onPressSkip}
+          onPressUndo={onPressUndo}
+        />
+      </View>
+    </SafeAreaView>
   );
 };
 
 const UndoNoYesSkip = (props) => {
-  const undoButtonRef = useRef(undefined);
-  const noButtonRef = useRef(undefined);
-  const yesButtonRef = useRef(undefined);
-  const skipButtonRef = useRef(undefined);
+  const undoButtonRef = useRef<any>(undefined);
+  const noButtonRef = useRef<any>(undefined);
+  const yesButtonRef = useRef<any>(undefined);
+  const skipButtonRef = useRef<any>(undefined);
 
   const {
     innerRef,
@@ -216,6 +220,13 @@ const UndoNoYesSkip = (props) => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  safeAreaView: {
+    flex: 1,
+    overflow: 'hidden',
+  }
+});
 
 export {
   QuizTab,

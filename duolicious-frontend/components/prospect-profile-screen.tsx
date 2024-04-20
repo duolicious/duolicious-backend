@@ -8,6 +8,7 @@ import {
   TextStyle,
   View,
   ViewStyle,
+  SafeAreaView,
 } from 'react-native';
 import {
   useCallback,
@@ -56,7 +57,7 @@ const ProspectProfileScreen = ({navigation, route}) => {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        presentation: 'modal',
+        presentation: 'card',
         animation: 'slide_from_right',
       }}
     >
@@ -116,41 +117,55 @@ const FloatingBackButton = (props) => {
     onPress,
     navigationRef,
     navigation,
+    safeAreaView = true,
   } = props;
 
+  const RootElement = useCallback(({children}) => {
+    if (safeAreaView) {
+      return (
+        <SafeAreaView style={{zIndex: 999}}>
+          {children}
+        </SafeAreaView>
+      )
+    } else {
+      return children;
+    }
+  }, [safeAreaView]);
+
   return (
-    <Pressable
-      style={{
-        borderRadius: 999,
-        zIndex: 999,
-        marginLeft: 10,
-        marginTop: 0,
-        width: 45,
-        height: 45,
-        backgroundColor: 'white',
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowOffset: {
-          width: 0,
-          height: 4,
-        },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
-      }}
-      onPress={onPress ?? (navigationRef?.current || navigation).goBack}
-    >
-      <FontAwesomeIcon
-        icon={faArrowLeft}
-        size={24}
-      />
-    </Pressable>
+    <RootElement>
+      <Pressable
+        style={{
+          zIndex: 999,
+          borderRadius: 999,
+          marginLeft: 10,
+          marginTop: 0,
+          width: 45,
+          height: 45,
+          backgroundColor: 'white',
+          alignItems: 'center',
+          justifyContent: 'center',
+          shadowOffset: {
+            width: 0,
+            height: 4,
+          },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 8,
+        }}
+        onPress={onPress ?? (navigationRef?.current || navigation).goBack}
+      >
+        <FontAwesomeIcon
+          icon={faArrowLeft}
+          size={24}
+        />
+      </Pressable>
+    </RootElement>
   );
 };
 
 const FloatingProfileInteractionButton = ({
   children,
-  navigation,
   onPress,
   backgroundColor,
 }) => {
@@ -246,7 +261,6 @@ const FloatingSkipButton = ({navigation, personId, isSkipped}) => {
 
   return (
     <FloatingProfileInteractionButton
-      navigation={navigation}
       onPress={onPress}
       backgroundColor="white"
     >
@@ -281,7 +295,6 @@ const FloatingSendIntroButton = ({navigation, personId, name, imageUuid}) => {
 
   return (
     <FloatingProfileInteractionButton
-      navigation={navigation}
       onPress={onPress}
       backgroundColor="#70f"
     >

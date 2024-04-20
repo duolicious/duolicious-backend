@@ -10,7 +10,6 @@ import {
 } from 'react';
 import { DefaultText } from './default-text';
 import Svg, { G, Circle } from "react-native-svg";
-import Ionicons from '@expo/vector-icons/Ionicons';
 
 const DonutChart = ({percentage, ...rest}) => {
   const {

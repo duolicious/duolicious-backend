@@ -3,21 +3,17 @@ import {
   Dimensions,
   ImageBackground,
   Pressable,
-  StyleProp,
-  TextStyle,
   View,
 } from 'react-native';
 import {
   createElement,
   memo,
   useCallback,
-  useEffect,
   useState,
 } from 'react';
-import CheckBox, { StatelessCheckBox } from './check-box';
+import CheckBox from './check-box';
 import { BaseQuizCard } from './base-quiz-card';
 import { DefaultText } from './default-text';
-import { StackActions } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Check, FastForward } from "react-native-feather";
 import { Skeleton } from '@rneui/themed';
@@ -280,21 +276,23 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
         ...containerStyle,
       }}
     >
-      <ImageBackground
-        source={require('../assets/background-noise.png')}
-        resizeMode="repeat"
+      <View
         style={{
-          overflow: 'hidden',
-          ...cardBorders,
+          overflow: 'visible',
           flexGrow: 1,
           backgroundColor: 'white',
-          ...imageBackgroundStyle,
+          ...cardBorders,
         }}
       >
-        <View
+        <ImageBackground
+          source={require('../assets/background-noise.png')}
+          resizeMode="repeat"
           style={{
             width: '100%',
             flexGrow: 1,
+            overflow: 'hidden',
+            borderRadius: cardBorders.borderRadius,
+            ...imageBackgroundStyle,
             ...innerStyle,
           }}
         >
@@ -469,8 +467,8 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
               }}
             />
           }
-        </View>
-      </ImageBackground>
+        </ImageBackground>
+      </View>
     </Animated.View>
   );
 };

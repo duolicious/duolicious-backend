@@ -3,7 +3,6 @@ import {
   Animated,
   Image,
   ImageBackground,
-  ListRenderItemInfo,
   Platform,
   Pressable,
   ScrollView,
@@ -12,6 +11,9 @@ import {
   TextStyle,
   View,
   ViewStyle,
+  SafeAreaView,
+  StyleSheet,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {
   useCallback,
@@ -26,7 +28,6 @@ import { DefaultText } from './default-text';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import {
-  Inbox,
   Message,
   MessageStatus,
   fetchConversation,
@@ -34,7 +35,6 @@ import {
   onReceiveMessage,
   refreshInbox,
   sendMessage,
-  setInbox,
 } from '../xmpp/xmpp';
 import {
   IMAGES_URL,
@@ -109,7 +109,7 @@ const Menu = ({navigation, name, personId, messages, closeFn}) => {
   };
 
   const iconStyle = {
-    backgroundColor: isLoading ? '#ddd' : undefined,
+    backgroundColor: isLoading ? '#ddd' : 'transparent',
     borderRadius: 3,
   };
 
@@ -134,6 +134,8 @@ const Menu = ({navigation, name, personId, messages, closeFn}) => {
 
   const iconStroke = isLoading ? "transparent" : "black";
 
+  const borderRadius = 10;
+
   return (
     <View
       style={{
@@ -144,7 +146,7 @@ const Menu = ({navigation, name, personId, messages, closeFn}) => {
         gap: 40,
         flexDirection: 'column',
         backgroundColor: 'white',
-        borderRadius: 10,
+        borderRadius: borderRadius,
         shadowOffset: {
           width: 0,
           height: 3,
@@ -153,7 +155,7 @@ const Menu = ({navigation, name, personId, messages, closeFn}) => {
         shadowRadius: 10,
         elevation: 8,
         zIndex: 999,
-        overflow: 'hidden',
+        overflow: 'visible',
         maxWidth: 350,
       }}
     >
@@ -225,6 +227,7 @@ const Menu = ({navigation, name, personId, messages, closeFn}) => {
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: 'white',
+            borderRadius: 10,
           }}
         >
           <ActivityIndicator size="large" color="#70f" />
@@ -418,7 +421,7 @@ const ConversationScreen = ({navigation, route}) => {
   }
 
   return (
-    <>
+    <SafeAreaView style={styles.safeAreaView}>
       <TopNavBar>
         <TopNavBarButton
           onPress={() => navigation.goBack()}
@@ -604,7 +607,7 @@ const ConversationScreen = ({navigation, route}) => {
           is inactive or was deleted.
         </DefaultText>
       }
-    </>
+    </SafeAreaView>
   );
 };
 
@@ -667,13 +670,15 @@ const TextInputWithButton = ({
   }, [sendMessage]);
 
   return (
-    <View
+    <KeyboardAvoidingView
+      behavior="padding"
       style={{
         flexDirection: 'row',
         maxWidth: 600,
         width: '100%',
         alignSelf: 'center',
       }}
+      enabled={Platform.OS === 'ios'}
     >
       <TextInput
         style={{
@@ -701,14 +706,14 @@ const TextInputWithButton = ({
           width: 50,
           marginLeft: 0,
           margin: 10,
+          justifyContent: 'flex-end',
+          alignItems: 'flex-end',
         }}
       >
         <View
           style={{
             width: '100%',
             aspectRatio: 1,
-            position: 'absolute',
-            bottom: 0,
           }}
         >
           <Pressable
@@ -751,9 +756,15 @@ const TextInputWithButton = ({
           </Pressable>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeAreaView: {
+    flex: 1
+  }
+});
 
 export {
   ConversationScreen

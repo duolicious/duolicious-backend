@@ -15,3 +15,10 @@ web-build/
 
 android
 ios
+
+# iOS builds
+build-*.ipa
+
+# Vim's temporary files
+*.swo
+*.swp

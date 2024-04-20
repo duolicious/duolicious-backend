@@ -190,12 +190,12 @@ const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
         marginBottom: 10,
         shadowOffset: {
           width: 0,
-          height: 3,
+          height: 2,
         },
         shadowOpacity: 0.2,
-        shadowRadius: 10,
+        shadowRadius: 3,
         elevation: 8,
-        overflow: 'hidden',
+        overflow: 'visible',
       }}
     >
       <Pressable

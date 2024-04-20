@@ -1,22 +1,17 @@
 import {
-  Animated,
   Platform,
-  Pressable,
-  StatusBar,
-  View,
+  SafeAreaView,
 } from 'react-native';
 import {
   memo,
   useCallback,
   useRef,
-  useState,
 } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ProfileCard }  from './profile-card';
 import { DuoliciousTopNavBar } from './top-nav-bar';
 import { SearchFilterScreen } from './search-filter-screen';
 import { DefaultText } from './default-text';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { QAndADevice } from './q-and-a-device';
 import { Notice } from './notice';
 import { DefaultFlatList } from './default-flat-list';
@@ -34,7 +29,7 @@ const SearchScreen = ({navigation}) => {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        presentation: 'modal'
+        presentation: 'card'
       }}
     >
       <Stack.Screen name="Search Screen" component={SearchScreen_} />
@@ -100,7 +95,7 @@ const SearchScreen_ = ({navigation}) => {
   }, []);
 
   return (
-    <>
+    <SafeAreaView style={{flex: 1}}>
       <DuoliciousTopNavBar>
         {Platform.OS === 'web' &&
           <TopNavBarButton
@@ -109,11 +104,11 @@ const SearchScreen_ = ({navigation}) => {
             style={{left: 15}}
           />
         }
-          <TopNavBarButton
-            onPress={onPressOptions}
-            iconName="options"
-            style={{right: 15}}
-          />
+        <TopNavBarButton
+          onPress={onPressOptions}
+          iconName="options"
+          style={{right: 15}}
+        />
       </DuoliciousTopNavBar>
       <DefaultFlatList
         ref={listRef}
@@ -134,7 +129,7 @@ const SearchScreen_ = ({navigation}) => {
         ListHeaderComponent={ListHeaderComponent}
         renderItem={renderItem}
       />
-    </>
+    </SafeAreaView>
   );
 };
 

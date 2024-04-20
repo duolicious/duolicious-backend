@@ -260,19 +260,19 @@ const BaseQuizCard = forwardRef(
         // Check if this is a swipe
         const dir = getSwipeDirection({
           x: gesture.dx,
-          y: gesture.dy
-        })
+          y: gesture.dy,
+        });
 
-        if (dir === 'none') {
+        if (dir === 'none' || preventSwipe.includes(dir)) {
           // Card was not flicked away, animate back to start
-          animateBack(setSpringTarget)
-        } else if (!preventSwipe.includes(dir)) {
+          await animateBack(setSpringTarget)
+        } else {
           if (onSwipe) onSwipe(dir)
 
           await animateOut(
             {x: gesture.vx, y: gesture.vy},
             setSpringTarget,
-            dir
+            dir,
           )
 
           if (onCardLeftScreen) onCardLeftScreen(dir)

@@ -12,7 +12,7 @@ const shadow = {
     height: 2,
   },
   shadowOpacity: 0.1,
-  shadowRadius: 10,
+  shadowRadius: 3,
   elevation: 8,
 };
 

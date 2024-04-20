@@ -4,6 +4,7 @@ import {
   Animated,
   Pressable,
   StyleSheet,
+  SafeAreaView,
   View,
 } from 'react-native';
 import {
@@ -307,7 +308,7 @@ const InboxTab_ = ({navigation}) => {
   }, [sectionIndex, showArchive]);
 
   return (
-    <>
+    <SafeAreaView style={styles.safeAreaView}>
       <TopNavBar>
         <DefaultText
           style={{
@@ -340,8 +341,14 @@ const InboxTab_ = ({navigation}) => {
           disableRefresh={true}
         />
       }
-    </>
+    </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeAreaView: {
+    flex: 1
+  }
+});
 
 export default InboxTab;

@@ -346,7 +346,7 @@ const App = () => {
           <Stack.Navigator
             screenOptions={{
               headerShown: false,
-              presentation: 'modal',
+              presentation: 'card',
             }}
           >
             {

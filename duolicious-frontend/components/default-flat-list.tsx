@@ -15,8 +15,8 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DefaultText }  from './default-text';
-import { Notice } from './notice';
 import { ButtonWithCenteredText } from './button/centered-text';
 
 const style: StyleProp<ViewStyle> = {
@@ -74,6 +74,8 @@ const ActivityIndicator_ = () => {
 }
 
 const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, ref) => {
+  const insets = useSafeAreaInsets();
+
   // This is a workaround for what I think might be a bug in React Native
   // where the FlatList stops redrawing list items when the flatlist goes
   // off-screen.
@@ -375,7 +377,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
       <View
         style={[
           {
-            marginTop: 20,
+            marginTop: 20 + insets.top,
             marginBottom: 20,
           },
           style,

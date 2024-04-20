@@ -6,6 +6,8 @@ import {
   TextInput,
   View,
   ViewStyle,
+  StyleSheet,
+  SafeAreaView,
 } from 'react-native';
 import {
   useCallback,
@@ -95,7 +97,7 @@ const TraitsTab = () => {
 
   if (isLoading) {
     return (
-      <>
+      <SafeAreaView style={styles.safeAreaView}>
         <DuoliciousTopNavBar/>
         <View
           style={{
@@ -106,7 +108,7 @@ const TraitsTab = () => {
         >
           <ActivityIndicator size={60} color="#70f"/>
         </View>
-      </>
+      </SafeAreaView>
     )
   }
 
@@ -125,7 +127,7 @@ const TraitsTab = () => {
   }
 
   return (
-    <>
+    <SafeAreaView style={styles.safeAreaView}>
       <DuoliciousTopNavBar/>
       <ScrollView
         contentContainerStyle={{
@@ -169,9 +171,15 @@ const TraitsTab = () => {
           </Chart>
         )}
       </ScrollView>
-    </>
+    </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeAreaView: {
+    flex: 1
+  }
+});
 
 export {
   TraitsTab,

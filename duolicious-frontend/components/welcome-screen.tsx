@@ -5,6 +5,8 @@ import {
   Text,
   View,
   useWindowDimensions,
+  Keyboard,
+  SafeAreaView,
 } from 'react-native';
 import {
   useCallback,
@@ -14,12 +16,12 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DefaultText } from './default-text';
 import { DefaultTextInput } from './default-text-input';
 import { ButtonWithCenteredText } from './button/centered-text';
-import { OtpInput } from './otp-input';
 import { createAccountOptionGroups } from '../data/option-groups';
 import { OptionScreen } from './option-screen';
 import { japi } from '../api/api';
 import { sessionToken } from '../kv-storage/session-token';
 import { Logo16 } from './logo';
+import { KeyboardDismissingView } from './keyboard-dismissing-view';
 
 const Stack = createNativeStackNavigator();
 
@@ -52,6 +54,8 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
     setEmailNotSent(false);
     setIsLoading(true);
     setEmail(email_);
+
+    Keyboard.dismiss();
 
     const response = await japi(
       'post',
@@ -104,14 +108,14 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
   ), [isLoading, submit]);
 
   return (
-    <View
+    <SafeAreaView
       style={{
         backgroundColor: '#70f',
         width: '100%',
         height: '100%',
       }}
     >
-      <View
+      <KeyboardDismissingView
         style={{
           width: '100%',
           height: '100%',
@@ -180,8 +184,6 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
           flex: 1,
         }}>
           <DefaultTextInput
-            style={{
-            }}
             placeholder="Enter your email to begin"
             keyboardType="email-address"
             textContentType="emailAddress"
@@ -190,7 +192,7 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
             value={email}
             onChangeText={setEmail}
             onSubmitEditing={() => submit()}
-            autoFocus={true}
+            autoFocus={Platform.OS !== 'ios'}
           />
           <DefaultText
             style={{
@@ -273,8 +275,8 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
             </DefaultText>
           </DefaultText>
         </View>
-      </View>
-    </View>
+      </KeyboardDismissingView>
+    </SafeAreaView>
   );
 };
 

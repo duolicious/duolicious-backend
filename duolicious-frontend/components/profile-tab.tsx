@@ -4,6 +4,8 @@ import {
   Platform,
   ScrollView,
   View,
+  StyleSheet,
+  SafeAreaView,
 } from 'react-native';
 import {
   useCallback,
@@ -133,7 +135,7 @@ const ProfileTab_ = ({navigation}) => {
   }, []);
 
   return (
-    <>
+    <SafeAreaView style={styles.safeAreaView}>
       <DuoliciousTopNavBar/>
       {data &&
         <ScrollView
@@ -164,7 +166,7 @@ const ProfileTab_ = ({navigation}) => {
           <ActivityIndicator size={60} color="#70f"/>
         </View>
       }
-    </>
+    </SafeAreaView>
   );
 };
 
@@ -195,6 +197,8 @@ const AboutPerson = ({navigation, data}) => {
     );
   }, []);
 
+  const style = Platform.OS === 'ios' ? {style: {height: 200}} : null;
+
   return (
     <View>
       <Title>
@@ -215,6 +219,7 @@ const AboutPerson = ({navigation, data}) => {
         defaultValue={data?.about ?? ''}
         onChangeText={onChangeAboutText}
         numberOfLines={8}
+        {...style}
       />
     </View>
   );
@@ -528,5 +533,11 @@ const AboutDuolicious = () => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  safeAreaView: {
+    flex: 1,
+  }
+});
 
 export default ProfileTab;

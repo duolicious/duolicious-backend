@@ -13,6 +13,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { StackActions } from '@react-navigation/native';
 import { QAndADevice } from './q-and-a-device';
 import { Inbox, inboxStats, observeInbox } from '../xmpp/xmpp';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const displayedTabs: Set<string> = new Set([
   "Q&A",
@@ -23,6 +24,8 @@ const displayedTabs: Set<string> = new Set([
 ]);
 
 const TabBar = ({state, descriptors, navigation}) => {
+  const insets = useSafeAreaInsets();
+
   const prevNumUnread = useRef(0);
   const numUnread = useRef(0);
 
@@ -66,9 +69,9 @@ const TabBar = ({state, descriptors, navigation}) => {
       style={{
         justifyContent: 'center',
         alignItems: 'center',
-        height: 50,
+        height: 50 + insets.bottom,
         width: '100%',
-        backgroundColor: 'white',
+        overflow: 'hidden',
       }}
     >
       <View
@@ -161,8 +164,8 @@ const TabBar = ({state, descriptors, navigation}) => {
                 accessibilityLabel={options.tabBarAccessibilityLabel}
                 testID={options.tabBarTestID}
                 style={{
-                  width: '100%',
-                  height: '100%',
+                  paddingTop: 6,
+                  paddingBottom: 6,
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: backgroundColor,

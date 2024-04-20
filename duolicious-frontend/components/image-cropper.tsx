@@ -1,7 +1,5 @@
 import {
   Animated,
-  ImageLoadEventData,
-  NativeSyntheticEvent,
   PanResponder,
   Platform,
   Pressable,
@@ -140,23 +138,10 @@ const ImageCropper = () => {
     });
   }, [windowWidth, windowHeight]);
 
-  // Used on web
   useEffect(() => {
     if (!data) return;
-    if (Platform.OS !== 'web') return;
 
-    Image.getSize(data.base64, initDims);
-  }, [data, initDims]);
-
-  // Used on mobile
-  const onLoad = useCallback((e: any) => {
-    if (!data) return;
-    if (Platform.OS === 'web') return;
-
-    const width = e.nativeEvent.source.width;
-    const height = e.nativeEvent.source.height;
-
-    initDims(width, height);
+    Image.getSize(data.base64, initDims, console.error);
   }, [data, initDims]);
 
   useEffect(() => {
@@ -267,7 +252,6 @@ const ImageCropper = () => {
       }}>
         <Image
           resizeMode="cover"
-          onLoad={onLoad}
           source={imageSource}
           style={styles.image}
         />

@@ -1,28 +1,20 @@
 import {
-  Animated,
-  LayoutAnimation,
-  Pressable,
-  ScrollView,
   StyleProp,
   View,
   ViewStyle,
 } from 'react-native';
 import {
   useCallback,
-  useEffect,
-  useRef,
   useState,
   memo,
 } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TopNavBar } from './top-nav-bar';
 import { DefaultText } from './default-text';
 import { ButtonGroup } from './button-group';
 import { AnsweredQuizCard } from './quiz-card';
 import { DefaultFlatList } from './default-flat-list';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { ArrowLeft, ArrowRight } from "react-native-feather";
 import { Chart } from './chart';
-import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../api/api';
 import { StatusBarSpacer } from './status-bar-spacer';
 import { FloatingBackButton } from './prospect-profile-screen';
@@ -221,6 +213,8 @@ const InDepthScreen = (navigationRef) => ({navigation, route}) => {
   const [idx3, setIdx3] = useState(0);
   const [idx4, setIdx4] = useState(0);
 
+  const insets = useSafeAreaInsets();
+
   const renderItem = useCallback(({item}) => {
     const onStateChange = (state: CardState) => {
       item.item.person_answer = state.answer;
@@ -257,8 +251,8 @@ const InDepthScreen = (navigationRef) => ({navigation, route}) => {
     <>
       <DefaultFlatList
         contentContainerStyle={{
-          paddingTop: 0,
-          paddingBottom: 20,
+          paddingTop: 0 + insets.top,
+          paddingBottom: 20 + insets.bottom,
         }}
         dataKey={
           idx1 === 1 ? `${idx1}-${idx4}` : `${idx1}-${idx2}-${idx3}`}
@@ -294,6 +288,7 @@ const InDepthScreen = (navigationRef) => ({navigation, route}) => {
       <View
         style={{
           position: 'absolute',
+          top: insets.top,
           height: 0,
           width: '100%',
           maxWidth: 600,
@@ -302,7 +297,7 @@ const InDepthScreen = (navigationRef) => ({navigation, route}) => {
         }}
       >
         <StatusBarSpacer/>
-        <FloatingBackButton navigationRef={navigationRef}/>
+        <FloatingBackButton navigationRef={navigationRef} safeAreaView={false}/>
       </View>
     </>
   );

@@ -376,7 +376,6 @@ const IntrosItem = ({
 
 const FloatingProfileInteractionButton = ({
   children,
-  navigation,
   onPress,
   backgroundColor,
 }) => {
@@ -451,7 +450,6 @@ const FloatingHideButton = ({navigation, personId}) => {
 
   return (
     <FloatingProfileInteractionButton
-      navigation={navigation}
       onPress={onPress}
       backgroundColor="white"
     >
@@ -479,7 +477,6 @@ const FloatingSendIntroButton = ({navigation, personId, name, imageUuid}) => {
 
   return (
     <FloatingProfileInteractionButton
-      navigation={navigation}
       onPress={onPress}
       backgroundColor="#70f"
     >

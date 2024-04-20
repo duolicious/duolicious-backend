@@ -56,28 +56,38 @@ const Avatar = ({percentage, ...props}) => {
       onPress={onPress}
       style={elementStyle}
     >
-      <ImageBackground
-        source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
+      <View
         style={{
           aspectRatio: 1,
-          margin: 2,
           borderRadius: 999,
+          margin: 2,
           borderColor: 'white',
           backgroundColor: imageUuid ? 'white' : '#f1e5ff',
           borderWidth: 2,
-          overflow: 'hidden',
-          justifyContent: 'center',
-          alignItems: 'center',
+          overflow: 'visible',
           ...shadowStyle,
+
         }}
       >
-        {!imageUuid &&
-          <Ionicons
-            style={{fontSize: 40, color: 'rgba(119, 0, 255, 0.2)'}}
-            name={'person'}
-          />
-        }
-      </ImageBackground>
+        <ImageBackground
+          source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
+          style={{
+            flex: 1,
+            aspectRatio: 1,
+            borderRadius: 999,
+            overflow: 'hidden',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          {!imageUuid &&
+            <Ionicons
+              style={{fontSize: 40, color: 'rgba(119, 0, 255, 0.2)'}}
+              name={'person'}
+            />
+          }
+        </ImageBackground>
+      </View>
       <View
         style={{
           position: 'absolute',

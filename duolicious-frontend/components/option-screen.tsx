@@ -2,9 +2,11 @@ import {
   Pressable,
   ScrollView,
   View,
+  SafeAreaView,
+  Platform,
+  Keyboard,
 } from 'react-native';
 import {
-  createElement,
   forwardRef,
   useCallback,
   useEffect,
@@ -27,7 +29,6 @@ import {
   OptionGroup,
   OptionGroupButtons,
   OptionGroupCheckChips,
-  OptionGroupDate,
   OptionGroupGivenName,
   OptionGroupInputs,
   OptionGroupLocationSelector,
@@ -60,9 +61,8 @@ import { CheckChip as CheckChip_, CheckChips as CheckChips_ } from './check-chip
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons/faArrowLeft'
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { japi } from '../api/api';
-import { signedInUser } from '../App';
-import { cmToFeetInchesStr } from '../units/units';
 import { delay } from '../util/util';
+import { KeyboardDismissingView } from './keyboard-dismissing-view';
 
 type InputProps<T extends OptionGroupInputs> = {
   input: T,
@@ -465,8 +465,9 @@ const TextLong = forwardRef((props: InputProps<OptionGroupTextLong>, ref) => {
         style={{
           marginLeft: 20,
           marginRight: 20,
+          ...(Platform.OS === 'ios' ? {height: 200} : {})
         }}
-        autoFocus={true}
+        autoFocus={Platform.OS !== 'ios'}
         onChangeText={onChangeInputValue}
         onSubmitEditing={submit}
         numberOfLines={8}
@@ -771,10 +772,12 @@ const OptionScreen = ({navigation, route}) => {
   const showSkipButton: boolean = route?.params?.showSkipButton ?? true;
   const showCloseButton: boolean = route?.params?.showCloseButton ?? true;
   const showBackButton: boolean = route?.params?.showBackButton ?? false;
-  const backgroundColor: string | undefined = route?.params?.backgroundColor;
+  const backgroundColor: string = route?.params?.backgroundColor ?? 'white';
   const color: string | undefined = route?.params?.color;
   const onSubmitSuccess: any | undefined = route?.params?.onSubmitSuccess;
   const theme: any | undefined = route?.params?.theme;
+
+  const transparentBackgroundColor = backgroundColor === 'white' ? '#ffffff00' : '#7700ff00';
 
   const thisOptionGroup = optionGroups[0];
 
@@ -827,14 +830,14 @@ const OptionScreen = ({navigation, route}) => {
   }, [isLoading, inputRef.current, _onSubmitSuccess]);
 
   return (
-    <View
+    <SafeAreaView
       style={{
         backgroundColor: backgroundColor,
         width: '100%',
         height: '100%',
       }}
     >
-      <View
+      <KeyboardDismissingView
         style={{
           height: '100%',
           width: '100%',
@@ -948,7 +951,7 @@ const OptionScreen = ({navigation, route}) => {
                 <View style={{height: 20}}/>
               </ScrollView>
               <LinearGradient
-                colors={[backgroundColor || 'white', 'transparent']}
+                colors={[backgroundColor, transparentBackgroundColor]}
                 style={{
                   position: 'absolute',
                   height: 20,
@@ -958,7 +961,7 @@ const OptionScreen = ({navigation, route}) => {
                 }}
               />
               <LinearGradient
-                colors={['transparent', backgroundColor || 'white']}
+                colors={[transparentBackgroundColor, backgroundColor]}
                 style={{
                   position: 'absolute',
                   height: 20,
@@ -986,8 +989,8 @@ const OptionScreen = ({navigation, route}) => {
             {showSkipButton ? 'Skip' : 'Continue'}
           </ButtonWithCenteredText>
         </View>
-      </View>
-    </View>
+      </KeyboardDismissingView>
+    </SafeAreaView>
   );
 };
 

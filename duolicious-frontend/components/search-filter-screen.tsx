@@ -6,6 +6,8 @@ import {
   ScrollView,
   StatusBar,
   View,
+  StyleSheet,
+  SafeAreaView,
 } from 'react-native';
 import {
   useCallback,
@@ -13,8 +15,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-import CheckBox from './check-box';
-import { ButtonWithCenteredText } from './button/centered-text';
 import { DefaultText } from './default-text';
 import { TopNavBar } from './top-nav-bar';
 import { ButtonForOption } from './button/option';
@@ -294,7 +294,7 @@ const SearchFilterScreen_ = ({navigation, route}) => {
   }, [navigation, onPressRefresh]);
 
   return (
-    <>
+    <SafeAreaView style={styles.safeAreaView}>
       <TopNavBar
         style={{
           alignItems: 'center',
@@ -393,7 +393,7 @@ const SearchFilterScreen_ = ({navigation, route}) => {
           <ActivityIndicator size={60} color="#70f"/>
         </View>
       }
-    </>
+    </SafeAreaView>
   );
 };
 
@@ -430,7 +430,7 @@ const QandQFilterScreen = ({navigation, route}) => {
   }, [answers]);
 
   return (
-    <>
+    <SafeAreaView style={styles.safeAreaView}>
       <TopNavBar
         style={{
           alignItems: 'stretch',
@@ -583,9 +583,15 @@ const QandQFilterScreen = ({navigation, route}) => {
           }
         </ScrollView>
       }
-    </>
+    </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeAreaView: {
+    flex: 1
+  }
+});
 
 export {
   SearchFilterScreen,

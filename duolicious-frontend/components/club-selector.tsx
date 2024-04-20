@@ -1,32 +1,22 @@
 import {
   ActivityIndicator,
-  ListRenderItemInfo,
-  Platform,
   Pressable,
   ScrollView,
-  StatusBar,
   View,
+  SafeAreaView,
+  StyleSheet,
 } from 'react-native';
 import {
   useCallback,
-  useEffect,
-  useMemo,
   useState,
 } from 'react';
-import CheckBox from './check-box';
-import { ButtonWithCenteredText } from './button/centered-text';
 import { DefaultText } from './default-text';
 import { TopNavBar } from './top-nav-bar';
-import { ButtonForOption } from './button/option';
 import { Title } from './title';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { OptionScreen } from './option-screen';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultTextInput } from './default-text-input';
 import { api, japi } from '../api/api';
 import * as _ from "lodash";
-import { signedInUser } from '../App';
-import { cmToFeetInchesStr, kmToMilesStr } from '../units/units';
 import debounce from 'lodash/debounce';
 import { Basic } from './basic';
 import { notify } from '../events/events';
@@ -84,6 +74,8 @@ const UnselectedClub = ({
         style={{
           marginTop: 5,
           marginBottom: 5,
+          flexWrap: 'wrap',
+          flexShrink: 1,
         }}
       >{clubItem.name}</Basic>
       <DefaultText style={{fontWeight: '700'}}>
@@ -168,7 +160,7 @@ const ClubSelector = ({navigation, route}) => {
   }, [selectedClubs, searchResults]);
 
   return (
-    <>
+    <SafeAreaView styles={styles.safeAreaView}>
       <TopNavBar
         style={{
           alignItems: 'stretch',
@@ -315,9 +307,15 @@ const ClubSelector = ({navigation, route}) => {
           </>
         }
       </ScrollView>
-    </>
+    </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeAreaView: {
+    flex: 1
+  }
+});
 
 export {
   ClubItem,

@@ -38,6 +38,19 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 600,
   },
+  dcStyle: {
+    width: 90,
+    height: 90,
+    backgroundColor: 'white',
+    borderRadius: 999,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+  }
 });
 
 
@@ -403,7 +416,7 @@ const Prospects = ({
   const lgColors = useRef([
     'rgb(255, 255, 255)',
     'rgba(255, 255, 255, 0.75)',
-    'transparent',
+    'rgba(255, 255, 255, 0)',
   ]).current;
   const lgLocations = useRef([
     0.0,
@@ -433,19 +446,6 @@ const Prospects = ({
     alignItems: 'center',
     justifyContent: 'center',
     width: '33.333%',
-  }).current;
-  const dcStyle = useRef({
-    width: 90,
-    height: 90,
-    backgroundColor: 'white',
-    borderRadius: 999,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
   }).current;
 
   const ProspectDonutPercentage = useCallback(({donutOpacity, matchPercentage}) => (
@@ -526,7 +526,7 @@ const Prospects = ({
           )
         }
         <View style={dcViewStyle}>
-          <DonutChart style={dcStyle} percentage={undefined}/>
+          <DonutChart style={styles.dcStyle} percentage={undefined}/>
         </View>
         {
           bestProspects.map((prospect, i) =>
