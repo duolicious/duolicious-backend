@@ -75,8 +75,7 @@ const LocationSelector = ({onChangeText, ...rest}) => {
         }}
       >
         {displayResults &&
-          <ScrollView
-            showsVerticalScrollIndicator={!loading}
+          <View
             style={{
               position: 'absolute',
               width: '100%',
@@ -93,18 +92,20 @@ const LocationSelector = ({onChangeText, ...rest}) => {
               elevation: 8,
             }}
           >
-            {loading &&
-              <ActivityIndicator size="large" color="#70f" style={{ padding: 5 }}/>
-            }
-            {!loading && items &&
-              items.map((item) => <Item key={item} text={item}/>)
-            }
-            {!loading && !items?.length &&
-              <DefaultText style={{ padding: 15, textAlign: 'center'}} >
-                No results
-              </DefaultText>
-            }
-          </ScrollView>
+            <ScrollView showsVerticalScrollIndicator={!loading}>
+              {loading &&
+                <ActivityIndicator size="large" color="#70f" style={{ padding: 5 }}/>
+              }
+              {!loading && items &&
+                items.map((item) => <Item key={item} text={item}/>)
+              }
+              {!loading && !items?.length &&
+                <DefaultText style={{ padding: 15, textAlign: 'center'}} >
+                  No results
+                </DefaultText>
+              }
+            </ScrollView>
+          </View>
         }
       </View>
     </>
