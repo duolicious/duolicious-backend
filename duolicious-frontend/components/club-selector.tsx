@@ -160,7 +160,7 @@ const ClubSelector = ({navigation, route}) => {
   }, [selectedClubs, searchResults]);
 
   return (
-    <SafeAreaView styles={styles.safeAreaView}>
+    <SafeAreaView style={styles.safeAreaView}>
       <TopNavBar
         style={{
           alignItems: 'stretch',
@@ -298,7 +298,7 @@ const ClubSelector = ({navigation, route}) => {
               textAlign: 'center',
               alignSelf: 'center',
               marginTop: 30,
-              marginBottom: 30,
+              marginBottom: 80,
               marginLeft: '15%',
               marginRight: '15%',
             }}>

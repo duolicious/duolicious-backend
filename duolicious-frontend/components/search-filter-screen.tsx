@@ -574,11 +574,19 @@ const QandQFilterScreen = ({navigation, route}) => {
                   {a.question}
                 </SearchQuizCard>
               )}
-              <Notice style={{ marginTop: 5, marginBottom: 5, marginLeft: 0, marginRight: 0 }}>
-                <DefaultText style={{color: '#70f'}} >
-                  No more search results to show
-                </DefaultText>
-              </Notice>
+              <DefaultText style={{
+                fontFamily: 'TruenoBold',
+                color: '#000',
+                fontSize: 16,
+                textAlign: 'center',
+                alignSelf: 'center',
+                marginTop: 30,
+                marginBottom: 80,
+                marginLeft: '15%',
+                marginRight: '15%',
+              }}>
+                No more search results to show
+              </DefaultText>
             </>
           }
         </ScrollView>
