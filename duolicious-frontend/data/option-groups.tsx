@@ -855,7 +855,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   ),
   {
     title: 'Step 6 of 7: Photos',
-    description: 'Profiles with photos are promoted in search results, but you can add these later',
+    description: 'People with pics get about 11 times more messages, but you can add these later',
     input: {
       photos: {
         submit: async (position, cropperOutput) => (await japi(
