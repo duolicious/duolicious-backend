@@ -188,6 +188,10 @@ const App = () => {
   }, []);
 
   const fetchServerStatusState = useCallback(async () => {
+    // TODO: Remove this
+    setServerStatus("ok");
+    return;
+
     const response = await japi('GET', STATUS_URL);
     if (!response.ok) {
       // If even the status server is down, things are *very* not-okay. But odds
