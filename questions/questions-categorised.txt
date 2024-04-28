@@ -2701,7 +2701,7 @@
       "category": "interpersonal"
     },
     {
-      "question": "Are you debt-free, or do you have loans and debts to manage?",
+      "question": "Are you debt-free?",
       "category": "other"
     },
     {
@@ -3717,7 +3717,7 @@
       "category": "other"
     },
     {
-      "question": "Is \"borrowing\" your roommate's food without asking is just part of living together?",
+      "question": "Is \"borrowing\" your roommate's food without asking just part of living together?",
       "category": "interpersonal"
     },
     {
@@ -6357,7 +6357,7 @@
       "category": "interpersonal"
     },
     {
-      "question": "Should a pet in the bed be a mutual decision or it\u2019s up to the pet\u2019s favorite human?",
+      "question": "Should a pet in the bed be a mutual decision rather than leaving it up to the pet\u2019s favorite human?",
       "category": "interpersonal"
     },
     {
