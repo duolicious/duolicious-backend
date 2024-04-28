@@ -149,10 +149,10 @@ WITH searcher AS MATERIALIZED (
                     COALESCE(preference.min_age, 0)
                 )
             AND
-                prospect.date_of_birth >= (
+                prospect.date_of_birth > (
                     CURRENT_DATE -
                     INTERVAL '1 year' *
-                    COALESCE(preference.max_age, 999)
+                    (COALESCE(preference.max_age, 999) + 1)
                 )
             LIMIT 1
         )
@@ -170,10 +170,10 @@ WITH searcher AS MATERIALIZED (
                     COALESCE(preference.min_age, 0)
                 )
             AND
-                (SELECT date_of_birth FROM searcher) >= (
+                (SELECT date_of_birth FROM searcher) > (
                     CURRENT_DATE -
                     INTERVAL '1 year' *
-                    COALESCE(preference.max_age, 999)
+                    (COALESCE(preference.max_age, 999) + 1)
                 )
             LIMIT 1
         )
