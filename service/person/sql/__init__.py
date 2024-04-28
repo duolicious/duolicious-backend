@@ -485,10 +485,10 @@ WITH onboardee_country AS (
                                 COALESCE(preference.min_age, 0)
                             )
                         AND
-                            prospect.date_of_birth >= (
+                            prospect.date_of_birth > (
                                 CURRENT_DATE -
                                 INTERVAL '1 year' *
-                                COALESCE(preference.max_age, 999)
+                                (COALESCE(preference.max_age, 999) + 1)
                             )
                         LIMIT 1
                     )
@@ -506,10 +506,10 @@ WITH onboardee_country AS (
                                 COALESCE(preference.min_age, 0)
                             )
                         AND
-                            (SELECT date_of_birth FROM new_person) >= (
+                            (SELECT date_of_birth FROM new_person) > (
                                 CURRENT_DATE -
                                 INTERVAL '1 year' *
-                                COALESCE(preference.max_age, 999)
+                                (COALESCE(preference.max_age, 999) + 1)
                             )
                         LIMIT 1
                     )
