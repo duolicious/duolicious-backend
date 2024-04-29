@@ -39,7 +39,7 @@
     "expo-notifications": "~0.27.7",
     "expo-screen-orientation": "~6.4.1",
     "expo-secure-store": "~12.8.1",
-    "expo-splash-screen": "~0.26.4",
+    "expo-splash-screen": "~0.26.5",
     "expo-status-bar": "~1.11.1",
     "lodash": "^4.17.21",
     "patch-package": "^6.5.0",
