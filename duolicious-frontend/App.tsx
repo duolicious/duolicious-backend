@@ -188,7 +188,7 @@ const App = () => {
   }, []);
 
   const fetchServerStatusState = useCallback(async () => {
-    const response = await fetch(STATUS_URL);
+    const response = await fetch(STATUS_URL, {cache: 'no-cache'});
     if (!response.ok) {
       // If even the status server is down, things are *very* not-okay. But odds
       // are it can't be contacted because the user has a crappy internet

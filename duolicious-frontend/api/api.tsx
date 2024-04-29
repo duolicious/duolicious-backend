@@ -9,7 +9,7 @@ import { sessionToken } from '../kv-storage/session-token';
 import { Buffer } from "buffer";
 import { NonNullImageCropperOutput } from '../components/image-cropper';
 
-const SUPPORTED_API_VERSIONS = [3, 4];
+const SUPPORTED_API_VERSIONS = [4, 5];
 
 type ApiResponse = {
   ok: boolean
