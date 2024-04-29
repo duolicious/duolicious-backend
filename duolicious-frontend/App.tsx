@@ -188,11 +188,7 @@ const App = () => {
   }, []);
 
   const fetchServerStatusState = useCallback(async () => {
-    // TODO: Remove this
-    setServerStatus("ok");
-    return;
-
-    const response = await japi('GET', STATUS_URL);
+    const response = await fetch(STATUS_URL);
     if (!response.ok) {
       // If even the status server is down, things are *very* not-okay. But odds
       // are it can't be contacted because the user has a crappy internet
@@ -202,7 +198,7 @@ const App = () => {
       return;
     }
 
-    const j = response.json;
+    const j: any = await response.json();
     const apiVersion = j.api_version;
     const reportedStatus = j.statuses[j.status_index];
 
