@@ -9,6 +9,7 @@ import {
   DefaultTextInput,
 } from './default-text-input';
 import { DefaultText } from './default-text';
+import { otpDestination } from '../App';
 
 type Props = {
   codeLength: number,
@@ -124,40 +125,64 @@ const OtpInput = (props: Props) => {
   return (
     <View
       style={{
-        flexDirection: 'row',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
-      {
-        state.map((digitState, i) =>
-          <DefaultTextInput
-            key={i}
-            autoFocus={i === 0}
-            innerRef={e => inputRefs.current[i] = e}
-            onFocus={onFocus(i)}
-            onBlur={onBlur(i)}
-            onChangeText={onChangeText(i)}
-            onKeyPress={onKeyPress(i)}
-            onSubmitEditing={props.submit}
-            value={digitState.digit}
-            inputMode="numeric"
-            keyboardType="number-pad"
-            style={{
-              width: 35,
-              margin: 5,
-              marginLeft: undefined,
-              marginRight: undefined,
-              fontSize: 20,
-              backgroundColor: 'white',
-              borderColor: digitState.isFocused ? '#222' : '#ccc',
-              borderWidth: Platform.OS === 'web' ? 0 : 3,
-              fontFamily: 'MontserratSemiBold',
-              textAlign: 'center',
-            }}
-          />
-        )
-      }
+      <DefaultText style={{ color: 'white' }} >
+        One-time pass sent to:
+      </DefaultText>
+      <DefaultText
+        style={{
+          color: 'white',
+          fontWeight: '700',
+          marginBottom: 10,
+          marginLeft: 10,
+          marginRight: 10,
+          textAlign: 'center',
+          width: '100%',
+        }}
+      >
+        {otpDestination.value}
+      </DefaultText>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {
+          state.map((digitState, i) =>
+            <DefaultTextInput
+              key={i}
+              autoFocus={i === 0}
+              innerRef={e => inputRefs.current[i] = e}
+              onFocus={onFocus(i)}
+              onBlur={onBlur(i)}
+              onChangeText={onChangeText(i)}
+              onKeyPress={onKeyPress(i)}
+              onSubmitEditing={props.submit}
+              value={digitState.digit}
+              inputMode="numeric"
+              keyboardType="number-pad"
+              style={{
+                width: 35,
+                margin: 5,
+                marginLeft: undefined,
+                marginRight: undefined,
+                fontSize: 20,
+                backgroundColor: 'white',
+                borderColor: digitState.isFocused ? '#222' : '#ccc',
+                borderWidth: Platform.OS === 'web' ? 0 : 3,
+                fontFamily: 'MontserratSemiBold',
+                textAlign: 'center',
+              }}
+            />
+          )
+        }
+      </View>
     </View>
   );
 };

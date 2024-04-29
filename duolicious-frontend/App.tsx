@@ -133,6 +133,8 @@ let setReferrerId: React.Dispatch<React.SetStateAction<typeof referrerId>>;
 let signedInUser: SignedInUser | undefined;
 let setSignedInUser: React.Dispatch<React.SetStateAction<typeof signedInUser>>;
 
+const otpDestination = { value: '' };
+
 const App = () => {
   const [numUnreadTitle, setNumUnreadTitle] = useState(0);
   const [numUsers, setNumUsers] = useState(-1);
@@ -377,7 +379,8 @@ const App = () => {
 
 export default App;
 export {
+  otpDestination,
   referrerId,
-  signedInUser,
   setSignedInUser,
+  signedInUser,
 };

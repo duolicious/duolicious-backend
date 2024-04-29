@@ -22,6 +22,7 @@ import { japi } from '../api/api';
 import { sessionToken } from '../kv-storage/session-token';
 import { Logo16 } from './logo';
 import { KeyboardDismissingView } from './keyboard-dismissing-view';
+import { otpDestination } from '../App';
 
 const Stack = createNativeStackNavigator();
 
@@ -54,6 +55,7 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
     setEmailNotSent(false);
     setIsLoading(true);
     setEmail(email_);
+    otpDestination.value = email_;
 
     Keyboard.dismiss();
 
