@@ -214,37 +214,6 @@ spec:
               key: DUO_SMTP_PASS
 
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: status
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: status
-  template:
-    metadata:
-      labels:
-        app: status
-    spec:
-      containers:
-      - name: status
-        image: us-east1-docker.pkg.dev/duolicious/status/{{branch}}:{{commit_sha}}
-        resources:
-          limits:
-            memory: "128Mi"
-        readinessProbe:
-          tcpSocket:
-            port: 8080
-          initialDelaySeconds: 0
-          periodSeconds: 240
-          failureThreshold: 1
-          timeoutSeconds: 240
-        ports:
-        - containerPort: 8080
-
----
 apiVersion: v1
 kind: Service
 metadata:
@@ -269,19 +238,6 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 5443
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: status
-spec:
-  selector:
-    app: status
-  ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 8080
 
 ---
 apiVersion: networking.k8s.io/v1
@@ -315,16 +271,6 @@ spec:
             name: chat
             port:
               number: 80
-  - host: status.duolicious.app
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: status
-            port:
-              number: 80
   tls:
   - hosts:
     - api.duolicious.app
@@ -332,9 +278,6 @@ spec:
   - hosts:
     - chat.duolicious.app
     secretName: chat-duolicious-tls
-  - hosts:
-    - status.duolicious.app
-    secretName: status-duolicious-tls
 
 ---
 apiVersion: cert-manager.io/v1
