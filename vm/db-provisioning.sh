@@ -45,6 +45,7 @@ sudo zpool create \
   -O relatime=on \
   -O canmount=on \
   -O mountpoint=/var/lib/pgsql/data \
+  -O autoexpand=on \
   dbpool \
   mirror \
   /dev/disk/by-id/google-instance-1a \

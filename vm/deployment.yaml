@@ -18,7 +18,7 @@ spec:
         image: us-east1-docker.pkg.dev/duolicious/api/{{branch}}:{{commit_sha}}
         resources:
           limits:
-            memory: "1Gi"
+            memory: "2Gi"
         ports:
         - containerPort: 5000
         readinessProbe:
@@ -110,7 +110,7 @@ spec:
         image: us-east1-docker.pkg.dev/duolicious/chat/{{branch}}:{{commit_sha}}
         resources:
           limits:
-            memory: "1Gi"
+            memory: "2Gi"
         readinessProbe:
           tcpSocket:
             port: 5443
@@ -152,7 +152,7 @@ spec:
         image: us-east1-docker.pkg.dev/duolicious/cron/{{branch}}:{{commit_sha}}
         resources:
           limits:
-            memory: "512Mi"
+            memory: "1Gi"
         readinessProbe:
           tcpSocket:
             port: 8080

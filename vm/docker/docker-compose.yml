@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  api:
+    image: us-east1-docker.pkg.dev/duolicious/api/{{branch}}:{{commit_sha}}
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  chat:
+    image: us-east1-docker.pkg.dev/duolicious/chat/{{branch}}:{{commit_sha}}
+    ports:
+      - "5443:5443"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "bash", "-c", "[[ -e /db-initialized ]]"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  cron:
+    image: us-east1-docker.pkg.dev/duolicious/cron/main:{{branch}}:{{commit_sha}}
+    ports:
+      - "8082:8080"
+    env_file:
+      - .env
+
+networks:
+  default:
+    driver: bridge
+
