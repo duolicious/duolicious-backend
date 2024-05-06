@@ -7,8 +7,6 @@ sudo snap install core
 
 sudo snap install microk8s --classic
 
-microk8s status --wait-ready
-
 sudo usermod -a -G microk8s "$USER"
 sudo chown -R "$USER" ~/.kube
 newgrp microk8s
@@ -22,6 +20,9 @@ microk8s enable registry
 microk8s enable ingress
 microk8s enable cert-manager
 microk8s enable host-access # A new local network interface named lo:microk8s is created with a default IP address of 10.0.1.1.
+
+microk8s.kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.yaml
+
 
 microk8s.kubectl create secret generic duo-secrets \
   --from-literal=DUO_DB_PASS=your_duo_db_pass_value \
