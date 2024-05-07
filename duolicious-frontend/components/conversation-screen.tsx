@@ -44,7 +44,7 @@ import { api } from '../api/api';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { RotateCcw, Flag, X } from "react-native-feather";
 import { setSkipped } from '../hide-and-block/hide-and-block';
-import { isMobile } from '../util/util';
+import { delay, isMobile } from '../util/util';
 import { ReportModalInitialData } from './report-modal';
 import { listen, notify } from '../events/events';
 
@@ -271,13 +271,6 @@ const ConversationScreen = ({navigation, route}) => {
     return mamId;
   })();
 
-  const scrollToEnd = useCallback(() => {
-    if (listRef.current && !hasScrolled.current) {
-      listRef.current.scrollToEnd({animated: true});
-      hasScrolled.current = true;
-    }
-  }, [listRef.current]);
-
   const onPressSend = useCallback(async (text: string): Promise<MessageStatus> => {
     const isFirstMessage = messages === null || messages.length === 0;
 
@@ -352,32 +345,19 @@ const ConversationScreen = ({navigation, route}) => {
   }, []);
 
   const isCloseToTop = ({contentOffset}) => contentOffset.y === 0;
-  const isCloseToBottom = ({layoutMeasurement, contentOffset, contentSize}) => {
-    const paddingToBottom = 20;
-    return layoutMeasurement.height + contentOffset.y >=
-      contentSize.height - paddingToBottom;
-  };
+
+  const isAtBottom = ({layoutMeasurement, contentOffset, contentSize}) =>
+    layoutMeasurement.height + contentOffset.y >= contentSize.height;
 
   const onScroll = useCallback(({nativeEvent}) => {
     if (isCloseToTop(nativeEvent) && hasFinishedFirstLoad.current) {
       maybeLoadNextPage();
     }
-    if (isCloseToBottom(nativeEvent)) {
+
+    if (messages !== null && isAtBottom(nativeEvent)) {
       hasFinishedFirstLoad.current = true;
     }
   }, [maybeLoadNextPage]);
-
-  useEffect(() => {
-    maybeLoadNextPage();
-
-    return onReceiveMessage(_onReceiveMessage, personId, isFocused);
-  }, [
-    maybeLoadNextPage,
-    onReceiveMessage,
-    _onReceiveMessage,
-    personId,
-    isFocused,
-  ]);
 
   const toggleMenu = useCallback(() => {
     setShowMenu(x => !x);
@@ -396,6 +376,39 @@ const ConversationScreen = ({navigation, route}) => {
       navigation.popToTop();
     });
   }, [navigation, personId]);
+
+  // Fetch the first page of messages when the conversation first loads
+  useEffect(() => {
+    fetchConversation(personId, lastMamId)
+      .then((fetchedMessages) => {
+        if (fetchedMessages === 'timeout') {
+          setMessageFetchTimeout(true);
+        } else {
+          setMessages(fetchedMessages ?? []);
+        }
+      });
+  }, []);
+
+  // Scroll to end when last message changes
+  useEffect(() => {
+    (async () => {
+      await delay(500);
+      if (listRef.current) {
+        listRef.current.scrollToEnd({animated: true});
+      }
+    })();
+  }, [lastMessage?.id]);
+
+
+  // Listen for new messages
+  useEffect(() => {
+    return onReceiveMessage(_onReceiveMessage, personId, isFocused);
+  }, [
+    onReceiveMessage,
+    _onReceiveMessage,
+    personId,
+    isFocused,
+  ]);
 
   if (Platform.OS === 'web') {
     useEffect(() => {
@@ -489,8 +502,6 @@ const ConversationScreen = ({navigation, route}) => {
       {messages !== null &&
         <ScrollView
           ref={listRef}
-          onLayout={scrollToEnd}
-          onContentSizeChange={scrollToEnd}
           onScroll={onScroll}
           scrollEventThrottle={0}
           maintainVisibleContentPosition={{
