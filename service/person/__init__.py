@@ -18,6 +18,7 @@ from smtp import aws_smtp
 from flask import request
 from dataclasses import dataclass
 import psycopg
+from functools import lru_cache
 
 DUO_ENV = os.environ['DUO_ENV']
 
@@ -316,12 +317,6 @@ def post_check_session_token(s: t.SessionInfo):
                 onboarded=s.onboarded,
                 units=row['units'],
             )
-
-def post_active(s: t.SessionInfo):
-    params = dict(person_id=s.person_id)
-
-    with api_tx('READ COMMITTED') as tx:
-            tx.execute(Q_UPDATE_ACTIVE, params)
 
 def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
     [field_name] = req.__pydantic_fields_set__
@@ -1336,7 +1331,8 @@ def get_update_notifications(email: str, type: str, frequency: str):
     else:
         return 'Invalid email address or notification frequency', 400
 
-def get_stats():
+@lru_cache()
+def get_stats(ttl_hash=None):
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_STATS).fetchone()
 
