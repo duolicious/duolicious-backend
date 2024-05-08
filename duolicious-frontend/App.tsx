@@ -230,12 +230,10 @@ const App = () => {
   }, []);
 
   const fetchNumUsers = useCallback(async () => {
-    // const response = await japi('GET', '/stats');
-    // if (response.ok) {
-    //   setNumUsers(response.json.num_active_users);
-    // }
-
-    setNumUsers(31044);
+    const response = await japi('GET', '/stats');
+    if (response.ok) {
+      setNumUsers(response.json.num_active_users);
+    }
   }, []);
 
   useEffect(() => {

@@ -62,7 +62,9 @@ const api = async (
       response = await fetch(url, init_);
       break;
     } catch (error) {
-      const timeoutSeconds = 4 * Math.min(32, Math.pow(2, numRetries++));
+      const timeoutSeconds =
+        Math.round(4 * Math.min(32, Math.pow(1.7, numRetries++))) +
+        Math.round(4 * Math.random());
 
       // TODO: There should be a message in the UI saying "you're offline" or something
       console.log(`Waiting ${timeoutSeconds} seconds and trying again; Caught error while fetching ${url}`, error);
