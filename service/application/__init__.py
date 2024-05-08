@@ -26,6 +26,7 @@ from service.application.decorators import (
     shared_otp_limit,
     shared_test_rate_limit,
 )
+import time
 
 _init_sql_file = (
     Path(__file__).parent.parent.parent / 'init.sql')
@@ -36,6 +37,9 @@ _email_domains_bad_file = (
 _email_domains_good_file = (
     Path(__file__).parent.parent.parent / 'email-domains-good.sql')
 
+def get_ttl_hash(seconds=10):
+    """Return the same value withing `seconds` time period"""
+    return round(time.time() / seconds)
 
 def init_db():
     with open(_init_sql_file, 'r') as f:
@@ -86,10 +90,6 @@ def post_sign_out(s: t.SessionInfo):
 @apost('/check-session-token', expected_onboarding_status=None)
 def post_check_session_token(s: t.SessionInfo):
     return person.post_check_session_token(s)
-
-@apost('/active')
-def post_active(s: t.SessionInfo):
-    return person.post_active(s)
 
 @aget(
     '/search-locations',
@@ -261,7 +261,7 @@ def get_update_notifications():
 
 @get('/stats')
 def get_stats():
-    return person.get_stats()
+    return person.get_stats(ttl_hash=get_ttl_hash(seconds=10))
 
 @get('/admin/ban-link/<token>')
 def get_admin_ban_link(token: str):
