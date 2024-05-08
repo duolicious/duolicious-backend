@@ -31,7 +31,7 @@ const api = async (
     [response, json] = [undefined, undefined];
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout ?? 10000);
+    const timeoutId = setTimeout(() => controller.abort(), timeout ?? 30000);
 
     const existingSessionToken = await sessionToken();
 

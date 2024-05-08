@@ -62,7 +62,8 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation}) => {
     const response = await japi(
       'post',
       '/request-otp',
-      { email: email_ }
+      { email: email_ },
+      9999 * 1000
     );
 
     setIsLoading(false);
