@@ -496,23 +496,6 @@ CREATE TABLE IF NOT EXISTS banned_person (
 -- TABLES TO SPEED UP SEARCHING
 --------------------------------------------------------------------------------
 
--- TODO: Delete me v
-CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
-    searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    position SMALLINT,
-    prospect_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    has_mutual_club BOOLEAN NOT NULL DEFAULT FALSE,
-    profile_photo_uuid TEXT,
-    name TEXT NOT NULL,
-    age SMALLINT,
-    match_percentage SMALLINT NOT NULL,
-    personality VECTOR(47) NOT NULL,
-    PRIMARY KEY (searcher_person_id, position)
-);
-
-DROP TABLE IF EXISTS search_cache CASCADE;
--- TODO: Delete me ^
-
 CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     position SMALLINT,
@@ -1197,6 +1180,3 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-
--- TODO: Periodically delete expired tokens
--- TODO: Periodically move inactive accounts
