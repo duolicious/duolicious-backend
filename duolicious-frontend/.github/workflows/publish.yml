@@ -25,7 +25,7 @@ jobs:
           DUO_API_URL:            https://api.duolicious.app
           DUO_CHAT_URL:            wss://chat.duolicious.app
           DUO_IMAGES_URL: https://user-images.duolicious.app
-          DUO_STATUS_URL: https://duolicious-status.pages.dev
+          DUO_STATUS_URL:      https://status.duolicious.app
       - uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
