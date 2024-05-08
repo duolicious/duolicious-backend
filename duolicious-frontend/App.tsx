@@ -235,7 +235,7 @@ const App = () => {
     //   setNumUsers(response.json.num_active_users);
     // }
 
-    setNumUsers(21209);
+    setNumUsers(31044);
   }, []);
 
   useEffect(() => {
