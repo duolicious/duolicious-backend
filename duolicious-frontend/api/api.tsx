@@ -8,6 +8,7 @@ import * as _ from "lodash";
 import { sessionToken } from '../kv-storage/session-token';
 import { Buffer } from "buffer";
 import { NonNullImageCropperOutput } from '../components/image-cropper';
+import { delay } from '../util/util';
 
 const SUPPORTED_API_VERSIONS = [4];
 
@@ -61,12 +62,12 @@ const api = async (
       response = await fetch(url, init_);
       break;
     } catch (error) {
-      const timeoutSeconds = Math.min(32, Math.pow(2, numRetries++));
+      const timeoutSeconds = 4 * Math.min(32, Math.pow(2, numRetries++));
 
       // TODO: There should be a message in the UI saying "you're offline" or something
       console.log(`Waiting ${timeoutSeconds} seconds and trying again; Caught error while fetching ${url}`, error);
 
-      await new Promise(resolve => setTimeout(resolve, timeoutSeconds * 1000));
+      await delay(timeoutSeconds * 1000);
     } finally {
       // cancel the timeout whether there was an error or not
       clearTimeout(timeoutId);
