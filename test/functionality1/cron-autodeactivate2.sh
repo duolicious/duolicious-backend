@@ -77,9 +77,9 @@ do_test () {
   local user4id=$(get_id 'will-remain-active3@duolicious.app')
 
   local  days_ago_0=$(db_now as-seconds)
-  local  days_ago_1=$(db_now as-seconds '- 71   days')
-  local  days_ago_2=$(db_now as-seconds '- 81   days')
-  local  days_ago_3=$(db_now as-seconds '- 91   days')
+  local  days_ago_1=$(db_now as-seconds '- 61   days')
+  local  days_ago_2=$(db_now as-seconds '- 71   days')
+  local  days_ago_3=$(db_now as-seconds '- 81   days')
 
   q "
   insert into last (server, username, seconds, state)
