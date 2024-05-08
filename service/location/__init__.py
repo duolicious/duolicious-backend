@@ -2,6 +2,7 @@ from database import api_tx
 import json
 import os
 from typing import Optional
+from functools import lru_cache
 
 _locations_json_file = os.path.join(
         os.path.dirname(__file__), '..', '..',
@@ -45,6 +46,7 @@ def init_db():
             locations
         )
 
+@lru_cache(maxsize=26**3)
 def get_search_locations(q: Optional[str]):
     if q is None:
         return []
