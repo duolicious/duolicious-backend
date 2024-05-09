@@ -19,10 +19,34 @@ from flask import request
 from dataclasses import dataclass
 import psycopg
 from functools import lru_cache
+import random
+
+@dataclass
+class EmailEntry:
+    email: str
+    count: int
+
+def parse_email_string(email_string):
+    # Regular expression to match an email followed optionally by a number
+    pattern = r'(\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b)(?:\s+(\d+))?'
+    matches = re.findall(pattern, email_string)
+
+    result = []
+    for email, count in matches:
+        # If no number is given, default to 1
+        if count == '':
+            count = 1
+        else:
+            count = int(count)
+        result.append(EmailEntry(email, count))
+
+    return result
 
 DUO_ENV = os.environ['DUO_ENV']
 
 REPORT_EMAIL = os.environ['DUO_REPORT_EMAIL']
+REPORT_EMAILS = parse_email_string(REPORT_EMAIL)
+print(REPORT_EMAILS)
 
 R2_ACCT_ID = os.environ['DUO_R2_ACCT_ID']
 R2_ACCESS_KEY_ID = os.environ['DUO_R2_ACCESS_KEY_ID']
@@ -46,6 +70,16 @@ bucket = s3.Bucket(R2_BUCKET_NAME)
 def init_db():
     pass
 
+def sample_email(email_entries):
+    # Extract the emails and their respective weights from the list of EmailEntry instances
+    emails = [entry.email for entry in email_entries]
+    weights = [entry.count for entry in email_entries]
+
+    # Use random.choices() to perform weighted sampling and return a single email
+    sampled_email = random.choices(emails, weights=weights, k=1)[0]  # Get the first item from the result
+
+    return sampled_email
+
 @dataclass
 class CropSize:
     top: int
@@ -57,9 +91,11 @@ def _send_report(
     report_reason: str,
     report: Any,
 ):
+    report_email = sample_email(REPORT_EMAILS)
+
     try:
         aws_smtp.send(
-            to=REPORT_EMAIL,
+            to=report_email,
             subject=f"Report: {subject_person_id} - {object_person_id}",
             body=report_template(
                 report_json=report,
