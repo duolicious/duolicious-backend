@@ -1520,14 +1520,12 @@ SELECT
         ELSE 'Accused'
     END AS role,
     id,
-    EXTRACT(YEAR FROM AGE(date_of_birth))::int AS age,
     (
         SELECT long_friendly
         FROM location
         ORDER BY location.coordinates <-> p.coordinates
         LIMIT 1
     ) AS location,
-    name,
     email,
     ARRAY(
         SELECT DISTINCT
@@ -1535,10 +1533,7 @@ SELECT
         FROM duo_session
         WHERE email = p.email
     ) AS ip_addresses,
-    gender_id,
     count_answers,
-    occupation,
-    education,
     ARRAY(
         SELECT
             'https://user-images.duolicious.app/original-' || uuid || '.jpg'
@@ -1552,7 +1547,20 @@ SELECT
         FROM photo_ban
         WHERE id = %(object_person_id)s
     ) AS photo_deletion_links,
+    EXTRACT(YEAR FROM AGE(date_of_birth))::int AS age,
+    name,
+    (
+        select name from gender where id = gender_id
+    ) AS gender,
+    occupation,
+    education,
     about,
+    ARRAY(
+        SELECT
+            club_name
+        FROM person_club
+        WHERE person_id = id
+    ) AS clubs,
     token::text
 FROM
     person AS p,
