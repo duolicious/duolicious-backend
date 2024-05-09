@@ -26,7 +26,7 @@
   ip_address = "0.0.0.0"
   port = 5442
   transport.num_acceptors = 10
-  transport.max_connections = 1024
+  transport.max_connections = 8192
 
   [[listen.http.handlers.mod_websockets]]
     host = "_"
