@@ -46,6 +46,7 @@ DUO_ENV = os.environ['DUO_ENV']
 
 REPORT_EMAIL = os.environ['DUO_REPORT_EMAIL']
 REPORT_EMAILS = parse_email_string(REPORT_EMAIL)
+PRIMARY_REPORT_EMAIL = REPORT_EMAILS[0].email
 print(REPORT_EMAILS)
 
 R2_ACCT_ID = os.environ['DUO_R2_ACCT_ID']
@@ -103,7 +104,7 @@ def _send_report(
                 object_person_id=object_person_id,
                 report_reason=report_reason,
             ),
-            from_addr=REPORT_EMAIL,
+            from_addr=PRIMARY_REPORT_EMAIL,
         )
     except:
         print(traceback.format_exc())
