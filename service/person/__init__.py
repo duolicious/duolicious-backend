@@ -237,6 +237,13 @@ def post_request_otp(req: t.PostRequestOtp):
     session_token = secrets.token_hex(64)
     session_token_hash = sha512(session_token)
 
+    name, domain = map(str.lower, email.split('@'))
+    if domain == "gmail.com":
+        name = name.replace('.', '')
+        if '+' in name:
+            name, tag = name.split('+', 1)
+        email = f"{name}@{domain}"
+
     params = dict(
         email=email,
         is_dev=DUO_ENV == 'dev',
