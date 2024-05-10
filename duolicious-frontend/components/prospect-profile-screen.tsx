@@ -389,7 +389,7 @@ const BlockButton = ({navigation, name, personId, isSkipped}) => {
 
   const text = isSkippedState ?
     `You have skipped ${name}. Press to unskip.` :
-    `Skip and report ${name}`;
+    `Report ${name}`;
 
   const iconStroke = isLoading ? "transparent" : "grey";
 

@@ -207,7 +207,7 @@ const Menu = ({navigation, name, personId, messages, closeFn}) => {
           </View>
           <View style={labelContainerStyle}>
             <DefaultText style={labelStyle}>
-              Skip and report
+              Report
             </DefaultText>
             <DefaultText style={subLabelStyle}>
               Ends the conversation, moves it to your archive, and notifies

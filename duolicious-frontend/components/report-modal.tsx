@@ -49,7 +49,7 @@ const ReportModal = () => {
   const close = useCallback(() => setIsVisible(false), [setIsVisible]);
 
   const submitReport = useCallback(async () => {
-    if (numChars === 0) {
+    if (numChars < 5) {
       setIsTooFewChars(true);
       return;
     }
@@ -100,7 +100,7 @@ const ReportModal = () => {
     if (isTooFewChars) {
       return (
         <DefaultText style={{color: "#e91010"}}>
-          Required
+          Must be at least 5 characters
         </DefaultText>
       );
     } else if (isSomethingWrong) {
@@ -114,7 +114,7 @@ const ReportModal = () => {
     }
   }, [isTooFewChars, isSomethingWrong]);
 
-  const defaultTextStyle = Platform.OS === 'ios' ? {style: {height: 200}} : null;
+  const defaultLongTextInputStyle = Platform.OS === 'ios' ? {style: {height: 200}} : null;
 
   return (
     <Modal
@@ -166,12 +166,23 @@ const ReportModal = () => {
           }}>
             What would you like to report?
           </Title>
+          <DefaultText
+            style={{
+              color: 'grey',
+              fontSize: 14,
+              alignSelf: 'center',
+              textAlign: 'center',
+            }}
+          >
+            Please include as much detail as possible. We won’t tell {name} you
+            reported them.
+          </DefaultText>
           <View>
             <DefaultLongTextInput
               value={reportText}
               onChangeText={onChangeReportText}
-              numberOfLines={8}
-              {...defaultTextStyle}
+              numberOfLines={6}
+              {...defaultLongTextInputStyle}
             />
             <View
               style={{
@@ -215,15 +226,6 @@ const ReportModal = () => {
               Submit
             </ButtonWithCenteredText>
           </View>
-          <DefaultText
-            style={{
-              color: 'grey',
-              fontSize: 13,
-              alignSelf: 'center',
-            }}
-          >
-            We won't tell {name} you reported them
-          </DefaultText>
         </View>
       </KeyboardDismissingView>
     </Modal>
