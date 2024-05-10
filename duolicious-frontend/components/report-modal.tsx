@@ -122,6 +122,7 @@ const ReportModal = () => {
       transparent={false}
       visible={isVisible}
       onRequestClose={close}
+      statusBarTranslucent={true}
     >
       <KeyboardDismissingView
         style={{
