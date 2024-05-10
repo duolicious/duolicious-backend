@@ -1180,3 +1180,22 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
+UPDATE person
+SET email = CONCAT(
+    REPLACE(
+        SPLIT_PART(
+            SPLIT_PART(email, '@', 1),
+            '+', 1
+        ),
+        '.', ''
+    ),
+    '@gmail.com'
+)
+WHERE email LIKE '%@gmail.com';
+
+DELETE FROM person
+WHERE id NOT IN (
+    SELECT MIN(id)
+    FROM person
+    GROUP BY email
+);

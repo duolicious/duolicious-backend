@@ -255,8 +255,6 @@ def post_request_otp(req: t.PostRequestOtp):
 
     _send_otp(email, otp)
 
-    print("OTP:", otp)
-
     return dict(session_token=session_token)
 
 def post_resend_otp(s: t.SessionInfo):
