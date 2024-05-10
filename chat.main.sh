@@ -21,9 +21,31 @@ then
   python3 -m pip install -r chat.requirements.txt
 fi
 
-if [ -z "$PORT" ]
+if [ -z "$DUO_CHAT_PORTS" ]
 then
-  PORT=5000
+  DUO_CHAT_PORTS='5443'
 fi
 
-python3 service/chat/__init__.py
+# Array to hold the PIDs of the child processes
+child_pids=()
+
+# Function to kill all child processes
+cleanup() {
+    echo "Cleaning up child processes..."
+    for pid in "${child_pids[@]}"; do
+        kill -TERM "$pid" 2>/dev/null
+    done
+}
+
+# Set trap to call cleanup when the script exits
+trap cleanup EXIT
+
+# Iterate over all command-line arguments
+for duo_chat_port in $DUO_CHAT_PORTS
+do
+    python3 service/chat/__init__.py "$duo_chat_port" &
+    child_pids+=($!)
+done
+
+# Wait for all background jobs to complete
+wait
