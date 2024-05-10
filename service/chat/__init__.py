@@ -6,6 +6,9 @@ import duohash
 import regex
 import traceback
 import websockets
+import sys
+
+PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 
 # TODO: Lock down the XMPP server by only allowing certain types of message
 
@@ -278,7 +281,7 @@ async def proxy(local_ws, path):
             task.cancel()
 
 async def serve():
-    async with websockets.serve(proxy, '0.0.0.0', 5443, subprotocols=['xmpp']):
+    async with websockets.serve(proxy, '0.0.0.0', PORT, subprotocols=['xmpp']):
         await asyncio.Future()
 
 
