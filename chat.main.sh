@@ -40,11 +40,25 @@ cleanup() {
 # Set trap to call cleanup when the script exits
 trap cleanup EXIT
 
+# Helper function to handle port ranges
+expand_ports() {
+    if [[ $1 =~ ^([0-9]+)-([0-9]+)$ ]]; then
+        local lower=${BASH_REMATCH[1]}
+        local upper=${BASH_REMATCH[2]}
+        seq $lower $upper
+    else
+        echo $1
+    fi
+}
+
 # Iterate over all command-line arguments
-for duo_chat_port in $DUO_CHAT_PORTS
+for port_entry in $DUO_CHAT_PORTS
 do
-    python3 service/chat/__init__.py "$duo_chat_port" &
-    child_pids+=($!)
+    for duo_chat_port in $(expand_ports $port_entry)
+    do
+        python3 service/chat/__init__.py "$duo_chat_port" &
+        child_pids+=($!)
+    done
 done
 
 # Wait for all background jobs to complete
