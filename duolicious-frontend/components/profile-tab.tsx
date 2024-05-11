@@ -50,6 +50,8 @@ import debounce from 'lodash/debounce';
 import { aboutQueue } from '../api/queue';
 import { ClubItem, ClubSelector } from './club-selector';
 import { listen } from '../events/events';
+import { ButtonWithCenteredText } from './button/centered-text';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const formatHeight = (og: OptionGroup<OptionGroupInputs>): string | undefined => {
   if (!isOptionGroupSlider(og.input)) return '';
@@ -379,6 +381,35 @@ const Options = ({navigation, data}) => {
         When you join a club, mutual members will be shown to you first in
         search results
       </DefaultText>
+
+      <ButtonWithCenteredText
+        onPress={() => navigation.navigate(
+          'Prospect Profile Screen',
+          {
+            screen: 'Prospect Profile',
+            params: { personId:  signedInUser?.personId, showBottomButtons: false },
+          }
+        )}
+        containerStyle={{
+          marginTop: 30,
+        }}
+        extraChildren={
+         <View style={{
+           position: 'absolute',
+           top: 0,
+           right: 15,
+           height: '100%',
+           justifyContent: 'center',
+           }}>
+          <Ionicons style={{
+              fontSize: 20,
+              color: 'white',
+          }} name="chevron-forward"/>
+        </View>
+        }
+      >
+        Preview Your Profile
+      </ButtonWithCenteredText>
 
       <Title style={{ marginTop: 70 }}>Notification Settings</Title>
       {
