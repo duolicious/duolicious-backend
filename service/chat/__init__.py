@@ -40,21 +40,36 @@ LIMIT 1
 """
 
 Q_SET_MESSAGED = """
-INSERT INTO messaged (
-    subject_person_id,
-    object_person_id
+WITH can_insert AS (
+    SELECT
+        1
+    WHERE
+        EXISTS (
+            SELECT 1 FROM person WHERE id = %(subject_person_id)s
+        )
+        AND EXISTS (
+            SELECT 1 FROM person WHERE id = %(object_person_id)s
+        )
+), insertion AS (
+    INSERT INTO messaged (
+        subject_person_id,
+        object_person_id
+    )
+    SELECT
+        %(subject_person_id)s,
+        %(object_person_id)s
+    WHERE EXISTS (
+        SELECT
+            1
+        FROM
+            can_insert
+    )
+    ON CONFLICT DO NOTHING
 )
 SELECT
-    %(subject_person_id)s,
-    %(object_person_id)s
-WHERE EXISTS (
-    SELECT 1 FROM person WHERE id = %(subject_person_id)s
-)
-AND EXISTS (
-    SELECT 1 FROM person WHERE id = %(object_person_id)s
-)
-ON CONFLICT DO NOTHING
-RETURNING 1
+    1
+FROM
+    can_insert
 """
 
 Q_SET_TOKEN = """
