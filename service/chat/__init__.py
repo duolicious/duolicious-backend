@@ -7,6 +7,8 @@ import regex
 import traceback
 import websockets
 import sys
+from websockets.exceptions import ConnectionClosedError
+
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 
@@ -41,10 +43,18 @@ Q_SET_MESSAGED = """
 INSERT INTO messaged (
     subject_person_id,
     object_person_id
-) VALUES (
+)
+SELECT
     %(subject_person_id)s,
     %(object_person_id)s
-) ON CONFLICT DO NOTHING
+WHERE EXISTS (
+    SELECT 1 FROM person WHERE id = %(subject_person_id)s
+)
+AND EXISTS (
+    SELECT 1 FROM person WHERE id = %(object_person_id)s
+)
+ON CONFLICT DO NOTHING
+RETURNING 1
 """
 
 Q_SET_TOKEN = """
@@ -151,10 +161,14 @@ async def is_message_unique(message_str):
 
     params = dict(hash=hashed)
 
-    async with chat_tx() as tx:
-        cursor = await tx.execute(Q_UNIQUENESS, params)
-        rows = await cursor.fetchall()
-        return bool(rows)
+    try:
+        async with chat_tx() as tx:
+            cursor = await tx.execute(Q_UNIQUENESS, params)
+            rows = await cursor.fetchall()
+            return bool(rows)
+    except:
+        print(traceback.format_exc())
+    return True
 
 async def is_message_blocked(username, to_jid):
     try:
@@ -185,8 +199,15 @@ async def set_messaged(username, to_jid):
         object_person_id=to_username,
     )
 
-    async with api_tx() as tx:
-        await tx.execute(Q_SET_MESSAGED, params)
+    try:
+        async with api_tx() as tx:
+            cursor = await tx.execute(Q_SET_MESSAGED, params)
+            rows = await cursor.fetchall()
+            return bool(rows)
+    except:
+        pass
+
+    return False
 
 def process_auth(message_str, username):
     if username.username is not None:
@@ -229,41 +250,60 @@ async def process_duo_message(message_xml, username):
         return [f'<duo_message_not_unique id="{id}"/>'], []
 
     if id:
-        await set_messaged(username, to_jid)
-        return (
-            [
-                f'<duo_message_delivered id="{id}"/>'
-            ],
-            [
-                message_xml,
-                f"<iq id='{duohash.duo_uuid()}' type='set'>"
-                f"  <query"
-                f"    xmlns='erlang-solutions.com:xmpp:inbox:0#conversation'"
-                f"    jid='{to_jid}'"
-                f"  >"
-                f"    <box>chats</box>"
-                f"  </query>"
-                f"</iq>"
+        if await set_messaged(username, to_jid):
+            return (
+                [
+                    f'<duo_message_delivered id="{id}"/>'
+                ],
+                [
+                    message_xml,
+                    f"<iq id='{duohash.duo_uuid()}' type='set'>"
+                    f"  <query"
+                    f"    xmlns='erlang-solutions.com:xmpp:inbox:0#conversation'"
+                    f"    jid='{to_jid}'"
+                    f"  >"
+                    f"    <box>chats</box>"
+                    f"  </query>"
+                    f"</iq>"
 
-            ]
-        )
-
-    return [], [message_xml]
+                ]
+            )
+        else:
+            return [], []
+    else:
+        return [], [message_xml]
 
 async def process(src, dst, username):
-    async for message in src:
-        process_auth(message, username)
+    try:
+        async for message in src:
+            process_auth(message, username)
+            to_src, to_dst = await process_duo_message(message, username.username)
 
-        to_src, to_dst = await process_duo_message(message, username.username)
-
-        for m in to_dst:
-            await dst.send(m)
-        for m in to_src:
-            await src.send(m)
+            for m in to_dst:
+                await dst.send(m)
+            for m in to_src:
+                await src.send(m)
+    except ConnectionClosedError as e:
+        print("Connection closed while processing:", e)
+    except Exception as e:
+        print("Error processing messages:", e)
+    finally:
+        await src.close()
+        await dst.close()
+        print("Connections closed in process()")
 
 async def forward(src, dst):
-    async for message in src:
-        await dst.send(message)
+    try:
+        async for message in src:
+            await dst.send(message)
+    except ConnectionClosedError:
+        print("Connection closed while forwarding")
+    except Exception as e:
+        print("Error forwarding messages:", e)
+    finally:
+        await src.close()
+        await dst.close()
+        print("Connections closed in forward()")
 
 async def proxy(local_ws, path):
     username = Username()

@@ -708,6 +708,8 @@ WITH prospect AS (
     AND (
             NOT hide_me_from_strangers
         OR
+            %(prospect_person_id)s = %(person_id)s
+        OR
             EXISTS (
                 SELECT 1
                 FROM messaged
