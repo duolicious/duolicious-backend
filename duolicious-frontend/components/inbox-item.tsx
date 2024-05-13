@@ -19,9 +19,10 @@ import { setSkipped } from '../hide-and-block/hide-and-block';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { Flag, X } from "react-native-feather";
-import { notify } from '../events/events';
+import { listen } from '../events/events';
 import { ReportModalInitialData } from './report-modal';
 import { signedInUser } from '../App';
+import { setConversationArchived } from '../xmpp/xmpp';
 
 const introVerb = (msg: string) => {
   return (
@@ -37,10 +38,11 @@ const introVerb = (msg: string) => {
   : 'says';
 };
 
-const IntrosItem1 = ({
+const IntrosItem = ({
   wasRead,
   name,
   personId,
+  personUuid,
   imageUuid,
   matchPercentage,
   lastMessage,
@@ -50,188 +52,7 @@ const IntrosItem1 = ({
   wasRead: boolean
   name: string
   personId: number
-  imageUuid: string | null
-  matchPercentage: number
-  lastMessage: string
-  lastMessageTimestamp: Date
-  isAvailableUser: boolean
-}) => {
-  const navigation = useNavigation<any>();
-
-  const animated = useRef(new Animated.Value(1)).current;
-
-  const backgroundColor = animated.interpolate({
-    inputRange: [0, 1],
-    outputRange: [
-      'rgba(222,222,222, 1)',
-      wasRead ? 'white' : 'rgba(241, 229, 255, 1)',
-    ],
-    extrapolate: 'clamp',
-  });
-
-  const fadeIn = () => {
-    Animated.timing(animated, {
-      toValue: 0,
-      duration: 50,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const fadeOut = () => {
-    Animated.timing(animated, {
-      toValue: 1,
-      duration: 100,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const onPress = useCallback(() => navigation.navigate(
-    'Prospect Profile Screen',
-    {
-      screen: 'Prospect Profile',
-      params: { personId },
-    }
-  ), [personId]);
-
-  const onPressReport = useCallback(async () => {
-    const contextData = {
-      name,
-      matchPercentage,
-      lastMessageTimestamp,
-      lastMessage,
-    };
-
-    const data: ReportModalInitialData = {
-      name,
-      personId,
-      context: `Inbox Item\n${JSON.stringify(contextData)}`,
-    };
-
-    notify('open-report-modal', data);
-  }, [
-    lastMessage,
-    lastMessageTimestamp,
-    matchPercentage,
-    name,
-    notify,
-    personId,
-  ]);
-
-  return (
-    <>
-      <Pressable
-        onPressIn={fadeIn}
-        onPressOut={fadeOut}
-        onPress={onPress}
-      >
-        <Animated.View
-          style={{
-            backgroundColor: backgroundColor,
-            borderRadius: 15,
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingTop: 12,
-            paddingBottom: 10,
-            paddingLeft: 10,
-            marginLeft: 5,
-            marginRight: 5,
-          }}
-        >
-          <Avatar percentage={matchPercentage} imageUuid={imageUuid}/>
-          <View
-            style={{
-              paddingLeft: 18,
-              paddingRight: 20,
-              flexDirection: 'column',
-              flex: 1,
-              flexGrow: 1,
-            }}
-          >
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-              }}
-            >
-              <DefaultText
-                style={{
-                  fontSize: 20,
-                  fontWeight: '700',
-                  paddingBottom: 5,
-                  overflow: 'hidden',
-                  color: wasRead ? 'black' : '#70f',
-                  flexWrap: 'wrap',
-                  flexShrink: 1,
-                }}
-              >
-                {name} {introVerb(lastMessage)}...
-              </DefaultText>
-              <DefaultText
-                style={{
-                  color: wasRead ? 'grey' : '#70f',
-                }}
-              >
-                {friendlyTimestamp(lastMessageTimestamp)}
-              </DefaultText>
-            </View>
-            <DefaultText
-              numberOfLines={5}
-              style={{
-                fontWeight: '400',
-                color: wasRead ? 'grey' : '#70f',
-              }}
-            >
-              {lastMessage}
-            </DefaultText>
-            <View
-              style={{
-                marginTop: 20,
-                flexDirection: 'row',
-                justifyContent: 'flex-end',
-              }}
-            >
-              <Pressable onPress={onPressReport}>
-                <Flag
-                  stroke="grey"
-                  strokeWidth={1}
-                  height={20}
-                  width={20}
-                />
-              </Pressable>
-            </View>
-          </View>
-        </Animated.View>
-      </Pressable>
-      <View
-        style={{
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Buttons
-          navigation={navigation}
-          personId={personId}
-          name={name}
-          imageUuid={imageUuid}
-        />
-      </View>
-    </>
-  );
-};
-
-const IntrosItem2 = ({
-  wasRead,
-  name,
-  personId,
-  imageUuid,
-  matchPercentage,
-  lastMessage,
-  lastMessageTimestamp,
-  isAvailableUser,
-}: {
-  wasRead: boolean
-  name: string
-  personId: number
+  personUuid: string
   imageUuid: string | null
   matchPercentage: number
   lastMessage: string
@@ -268,9 +89,19 @@ const IntrosItem2 = ({
     'Prospect Profile Screen',
     {
       screen: 'Prospect Profile',
-      params: { personId },
+      params: { personId, personUuid },
     }
-  ), [personId]);
+  ), [personId, personUuid]);
+
+  // TODO: If the conversation is archived but there's no mounted component,
+  // this won't trigger
+  useEffect(() => {
+    return listen(`unskip-profile-${personId}`, () => setConversationArchived(personUuid, false));
+  }, [personId]);
+
+  useEffect(() => {
+    return listen(`skip-profile-${personId}`, () => setConversationArchived(personUuid, true));
+  }, [personId]);
 
   return (
     <Pressable
@@ -318,7 +149,6 @@ const IntrosItem2 = ({
             style={{
               fontWeight: wasRead ? '400' : '600',
               color: wasRead ? 'grey' : 'black',
-              fontStyle: wasRead ? undefined : 'italic',
             }}
           >
             Wants to chat
@@ -327,51 +157,6 @@ const IntrosItem2 = ({
       </Animated.View>
     </Pressable>
   );
-};
-
-const IntrosItem = ({
-  wasRead,
-  name,
-  personId,
-  imageUuid,
-  matchPercentage,
-  lastMessage,
-  lastMessageTimestamp,
-  isAvailableUser,
-}: {
-  wasRead: boolean
-  name: string
-  personId: number
-  imageUuid: string | null
-  matchPercentage: number
-  lastMessage: string
-  lastMessageTimestamp: Date
-  isAvailableUser: boolean
-}) => {
-  const personIdThreshold = 9765;
-  if (signedInUser && signedInUser.personId < personIdThreshold) {
-    return <IntrosItem1
-      wasRead={wasRead}
-      name={name}
-      personId={personId}
-      imageUuid={imageUuid}
-      matchPercentage={matchPercentage}
-      lastMessage={lastMessage}
-      lastMessageTimestamp={lastMessageTimestamp}
-      isAvailableUser={isAvailableUser}
-    />;
-  } else {
-    return <IntrosItem2
-      wasRead={wasRead}
-      name={name}
-      personId={personId}
-      imageUuid={imageUuid}
-      matchPercentage={matchPercentage}
-      lastMessage={lastMessage}
-      lastMessageTimestamp={lastMessageTimestamp}
-      isAvailableUser={isAvailableUser}
-    />;
-  }
 };
 
 const FloatingProfileInteractionButton = ({
@@ -467,12 +252,12 @@ const FloatingHideButton = ({navigation, personId}) => {
   );
 };
 
-const FloatingSendIntroButton = ({navigation, personId, name, imageUuid}) => {
+const FloatingSendIntroButton = ({navigation, personId, personUuid, name, imageUuid}) => {
   const onPress = useCallback(() => {
     if (personId === undefined) return;
     if (name === undefined) return;
 
-    navigation.navigate('Conversation Screen', { personId, name, imageUuid });
+    navigation.navigate('Conversation Screen', { personId, personUuid, name, imageUuid });
   }, [navigation, personId, name, imageUuid]);
 
   return (
@@ -491,7 +276,7 @@ const FloatingSendIntroButton = ({navigation, personId, name, imageUuid}) => {
   );
 };
 
-const Buttons = ({navigation, personId, name, imageUuid}) => {
+const Buttons = ({navigation, personId, personUuid, name, imageUuid}) => {
   return (
     <View
       style={{
@@ -506,6 +291,7 @@ const Buttons = ({navigation, personId, name, imageUuid}) => {
       <FloatingSendIntroButton
         navigation={navigation}
         personId={personId}
+        personUuid={personUuid}
         name={name}
         imageUuid={imageUuid}
       />
@@ -517,6 +303,7 @@ const ChatsItem = ({
   wasRead,
   name,
   personId,
+  personUuid,
   imageUuid,
   matchPercentage,
   lastMessage,
@@ -526,6 +313,7 @@ const ChatsItem = ({
   wasRead: boolean
   name: string
   personId: number
+  personUuid: string
   imageUuid: string | null
   matchPercentage: number
   lastMessage: string
@@ -560,8 +348,18 @@ const ChatsItem = ({
 
   const onPress = useCallback(() => navigation.navigate(
     'Conversation Screen',
-    { personId, name, imageUuid, isAvailableUser }
-  ), [personId, name, imageUuid, isAvailableUser]);
+    { personId, personUuid, name, imageUuid, isAvailableUser }
+  ), [personId, personUuid, name, imageUuid, isAvailableUser]);
+
+  // TODO: If the conversation is archived but there's no mounted component,
+  // this won't trigger
+  useEffect(() => {
+    return listen(`unskip-profile-${personId}`, () => setConversationArchived(personUuid, false));
+  }, [personId]);
+
+  useEffect(() => {
+    return listen(`skip-profile-${personId}`, () => setConversationArchived(personUuid, true));
+  }, [personId]);
 
   return (
     <Pressable

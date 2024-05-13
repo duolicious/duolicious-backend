@@ -27,6 +27,7 @@ import { compareArrays } from '../util/util';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { inboxOrder, inboxSection } from '../kv-storage/inbox';
 import { signedInUser } from '../App';
+import { Notice } from './notice';
 
 const Stack = createNativeStackNavigator();
 
@@ -246,6 +247,18 @@ const InboxTab_ = ({navigation}) => {
 
     return (
       <>
+        {(signedInUser?.personId ?? 9999999) < 125117 &&
+          <Notice>
+            <DefaultText style={{
+              fontWeight: '500',
+              color: '#70f',
+              textAlign: 'center',
+            }}>
+              Old messages might be hidden while we make changes to protect
+              members from spam. Hold tight!
+            </DefaultText>
+          </Notice>
+        }
         <ButtonGroup
           buttons={[
             'Intros' + introsNumericalLabel,
@@ -287,6 +300,7 @@ const InboxTab_ = ({navigation}) => {
         wasRead={x.item.lastMessageRead}
         name={x.item.name}
         personId={x.item.personId}
+        personUuid={x.item.personUuid}
         imageUuid={x.item.imageUuid}
         matchPercentage={x.item.matchPercentage}
         lastMessage={x.item.lastMessage}
@@ -298,6 +312,7 @@ const InboxTab_ = ({navigation}) => {
         wasRead={x.item.lastMessageRead}
         name={x.item.name}
         personId={x.item.personId}
+        personUuid={x.item.personUuid}
         imageUuid={x.item.imageUuid}
         matchPercentage={x.item.matchPercentage}
         lastMessage={x.item.lastMessage}

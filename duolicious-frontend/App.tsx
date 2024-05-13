@@ -121,6 +121,7 @@ const WebSplashScreen = ({loading}) => {
 
 type SignedInUser = {
   personId: number
+  personUuid: string,
   units: 'Metric' | 'Imperial'
   sessionToken: string
 };
@@ -180,6 +181,7 @@ const App = () => {
       if (response.ok && Boolean(response?.json?.onboarded)) {
         setSignedInUser({
           personId: response?.json?.person_id,
+          personUuid: response?.json?.person_uuid,
           units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
           sessionToken: existingSessionToken,
         });
@@ -271,7 +273,7 @@ const App = () => {
   useEffect(() => {
     (async () => {
       if (signedInUser?.personId && signedInUser?.sessionToken) {
-        login(String(signedInUser.personId), signedInUser.sessionToken);
+        login(signedInUser.personUuid, signedInUser.sessionToken);
       } else {
         logout();
       }

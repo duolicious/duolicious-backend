@@ -95,6 +95,7 @@ const ProfileCard = ({
     match_percentage: matchPercentage,
     profile_photo_uuid: imageUuid,
     prospect_person_id: personId,
+    prospect_uuid: personUuid,
     person_messaged_prospect: personMessagedProspect,
     prospect_messaged_person: prospectMessagedPerson,
   } = item;
@@ -117,10 +118,10 @@ const ProfileCard = ({
       'Prospect Profile Screen',
       {
         screen: 'Prospect Profile',
-        params: { personId },
+        params: { personId, personUuid },
       }
     );
-  }, [navigation, personId]);
+  }, [navigation, personUuid]);
 
   const onHide = useCallback(() => setIsSkipped(true), [setIsSkipped]);
   const onUnhide = useCallback(() => setIsSkipped(false), [setIsSkipped]);

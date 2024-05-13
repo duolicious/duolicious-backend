@@ -41,6 +41,7 @@ type Message = {
 
 type Conversation = {
   personId: number
+  personUuid: string
   name: string
   matchPercentage: number
   imageUuid: string | null
@@ -137,7 +138,7 @@ const conversationListToMap = (
   conversationList: Conversation[]
 ): ConversationsMap => {
   return conversationList.reduce<ConversationsMap>(
-    (obj, item) => { obj[item.personId] = item; return obj; },
+    (obj, item) => { obj[item.personUuid] = item; return obj; },
     {}
   );
 
@@ -146,30 +147,52 @@ const conversationListToMap = (
 const populateConversationList = async (
   conversationList: Conversation[]
 ): Promise<void> => {
-  const personIds: number[] = conversationList.map(c => c.personId);
+  const personUuids: string[] = conversationList.map(c => c.personUuid);
 
   // TODO: Better error handling
-  const response = conversationList.length === 0 ?
-    [] :
-    (await japi('post', '/inbox-info', {person_ids: personIds})).json;
+  const response = (
+    await japi('post', '/inbox-info', {person_uuids: []})
+  ).json;
 
-  const personIdToInfo = response.reduce((obj, item) => {
-    obj[item.person_id] = item;
+  const personUuidToInfo = response.reduce((obj, item) => {
+    obj[item.person_uuid] = item;
     return obj;
   }, {});
 
   conversationList.forEach((c: Conversation) => {
-    c.name =
-      personIdToInfo[c.personId]?.name ?? 'Unavailable Person';
-    c.matchPercentage =
-      personIdToInfo[c.personId]?.match_percentage ?? 0;
-    c.imageUuid =
-      personIdToInfo[c.personId]?.image_uuid ?? null;
-    c.isAvailableUser =
-      !!personIdToInfo[c.personId]?.name;
-    c.location =
-      personIdToInfo[c.personId]?.conversation_location ?? 'archive';
+    const personUuid = c.personUuid;
+    const personInfo = personUuidToInfo[personUuid];
+
+    if (personInfo) {
+      // Update conversation information
+      c.name = personInfo.name ?? 'Unavailable Person';
+      c.matchPercentage = personInfo.match_percentage ?? 0;
+      c.imageUuid = personInfo.image_uuid ?? null;
+      c.isAvailableUser = !!personInfo.name;
+      c.location = personInfo.conversation_location ?? 'archive';
+      c.personId = personInfo.person_id ?? 0;
+
+      // Delete the key from personUuidToInfo
+      delete personUuidToInfo[personUuid];
+    }
   });
+
+  conversationList.push(
+    ...Object.keys(personUuidToInfo).map((personUuid) => ({
+      personId: personUuidToInfo[personUuid]['person_id'],
+      personUuid: personUuid,
+      name: personUuidToInfo[personUuid]['name'] ?? 'Unavailable Person',
+      matchPercentage: personUuidToInfo[personUuid]['match_percentage'] ?? 0,
+      imageUuid: personUuidToInfo[personUuid]['image_uuid'] ?? null,
+      isAvailableUser: !!personUuidToInfo[personUuid]['name'],
+      location: personUuidToInfo[personUuid]['conversation_location'] ?? 'archive',
+      lastMessage: '',
+      lastMessageRead: true,
+      lastMessageTimestamp: new Date(
+        (personUuidToInfo[personUuid]['person_id'] ?? 0) + 1693008000000
+      ),
+    }))
+  );
 };
 
 const populateConversation = async (
@@ -178,31 +201,32 @@ const populateConversation = async (
   await populateConversationList([conversation]);
 };
 
-const inboxToPersonIds = (inbox: Inbox): number[] => {
-  const personIds = new Set<number>();
+const inboxToPersonUuids = (inbox: Inbox): string[] => {
+  const personUuids = new Set<string>();
 
-  inbox.chats .conversations.forEach((c) => personIds.add(c.personId));
-  inbox.intros.conversations.forEach((c) => personIds.add(c.personId));
+  inbox.chats .conversations.forEach((c) => personUuids.add(c.personUuid));
+  inbox.intros.conversations.forEach((c) => personUuids.add(c.personUuid));
 
-  return [...personIds];
+  return [...personUuids];
 };
 
-const jidToPersonId = (jid: string): number =>
-  parseInt(jid.split('@')[0]);
-const personIdToJid = (personId: number): string =>
-  `${personId}@duolicious.app`;
+const jidToPersonUuid = (jid: string): string =>
+  jid.split('@')[0];
+const personUuidToJid = (personUuid: string): string =>
+  `${personUuid}@duolicious.app`;
 
-const setInboxSent = (recipientPersonId: number, message: string) => {
+const setInboxSent = (recipientPersonUuid: string, message: string) => {
   setInbox(async (inbox) => {
     const i = inbox ?? emptyInbox();
 
     const chatsConversation =
-      i.chats.conversationsMap[recipientPersonId] as Conversation | undefined;
+      i.chats.conversationsMap[recipientPersonUuid] as Conversation | undefined;
     const introsConversation =
-      i.intros.conversationsMap[recipientPersonId] as Conversation | undefined;
+      i.intros.conversationsMap[recipientPersonUuid] as Conversation | undefined;
 
     const updatedConversation: Conversation = {
-      personId: recipientPersonId,
+      personId: 0,
+      personUuid: recipientPersonUuid,
       name: '',
       matchPercentage: 0,
       imageUuid: null,
@@ -224,11 +248,11 @@ const setInboxSent = (recipientPersonId: number, message: string) => {
       updatedConversation.location = 'chats';
 
       i.chats.conversations.push(updatedConversation);
-      i.chats.conversationsMap[recipientPersonId] = updatedConversation;
+      i.chats.conversationsMap[recipientPersonUuid] = updatedConversation;
 
       // Remove conversation from intros
       deleteFromArray(i.intros.conversations, introsConversation);
-      delete i.intros.conversationsMap[recipientPersonId];
+      delete i.intros.conversationsMap[recipientPersonUuid];
     }
     // It was a chat before the new message. Update the chat.
     else {
@@ -243,17 +267,18 @@ const setInboxSent = (recipientPersonId: number, message: string) => {
 };
 
 const setInboxRecieved = async (
-  fromPersonId: number,
+  fromPersonUuid: string,
   message: string,
 ) => {
   await setInbox(async (inbox: Inbox) => {
     const chatsConversation =
-      inbox.chats.conversationsMap[fromPersonId] as Conversation | undefined;
+      inbox.chats.conversationsMap[fromPersonUuid] as Conversation | undefined;
     const introsConversation =
-      inbox.intros.conversationsMap[fromPersonId] as Conversation | undefined;
+      inbox.intros.conversationsMap[fromPersonUuid] as Conversation | undefined;
 
     const updatedConversation: Conversation = {
-      personId: fromPersonId,
+      personId: 0,
+      personUuid: fromPersonUuid,
       name: '',
       matchPercentage: 0,
       imageUuid: null,
@@ -270,11 +295,11 @@ const setInboxRecieved = async (
       await populateConversation(updatedConversation);
       if (updatedConversation.location === 'chats') {
         inbox.chats.conversations.push(updatedConversation);
-        inbox.chats.conversationsMap[fromPersonId] = updatedConversation;
+        inbox.chats.conversationsMap[fromPersonUuid] = updatedConversation;
       }
       if (updatedConversation.location === 'intros') {
         inbox.intros.conversations.push(updatedConversation);
-        inbox.intros.conversationsMap[fromPersonId] = updatedConversation;
+        inbox.intros.conversationsMap[fromPersonUuid] = updatedConversation;
       }
     } else if (chatsConversation) {
       Object.assign(chatsConversation, updatedConversation);
@@ -282,7 +307,7 @@ const setInboxRecieved = async (
       Object.assign(introsConversation, updatedConversation);
     }
 
-    notify(`message-to-${fromPersonId}`);
+    notify(`message-to-${fromPersonUuid}`);
 
     // We could've returned `inbox` instead of a shallow copy. But then it
     // wouldn't trigger re-renders when passed to a useState setter.
@@ -290,12 +315,12 @@ const setInboxRecieved = async (
   });
 };
 
-const setInboxDisplayed = async (fromPersonId: number) => {
+const setInboxDisplayed = async (fromPersonUuid: string) => {
   await setInbox(async (inbox: Inbox) => {
     const chatsConversation =
-      inbox.chats.conversationsMap[fromPersonId] as Conversation | undefined;
+      inbox.chats.conversationsMap[fromPersonUuid] as Conversation | undefined;
     const introsConversation =
-      inbox.intros.conversationsMap[fromPersonId] as Conversation | undefined;
+      inbox.intros.conversationsMap[fromPersonUuid] as Conversation | undefined;
 
     const updatedConversation = {
       ...chatsConversation,
@@ -391,11 +416,11 @@ const markDisplayed = async (message: Message) => {
   `);
 
   await _xmpp.send(stanza);
-  await setInboxDisplayed(jidToPersonId(message.from));
+  await setInboxDisplayed(jidToPersonUuid(message.from));
 };
 
 const _sendMessage = (
-  recipientPersonId: number,
+  recipientPersonUuid: string,
   message: string,
   callback: (messageStatus: Omit<MessageStatus, 'unsent: error'>) => void,
   checkUniqueness: boolean,
@@ -403,10 +428,10 @@ const _sendMessage = (
   const id = getRandomString(40);
   const fromJid = (
       signedInUser?.personId !== undefined ?
-      personIdToJid(signedInUser.personId) :
+      personUuidToJid(signedInUser.personUuid) :
       undefined
   );
-  const toJid = personIdToJid(recipientPersonId);
+  const toJid = personUuidToJid(recipientPersonUuid);
 
   if (!_xmpp) return;
   if (!fromJid) return;
@@ -460,8 +485,8 @@ const _sendMessage = (
     } else if (tooLongNode) {
       callback('too long');
     } else if (messageDeliveredNode) {
-      setInboxSent(recipientPersonId, message);
-      notify(`message-to-${recipientPersonId}`);
+      setInboxSent(recipientPersonUuid, message);
+      notify(`message-to-${recipientPersonUuid}`);
       callback('sent');
     }
 
@@ -476,13 +501,13 @@ const _sendMessage = (
 };
 
 const sendMessage = async (
-  recipientPersonId: number,
+  recipientPersonUuid: string,
   message: string,
   checkUniqueness: boolean = false,
 ): Promise<MessageStatus> => {
   const __sendMessage = new Promise(
     (resolve: (messageStatus: MessageStatus) => void) =>
-      _sendMessage(recipientPersonId, message, resolve, checkUniqueness)
+      _sendMessage(recipientPersonUuid, message, resolve, checkUniqueness)
   );
 
   return await withTimeout(5000, __sendMessage);
@@ -514,15 +539,15 @@ const conversationsToInbox = (conversations: Conversation[]): Inbox => {
   return inbox;
 };
 
-const setConversationArchived = (personId: number, isArchived: boolean) => {
+const setConversationArchived = (personUuid: string, isArchived: boolean) => {
   setInbox((inbox) => {
     if (!inbox) {
       return inbox;
     }
 
     const conversationToUpdate = (
-      inbox.chats .conversationsMap[personId] ??
-      inbox.intros.conversationsMap[personId]) as Conversation | undefined;
+      inbox.chats .conversationsMap[personUuid] ??
+      inbox.intros.conversationsMap[personUuid]) as Conversation | undefined;
 
     if (conversationToUpdate) {
       conversationToUpdate.location = 'archive';
@@ -538,7 +563,7 @@ const setConversationArchived = (personId: number, isArchived: boolean) => {
 
 const onReceiveMessage = (
   callback?: (message: Message) => void,
-  otherPersonId?: number,
+  otherPersonUuid?: string,
   doMarkDisplayed?: boolean,
 ): (() => void) | undefined => {
   if (!_xmpp)
@@ -570,8 +595,8 @@ const onReceiveMessage = (
     if (bodyText === null) return;
 
     if (
-      otherPersonId !== undefined &&
-      otherPersonId !== jidToPersonId(from.toString())
+      otherPersonUuid !== undefined &&
+      otherPersonUuid !== jidToPersonUuid(from.toString())
     ) return;
 
     const message: Message = {
@@ -580,14 +605,14 @@ const onReceiveMessage = (
       to: to.toString(),
       id: id.toString(),
       timestamp: stamp.toString() ? new Date(stamp.toString()) : new Date(),
-      fromCurrentUser: jidToPersonId(from.toString()) == signedInUser?.personId,
+      fromCurrentUser: jidToPersonUuid(from.toString()) == signedInUser?.personUuid,
     };
 
     await setInboxRecieved(
-      jidToPersonId(from.toString()),
+      jidToPersonUuid(from.toString()),
       bodyText.toString(),
     );
-    if (otherPersonId !== undefined && doMarkDisplayed !== false) {
+    if (otherPersonUuid !== undefined && doMarkDisplayed !== false) {
       await markDisplayed(message);
     }
 
@@ -606,7 +631,7 @@ const onReceiveMessage = (
 }
 
 const _fetchConversation = async (
-  withPersonId: number,
+  withPersonUuid: string,
   callback: (messages: Message[] | 'timeout') => void,
   beforeId: string = '',
 ) => {
@@ -622,7 +647,7 @@ const _fetchConversation = async (
             <value>urn:xmpp:mam:2</value>
           </field>
           <field var='with'>
-            <value>${personIdToJid(withPersonId)}</value>
+            <value>${personUuidToJid(withPersonUuid)}</value>
           </field>
         </x>
         <set xmlns='http://jabber.org/protocol/rsm'>
@@ -671,7 +696,7 @@ const _fetchConversation = async (
     if (bodyText === null) return;
 
     const fromCurrentUser = from.toString().startsWith(
-        `${signedInUser?.personId}@`);
+        `${signedInUser?.personUuid}@`);
 
     collected.push({
       text: bodyText.toString(),
@@ -715,12 +740,12 @@ const _fetchConversation = async (
 };
 
 const fetchConversation = async (
-  withPersonId: number,
+  withPersonUuid: string,
   beforeId: string = '',
 ): Promise<Message[] | undefined | 'timeout'> => {
   const __fetchConversation = new Promise(
     (resolve: (messages: Message[] | undefined | 'timeout') => void) =>
-      _fetchConversation(withPersonId, resolve, beforeId)
+      _fetchConversation(withPersonUuid, resolve, beforeId)
     );
 
   return await withTimeout(5000, __fetchConversation);
@@ -772,11 +797,11 @@ const _fetchInbox = async (
     if (timestamp === null) return;
 
     const fromCurrentUser = from.toString().startsWith(
-      `${signedInUser?.personId}@`);
+      `${signedInUser?.personUuid}@`);
 
     // Some of these need to be fetched from via the API
-    const personId = parseInt(
-      (fromCurrentUser ? to : from).toString().split('@')[0]);
+    const personId = 0;
+    const personUuid = (fromCurrentUser ? to : from).toString().split('@')[0];
     const name = '';
     const matchPercentage = 0;
     const imageUuid = null;
@@ -788,6 +813,7 @@ const _fetchInbox = async (
 
     const conversation: Conversation = {
       personId,
+      personUuid,
       name,
       matchPercentage,
       imageUuid,

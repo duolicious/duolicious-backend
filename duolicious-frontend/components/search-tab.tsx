@@ -42,6 +42,7 @@ const ProfileCardMemo = memo(ProfileCard);
 
 type PageItem = {
   prospect_person_id: number
+  prospect_uuid: string
   profile_photo_uuid: string
   name: string
   age: number

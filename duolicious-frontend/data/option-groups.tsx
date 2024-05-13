@@ -767,6 +767,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           ) {
             setSignedInUser((signedInUser) => ({
               personId: response?.json?.person_id,
+              personUuid: response?.json?.person_uuid,
               units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
               sessionToken: existingSessionToken,
             }));
@@ -907,6 +908,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
               sessionToken: _sessionToken ?? '',
               ...signedInUser,
               personId: response?.json?.person_id,
+              personUuid: response?.json?.person_uuid,
               units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
             }));
           };

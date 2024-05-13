@@ -20,6 +20,12 @@ export DUO_API_URL=https://api.duolicious.app
 export DUO_CHAT_URL=wss://chat.duolicious.app
 export DUO_IMAGES_URL=https://user-images.duolicious.app
 
+# If you want to use the dockerized backend, you can set these:
+export DUO_STATUS_URL=http://192.168.0.11:8080
+export DUO_API_URL=http://192.168.0.11:5000
+export DUO_CHAT_URL=ws://192.168.0.11:5443
+export DUO_IMAGES_URL=http://192.168.0.11:9090/s3-mock-bucket
+
 npx expo start
 ```
 

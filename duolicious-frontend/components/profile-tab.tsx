@@ -387,7 +387,11 @@ const Options = ({navigation, data}) => {
           'Prospect Profile Screen',
           {
             screen: 'Prospect Profile',
-            params: { personId:  signedInUser?.personId, showBottomButtons: false },
+            params: {
+              personId:  signedInUser?.personId,
+              personUuid:  signedInUser?.personUuid,
+              showBottomButtons: false
+            },
           }
         )}
         containerStyle={{

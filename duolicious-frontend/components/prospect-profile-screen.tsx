@@ -242,11 +242,11 @@ const FloatingSkipButton = ({navigation, personId, isSkipped}) => {
 
   useEffect(() => {
     return listen(`unskip-profile-${personId}`, () => setIsSkippedState(false));
-  }, []);
+  }, [personId]);
 
   useEffect(() => {
     return listen(`skip-profile-${personId}`, () => setIsSkippedState(true));
-  }, []);
+  }, [personId]);
 
   const onPress = useCallback(async () => {
     if (personId === undefined) return;
@@ -285,12 +285,12 @@ const FloatingSkipButton = ({navigation, personId, isSkipped}) => {
   );
 };
 
-const FloatingSendIntroButton = ({navigation, personId, name, imageUuid}) => {
+const FloatingSendIntroButton = ({navigation, personId, personUuid, name, imageUuid}) => {
   const onPress = useCallback(() => {
     if (personId === undefined) return;
     if (name === undefined) return;
 
-    navigation.navigate('Conversation Screen', { personId, name, imageUuid });
+    navigation.navigate('Conversation Screen', { personId, personUuid, name, imageUuid });
   }, [navigation, personId, name, imageUuid]);
 
   return (
@@ -480,12 +480,14 @@ type UserData = {
   star_sign: string | null,
   wants_kids: string | null,
   is_skipped: boolean,
+  person_id: number,
 };
 
 const Content = (navigationRef) => ({navigation, route, ...props}) => {
   navigationRef.current = navigation;
 
   const personId = route.params.personId;
+  const personUuid = route.params.personUuid;
   const showBottomButtons = route.params.showBottomButtons ?? true;
 
   const [data, setData] = useState<UserData | undefined>(undefined);
@@ -493,7 +495,7 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
   useEffect(() => {
     setData(undefined);
     (async () => {
-      const response = await api('get', `/prospect-profile/${personId}`);
+      const response = await api('get', `/prospect-profile/${personUuid}`);
       setData(response?.json);
     })();
   }, [personId]);
@@ -579,12 +581,13 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
           >
             <FloatingSkipButton
               navigation={navigation}
-              personId={personId}
+              personId={data?.person_id}
               isSkipped={data?.is_skipped}
             />
             <FloatingSendIntroButton
               navigation={navigation}
-              personId={personId}
+              personId={data?.person_id}
+              personUuid={personUuid}
               name={data?.name}
               imageUuid={imageUuid}
             />

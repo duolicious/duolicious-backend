@@ -48,7 +48,7 @@ import { delay, isMobile } from '../util/util';
 import { ReportModalInitialData } from './report-modal';
 import { listen, notify } from '../events/events';
 
-const Menu = ({navigation, name, personId, messages, closeFn}) => {
+const Menu = ({navigation, name, personId, personUuid, messages, closeFn}) => {
   const [isSkipped, setIsSkipped] = useState<boolean | undefined>();
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -92,12 +92,12 @@ const Menu = ({navigation, name, personId, messages, closeFn}) => {
 
   useEffect(() => {
     (async () => {
-      const response = await api('get', `/prospect-profile/${personId}`);
+      const response = await api('get', `/prospect-profile/${personUuid}`);
       if (response.ok) {
         setIsSkipped(response.json.is_skipped);
       }
     })();
-  }, [personId]);
+  }, [personUuid]);
 
   const pressableStyle: ViewStyle = {
     flexDirection: 'row',
@@ -251,6 +251,7 @@ const ConversationScreen = ({navigation, route}) => {
   const [isFocused, setIsFocused] = useState(true);
 
   const personId: number = route?.params?.personId;
+  const personUuid: string = route?.params?.personUuid;
   const name: string = route?.params?.name;
   const imageUuid: number = route?.params?.imageUuid;
   const isAvailableUser: boolean = route?.params?.isAvailableUser ?? true;
@@ -286,7 +287,7 @@ const ConversationScreen = ({navigation, route}) => {
     setLastMessageStatus(null);
 
     const messageStatus = await sendMessage(
-      personId,
+      personUuid,
       message.text,
       isFirstMessage,
     );
@@ -307,7 +308,7 @@ const ConversationScreen = ({navigation, route}) => {
         'Prospect Profile Screen',
         {
           screen: 'Prospect Profile',
-          params: { personId, showBottomButtons: false },
+          params: { personId, personUuid, showBottomButtons: false },
         }
       );
     }
@@ -323,7 +324,7 @@ const ConversationScreen = ({navigation, route}) => {
     }
     isFetchingNextPage.current = true;
 
-    const fetchedMessages = await fetchConversation(personId, lastMamId);
+    const fetchedMessages = await fetchConversation(personUuid, lastMamId);
 
     isFetchingNextPage.current = false;
 
@@ -379,7 +380,7 @@ const ConversationScreen = ({navigation, route}) => {
 
   // Fetch the first page of messages when the conversation first loads
   useEffect(() => {
-    fetchConversation(personId, lastMamId)
+    fetchConversation(personUuid, lastMamId)
       .then((fetchedMessages) => {
         if (fetchedMessages === 'timeout') {
           setMessageFetchTimeout(true);
@@ -402,11 +403,11 @@ const ConversationScreen = ({navigation, route}) => {
 
   // Listen for new messages
   useEffect(() => {
-    return onReceiveMessage(_onReceiveMessage, personId, isFocused);
+    return onReceiveMessage(_onReceiveMessage, personUuid, isFocused);
   }, [
     onReceiveMessage,
     _onReceiveMessage,
-    personId,
+    personUuid,
     isFocused,
   ]);
 
@@ -480,6 +481,7 @@ const ConversationScreen = ({navigation, route}) => {
             navigation={navigation}
             name={name}
             personId={personId}
+            personUuid={personUuid}
             messages={(messages ?? []).slice(-10)}
             closeFn={() => setShowMenu(false)}
           />

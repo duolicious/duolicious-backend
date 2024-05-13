@@ -99,6 +99,7 @@ const fetchNextQuestions = async (n: number = 10, o: number = 0): Promise<{
 
 const prospectState = (
   personId: number,
+  personUuid: string,
   imageUuid: string,
   matchPercentage: number
 ): ProspectState => {
@@ -131,6 +132,7 @@ const prospectState = (
 
   return {
     personId: personId,
+    personUuid: personUuid,
     imageUuid: imageUuid,
     matchPercentage: matchPercentage,
     style: {
@@ -160,6 +162,7 @@ const fetchNBestProspects = async (
   response.json.reverse();
   return response.json.map(x => prospectState(
     x.prospect_person_id,
+    x.prospect_uuid,
     x.profile_photo_uuid,
     x.match_percentage
   ));
@@ -195,6 +198,7 @@ type CardState = {
 
 type ProspectState = {
   personId: number
+  personUuid: string
   imageUuid: string
   matchPercentage: number
   style: {
@@ -356,7 +360,7 @@ const getBestProspects = (prospects: ProspectState[]) => {
   ].filter(prospect => prospect);
 };
 
-const Prospect = ({navigation, style, personId, imageUuid, matchPercentage}) => {
+const Prospect = ({navigation, style, personId, personUuid, imageUuid, matchPercentage}) => {
   const [isSkipped, setIsSkipped] = useState(false);
 
   const onHide = useCallback(() => setIsSkipped(true), [setIsSkipped]);
@@ -382,6 +386,7 @@ const Prospect = ({navigation, style, personId, imageUuid, matchPercentage}) => 
     <Avatar
       navigation={navigation}
       personId={personId}
+      personUuid={personUuid}
       imageUuid={imageUuid}
       percentage={matchPercentage}
       shadow={true}
@@ -521,6 +526,7 @@ const Prospects = ({
               navigation={navigation}
               style={prospect.style}
               personId={prospect.personId}
+              personUuid={prospect.personUuid}
               imageUuid={prospect.imageUuid}
               matchPercentage={prospect.matchPercentage} />
           )

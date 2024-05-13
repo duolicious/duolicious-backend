@@ -17,6 +17,7 @@ import { X } from "react-native-feather";
 const Avatar = ({percentage, ...props}) => {
   const {
     personId,
+    personUuid,
     imageUuid,
     navigation,
     size,
@@ -46,7 +47,7 @@ const Avatar = ({percentage, ...props}) => {
       'Prospect Profile Screen',
       {
         screen: 'Prospect Profile',
-        params: { personId },
+        params: { personId, personUuid },
       }
     );
   }, [navigation, personId]);
