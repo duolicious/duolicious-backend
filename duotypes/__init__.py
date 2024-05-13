@@ -81,6 +81,7 @@ class SessionInfo(BaseModel):
     email: str
     session_token_hash: str
     person_id: Optional[int]
+    person_uuid: Optional[str]
     onboarded: bool
     signed_in: bool
 
@@ -255,7 +256,7 @@ class PostSearchFilterAnswer(BaseModel):
     accept_unanswered: bool
 
 class PostInboxInfo(BaseModel):
-    person_ids: List[int]
+    person_uuids: List[str]
 
 class PostJoinClub(BaseModel):
     name: constr(pattern=CLUB_PATTERN, min_length=1, max_length=CLUB_MAX_LEN)

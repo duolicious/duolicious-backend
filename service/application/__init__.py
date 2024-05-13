@@ -151,9 +151,9 @@ def get_me_by_session(s: t.SessionInfo):
 def get_me_by_id(person_id: str):
     return person.get_me(person_id_as_str=person_id)
 
-@aget('/prospect-profile/<int:prospect_person_id>')
-def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
-    return person.get_prospect_profile(s, prospect_person_id)
+@aget('/prospect-profile/<prospect_uuid>')
+def get_prospect_profile(s: t.SessionInfo, prospect_uuid: int):
+    return person.get_prospect_profile(s, prospect_uuid)
 
 @apost('/skip/<int:prospect_person_id>')
 @validate(t.PostSkip)

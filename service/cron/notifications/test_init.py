@@ -9,8 +9,7 @@ import asyncio
 import json
 
 person_notification = PersonNotification(
-    person_id=2,
-    username='2',
+    person_uuid='2',
     last_intro_notification_seconds=1693786048,
     last_chat_notification_seconds=1693786048,
     has_intro=True,

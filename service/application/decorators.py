@@ -71,10 +71,20 @@ shared_test_rate_limit = limiter.shared_limit("4 per minute", scope="sharedtestr
 CORS(app, origins=CORS_ORIGINS.split(','))
 
 Q_GET_SESSION = """
-SELECT person_id, email, signed_in
-FROM duo_session
+SELECT
+    duo_session.person_id,
+    person.uuid AS person_uuid,
+    duo_session.email,
+    duo_session.signed_in
+FROM
+    duo_session
+LEFT JOIN
+    person
+ON
+    duo_session.person_id = person.id
 WHERE
-    session_token_hash = %(session_token_hash)s AND
+    session_token_hash = %(session_token_hash)s
+AND
     session_expiry > NOW()
 """
 
@@ -132,6 +142,7 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                 session_info = duotypes.SessionInfo(
                     email=row['email'],
                     person_id=row['person_id'],
+                    person_uuid=str(row['person_uuid']),
                     signed_in=row['signed_in'],
                     session_token_hash=session_token_hash,
                 )
