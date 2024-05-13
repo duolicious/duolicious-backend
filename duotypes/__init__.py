@@ -102,12 +102,6 @@ class PostRequestOtp(BaseModel):
 
     @field_validator('email', mode='before')
     def validate_email(cls, value):
-        name, domain = map(str.lower, value.split('@'))
-        if domain == "gmail.com":
-            name = name.replace('.', '')
-            if '+' in name:
-                name, tag = name.split('+', 1)
-            value = f"{name}@{domain}"
         return EmailStr._validate(value.lower().strip())
 
 

@@ -232,6 +232,15 @@ def _send_otp(email: str, otp: str):
         body=otp_template(otp)
     )
 
+def normalize_email(email: str):
+    name, domain = map(str.lower, email.split('@'))
+    if domain == "gmail.com" or domain == "googlemail.com":
+        name = name.replace('.', '')
+        if '+' in name:
+            name, tag = name.split('+', 1)
+        return f"{name}@gmail.com"
+    return email
+
 def post_request_otp(req: t.PostRequestOtp):
     email = req.email
     session_token = secrets.token_hex(64)
@@ -239,6 +248,7 @@ def post_request_otp(req: t.PostRequestOtp):
 
     params = dict(
         email=email,
+        normalized_email=normalize_email(email),
         is_dev=DUO_ENV == 'dev',
         session_token_hash=session_token_hash,
         ip_address=request.remote_addr or "127.0.0.1",
