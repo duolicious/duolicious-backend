@@ -13,16 +13,16 @@ check_auth () {
   user="$1"
   pass="$2"
 
-  person_id=$(
+  person_uuid=$(
     curl \
       -s \
       -X POST \
       --header "Authorization: Bearer $pass" \
       "${DUO_API_HOST}/check-session-token" 2>/dev/null \
-      | jq .person_id 2>/dev/null
+      | jq -r .person_uuid 2>/dev/null
   )
 
-  if [ "$person_id" = "$user" ]
+  if [ "$person_uuid" = "$user" ]
   then
     allow
   else

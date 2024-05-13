@@ -24,6 +24,9 @@ setup () {
   user1_id=$(q "select id from person where email = 'user1@example.com'")
   user2_id=$(q "select id from person where email = 'user2@example.com'")
 
+  user1_uuid=$(q "select uuid from person where email = 'user1@example.com'")
+  user2_uuid=$(q "select uuid from person where email = 'user2@example.com'")
+
   assume_role searcher
 }
 
@@ -550,7 +553,8 @@ test_json_format () {
     "person_messaged_prospect": false,
     "profile_photo_uuid": null,
     "prospect_messaged_person": false,
-    "prospect_person_id": ${user1_id}
+    "prospect_person_id": ${user1_id},
+    "prospect_uuid": "${user1_uuid}"
   }
 ]
 EOF
@@ -568,7 +572,8 @@ EOF
     "person_messaged_prospect": false,
     "profile_photo_uuid": null,
     "prospect_messaged_person": false,
-    "prospect_person_id": ${user2_id}
+    "prospect_person_id": ${user2_id},
+    "prospect_uuid": "${user2_uuid}"
   }
 ]
 EOF
@@ -584,7 +589,8 @@ EOF
     "match_percentage": 99,
     "name": "user1",
     "profile_photo_uuid": null,
-    "prospect_person_id": ${user1_id}
+    "prospect_person_id": ${user1_id},
+    "prospect_uuid": "${user1_uuid}"
   }
 ]
 EOF

@@ -21,6 +21,11 @@ q "delete from undeleted_photo"
 user1_id=$(q "select id from person where email = 'user1@example.com'")
 user2_id=$(q "select id from person where email = 'user2@example.com'")
 user4_id=$(q "select id from person where email = 'user4@example.com'")
+
+user1_uuid=$(q "select uuid from person where email = 'user1@example.com'")
+user2_uuid=$(q "select uuid from person where email = 'user2@example.com'")
+user4_uuid=$(q "select uuid from person where email = 'user4@example.com'")
+
 q "update photo set uuid = 'my-uuid'"
 
 response=$(jc POST /request-otp -d '{ "email": "user2@example.com" }')
@@ -28,7 +33,7 @@ SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
 jc POST /check-otp -d '{ "otp": "000000" }'
 
 echo Test 1 - Nobody was messsaged
-response=$(jc POST "/inbox-info" -d "{ \"person_ids\": [${user4_id}, ${user1_id}] }")
+response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
 actual=$(jq -r 'sort_by(.name)' <<< "$response")
 expected=$(cat <<EOF
@@ -38,14 +43,16 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "person_uuid": "${user1_uuid}"
   },
   {
     "conversation_location": "nowhere",
     "image_uuid": "my-uuid",
     "match_percentage": 50,
     "name": "user4",
-    "person_id": ${user4_id}
+    "person_id": ${user4_id},
+    "person_uuid": "${user4_uuid}"
   }
 ]
 EOF
@@ -57,7 +64,7 @@ EOF
 echo Test 2 - user4 deactivated
 q "update person set activated = false where name = 'user4'"
 
-response=$(jc POST "/inbox-info" -d "{ \"person_ids\": [${user4_id}, ${user1_id}] }")
+response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
 actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
@@ -67,14 +74,16 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "person_uuid": "${user1_uuid}"
   },
   {
     "conversation_location": "nowhere",
     "image_uuid": null,
     "match_percentage": null,
     "name": null,
-    "person_id": ${user4_id}
+    "person_id": ${user4_id},
+    "person_uuid": "${user4_uuid}"
   }
 ]
 EOF
@@ -87,7 +96,7 @@ echo Test 3 - user2 skipped by user4
 q "update person set activated = true where name = 'user4'"
 q "insert into skipped values (${user4_id}, ${user2_id}, true)"
 
-response=$(jc POST "/inbox-info" -d "{ \"person_ids\": [${user4_id}, ${user1_id}] }")
+response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
 actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
@@ -97,14 +106,16 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "person_uuid": "${user1_uuid}"
   },
   {
     "conversation_location": "nowhere",
     "image_uuid": null,
     "match_percentage": null,
     "name": null,
-    "person_id": ${user4_id}
+    "person_id": ${user4_id},
+    "person_uuid": "${user4_uuid}"
   }
 ]
 EOF
@@ -116,7 +127,7 @@ echo Test 4 - user4 skipped by user2
 q "delete from skipped"
 q "insert into skipped values (${user4_id}, ${user2_id}, false)"
 
-response=$(jc POST "/inbox-info" -d "{ \"person_ids\": [${user4_id}, ${user1_id}] }")
+response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
 actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
@@ -126,14 +137,16 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "person_uuid": "${user1_uuid}"
   },
   {
     "conversation_location": "nowhere",
     "image_uuid": null,
     "match_percentage": null,
     "name": null,
-    "person_id": ${user4_id}
+    "person_id": ${user4_id},
+    "person_uuid": "${user4_uuid}"
   }
 ]
 EOF
@@ -147,7 +160,7 @@ q "delete from messaged"
 q "insert into messaged values (${user2_id}, ${user4_id})"
 
 assume_role user2
-response=$(jc POST "/inbox-info" -d "{ \"person_ids\": [${user4_id}, ${user1_id}] }")
+response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
 actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
@@ -157,14 +170,16 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "person_uuid": "${user1_uuid}"
   },
   {
     "conversation_location": "nowhere",
     "image_uuid": "my-uuid",
     "match_percentage": 50,
     "name": "user4",
-    "person_id": ${user4_id}
+    "person_id": ${user4_id},
+    "person_uuid": "${user4_uuid}"
   }
 ]
 EOF
@@ -174,7 +189,7 @@ EOF
 
 echo "Test 5b - user2 messaged user4 (user4's perspective)"
 assume_role user4
-response=$(jc POST "/inbox-info" -d "{ \"person_ids\": [${user2_id}, ${user1_id}] }")
+response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user2_uuid}\", \"${user1_uuid}\"] }")
 
 actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
@@ -184,14 +199,16 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "person_uuid": "${user1_uuid}"
   },
   {
     "conversation_location": "intros",
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user2",
-    "person_id": ${user2_id}
+    "person_id": ${user2_id},
+    "person_uuid": "${user2_uuid}"
   }
 ]
 EOF
@@ -207,7 +224,7 @@ q "insert into messaged values (${user2_id}, ${user4_id})"
 q "insert into messaged values (${user4_id}, ${user2_id})"
 
 assume_role user2
-response=$(jc POST "/inbox-info" -d "{ \"person_ids\": [${user4_id}, ${user1_id}] }")
+response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
 actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
@@ -217,14 +234,16 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "person_uuid": "${user1_uuid}"
   },
   {
     "conversation_location": "chats",
     "image_uuid": "my-uuid",
     "match_percentage": 50,
     "name": "user4",
-    "person_id": ${user4_id}
+    "person_id": ${user4_id},
+    "person_uuid": "${user4_uuid}"
   }
 ]
 EOF
@@ -235,7 +254,7 @@ EOF
 
 echo "Test 6b - user4 replied to user2 (user4's perspective)"
 assume_role user4
-response=$(jc POST "/inbox-info" -d "{ \"person_ids\": [${user2_id}, ${user1_id}] }")
+response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user2_uuid}\", \"${user1_uuid}\"] }")
 
 actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
@@ -245,14 +264,16 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "person_uuid": "${user1_uuid}"
   },
   {
     "conversation_location": "chats",
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user2",
-    "person_id": ${user2_id}
+    "person_id": ${user2_id},
+    "person_uuid": "${user2_uuid}"
   }
 ]
 EOF
@@ -267,7 +288,7 @@ q "insert into messaged values (${user2_id}, ${user4_id})"
 q "insert into skipped  values (${user4_id}, ${user2_id})"
 
 assume_role user2
-response=$(jc POST "/inbox-info" -d "{ \"person_ids\": [${user4_id}, ${user1_id}] }")
+response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
 actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
@@ -277,14 +298,16 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "person_uuid": "${user1_uuid}"
   },
   {
     "conversation_location": "nowhere",
     "image_uuid": null,
     "match_percentage": null,
     "name": null,
-    "person_id": ${user4_id}
+    "person_id": ${user4_id},
+    "person_uuid": "${user4_uuid}"
   }
 ]
 EOF
@@ -295,7 +318,7 @@ EOF
 echo "Test 7b - user4 skipped user2's message (user4's perspective)"
 
 assume_role user4
-response=$(jc POST "/inbox-info" -d "{ \"person_ids\": [${user2_id}, ${user1_id}] }")
+response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user2_uuid}\", \"${user1_uuid}\"] }")
 
 actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
@@ -305,14 +328,16 @@ expected=$(cat <<EOF
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
-    "person_id": ${user1_id}
+    "person_id": ${user1_id},
+    "person_uuid": "${user1_uuid}"
   },
   {
     "conversation_location": "archive",
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user2",
-    "person_id": ${user2_id}
+    "person_id": ${user2_id},
+    "person_uuid": "${user2_uuid}"
   }
 ]
 EOF

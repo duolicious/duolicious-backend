@@ -15,6 +15,8 @@ setup () {
 
   user1id=$(q "select id from person where email = 'user1@example.com'")
   user2id=$(q "select id from person where email = 'user2@example.com'")
+
+  user2uuid=$(q "select uuid from person where email = 'user2@example.com'")
 }
 
 non_private_profile_is_accessible () {
@@ -22,7 +24,7 @@ non_private_profile_is_accessible () {
 
   # User 1 can get user 2's profile
   assume_role user1
-  c GET "/prospect-profile/${user2id}"
+  c GET "/prospect-profile/${user2uuid}"
 }
 
 skipping () {
@@ -34,7 +36,7 @@ skipping () {
 
   # User 1 can no longer get user 2's profile
   assume_role user1
-  ! c GET "/prospect-profile/${user2id}"
+  ! c GET "/prospect-profile/${user2uuid}"
 }
 
 deactivating () {
@@ -46,7 +48,7 @@ deactivating () {
 
   # User 1 can no longer get user 2's profile
   assume_role user1
-  ! c GET "/prospect-profile/${user2id}"
+  ! c GET "/prospect-profile/${user2uuid}"
 }
 
 hide_me_from_strangers () {
@@ -58,7 +60,7 @@ hide_me_from_strangers () {
 
   # User 1 can no longer get user 2's profile
   assume_role user1
-  ! c GET "/prospect-profile/${user2id}"
+  ! c GET "/prospect-profile/${user2uuid}"
 
   # User 2 messages user 1
   q "
@@ -67,7 +69,7 @@ hide_me_from_strangers () {
 
   # User 1 can now view user 2's profile
   assume_role user1
-  c GET "/prospect-profile/${user2id}"
+  c GET "/prospect-profile/${user2uuid}"
 }
 
 non_private_profile_is_accessible

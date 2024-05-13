@@ -1,3 +1,4 @@
+# TODO: Conversations need to be migrated
 from database.asyncdatabase import api_tx, chat_tx, check_connections_forever
 from lxml import etree
 import asyncio
@@ -22,42 +23,57 @@ RETURNING hash
 """
 
 Q_IS_SKIPPED = """
+WITH from_username AS (
+    SELECT id FROM person WHERE uuid = %(from_username)s
+), to_username AS (
+    SELECT id FROM person WHERE uuid = %(to_username)s
+)
 SELECT
     1
 FROM
     skipped
 WHERE
     (
-        subject_person_id = %(from_username)s AND
-        object_person_id  = %(to_username)s
+        subject_person_id = (SELECT id FROM from_username) AND
+        object_person_id  = (SELECT id FROM to_username)
     )
 OR
     (
-        subject_person_id = %(to_username)s AND
-        object_person_id  = %(from_username)s
+        subject_person_id = (SELECT id FROM to_username) AND
+        object_person_id  = (SELECT id FROM from_username)
     )
 LIMIT 1
 """
 
 Q_SET_MESSAGED = """
-WITH can_insert AS (
+WITH subject_person_id AS (
+    SELECT
+        id
+    FROM
+        person
+    WHERE
+        uuid = %(subject_person_id)s
+), object_person_id AS (
+    SELECT
+        id
+    FROM
+        person
+    WHERE
+        uuid = %(object_person_id)s
+), can_insert AS (
     SELECT
         1
     WHERE
-        EXISTS (
-            SELECT 1 FROM person WHERE id = %(subject_person_id)s
-        )
-        AND EXISTS (
-            SELECT 1 FROM person WHERE id = %(object_person_id)s
-        )
+        EXISTS (SELECT 1 FROM subject_person_id)
+    AND EXISTS (SELECT 1 FROM object_person_id)
 ), insertion AS (
     INSERT INTO messaged (
         subject_person_id,
         object_person_id
     )
     SELECT
-        %(subject_person_id)s,
-        %(object_person_id)s
+        (SELECT id FROM subject_person_id),
+        (SELECT id FROM object_person_id)
     WHERE EXISTS (
         SELECT
             1
@@ -73,13 +89,13 @@ FROM
 """
 
 Q_SET_TOKEN = """
-INSERT INTO duo_push_token (
-    username,
-    token
-) VALUES (
-    %(username)s,
+INSERT INTO duo_push_token (username, token)
+VALUES (
+    (SELECT id FROM person WHERE id = %(username)s),
     %(token)s
-) ON CONFLICT (username) DO UPDATE SET
+)
+ON CONFLICT (username)
+DO UPDATE SET
     token = EXCLUDED.token
 """
 
@@ -116,15 +132,17 @@ def get_message_attrs(message_xml):
         if body is not None:
             maybe_message_body = body.text
 
-        return (
-            root.attrib.get('id'),
-            root.attrib.get('to'),
-            do_check_uniqueness,
-            maybe_message_body)
+        _id = root.attrib.get('id')
+        assert _id is not None
+
+        to = root.attrib.get('to')
+        assert to is not None
+
+        return (True, _id, to, do_check_uniqueness, maybe_message_body)
     except Exception as e:
         pass
 
-    return None, None, None, None
+    return False, None, None, None, None
 
 def normalize_message(message_str):
     message_str = message_str.lower()
@@ -187,8 +205,8 @@ async def is_message_unique(message_str):
 
 async def is_message_blocked(username, to_jid):
     try:
-        from_username = int(username)
-        to_username = int(to_jid.split('@')[0])
+        from_username = username
+        to_username = to_jid.split('@')[0]
 
         params = dict(
             from_username=from_username,
@@ -206,8 +224,8 @@ async def is_message_blocked(username, to_jid):
     return False
 
 async def set_messaged(username, to_jid):
-    from_username = int(username)
-    to_username = int(to_jid.split('@')[0])
+    from_username = username
+    to_username = to_jid.split('@')[0]
 
     params = dict(
         subject_person_id=from_username,
@@ -251,42 +269,47 @@ async def process_duo_message(message_xml, username):
     if await maybe_register(message_xml, username):
         return ['<duo_registration_successful />'], []
 
-    id, to_jid, do_check_uniqueness, maybe_message_body = get_message_attrs(
-        message_xml)
+    (
+        is_message,
+        id,
+        to_jid,
+        do_check_uniqueness,
+        maybe_message_body,
+    ) = get_message_attrs(message_xml)
 
-    if id and maybe_message_body and is_message_too_long(maybe_message_body):
+    if not is_message:
+        return [], [message_xml]
+
+    if maybe_message_body and is_message_too_long(maybe_message_body):
         return [f'<duo_message_too_long id="{id}"/>'], []
 
-    if id and await is_message_blocked(username, to_jid):
+    if await is_message_blocked(username, to_jid):
         return [f'<duo_message_blocked id="{id}"/>'], []
 
-    if id and maybe_message_body and do_check_uniqueness and \
+    if maybe_message_body and do_check_uniqueness and \
             not await is_message_unique(maybe_message_body):
         return [f'<duo_message_not_unique id="{id}"/>'], []
 
-    if id:
-        if await set_messaged(username, to_jid):
-            return (
-                [
-                    f'<duo_message_delivered id="{id}"/>'
-                ],
-                [
-                    message_xml,
-                    f"<iq id='{duohash.duo_uuid()}' type='set'>"
-                    f"  <query"
-                    f"    xmlns='erlang-solutions.com:xmpp:inbox:0#conversation'"
-                    f"    jid='{to_jid}'"
-                    f"  >"
-                    f"    <box>chats</box>"
-                    f"  </query>"
-                    f"</iq>"
+    if await set_messaged(username, to_jid):
+        return (
+            [
+                f'<duo_message_delivered id="{id}"/>'
+            ],
+            [
+                message_xml,
+                f"<iq id='{duohash.duo_uuid()}' type='set'>"
+                f"  <query"
+                f"    xmlns='erlang-solutions.com:xmpp:inbox:0#conversation'"
+                f"    jid='{to_jid}'"
+                f"  >"
+                f"    <box>chats</box>"
+                f"  </query>"
+                f"</iq>"
 
-                ]
-            )
-        else:
-            return [], []
-    else:
-        return [], [message_xml]
+            ]
+        )
+
+    return [], []
 
 async def process(src, dst, username):
     try:

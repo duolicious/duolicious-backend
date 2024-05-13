@@ -7,6 +7,7 @@ CREATE EXTENSION IF NOT EXISTS plpython3u;
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS btree_gist;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 --------------------------------------------------------------------------------
 -- FUNCTIONS (1)
@@ -156,6 +157,8 @@ CREATE TABLE IF NOT EXISTS person (
 
     id_salt INT DEFAULT FLOOR(RANDOM() * 1000000),
     tiny_id TEXT GENERATED ALWAYS AS (base62_encode(id::BIGINT * 1000000 + id_salt)) STORED,
+
+    uuid UUID NOT NULL DEFAULT uuid_generate_v4(),
 
     -- Required during sign-up
     email TEXT NOT NULL,
@@ -440,12 +443,14 @@ CREATE TABLE IF NOT EXISTS search_preference_messaged (
 CREATE TABLE IF NOT EXISTS search_preference_skipped (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     skipped_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (person_id)
 );
 
 CREATE TABLE IF NOT EXISTS messaged (
     subject_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     object_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (subject_person_id, object_person_id)
 );
 
@@ -500,6 +505,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     position SMALLINT,
     prospect_person_id INT NOT NULL,
+    prospect_uuid UUID NOT NULL,
     has_mutual_club BOOLEAN NOT NULL DEFAULT FALSE,
     profile_photo_uuid TEXT,
     name TEXT NOT NULL,
@@ -1180,3 +1186,16 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
+
+-- TODO
+ALTER TABLE person ADD COLUMN IF NOT EXISTS uuid UUID NOT NULL DEFAULT uuid_generate_v4();
+
+DELETE FROM search_cache;
+ALTER TABLE search_cache ADD COLUMN IF NOT EXISTS prospect_uuid UUID NOT NULL;
+
+
+-- TODO: Move me higher up
+CREATE INDEX IF NOT EXISTS idx__person__uuid ON person(uuid);
+
+ALTER TABLE skipped  ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT NOW();
+ALTER TABLE messaged ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT NOW();
