@@ -326,13 +326,14 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
         if not row:
             return 'Invalid OTP', 401
 
-    params = dict(person_id=row['person_id'])
+    params = dict(person_uuid=row['person_uuid'])
 
     with chat_tx() as tx:
         tx.execute(Q_UPDATE_LAST, params)
 
     return dict(
         person_id=row['person_id'],
+        person_uuid=row['person_uuid'],
         onboarded=row['person_id'] is not None,
         units=row['units'],
     )
@@ -351,6 +352,7 @@ def post_check_session_token(s: t.SessionInfo):
         if row:
             return dict(
                 person_id=s.person_id,
+                person_uuid=s.person_uuid,
                 onboarded=s.onboarded,
                 units=row['units'],
             )
@@ -524,7 +526,10 @@ def post_finish_onboarding(s: t.SessionInfo):
     with api_tx() as tx:
         row = tx.execute(Q_FINISH_ONBOARDING, params=api_params).fetchone()
 
-    chat_params = dict(person_id=row['person_id'])
+    chat_params = dict(
+        person_id=row['person_id'],
+        person_uuid=row['person_uuid'],
+    )
 
     with chat_tx() as tx:
         tx.execute(Q_INSERT_LAST, params=chat_params)
@@ -566,10 +571,10 @@ def get_me(
     except:
         return '', 404
 
-def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
+def get_prospect_profile(s: t.SessionInfo, prospect_uuid):
     params = dict(
         person_id=s.person_id,
-        prospect_person_id=prospect_person_id,
+        prospect_uuid=prospect_uuid,
     )
 
     with api_tx('READ COMMITTED') as tx:
@@ -683,7 +688,7 @@ def get_compare_answers(
 def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo):
     params = dict(
         person_id=s.person_id,
-        prospect_person_ids=req.person_ids
+        prospect_person_uuids=req.person_uuids
     )
 
     with api_tx('READ COMMITTED') as tx:

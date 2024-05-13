@@ -16,7 +16,9 @@ q "delete from club"
 ../util/create-user.sh user2 0 0
 
 assume_role user1
-response=$(c GET /prospect-profile/$(q "select id from person where name = 'user2'"))
+user2_id=$(  q "select id   from person where name = 'user2'")
+user2_uuid=$(q "select uuid from person where name = 'user2'")
+response=$(c GET /prospect-profile/$user2_uuid)
 expected=$(jq -r . << EOF
 {
   "about": "Im a reasonable person",
@@ -39,6 +41,7 @@ expected=$(jq -r . << EOF
   "occupation": null,
   "orientation": null,
   "other_clubs": [],
+  "person_id": $user2_id,
   "photo_uuids": [],
   "relationship_status": null,
   "religion": null,
@@ -64,7 +67,9 @@ jc POST /join-club -d '{ "name": "my-club-unshared-11" }'
 jc POST /join-club -d '{ "name": "my-club-unshared-21" }'
 
 assume_role user1
-response=$(c GET /prospect-profile/$(q "select id from person where name = 'user2'"))
+user2_id=$(  q "select id   from person where name = 'user2'")
+user2_uuid=$(q "select uuid from person where name = 'user2'")
+response=$(c GET /prospect-profile/$user2_uuid)
 expected=$(jq -r . << EOF
 {
   "about": "Im a reasonable person",
@@ -87,6 +92,7 @@ expected=$(jq -r . << EOF
   "occupation": null,
   "orientation": null,
   "other_clubs": ["my-club-unshared-11", "my-club-unshared-21"],
+  "person_id": $user2_id,
   "photo_uuids": [],
   "relationship_status": null,
   "religion": null,

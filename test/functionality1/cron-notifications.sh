@@ -55,9 +55,9 @@ setup () {
   SET email = REPLACE(email, '@example.com', '@duolicious.app')
   "
 
-  user1id=$(get_id 'user1@duolicious.app')
-  user2id=$(get_id 'user2@duolicious.app')
-  user3id=$(get_id 'user3@duolicious.app')
+  user1id=$(q "select uuid from person where email = 'user1@duolicious.app'")
+  user2id=$(q "select uuid from person where email = 'user2@duolicious.app'")
+  user3id=$(q "select uuid from person where email = 'user3@duolicious.app'")
 
   q "
   insert into last (server, username, seconds, state)
@@ -99,8 +99,8 @@ test_happy_path_intros () {
   q "
   insert into inbox
   values
-    ($user1id, '', '', '', 'inbox', '', ${time_interval}, 0, 42),
-    ($user2id, '', '', '', 'inbox', '', ${time_interval}, 0, 0)
+    ('$user1id', '', '', '', 'inbox', '', ${time_interval}, 0, 42),
+    ('$user2id', '', '', '', 'inbox', '', ${time_interval}, 0, 0)
   " duo_chat
 
   sleep 2
@@ -122,8 +122,8 @@ test_happy_path_chats () {
   q "
   insert into inbox
   values
-    ($user1id, '', '', '', 'chats', '', ${time_interval}, 0, 42),
-    ($user2id, '', '', '', 'chats', '', ${time_interval}, 0, 0)
+    ('$user1id', '', '', '', 'chats', '', ${time_interval}, 0, 42),
+    ('$user2id', '', '', '', 'chats', '', ${time_interval}, 0, 0)
   " duo_chat
 
   sleep 2
@@ -147,7 +147,7 @@ test_happy_path_chat_not_deferred_by_intro () {
   q "
   insert into duo_last_notification
   values
-    ($user1id, $t2)
+    ('$user1id', $t2)
   " duo_chat
   local rows=$(
     q "select count(*)
@@ -162,8 +162,8 @@ test_happy_path_chat_not_deferred_by_intro () {
   q "
   insert into inbox
   values
-    ($user1id, '', 'sender1', '', 'chats', '', ${t3}, 0, 42),
-    ($user1id, '', 'sender2', '', 'inbox', '', ${t1}, 0,  0)
+    ('$user1id', '', 'sender1', '', 'chats', '', ${t3}, 0, 42),
+    ('$user1id', '', 'sender2', '', 'inbox', '', ${t1}, 0,  0)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -195,8 +195,8 @@ test_sad_sent_9_minutes_ago () {
   q "
   insert into inbox
   values
-    ($user1id, '', '', '', 'chats', '', ${time_interval}, 0, 42),
-    ($user2id, '', '', '', 'inbox', '', ${time_interval}, 0, 43)
+    ('$user1id', '', '', '', 'chats', '', ${time_interval}, 0, 42),
+    ('$user2id', '', '', '', 'inbox', '', ${time_interval}, 0, 43)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -217,8 +217,8 @@ test_sad_sent_11_days_ago () {
   q "
   insert into inbox
   values
-    ($user1id, '', '', '', 'chats', '', ${time_interval}, 0, 42),
-    ($user2id, '', '', '', 'inbox', '', ${time_interval}, 0, 43)
+    ('$user1id', '', '', '', 'chats', '', ${time_interval}, 0, 42),
+    ('$user2id', '', '', '', 'inbox', '', ${time_interval}, 0, 43)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -239,8 +239,8 @@ test_sad_only_read_messages () {
   q "
   insert into inbox
   values
-    ($user1id, '', '', '', 'chats', '', ${time_interval}, 0, 0),
-    ($user2id, '', '', '', 'inbox', '', ${time_interval}, 0, 0)
+    ('$user1id', '', '', '', 'chats', '', ${time_interval}, 0, 0),
+    ('$user2id', '', '', '', 'inbox', '', ${time_interval}, 0, 0)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -261,8 +261,8 @@ test_sad_still_online_at_poll_time () {
   q "
   insert into last
   values
-    ('duolicious.app', $user1id, $t2, ''),
-    ('duolicious.app', $user2id, $t2, '')
+    ('duolicious.app', '$user1id', $t2, ''),
+    ('duolicious.app', '$user2id', $t2, '')
   ON CONFLICT (server, username) DO UPDATE SET
     server   = EXCLUDED.server,
     username = EXCLUDED.username,
@@ -273,8 +273,8 @@ test_sad_still_online_at_poll_time () {
   q "
   insert into inbox
   values
-    ($user1id, '', '', '', 'chats', '', ${t1}, 0, 42),
-    ($user2id, '', '', '', 'inbox', '', ${t1}, 0, 43)
+    ('$user1id', '', '', '', 'chats', '', ${t1}, 0, 42),
+    ('$user2id', '', '', '', 'inbox', '', ${t1}, 0, 43)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -296,8 +296,8 @@ test_sad_still_online_after_message_time () {
   q "
   insert into last
   values
-    ('duolicious.app', $user1id, $t2, ''),
-    ('duolicious.app', $user2id, $t2, '')
+    ('duolicious.app', '$user1id', $t2, ''),
+    ('duolicious.app', '$user2id', $t2, '')
   ON CONFLICT (server, username) DO UPDATE SET
     server   = EXCLUDED.server,
     username = EXCLUDED.username,
@@ -308,8 +308,8 @@ test_sad_still_online_after_message_time () {
   q "
   insert into inbox
   values
-    ($user1id, '', '', '', 'chats', '', ${t1}, 0, 42),
-    ($user2id, '', '', '', 'inbox', '', ${t1}, 0, 43)
+    ('$user1id', '', '', '', 'chats', '', ${t1}, 0, 42),
+    ('$user2id', '', '', '', 'inbox', '', ${t1}, 0, 43)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -334,16 +334,16 @@ test_sad_already_notified_for_particular_message () {
   q "
   insert into duo_last_notification
   values
-    ($user1id, $t2)
+    ('$user1id', $t2)
   " duo_chat
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 1 ]]
 
   q "
   insert into inbox
   values
-    ($user1id, '', '', '', 'chats', '', ${t1}, 0, 42),
-    ($user2id, '', '', '', 'inbox', '', ${t3}, 0, 43),
-    ($user3id, '', '', '', 'inbox', '', ${t4}, 0,  0)
+    ('$user1id', '', '', '', 'chats', '', ${t1}, 0, 42),
+    ('$user2id', '', '', '', 'inbox', '', ${t3}, 0, 43),
+    ('$user3id', '', '', '', 'inbox', '', ${t4}, 0,  0)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 3 ]]
 
@@ -367,7 +367,7 @@ test_sad_already_notified_for_other_intro_in_drift_period () {
   q "
   insert into duo_last_notification
   values
-    ($user1id, $t1)
+    ('$user1id', $t1)
   " duo_chat
   local rows=$(
     q "select count(*)
@@ -382,8 +382,8 @@ test_sad_already_notified_for_other_intro_in_drift_period () {
   q "
   insert into inbox
   values
-    ($user1id, '', '', '', 'inbox', '', ${t2}, 0, 42),
-    ($user2id, '', '', '', 'inbox', '', ${t2}, 0,  0)
+    ('$user1id', '', '', '', 'inbox', '', ${t2}, 0, 42),
+    ('$user2id', '', '', '', 'inbox', '', ${t2}, 0,  0)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -419,7 +419,7 @@ test_sad_intro_within_day_and_chat_within_past_10_minutes () {
   q "
   insert into duo_last_notification (username, intro_seconds, chat_seconds)
   values
-    ($user1id, $t2, $t3)
+    ('$user1id', $t2, $t3)
   " duo_chat
   local rows=$(
     q "select count(*)
@@ -434,8 +434,8 @@ test_sad_intro_within_day_and_chat_within_past_10_minutes () {
   q "
   insert into inbox
   values
-    ($user1id, '', 'sender2', '', 'inbox', '', ${t1}, 0, 42),
-    ($user1id, '', 'sender1', '', 'chats', '', ${t4}, 0, 43)
+    ('$user1id', '', 'sender2', '', 'inbox', '', ${t1}, 0, 42),
+    ('$user1id', '', 'sender1', '', 'chats', '', ${t4}, 0, 43)
   " duo_chat
   [[ "$(q "select count(*) from inbox" duo_chat)" = 2 ]]
 
@@ -458,7 +458,7 @@ test_sad_intro_within_day_and_chat_within_past_10_minutes () {
 test_sad_not_activated () {
   setup
 
-  q "update person set activated = false where id = $user1id"
+  q "update person set activated = false where uuid = '$user1id'"
 
   local time_interval=$(db_now as-microseconds '- 11 minutes')
 
@@ -467,8 +467,8 @@ test_sad_not_activated () {
   q "
   insert into inbox
   values
-    ($user1id, '', '', '', 'inbox', '', ${time_interval}, 0, 42),
-    ($user2id, '', '', '', 'inbox', '', ${time_interval}, 0, 0)
+    ('$user1id', '', '', '', 'inbox', '', ${time_interval}, 0, 42),
+    ('$user2id', '', '', '', 'inbox', '', ${time_interval}, 0, 0)
   " duo_chat
 
   sleep 2
