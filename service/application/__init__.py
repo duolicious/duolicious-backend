@@ -158,7 +158,14 @@ def get_prospect_profile(s: t.SessionInfo, prospect_uuid: int):
 @apost('/skip/<int:prospect_person_id>')
 @validate(t.PostSkip)
 def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
-    return person.post_skip(req, s, prospect_person_id)
+    def skip_with_report(req, s, prospect_person_id):
+        return person.post_skip(req, s, prospect_person_id)
+
+    if req.report_reason:
+        limiter.limit("1 per 5 minutes")(skip_with_report)(req, s, prospect_person_id)
+    else:
+        return person.post_skip(req, s, prospect_person_id)
+
 
 @apost('/unskip/<int:prospect_person_id>')
 def post_unskip(s: t.SessionInfo, prospect_person_id: int):

@@ -28,7 +28,7 @@ def _is_private_ip() -> bool:
     if disable_rate_limit_file.is_file():
         with disable_rate_limit_file.open() as file:
             if file.read().strip() == '1':
-                return False
+                return True
 
     try:
         return ipaddress.ip_address(_remote_addr).is_private
@@ -59,13 +59,13 @@ app.config['MAX_CONTENT_LENGTH'] = constants.MAX_CONTENT_LENGTH;
 limiter = Limiter(
     _get_remote_address,
     app=app,
-    default_limits=["120 per minute", "12 per second"],
+    default_limits=["60 per minute", "12 per second"],
     storage_uri="memory://",
     strategy="fixed-window",
     default_limits_exempt_when=_is_private_ip,
 )
 
-shared_otp_limit = limiter.shared_limit("4 per minute", scope="otp")
+shared_otp_limit = limiter.shared_limit("1 per minute", scope="otp")
 shared_test_rate_limit = limiter.shared_limit("4 per minute", scope="sharedtestratelimit")
 
 CORS(app, origins=CORS_ORIGINS.split(','))
