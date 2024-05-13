@@ -510,7 +510,7 @@ const sendMessage = async (
       _sendMessage(recipientPersonUuid, message, resolve, checkUniqueness)
   );
 
-  return await withTimeout(5000, __sendMessage);
+  return await withTimeout(30000, __sendMessage);
 };
 
 const conversationsToInbox = (conversations: Conversation[]): Inbox => {
@@ -748,7 +748,7 @@ const fetchConversation = async (
       _fetchConversation(withPersonUuid, resolve, beforeId)
     );
 
-  return await withTimeout(5000, __fetchConversation);
+  return await withTimeout(30000, __fetchConversation);
 };
 
 const _fetchInbox = async (
