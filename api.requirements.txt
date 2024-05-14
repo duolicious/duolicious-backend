@@ -1,9 +1,10 @@
 Flask
+Flask-Limiter
 Pillow
+PyYAML
 boto3
 flask-cors
 gunicorn
 openai
 psycopg
 pydantic[email]
-Flask-Limiter
