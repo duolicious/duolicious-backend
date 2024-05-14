@@ -42,7 +42,7 @@ tear_down () {
 trap tear_down EXIT
 
 ban_token () {
-  q "select token from banned_person_admin_token limit 1"
+  q "select token from banned_person_admin_token where person_id = ${accused_id}"
 }
 
 deleted_photo_token () {

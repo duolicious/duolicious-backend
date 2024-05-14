@@ -927,23 +927,30 @@ WHERE
 """
 
 Q_INSERT_SKIPPED = """
-WITH q1 AS (
+WITH object_person_id AS (
+    SELECT
+        id
+    FROM
+        person
+    WHERE
+        uuid = %(prospect_uuid)s
+), q1 AS (
     INSERT INTO skipped (
         subject_person_id,
         object_person_id,
         reported
     ) VALUES (
         %(subject_person_id)s,
-        %(object_person_id)s,
+        (SELECT id FROM object_person_id),
         %(reported)s
     ) ON CONFLICT DO NOTHING
 ), q2 AS (
     DELETE FROM search_cache
     WHERE
         searcher_person_id = %(subject_person_id)s AND
-        prospect_person_id = %(object_person_id)s
+        prospect_person_id = (SELECT id FROM object_person_id)
     OR
-        searcher_person_id = %(object_person_id)s AND
+        searcher_person_id = (SELECT id FROM object_person_id) AND
         prospect_person_id = %(subject_person_id)s
 )
 SELECT 1
@@ -1541,15 +1548,23 @@ SELECT
 """
 
 Q_MAKE_REPORT = """
-WITH token AS (
+WITH object_person_id AS (
+    SELECT
+        id
+    FROM
+        person
+    WHERE
+        uuid = %(prospect_uuid)s
+), token AS (
     INSERT INTO banned_person_admin_token (
         person_id
     )
-    VALUES (
-        %(object_person_id)s
-    )
+    VALUES
+        (%(subject_person_id)s),
+        ((SELECT id FROM object_person_id))
     RETURNING
-        person_id, token
+        person_id,
+        token
 ), photo_ban AS (
     INSERT INTO deleted_photo_admin_token (
         photo_uuid
@@ -1563,8 +1578,18 @@ WITH token AS (
     ON
         photo.person_id = token.person_id
     RETURNING
-        photo_uuid AS uuid,
-        token AS token
+        photo_uuid
+), photo_ban_with_id AS (
+    SELECT
+        photo_ban.photo_uuid AS uuid,
+        token.person_id AS person_id,
+        token.token AS token
+    FROM
+        photo_ban
+    JOIN
+        photo ON photo_ban.photo_uuid = photo.uuid
+    JOIN
+        token ON photo.person_id = token.person_id
 )
 SELECT
     CASE
@@ -1591,14 +1616,14 @@ SELECT
         SELECT
             'https://user-images.duolicious.app/original-' || uuid || '.jpg'
         FROM photo
-        WHERE person_id = id
+        WHERE photo.person_id = p.id
         ORDER BY position
     ) AS photo_links,
     ARRAY(
         SELECT
             uuid || ': https://api.duolicious.app/admin/delete-photo-link/' || token
-        FROM photo_ban
-        WHERE id = %(object_person_id)s
+        FROM photo_ban_with_id
+        WHERE photo_ban_with_id.person_id = p.id
     ) AS photo_deletion_links,
     EXTRACT(YEAR FROM AGE(date_of_birth))::int AS age,
     name,
@@ -1616,15 +1641,31 @@ SELECT
     ) AS clubs,
     token::text
 FROM
-    person AS p,
+    person AS p
+JOIN
     token
-WHERE
-    id IN (
-        %(subject_person_id)s,
-        %(object_person_id)s
-    )
+ON
+    token.person_id = p.id
 ORDER BY
-    (id = %(object_person_id)s)
+    (id = %(subject_person_id)s) DESC
+"""
+
+Q_LAST_MESSAGES = """
+SELECT
+    array_agg(search_body) AS messages
+FROM (
+    SELECT
+        search_body
+    FROM
+        mam_message
+    WHERE
+        direction = 'I'
+    AND
+        remote_bare_jid = %(prospect_uuid)s
+    ORDER BY
+        id DESC -- TODO: Is this indexed?
+    LIMIT 50
+) AS subquery;
 """
 
 Q_SEARCH_CLUBS = """
@@ -1907,4 +1948,13 @@ WHERE
     server = 'duolicious.app'
 AND
     username = %(person_uuid)s::TEXT
+"""
+
+Q_PERSON_ID_TO_UUID = """
+SELECT
+    uuid::text
+FROM
+    person
+WHERE
+    id = %(person_id)s
 """
