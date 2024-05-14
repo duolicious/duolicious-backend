@@ -42,8 +42,7 @@ def _cached_search_results(searcher_person_id: int, no: Tuple[int, int]):
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_CACHED_SEARCH, params).fetchall()
 
-
-def get_search(s: t.SessionInfo, n: Optional[str], o: Optional[str]):
+def get_search_type(n: Optional[str], o: Optional[str]):
     n_: Optional[int] = n if n is None else int(n)
     o_: Optional[int] = o if o is None else int(o)
 
@@ -55,8 +54,21 @@ def get_search(s: t.SessionInfo, n: Optional[str], o: Optional[str]):
     no = None if (n_ is None or o_ is None) else (n_, o_)
 
     if no is None:
-        return _quiz_search_results(searcher_person_id=s.person_id)
+        return 'quiz-search', no
     elif no[1] == 0:
-        return _uncached_search_results(searcher_person_id=s.person_id, no=no)
+        return 'uncached-search', no
     else:
+        return 'cached-search', no
+
+
+def get_search(s: t.SessionInfo, n: Optional[str], o: Optional[str]):
+    search_type, no = get_search_type(n, o)
+
+    if search_type == 'quiz-search':
+        return _quiz_search_results(searcher_person_id=s.person_id)
+    elif search_type == 'uncached-search':
+        return _uncached_search_results(searcher_person_id=s.person_id, no=no)
+    elif search_type == 'cached-search':
         return _cached_search_results(searcher_person_id=s.person_id, no=no)
+    else:
+        raise Exception('Unexpected quiz type')
