@@ -8,3 +8,4 @@ gunicorn
 openai
 psycopg
 pydantic[email]
+redis
