@@ -60,7 +60,7 @@ limiter = Limiter(
     _get_remote_address,
     app=app,
     default_limits=["60 per minute", "12 per second"],
-    storage_uri="memory://",
+    storage_uri="redis://redis:6379",
     strategy="fixed-window",
     default_limits_exempt_when=_is_private_ip,
 )
