@@ -24,7 +24,6 @@ from service.application.decorators import (
     validate,
     limiter,
     shared_otp_limit,
-    shared_test_rate_limit,
 )
 import time
 
