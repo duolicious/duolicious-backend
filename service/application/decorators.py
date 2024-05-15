@@ -65,8 +65,7 @@ limiter = Limiter(
     default_limits_exempt_when=_is_private_ip,
 )
 
-shared_otp_limit = limiter.shared_limit("1 per minute", scope="otp")
-shared_test_rate_limit = limiter.shared_limit("4 per minute", scope="sharedtestratelimit")
+shared_otp_limit = limiter.shared_limit("3 per minute", scope="otp")
 
 CORS(app, origins=CORS_ORIGINS.split(','))
 
