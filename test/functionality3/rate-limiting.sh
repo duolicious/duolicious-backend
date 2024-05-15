@@ -10,6 +10,8 @@ printf 0 > ../../test/input/disable-rate-limit
 set -xe
 
   jc POST /request-otp -d '{ "email": "user1@example.com" }'
+  jc POST /request-otp -d '{ "email": "user1@example.com" }'
+  jc POST /request-otp -d '{ "email": "user1@example.com" }'
 ! jc POST /request-otp -d '{ "email": "user2@example.com" }'
 
 printf 1 > ../../test/input/disable-rate-limit
