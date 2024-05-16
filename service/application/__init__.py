@@ -138,7 +138,7 @@ def get_search(s: t.SessionInfo):
     search_type = search.get_search_type(n, o)
 
     if search_type == 'uncached-search':
-        return limiter.limit("20 per minute")(search.get_search)(s=s, n=n, o=o)
+        return limiter.limit("10 per minute")(search.get_search)(s=s, n=n, o=o)
     else:
         return search.get_search(s=s, n=n, o=o)
 
@@ -162,7 +162,7 @@ def get_prospect_profile(s: t.SessionInfo, prospect_uuid: int):
 @validate(t.PostSkip)
 def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
     if req.report_reason:
-        return limiter.limit("1 per 5 minutes")(person.post_skip)(req, s, prospect_person_id)
+        return limiter.limit("1 per minute")(person.post_skip)(req, s, prospect_person_id)
     else:
         return person.post_skip(req, s, prospect_person_id)
 

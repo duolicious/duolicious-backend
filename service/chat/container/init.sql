@@ -29,4 +29,8 @@ ON last(username);
 CREATE INDEX IF NOT EXISTS duo_idx__last__seconds
 ON last(seconds);
 
+CREATE INDEX IF NOT EXISTS duo_idx__mam_message__remote_bare_jid__id
+ON mam_message(remote_bare_jid, id)
+WHERE direction = 'I';
+
 COMMIT;

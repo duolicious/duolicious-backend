@@ -33,7 +33,7 @@ c POST "/skip/${user2id}"
 ! jc POST "/skip/${user2id}" -d '{ "report_reason": "bad hair" }'
 
 # Uncached search should be heavily rate-limited
-for x in {1..20}
+for x in {1..10}
 do
   c GET '/search?n=1&o=0'
 done
