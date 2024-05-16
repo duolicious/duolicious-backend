@@ -91,7 +91,7 @@ FROM
 Q_SET_TOKEN = """
 INSERT INTO duo_push_token (username, token)
 VALUES (
-    (SELECT id FROM person WHERE id = %(username)s),
+    %(username)s,
     %(token)s
 )
 ON CONFLICT (username)
