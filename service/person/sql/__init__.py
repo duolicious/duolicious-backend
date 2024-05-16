@@ -153,9 +153,9 @@ WITH random_otp AS (
 ), zero_otp AS (
     SELECT '000000' AS otp
 ), is_registered AS (
-    SELECT 1 WHERE     EXISTS (SELECT 1 FROM person WHERE email = %(email)s)
+    SELECT 1 WHERE     EXISTS (SELECT 1 FROM person WHERE normalized_email = %(normalized_email)s)
 ), is_unregistered AS (
-    SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM person WHERE email = %(email)s)
+    SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM person WHERE normalized_email = %(normalized_email)s)
 ), domain AS (
     SELECT
         SUBSTRING(%(email)s FROM POSITION('@' IN %(email)s) + 1) AS domain
@@ -182,7 +182,7 @@ WITH random_otp AS (
             FROM
                 banned_person
             WHERE
-                email = %(email)s
+                email = %(normalized_email)s
             AND
                 expires_at > NOW()
             OR
@@ -214,13 +214,15 @@ INSERT INTO duo_session (
     session_token_hash,
     person_id,
     email,
+    normalized_email,
     otp,
     ip_address
 )
 SELECT
     %(session_token_hash)s,
-    (SELECT id FROM person WHERE email = %(email)s),
+    COALESCE((SELECT id FROM person WHERE email = %(email)s), (SELECT id FROM person WHERE normalized_email = %(normalized_email)s LIMIT 1)),
     %(email)s,
+    %(normalized_email)s,
     otp,
     %(ip_address)s
 FROM
@@ -269,9 +271,10 @@ WITH valid_session AS (
         session_token_hash = %(session_token_hash)s AND
         otp = %(otp)s AND
         otp_expiry > NOW()
-    RETURNING
-        person_id,
-        email
+    RETURNING 
+        person_id, 
+        email, 
+        normalized_email
 ), existing_person AS (
     UPDATE
         person
@@ -289,11 +292,13 @@ WITH valid_session AS (
         person.unit_id
 ), new_onboardee AS (
     INSERT INTO onboardee (
-        email
+        email,
+        normalized_email
     )
-    SELECT
-        email
-    FROM
+    SELECT 
+        email, 
+        normalized_email
+    FROM 
         valid_session
     WHERE NOT EXISTS (SELECT 1 FROM existing_person)
 )
@@ -347,6 +352,7 @@ WITH onboardee_country AS (
 ), new_person AS (
     INSERT INTO person (
         email,
+        normalized_email,
         name,
         date_of_birth,
         coordinates,
@@ -357,6 +363,7 @@ WITH onboardee_country AS (
         intros_notification
     ) SELECT
         email,
+        normalized_email,
         name,
         date_of_birth,
         coordinates,
@@ -1864,7 +1871,7 @@ WITH deleted_token AS (
         email
 ), _duo_session AS (
     SELECT
-        duo_session.email AS email,
+        duo_session.normalized_email AS email,
         COALESCE(duo_session.ip_address, '127.0.0.1') AS ip_address
     FROM
         duo_session

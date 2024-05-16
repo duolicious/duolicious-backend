@@ -1,4 +1,5 @@
 SESSION_TOKEN=""
+USER_UUID=""
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
@@ -122,6 +123,7 @@ assume_role () {
   if [[ "$username_or_email" == *@example.com ]]
   then
     response=$(jc POST /check-otp -d '{ "otp": "000000" }')
+    USER_UUID=$(echo "$response" | jq -r '.person_uuid')
   else
     # If we were given a non-@example.com email then the OTP probably won't be
     # 000000.
@@ -135,6 +137,7 @@ assume_role () {
       "
     )
     response=$(jc POST /check-otp -d '{ "otp": "'"$otp"'" }')
+    USER_UUID=$(echo "$response" | jq -r '.person_uuid')
   fi
 
   local onboarded=$(echo "$response" | jq -r '.onboarded')
@@ -143,6 +146,7 @@ assume_role () {
     return 1
   else
     export SESSION_TOKEN
+    export USER_UUID
   fi
 }
 

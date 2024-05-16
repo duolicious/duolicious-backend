@@ -17,7 +17,7 @@ setup () {
   q "delete from deleted_photo_admin_token"
 
   ../util/create-user.sh reporter 0 "${num_photos}"
-  ../util/create-user.sh accused 0 "${num_photos}"
+  ../util/create-user.sh accused+1 0 "${num_photos}"
   if [[ "${make_bystander}" == true ]]
   then
     ../util/create-user.sh bystander 0 "${num_photos}"
@@ -27,7 +27,7 @@ setup () {
     q "select id from person where email = 'reporter@example.com'")
 
   accused_id=$(
-    q "select id from person where email = 'accused@example.com'")
+    q "select id from person where email = 'accused+1@example.com'")
 
   bystander_id=$(
     q "select id from person where email = 'bystander@example.com'")
@@ -174,6 +174,19 @@ specific_photo_is_banned () {
   [[ "$(q "select count(*) from photo")" -eq 2 ]]
 }
 
+# When we ban an account, their normalized_email should be added to banned_person
+normalized_added_to_banned () {
+  setup 0 true
+
+  assume_role reporter
+
+  jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
+
+  c GET "/admin/ban/$(ban_token)"
+
+  [[ "$(q "select count(*) from banned_person where email = 'accused@gmail.com'")" -eq 1 ]]
+}
+
 # Execute tests
 no_otp_when_email_banned
 no_otp_when_ip_banned
@@ -183,3 +196,4 @@ ban_token_expiry
 photo_token_expiry
 specific_person_is_banned
 specific_photo_is_banned
+normalized_added_to_banned
