@@ -272,13 +272,14 @@ def _send_otp(email: str, otp: str):
     )
 
 def normalize_email(email: str):
-    name, domain = map(str.lower, email.split('@'))
-    if domain in ["gmail.com", "googlemail.com", "example.com"]:
-        name = name.replace('.', '')
-        if '+' in name:
-            name, tag = name.split('+', 1)
-        return f"{name}@gmail.com"
-    return email
+    name, domain = email.lower().split('@')
+
+    if domain not in ["gmail.com", "googlemail.com", "example.com"]:
+        return email
+
+    name, *_ = name.replace('.', '').split('+', 1)
+
+    return f"{name}@gmail.com"
 
 def post_request_otp(req: t.PostRequestOtp):
     email = req.email
@@ -309,6 +310,7 @@ def post_request_otp(req: t.PostRequestOtp):
 def post_resend_otp(s: t.SessionInfo):
     params = dict(
         email=s.email,
+        normalized_email=normalize_email(s.email),
         is_dev=DUO_ENV == 'dev',
         session_token_hash=s.session_token_hash,
         ip_address=request.remote_addr or "127.0.0.1",
@@ -533,7 +535,10 @@ def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo):
         tx.executemany(Q_DELETE_ONBOARDEE_PHOTO, params)
 
 def post_finish_onboarding(s: t.SessionInfo):
-    api_params = dict(email=s.email)
+    api_params = dict(
+        email=s.email,
+        normalized_email=normalize_email(s.email),
+    )
 
     with api_tx() as tx:
         row = tx.execute(Q_FINISH_ONBOARDING, params=api_params).fetchone()

@@ -220,7 +220,7 @@ INSERT INTO duo_session (
 )
 SELECT
     %(session_token_hash)s,
-    COALESCE((SELECT id FROM person WHERE email = %(email)s), (SELECT id FROM person WHERE normalized_email = %(normalized_email)s LIMIT 1)),
+    (SELECT id FROM person WHERE email = %(email)s),
     %(email)s,
     %(normalized_email)s,
     otp,
@@ -271,9 +271,9 @@ WITH valid_session AS (
         session_token_hash = %(session_token_hash)s AND
         otp = %(otp)s AND
         otp_expiry > NOW()
-    RETURNING 
-        person_id, 
-        email, 
+    RETURNING
+        person_id,
+        email,
         normalized_email
 ), existing_person AS (
     UPDATE
@@ -292,13 +292,11 @@ WITH valid_session AS (
         person.unit_id
 ), new_onboardee AS (
     INSERT INTO onboardee (
-        email,
-        normalized_email
+        email
     )
-    SELECT 
-        email, 
-        normalized_email
-    FROM 
+    SELECT
+        email
+    FROM
         valid_session
     WHERE NOT EXISTS (SELECT 1 FROM existing_person)
 )
@@ -363,7 +361,7 @@ WITH onboardee_country AS (
         intros_notification
     ) SELECT
         email,
-        normalized_email,
+        %(normalized_email)s,
         name,
         date_of_birth,
         coordinates,

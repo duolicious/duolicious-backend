@@ -225,7 +225,6 @@ CREATE TABLE IF NOT EXISTS person (
 
 CREATE TABLE IF NOT EXISTS onboardee (
     email TEXT NOT NULL,
-    normalized_email TEXT,
 
     name TEXT,
     date_of_birth DATE,
@@ -1190,6 +1189,14 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
+
+-- TODO: v delete v
+ALTER TABLE person
+ADD COLUMN IF NOT EXISTS normalized_email TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE duo_session
+ADD COLUMN IF NOT EXISTS normalized_email TEXT NOT NULL DEFAULT '';
+
 UPDATE banned_person
 SET email = CONCAT(
     REPLACE(
@@ -1203,7 +1210,6 @@ SET email = CONCAT(
 )
 WHERE email LIKE '%@gmail.com' OR email LIKE '%@googlemail.com';
 
-ALTER TABLE person ADD COLUMN IF NOT EXISTS normalized_email TEXT;
 
 UPDATE person
 SET normalized_email = CONCAT(
@@ -1218,7 +1224,14 @@ SET normalized_email = CONCAT(
 )
 WHERE email LIKE '%@gmail.com' OR email LIKE '%@googlemail.com';
 
-CREATE INDEX IF NOT EXISTS idx__normalized__email ON person(normalized_email);
+ALTER TABLE person
+ALTER COLUMN normalized_email DROP DEFAULT;
 
-ALTER TABLE duo_session ADD COLUMN IF NOT EXISTS normalized_email TEXT;
-ALTER TABLE onboardee ADD COLUMN IF NOT EXISTS normalized_email TEXT;
+ALTER TABLE duo_session
+ALTER COLUMN normalized_email DROP DEFAULT;
+-- TODO ^ delete ^
+
+
+-- TODO: Move
+CREATE INDEX IF NOT EXISTS idx__person__normalized_email
+    ON person(normalized_email);
