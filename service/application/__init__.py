@@ -24,7 +24,6 @@ from service.application.decorators import (
     validate,
     limiter,
     shared_otp_limit,
-    shared_test_rate_limit,
 )
 import time
 
@@ -133,11 +132,15 @@ def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
 
 @aget('/search')
 def get_search(s: t.SessionInfo):
-    return search.get_search(
-        s=s,
-        n=request.args.get('n'),
-        o=request.args.get('o')
-    )
+    n = request.args.get('n')
+    o = request.args.get('o')
+
+    search_type = search.get_search_type(n, o)
+
+    if search_type == 'uncached-search':
+        return limiter.limit("20 per minute")(search.get_search)(s=s, n=n, o=o)
+    else:
+        return search.get_search(s=s, n=n, o=o)
 
 @get('/health', limiter=limiter.exempt)
 def get_health():
@@ -151,14 +154,25 @@ def get_me_by_session(s: t.SessionInfo):
 def get_me_by_id(person_id: str):
     return person.get_me(person_id_as_str=person_id)
 
-@aget('/prospect-profile/<int:prospect_person_id>')
-def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
-    return person.get_prospect_profile(s, prospect_person_id)
+@aget('/prospect-profile/<prospect_uuid>')
+def get_prospect_profile(s: t.SessionInfo, prospect_uuid: int):
+    return person.get_prospect_profile(s, prospect_uuid)
 
 @apost('/skip/<int:prospect_person_id>')
 @validate(t.PostSkip)
 def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
-    return person.post_skip(req, s, prospect_person_id)
+    if req.report_reason:
+        return limiter.limit("1 per 5 minutes")(person.post_skip)(req, s, prospect_person_id)
+    else:
+        return person.post_skip(req, s, prospect_person_id)
+
+@apost('/skip/by-uuid/<prospect_uuid>')
+@validate(t.PostSkip)
+def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: int):
+    if req.report_reason:
+        limiter.limit("1 per 5 minutes")(person.post_skip_by_uuid)(req, s, prospect_uuid)
+    else:
+        return person.post_skip_by_uuid(req, s, prospect_uuid)
 
 @apost('/unskip/<int:prospect_person_id>')
 def post_unskip(s: t.SessionInfo, prospect_person_id: int):

@@ -7,6 +7,7 @@ CREATE EXTENSION IF NOT EXISTS plpython3u;
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS btree_gist;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 --------------------------------------------------------------------------------
 -- FUNCTIONS (1)
@@ -156,6 +157,8 @@ CREATE TABLE IF NOT EXISTS person (
 
     id_salt INT DEFAULT FLOOR(RANDOM() * 1000000),
     tiny_id TEXT GENERATED ALWAYS AS (base62_encode(id::BIGINT * 1000000 + id_salt)) STORED,
+
+    uuid UUID NOT NULL DEFAULT uuid_generate_v4(),
 
     -- Required during sign-up
     email TEXT NOT NULL,
@@ -443,12 +446,14 @@ CREATE TABLE IF NOT EXISTS search_preference_messaged (
 CREATE TABLE IF NOT EXISTS search_preference_skipped (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     skipped_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (person_id)
 );
 
 CREATE TABLE IF NOT EXISTS messaged (
     subject_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     object_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (subject_person_id, object_person_id)
 );
 
@@ -503,6 +508,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     searcher_person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     position SMALLINT,
     prospect_person_id INT NOT NULL,
+    prospect_uuid UUID NOT NULL,
     has_mutual_club BOOLEAN NOT NULL DEFAULT FALSE,
     profile_photo_uuid TEXT,
     name TEXT NOT NULL,
@@ -539,6 +545,7 @@ CREATE INDEX IF NOT EXISTS idx__question__question ON question USING GIST(questi
 CREATE INDEX IF NOT EXISTS idx__person__sign_up_time ON person(sign_up_time);
 CREATE INDEX IF NOT EXISTS idx__person__tiny_id ON person(tiny_id);
 CREATE INDEX IF NOT EXISTS idx__person__email ON person(email);
+CREATE INDEX IF NOT EXISTS idx__person__uuid ON person(uuid);
 
 CREATE INDEX IF NOT EXISTS idx__club__name ON club USING GIST(name gist_trgm_ops);
 

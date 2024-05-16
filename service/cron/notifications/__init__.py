@@ -33,8 +33,7 @@ print('Hello from cron module: notifications')
 
 @dataclass
 class PersonNotification:
-    person_id: int
-    username: str
+    person_uuid: int
     last_intro_notification_seconds: int
     last_chat_notification_seconds: int
     last_intro_seconds: int
@@ -78,7 +77,7 @@ def do_send_email_notification(row: PersonNotification):
     return do_send_notification(row) and not is_example
 
 async def delete_mobile_token(row: PersonNotification):
-    params = dict(username=row.username)
+    params = dict(username=row.person_uuid)
 
     async with chat_tx() as tx:
         await tx.execute(Q_DELETE_MOBILE_TOKEN, params)
@@ -149,7 +148,7 @@ async def send_notification(row: PersonNotification):
         return send_email_notification(row)
 
 async def update_last_notification_time(row: PersonNotification):
-    params = dict(username=row.username)
+    params = dict(username=row.person_uuid)
 
     async with chat_tx() as tx:
         if row.has_intro:
@@ -172,14 +171,14 @@ async def send_notifications_once():
     async with api_tx() as tx:
         cur_notification_settings = await tx.execute(
             Q_NOTIFICATION_SETTINGS,
-            params=dict(ids=[r['person_id'] for r in rows_unread_inbox])
+            params=dict(ids=[r['person_uuid'] for r in rows_unread_inbox])
         )
         rows_notification_settings = await cur_notification_settings.fetchall()
 
     joined = join_lists_of_dicts(
         rows_unread_inbox,
         rows_notification_settings,
-        'person_id',
+        'person_uuid',
     )
     person_notifications = [PersonNotification(**j) for j in joined]
 

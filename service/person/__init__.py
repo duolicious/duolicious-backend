@@ -19,10 +19,35 @@ from flask import request
 from dataclasses import dataclass
 import psycopg
 from functools import lru_cache
+import random
+
+@dataclass
+class EmailEntry:
+    email: str
+    count: int
+
+def parse_email_string(email_string):
+    # Regular expression to match an email followed optionally by a number
+    pattern = r'(\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b)(?:\s+(\d+))?'
+    matches = re.findall(pattern, email_string)
+
+    result = []
+    for email, count in matches:
+        # If no number is given, default to 1
+        if count == '':
+            count = 1
+        else:
+            count = int(count)
+        result.append(EmailEntry(email, count))
+
+    return result
 
 DUO_ENV = os.environ['DUO_ENV']
 
 REPORT_EMAIL = os.environ['DUO_REPORT_EMAIL']
+REPORT_EMAILS = parse_email_string(REPORT_EMAIL)
+PRIMARY_REPORT_EMAIL = REPORT_EMAILS[0].email
+print(REPORT_EMAILS)
 
 R2_ACCT_ID = os.environ['DUO_R2_ACCT_ID']
 R2_ACCESS_KEY_ID = os.environ['DUO_R2_ACCESS_KEY_ID']
@@ -46,28 +71,42 @@ bucket = s3.Bucket(R2_BUCKET_NAME)
 def init_db():
     pass
 
+def sample_email(email_entries):
+    # Extract the emails and their respective weights from the list of EmailEntry instances
+    emails = [entry.email for entry in email_entries]
+    weights = [entry.count for entry in email_entries]
+
+    # Use random.choices() to perform weighted sampling and return a single email
+    sampled_email = random.choices(emails, weights=weights, k=1)[0]  # Get the first item from the result
+
+    return sampled_email
+
 @dataclass
 class CropSize:
     top: int
     left: int
 
 def _send_report(
-    subject_person_id: int,
-    object_person_id: int,
     report_reason: str,
-    report: Any,
+    report_obj: Any,
+    last_messages: list[str],
+    **kwargs: Any,
 ):
+    subject_person_id = report_obj[0]['id']
+    object_person_id  = report_obj[1]['id']
+
+    report_email = sample_email(REPORT_EMAILS)
+
     try:
         aws_smtp.send(
-            to=REPORT_EMAIL,
+            to=report_email,
             subject=f"Report: {subject_person_id} - {object_person_id}",
             body=report_template(
-                report_json=report,
-                subject_person_id=subject_person_id,
-                object_person_id=object_person_id,
+                report_obj=report_obj,
                 report_reason=report_reason,
+                last_messages=last_messages,
             ),
-            from_addr=REPORT_EMAIL,
+            from_addr=PRIMARY_REPORT_EMAIL,
         )
     except:
         print(traceback.format_exc())
@@ -299,13 +338,14 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
         if not row:
             return 'Invalid OTP', 401
 
-    params = dict(person_id=row['person_id'])
+    params = dict(person_uuid=row['person_uuid'])
 
     with chat_tx() as tx:
         tx.execute(Q_UPDATE_LAST, params)
 
     return dict(
         person_id=row['person_id'],
+        person_uuid=row['person_uuid'],
         onboarded=row['person_id'] is not None,
         units=row['units'],
     )
@@ -324,6 +364,7 @@ def post_check_session_token(s: t.SessionInfo):
         if row:
             return dict(
                 person_id=s.person_id,
+                person_uuid=s.person_uuid,
                 onboarded=s.onboarded,
                 units=row['units'],
             )
@@ -497,7 +538,10 @@ def post_finish_onboarding(s: t.SessionInfo):
     with api_tx() as tx:
         row = tx.execute(Q_FINISH_ONBOARDING, params=api_params).fetchone()
 
-    chat_params = dict(person_id=row['person_id'])
+    chat_params = dict(
+        person_id=row['person_id'],
+        person_uuid=row['person_uuid'],
+    )
 
     with chat_tx() as tx:
         tx.execute(Q_INSERT_LAST, params=chat_params)
@@ -539,10 +583,10 @@ def get_me(
     except:
         return '', 404
 
-def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
+def get_prospect_profile(s: t.SessionInfo, prospect_uuid):
     params = dict(
         person_id=s.person_id,
-        prospect_person_id=prospect_person_id,
+        prospect_uuid=prospect_uuid,
     )
 
     with api_tx('READ COMMITTED') as tx:
@@ -557,10 +601,22 @@ def get_prospect_profile(s: t.SessionInfo, prospect_person_id: int):
         return profile
     return '', 500
 
+# TODO: Delete me
 def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
+    params = dict(person_id=prospect_person_id)
+
+    with api_tx() as tx:
+        prospect_uuid = tx.execute(
+            Q_PERSON_ID_TO_UUID,
+            params
+        ).fetchone()['uuid']
+
+    post_skip_by_uuid(req=req, s=s, prospect_uuid=prospect_uuid)
+
+def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
     agents = dict(
         subject_person_id=s.person_id,
-        object_person_id=prospect_person_id,
+        prospect_uuid=prospect_uuid,
     )
 
     params = agents | dict(reported=bool(req.report_reason))
@@ -568,13 +624,22 @@ def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
     with api_tx() as tx:
         tx.execute(Q_INSERT_SKIPPED, params=params)
 
+    with chat_tx() as tx:
+        last_messages = tx.execute(
+            Q_LAST_MESSAGES,
+            params=params).fetchone()['messages']
+
     if req.report_reason:
         with api_tx() as tx:
-            report = tx.execute(Q_MAKE_REPORT, params=agents).fetchall()
+            report_obj = tx.execute(Q_MAKE_REPORT, params=agents).fetchall()
 
         threading.Thread(
             target=_send_report,
-            kwargs=agents | dict(report_reason=req.report_reason, report=report)
+            kwargs=agents | dict(
+                report_reason=req.report_reason,
+                report_obj=report_obj,
+                last_messages=last_messages,
+            )
         ).start()
 
 def post_unskip(s: t.SessionInfo, prospect_person_id: int):
@@ -656,7 +721,7 @@ def get_compare_answers(
 def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo):
     params = dict(
         person_id=s.person_id,
-        prospect_person_ids=req.person_ids
+        prospect_person_uuids=req.person_uuids
     )
 
     with api_tx('READ COMMITTED') as tx:

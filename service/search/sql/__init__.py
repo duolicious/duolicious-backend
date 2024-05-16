@@ -42,6 +42,8 @@ WITH searcher AS MATERIALIZED (
     SELECT
         id AS prospect_person_id,
 
+        uuid AS prospect_uuid,
+
         name,
         EXTRACT(YEAR FROM AGE(date_of_birth)) AS age,
 
@@ -196,6 +198,7 @@ WITH searcher AS MATERIALIZED (
 ), prospects_second_pass AS (
     SELECT
         prospect_person_id,
+        prospect_uuid,
         (
             SELECT uuid
             FROM photo
@@ -419,6 +422,7 @@ WITH searcher AS MATERIALIZED (
         searcher_person_id,
         position,
         prospect_person_id,
+        prospect_uuid,
         profile_photo_uuid,
         has_mutual_club,
         name,
@@ -436,6 +440,7 @@ WITH searcher AS MATERIALIZED (
                 match_percentage DESC
         ) AS position,
         prospect_person_id,
+        prospect_uuid,
         profile_photo_uuid,
         has_mutual_club,
         name,
@@ -448,6 +453,7 @@ WITH searcher AS MATERIALIZED (
 )
 SELECT
     prospect_person_id,
+    prospect_uuid,
     profile_photo_uuid,
     name,
     age,
@@ -483,6 +489,7 @@ LIMIT
 Q_CACHED_SEARCH = """
 SELECT
     prospect_person_id,
+    prospect_uuid,
     profile_photo_uuid,
     name,
     age,
@@ -529,6 +536,7 @@ WITH searcher AS (
 )
 SELECT
     prospect_person_id,
+    prospect_uuid,
     profile_photo_uuid,
     name,
     age,

@@ -27,8 +27,7 @@ WITH ten_days_ago AS (
         luser
 ), inbox_second_pass AS (
     SELECT
-        inbox_first_pass.username,
-        inbox_first_pass.username::int AS person_id,
+        inbox_first_pass.username AS person_uuid,
         inbox_first_pass.last_intro_seconds,
         inbox_first_pass.last_chat_seconds,
         COALESCE(duo_last_notification.intro_seconds, 0) AS last_intro_notification_seconds,
@@ -86,8 +85,7 @@ WITH ten_days_ago AS (
         duo_last_notification.username = inbox_first_pass.username
 )
 SELECT
-    inbox_second_pass.username,
-    inbox_second_pass.username::int AS person_id,
+    inbox_second_pass.person_uuid,
     last_intro_seconds,
     last_chat_seconds,
     last_intro_notification_seconds,
@@ -100,7 +98,7 @@ FROM
 LEFT JOIN
     duo_push_token
 ON
-    duo_push_token.username = inbox_second_pass.username
+    duo_push_token.username = inbox_second_pass.person_uuid
 WHERE
     has_intro
 OR
@@ -109,7 +107,7 @@ OR
 
 Q_NOTIFICATION_SETTINGS = """
 SELECT
-    id AS person_id,
+    uuid::text AS person_uuid,
     name,
     email,
     (
@@ -138,7 +136,7 @@ SELECT
     )
 FROM person
 WHERE
-    id = ANY(%(ids)s)
+    uuid = ANY(%(ids)s)
 AND
     activated
 """

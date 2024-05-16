@@ -28,7 +28,7 @@ def _is_private_ip() -> bool:
     if disable_rate_limit_file.is_file():
         with disable_rate_limit_file.open() as file:
             if file.read().strip() == '1':
-                return False
+                return True
 
     try:
         return ipaddress.ip_address(_remote_addr).is_private
@@ -59,22 +59,31 @@ app.config['MAX_CONTENT_LENGTH'] = constants.MAX_CONTENT_LENGTH;
 limiter = Limiter(
     _get_remote_address,
     app=app,
-    default_limits=["120 per minute", "12 per second"],
-    storage_uri="memory://",
+    default_limits=["60 per minute", "12 per second"],
+    storage_uri="redis://redis:6379",
     strategy="fixed-window",
     default_limits_exempt_when=_is_private_ip,
 )
 
-shared_otp_limit = limiter.shared_limit("4 per minute", scope="otp")
-shared_test_rate_limit = limiter.shared_limit("4 per minute", scope="sharedtestratelimit")
+shared_otp_limit = limiter.shared_limit("3 per minute", scope="otp")
 
 CORS(app, origins=CORS_ORIGINS.split(','))
 
 Q_GET_SESSION = """
-SELECT person_id, email, signed_in
-FROM duo_session
+SELECT
+    duo_session.person_id,
+    person.uuid AS person_uuid,
+    duo_session.email,
+    duo_session.signed_in
+FROM
+    duo_session
+LEFT JOIN
+    person
+ON
+    duo_session.person_id = person.id
 WHERE
-    session_token_hash = %(session_token_hash)s AND
+    session_token_hash = %(session_token_hash)s
+AND
     session_expiry > NOW()
 """
 
@@ -132,6 +141,7 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                 session_info = duotypes.SessionInfo(
                     email=row['email'],
                     person_id=row['person_id'],
+                    person_uuid=str(row['person_uuid']),
                     signed_in=row['signed_in'],
                     session_token_hash=session_token_hash,
                 )

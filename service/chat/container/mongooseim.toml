@@ -5,12 +5,12 @@
   default_server_domain = "duolicious.app"
   registration_timeout = "infinity"
   language = "en"
-  max_fsm_queue = 1000
+  max_fsm_queue = 10000
   rdbms_server_type = "pgsql"
 
 [outgoing_pools.rdbms.default]
   scope = "global"
-  workers = 5
+  workers = 10
 
   [outgoing_pools.rdbms.default.connection]
     driver = "pgsql"
@@ -25,8 +25,8 @@
 [[listen.http]]
   ip_address = "0.0.0.0"
   port = 5442
-  transport.num_acceptors = 10
-  transport.max_connections = 1024
+  transport.num_acceptors = 50
+  transport.max_connections = 50000
 
   [[listen.http.handlers.mod_websockets]]
     host = "_"

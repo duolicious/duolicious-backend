@@ -263,33 +263,48 @@ RETURNING email
 
 Q_MAYBE_SIGN_IN = """
 WITH valid_session AS (
-    UPDATE duo_session
-    SET signed_in = TRUE
+    UPDATE
+        duo_session
+    SET
+        signed_in = TRUE
     WHERE
         session_token_hash = %(session_token_hash)s AND
         otp = %(otp)s AND
         otp_expiry > NOW()
-    RETURNING person_id, email, normalized_email
+    RETURNING 
+        person_id, 
+        email, 
+        normalized_email
 ), existing_person AS (
-    UPDATE person
+    UPDATE
+        person
     SET
         activated = TRUE,
         sign_in_count = sign_in_count + 1,
         sign_in_time = NOW()
-    FROM valid_session
-    WHERE person.id = person_id
-    RETURNING person.id, person.unit_id
+    FROM
+        valid_session
+    WHERE
+        person.id = person_id
+    RETURNING
+        person.id,
+        person.uuid AS person_uuid,
+        person.unit_id
 ), new_onboardee AS (
     INSERT INTO onboardee (
         email,
         normalized_email
     )
-    SELECT email, normalized_email
-    FROM valid_session
+    SELECT 
+        email, 
+        normalized_email
+    FROM 
+        valid_session
     WHERE NOT EXISTS (SELECT 1 FROM existing_person)
 )
 SELECT
     person_id,
+    person_uuid,
     email,
     (SELECT name FROM unit WHERE id = existing_person.unit_id) AS units
 FROM
@@ -375,7 +390,13 @@ WITH onboardee_country AS (
         3 AS intros_notification
     FROM onboardee
     WHERE email = %(email)s
-    RETURNING id, email, unit_id, coordinates, date_of_birth
+    RETURNING
+        id,
+        person.uuid,
+        email,
+        unit_id,
+        coordinates,
+        date_of_birth
 ), best_age AS (
     WITH new_person_age AS (
         SELECT
@@ -547,7 +568,7 @@ WITH onboardee_country AS (
     SELECT
         new_person.id,
         position,
-        uuid
+        onboardee_photo.uuid
     FROM onboardee_photo
     JOIN new_person
     ON onboardee_photo.email = new_person.email
@@ -683,14 +704,22 @@ WITH onboardee_country AS (
     WHERE email = %(email)s
 )
 SELECT
-    id AS person_id,
+    new_person.id AS person_id,
+    new_person.uuid AS person_uuid,
     (SELECT name FROM unit WHERE unit.id = new_person.unit_id) AS units
 FROM
     new_person
 """
 
 Q_SELECT_PROSPECT_PROFILE = """
-WITH prospect AS (
+WITH prospect_person_id AS (
+    SELECT
+        id
+    FROM
+        person
+    WHERE
+        uuid = %(prospect_uuid)s
+), prospect AS (
     SELECT
         *,
         (
@@ -707,17 +736,19 @@ WITH prospect AS (
     FROM
         person AS p
     WHERE
-        id = %(prospect_person_id)s
+        id = (SELECT id FROM prospect_person_id)
     AND
         activated
     AND (
             NOT hide_me_from_strangers
         OR
+            (SELECT id FROM prospect_person_id) = %(person_id)s
+        OR
             EXISTS (
                 SELECT 1
                 FROM messaged
                 WHERE
-                    messaged.subject_person_id = %(prospect_person_id)s
+                    messaged.subject_person_id = (SELECT id FROM prospect_person_id)
                 AND
                     messaged.object_person_id = %(person_id)s
             )
@@ -727,7 +758,7 @@ WITH prospect AS (
             SELECT 1
             FROM skipped
             WHERE
-                subject_person_id = %(prospect_person_id)s AND
+                subject_person_id = (SELECT id FROM prospect_person_id) AND
                 object_person_id  = %(person_id)s
             LIMIT 1
         )
@@ -751,7 +782,7 @@ WITH prospect AS (
 ), photo_uuids AS (
     SELECT COALESCE(json_agg(uuid ORDER BY position), '[]'::json) AS j
     FROM photo
-    WHERE person_id = %(prospect_person_id)s
+    WHERE person_id = (SELECT id FROM prospect_person_id)
 ), gender AS (
     SELECT gender.name AS j
     FROM gender JOIN prospect ON gender_id = gender.id
@@ -811,7 +842,7 @@ WITH prospect AS (
             FROM skipped
             WHERE
                 subject_person_id = %(person_id)s AND
-                object_person_id  = %(prospect_person_id)s
+                object_person_id  = (SELECT id FROM prospect_person_id)
         ) AS j
 ), clubs AS (
     SELECT
@@ -826,7 +857,7 @@ WITH prospect AS (
     AND
         person_club_.person_id = %(person_id)s
     WHERE
-        prospect_person_club.person_id = %(prospect_person_id)s
+        prospect_person_club.person_id = (SELECT id FROM prospect_person_id)
     ORDER BY
         is_mutual DESC,
         club_name
@@ -857,6 +888,7 @@ WITH prospect AS (
 )
 SELECT
     json_build_object(
+        'person_id',              (SELECT id            FROM prospect_person_id),
         'photo_uuids',            (SELECT j             FROM photo_uuids),
         'name',                   (SELECT name          FROM prospect),
         'age',                    (SELECT age           FROM prospect),
@@ -902,23 +934,30 @@ WHERE
 """
 
 Q_INSERT_SKIPPED = """
-WITH q1 AS (
+WITH object_person_id AS (
+    SELECT
+        id
+    FROM
+        person
+    WHERE
+        uuid = %(prospect_uuid)s
+), q1 AS (
     INSERT INTO skipped (
         subject_person_id,
         object_person_id,
         reported
     ) VALUES (
         %(subject_person_id)s,
-        %(object_person_id)s,
+        (SELECT id FROM object_person_id),
         %(reported)s
     ) ON CONFLICT DO NOTHING
 ), q2 AS (
     DELETE FROM search_cache
     WHERE
         searcher_person_id = %(subject_person_id)s AND
-        prospect_person_id = %(object_person_id)s
+        prospect_person_id = (SELECT id FROM object_person_id)
     OR
-        searcher_person_id = %(object_person_id)s AND
+        searcher_person_id = (SELECT id FROM object_person_id) AND
         prospect_person_id = %(subject_person_id)s
 )
 SELECT 1
@@ -995,6 +1034,7 @@ Q_INBOX_INFO = """
 WITH person_info AS (
     SELECT
         id_table.id AS person_id,
+        id_table.uuid AS person_uuid,
         prospect.id IS NULL AS is_prospect_deleted,
         COALESCE(prospect.activated, FALSE) AS is_prospect_activated,
         prospect.name AS name,
@@ -1045,7 +1085,28 @@ WITH person_info AS (
         ) AS prospect_skipped_person
     FROM
         (
-            SELECT UNNEST(%(prospect_person_ids)s) AS id
+            SELECT id, uuid
+            FROM person
+            WHERE uuid = ANY(%(prospect_person_uuids)s::uuid[])
+
+            UNION
+
+            SELECT
+                id,
+                uuid
+            FROM
+                person
+            JOIN
+                messaged
+            ON
+                messaged.subject_person_id = %(person_id)s
+            AND
+                messaged.object_person_id = person.id
+            OR
+                messaged.subject_person_id = person.id
+            AND
+                messaged.object_person_id = %(person_id)s
+            WHERE %(prospect_person_uuids)s::uuid[] = array[]::uuid[]
         ) AS id_table
     LEFT JOIN
         person AS prospect
@@ -1060,6 +1121,7 @@ WITH person_info AS (
 )
 SELECT
     person_id,
+    person_uuid,
     CASE
         WHEN is_prospect_activated AND NOT prospect_skipped_person
         THEN
@@ -1493,15 +1555,23 @@ SELECT
 """
 
 Q_MAKE_REPORT = """
-WITH token AS (
+WITH object_person_id AS (
+    SELECT
+        id
+    FROM
+        person
+    WHERE
+        uuid = %(prospect_uuid)s
+), token AS (
     INSERT INTO banned_person_admin_token (
         person_id
     )
-    VALUES (
-        %(object_person_id)s
-    )
+    VALUES
+        (%(subject_person_id)s),
+        ((SELECT id FROM object_person_id))
     RETURNING
-        person_id, token
+        person_id,
+        token
 ), photo_ban AS (
     INSERT INTO deleted_photo_admin_token (
         photo_uuid
@@ -1515,8 +1585,18 @@ WITH token AS (
     ON
         photo.person_id = token.person_id
     RETURNING
-        photo_uuid AS uuid,
-        token AS token
+        photo_uuid
+), photo_ban_with_id AS (
+    SELECT
+        photo_ban.photo_uuid AS uuid,
+        token.person_id AS person_id,
+        token.token AS token
+    FROM
+        photo_ban
+    JOIN
+        photo ON photo_ban.photo_uuid = photo.uuid
+    JOIN
+        token ON photo.person_id = token.person_id
 )
 SELECT
     CASE
@@ -1525,14 +1605,12 @@ SELECT
         ELSE 'Accused'
     END AS role,
     id,
-    EXTRACT(YEAR FROM AGE(date_of_birth))::int AS age,
     (
         SELECT long_friendly
         FROM location
         ORDER BY location.coordinates <-> p.coordinates
         LIMIT 1
     ) AS location,
-    name,
     email,
     ARRAY(
         SELECT DISTINCT
@@ -1540,35 +1618,61 @@ SELECT
         FROM duo_session
         WHERE email = p.email
     ) AS ip_addresses,
-    gender_id,
     count_answers,
-    occupation,
-    education,
     ARRAY(
         SELECT
             'https://user-images.duolicious.app/original-' || uuid || '.jpg'
         FROM photo
-        WHERE person_id = id
+        WHERE photo.person_id = p.id
         ORDER BY position
     ) AS photo_links,
     ARRAY(
         SELECT
             uuid || ': https://api.duolicious.app/admin/delete-photo-link/' || token
-        FROM photo_ban
-        WHERE id = %(object_person_id)s
+        FROM photo_ban_with_id
+        WHERE photo_ban_with_id.person_id = p.id
     ) AS photo_deletion_links,
+    EXTRACT(YEAR FROM AGE(date_of_birth))::int AS age,
+    name,
+    (
+        select name from gender where id = gender_id
+    ) AS gender,
+    occupation,
+    education,
     about,
+    ARRAY(
+        SELECT
+            club_name
+        FROM person_club
+        WHERE person_id = id
+    ) AS clubs,
     token::text
 FROM
-    person AS p,
+    person AS p
+JOIN
     token
-WHERE
-    id IN (
-        %(subject_person_id)s,
-        %(object_person_id)s
-    )
+ON
+    token.person_id = p.id
 ORDER BY
-    (id = %(object_person_id)s)
+    (id = %(subject_person_id)s) DESC
+"""
+
+Q_LAST_MESSAGES = """
+SELECT
+    array_agg(search_body) AS messages
+FROM (
+    SELECT
+        search_body
+    FROM
+        mam_message
+    WHERE
+        direction = 'I'
+    AND
+        remote_bare_jid = %(prospect_uuid)s
+    ORDER BY
+        id DESC -- TODO: Is this indexed?
+    LIMIT 50
+) AS subquery;
 """
 
 Q_SEARCH_CLUBS = """
@@ -1839,7 +1943,7 @@ Q_INSERT_LAST = """
 INSERT INTO
     last (server, username, seconds, state)
 VALUES
-    ('duolicious.app', %(person_id)s, EXTRACT(EPOCH FROM NOW())::BIGINT, '')
+    ('duolicious.app', %(person_uuid)s::text, EXTRACT(EPOCH FROM NOW())::BIGINT, '')
 """
 
 Q_UPDATE_LAST = """
@@ -1850,5 +1954,14 @@ SET
 WHERE
     server = 'duolicious.app'
 AND
-    username = %(person_id)s::TEXT
+    username = %(person_uuid)s::TEXT
+"""
+
+Q_PERSON_ID_TO_UUID = """
+SELECT
+    uuid::text
+FROM
+    person
+WHERE
+    id = %(person_id)s
 """

@@ -1,3 +1,4 @@
+# TODO: Conversations need to be migrated
 from database.asyncdatabase import api_tx, chat_tx, check_connections_forever
 from lxml import etree
 import asyncio
@@ -6,6 +7,11 @@ import duohash
 import regex
 import traceback
 import websockets
+import sys
+from websockets.exceptions import ConnectionClosedError
+
+
+PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 
 # TODO: Lock down the XMPP server by only allowing certain types of message
 
@@ -17,41 +23,79 @@ RETURNING hash
 """
 
 Q_IS_SKIPPED = """
+WITH from_username AS (
+    SELECT id FROM person WHERE uuid = %(from_username)s
+), to_username AS (
+    SELECT id FROM person WHERE uuid = %(to_username)s
+)
 SELECT
     1
 FROM
     skipped
 WHERE
     (
-        subject_person_id = %(from_username)s AND
-        object_person_id  = %(to_username)s
+        subject_person_id = (SELECT id FROM from_username) AND
+        object_person_id  = (SELECT id FROM to_username)
     )
 OR
     (
-        subject_person_id = %(to_username)s AND
-        object_person_id  = %(from_username)s
+        subject_person_id = (SELECT id FROM to_username) AND
+        object_person_id  = (SELECT id FROM from_username)
     )
 LIMIT 1
 """
 
 Q_SET_MESSAGED = """
-INSERT INTO messaged (
-    subject_person_id,
-    object_person_id
-) VALUES (
-    %(subject_person_id)s,
-    %(object_person_id)s
-) ON CONFLICT DO NOTHING
+WITH subject_person_id AS (
+    SELECT
+        id
+    FROM
+        person
+    WHERE
+        uuid = %(subject_person_id)s
+), object_person_id AS (
+    SELECT
+        id
+    FROM
+        person
+    WHERE
+        uuid = %(object_person_id)s
+), can_insert AS (
+    SELECT
+        1
+    WHERE
+        EXISTS (SELECT 1 FROM subject_person_id)
+    AND EXISTS (SELECT 1 FROM object_person_id)
+), insertion AS (
+    INSERT INTO messaged (
+        subject_person_id,
+        object_person_id
+    )
+    SELECT
+        (SELECT id FROM subject_person_id),
+        (SELECT id FROM object_person_id)
+    WHERE EXISTS (
+        SELECT
+            1
+        FROM
+            can_insert
+    )
+    ON CONFLICT DO NOTHING
+)
+SELECT
+    1
+FROM
+    can_insert
 """
 
 Q_SET_TOKEN = """
-INSERT INTO duo_push_token (
-    username,
-    token
-) VALUES (
-    %(username)s,
+INSERT INTO duo_push_token (username, token)
+VALUES (
+    (SELECT id FROM person WHERE id = %(username)s),
     %(token)s
-) ON CONFLICT (username) DO UPDATE SET
+)
+ON CONFLICT (username)
+DO UPDATE SET
     token = EXCLUDED.token
 """
 
@@ -88,15 +132,17 @@ def get_message_attrs(message_xml):
         if body is not None:
             maybe_message_body = body.text
 
-        return (
-            root.attrib.get('id'),
-            root.attrib.get('to'),
-            do_check_uniqueness,
-            maybe_message_body)
+        _id = root.attrib.get('id')
+        assert _id is not None
+
+        to = root.attrib.get('to')
+        assert to is not None
+
+        return (True, _id, to, do_check_uniqueness, maybe_message_body)
     except Exception as e:
         pass
 
-    return None, None, None, None
+    return False, None, None, None, None
 
 def normalize_message(message_str):
     message_str = message_str.lower()
@@ -148,15 +194,19 @@ async def is_message_unique(message_str):
 
     params = dict(hash=hashed)
 
-    async with chat_tx() as tx:
-        cursor = await tx.execute(Q_UNIQUENESS, params)
-        rows = await cursor.fetchall()
-        return bool(rows)
+    try:
+        async with chat_tx() as tx:
+            cursor = await tx.execute(Q_UNIQUENESS, params)
+            rows = await cursor.fetchall()
+            return bool(rows)
+    except:
+        print(traceback.format_exc())
+    return True
 
 async def is_message_blocked(username, to_jid):
     try:
-        from_username = int(username)
-        to_username = int(to_jid.split('@')[0])
+        from_username = username
+        to_username = to_jid.split('@')[0]
 
         params = dict(
             from_username=from_username,
@@ -174,16 +224,23 @@ async def is_message_blocked(username, to_jid):
     return False
 
 async def set_messaged(username, to_jid):
-    from_username = int(username)
-    to_username = int(to_jid.split('@')[0])
+    from_username = username
+    to_username = to_jid.split('@')[0]
 
     params = dict(
         subject_person_id=from_username,
         object_person_id=to_username,
     )
 
-    async with api_tx() as tx:
-        await tx.execute(Q_SET_MESSAGED, params)
+    try:
+        async with api_tx() as tx:
+            cursor = await tx.execute(Q_SET_MESSAGED, params)
+            rows = await cursor.fetchall()
+            return bool(rows)
+    except:
+        pass
+
+    return False
 
 def process_auth(message_str, username):
     if username.username is not None:
@@ -212,21 +269,28 @@ async def process_duo_message(message_xml, username):
     if await maybe_register(message_xml, username):
         return ['<duo_registration_successful />'], []
 
-    id, to_jid, do_check_uniqueness, maybe_message_body = get_message_attrs(
-        message_xml)
+    (
+        is_message,
+        id,
+        to_jid,
+        do_check_uniqueness,
+        maybe_message_body,
+    ) = get_message_attrs(message_xml)
 
-    if id and maybe_message_body and is_message_too_long(maybe_message_body):
+    if not is_message:
+        return [], [message_xml]
+
+    if maybe_message_body and is_message_too_long(maybe_message_body):
         return [f'<duo_message_too_long id="{id}"/>'], []
 
-    if id and await is_message_blocked(username, to_jid):
+    if await is_message_blocked(username, to_jid):
         return [f'<duo_message_blocked id="{id}"/>'], []
 
-    if id and maybe_message_body and do_check_uniqueness and \
+    if maybe_message_body and do_check_uniqueness and \
             not await is_message_unique(maybe_message_body):
         return [f'<duo_message_not_unique id="{id}"/>'], []
 
-    if id:
-        await set_messaged(username, to_jid)
+    if await set_messaged(username, to_jid):
         return (
             [
                 f'<duo_message_delivered id="{id}"/>'
@@ -245,22 +309,39 @@ async def process_duo_message(message_xml, username):
             ]
         )
 
-    return [], [message_xml]
+    return [], []
 
 async def process(src, dst, username):
-    async for message in src:
-        process_auth(message, username)
+    try:
+        async for message in src:
+            process_auth(message, username)
+            to_src, to_dst = await process_duo_message(message, username.username)
 
-        to_src, to_dst = await process_duo_message(message, username.username)
-
-        for m in to_dst:
-            await dst.send(m)
-        for m in to_src:
-            await src.send(m)
+            for m in to_dst:
+                await dst.send(m)
+            for m in to_src:
+                await src.send(m)
+    except ConnectionClosedError as e:
+        print("Connection closed while processing:", e)
+    except Exception as e:
+        print("Error processing messages:", e)
+    finally:
+        await src.close()
+        await dst.close()
+        print("Connections closed in process()")
 
 async def forward(src, dst):
-    async for message in src:
-        await dst.send(message)
+    try:
+        async for message in src:
+            await dst.send(message)
+    except ConnectionClosedError:
+        print("Connection closed while forwarding")
+    except Exception as e:
+        print("Error forwarding messages:", e)
+    finally:
+        await src.close()
+        await dst.close()
+        print("Connections closed in forward()")
 
 async def proxy(local_ws, path):
     username = Username()
@@ -278,7 +359,7 @@ async def proxy(local_ws, path):
             task.cancel()
 
 async def serve():
-    async with websockets.serve(proxy, '0.0.0.0', 5443, subprotocols=['xmpp']):
+    async with websockets.serve(proxy, '0.0.0.0', PORT, subprotocols=['xmpp']):
         await asyncio.Future()
 
 
