@@ -15,12 +15,10 @@ import { DefaultText } from './default-text';
 import { Avatar } from './avatar';
 import { useNavigation } from '@react-navigation/native';
 import { friendlyTimestamp } from '../util/util';
-import { setSkipped } from '../hide-and-block/hide-and-block';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { Flag, X } from "react-native-feather";
 import { listen } from '../events/events';
-import { ReportModalInitialData } from './report-modal';
 import { signedInUser } from '../App';
 import { setConversationArchived } from '../xmpp/xmpp';
 
@@ -156,146 +154,6 @@ const IntrosItem = ({
         </View>
       </Animated.View>
     </Pressable>
-  );
-};
-
-const FloatingProfileInteractionButton = ({
-  children,
-  onPress,
-  backgroundColor,
-}) => {
-  const opacity = useRef(new Animated.Value(1)).current;
-
-  const fadeOut = useCallback(() => {
-    Animated.timing(opacity, {
-      toValue: 0.4,
-      duration: 0,
-      useNativeDriver: false,
-    }).start();
-  }, []);
-
-  const fadeIn = useCallback(() => {
-    Animated.timing(opacity, {
-      toValue: 1,
-      duration: 50,
-      useNativeDriver: false,
-    }).start();
-  }, []);
-
-  return (
-    <Pressable
-      style={{
-        borderRadius: 999,
-        zIndex: 999,
-        marginLeft: 15,
-        marginRight: 15,
-        marginBottom: 14,
-        marginTop: 14,
-      }}
-      onPressIn={fadeOut}
-      onPressOut={fadeIn}
-      onPress={onPress}
-    >
-      <Animated.View
-        style={{
-          borderRadius: 999,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: backgroundColor,
-          opacity: opacity,
-          flexDirection: 'row',
-          shadowOffset: {
-            width: 0,
-            height: 4,
-          },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          elevation: 6,
-          height: 60,
-          width: 60,
-        }}
-      >
-        {children}
-      </Animated.View>
-    </Pressable>
-  );
-};
-
-const FloatingHideButton = ({navigation, personId}) => {
-  const [isLoading, setIsLoading] = useState(false);
-
-  const onPress = useCallback(async () => {
-    if (personId === undefined) return;
-
-    setIsLoading(true);
-    if (await setSkipped(personId, true)) {
-      setIsLoading(false);
-    }
-  }, [isLoading, personId]);
-
-  return (
-    <FloatingProfileInteractionButton
-      onPress={onPress}
-      backgroundColor="white"
-    >
-      {isLoading &&
-        <ActivityIndicator size="large" color="#70f"/>
-      }
-      {!isLoading && <X
-          stroke="#70f"
-          strokeWidth={3}
-          height={26}
-          width={26}
-        />
-      }
-    </FloatingProfileInteractionButton>
-  );
-};
-
-const FloatingSendIntroButton = ({navigation, personId, personUuid, name, imageUuid}) => {
-  const onPress = useCallback(() => {
-    if (personId === undefined) return;
-    if (name === undefined) return;
-
-    navigation.navigate('Conversation Screen', { personId, personUuid, name, imageUuid });
-  }, [navigation, personId, name, imageUuid]);
-
-  return (
-    <FloatingProfileInteractionButton
-      onPress={onPress}
-      backgroundColor="#70f"
-    >
-      {personId !== undefined && name !== undefined &&
-        <FontAwesomeIcon
-          icon={faPaperPlane}
-          size={26}
-          style={{color: 'white'}}
-        />
-      }
-    </FloatingProfileInteractionButton>
-  );
-};
-
-const Buttons = ({navigation, personId, personUuid, name, imageUuid}) => {
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        marginTop: -45,
-      }}
-    >
-      <FloatingHideButton
-        navigation={navigation}
-        personId={personId}
-      />
-      <FloatingSendIntroButton
-        navigation={navigation}
-        personId={personId}
-        personUuid={personUuid}
-        name={name}
-        imageUuid={imageUuid}
-      />
-    </View>
   );
 };
 

@@ -64,7 +64,7 @@ const Menu = ({navigation, name, personId, personUuid, messages, closeFn}) => {
 
     setIsUpdating(true);
     const nextHiddenState = !isSkipped;
-    if (await setSkipped(personId, nextHiddenState)) {
+    if (await setSkipped(personId, personUuid, nextHiddenState)) {
       setIsSkipped(nextHiddenState);
       setIsUpdating(false);
       closeFn();
@@ -82,9 +82,8 @@ const Menu = ({navigation, name, personId, personUuid, messages, closeFn}) => {
     const data: ReportModalInitialData = {
       name,
       personId,
-      context: (
-        `Conversation Screen\n${String(JSON.stringify(messages, null, 2))}`
-      ),
+      personUuid,
+      context: 'Conversation Screen'
     };
 
     notify('open-report-modal', data);

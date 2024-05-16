@@ -22,12 +22,14 @@ import { KeyboardDismissingView } from './keyboard-dismissing-view';
 type ReportModalInitialData = {
   name: string
   personId: number
+  personUuid: string
   context: string
 };
 
 const ReportModal = () => {
   const [name, setName] = useState("");
   const [personId, setPersonId] = useState(-1);
+  const [personUuid, setPersonUuid] = useState('');
   const [context, setContext] = useState("");
   const [reportText, setReportText] = useState("");
   const [isVisible, setIsVisible] = useState(false);
@@ -60,7 +62,7 @@ const ReportModal = () => {
 
     setIsLoading(true);
     const completeReportText = `${context.slice(0, 7999)}\n${reportText}`;
-    if (await setSkipped(personId, true, completeReportText)) {
+    if (await setSkipped(personId, personUuid, true, completeReportText)) {
       setIsVisible(false);
     } else {
       setIsSomethingWrong(true);
@@ -84,6 +86,7 @@ const ReportModal = () => {
 
     setName(data.name);
     setPersonId(data.personId);
+    setPersonUuid(data.personUuid);
     setContext(data.context);
     setReportText("");
     setIsVisible(true);

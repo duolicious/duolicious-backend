@@ -4,12 +4,13 @@ import { setConversationArchived } from '../xmpp/xmpp';
 
 const setSkipped = async (
   personId: number,
+  personUuid: string,
   isSkipped: boolean,
   reportReason?: string,
 ): Promise<boolean> => {
   const endpoint = (
     isSkipped ?
-    `/skip/${personId}` :
+    `/skip/by-uuid/${personUuid}` :
     `/unskip/${personId}`);
 
   const payload =
@@ -26,7 +27,7 @@ const setSkipped = async (
       `unskip-profile-${personId}`
     );
 
-    setConversationArchived(personId, isSkipped);
+    setConversationArchived(personUuid, isSkipped);
 
     return true;
   }

@@ -230,7 +230,7 @@ const FloatingProfileInteractionButton = ({
   );
 };
 
-const FloatingSkipButton = ({navigation, personId, isSkipped}) => {
+const FloatingSkipButton = ({navigation, personId, personUuid, isSkipped}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSkippedState, setIsSkippedState] = useState<
     boolean | undefined
@@ -254,10 +254,10 @@ const FloatingSkipButton = ({navigation, personId, isSkipped}) => {
     const nextIsSkippedState = !isSkippedState;
 
     setIsLoading(true);
-    if (await setSkipped(personId, nextIsSkippedState)) {
+    if (await setSkipped(personId, personUuid, nextIsSkippedState)) {
       setIsLoading(false);
     }
-  }, [isLoading, isSkippedState, personId]);
+  }, [isLoading, isSkippedState, personId, personUuid]);
 
   return (
     <FloatingProfileInteractionButton
@@ -359,7 +359,7 @@ const SeeQAndAButton = ({navigation, personId, name, countAnswers}) => {
   );
 };
 
-const BlockButton = ({navigation, name, personId, isSkipped}) => {
+const BlockButton = ({navigation, name, personId, personUuid, isSkipped}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSkippedState, setIsSkippedState] = useState(false);
 
@@ -374,13 +374,14 @@ const BlockButton = ({navigation, name, personId, isSkipped}) => {
   const onPress = useCallback(async () => {
     if (isSkippedState) {
       setIsLoading(true);
-      if (await setSkipped(personId, false)) {
+      if (await setSkipped(personId, personUuid, false)) {
         setIsLoading(false);
       }
     } else {
       const data: ReportModalInitialData = {
         name,
         personId,
+        personUuid,
         context: 'Prospect Profile Screen',
       };
       notify('open-report-modal', data);
@@ -554,6 +555,7 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
         <Body
           navigation={navigation}
           personId={personId}
+          personUuid={personUuid}
           data={data}
           imageUuids={imageUuids}
           onChangeEmbiggened={() => {}}
@@ -582,6 +584,7 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
             <FloatingSkipButton
               navigation={navigation}
               personId={data?.person_id}
+              personUuid={personUuid}
               isSkipped={data?.is_skipped}
             />
             <FloatingSendIntroButton
@@ -704,12 +707,14 @@ const Basics = ({children}) => {
 const Body = ({
   navigation,
   personId,
+  personUuid,
   data,
   imageUuids,
   onChangeEmbiggened,
 }: {
   navigation: any,
   personId: number,
+  personUuid: string,
   data: UserData | undefined,
   imageUuids: string[] | undefined,
   onChangeEmbiggened: (uuid: string) => void,
@@ -889,6 +894,7 @@ const Body = ({
           navigation={navigation}
           name={data?.name}
           personId={personId}
+          personUuid={personUuid}
           isSkipped={data?.is_skipped}
         />
         </>)}
