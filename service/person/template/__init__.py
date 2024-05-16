@@ -11,6 +11,19 @@ def obj_to_yaml_string(obj):
     yaml.dump(obj, output, indent=2, allow_unicode=True, Dumper=IndentDumper)
     return output.getvalue()
 
+def photo_links_to_html(photo_links):
+    def link_to_html(photo_link):
+        return f'''
+            <img src="{photo_link}" style="max-width: 200px;
+            max-height: 200px; width: auto; height: auto;
+            border: 1px solid black;">
+            '''
+
+    return ''.join(
+        link_to_html(l) + ('<br>' if ((i + 1) % 3 == 0 and i > 0) else '')
+        for i, l in enumerate(photo_links)
+    )
+
 def otp_template(otp: str):
     return f"""
 <!DOCTYPE html>
@@ -66,6 +79,8 @@ def report_template(
     reporter_token = report_obj[0]['token']
     accused_token = report_obj[1]['token']
 
+    accused_photo_links = report_obj[1]['photo_links']
+
     object_person_id = report_obj[1]['id']
 
     report_str = obj_to_yaml_string(report_obj)
@@ -74,6 +89,8 @@ def report_template(
     safe_report_str = html.escape(report_str)
     safe_report_reason = html.escape(report_reason)
     safe_last_messages = html.escape(last_messages_str)
+
+    accused_img_html = photo_links_to_html(accused_photo_links)
 
     return f"""
 <!DOCTYPE html>
@@ -97,20 +114,25 @@ messages, which are certain to be what the accused person sent.
 You're also now able to ban reporters for abusing the reporting system
 </b></p>
 
+
 <pre>
 {safe_report_str}
 </pre>
 
-<p><b>Reporter's reason:</b></p>
 
-<pre>
-{safe_report_reason}
-</pre>
+<p><b>Accused person's images:</b></p>
+{accused_img_html}
+
 
 <p><b>Accused person's last messages:</b></p>
-
 <pre>
 {safe_last_messages}
+</pre>
+
+
+<p><b>Reporter's reason:</b></p>
+<pre>
+{safe_report_reason}
 </pre>
 
 
