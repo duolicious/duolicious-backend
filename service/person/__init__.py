@@ -273,7 +273,7 @@ def _send_otp(email: str, otp: str):
 
 def normalize_email(email: str):
     name, domain = map(str.lower, email.split('@'))
-    if domain == "gmail.com" or domain == "googlemail.com" or domain == "example.com":
+    if domain in ["gmail.com", "googlemail.com", "example.com"]:
         name = name.replace('.', '')
         if '+' in name:
             name, tag = name.split('+', 1)

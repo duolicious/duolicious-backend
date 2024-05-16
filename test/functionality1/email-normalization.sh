@@ -12,24 +12,23 @@ q "delete from person"
 q "delete from onboardee"
 q "delete from undeleted_photo"
 
-q "insert into person (email, normalized_email, name, date_of_birth, coordinates, gender_id, about, unit_id) values ('user+1@example.com', 'user@gmail.com', 'user+1', '1997-05-30', 'POINT(0 0)', 2, 'cool', 1)"
-q "insert into person (email, normalized_email, name, date_of_birth, coordinates, gender_id, about, unit_id) values ('user+2@example.com', 'user@gmail.com', 'user+2', '1997-05-30', 'POINT(0 0)', 2, 'cool', 1)"
+../util/create-user.sh user1 0 0
+../util/create-user.sh user2 0 0
 
-q "insert into person (email, normalized_email, name, date_of_birth, coordinates, gender_id, about, unit_id) values ('otheruser+1@example.com', 'otheruser@gmail.com', 'otheruser+1', '1997-05-30', 'POINT(0 0)', 2, 'cool', 1)"
+q "update person SET email = 'user+1@example.com' WHERE email = 'user1@example.com'"
+q "update person SET email = 'user+2@example.com' WHERE email = 'user2@example.com'"
+
+../util/create-user.sh otheruser+1 0 0
 
 # Can login to accounts with different emails but same normalized email (that were created before normalization)
 login_to_existing () {
-    response=$(jc POST /request-otp -d '{ "email": "user+1@example.com" }')
-    SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
-    response2=$(jc POST /check-otp -d '{ "otp": "000000" }')
-    uuid=$(echo "$response2" | jq -r '.person_uuid')
+    assume_role user+1
+    USER_1_UUID=$USER_UUID
 
-    response=$(jc POST /request-otp -d '{ "email": "user+2@example.com" }')
-    SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
-    response2=$(jc POST /check-otp -d '{ "otp": "000000" }')
-    uuid2=$(echo "$response2" | jq -r '.person_uuid')
+    assume_role user+2
+    USER_2_UUID=$USER_UUID
 
-    [[ "$uuid" != "$uuid2" ]] # If they match, then we are logging into the same account on both reqs (Fail)
+    [[ "$USER_1_UUID" != "$USER_2_UUID" ]] # If they match, then we are logging into the same account on both reqs (Fail)
 }
 
 # Can create a new account with a different email but same normalized email
