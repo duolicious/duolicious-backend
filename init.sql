@@ -1203,7 +1203,7 @@ SET email = CONCAT(
 )
 WHERE email LIKE '%@gmail.com' OR email LIKE '%@googlemail.com';
 
-ALTER TABLE person ADD COLUMN normalized_email TEXT;
+ALTER TABLE person ADD COLUMN IF NOT EXISTS normalized_email TEXT;
 
 UPDATE person
 SET normalized_email = CONCAT(
@@ -1220,5 +1220,5 @@ WHERE email LIKE '%@gmail.com' OR email LIKE '%@googlemail.com';
 
 CREATE INDEX IF NOT EXISTS idx__normalized__email ON person(normalized_email);
 
-ALTER TABLE duo_session ADD COLUMN normalized_email TEXT;
-ALTER TABLE onboardee ADD COLUMN normalized_email TEXT;
+ALTER TABLE duo_session ADD COLUMN IF NOT EXISTS normalized_email TEXT;
+ALTER TABLE onboardee ADD COLUMN IF NOT EXISTS normalized_email TEXT;
