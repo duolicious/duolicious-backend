@@ -225,7 +225,7 @@ CREATE TABLE IF NOT EXISTS person (
 
 CREATE TABLE IF NOT EXISTS onboardee (
     email TEXT NOT NULL,
-    normalized_email TEXT NOT NULL,
+    normalized_email TEXT,
 
     name TEXT,
     date_of_birth DATE,
