@@ -1,4 +1,10 @@
-on: [push]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   functionality-tests-1:
@@ -14,10 +20,10 @@ jobs:
           DUO_EMAIL_KEY: 'not-a-real-key'
           DUO_EMAIL_URL: 'https://example.com'
 
-          DUO_R2_ACCESS_KEY_ID: ${{ secrets.DUO_R2_ACCESS_KEY_ID }}
-          DUO_R2_ACCESS_KEY_SECRET: ${{ secrets.DUO_R2_ACCESS_KEY_SECRET }}
-          DUO_R2_ACCT_ID: ${{ secrets.DUO_R2_ACCT_ID }}
-          DUO_R2_BUCKET_NAME: ${{ secrets.DUO_R2_BUCKET_NAME }}
+          DUO_R2_BUCKET_NAME: s3-mock-bucket
+          DUO_R2_ACCT_ID: unused-in-dev-env
+          DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
+          DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
 
   functionality-tests-2:
     runs-on: ubuntu-latest
@@ -32,10 +38,10 @@ jobs:
           DUO_EMAIL_KEY: 'not-a-real-key'
           DUO_EMAIL_URL: 'https://example.com'
 
-          DUO_R2_ACCESS_KEY_ID: ${{ secrets.DUO_R2_ACCESS_KEY_ID }}
-          DUO_R2_ACCESS_KEY_SECRET: ${{ secrets.DUO_R2_ACCESS_KEY_SECRET }}
-          DUO_R2_ACCT_ID: ${{ secrets.DUO_R2_ACCT_ID }}
-          DUO_R2_BUCKET_NAME: ${{ secrets.DUO_R2_BUCKET_NAME }}
+          DUO_R2_BUCKET_NAME: s3-mock-bucket
+          DUO_R2_ACCT_ID: unused-in-dev-env
+          DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
+          DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
 
           DUO_CRON_PHOTO_CLEANER_DRY_RUN: 'true'
 
@@ -52,10 +58,10 @@ jobs:
           DUO_EMAIL_KEY: 'not-a-real-key'
           DUO_EMAIL_URL: 'https://example.com'
 
-          DUO_R2_ACCESS_KEY_ID: ${{ secrets.DUO_R2_ACCESS_KEY_ID }}
-          DUO_R2_ACCESS_KEY_SECRET: ${{ secrets.DUO_R2_ACCESS_KEY_SECRET }}
-          DUO_R2_ACCT_ID: ${{ secrets.DUO_R2_ACCT_ID }}
-          DUO_R2_BUCKET_NAME: ${{ secrets.DUO_R2_BUCKET_NAME }}
+          DUO_R2_BUCKET_NAME: s3-mock-bucket
+          DUO_R2_ACCT_ID: unused-in-dev-env
+          DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
+          DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
 
   unit-tests:
     runs-on: ubuntu-latest
@@ -69,7 +75,8 @@ jobs:
         env:
           DUO_EMAIL_KEY: 'not-a-real-key'
           DUO_EMAIL_URL: 'https://example.com'
-          DUO_R2_ACCESS_KEY_ID: ${{ secrets.DUO_R2_ACCESS_KEY_ID }}
-          DUO_R2_ACCESS_KEY_SECRET: ${{ secrets.DUO_R2_ACCESS_KEY_SECRET }}
-          DUO_R2_ACCT_ID: ${{ secrets.DUO_R2_ACCT_ID }}
-          DUO_R2_BUCKET_NAME: ${{ secrets.DUO_R2_BUCKET_NAME }}
+
+          DUO_R2_BUCKET_NAME: s3-mock-bucket
+          DUO_R2_ACCT_ID: unused-in-dev-env
+          DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
+          DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
