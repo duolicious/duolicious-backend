@@ -47,7 +47,6 @@ c GET '/search?n=1&o=1'
 c GET '/search?n=1&o=1'
 c GET '/search?n=1&o=1'
 
-# TODO
 # Account-based rate limit should apply even if the IP address changes
 printf 1 > ../../test/input/disable-ip-rate-limit
 printf 0 > ../../test/input/disable-account-rate-limit
@@ -59,3 +58,7 @@ do
 done
 ! c GET '/search?n=1&o=0'
 ! c POST "/skip/${user2id}"
+
+# The rate limit doesn't apply to other accounts
+../util/create-user.sh user3 0 0
+c GET '/search?n=1&o=0'

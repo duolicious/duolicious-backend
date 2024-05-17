@@ -104,7 +104,7 @@ AND
     session_expiry > NOW()
 """
 
-def account_limiter(func):
+def account_limiter(func, limit=None):
     def key_func():
         key = (
             func.__name__ +
@@ -114,7 +114,7 @@ def account_limiter(func):
         return key
 
     _account_limiter = limiter.shared_limit(
-        default_limits,
+        limit or default_limits,
         scope="account",
         key_func=key_func,
         exempt_when=disable_account_rate_limit,
