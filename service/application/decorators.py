@@ -1,6 +1,6 @@
 from database import api_tx
 from duohash import duo_uuid, sha512
-from flask import request, Flask
+from flask import request, Flask, g
 from flask_limiter import Limiter
 from flask_cors import CORS
 import constants
@@ -11,11 +11,31 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import ipaddress
 import traceback
 
-disable_rate_limit_file = (
+disable_ip_rate_limit_file = (
     Path(__file__).parent.parent.parent /
     'test' /
     'input' /
-    'disable-rate-limit')
+    'disable-ip-rate-limit')
+
+disable_account_rate_limit_file = (
+    Path(__file__).parent.parent.parent /
+    'test' /
+    'input' /
+    'disable-account-rate-limit')
+
+def disable_ip_rate_limit():
+    if disable_ip_rate_limit_file.is_file():
+        with disable_ip_rate_limit_file.open() as file:
+            if file.read().strip() == '1':
+                return True
+    return False
+
+def disable_account_rate_limit():
+    if disable_account_rate_limit_file.is_file():
+        with disable_account_rate_limit_file.open() as file:
+            if file.read().strip() == '1':
+                return True
+    return False
 
 def _is_private_ip() -> bool:
     """
@@ -23,12 +43,10 @@ def _is_private_ip() -> bool:
     :param ip: IP address in string format
     :return: True if IP is private, False otherwise
     """
-    _remote_addr = request.remote_addr or "127.0.0.1"
+    if disable_ip_rate_limit():
+        return True
 
-    if disable_rate_limit_file.is_file():
-        with disable_rate_limit_file.open() as file:
-            if file.read().strip() == '1':
-                return True
+    _remote_addr = request.remote_addr or "127.0.0.1"
 
     try:
         return ipaddress.ip_address(_remote_addr).is_private
@@ -41,14 +59,7 @@ def _get_remote_address() -> str:
      (or 127.0.0.1 if none found)
 
     """
-    _remote_addr = request.remote_addr or "127.0.0.1"
-
-    if disable_rate_limit_file.is_file():
-        with disable_rate_limit_file.open() as file:
-            if file.read().strip() == '1':
-                return duo_uuid()
-
-    return _remote_addr
+    return request.remote_addr or "127.0.0.1"
 
 CORS_ORIGINS = os.environ.get('DUO_CORS_ORIGINS', '*')
 
@@ -56,23 +67,29 @@ app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 app.config['MAX_CONTENT_LENGTH'] = constants.MAX_CONTENT_LENGTH;
 
+default_limits = "60 per minute; 12 per second"
+
 limiter = Limiter(
     _get_remote_address,
     app=app,
-    default_limits=["60 per minute", "12 per second"],
+    default_limits=[default_limits],
     storage_uri="redis://redis:6379",
     strategy="fixed-window",
     default_limits_exempt_when=_is_private_ip,
 )
 
-shared_otp_limit = limiter.shared_limit("3 per minute", scope="otp")
+shared_otp_limit = limiter.shared_limit(
+    "3 per minute",
+    scope="otp",
+    exempt_when=_is_private_ip,
+)
 
 CORS(app, origins=CORS_ORIGINS.split(','))
 
 Q_GET_SESSION = """
 SELECT
     duo_session.person_id,
-    person.uuid AS person_uuid,
+    person.uuid::TEXT AS person_uuid,
     duo_session.email,
     duo_session.signed_in
 FROM
@@ -86,6 +103,30 @@ WHERE
 AND
     session_expiry > NOW()
 """
+
+def account_limiter(func):
+    def key_func():
+        key = (
+            func.__name__ +
+            ' ' +
+            getattr(g, 'email', _get_remote_address())
+        )
+        return key
+
+    _account_limiter = limiter.shared_limit(
+        default_limits,
+        scope="account",
+        key_func=key_func,
+        exempt_when=disable_account_rate_limit,
+    )
+
+    def go1(*args, **kwargs):
+        return _account_limiter(func)(*args, **kwargs)
+
+    go1.__name__ = func.__name__
+
+    return go1
+
 
 def return_empty_string(func):
     def go(*args, **kwargs):
@@ -122,6 +163,8 @@ def validate(RequestType):
 
 def require_auth(expected_onboarding_status, expected_sign_in_status):
     def go2(func):
+        rate_limited_func = account_limiter(func)
+
         def go1(*args, **kwargs):
             auth_header = (request.headers.get('Authorization') or '').lower()
             try:
@@ -138,13 +181,21 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                 row = tx.execute(Q_GET_SESSION, params).fetchone()
 
             if row:
+                email=row['email']
+                person_id=row['person_id']
+                person_uuid=row['person_uuid']
+                signed_in=row['signed_in']
+
                 session_info = duotypes.SessionInfo(
-                    email=row['email'],
-                    person_id=row['person_id'],
-                    person_uuid=str(row['person_uuid']),
-                    signed_in=row['signed_in'],
+                    email=email,
+                    person_id=person_id,
+                    person_uuid=person_uuid,
+                    signed_in=signed_in,
                     session_token_hash=session_token_hash,
                 )
+
+                # TODO: Get this from the database, maybe
+                g.email = duotypes.normalize_email(email)
             else:
                 return 'Invalid session token', 401
 
@@ -162,7 +213,7 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                 expected_sign_in_status == is_signed_in)
 
             if has_expected_onboarding_status and has_expected_sign_in_status:
-                result = func(session_info, *args, **kwargs)
+                result = rate_limited_func(session_info, *args, **kwargs)
                 return result if result is not None else ''
             elif not has_expected_onboarding_status:
                 if is_onboarding_complete:
@@ -178,6 +229,7 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                 raise 'Unhandled authentication state'
 
         go1.__name__ = func.__name__
+
         return go1
     return go2
 
