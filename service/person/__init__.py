@@ -20,6 +20,7 @@ from dataclasses import dataclass
 import psycopg
 from functools import lru_cache
 import random
+from antispam import check_and_update_bad_domains
 
 @dataclass
 class EmailEntry:
@@ -282,6 +283,9 @@ def normalize_email(email: str):
     return f"{name}@gmail.com"
 
 def post_request_otp(req: t.PostRequestOtp):
+    if not check_and_update_bad_domains(req.email):
+        return 'Disposable email', 400
+
     email = req.email
     session_token = secrets.token_hex(64)
     session_token_hash = sha512(session_token)

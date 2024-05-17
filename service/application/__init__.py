@@ -24,6 +24,8 @@ from service.application.decorators import (
     validate,
     limiter,
     shared_otp_limit,
+    disable_ip_rate_limit,
+    account_limiter,
 )
 import time
 
@@ -135,10 +137,17 @@ def get_search(s: t.SessionInfo):
     n = request.args.get('n')
     o = request.args.get('o')
 
+    limit = "10 per minute"
+
     search_type = search.get_search_type(n, o)
 
+    rate_limited_search = account_limiter(search.get_search, limit=limit)
+
     if search_type == 'uncached-search':
-        return limiter.limit("10 per minute")(search.get_search)(s=s, n=n, o=o)
+        return limiter.limit(
+            limit,
+            exempt_when=disable_ip_rate_limit,
+        )(rate_limited_search)(s=s, n=n, o=o)
     else:
         return search.get_search(s=s, n=n, o=o)
 
@@ -161,16 +170,33 @@ def get_prospect_profile(s: t.SessionInfo, prospect_uuid: int):
 @apost('/skip/<int:prospect_person_id>')
 @validate(t.PostSkip)
 def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
+    limit = "1 per minute"
+
+    rate_limited_skip = account_limiter(person.post_skip, limit=limit)
+
     if req.report_reason:
-        return limiter.limit("1 per minute")(person.post_skip)(req, s, prospect_person_id)
+        return limiter.limit(
+            limit,
+            exempt_when=disable_ip_rate_limit,
+        )(rate_limited_skip)(req, s, prospect_person_id)
     else:
         return person.post_skip(req, s, prospect_person_id)
 
 @apost('/skip/by-uuid/<prospect_uuid>')
 @validate(t.PostSkip)
 def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: int):
+    limit = "1 per 5 minutes"
+
+    rate_limited_skip_by_uuid = account_limiter(
+        person.post_skip_by_uuid,
+        limit=limit
+    )
+
     if req.report_reason:
-        limiter.limit("1 per 5 minutes")(person.post_skip_by_uuid)(req, s, prospect_uuid)
+        limiter.limit(
+            limit,
+            exempt_when=disable_ip_rate_limit,
+        )(person.post_skip_by_uuid)(req, s, prospect_uuid)
     else:
         return person.post_skip_by_uuid(req, s, prospect_uuid)
 
