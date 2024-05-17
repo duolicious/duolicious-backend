@@ -558,6 +558,13 @@ CREATE INDEX IF NOT EXISTS idx__photo__uuid
 CREATE INDEX IF NOT EXISTS idx__onboardee__created_at
     ON onboardee(created_at);
 
+
+CREATE INDEX IF NOT EXISTS idx__bad_email_domain__domain
+    ON bad_email_domain(domain);
+
+CREATE INDEX IF NOT EXISTS idx__good_email_domain__domain
+    ON good_email_domain(domain);
+
 --------------------------------------------------------------------------------
 -- DATA
 --------------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 
-source ../util/setup.sh
+source ../util/setup.sh no-disposable-email-file
 
 set -e
 
@@ -63,16 +63,28 @@ add_photos () {
 }
 
 main () {
-  local username=$1
+  local username_or_email=$1
   local num_questions=${2:-100}
   local num_photos=${3:-0}
 
-  local response=$(jc POST /request-otp -d '{ "email": "'"$username"'@example.com" }')
+  if [[ "$username_or_email" == *@* ]]; then
+    # Input is an email
+    email="$username_or_email"
+  else
+    # Input is a username, append domain
+    email="$username_or_email@example.com"
+  fi
+
+  local response=$(jc POST /request-otp -d '{ "email": "'"$email"'" }')
+
+  if [[ "$username_or_email" == *@* ]]; then
+    q "update duo_session set otp = '000000' where email = '$email'"
+  fi
 
   SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
 
   jc POST /check-otp -d '{ "otp": "000000" }' > /dev/null
-  jc PATCH /onboardee-info -d '{ "name": "'"$username"'" }'
+  jc PATCH /onboardee-info -d '{ "name": "'"$username_or_email"'" }'
   jc PATCH /onboardee-info -d '{ "date_of_birth": "1997-05-30" }'
   jc PATCH /onboardee-info -d '{ "location": "New York, New York, United States" }'
   jc PATCH /onboardee-info -d '{ "gender": "Other" }'
@@ -83,7 +95,7 @@ main () {
 
   answer_questions "$num_questions"
 
-  echo "Created $username"
+  echo "Created $username_or_email"
 }
 
 main "$@"
