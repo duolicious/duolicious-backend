@@ -62,6 +62,8 @@ services:
       DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
       DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
 
+      DUO_VERIFY_MAIL_API_KEY: unused-for-testing
+
       DUO_BOTO_ENDPOINT_URL: http://s3mock:9090
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
