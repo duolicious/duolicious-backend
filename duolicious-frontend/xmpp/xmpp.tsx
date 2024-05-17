@@ -163,15 +163,15 @@ const populateConversationList = async (
     const personUuid = c.personUuid;
     const personInfo = personUuidToInfo[personUuid];
 
-    if (personInfo) {
-      // Update conversation information
-      c.name = personInfo.name ?? 'Unavailable Person';
-      c.matchPercentage = personInfo.match_percentage ?? 0;
-      c.imageUuid = personInfo.image_uuid ?? null;
-      c.isAvailableUser = !!personInfo.name;
-      c.location = personInfo.conversation_location ?? 'archive';
-      c.personId = personInfo.person_id ?? 0;
+    // Update conversation information
+    c.name = personInfo?.name ?? 'Unavailable Person';
+    c.matchPercentage = personInfo?.match_percentage ?? 0;
+    c.imageUuid = personInfo?.image_uuid ?? null;
+    c.isAvailableUser = !!personInfo?.name;
+    c.location = personInfo?.conversation_location ?? 'archive';
+    c.personId = personInfo?.person_id ?? 0;
 
+    if (personInfo) {
       // Delete the key from personUuidToInfo
       delete personUuidToInfo[personUuid];
     }
