@@ -6,6 +6,22 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+dot_insignificant_email_domains = set([
+    "gmail.com",
+    "googlemail.com",
+])
+
+plus_address_domains = set([
+    "fastmail.com",
+    "fastmail.fm",
+    "gmail.com",
+    "googlemail.com",
+    "outlook.com",
+    "proton.me",
+    "zoho.com",
+    "zohomail.com",
+])
+
 DUO_VERIFY_MAIL_API_KEY = os.environ['DUO_VERIFY_MAIL_API_KEY']
 
 is_disposable_email_file = (
@@ -72,3 +88,19 @@ def check_and_update_bad_domains(email):
         return True
     else:
         raise Exception('Unhandled API response')
+
+def normalize_email_dots(email: str) -> str:
+    name, domain = email.lower().split('@')
+
+
+
+
+def normalize_email(email: str) -> str:
+    name, domain = email.lower().split('@')
+
+    if domain not in ["gmail.com", "googlemail.com", "example.com"]:
+        return email
+
+    name, *_ = name.replace('.', '').split('+', 1)
+
+    return f"{name}@gmail.com"

@@ -109,7 +109,7 @@ def account_limiter(func, limit=None):
         key = (
             func.__name__ +
             ' ' +
-            getattr(g, 'email', _get_remote_address())
+            getattr(g, 'person_id', _get_remote_address())
         )
         return key
 
@@ -194,8 +194,7 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                     session_token_hash=session_token_hash,
                 )
 
-                # TODO: Get this from the database, maybe
-                g.email = duotypes.normalize_email(email)
+                g.person_id = person_id
             else:
                 return 'Invalid session token', 401
 

@@ -18,16 +18,6 @@ import base64
 CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42
 
-def normalize_email(email: str):
-    name, domain = email.lower().split('@')
-
-    if domain not in ["gmail.com", "googlemail.com", "example.com"]:
-        return email
-
-    name, *_ = name.replace('.', '').split('+', 1)
-
-    return f"{name}@gmail.com"
-
 class Base64File(BaseModel):
     position: conint(ge=1, le=7)
     base64: str

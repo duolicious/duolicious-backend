@@ -20,7 +20,7 @@ from dataclasses import dataclass
 import psycopg
 from functools import lru_cache
 import random
-from antispam import check_and_update_bad_domains
+from antispam import check_and_update_bad_domains, normalize_email
 
 @dataclass
 class EmailEntry:
@@ -271,16 +271,6 @@ def _send_otp(email: str, otp: str):
         subject="Sign in to Duolicious",
         body=otp_template(otp)
     )
-
-def normalize_email(email: str):
-    name, domain = email.lower().split('@')
-
-    if domain not in ["gmail.com", "googlemail.com", "example.com"]:
-        return email
-
-    name, *_ = name.replace('.', '').split('+', 1)
-
-    return f"{name}@gmail.com"
 
 def post_request_otp(req: t.PostRequestOtp):
     if not check_and_update_bad_domains(req.email):
