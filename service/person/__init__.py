@@ -722,7 +722,13 @@ def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo):
         return tx.execute(Q_INBOX_INFO, params).fetchall()
 
 def delete_account(s: t.SessionInfo):
-    params = dict(person_id=s.person_id)
+    params = dict(
+        person_id=s.person_id,
+        person_uuid=s.person_uuid,
+    )
+
+    with chat_tx() as tx:
+        tx.execute(Q_DELETE_XMPP, params)
 
     with api_tx() as tx:
         tx.execute(Q_DELETE_ACCOUNT, params)

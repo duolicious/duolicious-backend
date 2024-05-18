@@ -1217,6 +1217,37 @@ FROM
     deleted_photo
 """
 
+Q_DELETE_XMPP = """
+WITH q1 AS (
+    DELETE FROM
+        mam_message
+    USING
+        mam_server_user
+    WHERE
+        mam_message.user_id = mam_server_user.id
+    AND
+        mam_server_user.server = 'duolicious.app'
+    AND
+        mam_server_user.user_name = %(person_uuid)s
+), q2 AS (
+    DELETE FROM last
+    WHERE username = %(person_uuid)s
+), q3 AS (
+    DELETE FROM inbox
+    WHERE luser = %(person_uuid)s AND lserver = 'duolicious.app'
+), q4 AS (
+    DELETE FROM mam_server_user
+    WHERE server = 'duolicious.app' AND user_name = %(person_uuid)s
+), q5 AS (
+    DELETE FROM duo_last_notification
+    WHERE username = %(person_uuid)s
+), q6 AS (
+    DELETE FROM duo_push_token
+    WHERE username = %(person_uuid)s
+)
+SELECT 1
+"""
+
 Q_POST_DEACTIVATE = """
 UPDATE
     person
