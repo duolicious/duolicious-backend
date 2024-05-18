@@ -1578,12 +1578,13 @@ WITH object_person_id AS (
     ON
         photo.person_id = token.person_id
     RETURNING
-        photo_uuid
+        photo_uuid,
+        token
 ), photo_ban_with_id AS (
     SELECT
         photo_ban.photo_uuid AS uuid,
         token.person_id AS person_id,
-        token.token AS token
+        photo_ban.token AS token
     FROM
         photo_ban
     JOIN
@@ -1622,7 +1623,7 @@ SELECT
     ) AS photo_links,
     ARRAY(
         SELECT
-            uuid || ': https://api.duolicious.app/admin/delete-photo-link/' || token
+            uuid || ': https://api.duolicious.app/admin/delete-photo-link/' || photo_ban_with_id.token
         FROM photo_ban_with_id
         WHERE photo_ban_with_id.person_id = p.id
     ) AS photo_deletion_links,
