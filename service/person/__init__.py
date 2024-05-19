@@ -1415,6 +1415,15 @@ def get_admin_ban_link(token: str):
     params = dict(token=token)
 
     try:
+        with api_tx() as tx:
+            person_uuid = tx.execute(
+                Q_ADMIN_TOKEN_TO_UUID,
+                params,
+            ).fetchone()['person_uuid']
+
+        with chat_tx() as tx:
+            tx.execute(Q_DELETE_XMPP, params=dict(person_uuid=person_uuid))
+
         with api_tx('READ COMMITTED') as tx:
             rows = tx.execute(Q_CHECK_ADMIN_BAN_TOKEN, params).fetchall()
     except psycopg.errors.InvalidTextRepresentation:

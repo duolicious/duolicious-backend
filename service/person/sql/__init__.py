@@ -1991,3 +1991,16 @@ FROM
 WHERE
     id = %(person_id)s
 """
+
+Q_ADMIN_TOKEN_TO_UUID = """
+SELECT
+    person.uuid::text AS person_uuid
+FROM
+    person
+JOIN
+    banned_person_admin_token
+ON
+    banned_person_admin_token.person_id = person.id
+WHERE
+    banned_person_admin_token.token = %(token)s
+"""
