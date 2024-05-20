@@ -52,6 +52,7 @@ import { ClubItem, ClubSelector } from './club-selector';
 import { listen } from '../events/events';
 import { ButtonWithCenteredText } from './button/centered-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { logout } from '../xmpp/xmpp';
 
 const formatHeight = (og: OptionGroup<OptionGroupInputs>): string | undefined => {
   if (!isOptionGroupSlider(og.input)) return '';
@@ -327,6 +328,7 @@ const Options = ({navigation, data}) => {
 
   const signOut = useCallback(async () => {
     setIsLoadingSignOut(true);
+    await logout();
     if ((await api('post', '/sign-out')).ok) {
       await sessionToken(null);
       setSignedInUser(undefined);

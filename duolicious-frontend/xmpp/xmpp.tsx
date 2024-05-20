@@ -19,6 +19,11 @@ import { notify } from '../events/events';
 
 import { registerForPushNotificationsAsync } from '../notifications/notifications';
 
+const parseIntOrZero = (input: string) => {
+    const parsed = parseInt(input, 10);
+    return isNaN(parsed) ? 0 : parsed;
+}
+
 // TODO: Catch more exceptions. If a network request fails, that shouldn't crash the app.
 // TODO: Update match percentages when user answers some questions
 
@@ -154,6 +159,11 @@ const populateConversationList = async (
     await japi('post', '/inbox-info', {person_uuids: []})
   ).json;
 
+  const personIdToInfo = response.reduce((obj, item) => {
+    obj[item.person_id] = item;
+    return obj;
+  }, {});
+
   const personUuidToInfo = response.reduce((obj, item) => {
     obj[item.person_uuid] = item;
     return obj;
@@ -161,7 +171,10 @@ const populateConversationList = async (
 
   conversationList.forEach((c: Conversation) => {
     const personUuid = c.personUuid;
-    const personInfo = personUuidToInfo[personUuid];
+    const personId = c.personId;
+
+    const personInfo = (
+      personIdToInfo[personId] ?? personUuidToInfo[personUuid]);
 
     // Update conversation information
     c.name = personInfo?.name ?? 'Unavailable Person';
@@ -169,30 +182,9 @@ const populateConversationList = async (
     c.imageUuid = personInfo?.image_uuid ?? null;
     c.isAvailableUser = !!personInfo?.name;
     c.location = personInfo?.conversation_location ?? 'archive';
-    c.personId = personInfo?.person_id ?? 0;
-
-    if (personInfo) {
-      // Delete the key from personUuidToInfo
-      delete personUuidToInfo[personUuid];
-    }
+    c.personId = personInfo?.person_id ?? c.personId ?? 0;
+    c.personUuid = personInfo?.person_uuid ?? c.personUuid ?? '';
   });
-
-  conversationList.push(
-    ...Object.keys(personUuidToInfo).map((personUuid) => ({
-      personId: personUuidToInfo[personUuid]['person_id'],
-      personUuid: personUuid,
-      name: personUuidToInfo[personUuid]['name'] ?? 'Unavailable Person',
-      matchPercentage: personUuidToInfo[personUuid]['match_percentage'] ?? 0,
-      imageUuid: personUuidToInfo[personUuid]['image_uuid'] ?? null,
-      isAvailableUser: !!personUuidToInfo[personUuid]['name'],
-      location: personUuidToInfo[personUuid]['conversation_location'] ?? 'archive',
-      lastMessage: '',
-      lastMessageRead: true,
-      lastMessageTimestamp: new Date(
-        (personUuidToInfo[personUuid]['person_id'] ?? 0) + 1693008000000
-      ),
-    }))
-  );
 };
 
 const populateConversation = async (
@@ -796,12 +788,16 @@ const _fetchInbox = async (
     if (numUnread === null) return;
     if (timestamp === null) return;
 
-    const fromCurrentUser = from.toString().startsWith(
+    const fromCurrentUserByUuid = from.toString().startsWith(
       `${signedInUser?.personUuid}@`);
 
+    const fromCurrentUserById = from.toString().startsWith(
+      `${signedInUser?.personId}@`);
+
     // Some of these need to be fetched from via the API
-    const personId = 0;
-    const personUuid = (fromCurrentUser ? to : from).toString().split('@')[0];
+    const personUuid = (fromCurrentUserByUuid ? to : from).toString().split('@')[0];
+    const personId = parseIntOrZero(
+      (fromCurrentUserById ? to : from).toString().split('@')[0]);
     const name = '';
     const matchPercentage = 0;
     const imageUuid = null;

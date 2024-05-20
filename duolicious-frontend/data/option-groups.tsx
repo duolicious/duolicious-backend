@@ -17,6 +17,7 @@ import { faCalendar } from '@fortawesome/free-solid-svg-icons/faCalendar'
 import { faPeopleGroup } from '@fortawesome/free-solid-svg-icons/faPeopleGroup'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { NonNullImageCropperOutput } from '../components/image-cropper';
+import { logout } from '../xmpp/xmpp';
 
 type OptionGroupButtons = {
   buttons: {
@@ -716,6 +717,8 @@ const deletionOptionGroups: OptionGroup<OptionGroupTextShort>[] = [
     input: {
       textShort: {
         submit: async (input: string) => {
+          await logout();
+
           if ((input ?? '').toLowerCase().trim() !== 'delete') return false;
 
           const response = await japi('delete', '/account');

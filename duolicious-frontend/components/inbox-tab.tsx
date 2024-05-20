@@ -247,18 +247,6 @@ const InboxTab_ = ({navigation}) => {
 
     return (
       <>
-        {(signedInUser?.personId ?? 9999999) < 125117 &&
-          <Notice>
-            <DefaultText style={{
-              fontWeight: '500',
-              color: '#70f',
-              textAlign: 'center',
-            }}>
-              Old messages might be hidden while we make changes to protect
-              members from spam. Hold tight!
-            </DefaultText>
-          </Notice>
-        }
         <ButtonGroup
           buttons={[
             'Intros' + introsNumericalLabel,
