@@ -106,10 +106,17 @@ OR
 """
 
 Q_NOTIFICATION_SETTINGS = """
+WITH unnested_ids AS (
+    SELECT unnest(%(ids)s::TEXT[]) AS id
+), valid_uuid AS (
+    SELECT uuid_or_null(id) AS uuid
+    FROM unnested_ids
+    WHERE uuid_or_null(id) IS NOT NULL
+)
 SELECT
-    uuid::text AS person_uuid,
-    name,
-    email,
+    person.uuid::text AS person_uuid,
+    person.name,
+    person.email,
     (
         SELECT
             CASE
@@ -120,7 +127,7 @@ SELECT
             WHEN name = 'Never'        THEN -1
             ELSE                            0
             END AS chats_drift_seconds
-        FROM immediacy WHERE immediacy.id = chats_notification
+        FROM immediacy WHERE immediacy.id = person.chats_notification
     ),
     (
         SELECT
@@ -132,11 +139,14 @@ SELECT
             WHEN name = 'Never'        THEN -1
             ELSE                            0
             END AS intros_drift_seconds
-        FROM immediacy WHERE immediacy.id = intros_notification
+        FROM immediacy WHERE immediacy.id = person.intros_notification
     )
-FROM person
-WHERE
-    uuid = ANY(%(ids)s)
+FROM
+    person
+JOIN
+    valid_uuid
+ON
+    valid_uuid.uuid = person.uuid
 AND
     activated
 """
