@@ -3,7 +3,7 @@ import {
   View,
 } from 'react-native';
 import Checkbox from 'expo-checkbox';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { DefaultText } from './default-text';
 
 const CheckBox = ({children, ...rest}) => {
@@ -71,6 +71,10 @@ const StatelessCheckBox = ({children, ...rest}) => {
     onValueChange,
   } = rest;
 
+  const onValueChange_ = useCallback(() => {
+    onValueChange(!value);
+  }, [onValueChange, value]);
+
   return (
     <View
       style={{
@@ -83,13 +87,13 @@ const StatelessCheckBox = ({children, ...rest}) => {
       }}
     >
       {labelPosition !== 'right' &&
-        <Pressable onPress={onValueChange}>
+        <Pressable onPress={onValueChange_}>
           <DefaultText>{children}</DefaultText>
         </Pressable>
       }
       <Checkbox
         value={value}
-        onValueChange={onValueChange}
+        onValueChange={onValueChange_}
         style={
           labelPosition === 'right' ?
           {marginRight: 8} :
@@ -98,7 +102,7 @@ const StatelessCheckBox = ({children, ...rest}) => {
         color="#70f"
       />
       {labelPosition === 'right' &&
-        <Pressable onPress={onValueChange}>
+        <Pressable onPress={onValueChange_}>
           <DefaultText>{children}</DefaultText>
         </Pressable>
       }

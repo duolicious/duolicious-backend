@@ -11,7 +11,7 @@ import {
   useCallback,
   useState,
 } from 'react';
-import CheckBox from './check-box';
+import CheckBox, { StatelessCheckBox } from './check-box';
 import { BaseQuizCard } from './base-quiz-card';
 import { DefaultText } from './default-text';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -433,9 +433,8 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
             </DefaultText>
           </View>
           {showAnswerPubliclyCheckBox &&
-            <CheckBox
+            <StatelessCheckBox
               value={answerPubliclyValue}
-              initialValue={answerPubliclyInitialValue}
               labelPosition="left"
               containerStyle={{
                 marginTop: 0,
@@ -446,7 +445,7 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
               onValueChange={onChangeAnswerPublicly}
             >
               Answer Publicly
-            </CheckBox>
+            </StatelessCheckBox>
           }
           {extraChildren}
           {!extraChildren &&
@@ -851,7 +850,7 @@ const SearchQuizCard = ({
             <AnswerIconGroup answer={state.answer} enabled={true}/>
           </Pressable>
         </View>
-        <CheckBox
+        <StatelessCheckBox
           value={state.acceptUnanswered}
           labelPosition="left"
           containerStyle={{
@@ -870,7 +869,7 @@ const SearchQuizCard = ({
           >
             Accept unanswered
           </DefaultText>
-        </CheckBox>
+        </StatelessCheckBox>
       </View>
       {state.errorMessage &&
         <DefaultText

@@ -4,6 +4,22 @@ import {
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+/*
+ * Many users have been complaining that upgrading Duolicious on Android causes
+ * it to get stuck on the splash screen. Clearing the app's data fixes the
+ * issue.
+ *
+ * I looked at the errors in Google Play and I'm not sure why this is happening,
+ * but I'm guessing it has something to do with issues like these:
+ *
+ *   * https://github.com/expo/expo/issues/22312
+ *   * https://github.com/expo/expo/issues/19018
+ *
+ * To summarize the issues, the stored data ceases to be readable after
+ * upgrading because it can't be decrypted.
+ *
+ */
+
 const storeKvWeb = async (
   key: string,
   token?: string | null
@@ -34,7 +50,7 @@ const storeKvMobile = async (
   return await SecureStore.setItemAsync(key, token);
 };
 
-const storeKv = async (
+const storeKvUnsafe = async (
   key: string,
   value?: string | null
 ): Promise<string | null | void> => {
@@ -44,6 +60,17 @@ const storeKv = async (
     return await storeKvMobile(key, value);
   }
 };
+
+const storeKv = async (
+  key: string,
+  value?: string | null
+): Promise<string | null | void> => {
+  try {
+    return await storeKvUnsafe(key, value);
+  } catch (e) {
+    return await storeKvUnsafe(key, null);
+  }
+}
 
 export {
   storeKv,
