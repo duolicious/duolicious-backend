@@ -71,10 +71,10 @@ do_test () {
     sign_in_time = now() - interval '20 minutes'
   "
 
-  local user1id=$(get_id 'will-be-deactivated@duolicious.app')
-  local user2id=$(get_id 'will-remain-active1@duolicious.app')
-  local user3id=$(get_id 'will-remain-active2@duolicious.app')
-  local user4id=$(get_id 'will-remain-active3@duolicious.app')
+  local user1uuid=$(get_uuid 'will-be-deactivated@duolicious.app')
+  local user2uuid=$(get_uuid 'will-remain-active1@duolicious.app')
+  local user3uuid=$(get_uuid 'will-remain-active2@duolicious.app')
+  local user4uuid=$(get_uuid 'will-remain-active3@duolicious.app')
 
   local  days_ago_0=$(db_now as-seconds)
   local  days_ago_1=$(db_now as-seconds '- 11   days')
@@ -84,10 +84,10 @@ do_test () {
   q "
   insert into last (server, username, seconds, state)
   values
-    ('duolicious.app', '$user4id', $days_ago_0, ''),
-    ('duolicious.app', '$user3id', $days_ago_1, ''),
-    ('duolicious.app', '$user2id', $days_ago_2, ''),
-    ('duolicious.app', '$user1id', $days_ago_3, '')
+    ('duolicious.app', '$user4uuid', $days_ago_0, ''),
+    ('duolicious.app', '$user3uuid', $days_ago_1, ''),
+    ('duolicious.app', '$user2uuid', $days_ago_2, ''),
+    ('duolicious.app', '$user1uuid', $days_ago_3, '')
   ON CONFLICT (server, username) DO UPDATE SET
     server   = EXCLUDED.server,
     username = EXCLUDED.username,
