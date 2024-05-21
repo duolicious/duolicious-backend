@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   Image,
+  Platform,
   Pressable,
   View,
 } from 'react-native';
@@ -122,6 +123,11 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
   }, [input]);
 
   const addImage = useCallback(async () => {
+    if (Platform.OS !== 'web') {
+      setIsLoading(true);
+      setIsLoading_(true);
+    }
+
     // No permissions request is necessary for launching the image library
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -130,7 +136,14 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
       base64: true,
     });
 
-    if (result.canceled) return;
+    if (result.canceled && Platform.OS !== 'web') {
+      setIsLoading(false);
+      setIsLoading_(false);
+    }
+    if (result.canceled) {
+      return;
+    }
+
     const width = result.assets[0].width;
     const height = result.assets[0].height;
     if (!width) return;
