@@ -156,6 +156,10 @@ get_id () {
   q "select id from person where email = '$1'"
 }
 
+get_uuid () {
+  q "select uuid::text from person where email = '$1'"
+}
+
 delete_emails () {
   curl -s -X DELETE 'http://localhost:8025/api/v1/messages'
 }
