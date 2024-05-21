@@ -81,7 +81,6 @@ services:
     ports:
       - "5442:5442"
       - "5443:5443"
-      - "5444:5444"
     volumes:
       - ./database/__init__.py:/app/database/__init__.py:ro
       - ./database/asyncdatabase/__init__.py:/app/database/asyncdatabase/__init__.py:ro
@@ -180,6 +179,17 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: user@example.com
       PGADMIN_DEFAULT_PASSWORD: password
+
+  chattest:
+    build:
+      context: .
+      dockerfile: chattest.Dockerfile
+
+    volumes:
+      - ./test/chattest/index.js:/usr/src/app/index.js
+
+    ports:
+      - "3000:3000"
 
   redis:
     image: "redis:alpine"
