@@ -10,13 +10,22 @@ AND
 """
 
 Q_DEACTIVATE = """
-WITH newly_deactivated AS (
+WITH unnested_ids AS (
+    SELECT unnest(%(ids)s::TEXT[]) AS id
+), valid_uuid AS (
+    SELECT
+        uuid_or_null(id) AS uuid
+    FROM
+        unnested_ids
+    WHERE
+        uuid_or_null(id) IS NOT NULL
+), newly_deactivated AS (
     UPDATE
         person
     SET
         activated = FALSE
     WHERE
-        id = ANY(%(ids)s)
+        uuid IN (SELECT uuid FROM valid_uuid)
     AND
         activated = TRUE
     AND
