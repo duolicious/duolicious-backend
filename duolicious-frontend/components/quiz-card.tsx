@@ -715,7 +715,7 @@ const AnsweredQuizCard = ({
 
   return (
     <NonInteractiveQuizCard
-      answerPubliclyInitialValue={answer2Publicly}
+      answerPubliclyValue={state.public_}
       onChangeAnswerPublicly={onChangeAnswerPublicly}
       questionNumber={questionNumber}
       topic={topic}
