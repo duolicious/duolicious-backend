@@ -14,18 +14,27 @@ jobs:
       deployments: write
     name: Publish to Cloudflare Pages
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
       - run: |
           npm install
           npx patch-package
-          npx expo export:web
-          cat > web-build/_headers <<EOF
+          npx expo export --platform web
+
+          cat > dist/_headers <<EOF
             /*
               X-Frame-Options: DENY
               Access-Control-Allow-Origin: ${DUO_API_URL}
           EOF
-          sed -i 's|<meta charset="utf-8"/>|&<meta name="description" content="Free dating online. Zero ads. Unlimited messages. Over 2000 match questions from anime to life goals. Fall in love and find a relationship at Duolicious."/>|g' web-build/index.html
+
+          sed -i 's|<meta charset="utf-8" />|&<meta name="description" content="Free dating online. Zero ads. Unlimited messages. Over 2000 match questions from anime to life goals. Fall in love and find a relationship at Duolicious."/>|g' dist/index.html
+
+          # Cloudflare ignores directories containing the string 'node_modules'.
+          # Expo generates directories containing the string 'node_modules'.
+          # We rename the directories so that they're not ignored and get
+          # uploaded.
+          mv dist/assets/node_modules/* dist/assets/
+          find dist/_expo/static/js/web/ -type f -print0 | xargs -0 sed -i 's/assets\/node_modules/assets/g'
         env:
           NODE_OPTIONS: --openssl-legacy-provider
           DUO_API_URL:            https://api.duolicious.app
@@ -37,4 +46,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: a73a8f703a9a1eefac56f84ca6a4c9ac
           projectName: duolicious
-          directory: web-build
+          directory: dist
