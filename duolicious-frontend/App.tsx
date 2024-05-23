@@ -44,6 +44,7 @@ import { ReportModal } from './components/report-modal';
 import { ImageCropper } from './components/image-cropper';
 import { StreamErrorModal } from './components/stream-error-modal';
 import { setNofications } from './notifications/notifications';
+import { navigationState } from './kv-storage/navigation-state';
 
 // TODO: iOS UI testing
 // TODO: Add the ability to reply to things (e.g. pictures, quiz responses) from people's profiles. You'll need to change the navigation to make it easier to reply to things. Consider breaking profiles into sections which can be replied to, each having one image or block of text. Letting people reply to specific things on the profile will improve intro quality.
@@ -124,6 +125,7 @@ type SignedInUser = {
   personUuid: string,
   units: 'Metric' | 'Imperial'
   sessionToken: string
+  lastNavigationState?: any
 };
 
 type ServerStatus = "ok" | "down for maintenance" | "please update";
@@ -179,11 +181,13 @@ const App = () => {
     } else if (typeof existingSessionToken === 'string') {
       const response = await japi('post', '/check-session-token');
       if (response.ok && Boolean(response?.json?.onboarded)) {
+      const lastNavigationState = await navigationState();
         setSignedInUser({
           personId: response?.json?.person_id,
           personUuid: response?.json?.person_uuid,
           units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
           sessionToken: existingSessionToken,
+          lastNavigationState,
         });
       } else {
         setSignedInUser(undefined);
@@ -280,8 +284,19 @@ const App = () => {
     })();
   }, [signedInUser?.personId, signedInUser?.sessionToken]);
 
-  const pushBrowserState = Platform.OS !== 'web' ? undefined : useCallback(() => {
-    history.pushState((history?.state ?? 0) + 1, "", "#");
+  const onNavigationStateChange = useCallback(async (state) => {
+    if (Platform.OS === 'web') {
+      history.pushState((history?.state ?? 0) + 1, "", "#");
+    }
+    if (!state) return;
+
+    const lastNavigationState = {...state, stale: true};
+
+    await navigationState(lastNavigationState);
+
+    if (signedInUser) {
+      setSignedInUser({...signedInUser, lastNavigationState});
+    }
   }, []);
 
   const onChangeInbox = useCallback((inbox: Inbox | null) => {
@@ -328,7 +343,8 @@ const App = () => {
       {!isLoading &&
         <NavigationContainer
           ref={navigationContainerRef}
-          onStateChange={pushBrowserState}
+          initialState={signedInUser?.lastNavigationState}
+          onStateChange={onNavigationStateChange}
           theme={{
             ...DefaultTheme,
             colors: {
