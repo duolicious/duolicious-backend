@@ -29,6 +29,8 @@ jobs:
 
           sed -i 's|<meta charset="utf-8" />|&<meta name="description" content="Free dating online. Zero ads. Unlimited messages. Over 2000 match questions from anime to life goals. Fall in love and find a relationship at Duolicious."/>|g' dist/index.html
 
+          sed -i 's|shrink-to-fit=no|&, maximum-scale=1, user-scalable=no|g' dist/index.html
+
           # Cloudflare ignores directories containing the string 'node_modules'.
           # Expo generates directories containing the string 'node_modules'.
           # We rename the directories so that they're not ignored and get

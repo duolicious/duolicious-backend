@@ -289,6 +289,7 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
           resizeMode="repeat"
           style={{
             width: '100%',
+            height: '100%',
             flexGrow: 1,
             overflow: 'hidden',
             borderRadius: cardBorders.borderRadius,
@@ -727,6 +728,7 @@ const AnsweredQuizCard = ({
       }}
       innerStyle={{
         flexGrow: undefined,
+        height: undefined,
         width: '100%',
       }}
       maxFontSize={18}
@@ -899,6 +901,7 @@ const SearchQuizCard = ({
       }}
       innerStyle={{
         flexGrow: undefined,
+        height: undefined,
         width: '100%',
       }}
       fontSize={18}
