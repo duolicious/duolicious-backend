@@ -308,6 +308,12 @@ const yesNo = [
   'No',
 ];
 
+const yesNoMaybe = [
+  'Yes',
+  'No',
+  'Maybe'
+];
+
 const frequency = [
   'Often',
   'Sometimes',
@@ -579,7 +585,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: 'Do you want kids?',
     input: {
       buttons: {
-        values: yesNo,
+        values: yesNoMaybe,
         submit: async function(wantsKids: string) {
           const ok = (await japi('patch', '/profile-info', { wants_kids: wantsKids })).ok;
           if (ok) this.currentValue = wantsKids;
@@ -1294,7 +1300,7 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       checkChips: {
         values: [
-          ...yesNo.map((x) => ({checked: true, label: x})),
+          ...yesNoMaybe.map((x) => ({checked: true, label: x})),
           {checked: true, label: 'Unanswered'}
         ],
         submit: async function(wantsKids: string[]) {

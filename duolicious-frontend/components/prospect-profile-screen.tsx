@@ -762,6 +762,8 @@ const Body = ({
             <Basic icon="people">Wants kids</Basic>}
           {data?.wants_kids === 'No' &&
             <Basic icon="people">Doesn't want kids</Basic>}
+          {data?.wants_kids === 'Maybe' &&
+            <Basic icon="people">Maybe wants kids</Basic>}
 
           {data?.looking_for &&
             <Basic icon="eye">Looking for {data.looking_for.toLowerCase()}</Basic>}
