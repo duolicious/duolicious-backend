@@ -201,6 +201,7 @@ const Slider = forwardRef((props: InputProps<OptionGroupSlider>, ref) => {
         step={props.input.slider.step}
         addPlusAtMax={props.input.slider.addPlusAtMax}
         valueRewriter={props.input.slider.valueRewriter}
+        scale={props.input.slider.scale}
         style={{
           marginLeft: 20,
           marginRight: 20,
@@ -686,6 +687,7 @@ const RangeSlider = forwardRef((props: InputProps<OptionGroupRangeSlider>, ref) 
         onLowerValueChange={onLowerValueChange}
         onUpperValueChange={onUpperValueChange}
         valueRewriter={props.input.rangeSlider.valueRewriter}
+        scale={props.input.rangeSlider.scale}
         containerStyle={{
           marginLeft: 20,
           marginRight: 20,

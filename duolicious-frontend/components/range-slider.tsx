@@ -22,6 +22,7 @@ const RangeSlider = forwardRef((props: any, ref) => {
     initialLowerValue,
     initialUpperValue,
     valueRewriter,
+    scale,
   } = props;
 
   const args = {
@@ -29,6 +30,7 @@ const RangeSlider = forwardRef((props: any, ref) => {
     maximumValue: maximumValue,
     step: 1,
     valueRewriter: valueRewriter,
+    scale: scale,
   };
 
   const topSliderStyle = useRef({
@@ -82,6 +84,7 @@ const RangeSlider = forwardRef((props: any, ref) => {
         maximumValue={maximumValue}
         step={1}
         valueRewriter={valueRewriter}
+        scale={scale}
         style={topSliderStyle}
       />
       <LabelledSlider
@@ -92,6 +95,7 @@ const RangeSlider = forwardRef((props: any, ref) => {
         maximumValue={maximumValue}
         step={1}
         valueRewriter={valueRewriter}
+        scale={scale}
       />
     </View>
   );

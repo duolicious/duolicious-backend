@@ -18,6 +18,7 @@ import { faPeopleGroup } from '@fortawesome/free-solid-svg-icons/faPeopleGroup'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { NonNullImageCropperOutput } from '../components/image-cropper';
 import { logout } from '../xmpp/xmpp';
+import { LOGARITHMIC_SCALE, Scale } from "../scales/scales";
 
 type OptionGroupButtons = {
   buttons: {
@@ -104,6 +105,7 @@ type OptionGroupSlider = {
     defaultValue: number,
     valueRewriter?: (v: number) => string,
     currentValue?: number,
+    scale?: Scale,
   }
 };
 
@@ -116,6 +118,7 @@ type OptionGroupRangeSlider = {
     valueRewriter?: (v: number) => string,
     currentMin?: number,
     currentMax?: number,
+    scale?: Scale,
   }
 };
 
@@ -467,7 +470,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         step: 1,
         unitsLabel: 'cm',
         submit: async function(height: number) {
-          const ok = (await japi('patch', '/profile-info', { height: String(height) })).ok;
+          const ok = (await japi('patch', '/profile-info', { height })).ok;
           if (ok) this.currentValue = height;
           return ok;
         },
@@ -973,6 +976,7 @@ const searchTwoWayBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         step: 1,
         unitsLabel: 'km',
         addPlusAtMax: true,
+        scale: LOGARITHMIC_SCALE,
         submit: async function(furthestDistance: number | null) {
           const ok = (
             await japi(

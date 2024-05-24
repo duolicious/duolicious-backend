@@ -6,6 +6,7 @@ import {
 } from 'react';
 import Slider from '@react-native-community/slider';
 import { DefaultText } from './default-text';
+import { LINEAR_SCALE } from '../scales/scales';
 
 const LabelledSlider = ({label, minimumValue, maximumValue, ...rest}) => {
   const {
@@ -15,19 +16,22 @@ const LabelledSlider = ({label, minimumValue, maximumValue, ...rest}) => {
     style,
     addPlusAtMax,
     valueRewriter = (x) => x,
+    scale: {scaleValue, descaleValue} = LINEAR_SCALE,
     ...rest_
   } = rest;
 
   const [valueState, setValueState] = useState(initialValue);
+  const roundedValue = Math.round(valueState);
 
   if (value !== undefined && valueState !== value) {
     setValueState(value);
   }
 
   const onValueChange_ = (value_: number) => {
-    setValueState(value_);
+    const scaledValue = scaleValue(value_, minimumValue, maximumValue);
+    setValueState(scaledValue);
     if (onValueChange !== undefined) {
-      onValueChange(value_);
+      onValueChange(Math.round(scaledValue));
     }
   }
 
@@ -44,18 +48,18 @@ const LabelledSlider = ({label, minimumValue, maximumValue, ...rest}) => {
         <Slider
           minimumTrackTintColor="#ddd"
           maximumTrackTintColor="#ddd"
-          minimumValue={minimumValue}
-          maximumValue={maximumValue}
+          minimumValue={descaleValue(minimumValue, minimumValue, maximumValue)}
+          maximumValue={descaleValue(maximumValue, minimumValue, maximumValue)}
           thumbTintColor="#70f"
-          value={valueState}
+          value={descaleValue(valueState, minimumValue, maximumValue)}
           onValueChange={onValueChange_}
           {...rest_}
         />
       </View>
       <View style={{marginTop: 10}} pointerEvents="none">
         <DefaultText>
-          {label}: {valueRewriter(valueState)}
-          {addPlusAtMax && valueState === maximumValue ? '+' : ''}
+          {label}: {valueRewriter(roundedValue)}
+          {addPlusAtMax && roundedValue === maximumValue ? '+' : ''}
         </DefaultText>
       </View>
     </View>
