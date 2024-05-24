@@ -468,6 +468,9 @@ CREATE TABLE IF NOT EXISTS skipped (
     subject_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     object_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     reported BOOLEAN NOT NULL DEFAULT FALSE,
+    report_reason TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
     PRIMARY KEY (subject_person_id, object_person_id)
 );
 
@@ -504,6 +507,8 @@ CREATE TABLE IF NOT EXISTS banned_person (
     ip_address inet NOT NULL DEFAULT '127.0.0.1',
     banned_at TIMESTAMP NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month'),
+    report_reasons TEXT[] NOT NULL DEFAULT '{}'::TEXT[],
+
     PRIMARY KEY (email, ip_address)
 );
 
@@ -568,12 +573,15 @@ CREATE INDEX IF NOT EXISTS idx__photo__uuid
 CREATE INDEX IF NOT EXISTS idx__onboardee__created_at
     ON onboardee(created_at);
 
-
 CREATE INDEX IF NOT EXISTS idx__bad_email_domain__domain
     ON bad_email_domain(domain);
 
 CREATE INDEX IF NOT EXISTS idx__good_email_domain__domain
     ON good_email_domain(domain);
+
+CREATE INDEX IF NOT EXISTS idx__skipped__object_person_id__created_at__reported
+    ON skipped(object_person_id, created_at)
+    WHERE reported;
 
 --------------------------------------------------------------------------------
 -- DATA
@@ -1202,5 +1210,12 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
+
+-- TODO: Delete me
+ALTER TABLE skipped
+ADD COLUMN IF NOT EXISTS report_reason TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE banned_person
+ADD COLUMN IF NOT EXISTS report_reasons TEXT[] NOT NULL DEFAULT '{}'::TEXT[];
 
 --------------------------------------------------------------------------------

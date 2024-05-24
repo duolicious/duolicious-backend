@@ -938,11 +938,13 @@ WITH object_person_id AS (
     INSERT INTO skipped (
         subject_person_id,
         object_person_id,
-        reported
+        reported,
+        report_reason
     ) VALUES (
         %(subject_person_id)s,
         (SELECT id FROM object_person_id),
-        %(reported)s
+        %(reported)s,
+        %(report_reason)s
     ) ON CONFLICT DO NOTHING
 ), q2 AS (
     DELETE FROM search_cache
@@ -1670,9 +1672,46 @@ SELECT
         SELECT
             club_name
         FROM person_club
-        WHERE person_id = id
+        WHERE person_id = p.id
     ) AS clubs,
-    token::text
+    token::text,
+    FLOOR(
+        EXTRACT(epoch FROM age(now(), sign_up_time)) / 86400
+    )::INT AS account_age_in_days,
+    (
+        SELECT
+            count(*)
+        FROM
+            skipped
+        WHERE
+            reported
+        AND
+            object_person_id = p.id
+    ) AS times_reported,
+    (
+        SELECT
+            count(*)
+        FROM
+            skipped
+        WHERE
+            reported
+        AND
+            object_person_id = p.id
+        AND
+            created_at > NOW() - INTERVAL '1 day'
+    ) AS times_reported_in_the_past_24_hours,
+    ARRAY(
+        SELECT
+            report_reason
+        FROM
+            skipped
+        WHERE
+            reported
+        AND
+            object_person_id = p.id
+        AND
+            report_reason <> ''
+    ) AS all_report_reasons
 FROM
     person AS p
 JOIN
@@ -1684,21 +1723,41 @@ ORDER BY
 """
 
 Q_LAST_MESSAGES = """
-SELECT
-    array_agg(search_body) AS messages
-FROM (
+WITH last_messages AS (
     SELECT
-        search_body
+        mam_message.id AS id,
+        CASE
+        WHEN mam_message.direction = 'O'
+            THEN 'reporter'
+            ELSE 'accused'
+        END AS sent_by,
+        search_body AS message
     FROM
         mam_message
-    WHERE
-        direction = 'I'
+    JOIN
+        mam_server_user
+    ON
+        mam_server_user.id = mam_message.user_id
     AND
-        remote_bare_jid = %(prospect_uuid)s
+        mam_server_user.server = 'duolicious.app'
+    AND
+        mam_server_user.user_name = %(subject_person_uuid)s
+    WHERE
+        mam_message.remote_bare_jid IN (
+            %(subject_person_uuid)s,
+            %(prospect_uuid)s
+        )
     ORDER BY
-        id DESC -- TODO: Is this indexed?
-    LIMIT 50
-) AS subquery;
+        mam_message.id DESC
+    LIMIT 25
+)
+SELECT
+    sent_by,
+    message
+FROM
+    last_messages
+ORDER BY
+    id
 """
 
 Q_SEARCH_CLUBS = """
@@ -1868,6 +1927,17 @@ WITH deleted_token AS (
         expires_at > NOW()
     RETURNING
         person_id
+), report_reason AS (
+    SELECT
+        COALESCE(array_agg(report_reason), ARRAY[]::text[]) AS report_reasons
+    FROM
+        skipped
+    WHERE
+        reported
+    AND
+        object_person_id = (SELECT person_id FROM deleted_token)
+    AND
+        report_reason <> ''
 ), deleted_photo AS (
     SELECT
         uuid
@@ -1907,13 +1977,16 @@ WITH deleted_token AS (
 )
 INSERT INTO banned_person (
     email,
-    ip_address
+    ip_address,
+    report_reasons
 )
 SELECT
     email,
-    ip_address
+    ip_address,
+    report_reasons
 FROM
-    _duo_session
+    _duo_session,
+    report_reason
 ON CONFLICT DO NOTHING
 RETURNING
     ip_address,
