@@ -90,7 +90,7 @@ class CropSize:
 def _send_report(
     report_reason: str,
     report_obj: Any,
-    last_messages: list[str],
+    last_messages: list[dict],
     **kwargs: Any,
 ):
     subject_person_id = report_obj[0]['id']
@@ -608,29 +608,27 @@ def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
     post_skip_by_uuid(req=req, s=s, prospect_uuid=prospect_uuid)
 
 def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
-    agents = dict(
+    params = dict(
         subject_person_id=s.person_id,
+        subject_person_uuid=s.person_uuid,
         prospect_uuid=prospect_uuid,
+        reported=bool(req.report_reason),
+        report_reason=req.report_reason or '',
     )
-
-    params = agents | dict(reported=bool(req.report_reason))
 
     with api_tx() as tx:
         tx.execute(Q_INSERT_SKIPPED, params=params)
 
-    with chat_tx() as tx:
-        last_messages = tx.execute(
-            Q_LAST_MESSAGES,
-            params=params).fetchone()['messages']
-
     if req.report_reason:
+        with chat_tx() as tx:
+            last_messages = tx.execute(Q_LAST_MESSAGES, params=params).fetchall()
+
         with api_tx() as tx:
-            report_obj = tx.execute(Q_MAKE_REPORT, params=agents).fetchall()
+            report_obj = tx.execute(Q_MAKE_REPORT, params=params).fetchall()
 
         threading.Thread(
             target=_send_report,
-            kwargs=agents | dict(
-                report_reason=req.report_reason,
+            kwargs=params | dict(
                 report_obj=report_obj,
                 last_messages=last_messages,
             )
@@ -1426,6 +1424,8 @@ def get_admin_ban_link(token: str):
 
         with api_tx('READ COMMITTED') as tx:
             rows = tx.execute(Q_CHECK_ADMIN_BAN_TOKEN, params).fetchall()
+    except KeyError:
+        return 'Invalid token', 401
     except psycopg.errors.InvalidTextRepresentation:
         return 'Invalid token', 401
 
