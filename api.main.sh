@@ -30,7 +30,7 @@ if [ "$DUO_ENV" = "prod" ]
 then
   python3 database/init.py
   exec gunicorn \
-    --workers 4 \
+    --workers "${DUO_WORKERS:-4}" \
     --bind "0.0.0.0:$PORT" \
     --timeout 0 \
     service.application:app

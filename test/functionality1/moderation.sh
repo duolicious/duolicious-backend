@@ -150,13 +150,20 @@ specific_person_is_banned () {
 
   assume_role reporter
 
-  jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
+  jc POST "/skip/${accused_id}" -d '{ "report_reason": "my target" }'
+  jc POST "/skip/${bystander_id}" -d '{ "report_reason": "collateral damage" }'
 
   [[ "$(q "select count(*) from person")" -eq 3 ]]
 
   c GET "/admin/ban/$(ban_token)"
 
   [[ "$(q "select count(*) from person")" -eq 2 ]]
+
+  [[ "$(q "select count(*) from person where id = ${accused_id}")" -eq 0 ]]
+
+  [[ "$(q "select report_reasons \
+    from banned_person \
+    where email = 'accused@example.com'")" == '{"my target"}' ]]
 }
 
 # Only the photo which should have been deleted is delete
