@@ -198,6 +198,7 @@ CREATE TABLE IF NOT EXISTS person (
 
     -- Basics
     orientation_id SMALLINT REFERENCES orientation(id) NOT NULL DEFAULT 1,
+    ethnicity_id SMALLINT REFERENCES ethnicity(id) NOT NULL DEFAULT 1,
     occupation TEXT,
     education TEXT,
     height_cm SMALLINT,
