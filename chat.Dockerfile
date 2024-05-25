@@ -6,7 +6,6 @@ ENV DUO_USE_VENV=false
 ENV PYTHONUNBUFFERED=true
 
 # MongooseIM config
-COPY service/chat/container/auth.sh /usr/lib/mongooseim/etc/auth.sh
 COPY service/chat/container/init-db.sh /init-db.sh
 COPY service/chat/container/init.sql /init.sql
 COPY service/chat/container/jq /bin/jq
@@ -16,7 +15,9 @@ COPY service/chat/container/mongooseim.toml /mongooseim.template.toml
 COPY database /app/database
 COPY duohash /app/duohash
 COPY service/chat/__init__.py /app/service/chat/__init__.py
+COPY service/chat/auth.py /app/service/chat/auth.py
 COPY chat.main.sh /app
+COPY chat.auth.main.sh /app
 COPY chat.requirements.txt /app
 
 RUN : \

@@ -85,11 +85,12 @@ services:
       - ./database/__init__.py:/app/database/__init__.py:ro
       - ./database/asyncdatabase/__init__.py:/app/database/asyncdatabase/__init__.py:ro
       - ./service/chat/__init__.py:/app/service/chat/__init__.py:ro
+      - ./service/chat/auth.py:/app/service/chat/auth.py:ro
       - ./service/chat/container/mongooseim.toml:/mongooseim.template.toml:ro
       - ./service/chat/container/init.sql:/init.sql:ro
       - ./service/chat/container/init-db.sh:/init-db.sh:ro
-      - ./service/chat/container/auth.sh:/usr/lib/mongooseim/etc/auth.sh:ro
       - ./chat.main.sh:/app/chat.main.sh:ro
+      - ./chat.auth.main.sh:/app/chat.auth.main.sh:ro
     environment:
       DUO_API_HOST: http://api:5000
       DUO_DB_HOST: postgres
