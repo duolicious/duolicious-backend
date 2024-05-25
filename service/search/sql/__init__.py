@@ -52,6 +52,7 @@ WITH searcher AS MATERIALIZED (
 
         has_profile_picture_id,
         orientation_id,
+        ethnicity_id,
         occupation,
         education,
         height_cm,
@@ -222,6 +223,15 @@ WITH searcher AS MATERIALIZED (
             WHERE
                 preference.person_id      = %(searcher_person_id)s AND
                 preference.orientation_id = prospect.orientation_id
+            LIMIT 1
+        )
+    AND
+        EXISTS (
+            SELECT 1
+            FROM search_preference_ethnicity AS preference
+            WHERE
+                preference.person_id      = %(searcher_person_id)s AND
+                preference.ethnicity_id   = prospect.ethnicity_id
             LIMIT 1
         )
     AND

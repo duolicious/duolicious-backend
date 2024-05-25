@@ -169,6 +169,7 @@ class PatchProfileInfo(BaseModel):
     about: Optional[constr(min_length=0, max_length=10000)] = None
     gender: Optional[str] = None
     orientation: Optional[str] = None
+    ethnicity: Optional[str] = None
     location: Optional[str] = None
     occupation: Optional[constr(min_length=1, max_length=64)] = None
     education: Optional[constr(min_length=1, max_length=64)] = None
@@ -222,6 +223,7 @@ class PostSearchFilter(BaseModel):
 
     gender: Optional[conlist(str, min_length=1)] = None
     orientation: Optional[conlist(str, min_length=1)] = None
+    ethnicity: Optional[conlist(str, min_length=1)] = None
     age: Optional[Age] = None
     furthest_distance: Optional[int] = None
     height: Optional[Height] = None

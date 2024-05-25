@@ -840,6 +840,13 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         WHERE person.id = %(person_id)s
         AND orientation.name = %(field_value)s
         """
+    elif field_name == 'ethnicity':
+        q = """
+        UPDATE person SET ethnicity_id = ethnicity.id
+        FROM ethnicity
+        WHERE person.id = %(person_id)s
+        AND ethnicity.name = %(field_value)s
+        """
     elif field_name == 'location':
         q = """
         UPDATE person SET coordinates = location.coordinates
@@ -1030,6 +1037,18 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
             )
             SELECT %(person_id)s, id
             FROM orientation WHERE name = ANY(%(field_value)s)
+            """
+        elif field_name == 'ethnicity':
+            q1 = """
+            DELETE FROM search_preference_ethnicity
+            WHERE person_id = %(person_id)s"""
+
+            q2 = """
+            INSERT INTO search_preference_ethnicity (
+                person_id, ethnicity_id
+            )
+            SELECT %(person_id)s, id
+            FROM ethnicity WHERE name = ANY(%(field_value)s)
             """
         elif field_name == 'age':
             q1 = """
