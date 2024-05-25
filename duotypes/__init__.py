@@ -274,4 +274,5 @@ class PostLeaveClub(BaseModel):
     name: constr(pattern=CLUB_PATTERN, min_length=1, max_length=CLUB_MAX_LEN)
 
 class PostSkip(BaseModel):
-    report_reason: Optional[constr(min_length=1, max_length=10000)] = None
+    report_reason: Optional[constr(
+        min_length=1, max_length=10000, strip_whitespace=True)] = None

@@ -74,7 +74,7 @@ def otp_template(otp: str):
 def report_template(
     report_obj,
     report_reason: str,
-    last_messages: [str]
+    last_messages: list[dict]
 ):
     reporter_token = report_obj[0]['token']
     accused_token = report_obj[1]['token']
@@ -102,19 +102,6 @@ def report_template(
 </head>
 <body>
 
-<p><b>
-From Duodaddy: There's a new report format largely because the previous one had
-a vulnerability which was being exploited. Bad guys were able to post fake chat
-logs. If you see *conversations* in this report, they should be treated with
-scepticism. Although the new report includes the accused person's last few
-messages, which are certain to be what the accused person sent.
-</b></p>
-
-<p><b>
-You're also now able to ban reporters for abusing the reporting system
-</b></p>
-
-
 <pre>
 {safe_report_str}
 </pre>
@@ -124,7 +111,7 @@ You're also now able to ban reporters for abusing the reporting system
 {accused_img_html}
 
 
-<p><b>Accused person's last messages:</b></p>
+<p><b>Last messages between reporter and accused:</b></p>
 <pre>
 {safe_last_messages}
 </pre>
