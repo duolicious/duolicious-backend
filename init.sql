@@ -1211,11 +1211,4 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
--- TODO: Delete me
-ALTER TABLE skipped
-ADD COLUMN IF NOT EXISTS report_reason TEXT NOT NULL DEFAULT '';
-
-ALTER TABLE banned_person
-ADD COLUMN IF NOT EXISTS report_reasons TEXT[] NOT NULL DEFAULT '{}'::TEXT[];
-
 --------------------------------------------------------------------------------

@@ -33,8 +33,8 @@
     path = "/"
 
 [auth.external]
-  program = "/usr/lib/mongooseim/etc/auth.sh"
-  instances = 2
+  program = "/app/chat.auth.main.sh"
+  instances = 8
 
 [services.service_admin_extra]
 
