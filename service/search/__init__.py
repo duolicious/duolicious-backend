@@ -64,7 +64,9 @@ def get_search_type(n: Optional[str], o: Optional[str]):
 def get_search(s: t.SessionInfo, n: Optional[str], o: Optional[str]):
     search_type, no = get_search_type(n, o)
 
-    if search_type == 'quiz-search':
+    if no is not None and no[0] > 10:
+        return 'n must be less than or equal to 10', 400
+    elif search_type == 'quiz-search':
         return _quiz_search_results(searcher_person_id=s.person_id)
     elif search_type == 'uncached-search':
         return _uncached_search_results(searcher_person_id=s.person_id, no=no)
