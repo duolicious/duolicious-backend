@@ -12,6 +12,7 @@ import itertools
 import functools
 from dataclasses import dataclass
 import time
+from pathlib import Path
 
 class Props(NamedTuple):
     ppgy: float
@@ -552,7 +553,7 @@ if __name__ == '__main__':
         print('invalid question path', file=sys.stderr)
         exit()
 
-    openai.organization = open('/home/adrhb/.openai-org-id').read().strip()
-    openai.api_key = open('/home/adrhb/.openai-key').read().strip()
+    openai.organization = open(f'{Path.home()}/.openai-org-id').read().strip()
+    openai.api_key = open(f'{Path.home()}/.openai-key').read().strip()
 
     main()

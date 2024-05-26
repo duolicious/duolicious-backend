@@ -12,6 +12,7 @@ import time
 import re
 from collections import Counter
 from random import shuffle
+from pathlib import Path
 
 question_path = sys.argv[1]
 
@@ -19,8 +20,8 @@ if not question_path:
     print('invalid question path', file=sys.stderr)
     exit()
 
-openai.organization = open('/home/adrhb/.openai-org-id').read().strip()
-openai.api_key = open('/home/adrhb/.openai-key').read().strip()
+openai.organization = open(f'{Path.home()}/.openai-org-id').read().strip()
+openai.api_key = open(f'{Path.home()}/.openai-key').read().strip()
 
 valid_categories = set(['values', 'sex', 'interpersonal', 'other'])
 
