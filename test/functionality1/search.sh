@@ -700,6 +700,13 @@ test_bidirectional_age_filter () {
   assert_search_names "user1 user2"
 }
 
+test_search_page_size_limit () {
+  setup
+
+  ! search_names 11
+  search_names 10
+}
+
 test_quiz_search
 
 test_hide_me_from_strangers
@@ -741,3 +748,5 @@ test_bidirectional_age_filter
 test_mutual_club_members_promoted
 
 test_json_format
+
+test_search_page_size_limit
