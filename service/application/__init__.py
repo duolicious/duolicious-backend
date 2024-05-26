@@ -28,6 +28,7 @@ from service.application.decorators import (
     account_limiter,
 )
 import time
+from antispam import normalize_email
 
 _init_sql_file = (
     Path(__file__).parent.parent.parent / 'init.sql')
@@ -42,6 +43,67 @@ def get_ttl_hash(seconds=10):
     """Return the same value withing `seconds` time period"""
     return round(time.time() / seconds)
 
+def migrate_unnormalized_emails():
+    """
+    It'll probably be necessary to call this function again if/when
+    `normalize_email` normalizes more address.
+    """
+    with api_tx() as tx:
+        q = "SELECT 1 FROM person WHERE normalized_email = '' LIMIT 1"
+        if tx.execute(q).fetchone():
+            print('Unnormalized emails found. Normalizing...')
+        else:
+            print('Emails already normalized. Not performing normalization.')
+            return
+
+    with api_tx() as tx:
+        print('Selecting emails')
+        q = "SELECT email FROM person"
+        tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
+        rows = tx.execute(q).fetchall()
+        print('Done selecting emails')
+
+    print('Computing normalized emails')
+    params_seq = [
+        row | dict(normalized_email=normalize_email(row['email']))
+        for row in rows
+    ]
+    print('Done computing normalized emails')
+
+    with api_tx() as tx:
+        q = """
+        UPDATE person SET
+        normalized_email = %(normalized_email)s
+        WHERE email = %(email)s
+        """
+        print('Updating normalized emails in `person` table')
+        tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
+        tx.executemany(q, params_seq)
+        print('Done updating normalized emails in `person` table')
+
+    with api_tx() as tx:
+        q = """
+        UPDATE banned_person bp
+        SET
+            normalized_email = %(normalized_email)s
+        WHERE
+            normalized_email = %(email)s
+        AND NOT EXISTS (
+            SELECT
+                1
+            FROM
+                banned_person
+            WHERE
+                normalized_email = %(normalized_email)s
+            AND
+                ip_address = bp.ip_address
+        )
+        """
+        print('Updating normalized emails in `banned_person` table')
+        tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
+        tx.executemany(q, params_seq)
+        print('Done updating normalized emails in `banned_person` table')
+
 def init_db():
     with open(_init_sql_file, 'r') as f:
         init_sql_file = f.read()
@@ -53,6 +115,7 @@ def init_db():
         email_domains_good_file = f.read()
 
     with api_tx() as tx:
+        tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
         tx.execute(init_sql_file)
 
     with api_tx() as tx:
@@ -60,6 +123,8 @@ def init_db():
 
     with api_tx() as tx:
         tx.execute(email_domains_good_file)
+
+    migrate_unnormalized_emails()
 
 @post('/request-otp', limiter=shared_otp_limit)
 @validate(t.PostRequestOtp)

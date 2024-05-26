@@ -14,6 +14,30 @@ is_disposable_email_file = (
     'input' /
     'is-disposable-email')
 
+dot_insignificant_email_domains = set([
+    "gmail.com",
+    "googlemail.com",
+])
+
+plus_address_domains = set([
+    "fastmail.com",
+    "fastmail.fm",
+    "gmail.com",
+    "googlemail.com",
+    "hotmail.co.uk",
+    "hotmail.com",
+    "hotmail.de",
+    "hotmail.fr",
+    "icloud.com",
+    "live.com",
+    "outlook.com",
+    "pm.me",
+    "proton.me",
+    "protonmail.com",
+    "zoho.com",
+    "zohomail.com",
+])
+
 def is_disposable_email(email):
     if is_disposable_email_file.is_file():
         with is_disposable_email_file.open() as file:
@@ -72,3 +96,26 @@ def check_and_update_bad_domains(email):
         return True
     else:
         raise Exception('Unhandled API response')
+
+def normalize_email_dots(email: str) -> str:
+    name, domain = email.lower().split('@')
+
+    if domain not in dot_insignificant_email_domains:
+        return email
+
+    name = name.replace('.', '')
+
+    return f'{name}@{domain}'
+
+def normalize_email_pluses(email: str) -> str:
+    name, domain = email.lower().split('@')
+
+    if domain not in plus_address_domains:
+        return email
+
+    name, *_ = name.split('+')
+
+    return f'{name}@{domain}'
+
+def normalize_email(email: str) -> str:
+    return normalize_email_dots(normalize_email_pluses(email))

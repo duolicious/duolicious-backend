@@ -90,6 +90,7 @@ Q_GET_SESSION = """
 SELECT
     duo_session.person_id,
     person.uuid::TEXT AS person_uuid,
+    person.normalized_email AS normalized_email,
     duo_session.email,
     duo_session.signed_in
 FROM
@@ -109,7 +110,7 @@ def account_limiter(func, limit=None):
         key = (
             func.__name__ +
             ' ' +
-            getattr(g, 'email', _get_remote_address())
+            getattr(g, 'normalized_email', _get_remote_address())
         )
         return key
 
@@ -184,6 +185,7 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                 email=row['email']
                 person_id=row['person_id']
                 person_uuid=row['person_uuid']
+                normalized_email=row['normalized_email']
                 signed_in=row['signed_in']
 
                 session_info = duotypes.SessionInfo(
@@ -194,8 +196,7 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                     session_token_hash=session_token_hash,
                 )
 
-                # TODO: Get this from the database, maybe
-                g.email = duotypes.normalize_email(email)
+                g.normalized_email = normalized_email
             else:
                 return 'Invalid session token', 401
 

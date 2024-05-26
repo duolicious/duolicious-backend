@@ -21,7 +21,8 @@ bad_email_domains_table_is_respected () {
     update
       person
     set
-      email = 'bad-user-1@bad.example.com'
+      email = 'bad-user-1@bad.example.com',
+      normalized_email = 'bad-user-1@bad.example.com'
     where
       email = 'bad-user-1@example.com'"
 
