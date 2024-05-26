@@ -182,7 +182,7 @@ WITH random_otp AS (
             FROM
                 banned_person
             WHERE
-                email = %(normalized_email)s
+                normalized_email = %(normalized_email)s
             AND
                 expires_at > NOW()
             OR
@@ -214,15 +214,24 @@ INSERT INTO duo_session (
     session_token_hash,
     person_id,
     email,
-    normalized_email,
     otp,
     ip_address
 )
 SELECT
     %(session_token_hash)s,
-    (SELECT id FROM person WHERE email = %(email)s),
+    (
+        SELECT
+            id
+        FROM
+            person
+        WHERE
+            normalized_email = %(normalized_email)s
+        ORDER BY
+            email = %(email)s DESC,
+            email
+        LIMIT 1
+    ),
     %(email)s,
-    %(normalized_email)s,
     otp,
     %(ip_address)s
 FROM
@@ -273,8 +282,7 @@ WITH valid_session AS (
         otp_expiry > NOW()
     RETURNING
         person_id,
-        email,
-        normalized_email
+        email
 ), existing_person AS (
     UPDATE
         person
@@ -1968,25 +1976,26 @@ WITH deleted_token AS (
     WHERE
         person.id = deleted_token.person_id
     RETURNING
-        email
+        id,
+        normalized_email
 ), _duo_session AS (
     SELECT
-        duo_session.normalized_email AS email,
+        deleted_person.normalized_email AS normalized_email,
         COALESCE(duo_session.ip_address, '127.0.0.1') AS ip_address
     FROM
         duo_session
     JOIN
         deleted_person
     ON
-        duo_session.email = deleted_person.email
+        duo_session.person_id = deleted_person.id
 )
 INSERT INTO banned_person (
-    email,
+    normalized_email,
     ip_address,
     report_reasons
 )
 SELECT
-    email,
+    normalized_email,
     ip_address,
     report_reasons
 FROM

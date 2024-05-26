@@ -6,6 +6,14 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+DUO_VERIFY_MAIL_API_KEY = os.environ['DUO_VERIFY_MAIL_API_KEY']
+
+is_disposable_email_file = (
+    Path(__file__).parent.parent /
+    'test' /
+    'input' /
+    'is-disposable-email')
+
 dot_insignificant_email_domains = set([
     "gmail.com",
     "googlemail.com",
@@ -16,19 +24,14 @@ plus_address_domains = set([
     "fastmail.fm",
     "gmail.com",
     "googlemail.com",
+    "live.com",
     "outlook.com",
+    "pm.me",
     "proton.me",
+    "protonmail.com",
     "zoho.com",
     "zohomail.com",
 ])
-
-DUO_VERIFY_MAIL_API_KEY = os.environ['DUO_VERIFY_MAIL_API_KEY']
-
-is_disposable_email_file = (
-    Path(__file__).parent.parent /
-    'test' /
-    'input' /
-    'is-disposable-email')
 
 def is_disposable_email(email):
     if is_disposable_email_file.is_file():
@@ -92,15 +95,22 @@ def check_and_update_bad_domains(email):
 def normalize_email_dots(email: str) -> str:
     name, domain = email.lower().split('@')
 
-
-
-
-def normalize_email(email: str) -> str:
-    name, domain = email.lower().split('@')
-
-    if domain not in ["gmail.com", "googlemail.com", "example.com"]:
+    if domain not in dot_insignificant_email_domains:
         return email
 
-    name, *_ = name.replace('.', '').split('+', 1)
+    name = name.replace('.', '')
 
-    return f"{name}@gmail.com"
+    return f'{name}@{domain}'
+
+def normalize_email_pluses(email: str) -> str:
+    name, domain = email.lower().split('@')
+
+    if domain not in plus_address_domains:
+        return email
+
+    name, *_ = name.split('+')
+
+    return f'{name}@{domain}'
+
+def normalize_email(email: str) -> str:
+    return normalize_email_dots(normalize_email_pluses(email))

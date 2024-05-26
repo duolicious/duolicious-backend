@@ -265,7 +265,6 @@ CREATE TABLE IF NOT EXISTS duo_session (
     session_token_hash TEXT NOT NULL,
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     email TEXT NOT NULL,
-    normalized_email TEXT NOT NULL,
     otp TEXT NOT NULL,
     ip_address inet,
     signed_in BOOLEAN NOT NULL DEFAULT FALSE,
@@ -505,13 +504,13 @@ CREATE TABLE IF NOT EXISTS banned_person_admin_token (
 );
 
 CREATE TABLE IF NOT EXISTS banned_person (
-    email TEXT NOT NULL,
+    normalized_email TEXT NOT NULL,
     ip_address inet NOT NULL DEFAULT '127.0.0.1',
     banned_at TIMESTAMP NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month'),
     report_reasons TEXT[] NOT NULL DEFAULT '{}'::TEXT[],
 
-    PRIMARY KEY (email, ip_address)
+    PRIMARY KEY (normalized_email, ip_address)
 );
 
 --------------------------------------------------------------------------------
@@ -560,6 +559,8 @@ CREATE INDEX IF NOT EXISTS idx__person__sign_up_time ON person(sign_up_time);
 CREATE INDEX IF NOT EXISTS idx__person__tiny_id ON person(tiny_id);
 CREATE INDEX IF NOT EXISTS idx__person__email ON person(email);
 CREATE INDEX IF NOT EXISTS idx__person__uuid ON person(uuid);
+CREATE INDEX IF NOT EXISTS idx__person__normalized_email
+    ON person(normalized_email);
 
 CREATE INDEX IF NOT EXISTS idx__club__name ON club USING GIST(name gist_trgm_ops);
 
@@ -1219,44 +1220,28 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 ALTER TABLE person
 ADD COLUMN IF NOT EXISTS normalized_email TEXT NOT NULL DEFAULT '';
 
-ALTER TABLE duo_session
-ADD COLUMN IF NOT EXISTS normalized_email TEXT NOT NULL DEFAULT '';
+-- TODO: emails in `banned_person` need to be normalized
+-- TODO: emails in `person` need to be normalized
 
-UPDATE banned_person
-SET email = CONCAT(
-    REPLACE(
-        SPLIT_PART(
-            SPLIT_PART(email, '@', 1),
-            '+', 1
-        ),
-        '.', ''
-    ),
-    '@gmail.com'
-)
-WHERE email LIKE '%@gmail.com' OR email LIKE '%@googlemail.com';
+DO $$
+BEGIN
+    -- Check if the column exists in the specified table
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name='banned_person' AND column_name='email'
+    ) THEN
+        -- Rename the column if it exists
+        EXECUTE 'ALTER TABLE banned_person RENAME COLUMN email TO normalized_email';
+        RAISE NOTICE 'Column renamed.';
+    ELSE
+        RAISE NOTICE 'Column does not exist.';
+    END IF;
+END $$;
 
-
-UPDATE person
-SET normalized_email = CONCAT(
-    REPLACE(
-        SPLIT_PART(
-            SPLIT_PART(email, '@', 1),
-            '+', 1
-        ),
-        '.', ''
-    ),
-    '@gmail.com'
-)
-WHERE email LIKE '%@gmail.com' OR email LIKE '%@googlemail.com';
 
 ALTER TABLE person
-ALTER COLUMN normalized_email DROP DEFAULT;
-
-ALTER TABLE duo_session
 ALTER COLUMN normalized_email DROP DEFAULT;
 -- TODO ^ delete ^
 
 
--- TODO: Move
-CREATE INDEX IF NOT EXISTS idx__person__normalized_email
-    ON person(normalized_email);

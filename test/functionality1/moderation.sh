@@ -16,21 +16,21 @@ setup () {
   q "delete from banned_person_admin_token"
   q "delete from deleted_photo_admin_token"
 
-  ../util/create-user.sh reporter 0 "${num_photos}"
-  ../util/create-user.sh accused+1 0 "${num_photos}"
+  ../util/create-user.sh 'reporter@gmail.com' 0 "${num_photos}"
+  ../util/create-user.sh 'accused@gmail.com' 0 "${num_photos}"
   if [[ "${make_bystander}" == true ]]
   then
-    ../util/create-user.sh bystander 0 "${num_photos}"
+    ../util/create-user.sh 'bystander@gmail.com' 0 "${num_photos}"
   fi
 
   reporter_id=$(
-    q "select id from person where email = 'reporter@example.com'")
+    q "select id from person where email = 'reporter@gmail.com'")
 
   accused_id=$(
-    q "select id from person where email = 'accused+1@example.com'")
+    q "select id from person where email = 'accused@gmail.com'")
 
   bystander_id=$(
-    q "select id from person where email = 'bystander@example.com'")
+    q "select id from person where email = 'bystander@gmail.com'")
 }
 
 tear_down () {
@@ -38,8 +38,6 @@ tear_down () {
   q "delete from banned_person_admin_token"
   q "delete from deleted_photo_admin_token"
 }
-
-trap tear_down EXIT
 
 ban_token () {
   q "select token from banned_person_admin_token where person_id = ${accused_id}"
@@ -61,7 +59,7 @@ set -xe
 no_otp_when_email_banned () {
   setup
 
-  assume_role reporter
+  assume_role 'reporter@gmail.com'
 
   jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
 
@@ -69,62 +67,63 @@ no_otp_when_email_banned () {
 
   q "update banned_person set ip_address = '255.255.255.255'"
 
-  ! ../util/create-user.sh accused 0 0
+  ! ../util/create-user.sh 'accused@gmail.com' 0 0
+  ! ../util/create-user.sh 'accused+1@gmail.com' 0 0
 }
 
 # A banned ip can't get an OTP
 no_otp_when_ip_banned () {
   setup
 
-  assume_role reporter
+  assume_role 'reporter@gmail.com'
 
   jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
 
   c GET "/admin/ban/$(ban_token)"
 
-  q "update banned_person set email = 'nobody@example.com'"
+  q "update banned_person set normalized_email = 'nobody@example.com'"
 
-  ! ../util/create-user.sh accused 0 0
+  ! ../util/create-user.sh 'accused@gmail.com' 0 0
 }
 
 # Banning one user doesn't ban everyone
 otp_when_others_are_banned () {
   setup
 
-  assume_role reporter
+  assume_role 'reporter@gmail.com'
 
   jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
 
   c GET "/admin/ban/$(ban_token)"
 
   q "update banned_person set ip_address = '255.255.255.255'"
-  q "update banned_person set email = 'nobody@example.com'"
+  q "update banned_person set normalized_email = 'nobody@example.com'"
 
-  ../util/create-user.sh accused 0 0
+  ../util/create-user.sh 'accused@gmail.com' 0 0
 }
 
 # Ban expiry is respected
 ban_expiry () {
   setup
 
-  assume_role reporter
+  assume_role 'reporter@gmail.com'
 
   jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
 
   c GET "/admin/ban/$(ban_token)"
 
   q "update banned_person set expires_at = NOW() + interval '1 day'"
-  ! ../util/create-user.sh accused 0 0
+  ! ../util/create-user.sh 'accused@gmail.com' 0 0
 
   q "update banned_person set expires_at = NOW() - interval '1 day'"
-  ../util/create-user.sh accused 0 0
+  ../util/create-user.sh 'accused@gmail.com' 0 0
 }
 
 # token expiry is respected for bans
 ban_token_expiry () {
   setup
 
-  assume_role reporter
+  assume_role 'reporter@gmail.com'
 
   jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
 
@@ -136,7 +135,7 @@ ban_token_expiry () {
 photo_token_expiry () {
   setup
 
-  assume_role reporter
+  assume_role 'reporter@gmail.com'
 
   jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
 
@@ -148,7 +147,7 @@ photo_token_expiry () {
 specific_person_is_banned () {
   setup 0 true
 
-  assume_role reporter
+  assume_role 'reporter@gmail.com'
 
   jc POST "/skip/${accused_id}" -d '{ "report_reason": "my target" }'
   jc POST "/skip/${bystander_id}" -d '{ "report_reason": "collateral damage" }'
@@ -163,14 +162,14 @@ specific_person_is_banned () {
 
   [[ "$(q "select report_reasons \
     from banned_person \
-    where email = 'accused@example.com'")" == '{"my target"}' ]]
+    where normalized_email = 'accused@gmail.com'")" == '{"my target"}' ]]
 }
 
 # Only the photo which should have been deleted is delete
 specific_photo_is_banned () {
   setup 1 true
 
-  assume_role reporter
+  assume_role 'reporter@gmail.com'
 
   jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
 
@@ -179,19 +178,6 @@ specific_photo_is_banned () {
   c GET "/admin/delete-photo/$(deleted_photo_token)"
 
   [[ "$(q "select count(*) from photo")" -eq 2 ]]
-}
-
-# When we ban an account, their normalized_email should be added to banned_person
-normalized_added_to_banned () {
-  setup 0 true
-
-  assume_role reporter
-
-  jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
-
-  c GET "/admin/ban/$(ban_token)"
-
-  [[ "$(q "select count(*) from banned_person where email = 'accused@gmail.com'")" -eq 1 ]]
 }
 
 # Execute tests
@@ -203,4 +189,5 @@ ban_token_expiry
 photo_token_expiry
 specific_person_is_banned
 specific_photo_is_banned
-normalized_added_to_banned
+
+tear_down
