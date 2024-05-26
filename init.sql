@@ -1077,6 +1077,18 @@ WHERE
     )
 ON CONFLICT DO NOTHING;
 
+
+
+INSERT INTO search_preference_ethnicity (person_id, ethnicity_id)
+	SELECT
+        person.id,
+        ethnicity.id
+	FROM
+        person
+	CROSS JOIN
+        ethnicity
+ON CONFLICT (person_id, ethnicity_id) DO NOTHING;
+
 --------------------------------------------------------------------------------
 -- FUNCTIONS (2)
 --------------------------------------------------------------------------------
