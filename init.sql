@@ -1080,12 +1080,12 @@ ON CONFLICT DO NOTHING;
 
 
 INSERT INTO search_preference_ethnicity (person_id, ethnicity_id)
-	SELECT
+    SELECT
         person.id,
         ethnicity.id
-	FROM
+    FROM
         person
-	CROSS JOIN
+    CROSS JOIN
         ethnicity
 ON CONFLICT (person_id, ethnicity_id) DO NOTHING;
 
