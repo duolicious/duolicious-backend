@@ -559,8 +559,6 @@ CREATE INDEX IF NOT EXISTS idx__person__sign_up_time ON person(sign_up_time);
 CREATE INDEX IF NOT EXISTS idx__person__tiny_id ON person(tiny_id);
 CREATE INDEX IF NOT EXISTS idx__person__email ON person(email);
 CREATE INDEX IF NOT EXISTS idx__person__uuid ON person(uuid);
-CREATE INDEX IF NOT EXISTS idx__person__normalized_email
-    ON person(normalized_email);
 
 CREATE INDEX IF NOT EXISTS idx__club__name ON club USING GIST(name gist_trgm_ops);
 
@@ -1244,3 +1242,6 @@ END $$;
 
 -- TODO ^ delete ^
 
+-- TODO: Move this up
+CREATE INDEX IF NOT EXISTS idx__person__normalized_email
+    ON person(normalized_email);
