@@ -10,6 +10,7 @@ from pathlib import Path
 from werkzeug.middleware.proxy_fix import ProxyFix
 import ipaddress
 import traceback
+from antispam import normalize_email
 
 disable_ip_rate_limit_file = (
     Path(__file__).parent.parent.parent /
@@ -90,7 +91,6 @@ Q_GET_SESSION = """
 SELECT
     duo_session.person_id,
     person.uuid::TEXT AS person_uuid,
-    person.normalized_email AS normalized_email,
     duo_session.email,
     duo_session.signed_in
 FROM
@@ -185,7 +185,6 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                 email=row['email']
                 person_id=row['person_id']
                 person_uuid=row['person_uuid']
-                normalized_email=row['normalized_email']
                 signed_in=row['signed_in']
 
                 session_info = duotypes.SessionInfo(
@@ -196,7 +195,7 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                     session_token_hash=session_token_hash,
                 )
 
-                g.normalized_email = normalized_email
+                g.normalized_email = normalize_email(email)
             else:
                 return 'Invalid session token', 401
 
