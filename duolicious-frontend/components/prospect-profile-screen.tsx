@@ -467,6 +467,7 @@ type UserData = {
   location: string | null
   drinking: string | null,
   drugs: string | null,
+  ethnicity: string | null,
   exercise: string | null,
   has_kids: string | null,
   height_cm: number | null,
@@ -743,6 +744,9 @@ const Body = ({
 
           {data?.orientation &&
             <Basic icon="person">{data.orientation}</Basic>}
+
+          {data?.ethnicity &&
+            <Basic icon="globe-outline">{data.ethnicity}</Basic>}
 
           {data?.relationship_status &&
             <Basic icon="heart">{data.relationship_status}</Basic>}

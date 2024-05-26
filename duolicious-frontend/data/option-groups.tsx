@@ -262,6 +262,19 @@ const orientations = [
   'Other',
 ];
 
+const ethnicities = [
+  'Black/African Descent',
+  'East Asian',
+  'Hispanic/Latino',
+  'Middle Eastern',
+  'Native American',
+  'Pacific Islander',
+  'South Asian',
+  'Southeast Asian',
+  'White/Caucasian',
+  'Other'
+];
+
 const religions = [
   'Agnostic',
   'Atheist',
@@ -364,6 +377,22 @@ const yourPartnersGenderOptionGroup: OptionGroup<OptionGroupCheckChips> = {
   }
 };
 
+const ethnicityOptionGroup: OptionGroup<OptionGroupButtons> = {
+  title: 'Ethnicity',
+  Icon: () => <Ionicons style={{fontSize: 16 }} name="globe-outline" />,
+  description: "What’s your ethnicity?",
+  input: {
+    buttons: {
+      values: ethnicities,
+      submit: async function(ethnicity: string) {
+        const ok = (await japi('patch', '/profile-info', { ethnicity })).ok;
+        if (ok) this.currentValue = ethnicity;
+        return ok;
+      },
+    }
+  },
+};
+
 const locationOptionGroup: OptionGroup<OptionGroupLocationSelector> = {
   title: 'Location',
   Icon: () => (
@@ -422,6 +451,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   genderOptionGroup,
   locationOptionGroup,
   orientationOptionGroup,
+  ethnicityOptionGroup,
   {
     title: 'Occupation',
     Icon: () => <Ionicons style={{fontSize: 16 }} name="briefcase" />,
@@ -1045,6 +1075,26 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           const ok = (await japi('post', '/search-filter', { orientation })).ok;
           if (ok) {
             this.values = newCheckChipValues(this.values, orientation);
+          }
+          return ok;
+        }
+      }
+    },
+  },
+  {
+    title: "Ethnicity",
+    Icon: () => <Ionicons style={{fontSize: 16 }} name="globe-outline" />,
+    description: "Which ethnicities would you like to see in search results?",
+    input: {
+      checkChips: {
+        values: [
+          ...ethnicities.map((x) => ({checked: true, label: x})),
+          {checked: true, label: 'Unanswered'},
+        ],
+        submit: async function(ethnicity: string[]) {
+          const ok = (await japi('post', '/search-filter', { ethnicity })).ok;
+          if (ok) {
+            this.values = newCheckChipValues(this.values, ethnicity);
           }
           return ok;
         }
