@@ -705,6 +705,10 @@ WITH onboardee_country AS (
     SELECT new_person.id, yes_no.id
     FROM new_person, yes_no
     WHERE yes_no.name = 'No'
+), p20 AS (
+    INSERT INTO search_preference_ethnicity (person_id, ethnicity_id)
+    SELECT new_person.id, ethnicity.id
+    FROM new_person, ethnicity
 ), deleted_onboardee AS (
     DELETE FROM onboardee
     WHERE email = %(email)s
@@ -797,6 +801,10 @@ WITH prospect_person_id AS (
     SELECT orientation.name AS j
     FROM orientation JOIN prospect ON orientation_id = orientation.id
     WHERE orientation.name != 'Unanswered'
+), ethnicity AS (
+    SELECT ethnicity.name AS j
+    FROM ethnicity JOIN prospect ON ethnicity_id = ethnicity.id
+    WHERE ethnicity.name != 'Unanswered'
 ), looking_for AS (
     SELECT looking_for.name AS j
     FROM looking_for JOIN prospect ON looking_for_id = looking_for.id
@@ -910,6 +918,7 @@ SELECT
         'height_cm',              (SELECT height_cm     FROM prospect),
         'gender',                 (SELECT j             FROM gender),
         'orientation',            (SELECT j             FROM orientation),
+        'ethnicity',              (SELECT j             FROM ethnicity),
         'looking_for',            (SELECT j             FROM looking_for),
         'smoking',                (SELECT j             FROM smoking),
         'drinking',               (SELECT j             FROM drinking),
@@ -1289,6 +1298,10 @@ WITH photo AS (
     SELECT orientation.name AS j
     FROM orientation JOIN person ON orientation_id = orientation.id
     WHERE person.id = %(person_id)s
+), ethnicity AS (
+    SELECT ethnicity.name AS j
+    FROM ethnicity JOIN person ON ethnicity_id = ethnicity.id
+    WHERE person.id = %(person_id)s
 ), location AS (
     SELECT long_friendly AS j
     FROM location
@@ -1400,6 +1413,7 @@ SELECT
         'about',                  (SELECT j FROM about),
         'gender',                 (SELECT j FROM gender),
         'orientation',            (SELECT j FROM orientation),
+        'ethnicity',              (SELECT j FROM ethnicity),
         'location',               (SELECT j FROM location),
         'occupation',             (SELECT j FROM occupation),
         'education',              (SELECT j FROM education),
@@ -1476,6 +1490,11 @@ WITH answer AS (
     SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
     FROM search_preference_orientation JOIN orientation
     ON orientation_id = orientation.id
+    WHERE person_id = %(person_id)s
+), ethnicity AS (
+    SELECT COALESCE(array_agg(name ORDER BY name), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_ethnicity JOIN ethnicity
+    ON ethnicity_id = ethnicity.id
     WHERE person_id = %(person_id)s
 ), age AS (
     SELECT json_build_object(
@@ -1572,6 +1591,7 @@ SELECT
 
         'gender',                 (SELECT j FROM gender),
         'orientation',            (SELECT j FROM orientation),
+        'ethnicity',              (SELECT j FROM ethnicity),
         'age',                    (SELECT j FROM age),
         'furthest_distance',      (SELECT j FROM furthest_distance),
         'height',                 (SELECT j FROM height),

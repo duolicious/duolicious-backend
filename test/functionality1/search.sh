@@ -717,6 +717,7 @@ test_search_cache
 
 test_basic gender Man
 test_basic orientation Straight
+test_basic ethnicity 'Middle Eastern'
 test_basic_age
 test_basic_furthest_distance
 test_basic_height

@@ -86,6 +86,12 @@ CREATE TABLE IF NOT EXISTS orientation (
     UNIQUE (name)
 );
 
+CREATE TABLE IF NOT EXISTS ethnicity (
+    id SMALLSERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    UNIQUE (name)
+);
+
 CREATE TABLE IF NOT EXISTS location (
     id SERIAL PRIMARY KEY,
     short_friendly TEXT NOT NULL,
@@ -193,6 +199,7 @@ CREATE TABLE IF NOT EXISTS person (
 
     -- Basics
     orientation_id SMALLINT REFERENCES orientation(id) NOT NULL DEFAULT 1,
+    ethnicity_id SMALLINT REFERENCES ethnicity(id) NOT NULL DEFAULT 1,
     occupation TEXT,
     education TEXT,
     height_cm SMALLINT,
@@ -351,6 +358,12 @@ CREATE TABLE IF NOT EXISTS search_preference_orientation (
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     orientation_id SMALLINT REFERENCES orientation(id) ON DELETE CASCADE,
     PRIMARY KEY (person_id, orientation_id)
+);
+
+CREATE TABLE IF NOT EXISTS search_preference_ethnicity (
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    ethnicity_id SMALLINT REFERENCES ethnicity(id) ON DELETE CASCADE,
+    PRIMARY KEY (person_id, ethnicity_id)
 );
 
 CREATE TABLE IF NOT EXISTS search_preference_age (
@@ -610,6 +623,18 @@ INSERT INTO orientation (name) VALUES ('Demisexual') ON CONFLICT (name) DO NOTHI
 INSERT INTO orientation (name) VALUES ('Pansexual') ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientation (name) VALUES ('Queer') ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientation (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO ethnicity (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
+INSERT INTO ethnicity (name) VALUES ('Black/African Descent') ON CONFLICT (name) DO NOTHING;
+INSERT INTO ethnicity (name) VALUES ('East Asian') ON CONFLICT (name) DO NOTHING;
+INSERT INTO ethnicity (name) VALUES ('Hispanic/Latino') ON CONFLICT (name) DO NOTHING;
+INSERT INTO ethnicity (name) VALUES ('Middle Eastern') ON CONFLICT (name) DO NOTHING;
+INSERT INTO ethnicity (name) VALUES ('Native American') ON CONFLICT (name) DO NOTHING;
+INSERT INTO ethnicity (name) VALUES ('Pacific Islander') ON CONFLICT (name) DO NOTHING;
+INSERT INTO ethnicity (name) VALUES ('South Asian') ON CONFLICT (name) DO NOTHING;
+INSERT INTO ethnicity (name) VALUES ('Southeast Asian') ON CONFLICT (name) DO NOTHING;
+INSERT INTO ethnicity (name) VALUES ('White/Caucasian') ON CONFLICT (name) DO NOTHING;
+INSERT INTO ethnicity (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO looking_for (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO looking_for (name) VALUES ('Friends') ON CONFLICT (name) DO NOTHING;
@@ -1213,5 +1238,24 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
+
+-- TODO: Delete
+ALTER TABLE person
+ADD COLUMN IF NOT EXISTS ethnicity_id SMALLINT REFERENCES ethnicity(id) NOT NULL DEFAULT 1;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM search_preference_ethnicity) THEN
+        INSERT INTO search_preference_ethnicity (person_id, ethnicity_id)
+        SELECT
+            person.id,
+            ethnicity.id
+        FROM
+            person
+        CROSS JOIN
+            ethnicity
+        ON CONFLICT (person_id, ethnicity_id) DO NOTHING;
+    END IF;
+END $$;
 
 --------------------------------------------------------------------------------
