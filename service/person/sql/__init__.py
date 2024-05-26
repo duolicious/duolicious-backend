@@ -153,9 +153,9 @@ WITH random_otp AS (
 ), zero_otp AS (
     SELECT '000000' AS otp
 ), is_registered AS (
-    SELECT 1 WHERE     EXISTS (SELECT 1 FROM person WHERE email = %(email)s)
+    SELECT 1 WHERE     EXISTS (SELECT 1 FROM person WHERE normalized_email = %(normalized_email)s)
 ), is_unregistered AS (
-    SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM person WHERE email = %(email)s)
+    SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM person WHERE normalized_email = %(normalized_email)s)
 ), domain AS (
     SELECT
         SUBSTRING(%(email)s FROM POSITION('@' IN %(email)s) + 1) AS domain
@@ -182,7 +182,7 @@ WITH random_otp AS (
             FROM
                 banned_person
             WHERE
-                email = %(email)s
+                normalized_email = %(normalized_email)s
             AND
                 expires_at > NOW()
             OR
@@ -219,7 +219,18 @@ INSERT INTO duo_session (
 )
 SELECT
     %(session_token_hash)s,
-    (SELECT id FROM person WHERE email = %(email)s),
+    (
+        SELECT
+            id
+        FROM
+            person
+        WHERE
+            normalized_email = %(normalized_email)s
+        ORDER BY
+            email = %(email)s DESC,
+            email
+        LIMIT 1
+    ),
     %(email)s,
     otp,
     %(ip_address)s
@@ -347,6 +358,7 @@ WITH onboardee_country AS (
 ), new_person AS (
     INSERT INTO person (
         email,
+        normalized_email,
         name,
         date_of_birth,
         coordinates,
@@ -357,6 +369,7 @@ WITH onboardee_country AS (
         intros_notification
     ) SELECT
         email,
+        %(normalized_email)s,
         name,
         date_of_birth,
         coordinates,
@@ -1963,25 +1976,26 @@ WITH deleted_token AS (
     WHERE
         person.id = deleted_token.person_id
     RETURNING
-        email
+        id,
+        normalized_email
 ), _duo_session AS (
     SELECT
-        duo_session.email AS email,
+        deleted_person.normalized_email AS normalized_email,
         COALESCE(duo_session.ip_address, '127.0.0.1') AS ip_address
     FROM
         duo_session
     JOIN
         deleted_person
     ON
-        duo_session.email = deleted_person.email
+        duo_session.person_id = deleted_person.id
 )
 INSERT INTO banned_person (
-    email,
+    normalized_email,
     ip_address,
     report_reasons
 )
 SELECT
-    email,
+    normalized_email,
     ip_address,
     report_reasons
 FROM

@@ -20,7 +20,7 @@ from dataclasses import dataclass
 import psycopg
 from functools import lru_cache
 import random
-from antispam import check_and_update_bad_domains
+from antispam import check_and_update_bad_domains, normalize_email
 
 @dataclass
 class EmailEntry:
@@ -282,6 +282,7 @@ def post_request_otp(req: t.PostRequestOtp):
 
     params = dict(
         email=email,
+        normalized_email=normalize_email(email),
         is_dev=DUO_ENV == 'dev',
         session_token_hash=session_token_hash,
         ip_address=request.remote_addr or "127.0.0.1",
@@ -303,6 +304,7 @@ def post_request_otp(req: t.PostRequestOtp):
 def post_resend_otp(s: t.SessionInfo):
     params = dict(
         email=s.email,
+        normalized_email=normalize_email(s.email),
         is_dev=DUO_ENV == 'dev',
         session_token_hash=s.session_token_hash,
         ip_address=request.remote_addr or "127.0.0.1",
@@ -527,7 +529,10 @@ def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo):
         tx.executemany(Q_DELETE_ONBOARDEE_PHOTO, params)
 
 def post_finish_onboarding(s: t.SessionInfo):
-    api_params = dict(email=s.email)
+    api_params = dict(
+        email=s.email,
+        normalized_email=normalize_email(s.email),
+    )
 
     with api_tx() as tx:
         row = tx.execute(Q_FINISH_ONBOARDING, params=api_params).fetchone()
