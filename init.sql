@@ -240,8 +240,6 @@ CREATE TABLE IF NOT EXISTS person (
     PRIMARY KEY (id)
 );
 
-ALTER TABLE person ADD COLUMN IF NOT EXISTS ethnicity_id SMALLINT REFERENCES ethnicity(id) NOT NULL DEFAULT 1;
-
 CREATE TABLE IF NOT EXISTS onboardee (
     email TEXT NOT NULL,
 
@@ -574,6 +572,8 @@ CREATE INDEX IF NOT EXISTS idx__person__sign_up_time ON person(sign_up_time);
 CREATE INDEX IF NOT EXISTS idx__person__tiny_id ON person(tiny_id);
 CREATE INDEX IF NOT EXISTS idx__person__email ON person(email);
 CREATE INDEX IF NOT EXISTS idx__person__uuid ON person(uuid);
+CREATE INDEX IF NOT EXISTS idx__person__normalized_email
+    ON person(normalized_email);
 
 CREATE INDEX IF NOT EXISTS idx__club__name ON club USING GIST(name gist_trgm_ops);
 
@@ -1078,18 +1078,6 @@ WHERE
     )
 ON CONFLICT DO NOTHING;
 
-
-
-INSERT INTO search_preference_ethnicity (person_id, ethnicity_id)
-    SELECT
-        person.id,
-        ethnicity.id
-    FROM
-        person
-    CROSS JOIN
-        ethnicity
-ON CONFLICT (person_id, ethnicity_id) DO NOTHING;
-
 --------------------------------------------------------------------------------
 -- FUNCTIONS (2)
 --------------------------------------------------------------------------------
@@ -1251,36 +1239,23 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
---------------------------------------------------------------------------------
-
--- TODO: v delete v
+-- TODO: Delete
 ALTER TABLE person
-ADD COLUMN IF NOT EXISTS normalized_email TEXT NOT NULL DEFAULT '';
-
-ALTER TABLE person
-ALTER COLUMN normalized_email DROP DEFAULT;
-
--- TODO: emails in `banned_person` need to be normalized
--- TODO: emails in `person` need to be normalized
+ADD COLUMN IF NOT EXISTS ethnicity_id SMALLINT REFERENCES ethnicity(id) NOT NULL DEFAULT 1;
 
 DO $$
 BEGIN
-    -- Check if the column exists in the specified table
-    IF EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_name='banned_person' AND column_name='email'
-    ) THEN
-        -- Rename the column if it exists
-        EXECUTE 'ALTER TABLE banned_person RENAME COLUMN email TO normalized_email';
-        RAISE NOTICE 'Column renamed.';
-    ELSE
-        RAISE NOTICE 'Column does not exist.';
+    IF NOT EXISTS (SELECT 1 FROM search_preference_ethnicity) THEN
+        INSERT INTO search_preference_ethnicity (person_id, ethnicity_id)
+        SELECT
+            person.id,
+            ethnicity.id
+        FROM
+            person
+        CROSS JOIN
+            ethnicity
+        ON CONFLICT (person_id, ethnicity_id) DO NOTHING;
     END IF;
 END $$;
 
--- TODO ^ delete ^
-
--- TODO: Move this up
-CREATE INDEX IF NOT EXISTS idx__person__normalized_email
-    ON person(normalized_email);
+--------------------------------------------------------------------------------
