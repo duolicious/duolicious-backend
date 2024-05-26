@@ -1220,6 +1220,9 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 ALTER TABLE person
 ADD COLUMN IF NOT EXISTS normalized_email TEXT NOT NULL DEFAULT '';
 
+ALTER TABLE person
+ALTER COLUMN normalized_email DROP DEFAULT;
+
 -- TODO: emails in `banned_person` need to be normalized
 -- TODO: emails in `person` need to be normalized
 
@@ -1239,9 +1242,5 @@ BEGIN
     END IF;
 END $$;
 
-
-ALTER TABLE person
-ALTER COLUMN normalized_email DROP DEFAULT;
 -- TODO ^ delete ^
-
 

@@ -75,7 +75,6 @@ def migrate_unnormalized_emails():
         UPDATE person SET
         normalized_email = %(normalized_email)s
         WHERE email = %(email)s
-        ON CONFLICT DO NOTHING
         """
         print('Updating normalized emails in `person` table')
         tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
@@ -84,10 +83,21 @@ def migrate_unnormalized_emails():
 
     with api_tx() as tx:
         q = """
-        UPDATE banned_person SET
-        normalized_email = %(normalized_email)s
-        WHERE normalized_email = %(email)s
-        ON CONFLICT DO NOTHING
+        UPDATE banned_person bp
+        SET
+            normalized_email = %(normalized_email)s
+        WHERE
+            normalized_email = %(email)s
+        AND NOT EXISTS (
+            SELECT
+                1
+            FROM
+                banned_person
+            WHERE
+                normalized_email = %(normalized_email)s
+            AND
+                ip_address = bp.ip_address
+        )
         """
         print('Updating normalized emails in `banned_person` table')
         tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
