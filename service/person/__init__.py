@@ -1436,28 +1436,32 @@ def get_stats(ttl_hash=None):
 def get_admin_ban_link(token: str):
     params = dict(token=token)
 
+    err_invalid_token = (
+        'Invalid token. User might have already been banned', 401)
+
     try:
         with api_tx() as tx:
             person_uuid = tx.execute(
                 Q_ADMIN_TOKEN_TO_UUID,
                 params,
             ).fetchone()['person_uuid']
+    except TypeError:
+        return err_invalid_token
 
+    try:
         with chat_tx() as tx:
             tx.execute(Q_DELETE_XMPP, params=dict(person_uuid=person_uuid))
 
         with api_tx('READ COMMITTED') as tx:
             rows = tx.execute(Q_CHECK_ADMIN_BAN_TOKEN, params).fetchall()
-    except KeyError:
-        return 'Invalid token', 401
     except psycopg.errors.InvalidTextRepresentation:
-        return 'Invalid token', 401
+        return err_invalid_token
 
     if rows:
         link = f'https://api.duolicious.app/admin/ban/{token}'
         return f'<a href="{link}">{link}</a>'
     else:
-        return 'Invalid token', 401
+        return err_invalid_token
 
 def get_admin_ban(token: str):
     params = dict(token=token)
@@ -1468,7 +1472,7 @@ def get_admin_ban(token: str):
     if rows:
         return f'Banned {rows}'
     else:
-        return 'Ban failed', 401
+        return 'Ban failed; User already banned or token invalid', 401
 
 def get_admin_delete_photo_link(token: str):
     params = dict(token=token)
