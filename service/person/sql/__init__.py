@@ -1226,19 +1226,37 @@ WITH deleted_photo AS (
         photo
     WHERE
         person_id = %(person_id)s
+), deleted_person_club AS (
+    SELECT
+        club_name
+    FROM
+        person_club
+    WHERE
+        person_id  = %(person_id)s
 ), deleted_person AS (
     DELETE FROM
         person
     WHERE
         id = %(person_id)s
+), undeleted_photo_insertion AS (
+    INSERT INTO undeleted_photo (
+        uuid
+    )
+    SELECT
+        uuid
+    FROM
+        deleted_photo
+), club_update AS (
+    UPDATE
+        club
+    SET
+        count_members = GREATEST(0, count_members - 1)
+    FROM
+        deleted_person_club
+    WHERE
+        club.name = deleted_person_club.club_name
 )
-INSERT INTO undeleted_photo (
-    uuid
-)
-SELECT
-    uuid
-FROM
-    deleted_photo
+SELECT 1
 """
 
 Q_DELETE_XMPP = """
@@ -1794,7 +1812,7 @@ ORDER BY
 """
 
 Q_SEARCH_CLUBS = """
-WITH currently_joined_clubs AS (
+WITH currently_joined_club AS (
     SELECT
         club_name AS name
     FROM
@@ -1809,7 +1827,13 @@ WITH currently_joined_clubs AS (
             0
         ) AS count_members
     WHERE
-        %(search_string)s NOT IN (SELECT name FROM currently_joined_clubs)
+        NOT EXISTS (
+            SELECT 1 FROM currently_joined_club WHERE name = %(search_string)s
+        )
+    AND
+        NOT EXISTS (
+            SELECT 1 FROM banned_club WHERE name = LOWER(%(search_string)s)
+        )
     LIMIT
         1
 ), fuzzy_match AS (
@@ -1819,7 +1843,7 @@ WITH currently_joined_clubs AS (
     FROM
         club
     WHERE
-        name NOT IN (SELECT name FROM currently_joined_clubs)
+        name NOT IN (SELECT name FROM currently_joined_club)
     AND
         name NOT IN (SELECT name FROM maybe_stuff_the_user_typed)
     AND
@@ -1839,50 +1863,80 @@ FROM (
 ORDER BY
     count_members = 0,
     name <-> %(search_string)s,
-    name,
-    count_members DESC
+    count_members DESC,
+    name
 """
 
 Q_JOIN_CLUB = """
--- Step 1: Try to insert the new club
-WITH inserted_club AS (
+WITH is_unbanned_club_name AS (
+    SELECT
+        NOT EXISTS (
+            SELECT 1 FROM banned_club WHERE name = LOWER(%(club_name)s)
+        ) AS x
+), is_within_club_quota AS (
+    SELECT
+        COUNT(*) <= 25 AS x
+    FROM
+        person_club
+    WHERE
+        person_id = %(person_id)s
+), existing_club AS (
+    SELECT
+        name
+    FROM
+        club
+    WHERE
+        name = %(club_name)s
+    AND
+        (SELECT x FROM is_unbanned_club_name)
+    AND
+        (SELECT x FROM is_within_club_quota)
+), inserted_club AS (
     INSERT INTO club (
         name,
         count_members
-    ) VALUES (
+    )
+    SELECT
         %(club_name)s,
         1
-    )
+    WHERE
+        (SELECT x FROM is_unbanned_club_name)
+    AND
+        (SELECT x FROM is_within_club_quota)
     ON CONFLICT (name) DO NOTHING
-    RETURNING name
-),
--- Step 2: Insert person into person_club, if not already a member
-inserted_person_club AS (
+    RETURNING
+        name
+), existing_or_inserted_club AS (
+    SELECT name FROM existing_club UNION
+    SELECT name FROM inserted_club
+), inserted_person_club AS (
     INSERT INTO person_club (
         person_id,
         club_name
     )
-    VALUES (
+    SELECT
         %(person_id)s,
-        %(club_name)s
-    )
+        name
+    FROM
+        existing_or_inserted_club
     ON CONFLICT (person_id, club_name) DO NOTHING
     RETURNING
         club_name
+), updated_club AS (
+    UPDATE
+        club
+    SET
+        count_members = count_members + 1
+    FROM
+        existing_club
+    WHERE
+        existing_club.name = club.name
 )
--- Step 3: Update member count only if a new member was actually added
-UPDATE
-    club
-SET
-    count_members = count_members + 1
-WHERE
-    name = %(club_name)s
-AND
-    NOT EXISTS (
-        SELECT 1 FROM inserted_club)
-AND
-    EXISTS (
-        SELECT 1 FROM inserted_person_club)
+SELECT
+    1
+FROM
+    existing_or_inserted_club
+LIMIT 1
 """
 
 Q_LEAVE_CLUB = """
@@ -1960,6 +2014,17 @@ WITH deleted_token AS (
         expires_at > NOW()
     RETURNING
         person_id
+), this_banned_person AS (
+    SELECT
+        normalized_email,
+        uuid AS person_uuid,
+        id AS person_id
+    FROM
+        person
+    JOIN
+        deleted_token
+    ON
+        deleted_token.person_id = person.id
 ), report_reason AS (
     SELECT
         COALESCE(array_agg(report_reason), ARRAY[]::text[]) AS report_reasons
@@ -1971,61 +2036,36 @@ WITH deleted_token AS (
         object_person_id = (SELECT person_id FROM deleted_token)
     AND
         report_reason <> ''
-), deleted_photo AS (
-    SELECT
-        uuid
-    FROM
-        photo
-    JOIN
-        deleted_token
-    ON
-        photo.person_id = deleted_token.person_id
-), undeleted_photo_insertion AS (
-    INSERT INTO undeleted_photo (
-        uuid
-    )
-    SELECT
-        uuid
-    FROM
-        deleted_photo
-), deleted_person AS (
-    DELETE FROM
-        person
-    USING
-        deleted_token
-    WHERE
-        person.id = deleted_token.person_id
-    RETURNING
-        id,
-        normalized_email
 ), _duo_session AS (
     SELECT
-        deleted_person.normalized_email AS normalized_email,
+        this_banned_person.normalized_email AS normalized_email,
         COALESCE(duo_session.ip_address, '127.0.0.1') AS ip_address
     FROM
         duo_session
     JOIN
-        deleted_person
+        this_banned_person
     ON
-        duo_session.person_id = deleted_person.id
-)
-INSERT INTO banned_person (
-    normalized_email,
-    ip_address,
-    report_reasons
+        duo_session.person_id = this_banned_person.person_id
+), banned_person_insertion AS (
+    INSERT INTO banned_person (
+        normalized_email,
+        ip_address,
+        report_reasons
+    )
+    SELECT
+        normalized_email,
+        ip_address,
+        report_reasons
+    FROM
+        _duo_session,
+        report_reason
+    ON CONFLICT DO NOTHING
 )
 SELECT
-    normalized_email,
-    ip_address,
-    report_reasons
+    person_id,
+    person_uuid::TEXT
 FROM
-    _duo_session,
-    report_reason
-ON CONFLICT DO NOTHING
-RETURNING
-    ip_address,
-    banned_at,
-    expires_at
+    this_banned_person
 """
 
 Q_CHECK_ADMIN_DELETE_PHOTO_TOKEN = """
