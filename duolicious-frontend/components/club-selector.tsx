@@ -1,13 +1,17 @@
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Pressable,
-  ScrollView,
-  View,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
+  View,
 } from 'react-native';
 import {
   useCallback,
+  useEffect,
+  useRef,
   useState,
 } from 'react';
 import { DefaultText } from './default-text';
@@ -58,32 +62,91 @@ const SelectedClub = ({
 const UnselectedClub = ({
   clubItem,
   onPress,
+  isAtQuota,
 }: {
   clubItem: ClubItem
-  onPress: (clubItem: ClubItem ) => any
+  onPress: (clubItem: ClubItem) => any
+  isAtQuota: boolean
 }) => {
+  const shakeAnimation = useRef(new Animated.Value(0)).current;
+  const opacityAnimation = useRef(new Animated.Value(1)).current; // Initial opacity set to 1
+
+  const animateOpacity = useCallback(() => {
+    // Animate opacity to 0.3 if at quota, otherwise animate back to 1
+    Animated.timing(opacityAnimation, {
+      toValue: isAtQuota ? 0.3 : 1,
+      duration: 300, // Duration can be adjusted as needed
+      useNativeDriver: true
+    }).start();
+  }, [isAtQuota]);
+
+  useEffect(() => {
+    animateOpacity();
+  }, [animateOpacity]);
+
+  const startShake = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(shakeAnimation, {
+        toValue: -25,
+        duration: 75,
+        useNativeDriver: true,
+        easing: Easing.linear
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: 20,
+        duration: 75,
+        useNativeDriver: true,
+        easing: Easing.linear
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: -15,
+        duration: 75,
+        useNativeDriver: true,
+        easing: Easing.linear
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: 0,
+        duration: 75,
+        useNativeDriver: true,
+        easing: Easing.linear
+      })
+    ]).start();
+  }, [shakeAnimation]);
+
+  const _onPress = useCallback(
+    () => isAtQuota ? startShake() : onPress(clubItem),
+    [isAtQuota, onPress, clubItem, startShake]
+  );
+
   return (
-    <Pressable
+    <Animated.View
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
+        opacity: opacityAnimation,
+        transform: [{ translateX: shakeAnimation }]
       }}
-      onPress={() => onPress(clubItem)}
     >
-      <Basic
+      <Pressable
         style={{
-          marginTop: 5,
-          marginBottom: 5,
-          flexWrap: 'wrap',
-          flexShrink: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
         }}
-      >{clubItem.name}</Basic>
-      <DefaultText style={{fontWeight: '700'}}>
-        {clubItem.count_members}
-        {' '}
-        {clubItem.count_members === 1 ? 'person' : 'people'}
-      </DefaultText>
-    </Pressable>
+        onPress={_onPress}
+      >
+        <Basic
+          style={{
+            marginTop: 5,
+            marginBottom: 5,
+            flexWrap: 'wrap',
+            flexShrink: 1,
+          }}
+        >{clubItem.name}</Basic>
+        <DefaultText style={{fontWeight: '700'}}>
+          {clubItem.count_members}
+          {' '}
+          {clubItem.count_members === 1 ? 'person' : 'people'}
+        </DefaultText>
+      </Pressable>
+    </Animated.View>
   );
 };
 
@@ -115,6 +178,8 @@ const ClubSelector = ({navigation, route}) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const clearSearchText = useCallback(() => setSearchText(""), []);
+
+  const clubQuota = 25;
 
   const _fetchClubItems = useCallback(debounce(async (q: string) => {
     const results = await fetchClubItems(q);
@@ -236,15 +301,19 @@ const ClubSelector = ({navigation, route}) => {
       >
         {!_.isEmpty(selectedClubs) &&
           <>
-            <Title>Clubs you're in ({(selectedClubs ?? []).length})</Title>
+            <Title>Clubs you’re in ({selectedClubs.length}/{clubQuota})</Title>
             <View
               style={{
                 flexDirection: 'row',
                 flexWrap: 'wrap',
               }}
             >
-              {(selectedClubs ?? []).map((a, i) =>
-                <SelectedClub key={String(i)} clubItem={a} onPress={onUnselectClub} />
+              {selectedClubs.map((a, i) =>
+                <SelectedClub
+                  key={String(i)}
+                  clubItem={a}
+                  onPress={onUnselectClub}
+                />
               )}
             </View>
           </>
@@ -289,7 +358,12 @@ const ClubSelector = ({navigation, route}) => {
         {!isLoading && searchText !== "" && !_.isEmpty(searchResults) &&
           <>
             {(searchResults ?? []).map((a, i) =>
-              <UnselectedClub key={String(i)} clubItem={a} onPress={onSelectClub} />
+              <UnselectedClub
+                key={String(i)}
+                clubItem={a}
+                onPress={onSelectClub}
+                isAtQuota={selectedClubs.length >= clubQuota}
+              />
             )}
             <DefaultText style={{
               fontFamily: 'TruenoBold',

@@ -1,5 +1,14 @@
 import { storeKv } from './kv-storage';
 
+// The screens 'Profile Option Screen' and 'Search Filter Option Screen'
+// include parameters which aren't serializable. Those navigation states
+// shouldn't be stored.
+const unsafeScreens = [
+  "Club Selector",
+  "Profile Option Screen",
+  "Search Filter Option Screen",
+];
+
 const getCurrentScreen = (navigationState: any): string | null => {
   // Validate the basic structure of the navigation state
   if (
@@ -27,13 +36,8 @@ const getCurrentScreen = (navigationState: any): string | null => {
 }
 
 const navigationState = async (value?: any) => {
-  // The screens 'Profile Option Screen' and 'Search Filter Option Screen'
-  // include parameters which aren't serializable. Those navigation states
-  // shouldn't be stored.
   const currentScreen = getCurrentScreen(value);
-  if (currentScreen === "Profile Option Screen")
-    return null;
-  if (currentScreen === "Search Filter Option Screen")
+  if (currentScreen && unsafeScreens.includes(currentScreen))
     return null;
 
   const result = await storeKv(
