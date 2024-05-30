@@ -131,6 +131,7 @@ def init_db():
         tx.execute(email_domains_good_file)
 
     with api_tx() as tx:
+        tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
         tx.execute(banned_club_file)
 
     migrate_unnormalized_emails()

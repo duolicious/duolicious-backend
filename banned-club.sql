@@ -1,16 +1,3 @@
--- TODO: Recompute club member counts
-
--- TODO: Prune clubs for users who are part of more than 25
-
--- TODO: Test that people can't join more than 25 clubs
--- TODO: Ensure the frontend tells people that they joined too many clubs
-
--- TODO: Test that banned clubs can't be searched for
--- TODO: Test that banned clubs can't be joined
-
--- TODO: Test deleting a person decrements the club count
--- TODO: Test banning a person decrements the club count
-
 INSERT INTO banned_club (name)
 VALUES
     ('10'),
@@ -190,6 +177,7 @@ VALUES
     ('dothead'),
     ('drug dealer'),
     ('elliot rodger'),
+    ('elliot-rodger'),
     ('emitting faggot vibes'),
     ('eslpedonigger'),
     ('esoteric hitlerism'),
@@ -254,6 +242,7 @@ VALUES
     ('hate trannies'),
     ('hate women'),
     ('heil hitler'),
+    ('heil victory'),
     ('highschooler'),
     ('hilariously racist'),
     ('hitler'),
@@ -475,7 +464,6 @@ VALUES
     ('killing ppl w a rock'),
     ('kill jews'),
     ('kill kill kill'),
-    ('kill me'),
     ('kill men'),
     ('kill nazis'),
     ('kill nigg'),
@@ -490,10 +478,11 @@ VALUES
     ('kill yourself'),
     ('kkk'),
     ('kms'),
+    ('knife play'),
+    ('knifeplay'),
     ('kool kids klub'),
     ('ku klux klan'),
     ('kys'),
-    ('labia'),
     ('lgbtq hater'),
     ('literally hitler'),
     ('lithuainan suicide enjoyer'),
@@ -510,7 +499,6 @@ VALUES
     ('lolisho'),
     ('lolita'),
     ('lolita fashion'),
-    ('loser'),
     ('man hater'),
     ('map'),
     ('max prestige faggot'),
@@ -536,9 +524,11 @@ VALUES
     ('mudslime'),
     ('mudslimes'),
     ('murder murder kill kill'),
+    ('murder trannies'),
     ('muslim hater'),
     ('nate higgers'),
     ('national socialism'),
+    ('nato tranny'),
     ('nazi'),
     ('necrophile'),
     ('neega'),
@@ -562,6 +552,7 @@ VALUES
     ('niggy'),
     ('nig hater'),
     ('nigs'),
+    ('not 18'),
     ('not a fan of trans personally'),
     ('not trans'),
     ('onlyfans'),
@@ -621,7 +612,6 @@ VALUES
     ('retarded nigger'),
     ('roastie'),
     ('roasty'),
-    ('roomer'),
     ('sandnigger'),
     ('self harm'),
     ('self-harm'),
@@ -630,14 +620,13 @@ VALUES
     ('seppo'),
     ('seppos'),
     ('serial killer'),
-    ('sexy hitler'),
     ('shota'),
     ('shotabait'),
     ('shotacon'),
     ('shota lover'),
     ('shota raper'),
     ('should kill self'),
-    ('skibidi hitler'),
+    ('sieg heil'),
     ('skinny nigger'),
     ('slave owner club'),
     ('slightly racist'),
@@ -650,6 +639,8 @@ VALUES
     ('suicidal'),
     ('suicide'),
     ('suicide in 3 months'),
+    ('supreme gentleman'),
+    ('supreme-gentleman'),
     ('talmud denouncer'),
     ('teen suicide'),
     ('terf'),
@@ -663,6 +654,7 @@ VALUES
     ('towel heads'),
     ('towelheads'),
     ('trannies'),
+    ('trannies are made up'),
     ('tranny'),
     ('tranny hater'),
     ('trannyism'),

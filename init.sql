@@ -1249,7 +1249,37 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
--- TODO: Delete me
+-- TODO: Delete me: Prune clubs for users who are part of more than 25
+-- Enforce 25-club limit
+WITH club_popularity AS (
+    SELECT
+        club_name,
+        COUNT(person_id) AS member_count
+    FROM
+        person_club
+    GROUP BY
+        club_name
+), ranked_person_clubs AS (
+    SELECT
+        pc.person_id,
+        pc.club_name,
+        ROW_NUMBER() OVER (
+            PARTITION BY pc.person_id
+            ORDER BY cp.member_count DESC, pc.club_name
+        ) AS rn
+    FROM
+        person_club pc
+    JOIN
+        club_popularity cp ON pc.club_name = cp.club_name
+)
+DELETE FROM person_club
+USING ranked_person_clubs
+WHERE
+    person_club.person_id = ranked_person_clubs.person_id
+    AND person_club.club_name = ranked_person_clubs.club_name
+    AND ranked_person_clubs.rn > 25;
+
+-- TODO: Delete me: Recompute club member counts
 WITH club_count AS (
     SELECT
         club_name,
@@ -1267,40 +1297,5 @@ FROM
     club_count
 WHERE
     club.name = club_count.club_name;
-
-
--- Enforce 25-club limit
--- Step 1: Calculate the popularity of each club
-WITH club_popularity AS (
-    SELECT
-        club_name,
-        COUNT(person_id) AS member_count
-    FROM
-        person_club
-    GROUP BY
-        club_name
-),
--- Step 2: Create a CTE with row numbers based on club popularity
-ranked_person_clubs AS (
-    SELECT
-        pc.person_id,
-        pc.club_name,
-        ROW_NUMBER() OVER (
-            PARTITION BY pc.person_id
-            ORDER BY cp.member_count DESC, pc.club_name
-        ) AS rn
-    FROM
-        person_club pc
-    JOIN
-        club_popularity cp ON pc.club_name = cp.club_name
-)
--- Step 3: Delete rows where the row number is greater than 25
-DELETE FROM person_club
-USING ranked_person_clubs
-WHERE
-    person_club.person_id = ranked_person_clubs.person_id
-    AND person_club.club_name = ranked_person_clubs.club_name
-    AND ranked_person_clubs.rn > 25;
-
 
 --------------------------------------------------------------------------------
