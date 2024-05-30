@@ -724,17 +724,27 @@ def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo):
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_INBOX_INFO, params).fetchall()
 
-def delete_account(s: t.SessionInfo):
-    params = dict(
-        person_id=s.person_id,
-        person_uuid=s.person_uuid,
-    )
-
-    with chat_tx() as tx:
-        tx.execute(Q_DELETE_XMPP, params)
+def delete_or_ban_account(
+    s: Optional[t.SessionInfo],
+    admin_ban_token: Optional[str] = None,
+):
+    if not s and not admin_ban_token:
+        raise ValueError('At least one parameter must not be None')
 
     with api_tx() as tx:
-        tx.execute(Q_DELETE_ACCOUNT, params)
+        if admin_ban_token:
+            params = dict(token=admin_ban_token)
+            rows = tx.execute(Q_ADMIN_BAN, params=params).fetchall()
+        else:
+            params = dict(person_id=s.person_id, person_uuid=s.person_uuid)
+            rows = [params]
+
+        tx.executemany(Q_DELETE_ACCOUNT, params_seq=rows)
+
+    with chat_tx() as tx:
+        tx.executemany(Q_DELETE_XMPP, params_seq=rows)
+
+    return rows
 
 def post_deactivate(s: t.SessionInfo):
     params = dict(person_id=s.person_id)
@@ -1390,7 +1400,12 @@ def post_join_club(req: t.PostJoinClub, s: t.SessionInfo):
     )
 
     with api_tx() as tx:
-        tx.execute(Q_JOIN_CLUB, params)
+        rows = tx.execute(Q_JOIN_CLUB, params).fetchall()
+
+    if rows:
+        return f"Joined {req.name}", 200
+    else:
+        return f"Couldn't join {req.name}", 400
 
 def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo):
     params = dict(
@@ -1464,10 +1479,7 @@ def get_admin_ban_link(token: str):
         return err_invalid_token
 
 def get_admin_ban(token: str):
-    params = dict(token=token)
-
-    with api_tx('READ COMMITTED') as tx:
-        rows = tx.execute(Q_ADMIN_BAN, params).fetchall()
+    rows = delete_or_ban_account(s=None, admin_ban_token=token)
 
     if rows:
         return f'Banned {rows}'

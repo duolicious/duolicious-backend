@@ -39,6 +39,9 @@ _email_domains_bad_file = (
 _email_domains_good_file = (
     Path(__file__).parent.parent.parent / 'email-domains-good.sql')
 
+_banned_club_file = (
+    Path(__file__).parent.parent.parent / 'banned-club.sql')
+
 def get_ttl_hash(seconds=10):
     """Return the same value withing `seconds` time period"""
     return round(time.time() / seconds)
@@ -114,6 +117,9 @@ def init_db():
     with open(_email_domains_good_file, 'r') as f:
         email_domains_good_file = f.read()
 
+    with open(_banned_club_file, 'r') as f:
+        banned_club_file = f.read()
+
     with api_tx() as tx:
         tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
         tx.execute(init_sql_file)
@@ -123,6 +129,10 @@ def init_db():
 
     with api_tx() as tx:
         tx.execute(email_domains_good_file)
+
+    with api_tx() as tx:
+        tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
+        tx.execute(banned_club_file)
 
     migrate_unnormalized_emails()
 
@@ -299,7 +309,7 @@ def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo):
 
 @adelete('/account')
 def delete_account(s: t.SessionInfo):
-    return person.delete_account(s=s)
+    return person.delete_or_ban_account(s=s)
 
 @apost('/deactivate')
 def post_deactivate(s: t.SessionInfo):

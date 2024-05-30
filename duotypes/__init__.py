@@ -260,7 +260,22 @@ class PostInboxInfo(BaseModel):
     person_uuids: List[str]
 
 class PostJoinClub(BaseModel):
-    name: constr(pattern=CLUB_PATTERN, min_length=1, max_length=CLUB_MAX_LEN)
+    name: constr(pattern=CLUB_PATTERN, max_length=CLUB_MAX_LEN)
+
+    @model_validator(mode='before')
+    def set_onboarded(cls, values):
+        name = values.get('name')
+
+        if name is None:
+            return values
+
+        name = ' '.join(name.split())
+        if len(name) < 1:
+            raise ValueError('Name must be one or more characters long')
+
+        values['name'] = name
+
+        return values
 
 class PostLeaveClub(BaseModel):
     name: constr(pattern=CLUB_PATTERN, min_length=1, max_length=CLUB_MAX_LEN)
