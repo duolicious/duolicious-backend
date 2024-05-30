@@ -470,9 +470,14 @@ const Options = ({navigation, data}) => {
 const MaybeDonate = () => {
   const isWeb = Platform.OS === 'web';
 
+  const goToDonationPage = useCallback(
+    () => Linking.openURL('https://ko-fi.com/duolicious'),
+    [],
+  );
+
   return (
     <Notice
-      onPress={() => Linking.openURL('https://ko-fi.com/duolicious')}
+      onPress={isWeb ? goToDonationPage : undefined}
       style={{
         marginLeft: 0,
         marginRight: 0,
