@@ -137,6 +137,7 @@ let signedInUser: SignedInUser | undefined;
 let setSignedInUser: React.Dispatch<React.SetStateAction<typeof signedInUser>>;
 
 const otpDestination = { value: '' };
+const isImagePickerOpen = { value: false };
 
 const App = () => {
   const [numUnreadTitle, setNumUnreadTitle] = useState(0);
@@ -397,6 +398,7 @@ const App = () => {
 
 export default App;
 export {
+  isImagePickerOpen,
   otpDestination,
   referrerId,
   setSignedInUser,

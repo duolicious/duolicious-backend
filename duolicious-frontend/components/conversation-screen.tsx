@@ -649,6 +649,12 @@ const TextInputWithButton = ({
 
   const [text, setText] = useState("");
 
+  const maybeSetText = useCallback((t: string) => {
+    if (!isLoading) {
+      setText(t);
+    }
+  }, [isLoading]);
+
   const sendMessage = useCallback(async () => {
     const trimmed = text.trim();
     if (trimmed) {
@@ -684,29 +690,13 @@ const TextInputWithButton = ({
   return (
     <KeyboardAvoidingView
       behavior="padding"
-      style={{
-        flexDirection: 'row',
-        maxWidth: 600,
-        width: '100%',
-        alignSelf: 'center',
-      }}
+      style={styles.keyboardAvoidingView}
       enabled={Platform.OS === 'ios'}
     >
       <TextInput
-        style={{
-          textAlignVertical: 'top',
-          backgroundColor: '#eeeeee',
-          borderRadius: 10,
-          padding: 10,
-          fontSize: 16,
-          flex: 1,
-          flexGrow: 1,
-          margin: 10,
-          marginRight: 5,
-        }}
-        readOnly={isLoading}
+        style={styles.textInput}
         value={text}
-        onChangeText={setText}
+        onChangeText={maybeSetText}
         onKeyPress={onKeyPress}
         placeholder="Type a message"
         placeholderTextColor="#888888"
@@ -775,6 +765,23 @@ const TextInputWithButton = ({
 const styles = StyleSheet.create({
   safeAreaView: {
     flex: 1
+  },
+  keyboardAvoidingView: {
+    flexDirection: 'row',
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  textInput: {
+    textAlignVertical: 'top',
+    backgroundColor: '#eeeeee',
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 16,
+    flex: 1,
+    flexGrow: 1,
+    margin: 10,
+    marginRight: 5,
   }
 });
 

@@ -9,8 +9,7 @@ const LINEAR_SCALE: Scale = {
 };
 
 const LOGARITHMIC_SCALE: Scale = {
-  scaleValue: (value, min, max) => Math.pow(
-    Math.E,
+  scaleValue: (value, min, max) => Math.exp(
     Math.log(min) + (
       (Math.log(max) - Math.log(min)) / (max - min)) * (value - min)),
   descaleValue: (scaledValue, min, max) => (

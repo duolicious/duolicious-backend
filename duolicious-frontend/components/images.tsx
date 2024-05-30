@@ -19,6 +19,7 @@ import { faCircleXmark } from '@fortawesome/free-solid-svg-icons/faCircleXmark'
 import { notify, listen } from '../events/events';
 import { ImageCropperInput, ImageCropperOutput } from './image-cropper';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { isImagePickerOpen } from '../App';
 
 // TODO: Image picker is shit and lets you upload any file type on web
 
@@ -123,6 +124,13 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
   }, [input]);
 
   const addImage = useCallback(async () => {
+    if (isLoading_) {
+      return;
+    }
+    if (isImagePickerOpen.value) {
+      return;
+    }
+
     if (Platform.OS !== 'web') {
       setIsLoading(true);
       setIsLoading_(true);
@@ -135,8 +143,10 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
       selectionLimit: 1,
       base64: true,
     });
+    isImagePickerOpen.value = true;
 
     if (result.canceled && Platform.OS !== 'web') {
+      isImagePickerOpen.value = false;
       setIsLoading(false);
       setIsLoading_(false);
     }
@@ -181,7 +191,7 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
         }
       );
     }
-  }, []);
+  }, [isLoading_]);
 
   const removeImage = useCallback(async () => {
     setIsLoading(true);
@@ -205,6 +215,8 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
     return listen<ImageCropperOutput>(
       imageCropperCallback,
       async (data) => {
+        isImagePickerOpen.value = false;
+
         if (data === undefined) {
           return;
         }
@@ -277,7 +289,7 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
       }}
     >
       <Pressable
-        onPress={isLoading_ ? undefined : addImage}
+        onPress={addImage}
         style={{
           borderRadius: 5,
           backgroundColor: '#eee',
