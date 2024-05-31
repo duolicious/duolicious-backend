@@ -690,6 +690,8 @@ VALUES
     ('suicide by boeing'),
     ('suicide idealizer'),
     ('suicide in 3 months'),
+    ('suicide might be the right option for you'),
+    ('suicide watch'),
     ('supreme gentleman'),
     ('supreme-gentleman'),
     ('talmud denouncer'),
