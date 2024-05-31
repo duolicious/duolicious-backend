@@ -692,6 +692,7 @@ VALUES
     ('suicidal tendencies'),
     ('suicide'),
     ('suicide bomber'),
+    ('suicide boy'),
     ('suicideboy'),
     ('suicide by boeing'),
     ('suicide idealizer'),
