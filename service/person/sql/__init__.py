@@ -1873,9 +1873,9 @@ WITH is_unbanned_club_name AS (
         NOT EXISTS (
             SELECT 1 FROM banned_club WHERE name = LOWER(%(club_name)s)
         ) AS x
-), is_within_club_quota AS (
+), will_be_within_club_quota AS (
     SELECT
-        COUNT(*) <= 25 AS x
+        COUNT(*) < 25 AS x
     FROM
         person_club
     WHERE
@@ -1890,7 +1890,7 @@ WITH is_unbanned_club_name AS (
     AND
         (SELECT x FROM is_unbanned_club_name)
     AND
-        (SELECT x FROM is_within_club_quota)
+        (SELECT x FROM will_be_within_club_quota)
 ), inserted_club AS (
     INSERT INTO club (
         name,
@@ -1902,7 +1902,7 @@ WITH is_unbanned_club_name AS (
     WHERE
         (SELECT x FROM is_unbanned_club_name)
     AND
-        (SELECT x FROM is_within_club_quota)
+        (SELECT x FROM will_be_within_club_quota)
     ON CONFLICT (name) DO NOTHING
     RETURNING
         name
