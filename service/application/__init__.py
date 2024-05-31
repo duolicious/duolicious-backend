@@ -245,7 +245,7 @@ def get_prospect_profile(s: t.SessionInfo, prospect_uuid: int):
 @apost('/skip/<int:prospect_person_id>')
 @validate(t.PostSkip)
 def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
-    limit = "1 per minute"
+    limit = "1 per 30 seconds"
 
     rate_limited_skip = account_limiter(person.post_skip, limit=limit)
 
@@ -260,7 +260,7 @@ def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
 @apost('/skip/by-uuid/<prospect_uuid>')
 @validate(t.PostSkip)
 def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: int):
-    limit = "1 per 5 minutes"
+    limit = "1 per 30 seconds"
 
     rate_limited_skip_by_uuid = account_limiter(
         person.post_skip_by_uuid,
