@@ -17,7 +17,7 @@ setup () {
   q "delete from deleted_photo_admin_token"
 
   ../util/create-user.sh 'reporter@gmail.com' 0 "${num_photos}"
-  ../util/create-user.sh 'accused@gmail.com' 0 "${num_photos}"
+  ../util/create-user.sh 'accuse.d+1@gmail.com' 0 "${num_photos}"
   if [[ "${make_bystander}" == true ]]
   then
     ../util/create-user.sh 'bystander@gmail.com' 0 "${num_photos}"
@@ -27,7 +27,7 @@ setup () {
     q "select id from person where email = 'reporter@gmail.com'")
 
   accused_id=$(
-    q "select id from person where email = 'accused@gmail.com'")
+    q "select id from person where email = 'accuse.d+1@gmail.com'")
 
   bystander_id=$(
     q "select id from person where email = 'bystander@gmail.com'")
@@ -68,7 +68,6 @@ no_otp_when_email_banned () {
   q "update banned_person set ip_address = '255.255.255.255'"
 
   ! ../util/create-user.sh 'accused@gmail.com' 0 0
-  ! ../util/create-user.sh 'accused+1@gmail.com' 0 0
 }
 
 # A banned ip can't get an OTP
@@ -99,7 +98,7 @@ otp_when_others_are_banned () {
   q "update banned_person set ip_address = '255.255.255.255'"
   q "update banned_person set normalized_email = 'nobody@example.com'"
 
-  ../util/create-user.sh 'accused@gmail.com' 0 0
+  ../util/create-user.sh 'bystander@gmail.com' 0 0
 }
 
 # Ban expiry is respected
