@@ -744,6 +744,7 @@ VALUES
     ('kill indians'),
     ('killing'),
     ('killing mself'),
+    ('killing myself'),
     ('killing myself at 25'),
     ('killing myself at 40'),
     ('killing people'),
