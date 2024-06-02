@@ -377,16 +377,27 @@ const ConversationScreen = ({navigation, route}) => {
     });
   }, [navigation, personId]);
 
-  // Fetch the first page of messages when the conversation first loads
+  // Fetch the first page of messages when the conversation is first opened
+  // while online
+  const maybeFetchFirstPage = async (isOnline: boolean) => {
+    if (!isOnline) {
+      return;
+    }
+    if (messages !== null) {
+      return;
+    }
+
+    const fetchedMessages = await fetchConversation(personUuid);
+
+    if (fetchedMessages === 'timeout') {
+      setMessageFetchTimeout(true);
+    } else {
+      setMessages(fetchedMessages ?? []);
+    }
+  };
+
   useEffect(() => {
-    fetchConversation(personUuid, lastMamId)
-      .then((fetchedMessages) => {
-        if (fetchedMessages === 'timeout') {
-          setMessageFetchTimeout(true);
-        } else {
-          setMessages(fetchedMessages ?? []);
-        }
-      });
+    return listen('xmpp-is-online', maybeFetchFirstPage, true)
   }, []);
 
   // Scroll to end when last message changes
