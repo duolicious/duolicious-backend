@@ -1,3 +1,33 @@
+_Q_IS_ALLOWED_CLUB_NAME = """
+WITH similar_banned_club AS (
+    SELECT
+        name
+    FROM
+        banned_club
+    ORDER BY
+        name <-> %()s
+    LIMIT
+        10
+)
+SELECT
+    NOT EXISTS (
+        SELECT
+            1
+        FROM
+            similar_banned_club
+        WHERE
+            -- The exact club name is banned
+            name = LOWER(%()s)
+        OR
+            -- The club name contains a banned word/phrase
+            word_similarity(name, %()s) > 0.999
+        AND
+            -- The banned club name is distinctive enough not to trigger too
+            -- many false positives when used as a word match
+            (name ~ '[A-Za-z]{3}' OR name ~ '[^ ] [^ ]')
+    ) AS is_allowed_club_name
+"""
+
 Q_UPDATE_ANSWER = """
 WITH
 old_answer AS (
@@ -1811,7 +1841,7 @@ ORDER BY
     id
 """
 
-Q_SEARCH_CLUBS = """
+Q_SEARCH_CLUBS = f"""
 WITH currently_joined_club AS (
     SELECT
         club_name AS name
@@ -1819,6 +1849,8 @@ WITH currently_joined_club AS (
         person_club
     WHERE
         person_id = %(person_id)s
+), is_allowed_club_name AS (
+    {_Q_IS_ALLOWED_CLUB_NAME.replace('%()s', '%(search_string)s')}
 ), maybe_stuff_the_user_typed AS (
     SELECT
         %(search_string)s AS name,
@@ -1831,9 +1863,7 @@ WITH currently_joined_club AS (
             SELECT 1 FROM currently_joined_club WHERE name = %(search_string)s
         )
     AND
-        NOT EXISTS (
-            SELECT 1 FROM banned_club WHERE name = LOWER(%(search_string)s)
-        )
+        (SELECT is_allowed_club_name FROM is_allowed_club_name)
     LIMIT
         1
 ), fuzzy_match AS (
@@ -1867,12 +1897,9 @@ ORDER BY
     name
 """
 
-Q_JOIN_CLUB = """
-WITH is_unbanned_club_name AS (
-    SELECT
-        NOT EXISTS (
-            SELECT 1 FROM banned_club WHERE name = LOWER(%(club_name)s)
-        ) AS x
+Q_JOIN_CLUB = f"""
+WITH is_allowed_club_name AS (
+    {_Q_IS_ALLOWED_CLUB_NAME.replace('%()s', '%(club_name)s')}
 ), will_be_within_club_quota AS (
     SELECT
         COUNT(*) < 25 AS x
@@ -1888,7 +1915,7 @@ WITH is_unbanned_club_name AS (
     WHERE
         name = %(club_name)s
     AND
-        (SELECT x FROM is_unbanned_club_name)
+        (SELECT is_allowed_club_name FROM is_allowed_club_name)
     AND
         (SELECT x FROM will_be_within_club_quota)
 ), inserted_club AS (
@@ -1900,7 +1927,7 @@ WITH is_unbanned_club_name AS (
         %(club_name)s,
         1
     WHERE
-        (SELECT x FROM is_unbanned_club_name)
+        (SELECT is_allowed_club_name FROM is_allowed_club_name)
     AND
         (SELECT x FROM will_be_within_club_quota)
     ON CONFLICT (name) DO NOTHING

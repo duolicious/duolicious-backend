@@ -100,7 +100,12 @@ banned_clubs () {
   expected='[]'
   [[ "$results" == "$expected" ]]
 
+  results=$(c GET '/search-clubs?q=did+you+know+I+HATE+MINORITIES')
+  expected='[]'
+  [[ "$results" == "$expected" ]]
+
   ! jc POST /join-club -d '{ "name": "I HATE MINORITIES" }'
+  ! jc POST /join-club -d '{ "name": "did you know I HATE MINORITIES" }'
 }
 
 club_quota
