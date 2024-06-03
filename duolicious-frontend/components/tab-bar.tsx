@@ -12,8 +12,9 @@ import { DefaultText } from './default-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StackActions } from '@react-navigation/native';
 import { QAndADevice } from './q-and-a-device';
-import { Inbox, inboxStats, observeInbox } from '../xmpp/xmpp';
+import { Inbox, inboxStats } from '../xmpp/xmpp';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { listen } from '../events/events';
 
 const displayedTabs: Set<string> = new Set([
   "Q&A",
@@ -61,7 +62,7 @@ const TabBar = ({state, descriptors, navigation}) => {
   }, []);
 
   useEffect(() => {
-    return observeInbox(onChangeInbox);
+    return listen<Inbox | null>('inbox', onChangeInbox, true);
   }, []);
 
   return (

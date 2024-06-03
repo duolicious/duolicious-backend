@@ -15,13 +15,42 @@ import { deviceId } from '../kv-storage/device-id';
 import { japi } from '../api/api';
 import { deleteFromArray, withTimeout, delay } from '../util/util';
 
-import { notify } from '../events/events';
+import { notify, listen } from '../events/events';
 
 import { registerForPushNotificationsAsync } from '../notifications/notifications';
 
+let _xmpp: Client | undefined;
+
+notify('inbox', null);
+
 const parseIntOrZero = (input: string) => {
-    const parsed = parseInt(input, 10);
-    return isNaN(parsed) ? 0 : parsed;
+  const parsed = parseInt(input, 10);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+const findEarliestDate = (dates: Date[]): Date | null => {
+  // Check if the dates array is empty
+  if (dates.length === 0) {
+    return null;
+  }
+
+  // Convert each Date object to a timestamp, find the minimum, and convert back to a Date object
+  const earliestTimestamp = Math.min(...dates.map(date => date.getTime()));
+  return new Date(earliestTimestamp);
+};
+
+const findEarliestDateInConversations = (conversations: Conversation[]) => {
+  const timestamps = conversations.map(c => c.lastMessageTimestamp);
+  return findEarliestDate(timestamps);
+}
+
+const isValidUuid = (uuid: string): boolean => {
+  const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return regex.test(uuid);
+}
+
+const parseUuidOrEmtpy = (uuid: string) => {
+  return isValidUuid(uuid) ? uuid : '';
 }
 
 // TODO: Catch more exceptions. If a network request fails, that shouldn't crash the app.
@@ -68,7 +97,14 @@ type Inbox = {
   chats: Conversations
   intros: Conversations
   archive: Conversations
+  endTimestamp: Date | null
 };
+
+const getInbox = (): Inbox | null => {
+  let inbox: Inbox | null = null;
+  listen<Inbox | null>('inbox', (i) => inbox = (i ?? null), true)();
+  return inbox;
+}
 
 const inboxStats = (inbox: Inbox): {
   numChats: number
@@ -112,31 +148,53 @@ const emptyInbox = (): Inbox => ({
   chats:   { conversations: [], conversationsMap: {} },
   intros:  { conversations: [], conversationsMap: {} },
   archive: { conversations: [], conversationsMap: {} },
+  endTimestamp: null
 });
 
-let _xmpp: Client | undefined;
+const mergeInbox = (i1: Inbox, i2: Inbox) => {
+  const merged: Inbox = {
+    chats: {
+      conversations: [
+        ...i1.chats.conversations,
+        ...i2.chats.conversations,
+      ],
+      conversationsMap: {
+        ...i1.chats.conversationsMap,
+        ...i2.chats.conversationsMap,
+      }
+    },
+    intros: {
+      conversations: [
+        ...i1.intros.conversations,
+        ...i2.intros.conversations,
+      ],
+      conversationsMap: {
+        ...i1.intros.conversationsMap,
+        ...i2.intros.conversationsMap,
+      }
+    },
+    archive: {
+      conversations: [
+        ...i1.archive.conversations,
+        ...i2.archive.conversations,
+      ],
+      conversationsMap: {
+        ...i1.archive.conversationsMap,
+        ...i2.archive.conversationsMap,
+      }
+    },
+    endTimestamp: null
+  };
 
-let _inbox: Inbox | null = null;
-const _inboxObservers: Set<(inbox: Inbox | null) => void> = new Set();
+  const conversations = [
+    ...merged.chats.conversations,
+    ...merged.intros.conversations,
+    ...merged.archive.conversations,
+  ];
 
-const observeInbox = (
-  callback: (inbox: Inbox | null) => void
-): (() => void) | undefined => {
-  if (_inboxObservers.has(callback))
-    return;
+  merged.endTimestamp = findEarliestDateInConversations(conversations);
 
-  _inboxObservers.add(callback);
-
-  callback(_inbox);
-
-  return () => _inboxObservers.delete(callback);
-};
-
-const setInbox = async (
-  setter: (inbox: Inbox | null) => Promise<Inbox | null> | Inbox | null
-): Promise<void> => {
-  _inbox = await setter(_inbox);
-  _inboxObservers.forEach((observer) => observer(_inbox));
+  return merged;
 };
 
 const conversationListToMap = (
@@ -146,13 +204,14 @@ const conversationListToMap = (
     (obj, item) => { obj[item.personUuid] = item; return obj; },
     {}
   );
-
 };
 
 const populateConversationList = async (
   conversationList: Conversation[]
 ): Promise<void> => {
-  const personUuids: string[] = conversationList.map(c => c.personUuid);
+  const personUuids: string[] = conversationList
+    .map(c => c.personUuid)
+    .filter(isValidUuid);
 
   // TODO: Better error handling
   const response = (
@@ -202,135 +261,145 @@ const inboxToPersonUuids = (inbox: Inbox): string[] => {
   return [...personUuids];
 };
 
-const jidToPersonUuid = (jid: string): string =>
+const jidToBareJid = (jid: string): string =>
   jid.split('@')[0];
+
 const personUuidToJid = (personUuid: string): string =>
   `${personUuid}@duolicious.app`;
 
 const setInboxSent = (recipientPersonUuid: string, message: string) => {
-  setInbox(async (inbox) => {
-    const i = inbox ?? emptyInbox();
+  const i = getInbox() ?? emptyInbox();
 
-    const chatsConversation =
-      i.chats.conversationsMap[recipientPersonUuid] as Conversation | undefined;
-    const introsConversation =
-      i.intros.conversationsMap[recipientPersonUuid] as Conversation | undefined;
+  const chatsConversation =
+    i.chats.conversationsMap[recipientPersonUuid] as Conversation | undefined;
+  const introsConversation =
+    i.intros.conversationsMap[recipientPersonUuid] as Conversation | undefined;
 
-    const updatedConversation: Conversation = {
-      personId: 0,
-      personUuid: recipientPersonUuid,
-      name: '',
-      matchPercentage: 0,
-      imageUuid: null,
-      isAvailableUser: true,
-      location: 'archive',
-      ...chatsConversation,
-      ...introsConversation,
-      lastMessage: message,
-      lastMessageRead: true,
-      lastMessageTimestamp: new Date(),
-    };
+  const updatedConversation: Conversation = {
+    personId: 0,
+    personUuid: recipientPersonUuid,
+    name: '',
+    matchPercentage: 0,
+    imageUuid: null,
+    isAvailableUser: true,
+    location: 'archive',
+    ...chatsConversation,
+    ...introsConversation,
+    lastMessage: message,
+    lastMessageRead: true,
+    lastMessageTimestamp: new Date(),
+  };
 
-    // It's a new conversation. It will remain hidden until someone replies
-    if (!chatsConversation && !introsConversation) {
-      updatedConversation.location = 'nowhere';
-    }
-    // It was an intro before the new message. Move it to chats
-    else if (!chatsConversation) {
-      updatedConversation.location = 'chats';
+  // It's a new conversation. It will remain hidden until someone replies
+  if (!chatsConversation && !introsConversation) {
+    updatedConversation.location = 'nowhere';
+  }
+  // It was an intro before the new message. Move it to chats
+  else if (!chatsConversation) {
+    updatedConversation.location = 'chats';
 
-      i.chats.conversations.push(updatedConversation);
-      i.chats.conversationsMap[recipientPersonUuid] = updatedConversation;
+    i.chats.conversations.push(updatedConversation);
+    i.chats.conversationsMap[recipientPersonUuid] = updatedConversation;
 
-      // Remove conversation from intros
-      deleteFromArray(i.intros.conversations, introsConversation);
-      delete i.intros.conversationsMap[recipientPersonUuid];
-    }
-    // It was a chat before the new message. Update the chat.
-    else {
-      Object.assign(chatsConversation, updatedConversation);
-    }
+    // Remove conversation from intros
+    deleteFromArray(i.intros.conversations, introsConversation);
+    delete i.intros.conversationsMap[recipientPersonUuid];
+  }
+  // It was a chat before the new message. Update the chat.
+  else {
+    Object.assign(chatsConversation, updatedConversation);
+  }
 
-
-    // We could've returned `i` instead of a shallow copy. But then it
-    // wouldn't trigger re-renders when passed to a useState setter.
-    return {...i};
-  });
+  // We could've returned `i` instead of a shallow copy. But then it
+  // wouldn't trigger re-renders when passed to a useState setter.
+  notify<Inbox>('inbox', {...i});
 };
 
 const setInboxRecieved = async (
   fromPersonUuid: string,
   message: string,
 ) => {
-  await setInbox(async (inbox: Inbox) => {
-    const chatsConversation =
-      inbox.chats.conversationsMap[fromPersonUuid] as Conversation | undefined;
-    const introsConversation =
-      inbox.intros.conversationsMap[fromPersonUuid] as Conversation | undefined;
+  const inbox = getInbox();
 
-    const updatedConversation: Conversation = {
-      personId: 0,
-      personUuid: fromPersonUuid,
-      name: '',
-      matchPercentage: 0,
-      imageUuid: null,
-      isAvailableUser: true,
-      location: 'archive',
-      ...chatsConversation,
-      ...introsConversation,
-      lastMessage: message,
-      lastMessageRead: false,
-      lastMessageTimestamp: new Date(),
-    };
+  if (!inbox) {
+    return;
+  }
 
-    if (!chatsConversation && !introsConversation) {
-      await populateConversation(updatedConversation);
-      if (updatedConversation.location === 'chats') {
-        inbox.chats.conversations.push(updatedConversation);
-        inbox.chats.conversationsMap[fromPersonUuid] = updatedConversation;
-      }
-      if (updatedConversation.location === 'intros') {
-        inbox.intros.conversations.push(updatedConversation);
-        inbox.intros.conversationsMap[fromPersonUuid] = updatedConversation;
-      }
-    } else if (chatsConversation) {
-      Object.assign(chatsConversation, updatedConversation);
-    } else if (introsConversation) {
-      Object.assign(introsConversation, updatedConversation);
+  const chatsConversation =
+    inbox.chats.conversationsMap[fromPersonUuid] as Conversation | undefined;
+  const introsConversation =
+    inbox.intros.conversationsMap[fromPersonUuid] as Conversation | undefined;
+
+  const updatedConversation: Conversation = {
+    personId: 0,
+    personUuid: fromPersonUuid,
+    name: '',
+    matchPercentage: 0,
+    imageUuid: null,
+    isAvailableUser: true,
+    location: 'archive',
+    ...chatsConversation,
+    ...introsConversation,
+    lastMessage: message,
+    lastMessageRead: false,
+    lastMessageTimestamp: new Date(),
+  };
+
+  if (!chatsConversation && !introsConversation) {
+    await populateConversation(updatedConversation);
+    if (updatedConversation.location === 'chats') {
+      inbox.chats.conversations.push(updatedConversation);
+      inbox.chats.conversationsMap[fromPersonUuid] = updatedConversation;
     }
+    if (updatedConversation.location === 'intros') {
+      inbox.intros.conversations.push(updatedConversation);
+      inbox.intros.conversationsMap[fromPersonUuid] = updatedConversation;
+    }
+  } else if (chatsConversation) {
+    Object.assign(chatsConversation, updatedConversation);
+  } else if (introsConversation) {
+    Object.assign(introsConversation, updatedConversation);
+  }
 
-    notify(`message-to-${fromPersonUuid}`);
+  notify(`message-to-${fromPersonUuid}`);
 
-    // We could've returned `inbox` instead of a shallow copy. But then it
-    // wouldn't trigger re-renders when passed to a useState setter.
-    return {...inbox};
-  });
+  notify<Inbox>('inbox', {...inbox});
 };
 
-const setInboxDisplayed = async (fromPersonUuid: string) => {
-  await setInbox(async (inbox: Inbox) => {
-    const chatsConversation =
-      inbox.chats.conversationsMap[fromPersonUuid] as Conversation | undefined;
-    const introsConversation =
-      inbox.intros.conversationsMap[fromPersonUuid] as Conversation | undefined;
+const setInboxDisplayed = (fromPersonUuid: string) => {
+  const inbox = getInbox();
 
-    const updatedConversation = {
-      ...chatsConversation,
-      ...introsConversation,
-      lastMessageRead: true,
-    };
+  if (!inbox) {
+    return;
+  }
 
-    if (chatsConversation) {
-      Object.assign(chatsConversation, updatedConversation);
-    }
-    if (introsConversation) {
-      Object.assign(introsConversation, updatedConversation);
-    }
+  const chatsConversation =
+    inbox.chats.conversationsMap[fromPersonUuid] as Conversation | undefined;
+  const introsConversation =
+    inbox.intros.conversationsMap[fromPersonUuid] as Conversation | undefined;
+  const archiveConversation =
+    inbox.archive.conversationsMap[fromPersonUuid] as Conversation | undefined;
 
-    // We could've returned `inbox` instead of a shallow copy. But then it
-    // wouldn't trigger re-renders when passed to a useState setter.
-    return {...inbox};
-  });
+  const updatedConversation = {
+    ...chatsConversation,
+    ...introsConversation,
+    ...archiveConversation,
+    lastMessageRead: true,
+  };
+
+  if (chatsConversation) {
+    Object.assign(chatsConversation, updatedConversation);
+  }
+  if (introsConversation) {
+    Object.assign(introsConversation, updatedConversation);
+  }
+  if (archiveConversation) {
+    Object.assign(archiveConversation, updatedConversation);
+  }
+
+  // We could've returned `inbox` instead of a shallow copy. But then it
+  // wouldn't trigger re-renders when passed to a useState setter.
+  notify<Inbox>('inbox', {...inbox});
 };
 
 const select1 = (query: string, stanza: Element): xpath.SelectedValue => {
@@ -366,7 +435,7 @@ const login = async (username: string, password: string) => {
 
         await _xmpp.send(xml("presence", { type: "available" }));
 
-        if (!_inbox) await refreshInbox();
+        !getInbox() && refreshInbox();
 
         await registerForPushNotificationsAsync();
 
@@ -414,7 +483,7 @@ const markDisplayed = async (message: Message) => {
   `);
 
   await _xmpp.send(stanza);
-  await setInboxDisplayed(jidToPersonUuid(message.from));
+  setInboxDisplayed(jidToBareJid(message.from));
 };
 
 const _sendMessage = (
@@ -532,31 +601,34 @@ const conversationsToInbox = (conversations: Conversation[]): Inbox => {
       conversations: archive,
       conversationsMap: conversationListToMap(archive),
     },
+    endTimestamp: findEarliestDateInConversations(conversations),
   };
 
   return inbox;
 };
 
 const setConversationArchived = (personUuid: string, isArchived: boolean) => {
-  setInbox((inbox) => {
-    if (!inbox) {
-      return inbox;
-    }
+  const inbox = getInbox();
 
-    const conversationToUpdate = (
-      inbox.chats .conversationsMap[personUuid] ??
-      inbox.intros.conversationsMap[personUuid]) as Conversation | undefined;
+  if (!inbox) {
+    return inbox;
+  }
 
-    if (conversationToUpdate) {
-      conversationToUpdate.location = 'archive';
-    }
+  const conversationToUpdate = (
+    inbox.chats .conversationsMap[personUuid] ??
+    inbox.intros.conversationsMap[personUuid]) as Conversation | undefined;
 
-    return conversationsToInbox([
-      ...inbox.chats.conversations,
-      ...inbox.intros.conversations,
-      ...inbox.archive.conversations,
-    ]);
-  });
+  if (conversationToUpdate) {
+    conversationToUpdate.location = 'archive';
+  }
+
+  const inbox_ = conversationsToInbox([
+    ...inbox.chats.conversations,
+    ...inbox.intros.conversations,
+    ...inbox.archive.conversations,
+  ]);
+
+  notify<Inbox>('inbox', inbox_);
 };
 
 const onReceiveMessage = (
@@ -594,7 +666,7 @@ const onReceiveMessage = (
 
     if (
       otherPersonUuid !== undefined &&
-      otherPersonUuid !== jidToPersonUuid(from.toString())
+      otherPersonUuid !== jidToBareJid(from.toString())
     ) return;
 
     const message: Message = {
@@ -603,11 +675,11 @@ const onReceiveMessage = (
       to: to.toString(),
       id: id.toString(),
       timestamp: stamp.toString() ? new Date(stamp.toString()) : new Date(),
-      fromCurrentUser: jidToPersonUuid(from.toString()) == signedInUser?.personUuid,
+      fromCurrentUser: jidToBareJid(from.toString()) == signedInUser?.personUuid,
     };
 
     await setInboxRecieved(
-      jidToPersonUuid(from.toString()),
+      jidToBareJid(from.toString()),
       bodyText.toString(),
     );
     if (otherPersonUuid !== undefined && doMarkDisplayed !== false) {
@@ -750,8 +822,10 @@ const fetchConversation = async (
   return await withTimeout(30000, __fetchConversation);
 };
 
-const _fetchInbox = async (
+const _fetchInboxPage = async (
   callback: (conversations: Inbox | undefined) => void,
+  endTimestamp: Date | null,
+  pageSize: number | null,
 ) => {
   if (!_xmpp) {
     return callback(undefined);
@@ -759,10 +833,25 @@ const _fetchInbox = async (
 
   const queryId = getRandomString(10);
 
+  const endTimestampFragment = !endTimestamp ? '' : `
+        <x xmlns='jabber:x:data' type='form'>
+          <field type='text-single' var='end'>
+            <value>${endTimestamp.toISOString()}</value>
+          </field>
+        </x>`.trim();
+
+  const maxPageSizeFragment = !pageSize ? '' : `
+        <set xmlns='http://jabber.org/protocol/rsm'>
+          <max>${pageSize}</max>
+        </set>
+  `.trim();
+
   const queryStanza = parse(`
     <iq type='set' id='${queryId}'>
       <inbox xmlns='erlang-solutions.com:xmpp:inbox:0' queryid='${queryId}'>
-        <x xmlns='jabber:x:data' type='form'/>
+        ${endTimestampFragment}
+
+        ${maxPageSizeFragment}
       </inbox>
     </iq>
   `);
@@ -795,16 +884,20 @@ const _fetchInbox = async (
     if (numUnread === null) return;
     if (timestamp === null) return;
 
-    const fromCurrentUserByUuid = from.toString().startsWith(
-      `${signedInUser?.personUuid}@`);
+    const bareFrom = jidToBareJid(from.toString());
+    const bareTo = jidToBareJid(to.toString());
 
-    const fromCurrentUserById = from.toString().startsWith(
-      `${signedInUser?.personId}@`);
+    const fromCurrentUserByUuid = bareFrom === signedInUser?.personUuid;
+    const fromCurrentUserById = bareFrom === String(signedInUser?.personId);
 
-    // Some of these need to be fetched from via the API
-    const personUuid = (fromCurrentUserByUuid ? to : from).toString().split('@')[0];
-    const personId = parseIntOrZero(
-      (fromCurrentUserById ? to : from).toString().split('@')[0]);
+    const fromCurrentUser = fromCurrentUserByUuid || fromCurrentUserById;
+
+    const bareJid = fromCurrentUser ? bareTo : bareFrom;
+
+    // Some of these need to be fetched from the REST API instead of the XMPP
+    // server
+    const personUuid = parseUuidOrEmtpy(bareJid)
+    const personId = parseIntOrZero(bareJid)
     const name = '';
     const matchPercentage = 0;
     const imageUuid = null;
@@ -864,15 +957,35 @@ const _fetchInbox = async (
   await _xmpp.send(queryStanza);
 };
 
-const fetchInbox = async (): Promise<Inbox | undefined> => {
-  return new Promise((resolve) => _fetchInbox(resolve));
+const fetchInboxPage = async (
+  endTimestamp: Date | null = null,
+  pageSize: number | null = null,
+): Promise<Inbox | undefined> => {
+  return new Promise((resolve) =>
+    _fetchInboxPage(resolve, endTimestamp, pageSize));
 };
 
 const refreshInbox = async (): Promise<void> => {
-  const inbox = await fetchInbox();
-  if (!inbox) return;
+  let inbox = emptyInbox();
 
-  setInbox(() => inbox);
+  while (true) {
+    const page = await fetchInboxPage(inbox.endTimestamp);
+
+    const isLastPage = (
+      !page ||
+      !page.archive.conversations.length &&
+      !page.chats.conversations.length &&
+      !page.intros.conversations.length
+    );
+
+    if (isLastPage) {
+      notify<Inbox>('inbox', inbox);
+      break;
+    } else {
+      inbox = mergeInbox(inbox, page);
+      notify<Inbox>('inbox', inbox);
+    }
+  }
 };
 
 const logout = async () => {
@@ -880,7 +993,7 @@ const logout = async () => {
     notify('xmpp-is-online', false);
     await _xmpp.send(xml("presence", { type: "unavailable" })).catch(console.error);
     await _xmpp.stop().catch(console.error);
-    setInbox(() => null);
+    notify('inbox', null);
   }
 };
 
@@ -903,11 +1016,9 @@ export {
   login,
   logout,
   markDisplayed,
-  observeInbox,
   onReceiveMessage,
   refreshInbox,
   registerPushToken,
   sendMessage,
   setConversationArchived,
-  setInbox,
 };

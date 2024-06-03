@@ -379,7 +379,7 @@ const ConversationScreen = ({navigation, route}) => {
 
   // Fetch the first page of messages when the conversation is first opened
   // while online
-  const maybeFetchFirstPage = async (isOnline: boolean) => {
+  const maybeFetchFirstPage = useCallback(async (isOnline: boolean) => {
     if (!isOnline) {
       return;
     }
@@ -394,11 +394,11 @@ const ConversationScreen = ({navigation, route}) => {
     } else {
       setMessages(fetchedMessages ?? []);
     }
-  };
+  }, [messages, personUuid]);
 
   useEffect(() => {
     return listen('xmpp-is-online', maybeFetchFirstPage, true)
-  }, []);
+  }, [maybeFetchFirstPage]);
 
   // Scroll to end when last message changes
   useEffect(() => {

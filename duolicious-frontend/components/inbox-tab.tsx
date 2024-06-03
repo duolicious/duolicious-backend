@@ -22,12 +22,13 @@ import { ButtonGroup } from './button-group';
 import { OptionScreen } from './option-screen';
 import { hideMeFromStrangersOptionGroup } from '../data/option-groups';
 import { DefaultFlatList } from './default-flat-list';
-import { Inbox, Conversation, inboxStats, observeInbox } from '../xmpp/xmpp';
+import { Inbox, Conversation, inboxStats } from '../xmpp/xmpp';
 import { compareArrays } from '../util/util';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { inboxOrder, inboxSection } from '../kv-storage/inbox';
 import { signedInUser } from '../App';
 import { Notice } from './notice';
+import { listen } from '../events/events';
 
 const Stack = createNativeStackNavigator();
 
@@ -125,14 +126,20 @@ const InboxTab_ = ({navigation}) => {
   }, [listRef]);
 
   useEffect(() => {
+    return listen<Inbox | null>(
+      'inbox',
+      (inbox) => setInbox(inbox ?? null),
+      true
+    );
+  }, []);
+
+  useEffect(() => {
     (async () => {
       const _inboxOrder = await inboxOrder();
       const _inboxSection = await inboxSection();
 
       setSectionIndex(_inboxSection);
       setSortByIndex(_inboxOrder);
-
-      observeInbox(setInbox);
     })();
   }, []);
 

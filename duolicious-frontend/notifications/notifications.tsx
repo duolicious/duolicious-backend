@@ -28,6 +28,10 @@ const setNofications = () => {
 }
 
 const registerForPushNotificationsAsync = async (): Promise<void> => {
+  if (Platform.OS === 'web') {
+    return;
+  }
+
   if (!Device.isDevice) {
     return;
   }
