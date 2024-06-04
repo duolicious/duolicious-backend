@@ -599,12 +599,14 @@ WITH onboardee_country AS (
     INSERT INTO photo (
         person_id,
         position,
-        uuid
+        uuid,
+        blurhash
     )
     SELECT
         new_person.id,
         position,
-        onboardee_photo.uuid
+        onboardee_photo.uuid,
+        onboardee_photo.blurhash
     FROM onboardee_photo
     JOIN new_person
     ON onboardee_photo.email = new_person.email
@@ -823,6 +825,10 @@ WITH prospect_person_id AS (
     SELECT COALESCE(json_agg(uuid ORDER BY position), '[]'::json) AS j
     FROM photo
     WHERE person_id = (SELECT id FROM prospect_person_id)
+), photo_blurhashes AS (
+    SELECT COALESCE(json_agg(blurhash ORDER BY position), '[]'::json) AS j
+    FROM photo
+    WHERE person_id = (SELECT id FROM prospect_person_id)
 ), gender AS (
     SELECT gender.name AS j
     FROM gender JOIN prospect ON gender_id = gender.id
@@ -934,6 +940,7 @@ SELECT
     json_build_object(
         'person_id',              (SELECT id            FROM prospect_person_id),
         'photo_uuids',            (SELECT j             FROM photo_uuids),
+        'photo_blurhashes',       (SELECT j             FROM photo_blurhashes),
         'name',                   (SELECT name          FROM prospect),
         'age',                    (SELECT age           FROM prospect),
         'location',               (SELECT location      FROM prospect),
@@ -1213,6 +1220,23 @@ SELECT
             NULL
     END AS image_uuid,
     CASE
+        WHEN is_prospect_activated AND NOT prospect_skipped_person
+        THEN
+            (
+                SELECT
+                    blurhash
+                FROM
+                    photo
+                WHERE
+                    person_id = prospect.person_id
+                ORDER BY
+                    position
+                LIMIT 1
+            )
+        ELSE
+            NULL
+    END AS image_blurhash,
+    CASE
         WHEN
                 NOT is_prospect_deleted
             AND
@@ -1330,8 +1354,12 @@ WHERE
 """
 
 Q_GET_PROFILE_INFO = """
-WITH photo AS (
+WITH photo_ AS (
     SELECT json_object_agg(position, uuid) AS j
+    FROM photo
+    WHERE person_id = %(person_id)s
+), photo_blurhash AS (
+    SELECT json_object_agg(position, blurhash) AS j
     FROM photo
     WHERE person_id = %(person_id)s
 ), name AS (
@@ -1456,7 +1484,8 @@ WITH photo AS (
 )
 SELECT
     json_build_object(
-        'photo',                  (SELECT j FROM photo),
+        'photo',                  (SELECT j FROM photo_),
+        'photo_blurhash',         (SELECT j FROM photo_blurhash),
         'name',                   (SELECT j FROM name),
         'about',                  (SELECT j FROM about),
         'gender',                 (SELECT j FROM gender),

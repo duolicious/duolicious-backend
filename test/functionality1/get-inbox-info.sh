@@ -26,7 +26,7 @@ user1_uuid=$(q "select uuid from person where email = 'user1@example.com'")
 user2_uuid=$(q "select uuid from person where email = 'user2@example.com'")
 user4_uuid=$(q "select uuid from person where email = 'user4@example.com'")
 
-q "update photo set uuid = 'my-uuid'"
+q "update photo set uuid = 'my-uuid', blurhash = 'my-blurhash'"
 
 response=$(jc POST /request-otp -d '{ "email": "user2@example.com" }')
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
@@ -40,6 +40,7 @@ expected=$(cat <<EOF
 [
   {
     "conversation_location": "nowhere",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
@@ -48,6 +49,7 @@ expected=$(cat <<EOF
   },
   {
     "conversation_location": "nowhere",
+    "image_blurhash": "my-blurhash",
     "image_uuid": "my-uuid",
     "match_percentage": 50,
     "name": "user4",
@@ -71,6 +73,7 @@ expected=$(cat <<EOF
 [
   {
     "conversation_location": "nowhere",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
@@ -79,6 +82,7 @@ expected=$(cat <<EOF
   },
   {
     "conversation_location": "nowhere",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": null,
     "name": null,
@@ -103,6 +107,7 @@ expected=$(cat <<EOF
 [
   {
     "conversation_location": "nowhere",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
@@ -111,6 +116,7 @@ expected=$(cat <<EOF
   },
   {
     "conversation_location": "nowhere",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": null,
     "name": null,
@@ -134,6 +140,7 @@ expected=$(cat <<EOF
 [
   {
     "conversation_location": "nowhere",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
@@ -142,6 +149,7 @@ expected=$(cat <<EOF
   },
   {
     "conversation_location": "nowhere",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": null,
     "name": null,
@@ -167,6 +175,7 @@ expected=$(cat <<EOF
 [
   {
     "conversation_location": "nowhere",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
@@ -175,6 +184,7 @@ expected=$(cat <<EOF
   },
   {
     "conversation_location": "nowhere",
+    "image_blurhash": "my-blurhash",
     "image_uuid": "my-uuid",
     "match_percentage": 50,
     "name": "user4",
@@ -196,6 +206,7 @@ expected=$(cat <<EOF
 [
   {
     "conversation_location": "nowhere",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
@@ -204,6 +215,7 @@ expected=$(cat <<EOF
   },
   {
     "conversation_location": "intros",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user2",
@@ -231,6 +243,7 @@ expected=$(cat <<EOF
 [
   {
     "conversation_location": "nowhere",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
@@ -239,6 +252,7 @@ expected=$(cat <<EOF
   },
   {
     "conversation_location": "chats",
+    "image_blurhash": "my-blurhash",
     "image_uuid": "my-uuid",
     "match_percentage": 50,
     "name": "user4",
@@ -261,6 +275,7 @@ expected=$(cat <<EOF
 [
   {
     "conversation_location": "nowhere",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
@@ -269,6 +284,7 @@ expected=$(cat <<EOF
   },
   {
     "conversation_location": "chats",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user2",
@@ -295,6 +311,7 @@ expected=$(cat <<EOF
 [
   {
     "conversation_location": "nowhere",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
@@ -303,6 +320,7 @@ expected=$(cat <<EOF
   },
   {
     "conversation_location": "nowhere",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": null,
     "name": null,
@@ -325,6 +343,7 @@ expected=$(cat <<EOF
 [
   {
     "conversation_location": "nowhere",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user1",
@@ -333,6 +352,7 @@ expected=$(cat <<EOF
   },
   {
     "conversation_location": "archive",
+    "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
     "name": "user2",

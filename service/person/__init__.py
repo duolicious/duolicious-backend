@@ -21,6 +21,8 @@ import psycopg
 from functools import lru_cache
 import random
 from antispam import check_and_update_bad_domains, normalize_email
+import blurhash
+import numpy
 
 @dataclass
 class EmailEntry:
@@ -112,13 +114,11 @@ def _send_report(
     except:
         print(traceback.format_exc())
 
-def process_image(
+def process_image_as_image(
     image: Image.Image,
     output_size: Optional[int] = None,
     crop_size: Optional[CropSize] = None,
 ) -> io.BytesIO:
-    output_bytes = io.BytesIO()
-
     # Rotate the image according to EXIF data
     try:
         exif = image.getexif()
@@ -189,7 +189,16 @@ def process_image(
     if output_size is not None and output_size != min_dim:
         image = image.resize((output_size, output_size))
 
-    image = image.convert('RGB')
+    return image.convert('RGB')
+
+def process_image_as_bytes(
+    image: Image.Image,
+    output_size: Optional[int] = None,
+    crop_size: Optional[CropSize] = None,
+) -> io.BytesIO:
+    output_bytes = io.BytesIO()
+
+    image = process_image_as_image(image, output_size, crop_size)
 
     image.save(
         output_bytes,
@@ -204,6 +213,11 @@ def process_image(
 
     return output_bytes
 
+def compute_blurhash(image: Image.Image, crop_size: Optional[CropSize] = None):
+    image = process_image_as_image(image, output_size=32, crop_size=crop_size)
+
+    return blurhash.encode(numpy.array(image.convert("RGB")))
+
 def put_object(key: str, io_bytes: io.BytesIO):
     bucket.put_object(Key=key, Body=io_bytes)
 
@@ -215,9 +229,9 @@ def put_image_in_object_store(
     key_img = [
         (key, converted_img)
         for key, converted_img in [
-            (f'original-{uuid}.jpg', process_image(img, output_size=None)),
-            (f'900-{uuid}.jpg', process_image(img, output_size=900, crop_size=crop_size)),
-            (f'450-{uuid}.jpg', process_image(img, output_size=450, crop_size=crop_size)),
+            (f'original-{uuid}.jpg', process_image_as_bytes(img, output_size=None)),
+            (f'900-{uuid}.jpg', process_image_as_bytes(img, output_size=900, crop_size=crop_size)),
+            (f'450-{uuid}.jpg', process_image_as_bytes(img, output_size=450, crop_size=crop_size)),
         ]
     ]
 
@@ -459,12 +473,15 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
         top = field_value['top']
         left = field_value['left']
 
+        crop_size = CropSize(top=top, left=left)
         uuid = secrets.token_hex(32)
+        blurhash_ = compute_blurhash(image, crop_size=crop_size)
 
         params = dict(
             email=s.email,
             position=position,
             uuid=uuid,
+            blurhash=blurhash_,
         )
 
         # Create new onboardee photos. Because we:
@@ -496,11 +513,13 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
                 INSERT INTO onboardee_photo (
                     email,
                     position,
-                    uuid
+                    uuid,
+                    blurhash
                 ) VALUES (
                     %(email)s,
                     %(position)s,
-                    %(uuid)s
+                    %(uuid)s,
+                    %(blurhash)s
                 ) ON CONFLICT (email, position) DO UPDATE SET
                     uuid = EXCLUDED.uuid
             )
@@ -511,7 +530,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
             tx.execute(q_set_onboardee_field, params)
 
         try:
-            put_image_in_object_store(uuid, image, CropSize(top=top, left=left))
+            put_image_in_object_store(uuid, image, crop_size)
         except Exception as e:
             print('Upload failed with exception:', e)
             return '', 500
@@ -782,13 +801,16 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         top = field_value['top']
         left = field_value['left']
 
+        crop_size = CropSize(top=top, left=left)
         uuid = secrets.token_hex(32)
+        blurhash_ = compute_blurhash(image, crop_size)
 
         params = dict(
             person_id=s.person_id,
             email=s.email,
             position=position,
             uuid=uuid,
+            blurhash=blurhash_,
         )
 
         q = """
@@ -813,11 +835,13 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             INSERT INTO photo (
                 person_id,
                 position,
-                uuid
+                uuid,
+                blurhash
             ) VALUES (
                 %(person_id)s,
                 %(position)s,
-                %(uuid)s
+                %(uuid)s,
+                %(blurhash)s
             ) ON CONFLICT (person_id, position) DO UPDATE SET
                 uuid = EXCLUDED.uuid
         )
@@ -828,8 +852,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             tx.execute(q, params)
 
         try:
-            put_image_in_object_store(
-                uuid, image, CropSize(top=top, left=left))
+            put_image_in_object_store(uuid, image, crop_size)
         except Exception as e:
             print('Upload failed with exception:', e)
             return '', 500

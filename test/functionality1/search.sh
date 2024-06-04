@@ -551,6 +551,7 @@ test_json_format () {
     "match_percentage": 99,
     "name": "user1",
     "person_messaged_prospect": false,
+    "profile_photo_blurhash": null,
     "profile_photo_uuid": null,
     "prospect_messaged_person": false,
     "prospect_person_id": ${user1_id},
@@ -570,6 +571,7 @@ EOF
     "match_percentage": 50,
     "name": "user2",
     "person_messaged_prospect": false,
+    "profile_photo_blurhash": null,
     "profile_photo_uuid": null,
     "prospect_messaged_person": false,
     "prospect_person_id": ${user2_id},
@@ -588,6 +590,7 @@ EOF
     "age": 26,
     "match_percentage": 99,
     "name": "user1",
+    "profile_photo_blurhash": null,
     "profile_photo_uuid": null,
     "prospect_person_id": ${user1_id},
     "prospect_uuid": "${user1_uuid}"
