@@ -101,7 +101,7 @@ def main():
                 allow()
             else:
                 deny()
-        except struct.error as e:
+        except:
             deny()
 
 if __name__ == "__main__":
