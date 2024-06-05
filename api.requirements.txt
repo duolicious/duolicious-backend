@@ -2,9 +2,11 @@ Flask
 Flask-Limiter
 Pillow
 PyYAML
+blurhash
 boto3
 flask-cors
 gunicorn
+numpy
 openai
 psycopg
 pydantic[email]

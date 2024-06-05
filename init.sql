@@ -275,6 +275,7 @@ CREATE TABLE IF NOT EXISTS onboardee_photo (
     email TEXT NOT NULL REFERENCES onboardee(email) ON DELETE CASCADE,
     position SMALLINT NOT NULL,
     uuid TEXT NOT NULL,
+    blurhash TEXT NOT NULL,
     PRIMARY KEY (email, position)
 );
 
@@ -294,6 +295,7 @@ CREATE TABLE IF NOT EXISTS photo (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     position SMALLINT NOT NULL,
     uuid TEXT NOT NULL,
+    blurhash TEXT NOT NULL,
     PRIMARY KEY (person_id, position)
 );
 
@@ -1248,5 +1250,13 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
+
+-- TODO: Delete
+ALTER TABLE onboardee_photo ADD COLUMN IF NOT EXISTS blurhash TEXT NOT NULL DEFAULT '';
+ALTER TABLE photo           ADD COLUMN IF NOT EXISTS blurhash TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE onboardee_photo ALTER COLUMN blurhash DROP NOT NULL;
+ALTER TABLE photo           ALTER COLUMN blurhash DROP NOT NULL;
+
 
 --------------------------------------------------------------------------------

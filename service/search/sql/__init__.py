@@ -465,6 +465,9 @@ SELECT
     prospect_person_id,
     prospect_uuid,
     profile_photo_uuid,
+    (
+        SELECT blurhash FROM photo WHERE profile_photo_uuid = photo.uuid
+    ) AS profile_photo_blurhash,
     name,
     age,
     match_percentage,
@@ -501,6 +504,9 @@ SELECT
     prospect_person_id,
     prospect_uuid,
     profile_photo_uuid,
+    (
+        SELECT blurhash FROM photo WHERE profile_photo_uuid = photo.uuid
+    ) AS profile_photo_blurhash,
     name,
     age,
     match_percentage,
@@ -548,6 +554,9 @@ SELECT
     prospect_person_id,
     prospect_uuid,
     profile_photo_uuid,
+    (
+        SELECT blurhash FROM photo WHERE profile_photo_uuid = photo.uuid
+    ) AS profile_photo_blurhash,
     name,
     age,
     CLAMP(
