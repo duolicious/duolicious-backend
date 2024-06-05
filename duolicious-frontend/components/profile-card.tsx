@@ -1,6 +1,5 @@
 import {
   Animated,
-  ImageBackground,
   Pressable,
   View,
 } from 'react-native';
@@ -22,15 +21,16 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { listen } from '../events/events';
 import { X } from "react-native-feather";
 import { PageItem } from './search-tab';
+import { ImageBackground } from 'expo-image';
 
-const ImageOrSkeleton = ({resolution, imageUuid, ...rest}) => {
+const ImageOrSkeleton = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
   const {
     showGradient = true,
   } = rest;
 
   return (
     <View style={rest.style}>
-      {imageUuid !== undefined &&
+      {imageUuid !== undefined && !imageBlurhash &&
         <Skeleton
           style={{
             position: 'absolute',
@@ -42,9 +42,12 @@ const ImageOrSkeleton = ({resolution, imageUuid, ...rest}) => {
         />
       }
       <ImageBackground
+        key={String(imageUuid) + ' ' + String(imageBlurhash)}
         source={imageUuid && {
           uri: `${IMAGES_URL}/${resolution}-${imageUuid}.jpg`
         }}
+        placeholder={imageBlurhash && { blurhash: imageBlurhash }}
+        transition={150}
         style={{
           width: '100%',
           backgroundColor: imageUuid ? undefined : '#ccc',
@@ -94,6 +97,7 @@ const ProfileCard = ({
     age: age,
     match_percentage: matchPercentage,
     profile_photo_uuid: imageUuid,
+    profile_photo_blurhash: imageBlurhash,
     prospect_person_id: personId,
     prospect_uuid: personUuid,
     person_messaged_prospect: personMessagedProspect,
@@ -118,7 +122,7 @@ const ProfileCard = ({
       'Prospect Profile Screen',
       {
         screen: 'Prospect Profile',
-        params: { personId, personUuid },
+        params: { personId, personUuid, imageBlurhash },
       }
     );
   }, [navigation, personUuid]);
@@ -184,7 +188,11 @@ const ProfileCard = ({
             overflow: 'hidden',
           }}
         >
-          <ImageOrSkeleton resolution={450} imageUuid={imageUuid}/>
+          <ImageOrSkeleton
+            resolution={450}
+            imageUuid={imageUuid}
+            imageBlurhash={imageBlurhash}
+          />
           <UserDetails
             name={name}
             age={age}

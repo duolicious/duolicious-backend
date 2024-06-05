@@ -79,6 +79,7 @@ type Conversation = {
   name: string
   matchPercentage: number
   imageUuid: string | null
+  imageBlurhash: string | null
   lastMessage: string
   lastMessageRead: boolean
   lastMessageTimestamp: Date

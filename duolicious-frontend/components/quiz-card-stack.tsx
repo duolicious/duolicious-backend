@@ -101,6 +101,7 @@ const prospectState = (
   personId: number,
   personUuid: string,
   imageUuid: string,
+  imageBlurhash: string,
   matchPercentage: number
 ): ProspectState => {
   const animation = new Animated.Value(0);
@@ -134,6 +135,7 @@ const prospectState = (
     personId: personId,
     personUuid: personUuid,
     imageUuid: imageUuid,
+    imageBlurhash: imageBlurhash,
     matchPercentage: matchPercentage,
     style: {
       transform: [
@@ -164,6 +166,7 @@ const fetchNBestProspects = async (
     x.prospect_person_id,
     x.prospect_uuid,
     x.profile_photo_uuid,
+    x.profile_photo_blurhash,
     x.match_percentage
   ));
 };
@@ -200,6 +203,7 @@ type ProspectState = {
   personId: number
   personUuid: string
   imageUuid: string
+  imageBlurhash: string
   matchPercentage: number
   style: {
     transform: [
@@ -360,7 +364,15 @@ const getBestProspects = (prospects: ProspectState[]) => {
   ].filter(prospect => prospect);
 };
 
-const Prospect = ({navigation, style, personId, personUuid, imageUuid, matchPercentage}) => {
+const Prospect = ({
+  navigation,
+  style,
+  personId,
+  personUuid,
+  imageUuid,
+  imageBlurhash,
+  matchPercentage,
+}) => {
   const [isSkipped, setIsSkipped] = useState(false);
 
   const onHide = useCallback(() => setIsSkipped(true), [setIsSkipped]);
@@ -388,6 +400,7 @@ const Prospect = ({navigation, style, personId, personUuid, imageUuid, matchPerc
       personId={personId}
       personUuid={personUuid}
       imageUuid={imageUuid}
+      imageBlurhash={imageBlurhash}
       percentage={matchPercentage}
       shadow={true}
       isSkipped={isSkipped}
@@ -528,6 +541,7 @@ const Prospects = ({
               personId={prospect.personId}
               personUuid={prospect.personUuid}
               imageUuid={prospect.imageUuid}
+              imageBlurhash={prospect.imageBlurhash}
               matchPercentage={prospect.matchPercentage} />
           )
         }

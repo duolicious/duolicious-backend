@@ -52,7 +52,8 @@ type OptionGroupPhotos = {
   photos: {
     submit: (position: number, cropperOutput: NonNullImageCropperOutput) => Promise<boolean>
     delete: (filename: string) => Promise<boolean>
-    fetch?: (position: string, resolution: string) => Promise<string | null>
+    getUri?: (position: string, resolution: string) => string | null
+    getBlurhash?: (position: string) => string | null
   }
 };
 

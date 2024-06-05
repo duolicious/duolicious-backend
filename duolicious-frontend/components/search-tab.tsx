@@ -44,6 +44,7 @@ type PageItem = {
   prospect_person_id: number
   prospect_uuid: string
   profile_photo_uuid: string
+  profile_photo_blurhash: string
   name: string
   age: number
   match_percentage: number

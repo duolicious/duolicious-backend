@@ -85,11 +85,13 @@ const goToGallery = (navigation, imageUuid) => () =>
 
 const EnlargeableImage = ({
   imageUuid,
+  imageBlurhash,
   onChangeEmbiggened,
   style,
   isPrimary,
 }: {
   imageUuid: string | undefined | null,
+  imageBlurhash: string | undefined | null,
   onChangeEmbiggened: (uuid: string) => void,
   style?: any,
   isPrimary: boolean,
@@ -105,6 +107,7 @@ const EnlargeableImage = ({
       <ImageOrSkeleton
         resolution={900}
         imageUuid={imageUuid}
+        imageBlurhash={imageBlurhash}
         style={style}
         showGradient={false}
       />
@@ -285,12 +288,22 @@ const FloatingSkipButton = ({navigation, personId, personUuid, isSkipped}) => {
   );
 };
 
-const FloatingSendIntroButton = ({navigation, personId, personUuid, name, imageUuid}) => {
+const FloatingSendIntroButton = ({
+  navigation,
+  personId,
+  personUuid,
+  name,
+  imageUuid,
+  imageBlurhash,
+}) => {
   const onPress = useCallback(() => {
     if (personId === undefined) return;
     if (name === undefined) return;
 
-    navigation.navigate('Conversation Screen', { personId, personUuid, name, imageUuid });
+    navigation.navigate(
+      'Conversation Screen',
+      { personId, personUuid, name, imageUuid, imageBlurhash }
+    );
   }, [navigation, personId, name, imageUuid]);
 
   return (
@@ -463,6 +476,7 @@ type UserData = {
   match_percentage: number,
   count_answers: number,
   photo_uuids: string[],
+  photo_blurhashes: string[],
   age: number | null,
   location: string | null
   drinking: string | null,
@@ -491,6 +505,7 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
   const personId = route.params.personId;
   const personUuid = route.params.personUuid;
   const showBottomButtons = route.params.showBottomButtons ?? true;
+  const imageBlurhashParam = route.params.imageBlurhash;
 
   const [data, setData] = useState<UserData | undefined>(undefined);
 
@@ -517,6 +532,10 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
     undefined :
     data.photo_uuids;
 
+  const imageBlurhashes = data?.photo_blurhashes === undefined ?
+    undefined :
+    data.photo_blurhashes;
+
   const imageUuid0 = (() => {
     if (imageUuids === undefined) {
       return undefined;
@@ -525,6 +544,19 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
       return null;
     }
     return imageUuids[0];
+  })();
+
+  const imageBlurhash0 = (() => {
+    if (imageBlurhashParam) {
+      return imageBlurhashParam;
+    }
+    if (imageBlurhashes === undefined) {
+      return undefined;
+    }
+    if (imageBlurhashes.length === 0) {
+      return null;
+    }
+    return imageBlurhashes[0];
   })();
 
   const numMorePics = Math.max(0, (imageUuids ?? []).length - 1);
@@ -541,6 +573,7 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
       >
         <EnlargeableImage
           imageUuid={imageUuid0}
+          imageBlurhash={imageBlurhash0}
           onChangeEmbiggened={goToGallery(navigation, imageUuid0)}
           isPrimary={true}
         />
@@ -559,6 +592,7 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
           personUuid={personUuid}
           data={data}
           imageUuids={imageUuids}
+          imageBlurhashes={imageBlurhashes}
           onChangeEmbiggened={() => {}}
         />
       </ScrollView>
@@ -594,6 +628,7 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
               personUuid={personUuid}
               name={data?.name}
               imageUuid={imageUuid}
+              imageBlurhash={imageBlurhash0}
             />
           </View>
         </View>
@@ -711,6 +746,7 @@ const Body = ({
   personUuid,
   data,
   imageUuids,
+  imageBlurhashes,
   onChangeEmbiggened,
 }: {
   navigation: any,
@@ -718,6 +754,7 @@ const Body = ({
   personUuid: string,
   data: UserData | undefined,
   imageUuids: string[] | undefined,
+  imageBlurhashes: string[] | undefined,
   onChangeEmbiggened: (uuid: string) => void,
 }) => {
   const imageUuid1 = imageUuids && imageUuids[1];
@@ -726,6 +763,14 @@ const Body = ({
   const imageUuid4 = imageUuids && imageUuids[4];
   const imageUuid5 = imageUuids && imageUuids[5];
   const imageUuid6 = imageUuids && imageUuids[6];
+
+  const imageBlurhash1 = imageBlurhashes && imageBlurhashes[1];
+  const imageBlurhash2 = imageBlurhashes && imageBlurhashes[2];
+  const imageBlurhash3 = imageBlurhashes && imageBlurhashes[3];
+  const imageBlurhash4 = imageBlurhashes && imageBlurhashes[4];
+  const imageBlurhash5 = imageBlurhashes && imageBlurhashes[5];
+  const imageBlurhash6 = imageBlurhashes && imageBlurhashes[6];
+
   const isViewingSelf = personId === signedInUser?.personId;
 
   return (
@@ -807,6 +852,7 @@ const Body = ({
 
         <EnlargeableImage
           imageUuid={imageUuid1}
+          imageBlurhash={imageBlurhash1}
           onChangeEmbiggened={goToGallery(navigation, imageUuid1)}
           style={styles.secondaryEnlargeableImage}
           isPrimary={false}
@@ -826,6 +872,7 @@ const Body = ({
 
         <EnlargeableImage
           imageUuid={imageUuid2}
+          imageBlurhash={imageBlurhash2}
           onChangeEmbiggened={goToGallery(navigation, imageUuid2)}
           style={styles.secondaryEnlargeableImage}
           isPrimary={false}
@@ -848,6 +895,7 @@ const Body = ({
 
         <EnlargeableImage
           imageUuid={imageUuid3}
+          imageBlurhash={imageBlurhash3}
           onChangeEmbiggened={goToGallery(navigation, imageUuid3)}
           style={styles.secondaryEnlargeableImage}
           isPrimary={false}
@@ -870,6 +918,7 @@ const Body = ({
 
         <EnlargeableImage
           imageUuid={imageUuid4}
+          imageBlurhash={imageBlurhash4}
           onChangeEmbiggened={goToGallery(navigation, imageUuid4)}
           style={styles.secondaryEnlargeableImage}
           isPrimary={false}
@@ -877,6 +926,7 @@ const Body = ({
 
         <EnlargeableImage
           imageUuid={imageUuid5}
+          imageBlurhash={imageBlurhash5}
           onChangeEmbiggened={goToGallery(navigation, imageUuid5)}
           style={styles.secondaryEnlargeableImage}
           isPrimary={false}
@@ -884,6 +934,7 @@ const Body = ({
 
         <EnlargeableImage
           imageUuid={imageUuid6}
+          imageBlurhash={imageBlurhash6}
           onChangeEmbiggened={goToGallery(navigation, imageUuid6)}
           style={styles.secondaryEnlargeableImage}
           isPrimary={false}

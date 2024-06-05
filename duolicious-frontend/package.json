@@ -33,10 +33,11 @@
     "expo-constants": "~16.0.2",
     "expo-crypto": "~13.0.2",
     "expo-device": "~6.0.2",
+    "expo-image": "~1.12.10",
     "expo-image-manipulator": "~12.0.5",
     "expo-image-picker": "~15.0.5",
     "expo-linear-gradient": "~13.0.2",
-    "expo-notifications": "~0.28.4",
+    "expo-notifications": "~0.28.7",
     "expo-screen-orientation": "~7.0.5",
     "expo-secure-store": "~13.0.1",
     "expo-splash-screen": "~0.27.4",
@@ -54,8 +55,7 @@
     "react-native-web": "~0.19.10",
     "ts-node": "^10.9.1",
     "typescript": "~5.3.3",
-    "xpath": "^0.0.33",
-    "undefined": "@expo/vector-icons^14.0.2"
+    "xpath": "^0.0.33"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0"

@@ -3,7 +3,6 @@ import {
   useRef,
 } from 'react';
 import {
-  ImageBackground,
   Pressable,
   View,
 } from 'react-native';
@@ -13,12 +12,14 @@ import {
 } from '../env/env';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { X } from "react-native-feather";
+import { ImageBackground } from "expo-image";
 
 const Avatar = ({percentage, ...props}) => {
   const {
     personId,
     personUuid,
     imageUuid,
+    imageBlurhash,
     navigation,
     size,
     shadow = false,
@@ -47,7 +48,7 @@ const Avatar = ({percentage, ...props}) => {
       'Prospect Profile Screen',
       {
         screen: 'Prospect Profile',
-        params: { personId, personUuid },
+        params: { personId, personUuid, imageBlurhash },
       }
     );
   }, [navigation, personId]);
@@ -72,6 +73,8 @@ const Avatar = ({percentage, ...props}) => {
       >
         <ImageBackground
           source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
+          placeholder={imageBlurhash && { blurhash: imageBlurhash }}
+          transition={150}
           style={{
             flex: 1,
             aspectRatio: 1,

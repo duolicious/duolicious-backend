@@ -107,14 +107,22 @@ const Images_ = ({data}) => {
           '/profile-info',
           { files: [filename] }
         )).ok,
-        fetch: async (position: string, resolution: string) => {
+        getUri: (position: string, resolution: string) => {
           const imageUuid = (data?.photo ?? {})[position] ?? null;
           if (imageUuid) {
             return `${IMAGES_URL}/${resolution}-${imageUuid}.jpg`
           } else {
             return null;
           }
-        }
+        },
+        getBlurhash: (position: string) => {
+          const imageBlurhash = (data?.photo_blurhash ?? {})[position] ?? null;
+          if (imageBlurhash) {
+            return imageBlurhash;
+          } else {
+            return null;
+          }
+        },
       }
     };
   }, [data]);

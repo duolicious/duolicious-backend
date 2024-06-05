@@ -1,8 +1,6 @@
 import {
   ActivityIndicator,
   Animated,
-  Image,
-  ImageBackground,
   Platform,
   Pressable,
   ScrollView,
@@ -47,6 +45,7 @@ import { setSkipped } from '../hide-and-block/hide-and-block';
 import { delay, isMobile } from '../util/util';
 import { ReportModalInitialData } from './report-modal';
 import { listen, notify } from '../events/events';
+import { Image, ImageBackground } from 'expo-image';
 
 const Menu = ({navigation, name, personId, personUuid, messages, closeFn}) => {
   const [isSkipped, setIsSkipped] = useState<boolean | undefined>();
@@ -252,7 +251,8 @@ const ConversationScreen = ({navigation, route}) => {
   const personId: number = route?.params?.personId;
   const personUuid: string = route?.params?.personUuid;
   const name: string = route?.params?.name;
-  const imageUuid: number = route?.params?.imageUuid;
+  const imageUuid: string = route?.params?.imageUuid;
+  const imageBlurhash: string = route?.params?.imageBlurhash;
   const isAvailableUser: boolean = route?.params?.isAvailableUser ?? true;
   const lastMessage = (messages && messages.length) ?
     messages[messages.length - 1] :
@@ -461,6 +461,8 @@ const ConversationScreen = ({navigation, route}) => {
         >
           <Image
             source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
+            placeholder={imageBlurhash && { blurhash: imageBlurhash }}
+            transition={150}
             style={{
               width: 30,
               height: 30,
@@ -536,6 +538,8 @@ const ConversationScreen = ({navigation, route}) => {
             <>
               <ImageBackground
                 source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
+                placeholder={imageBlurhash && { blurhash: imageBlurhash }}
+                transition={150}
                 style={{
                   height: 200,
                   width: 200,

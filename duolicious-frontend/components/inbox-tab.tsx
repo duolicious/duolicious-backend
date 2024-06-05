@@ -297,6 +297,7 @@ const InboxTab_ = ({navigation}) => {
         personId={x.item.personId}
         personUuid={x.item.personUuid}
         imageUuid={x.item.imageUuid}
+        imageBlurhash={x.item.imageBlurhash}
         matchPercentage={x.item.matchPercentage}
         lastMessage={x.item.lastMessage}
         lastMessageTimestamp={x.item.lastMessageTimestamp}
@@ -309,6 +310,7 @@ const InboxTab_ = ({navigation}) => {
         personId={x.item.personId}
         personUuid={x.item.personUuid}
         imageUuid={x.item.imageUuid}
+        imageBlurhash={x.item.imageBlurhash}
         matchPercentage={x.item.matchPercentage}
         lastMessage={x.item.lastMessage}
         lastMessageTimestamp={x.item.lastMessageTimestamp}

@@ -1,0 +1,51 @@
+diff --git a/node_modules/expo-image/build/utils/blurhash/decode.js b/node_modules/expo-image/build/utils/blurhash/decode.js
+index 8ef8741..78b1315 100644
+--- a/node_modules/expo-image/build/utils/blurhash/decode.js
++++ b/node_modules/expo-image/build/utils/blurhash/decode.js
+@@ -43,6 +43,7 @@ const decodeAC = (value, maximumValue) => {
+     return rgb;
+ };
+ const decode = (blurhash, width, height, punch) => {
++    blurhash = blurhash.replace(/^blurhash:\//, '').split('/')[0];
+     validateBlurhash(blurhash);
+     punch = (punch || 1) | 1;
+     const sizeFlag = decode83(blurhash[0]);
+diff --git a/node_modules/expo-image/build/utils/blurhash/useBlurhash.js b/node_modules/expo-image/build/utils/blurhash/useBlurhash.js
+index 39c7f1e..1d0dd7b 100644
+--- a/node_modules/expo-image/build/utils/blurhash/useBlurhash.js
++++ b/node_modules/expo-image/build/utils/blurhash/useBlurhash.js
+@@ -12,10 +12,11 @@ const DEFAULT_SIZE = {
+ const scaleRatio = 10;
+ export function useBlurhash(blurhash, punch = 1) {
+     punch = punch || 1;
++    const isBlurhashString_ = blurhash && blurhash.uri && isBlurhashString(blurhash.uri);
+     const [uri, setUri] = useState(null);
+     useEffect(() => {
+         let isCanceled = false;
+-        if (!blurhash || !blurhash.uri || !isBlurhashString(blurhash.uri))
++        if (!isBlurhashString_)
+             return;
+         const pixels = decode(blurhash.uri, blurhash?.width ?? DEFAULT_SIZE.width, blurhash?.height ?? DEFAULT_SIZE.height, punch);
+         const canvas = document.createElement('canvas');
+@@ -59,6 +60,6 @@ export function useBlurhash(blurhash, punch = 1) {
+             });
+         };
+     }, [blurhash?.uri, blurhash?.height, blurhash?.width, punch]);
+-    return useMemo(() => (uri ? { uri } : null), [uri]);
++    return useMemo(() => (isBlurhashString_ ? { uri } : null) , [uri]);
+ }
+ //# sourceMappingURL=useBlurhash.js.map
+\ No newline at end of file
+diff --git a/node_modules/expo-image/build/utils/resolveHashString.web.js b/node_modules/expo-image/build/utils/resolveHashString.web.js
+index 43b7a13..bc53659 100644
+--- a/node_modules/expo-image/build/utils/resolveHashString.web.js
++++ b/node_modules/expo-image/build/utils/resolveHashString.web.js
+@@ -9,7 +9,7 @@
+ export function resolveBlurhashString(str) {
+     const [blurhash, width, height] = str.replace(/^blurhash:\//, '').split('/');
+     return {
+-        uri: blurhash,
++        uri: 'blurhash:/' + blurhash,
+         width: parseInt(width, 10) || 16,
+         height: parseInt(height, 10) || 16,
+     };

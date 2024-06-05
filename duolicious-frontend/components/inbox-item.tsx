@@ -42,6 +42,7 @@ const IntrosItem = ({
   personId,
   personUuid,
   imageUuid,
+  imageBlurhash,
   matchPercentage,
   lastMessage,
   lastMessageTimestamp,
@@ -52,6 +53,7 @@ const IntrosItem = ({
   personId: number
   personUuid: string
   imageUuid: string | null
+  imageBlurhash: string | null
   matchPercentage: number
   lastMessage: string
   lastMessageTimestamp: Date
@@ -87,7 +89,7 @@ const IntrosItem = ({
     'Prospect Profile Screen',
     {
       screen: 'Prospect Profile',
-      params: { personId, personUuid },
+      params: { personId, personUuid, imageBlurhash },
     }
   ), [personId, personUuid]);
 
@@ -120,7 +122,11 @@ const IntrosItem = ({
           marginRight: 5,
         }}
       >
-        <Avatar percentage={matchPercentage} imageUuid={imageUuid}/>
+        <Avatar
+          percentage={matchPercentage}
+          imageUuid={imageUuid}
+          imageBlurhash={imageBlurhash}
+        />
         <View
           style={{
             paddingLeft: 10,
@@ -163,6 +169,7 @@ const ChatsItem = ({
   personId,
   personUuid,
   imageUuid,
+  imageBlurhash,
   matchPercentage,
   lastMessage,
   lastMessageTimestamp,
@@ -173,6 +180,7 @@ const ChatsItem = ({
   personId: number
   personUuid: string
   imageUuid: string | null
+  imageBlurhash: string | null
   matchPercentage: number
   lastMessage: string
   lastMessageTimestamp: Date
@@ -206,8 +214,8 @@ const ChatsItem = ({
 
   const onPress = useCallback(() => navigation.navigate(
     'Conversation Screen',
-    { personId, personUuid, name, imageUuid, isAvailableUser }
-  ), [personId, personUuid, name, imageUuid, isAvailableUser]);
+    { personId, personUuid, name, imageUuid, imageBlurhash, isAvailableUser }
+  ), [personId, personUuid, name, imageUuid, imageBlurhash, isAvailableUser]);
 
   // TODO: If the conversation is archived but there's no mounted component,
   // this won't trigger
@@ -238,7 +246,11 @@ const ChatsItem = ({
           marginRight: 5,
         }}
       >
-        <Avatar percentage={matchPercentage} imageUuid={imageUuid}/>
+        <Avatar
+          percentage={matchPercentage}
+          imageUuid={imageUuid}
+          imageBlurhash={imageBlurhash}
+        />
         <View
           style={{
             paddingLeft: 10,

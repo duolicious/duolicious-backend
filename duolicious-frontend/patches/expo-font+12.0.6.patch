@@ -1,8 +1,8 @@
 diff --git a/node_modules/expo-font/build/ExpoFontLoader.web.js b/node_modules/expo-font/build/ExpoFontLoader.web.js
-index ef2f136..44dadb2 100644
+index 8230cd1..2914861 100644
 --- a/node_modules/expo-font/build/ExpoFontLoader.web.js
 +++ b/node_modules/expo-font/build/ExpoFontLoader.web.js
-@@ -127,7 +127,7 @@ export default {
+@@ -124,7 +124,7 @@ export default {
          if (!isFontLoadingListenerSupported()) {
              return Promise.resolve();
          }
@@ -12,10 +12,10 @@ index ef2f136..44dadb2 100644
  };
  const ID = 'expo-generated-fonts';
 diff --git a/node_modules/expo-font/src/ExpoFontLoader.web.ts b/node_modules/expo-font/src/ExpoFontLoader.web.ts
-index 361b15a..6fb09d2 100644
+index d4e08d9..2d053d3 100644
 --- a/node_modules/expo-font/src/ExpoFontLoader.web.ts
 +++ b/node_modules/expo-font/src/ExpoFontLoader.web.ts
-@@ -167,7 +167,7 @@ export default {
+@@ -163,7 +163,7 @@ export default {
        return Promise.resolve();
      }
  

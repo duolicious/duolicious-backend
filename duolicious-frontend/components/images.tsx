@@ -1,12 +1,12 @@
 import {
   ActivityIndicator,
-  Image,
   Platform,
   Pressable,
   View,
 } from 'react-native';
 import {
   forwardRef,
+  memo,
   useCallback,
   useEffect,
   useRef,
@@ -20,6 +20,7 @@ import { notify, listen } from '../events/events';
 import { ImageCropperInput, ImageCropperOutput } from './image-cropper';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { isImagePickerOpen } from '../App';
+import { Image } from 'expo-image';
 
 // TODO: Image picker is shit and lets you upload any file type on web
 
@@ -103,21 +104,23 @@ const Images = ({input, setIsLoading, setIsInvalid}) => {
 };
 
 const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) => {
-  const [image, setImage] = useState<string | null>(null);
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageBlurhash, setImageBlurhash] = useState<string | null>(null);
   const [isLoading_, setIsLoading_] = useState(false);
 
   const imageCropperCallback = `image-cropped-${fileNumber}`;
 
   const fetchImage = useCallback(async () => {
-    const _fetchImage = input.photos.fetch;
+    const getUri = input.photos.getUri;
+    const getBlurhash = input.photos.getBlurhash;
 
-    if (_fetchImage) {
+    if (getUri) {
       setIsLoading(true);
       setIsLoading_(true);
 
-      const filename = await _fetchImage(String(fileNumber), resolution);
+      setImageUri(getUri(String(fileNumber), resolution));
+      setImageBlurhash(getBlurhash(String(fileNumber)));
 
-      setImage(filename);
       setIsLoading(false);
       setIsLoading_(false);
     }
@@ -199,7 +202,7 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
     setIsInvalid(false);
 
     if (await input.photos.delete(fileNumber)) {
-      setImage(null);
+      setImageUri(null);
       setIsLoading(false);
       setIsLoading_(false);
       setIsInvalid(false);
@@ -234,7 +237,7 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
             data.size,
           );
 
-          setImage(base64);
+          setImageUri(base64);
           setIsLoading(false);
           setIsLoading_(false);
           setIsInvalid(false);
@@ -252,6 +255,8 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
       <>
         <Image
           source={{uri: uri}}
+          placeholder={imageBlurhash && { blurhash: imageBlurhash }}
+          transition={150}
           style={{
             height: '100%',
             width: '100%',
@@ -269,7 +274,7 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
             borderRadius: 999,
             backgroundColor: 'white',
           }}
-          onPress={(image === null || isLoading_) ? undefined : removeImage}
+          onPress={(imageUri === null || isLoading_) ? undefined : removeImage}
         >
           <FontAwesomeIcon
             icon={faCircleXmark}
@@ -301,15 +306,17 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
         }}
       >
         { isLoading_ && <Loading/>}
-        {!isLoading_ && image === null && <AddIcon/>}
-        {!isLoading_ && image !== null && <Image_ uri={image}/>}
+        {!isLoading_ && imageUri === null && <AddIcon/>}
+        {!isLoading_ && imageUri !== null && <Image_ uri={imageUri}/>}
       </Pressable>
     </View>
   );
 };
 
+const UserImageMemo = memo(UserImage);
+
 const PrimaryImage = ({input, fileNumber, setIsLoading, setIsInvalid}) => {
-  return <UserImage
+  return <UserImageMemo
     {...{input, fileNumber, setIsLoading, setIsInvalid, resolution: '900'}}
   />
 };
@@ -338,21 +345,21 @@ const Row = ({input, firstFileNumber, setIsLoading, setIsInvalid}) => {
         flexDirection: 'row',
       }}
     >
-      <UserImage
+      <UserImageMemo
         input={input}
         fileNumber={firstFileNumber + 0}
         setIsLoading={setIsLoading1}
         setIsInvalid={setIsInvalid}
         resolution="450"
       />
-      <UserImage
+      <UserImageMemo
         input={input}
         fileNumber={firstFileNumber + 1}
         setIsLoading={setIsLoading2}
         setIsInvalid={setIsInvalid}
         resolution="450"
       />
-      <UserImage
+      <UserImageMemo
         input={input}
         fileNumber={firstFileNumber + 2}
         setIsLoading={setIsLoading3}
