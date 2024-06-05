@@ -2,6 +2,7 @@ from service.cron.expiredrecords import delete_expired_records_forever
 from service.cron.autodeactivate2 import autodeactivate2_forever
 from service.cron.notifications import send_notifications_forever
 from service.cron.photocleaner import clean_photos_forever
+from service.cron.checkphotos import check_photos_forever
 import asyncio
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
@@ -33,6 +34,8 @@ async def main():
 
         # Fetched: 0.1k, returned: 100k
         clean_photos_forever(),
+
+        check_photos_forever(),
 
         # Fetched: 9k, returned: 70k
         send_notifications_forever(),

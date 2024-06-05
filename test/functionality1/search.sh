@@ -312,17 +312,19 @@ test_photos_promoted () {
   local response1=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
 
   q "
-  insert into photo (person_id, position, uuid)
+  insert into photo (person_id, position, uuid, blurhash)
   SELECT
     (select id from person where email = 'user3@example.com'),
     1,
-    'user3-uuid'"
+    'user3-uuid',
+    ''"
   q "
-  insert into photo (person_id, position, uuid)
+  insert into photo (person_id, position, uuid, blurhash)
   select
     (select id from person where email = 'user4@example.com'),
     1,
-    'user4-uuid'"
+    'user4-uuid',
+    ''"
 
   local response2=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
 
