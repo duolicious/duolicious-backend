@@ -521,7 +521,8 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
                     %(uuid)s,
                     %(blurhash)s
                 ) ON CONFLICT (email, position) DO UPDATE SET
-                    uuid = EXCLUDED.uuid
+                    uuid = EXCLUDED.uuid,
+                    blurhash = EXCLUDED.blurhash
             )
             SELECT 1
             """
@@ -843,7 +844,8 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
                 %(uuid)s,
                 %(blurhash)s
             ) ON CONFLICT (person_id, position) DO UPDATE SET
-                uuid = EXCLUDED.uuid
+                uuid = EXCLUDED.uuid,
+                blurhash = EXCLUDED.blurhash
         )
         SELECT 1
         """
