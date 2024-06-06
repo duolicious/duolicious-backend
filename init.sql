@@ -598,6 +598,8 @@ CREATE INDEX IF NOT EXISTS idx__banned_person_admin_token__expires_at
 CREATE INDEX IF NOT EXISTS idx__photo__uuid
     ON photo(uuid);
 
+CREATE INDEX IF NOT EXISTS idx__onboardee_photo__uuid
+    ON onboardee_photo(uuid);
 CREATE INDEX IF NOT EXISTS idx__onboardee__created_at
     ON onboardee(created_at);
 
@@ -1251,12 +1253,8 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
--- TODO: Delete
-ALTER TABLE onboardee_photo ADD COLUMN IF NOT EXISTS blurhash TEXT NOT NULL DEFAULT '';
-ALTER TABLE photo           ADD COLUMN IF NOT EXISTS blurhash TEXT NOT NULL DEFAULT '';
-
-ALTER TABLE onboardee_photo ALTER COLUMN blurhash DROP NOT NULL;
-ALTER TABLE photo           ALTER COLUMN blurhash DROP NOT NULL;
-
+-- TODO
+ALTER TABLE onboardee_photo ALTER COLUMN blurhash SET NOT NULL;
+ALTER TABLE           photo ALTER COLUMN blurhash SET NOT NULL;
 
 --------------------------------------------------------------------------------

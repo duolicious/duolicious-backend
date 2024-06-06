@@ -1,2 +1,5 @@
+Pillow
+blurhash
 boto3
+numpy
 psycopg
