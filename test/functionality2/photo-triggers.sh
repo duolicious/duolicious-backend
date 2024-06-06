@@ -249,3 +249,31 @@ sleep 2
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "1" ]]
 [[ "$(q "select count(*) from onboardee_photo")" == "2" ]]
 [[ "$(q "select count(*) from undeleted_photo")" == "2" ]]
+
+echo Verification photos are deleted when the job expires
+q "delete from verification_job"
+q "delete from person"
+q "delete from undeleted_photo"
+
+../util/create-user.sh user1 0 0
+assume_role user1
+
+cat /dev/null > ../../test/input/verification-mock-response-file
+
+jc POST /verification-selfie \
+  -d "{
+          \"base64_file\": {
+              \"position\": 1,
+              \"base64\": \"${img1}\",
+              \"top\": 0,
+              \"left\": 0
+          }
+      }"
+
+[[ "$(q "select count(*) from undeleted_photo")" == "0" ]]
+
+q "update verification_job set expires_at = now()"
+
+sleep 2
+
+[[ "$(q "select count(*) from undeleted_photo")" == "1" ]]

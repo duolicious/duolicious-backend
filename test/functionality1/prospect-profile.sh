@@ -45,15 +45,20 @@ expected=$(jq -r . << EOF
   "person_id": $user2_id,
   "photo_blurhashes": [],
   "photo_uuids": [],
+  "photo_verifications": [],
   "relationship_status": null,
   "religion": null,
   "smoking": null,
   "star_sign": null,
+  "verified_age": false,
+  "verified_ethnicity": false,
+  "verified_gender": false,
   "wants_kids": null
 }
 EOF
 )
-[[ "$response" == "$expected" ]]
+
+diff <(echo "$response") <(echo "$expected")
 
 
 assume_role user1
@@ -98,12 +103,16 @@ expected=$(jq -r . << EOF
   "person_id": $user2_id,
   "photo_blurhashes": [],
   "photo_uuids": [],
+  "photo_verifications": [],
   "relationship_status": null,
   "religion": null,
   "smoking": null,
   "star_sign": null,
+  "verified_age": false,
+  "verified_ethnicity": false,
+  "verified_gender": false,
   "wants_kids": null
 }
 EOF
 )
-[[ "$response" == "$expected" ]]
+diff <(echo "$response") <(echo "$expected")

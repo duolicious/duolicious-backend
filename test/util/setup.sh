@@ -210,22 +210,25 @@ get_emails () {
 
 assert_photos_downloadable_by_uuid () {
   local uuid=$1
+  shift
+  local sizes=("$@")
 
-  c GET "http://localhost:9090/s3-mock-bucket/original-${uuid}.jpg" > /dev/null || return 1
-  c GET "http://localhost:9090/s3-mock-bucket/900-${uuid}.jpg" > /dev/null || return 1
-  c GET "http://localhost:9090/s3-mock-bucket/450-${uuid}.jpg" > /dev/null || return 1
+  # Default sizes if none are provided
+  if [ ${#sizes[@]} -eq 0 ]; then
+    sizes=("original" "900" "450")
+  fi
+
+  for size in "${sizes[@]}"; do
+    c GET "http://localhost:9090/s3-mock-bucket/${size}-${uuid}.jpg" > /dev/null || return 1
+  done
 }
 
 wait_for_deletion_by_uuid () {
-  local uuid=$1
-
-  local url=$1
-
   local elapsed=0
 
   while (( elapsed < 5 ))
   do
-    if ! assert_photos_downloadable_by_uuid "${uuid}"
+    if ! assert_photos_downloadable_by_uuid "$@"
     then
       return 0
     fi
@@ -239,15 +242,11 @@ wait_for_deletion_by_uuid () {
 }
 
 wait_for_creation_by_uuid () {
-  local uuid=$1
-
-  local url=$1
-
   local elapsed=0
 
   while (( elapsed < 5 ))
   do
-    if assert_photos_downloadable_by_uuid "${uuid}"
+    if assert_photos_downloadable_by_uuid "$@"
     then
       return 0
     fi

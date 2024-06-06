@@ -20,9 +20,7 @@ img1=$(rand_image)
 ../util/create-user.sh user1 0 0
 ../util/create-user.sh user2 0 0
 
-response=$(jc POST /request-otp -d '{ "email": "user1@example.com" }')
-SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
-jc POST /check-otp -d '{ "otp": "000000" }'
+assume_role user1
 
 test_set () {
   local field_name=$1
@@ -134,6 +132,99 @@ test_photo () {
   [[ "$(q "select COUNT(*) from photo")" -eq 0 ]]
 }
 
+test_verification_loss_gender () {
+  jc PATCH /profile-info -d '{ "gender": "Man" }'
+
+  q "
+    update person
+    set verified_age = true,
+        verified_gender = true,
+        verified_ethnicity = true,
+        verification_level_id = 2"
+
+  jc PATCH /profile-info -d '{ "gender": "Man" }'
+  [[ "$(q "
+    select count(*) from person \
+    where uuid = '$USER_UUID' and verification_level_id = 2")" -eq 1 ]]
+  [[ "$(q "
+    select count(*) from person \
+    where uuid = '$USER_UUID' and verified_gender")" -eq 1 ]]
+
+  jc PATCH /profile-info -d '{ "gender": "Woman" }'
+  [[ "$(q "
+    select count(*) from person \
+    where uuid = '$USER_UUID' and verification_level_id = 1")" -eq 1 ]]
+  [[ "$(q "
+    select count(*) from person \
+    where uuid = '$USER_UUID' and not verified_gender")" -eq 1 ]]
+}
+
+test_verification_loss_ethnicity () {
+  jc PATCH /profile-info -d '{ "ethnicity": "East Asian" }'
+
+  q "
+    update person
+    set verified_age = true,
+        verified_gender = true,
+        verified_ethnicity = true,
+        verification_level_id = 2"
+
+  jc PATCH /profile-info -d '{ "ethnicity": "East Asian" }'
+  [[ "$(q "
+    select count(*) from person \
+    where uuid = '$USER_UUID' and verification_level_id = 2")" -eq 1 ]]
+  [[ "$(q "
+    select count(*) from person \
+    where uuid = '$USER_UUID' and verified_ethnicity")" -eq 1 ]]
+
+  jc PATCH /profile-info -d '{ "ethnicity": "Native American" }'
+  [[ "$(q "
+    select count(*) from person \
+    where uuid = '$USER_UUID' and verification_level_id = 2")" -eq 1 ]]
+  [[ "$(q "
+    select count(*) from person \
+    where uuid = '$USER_UUID' and not verified_ethnicity")" -eq 1 ]]
+}
+
+test_verification_loss_photo () {
+  jc PATCH /profile-info \
+    -d "{
+            \"base64_file\": {
+                \"position\": 1,
+                \"base64\": \"${img1}\",
+                \"top\": 0,
+                \"left\": 0
+            }
+        }"
+
+  q "update photo set verified = TRUE"
+  q "
+    update person
+    set verified_age = true,
+        verified_gender = true,
+        verification_level_id = 3"
+
+  [[ "$(q "select COUNT(*) from photo where verified")" -eq 1 ]]
+  [[ "$(q "
+    select COUNT(*) from person \
+    where uuid = '$USER_UUID' and verification_level_id = 3")" -eq 1 ]]
+
+  jc PATCH /profile-info \
+    -d "{
+            \"base64_file\": {
+                \"position\": 1,
+                \"base64\": \"${img1}\",
+                \"top\": 0,
+                \"left\": 0
+            }
+        }"
+
+  [[ "$(q "select COUNT(*) from photo where verified")" -eq 0 ]]
+  [[ "$(q "
+    select COUNT(*) from person \
+    where uuid = '$USER_UUID' and verification_level_id = 2")" -eq 1 ]]
+}
+
 test_set about "I'm a bad ass motherfuckin' DJ / This is why I walk and talk this way"
 test_set gender Woman
 test_set orientation Asexual
@@ -159,5 +250,11 @@ test_set intros Weekly
 test_set show_my_location Yes
 test_set show_my_age No
 test_set hide_me_from_strangers Yes
+
 test_club
+
 test_photo
+
+test_verification_loss_gender
+test_verification_loss_ethnicity
+test_verification_loss_photo

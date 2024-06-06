@@ -283,3 +283,6 @@ class PostLeaveClub(BaseModel):
 class PostSkip(BaseModel):
     report_reason: Optional[constr(
         min_length=1, max_length=10000, strip_whitespace=True)] = None
+
+class PostVerificationSelfie(BaseModel):
+    base64_file: Optional[Base64File] = None

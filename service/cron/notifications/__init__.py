@@ -16,8 +16,8 @@ from service.cron.util import (
     join_lists_of_dicts,
     print_stacktrace,
 )
-from smtp import aws_smtp
 import asyncio
+from smtp import make_aws_smtp
 import os
 import random
 import urllib.request
@@ -82,7 +82,7 @@ async def delete_mobile_token(row: PersonNotification):
     async with chat_tx() as tx:
         await tx.execute(Q_DELETE_MOBILE_TOKEN, params)
 
-def send_email_notification(row: PersonNotification):
+async def send_email_notification(row: PersonNotification):
     if not do_send_email_notification(row):
         print('Email notification failed because it ends with @example.com')
         return
@@ -97,7 +97,8 @@ def send_email_notification(row: PersonNotification):
         )
     )
 
-    aws_smtp.send(**send_args)
+    aws_smtp = make_aws_smtp()
+    await asyncio.to_thread(aws_smtp.send, **send_args)
 
 def send_mobile_notification(row: PersonNotification):
     if not row.token:
@@ -139,13 +140,13 @@ def send_mobile_notification(row: PersonNotification):
 async def send_notification(row: PersonNotification):
     if not row.token:
         print('Sending email notification:', str(row))
-        return send_email_notification(row)
+        return await send_email_notification(row)
 
     print('Sending mobile notification:', str(row))
-    if not send_mobile_notification(row):
+    if not await asyncio.to_thread(send_mobile_notification, row):
         print('Mobile notification failed; sending email')
         await delete_mobile_token(row)
-        return send_email_notification(row)
+        return await send_email_notification(row)
 
 async def update_last_notification_time(row: PersonNotification):
     params = dict(username=row.person_uuid)

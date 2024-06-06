@@ -374,6 +374,26 @@ def get_update_notifications():
         frequency=request.args.get('frequency', ''),
     )
 
+@apost('/verification-selfie')
+@validate(t.PostVerificationSelfie)
+def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo):
+    return person.post_verification_selfie(req, s)
+
+@apost('/verify')
+def post_verify(s: t.SessionInfo):
+    limit = "5 per day"
+
+    rate_limited_verify = account_limiter(person.post_verify, limit=limit)
+
+    return limiter.limit(
+        limit,
+        exempt_when=disable_ip_rate_limit,
+    )(rate_limited_verify)(s)
+
+@aget('/check-verification')
+def get_check_verification(s: t.SessionInfo):
+    return person.check_verification(s=s)
+
 @get('/stats')
 def get_stats():
     return person.get_stats(ttl_hash=get_ttl_hash(seconds=10))
