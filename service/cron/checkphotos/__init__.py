@@ -143,12 +143,11 @@ async def resolve_uuids(uuids: list[str]) -> tuple[list[str], list[str]]:
             blurhash = ''
     """
     q_to_delete = """
-        SELECT uuid
-        FROM unnest(%(uuids)s::TEXT[]) AS uuid
-        WHERE
-            uuid NOT IN (SELECT uuid FROM photo)
-        AND
-            uuid NOT IN (SELECT uuid FROM onboardee_photo)
+        SELECT unn.uuid
+        FROM unnest(%(uuids)s::TEXT[]) AS unn(uuid)
+        LEFT JOIN photo p ON unn.uuid = p.uuid
+        LEFT JOIN onboardee_photo op ON unn.uuid = op.uuid
+        WHERE p.uuid IS NULL AND op.uuid IS NULL
     """
     params = dict(uuids=uuids)
 
