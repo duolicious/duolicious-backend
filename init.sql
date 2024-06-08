@@ -1253,8 +1253,4 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
--- TODO
-ALTER TABLE onboardee_photo ALTER COLUMN blurhash SET NOT NULL;
-ALTER TABLE           photo ALTER COLUMN blurhash SET NOT NULL;
-
 --------------------------------------------------------------------------------
