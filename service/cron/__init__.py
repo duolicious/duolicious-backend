@@ -35,7 +35,9 @@ async def main():
         # Fetched: 0.1k, returned: 100k
         clean_photos_forever(),
 
-        check_photos_forever(),
+        # Should only be enabled when it's likely that the object store contains
+        # photos which aren't tracked by the DB
+        # check_photos_forever(),
 
         # Fetched: 9k, returned: 70k
         send_notifications_forever(),
