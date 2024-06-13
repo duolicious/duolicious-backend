@@ -21,8 +21,11 @@ import { ImageCropperInput, ImageCropperOutput } from './image-cropper';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { isImagePickerOpen } from '../App';
 import { Image } from 'expo-image';
+import { VerificationEvent } from '../verification/verification';
 
 // TODO: Image picker is shit and lets you upload any file type on web
+
+// TODO: The idiot maintainers of expo broke the image picker on Android
 
 const isSquareish = (width: number, height: number) => {
   if (width === 0) return true;
@@ -58,7 +61,12 @@ const cropImage = async (
   return `data:image/jpeg;base64,${result.base64}`;
 };
 
-const Images = ({input, setIsLoading, setIsInvalid}) => {
+const Images = ({
+  input,
+  setIsLoading,
+  setIsInvalid,
+  setHasImage = (x: boolean) => {},
+}) => {
   const isLoading1 = useRef(false);
   const isLoading2 = useRef(false);
 
@@ -92,18 +100,28 @@ const Images = ({input, setIsLoading, setIsInvalid}) => {
         fileNumber={1}
         setIsLoading={setIsLoading1}
         setIsInvalid={setIsInvalid1}
+        setHasImage={setHasImage}
       />
       <SecondaryImages
         input={input}
         firstFileNumber={2}
         setIsLoading={setIsLoading2}
         setIsInvalid={setIsInvalid2}
+        setHasImage={setHasImage}
       />
     </View>
   );
 };
 
-const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) => {
+const UserImage = ({
+  input,
+  fileNumber,
+  setIsLoading,
+  setIsInvalid,
+  resolution,
+  setHasImage = (x: boolean) => {},
+  showProtip = true,
+}) => {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBlurhash, setImageBlurhash] = useState<string | null>(null);
   const [isLoading_, setIsLoading_] = useState(false);
@@ -123,6 +141,7 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
 
       setIsLoading(false);
       setIsLoading_(false);
+      setHasImage(true);
     }
   }, [input]);
 
@@ -191,6 +210,7 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
         {
           base64: base64Uri,
           callback: imageCropperCallback,
+          showProtip: showProtip,
         }
       );
     }
@@ -206,6 +226,12 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
       setIsLoading(false);
       setIsLoading_(false);
       setIsInvalid(false);
+      setHasImage(false);
+
+      notify<VerificationEvent>(
+        'updated-verification',
+        { photos: { [`${fileNumber}`]: false } }
+      );
     } else {
       setIsLoading(false);
       setIsLoading_(false);
@@ -241,6 +267,12 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
           setIsLoading(false);
           setIsLoading_(false);
           setIsInvalid(false);
+          setHasImage(true);
+
+          notify<VerificationEvent>(
+            'updated-verification',
+            { photos: { [`${fileNumber}`]: false } }
+          );
         } else {
           setIsLoading(false);
           setIsLoading_(false);
@@ -315,13 +347,34 @@ const UserImage = ({input, fileNumber, setIsLoading, setIsInvalid, resolution}) 
 
 const UserImageMemo = memo(UserImage);
 
-const PrimaryImage = ({input, fileNumber, setIsLoading, setIsInvalid}) => {
+const PrimaryImage = ({
+  input,
+  fileNumber,
+  setIsLoading,
+  setIsInvalid,
+  setHasImage = (x: boolean) => {},
+  showProtip = true
+}) => {
   return <UserImageMemo
-    {...{input, fileNumber, setIsLoading, setIsInvalid, resolution: '900'}}
+    {...{
+      input,
+      fileNumber,
+      setIsLoading,
+      setIsInvalid,
+      showProtip,
+      setHasImage,
+      resolution: '900'
+    }}
   />
 };
 
-const Row = ({input, firstFileNumber, setIsLoading, setIsInvalid}) => {
+const Row = ({
+  input,
+  firstFileNumber,
+  setIsLoading,
+  setIsInvalid,
+  setHasImage = (x: boolean) => {},
+}) => {
   const isLoading1 = useRef(false);
   const isLoading2 = useRef(false);
   const isLoading3 = useRef(false);
@@ -350,6 +403,7 @@ const Row = ({input, firstFileNumber, setIsLoading, setIsInvalid}) => {
         fileNumber={firstFileNumber + 0}
         setIsLoading={setIsLoading1}
         setIsInvalid={setIsInvalid}
+        setHasImage={setHasImage}
         resolution="450"
       />
       <UserImageMemo
@@ -357,6 +411,7 @@ const Row = ({input, firstFileNumber, setIsLoading, setIsInvalid}) => {
         fileNumber={firstFileNumber + 1}
         setIsLoading={setIsLoading2}
         setIsInvalid={setIsInvalid}
+        setHasImage={setHasImage}
         resolution="450"
       />
       <UserImageMemo
@@ -364,15 +419,20 @@ const Row = ({input, firstFileNumber, setIsLoading, setIsInvalid}) => {
         fileNumber={firstFileNumber + 2}
         setIsLoading={setIsLoading3}
         setIsInvalid={setIsInvalid}
+        setHasImage={setHasImage}
         resolution="450"
       />
     </View>
   );
 };
 
-const SecondaryImages = (
-  {input, firstFileNumber, setIsLoading, setIsInvalid}
-) => {
+const SecondaryImages = ({
+  input,
+  firstFileNumber,
+  setIsLoading,
+  setIsInvalid,
+  setHasImage = (x: boolean) => {},
+}) => {
   const isLoading1 = useRef(false);
   const isLoading2 = useRef(false);
 
@@ -393,12 +453,14 @@ const SecondaryImages = (
         firstFileNumber={firstFileNumber + 0}
         setIsLoading={setIsLoading1}
         setIsInvalid={setIsInvalid}
+        setHasImage={setHasImage}
       />
       <Row
         input={input}
         firstFileNumber={firstFileNumber + 3}
         setIsLoading={setIsLoading2}
         setIsInvalid={setIsInvalid}
+        setHasImage={setHasImage}
       />
     </View>
   );
@@ -423,5 +485,6 @@ const Loading = () => {
 
 export {
   Images,
+  PrimaryImage,
   SecondaryImages,
 };

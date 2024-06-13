@@ -30,10 +30,14 @@ import { signedInUser } from '../App';
 import { setSkipped } from '../hide-and-block/hide-and-block';
 import { ImageOrSkeleton } from './profile-card';
 import { Pinchy } from './pinchy';
-import { Basic } from './basic';
+import { Basic, Basics } from './basic';
 import { Club, Clubs } from './club';
 import { listen, notify } from '../events/events';
 import { ReportModalInitialData } from './report-modal';
+import {
+  VerificationBadge,
+  DetailedVerificationBadges,
+} from './verification-badge';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
@@ -89,12 +93,14 @@ const EnlargeableImage = ({
   onChangeEmbiggened,
   style,
   isPrimary,
+  verified = false,
 }: {
   imageUuid: string | undefined | null,
   imageBlurhash: string | undefined | null,
   onChangeEmbiggened: (uuid: string) => void,
   style?: any,
   isPrimary: boolean,
+  verified?: boolean,
 }) => {
   if (imageUuid === undefined && !isPrimary) {
     return <></>;
@@ -103,14 +109,27 @@ const EnlargeableImage = ({
   return (
     <Pressable
       onPress={() => imageUuid && onChangeEmbiggened(imageUuid)}
+      style={style}
     >
       <ImageOrSkeleton
         resolution={900}
         imageUuid={imageUuid}
         imageBlurhash={imageBlurhash}
-        style={style}
         showGradient={false}
       />
+      {verified &&
+        <VerificationBadge
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            backgroundColor: 'white',
+            borderRadius: 999,
+            padding: 2,
+          }}
+          size={25}
+        />
+      }
     </Pressable>
   );
 };
@@ -477,6 +496,7 @@ type UserData = {
   count_answers: number,
   photo_uuids: string[],
   photo_blurhashes: string[],
+  photo_verifications: boolean[],
   age: number | null,
   location: string | null
   drinking: string | null,
@@ -497,6 +517,22 @@ type UserData = {
   wants_kids: string | null,
   is_skipped: boolean,
   person_id: number,
+  verified_age: boolean,
+  verified_gender: boolean,
+  verified_ethnicity: boolean,
+};
+
+const verifiedAnything = (data: UserData | null | undefined): boolean => {
+  if (!data) {
+    return false;
+  }
+
+  return Boolean(
+    data.photo_verifications.some(Boolean) ||
+    data.verified_gender ||
+    data.verified_age ||
+    data.verified_ethnicity
+  );
 };
 
 const Content = (navigationRef) => ({navigation, route, ...props}) => {
@@ -528,13 +564,11 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
     null :
     data.photo_uuids[0];
 
-  const imageUuids = data?.photo_uuids === undefined ?
-    undefined :
-    data.photo_uuids;
+  const imageUuids = data?.photo_uuids;
 
-  const imageBlurhashes = data?.photo_blurhashes === undefined ?
-    undefined :
-    data.photo_blurhashes;
+  const imageBlurhashes = data?.photo_blurhashes;
+
+  const imageVerifications = data?.photo_verifications;
 
   const imageUuid0 = (() => {
     if (imageUuids === undefined) {
@@ -559,6 +593,8 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
     return imageBlurhashes[0];
   })();
 
+  const imageVerification0 = imageVerifications && imageVerifications[0];
+
   const numMorePics = Math.max(0, (imageUuids ?? []).length - 1);
 
   return (
@@ -576,12 +612,14 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
           imageBlurhash={imageBlurhash0}
           onChangeEmbiggened={goToGallery(navigation, imageUuid0)}
           isPrimary={true}
+          verified={imageVerification0}
         />
         <ProspectUserDetails
           navigation={navigation}
           personId={personId}
           name={data?.name}
           age={data?.age}
+          verified={verifiedAnything(data)}
           matchPercentage={data?.match_percentage}
           userLocation={data?.location}
         />
@@ -591,8 +629,6 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
           personId={personId}
           personUuid={personUuid}
           data={data}
-          imageUuids={imageUuids}
-          imageBlurhashes={imageBlurhashes}
           onChangeEmbiggened={() => {}}
         />
       </ScrollView>
@@ -655,6 +691,7 @@ const ProspectUserDetails = ({
   personId,
   name,
   age,
+  verified,
   matchPercentage,
   userLocation,
 }) => {
@@ -684,17 +721,29 @@ const ProspectUserDetails = ({
           flexShrink: 1,
         }}
       >
-        <DefaultText
+        <View
           style={{
-            fontWeight: '700',
-            fontSize: 24,
+            flexDirection: 'row',
+            flexShrink: 1,
+            alignItems: 'center',
+            gap: 8,
           }}
         >
-          {[
-            name,
-            age,
-          ].filter(Boolean).join(', ')}
-        </DefaultText>
+          <DefaultText
+            style={{
+              fontWeight: '700',
+              fontSize: 24,
+            }}
+          >
+            {[
+              name,
+              age,
+            ].filter(Boolean).join(', ')}
+          </DefaultText>
+          {false && verified && // TODO: Enable once verification is out of beta
+            <VerificationBadge/>
+          }
+        </View>
         <DefaultText style={{textAlign: 'left'}}>
           {displayedLocation}{' '}
           <FontAwesomeIcon
@@ -725,51 +774,39 @@ const ProspectUserDetails = ({
   );
 };
 
-const Basics = ({children}) => {
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-      }}
-    >
-      {children}
-    </View>
-  );
-};
-
-
-
 const Body = ({
   navigation,
   personId,
   personUuid,
   data,
-  imageUuids,
-  imageBlurhashes,
   onChangeEmbiggened,
 }: {
   navigation: any,
   personId: number,
   personUuid: string,
   data: UserData | undefined,
-  imageUuids: string[] | undefined,
-  imageBlurhashes: string[] | undefined,
   onChangeEmbiggened: (uuid: string) => void,
 }) => {
-  const imageUuid1 = imageUuids && imageUuids[1];
-  const imageUuid2 = imageUuids && imageUuids[2];
-  const imageUuid3 = imageUuids && imageUuids[3];
-  const imageUuid4 = imageUuids && imageUuids[4];
-  const imageUuid5 = imageUuids && imageUuids[5];
-  const imageUuid6 = imageUuids && imageUuids[6];
+  const imageUuid1 = data?.photo_uuids && data?.photo_uuids[1];
+  const imageUuid2 = data?.photo_uuids && data?.photo_uuids[2];
+  const imageUuid3 = data?.photo_uuids && data?.photo_uuids[3];
+  const imageUuid4 = data?.photo_uuids && data?.photo_uuids[4];
+  const imageUuid5 = data?.photo_uuids && data?.photo_uuids[5];
+  const imageUuid6 = data?.photo_uuids && data?.photo_uuids[6];
 
-  const imageBlurhash1 = imageBlurhashes && imageBlurhashes[1];
-  const imageBlurhash2 = imageBlurhashes && imageBlurhashes[2];
-  const imageBlurhash3 = imageBlurhashes && imageBlurhashes[3];
-  const imageBlurhash4 = imageBlurhashes && imageBlurhashes[4];
-  const imageBlurhash5 = imageBlurhashes && imageBlurhashes[5];
-  const imageBlurhash6 = imageBlurhashes && imageBlurhashes[6];
+  const imageBlurhash1 = data?.photo_blurhashes && data?.photo_blurhashes[1];
+  const imageBlurhash2 = data?.photo_blurhashes && data?.photo_blurhashes[2];
+  const imageBlurhash3 = data?.photo_blurhashes && data?.photo_blurhashes[3];
+  const imageBlurhash4 = data?.photo_blurhashes && data?.photo_blurhashes[4];
+  const imageBlurhash5 = data?.photo_blurhashes && data?.photo_blurhashes[5];
+  const imageBlurhash6 = data?.photo_blurhashes && data?.photo_blurhashes[6];
+
+  const imageVerification1 = data?.photo_verifications && data?.photo_verifications[1] || false;
+  const imageVerification2 = data?.photo_verifications && data?.photo_verifications[2] || false;
+  const imageVerification3 = data?.photo_verifications && data?.photo_verifications[3] || false;
+  const imageVerification4 = data?.photo_verifications && data?.photo_verifications[4] || false;
+  const imageVerification5 = data?.photo_verifications && data?.photo_verifications[5] || false;
+  const imageVerification6 = data?.photo_verifications && data?.photo_verifications[6] || false;
 
   const isViewingSelf = personId === signedInUser?.personId;
 
@@ -850,12 +887,35 @@ const Body = ({
             <Basic icon={faRulerVertical}>{cmToFeetInchesStr(data.height_cm)}</Basic>}
         </Basics>
 
+        <Title>Verification (Beta)</Title>
+        {data && <>
+          <DetailedVerificationBadges
+            photos={(data?.photo_verifications ?? []).some(Boolean)}
+            gender={data?.verified_gender ?? false}
+            age={data?.verified_age ?? false}
+            ethnicity={data?.verified_ethnicity ?? false}
+            style={{
+              marginBottom: 10,
+            }}
+          />
+          <DefaultText
+            style={{
+              color: '#999',
+            }}
+          >
+            Because verification is based on selfies, verified photos are most
+            accurate
+          </DefaultText>
+          </>
+        }
+
         <EnlargeableImage
           imageUuid={imageUuid1}
           imageBlurhash={imageBlurhash1}
           onChangeEmbiggened={goToGallery(navigation, imageUuid1)}
           style={styles.secondaryEnlargeableImage}
           isPrimary={false}
+          verified={imageVerification1}
         />
 
         {!data?.name &&
@@ -876,6 +936,7 @@ const Body = ({
           onChangeEmbiggened={goToGallery(navigation, imageUuid2)}
           style={styles.secondaryEnlargeableImage}
           isPrimary={false}
+          verified={imageVerification2}
         />
 
         {data !== undefined && data.mutual_clubs.length > 0 &&
@@ -899,6 +960,7 @@ const Body = ({
           onChangeEmbiggened={goToGallery(navigation, imageUuid3)}
           style={styles.secondaryEnlargeableImage}
           isPrimary={false}
+          verified={imageVerification3}
         />
 
         {data !== undefined && data.other_clubs.length > 0 &&
@@ -922,6 +984,7 @@ const Body = ({
           onChangeEmbiggened={goToGallery(navigation, imageUuid4)}
           style={styles.secondaryEnlargeableImage}
           isPrimary={false}
+          verified={imageVerification4}
         />
 
         <EnlargeableImage
@@ -930,6 +993,7 @@ const Body = ({
           onChangeEmbiggened={goToGallery(navigation, imageUuid5)}
           style={styles.secondaryEnlargeableImage}
           isPrimary={false}
+          verified={imageVerification5}
         />
 
         <EnlargeableImage
@@ -938,6 +1002,7 @@ const Body = ({
           onChangeEmbiggened={goToGallery(navigation, imageUuid6)}
           style={styles.secondaryEnlargeableImage}
           isPrimary={false}
+          verified={imageVerification6}
         />
 
         {!isViewingSelf && (<>

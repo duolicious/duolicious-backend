@@ -1,5 +1,5 @@
 import * as _ from "lodash";
-import { japi } from '../api/api';
+import { japi, ApiResponse } from '../api/api';
 import { setSignedInUser } from '../App';
 import { sessionToken } from '../kv-storage/session-token';
 import { X } from "react-native-feather";
@@ -19,6 +19,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { NonNullImageCropperOutput } from '../components/image-cropper';
 import { logout } from '../xmpp/xmpp';
 import { LOGARITHMIC_SCALE, Scale } from "../scales/scales";
+import { VerificationBadge } from '../components/verification-badge';
+import { VerificationEvent } from '../verification/verification';
+import { notify } from '../events/events';
 
 type OptionGroupButtons = {
   buttons: {
@@ -51,9 +54,14 @@ type OptionGroupDate = {
 type OptionGroupPhotos = {
   photos: {
     submit: (position: number, cropperOutput: NonNullImageCropperOutput) => Promise<boolean>
+    submitAll?: () => Promise<ApiResponse>
     delete: (filename: string) => Promise<boolean>
     getUri?: (position: string, resolution: string) => string | null
     getBlurhash?: (position: string) => string | null
+    singlePhoto?: boolean,
+    showProtip?: boolean,
+    validateAtLeastOne?: boolean,
+    firstFileNumber?: number,
   }
 };
 
@@ -88,9 +96,14 @@ type OptionGroupCheckChips = {
   }
 };
 
+type OptionGroupVerificationChecker = {
+  verificationChecker: {}
+};
+
 type OptionGroupNone = {
   none: {
     description?: string,
+    textAlign?: "left" | "right" | "auto" | "center" | "justify",
     submit: () => Promise<boolean>
   }
 };
@@ -135,6 +148,7 @@ type OptionGroupInputs
   | OptionGroupTextShort
   | OptionGroupOtp
   | OptionGroupCheckChips
+  | OptionGroupVerificationChecker
   | OptionGroupNone;
 
 type OptionGroup<T extends OptionGroupInputs> = {
@@ -196,6 +210,10 @@ const isOptionGroupTextShort = (x: any): x is OptionGroupTextShort => {
 
 const isOptionGroupOtp = (x: any): x is OptionGroupOtp => {
   return hasExactKeys(x, ['otp']);
+}
+
+const isOptionGroupVerificationChecker = (x: any): x is OptionGroupVerificationChecker => {
+  return hasExactKeys(x, ['verificationChecker']);
 }
 
 const isOptionGroupNone = (x: any): x is OptionGroupNone => {
@@ -359,8 +377,15 @@ const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
     buttons: {
       values: genders,
       submit: async function(gender: string) {
+        if (this.currentValue === gender) {
+          return true;
+        }
+
         const ok = (await japi('patch', '/profile-info', { gender })).ok;
-        if (ok) this.currentValue = gender;
+        if (ok) {
+          this.currentValue = gender;
+          notify<VerificationEvent>('updated-verification', { gender: false });
+        }
         return ok;
       },
     }
@@ -386,8 +411,15 @@ const ethnicityOptionGroup: OptionGroup<OptionGroupButtons> = {
     buttons: {
       values: ethnicities,
       submit: async function(ethnicity: string) {
+        if (this.currentValue === ethnicity) {
+          return true;
+        }
+
         const ok = (await japi('patch', '/profile-info', { ethnicity })).ok;
-        if (ok) this.currentValue = ethnicity;
+        if (ok) {
+          this.currentValue = ethnicity;
+          notify<VerificationEvent>('updated-verification', { ethnicity: false });
+        }
         return ok;
       },
     }
@@ -1594,6 +1626,66 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   hideMeFromStrangersOptionGroup,
 ];
 
+const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
+  {
+    title: 'Get Verified',
+    Icon: VerificationBadge,
+    description: 'Get a pretty blue badge by taking a selfie!',
+    input: {
+      none: {
+        description: (
+          'To prove you’re real, you can take a selfie while doing four ' +
+          'things at once:\n\n' +
+          '\xa0\xa0\xa01. Smiling 😊\n' +
+          '\xa0\xa0\xa02. Facing away from the camera 😒\n' +
+          '\xa0\xa0\xa03. Giving one thumb down 👎\n' +
+          '\xa0\xa0\xa04. Touching your eyebrow 🤨\n\n' +
+          'You can use one hand for those last two. Also, we promise not to ' +
+          'add this goofy selfie to your profile.\n\n' +
+          'When you think you’ve got all that, press ‘Continue’ to take your ' +
+          'selfie!'
+        ),
+        textAlign: 'left',
+        submit: async () => true,
+      }
+    }
+  },
+  {
+    title: 'Get Verified',
+    description: 'Once you submit a selfie and press ‘Continue’, we’ll check that it matches your profile.',
+    input: {
+      photos: {
+        submit: async (position, cropperOutput) => (await japi(
+          'post',
+          '/verification-selfie',
+          {
+            base64_file: {
+              position: 1,
+              base64: cropperOutput.originalBase64,
+              top: cropperOutput.top,
+              left: cropperOutput.left,
+            },
+          },
+          2 * 60 * 1000 // 2 minutes
+        )).ok,
+        submitAll: async () => japi('post', '/verify'),
+        delete: async () => true,
+        singlePhoto: true,
+        showProtip: false,
+        validateAtLeastOne: true,
+        firstFileNumber: -1,
+      }
+    }
+  },
+  {
+    title: 'Results',
+    description: '',
+    input: {
+      verificationChecker: {}
+    }
+  },
+];
+
 export {
   OptionGroup,
   OptionGroupButtons,
@@ -1609,6 +1701,7 @@ export {
   OptionGroupSlider,
   OptionGroupTextLong,
   OptionGroupTextShort,
+  OptionGroupVerificationChecker,
   basicsOptionGroups,
   createAccountOptionGroups,
   deactivationOptionGroups,
@@ -1628,9 +1721,11 @@ export {
   isOptionGroupSlider,
   isOptionGroupTextLong,
   isOptionGroupTextShort,
+  isOptionGroupVerificationChecker,
   notificationSettingsOptionGroups,
   privacySettingsOptionGroups,
-  searchTwoWayBasicsOptionGroups,
-  searchOtherBasicsOptionGroups,
   searchInteractionsOptionGroups,
+  searchOtherBasicsOptionGroups,
+  searchTwoWayBasicsOptionGroups,
+  verificationOptionGroups,
 };

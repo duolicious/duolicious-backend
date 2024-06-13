@@ -13,6 +13,7 @@ import {
   useImperativeHandle,
   useRef,
   useState,
+  Fragment,
 } from 'react';
 import { ButtonGroup } from '@rneui/themed';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -25,6 +26,8 @@ import { DefaultTextInput } from './default-text-input';
 import { OtpInput } from './otp-input';
 import { DatePicker } from './date-picker';
 import { LocationSelector as LocationSelector_ } from './location-selector';
+import { VerificationBadge } from './verification-badge';
+import { VerificationEvent } from '../verification/verification';
 import {
   OptionGroup,
   OptionGroupButtons,
@@ -39,6 +42,7 @@ import {
   OptionGroupSlider,
   OptionGroupTextLong,
   OptionGroupTextShort,
+  OptionGroupVerificationChecker,
   isOptionGroupButtons,
   isOptionGroupCheckChips,
   isOptionGroupDate,
@@ -51,8 +55,10 @@ import {
   isOptionGroupSlider,
   isOptionGroupTextLong,
   isOptionGroupTextShort,
+  isOptionGroupVerificationChecker,
 } from '../data/option-groups';
 import {
+  PrimaryImage,
   SecondaryImages,
 } from './images';
 import { DefaultLongTextInput } from './default-long-text-input';
@@ -63,6 +69,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { japi } from '../api/api';
 import { delay } from '../util/util';
 import { KeyboardDismissingView } from './keyboard-dismissing-view';
+import { listen, notify } from '../events/events';
 
 type InputProps<T extends OptionGroupInputs> = {
   input: T,
@@ -399,40 +406,124 @@ const LocationSelector = forwardRef((props: InputProps<OptionGroupLocationSelect
 });
 
 const Photos = forwardRef((props: InputProps<OptionGroupPhotos>, ref) => {
-  const [isInvalid, setIsInvalid] = useState(false);
+  const errFileSize = (
+    'Something went wrong. Make sure your images are smaller than 10MB and ' +
+    '5000x5000 pixels.'
+  );
+  const errNumber = (
+    'We need at least one photo'
+  );
+  const errRateLimit = (
+    'You’re doing that too much'
+  );
+  const errGeneric = (
+    'Something went wrong'
+  );
 
+  const [isInvalid, setIsInvalid] = useState(false);
+  const [lastInvalidReason, setLastInvalidReason] = useState(errFileSize);
+  const [numImages, setNumImages] = useState(0);
+
+  const singlePhoto = props.input.photos.singlePhoto ?? false;
+  const showProtip = props.input.photos.showProtip ?? true;
+  const validateAtLeastOne = props.input.photos.validateAtLeastOne ?? false;
+  const firstFileNumber = props.input.photos.firstFileNumber ?? 1;
+
+  const setHasImage = useCallback((hasImage: boolean) => {
+    setNumImages((n: number) => hasImage ? n + 1 : n - 1);
+  }, []);
+
+  const isNumberInvalid = validateAtLeastOne && numImages === 0;
 
   const submit = useCallback(async () => {
-    if (!props.isLoading) {
-      props.onSubmitSuccess();
+    if (props.isLoading) {
+      return;
     }
-  }, [props.isLoading]);
 
-  useImperativeHandle(ref, () => ({ submit }), []);
+    setIsInvalid(false);
+    if (isNumberInvalid) {
+      setLastInvalidReason(errNumber);
+      setIsInvalid(true);
+      return;
+    }
+
+    if (!props.input.photos.submitAll) {
+      props.onSubmitSuccess();
+      return;
+    }
+
+    props.setIsLoading(true);
+
+    const { ok, status } = await props.input.photos.submitAll();
+
+    setIsInvalid(ok);
+    if (status === 429) {
+      setLastInvalidReason(errRateLimit);
+    } else if (!ok) {
+      setLastInvalidReason(errGeneric);
+    }
+
+    ok && props.onSubmitSuccess();
+
+    props.setIsLoading(false);
+  }, [props.isLoading, isNumberInvalid]);
+
+  useImperativeHandle(ref, () => ({ submit }), [submit]);
+
+  const setChildInvalid = useCallback((x: boolean) => {
+    setLastInvalidReason(errFileSize);
+    setIsInvalid(x);
+  }, []);
+
+  const errMessage = isNumberInvalid ? errNumber : errFileSize;
 
   return (
     <View
       style={{
-        marginLeft: 20,
-        marginRight: 20,
+        paddingLeft: 20,
+        paddingRight: 20,
+        width: '100%',
+        alignSelf: 'center',
       }}
     >
-      <SecondaryImages
-        input={props.input}
-        firstFileNumber={1}
-        setIsLoading={props.setIsLoading}
-        setIsInvalid={setIsInvalid}
-      />
+      <View
+        style={{
+          width: '100%',
+          maxWidth: singlePhoto ? '50%' : undefined,
+          alignSelf: 'center',
+        }}
+      >
+        {singlePhoto &&
+          <PrimaryImage
+            input={props.input}
+            fileNumber={firstFileNumber}
+            setIsLoading={props.setIsLoading}
+            setIsInvalid={setChildInvalid}
+            showProtip={showProtip}
+            setHasImage={setHasImage}
+          />
+        }
+        {!singlePhoto &&
+          <SecondaryImages
+            input={props.input}
+            firstFileNumber={firstFileNumber}
+            setIsLoading={props.setIsLoading}
+            setIsInvalid={setChildInvalid}
+            setHasImage={setHasImage}
+          />
+        }
+      </View>
       <DefaultText
         style={{
           textAlign: 'center',
-          color: 'white',
+          color: props.theme !== 'light' ? 'white' : 'red',
           marginTop: 5,
           opacity: isInvalid ? 1 : 0,
+          overflow: 'visible',
+          height: 40,
         }}
       >
-        Something went wrong. Make sure your images are smaller than 10MB and
-        5000x5000 pixels.
+        {lastInvalidReason}
       </DefaultText>
     </View>
   );
@@ -708,6 +799,254 @@ const RangeSlider = forwardRef((props: InputProps<OptionGroupRangeSlider>, ref) 
   );
 });
 
+const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificationChecker>, ref) => {
+  const [status, setStatus] = useState<
+    | 'uploading-photo'
+    | 'enqueued'
+    | 'running'
+    | 'success'
+    | 'failure'
+  >('uploading-photo');
+  const [message, setMessage] = useState('Loading...');
+  const [numChecks, setNumChecks] = useState(0);
+  const [verifiedThings, setVerifiedThings] = useState<string[]>([]);
+  const [unverifiedThings, setUnverifiedThings] = useState<string[]>([]);
+
+  const isDone = status === 'success' || status === 'failure';
+
+  const submit = useCallback(async () => {
+    if (isDone) {
+      props.onSubmitSuccess();
+    }
+  }, [isDone]);
+
+  useImperativeHandle(ref, () => ({ submit }), [submit]);
+
+  const onVerificationEvent = useCallback((e?: VerificationEvent) => {
+    if (!e) {
+      return;
+    }
+
+    const status = e.status;
+    const message = e.message;
+
+    const gender = e.gender;
+    const age = e.age;
+    const ethnicity = e.ethnicity;
+    const photos = e.photos;
+
+    if (status === undefined) {
+      return;
+    }
+    if (message === undefined) {
+      return;
+    }
+
+    const hasVerifiedPhotos = Object.values(photos ?? {}).some(Boolean);
+
+    setStatus(status);
+    setMessage(message);
+    setNumChecks((n) => n + 1);
+
+    const filter = (item): item is string => item !== null;
+
+    setVerifiedThings([
+      gender ? 'gender' : null,
+      age ? 'age' : null,
+      ethnicity ? 'ethnicity' : null,
+      hasVerifiedPhotos ? 'photos' : null,
+    ].filter(filter));
+
+    setUnverifiedThings([
+      !gender ? 'gender' : null,
+      !age ? 'age' : null,
+      !ethnicity ? 'ethnicity' : null,
+      !hasVerifiedPhotos ? 'photos' : null,
+    ].filter(filter));
+  }, []);
+
+  useEffect(() => {
+    notify('watch-verification');
+
+    return listen<VerificationEvent>(
+      'updated-verification',
+      onVerificationEvent,
+    );
+
+  }, []);
+
+  const VerificationText = useCallback(({
+    verified,
+    unverified
+  }: {
+    verified: string[],
+    unverified: string[],
+  }) => {
+    return (
+      <View style={{ gap: 15, flex: 1 }} >
+        {verified.length > 0 &&
+          <DefaultText
+            style={{
+              color: '#333',
+              fontSize: 16,
+              width: '100%',
+            }}
+          >
+            We were able to verify your {}
+            {verified.map((item, index) => (
+              <Fragment key={index}>
+                {index > 0 && index < verified.length - 1 && ', '}
+                {index === verified.length - 1 && ' and '}
+                <DefaultText key={index} style={{ fontWeight: '700' }}>
+                  {item}
+                </DefaultText>
+              </Fragment>
+            ))}
+            .
+          </DefaultText>
+        }
+        {unverified.length > 0 &&
+          <DefaultText
+            style={{
+              color: '#333',
+              fontSize: 16,
+              width: '100%',
+            }}
+          >
+            You can verify your {}
+            {unverified.map((item, index) => (
+              <Fragment key={index}>
+                {index > 0 && index < verified.length - 1 && ', '}
+                {index === verified.length - 1 && ' and '}
+                <DefaultText style={{ fontWeight: '700' }}>
+                  {item}
+                </DefaultText>
+              </Fragment>
+            ))}
+            {} later.
+          </DefaultText>
+        }
+      </View>
+    );
+  }, []);
+
+  return (
+    <>
+      {isDone &&
+        <View
+          style={{
+            backgroundColor: '#eee',
+            borderRadius: 10,
+            flex: 1,
+            marginLeft: 10,
+            marginRight: 10,
+            paddingTop: 10,
+            paddingBottom: 10,
+            paddingLeft: 20,
+            paddingRight: 20,
+            justifyContent: 'space-around',
+            alignItems: 'center',
+          }}
+        >
+          {status === 'success' && <>
+              <View
+                style={{
+                  alignItems: 'center',
+                  gap: 10,
+                  flex: 1,
+                  justifyContent: 'center',
+                }}
+              >
+                <VerificationBadge size={40}/>
+                <DefaultText
+                  style={{
+                    color: '#333',
+                    fontWeight: 700,
+                    fontSize: 22,
+                  }}
+                >
+                  You’re Verified!
+                </DefaultText>
+              </View>
+              <VerificationText
+                verified={verifiedThings}
+                unverified={unverifiedThings}
+              />
+            </>
+          }
+          {status === 'failure' && <>
+              <View
+                style={{
+                  alignItems: 'center',
+                  gap: 10,
+                  flex: 1,
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons
+                  style={{
+                    fontSize: 55,
+                    color: "#d10909",
+                  }}
+                  name="close-circle"
+                />
+                <DefaultText
+                  style={{
+                    color: '#333',
+                    fontWeight: 700,
+                    fontSize: 22,
+                  }}
+                >
+                  We Couldn’t Verify You
+                </DefaultText>
+              </View>
+              <View style={{ gap: 15, flex: 1 }}>
+                <DefaultText
+                  style={{
+                    color: '#333',
+                    fontSize: 16,
+                    width: '100%',
+                  }}
+                >
+                  {message}
+                </DefaultText>
+
+                <DefaultText
+                  style={{
+                    color: '#333',
+                    fontSize: 16,
+                    width: '100%',
+                  }}
+                >
+                  Not to worry! You can try up to five times per day.
+                </DefaultText>
+              </View>
+            </>
+          }
+        </View>
+      }
+      {!isDone &&
+        <DefaultText
+          style={{
+            color: 'black',
+            fontSize: 22,
+            padding: 20,
+            borderColor: 'white',
+            borderWidth: 3,
+            borderRadius: 10,
+            textAlign: 'center',
+            width: '100%',
+          }}
+        >
+          {message}
+          {'\n'}
+          {'.'.repeat(Math.max(0, numChecks + 1))}
+        </DefaultText>
+      }
+    </>
+  );
+});
+
 const None = forwardRef((props: InputProps<OptionGroupNone>, ref) => {
   const submit = useCallback(async () => {
     props.setIsLoading(true);
@@ -723,11 +1062,10 @@ const None = forwardRef((props: InputProps<OptionGroupNone>, ref) => {
   return (
     <DefaultText
       style={{
-        color: 'white',
-        textAlign: 'center',
+        color: props.theme !== 'light' ? 'white' : 'black',
+        textAlign: props.input.none.textAlign ?? 'center',
         paddingLeft: 20,
         paddingRight: 20,
-        paddingTop: 20,
         fontSize: 16,
       }}
     >
@@ -759,6 +1097,8 @@ const InputElement = forwardRef((props: InputProps<OptionGroupInputs>, ref) => {
     return <CheckChips {...{ref, ...props, input: props.input}}/>;
   } else if (isOptionGroupRangeSlider(props.input)) {
     return <RangeSlider {...{ref, ...props, input: props.input}}/>;
+  } else if (isOptionGroupVerificationChecker(props.input)) {
+    return <VerificationChecker {...{ref, ...props, input: props.input}}/>;
   } else if (isOptionGroupNone(props.input)) {
     return <None {...{ref, ...props, input: props.input}}/>;
   } else {

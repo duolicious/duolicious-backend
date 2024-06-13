@@ -109,4 +109,5 @@ export {
   SUPPORTED_API_VERSIONS,
   api,
   japi,
+  ApiResponse,
 };

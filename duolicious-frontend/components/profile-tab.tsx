@@ -35,6 +35,7 @@ import {
   isOptionGroupTextShort,
   notificationSettingsOptionGroups,
   privacySettingsOptionGroups,
+  verificationOptionGroups,
 } from '../data/option-groups';
 import { Images } from './images';
 import { DefaultText } from './default-text';
@@ -53,6 +54,11 @@ import { listen } from '../events/events';
 import { ButtonWithCenteredText } from './button/centered-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { logout } from '../xmpp/xmpp';
+import { DetailedVerificationBadges } from './verification-badge';
+import {
+  VerificationEvent,
+} from '../verification/verification';
+
 
 const formatHeight = (og: OptionGroup<OptionGroupInputs>): string | undefined => {
   if (!isOptionGroupSlider(og.input)) return '';
@@ -236,7 +242,7 @@ const AboutPerson = ({navigation, data}) => {
   );
 };
 
-const Options = ({navigation, data}) => {
+const Options = ({ navigation, data }) => {
   const [, triggerRender] = useState({});
   const [isLoadingSignOut, setIsLoadingSignOut] = useState(false);
 
@@ -325,6 +331,33 @@ const Options = ({navigation, data}) => {
     triggerRender({});
   }, [triggerRender]);
 
+  useEffect(() => {
+    return listen<VerificationEvent>(
+      'updated-verification',
+      (v) => {
+        if (!v)
+          return;
+
+        if (v.photos !== undefined)
+          data.photo_verification = {
+            ...data.photo_verification,
+            ...v.photos,
+          };
+
+        if (v.gender !== undefined)
+          data.verified_gender = v.gender;
+
+        if (v.age !== undefined)
+          data.verified_age = v.age;
+
+        if (v.ethnicity !== undefined)
+          data.verified_ethnicity = v.ethnicity;
+
+        triggerRender({});
+      }
+    );
+  }, [triggerRender, data]);
+
   const Button_ = useCallback((props) => {
     return <ButtonForOption
       navigation={navigation}
@@ -357,8 +390,32 @@ const Options = ({navigation, data}) => {
     return data.clubs.map((clubItem: ClubItem) => clubItem.name).join(', ')
   })();
 
+  const isCompletelyVerified = (
+    Object.values(data?.photo_verification ?? {}).every(Boolean) &&
+    (data?.verified_gender ?? false) &&
+    (data?.verified_age ?? false) &&
+    (data?.verified_ethnicity ?? false)
+  );
+
   return (
     <View>
+      <Title>Verification (Beta)</Title>
+      <DetailedVerificationBadges
+        photos={Object.values(data?.photo_verification ?? {}).some(Boolean)}
+        gender={data?.verified_gender ?? false}
+        age={data?.verified_age ?? false}
+        ethnicity={data?.verified_ethnicity ?? false}
+        style={{ marginBottom: 10 }}
+      />
+      {!isCompletelyVerified &&
+        <Button_
+          setting=""
+          optionGroups={verificationOptionGroups}
+          showSkipButton={false}
+          theme="light"
+        />
+      }
+
       <Title>Basics</Title>
       {
         _basicsOptionGroups.map((og, i) =>

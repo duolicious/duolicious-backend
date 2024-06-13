@@ -15,6 +15,7 @@ const ButtonForOption = (props) => {
     onPress,
     onSubmitSuccess,
     label,
+    icon,
     optionGroups,
     setting,
     noSettingText = 'Unanswered',
@@ -37,7 +38,7 @@ const ButtonForOption = (props) => {
     throw Error("`navigation` and `navigationScreen` must be set together");
   }
 
-  const Icon_ = optionGroups ? optionGroups[0]?.Icon : undefined;
+  const Icon_ = icon ?? (optionGroups ? optionGroups[0]?.Icon : undefined);
   const label_ = label ?? optionGroups[0].title
 
   const opacity = new Animated.Value(1);
@@ -101,7 +102,7 @@ const ButtonForOption = (props) => {
         }
         <DefaultText
           style={{
-            marginLeft: Icon_ ? 5 : 0,
+            marginLeft: Icon_ ? 5 : 15,
             fontSize: 16,
           }}
         >

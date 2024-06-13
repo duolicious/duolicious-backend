@@ -46,6 +46,7 @@ import { StreamErrorModal } from './components/stream-error-modal';
 import { setNofications } from './notifications/notifications';
 import { navigationState } from './kv-storage/navigation-state';
 import { listen } from './events/events';
+import { verificationWatcher } from './verification/verification';
 
 // TODO: iOS UI testing
 // TODO: Add the ability to reply to things (e.g. pictures, quiz responses) from people's profiles. You'll need to change the navigation to make it easier to reply to things. Consider breaking profiles into sections which can be replied to, each having one image or block of text. Letting people reply to specific things on the profile will improve intro quality.
@@ -53,6 +54,7 @@ import { listen } from './events/events';
 // TODO: Picture verification and a way to filter users by verified pics
 
 setNofications();
+verificationWatcher();
 
 SplashScreen.preventAutoHideAsync();
 

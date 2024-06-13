@@ -26,6 +26,7 @@ const buttonHeight = 110; // Define the height for the button
 type ImageCropperInput = {
   base64: string
   callback: string
+  showProtip?: boolean
 };
 
 type ImageCropperOutput = {
@@ -316,12 +317,14 @@ const ImageCropper = () => {
           <Button color="#999" onPress={onCancelPress} title="Cancel" />
           <Button color="#70f" onPress={onCropPress} title="Crop" />
         </View>
-        <DefaultText style={styles.protip}>
-          <DefaultText style={styles.boldProtip} >
-            Pro-tip: {}
+        {(data?.showProtip ?? true) &&
+          <DefaultText style={styles.protip}>
+            <DefaultText style={styles.boldProtip} >
+              Pro-tip: {}
+            </DefaultText>
+            Visitors to your profile can see the uncropped pic too
           </DefaultText>
-          Visitors to your profile can see the uncropped pic too
-        </DefaultText>
+        }
       </View>
     </View>
   );

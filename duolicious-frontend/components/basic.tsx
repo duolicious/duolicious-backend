@@ -48,8 +48,6 @@ const Basic = ({children, ...rest}) => {
           paddingBottom: 5,
           paddingLeft: 10,
           paddingRight: 10,
-          marginRight: 5,
-          marginBottom: 5,
           justifyContent: 'center',
           alignItems: 'center',
           flexDirection: 'row',
@@ -65,6 +63,21 @@ const Basic = ({children, ...rest}) => {
   );
 };
 
+const Basics = ({children}) => {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 5,
+      }}
+    >
+      {children}
+    </View>
+  );
+};
+
 export {
   Basic,
+  Basics,
 };
