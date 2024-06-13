@@ -306,6 +306,7 @@ const ClubSelector = ({navigation, route}) => {
               style={{
                 flexDirection: 'row',
                 flexWrap: 'wrap',
+                gap: 5,
               }}
             >
               {selectedClubs.map((a, i) =>
