@@ -316,7 +316,7 @@ async def verify(
             response = f.read()
     else:
         try:
-            response = await AsyncOpenAI().chat.completions.create(
+            response = (await AsyncOpenAI().chat.completions.create(
                 model="gpt-4-turbo",
                 response_format={"type": "json_object"},
                 temperature=0.0,
@@ -331,7 +331,7 @@ async def verify(
                 ),
                 max_tokens=300,
                 timeout=45,
-            ).choices[0].message.content
+            )).choices[0].message.content
         except:
             print(traceback.format_exc())
             response = None
