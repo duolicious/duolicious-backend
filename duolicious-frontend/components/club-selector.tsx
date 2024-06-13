@@ -129,6 +129,7 @@ const UnselectedClub = ({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
+          gap: 5,
         }}
         onPress={_onPress}
       >
