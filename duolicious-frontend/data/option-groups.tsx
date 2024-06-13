@@ -1640,7 +1640,7 @@ const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           '\xa0\xa02. Turn partway from the camera 😒\n' +
           '\xa0\xa03. Give one thumb down 👎\n' +
           '\xa0\xa04. Touch your eyebrow 🤨\n\n' +
-          'You can touch your eyebrow with your thumb. Also, we promise not ' +
+          'You can use one hand for those last two. Also, we promise not ' +
           'to add this goofy selfie to your profile.\n\n' +
           'When you think you’ve got all that, press ‘Continue’ to take your ' +
           'selfie!'
