@@ -105,8 +105,8 @@ const DetailedVerificationBadges = ({
       ]}
     >
       {
-        verifications.map(({name, verified}) =>
-          <DetailedVerificationBadge verified={verified} name={name} />
+        verifications.map(({name, verified}, i) =>
+          <DetailedVerificationBadge key={i} verified={verified} name={name} />
         )
       }
     </View>

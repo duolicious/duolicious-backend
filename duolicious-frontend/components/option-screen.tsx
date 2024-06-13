@@ -456,7 +456,7 @@ const Photos = forwardRef((props: InputProps<OptionGroupPhotos>, ref) => {
 
     const { ok, status } = await props.input.photos.submitAll();
 
-    setIsInvalid(ok);
+    setIsInvalid(!ok);
     if (status === 429) {
       setLastInvalidReason(errRateLimit);
     } else if (!ok) {

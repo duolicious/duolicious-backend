@@ -1652,7 +1652,7 @@ const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Get Verified',
-    description: 'Once you submit a selfie and press ‘Continue’, we’ll check that it matches your profile.',
+    description: 'Press ‘Continue’ to submit your selfie. You can submit five selfies per day.',
     input: {
       photos: {
         submit: async (position, cropperOutput) => (await japi(
