@@ -35,16 +35,35 @@ WITH q1 AS (
     RETURNING
         email
 ), q6 AS (
-    INSERT INTO
-        undeleted_photo (uuid)
+    DELETE FROM
+        verification_job
+    WHERE
+        expires_at < NOW()
+    RETURNING
+        photo_uuid AS uuid
+), each_deleted_photo AS (
     SELECT
-        op.uuid
+        onboardee_photo.uuid
     FROM
-        onboardee_photo op
+        onboardee_photo
     JOIN
         q5
     ON
-        op.email = q5.email
+        onboardee_photo.email = q5.email
+
+    UNION
+
+    SELECT
+        uuid
+    FROM
+        q6
+), q7 AS (
+    INSERT INTO
+        undeleted_photo (uuid)
+    SELECT
+        uuid
+    FROM
+        each_deleted_photo
     RETURNING
         1
 )
@@ -56,6 +75,7 @@ FROM (
     SELECT 1 AS n FROM q3 UNION ALL
     SELECT 1 AS n FROM q4 UNION ALL
     SELECT 1 AS n FROM q5 UNION ALL
-    SELECT 0 AS n FROM q6
+    SELECT 1 AS n FROM q6 UNION ALL
+    SELECT 0 AS n FROM q7
 ) AS t(n)
 """

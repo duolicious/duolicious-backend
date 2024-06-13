@@ -84,6 +84,12 @@ CREATE TABLE IF NOT EXISTS banned_club (
 -- BASICS
 --------------------------------------------------------------------------------
 
+CREATE TABLE IF NOT EXISTS verification_level (
+    id SMALLSERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    UNIQUE (name)
+);
+
 CREATE TABLE IF NOT EXISTS gender (
     id SMALLSERIAL PRIMARY KEY,
     name TEXT NOT NULL,
@@ -206,6 +212,10 @@ CREATE TABLE IF NOT EXISTS person (
 
     -- Verification
     has_profile_picture_id SMALLINT REFERENCES yes_no(id) NOT NULL DEFAULT 2,
+    verification_level_id SMALLINT REFERENCES verification_level(id) NOT NULL DEFAULT 1,
+    verified_age BOOLEAN NOT NULL DEFAULT FALSE,
+    verified_gender BOOLEAN NOT NULL DEFAULT FALSE,
+    verified_ethnicity BOOLEAN NOT NULL DEFAULT FALSE,
 
     -- Basics
     orientation_id SMALLINT REFERENCES orientation(id) NOT NULL DEFAULT 1,
@@ -296,6 +306,7 @@ CREATE TABLE IF NOT EXISTS photo (
     position SMALLINT NOT NULL,
     uuid TEXT NOT NULL,
     blurhash TEXT NOT NULL,
+    verified BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (person_id, position)
 );
 
@@ -346,6 +357,28 @@ CREATE TABLE IF NOT EXISTS trait_topic (
     trait_id SMALLINT NOT NULL REFERENCES trait(id) ON DELETE CASCADE ON UPDATE CASCADE,
     name TEXT,
     PRIMARY KEY (trait_id, name)
+);
+
+
+DO $$ BEGIN
+    CREATE TYPE verification_job_status AS ENUM (
+        'uploading-photo',
+        'queued',
+        'running',
+        'success',
+        'failure'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS verification_job (
+    id SERIAL PRIMARY KEY,
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    status verification_job_status NOT NULL DEFAULT 'uploading-photo',
+    message TEXT NOT NULL DEFAULT 'Verifying',
+    photo_uuid TEXT NOT NULL,
+    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 day')
 );
 
 --------------------------------------------------------------------------------
@@ -595,6 +628,9 @@ CREATE INDEX IF NOT EXISTS idx__banned_person__expires_at ON banned_person(expir
 CREATE INDEX IF NOT EXISTS idx__banned_person_admin_token__expires_at
     ON banned_person_admin_token(expires_at);
 
+CREATE INDEX IF NOT EXISTS idx__deleted_photo_admin_token__expires_at
+    ON deleted_photo_admin_token(expires_at);
+
 CREATE INDEX IF NOT EXISTS idx__photo__uuid
     ON photo(uuid);
 
@@ -613,9 +649,22 @@ CREATE INDEX IF NOT EXISTS idx__skipped__object_person_id__created_at__reported
     ON skipped(object_person_id, created_at)
     WHERE reported;
 
+CREATE INDEX IF NOT EXISTS idx__verification_job__status
+    ON verification_job(status);
+
+CREATE INDEX IF NOT EXISTS idx__verification_job__person_id
+    ON verification_job(person_id);
+
+CREATE INDEX IF NOT EXISTS idx__verification_job__expires_at
+    ON verification_job(expires_at);
+
 --------------------------------------------------------------------------------
 -- DATA
 --------------------------------------------------------------------------------
+
+INSERT INTO verification_level (name) VALUES ('No verification') ON CONFLICT (name) DO NOTHING;
+INSERT INTO verification_level (name) VALUES ('Basics only') ON CONFLICT (name) DO NOTHING;
+INSERT INTO verification_level (name) VALUES ('Photos') ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO gender (name) VALUES ('Man') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Woman') ON CONFLICT (name) DO NOTHING;
@@ -1252,5 +1301,26 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
+
+-- TODO
+ALTER TABLE photo
+ADD COLUMN IF NOT EXISTS verified
+BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE person
+ADD COLUMN IF NOT EXISTS verification_level_id
+SMALLINT REFERENCES verification_level(id) NOT NULL DEFAULT 1;
+
+ALTER TABLE person
+ADD COLUMN IF NOT EXISTS verified_age
+BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE person
+ADD COLUMN IF NOT EXISTS verified_gender
+BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE person
+ADD COLUMN IF NOT EXISTS verified_ethnicity
+BOOLEAN NOT NULL DEFAULT FALSE;
 
 --------------------------------------------------------------------------------

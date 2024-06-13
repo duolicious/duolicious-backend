@@ -829,6 +829,10 @@ WITH prospect_person_id AS (
     SELECT COALESCE(json_agg(blurhash ORDER BY position), '[]'::json) AS j
     FROM photo
     WHERE person_id = (SELECT id FROM prospect_person_id)
+), photo_verifications AS (
+    SELECT COALESCE(json_agg(verified ORDER BY position), '[]'::json) AS j
+    FROM photo
+    WHERE person_id = (SELECT id FROM prospect_person_id)
 ), gender AS (
     SELECT gender.name AS j
     FROM gender JOIN prospect ON gender_id = gender.id
@@ -941,6 +945,7 @@ SELECT
         'person_id',              (SELECT id            FROM prospect_person_id),
         'photo_uuids',            (SELECT j             FROM photo_uuids),
         'photo_blurhashes',       (SELECT j             FROM photo_blurhashes),
+        'photo_verifications',    (SELECT j             FROM photo_verifications),
         'name',                   (SELECT name          FROM prospect),
         'age',                    (SELECT age           FROM prospect),
         'location',               (SELECT location      FROM prospect),
@@ -970,7 +975,12 @@ SELECT
 
         -- Clubs
         'mutual_clubs',           (SELECT j             FROM mutual_clubs_json),
-        'other_clubs',            (SELECT j             FROM other_clubs_json)
+        'other_clubs',            (SELECT j             FROM other_clubs_json),
+
+        -- Verifications
+        'verified_age',           (SELECT verified_age       FROM prospect),
+        'verified_gender',        (SELECT verified_gender    FROM prospect),
+        'verified_ethnicity',     (SELECT verified_ethnicity FROM prospect)
     ) AS j
 WHERE
     EXISTS (SELECT 1 FROM prospect)
@@ -1280,6 +1290,17 @@ WITH deleted_photo AS (
         photo
     WHERE
         person_id = %(person_id)s
+), deleted_verification_photo AS (
+    SELECT
+        photo_uuid AS uuid
+    FROM
+        verification_job
+    WHERE
+        person_id = %(person_id)s
+), every_deleted_photo_uuid AS (
+    SELECT uuid FROM deleted_photo
+    UNION
+    SELECT uuid FROM deleted_verification_photo
 ), deleted_person_club AS (
     SELECT
         club_name
@@ -1299,7 +1320,7 @@ WITH deleted_photo AS (
     SELECT
         uuid
     FROM
-        deleted_photo
+        every_deleted_photo_uuid
 ), club_update AS (
     UPDATE
         club
@@ -1360,6 +1381,10 @@ WITH photo_ AS (
     WHERE person_id = %(person_id)s
 ), photo_blurhash AS (
     SELECT json_object_agg(position, blurhash) AS j
+    FROM photo
+    WHERE person_id = %(person_id)s
+), photo_verification AS (
+    SELECT json_object_agg(position, verified) AS j
     FROM photo
     WHERE person_id = %(person_id)s
 ), name AS (
@@ -1481,11 +1506,18 @@ WITH photo_ AS (
         CASE WHEN hide_me_from_strangers THEN 'Yes' ELSE 'No' END AS j
     FROM person
     WHERE id = %(person_id)s
+), verified_gender AS (
+    SELECT verified_gender AS j FROM person WHERE id = %(person_id)s
+), verified_age AS (
+    SELECT verified_age AS j FROM person WHERE id = %(person_id)s
+), verified_ethnicity AS (
+    SELECT verified_ethnicity AS j FROM person WHERE id = %(person_id)s
 )
 SELECT
     json_build_object(
         'photo',                  (SELECT j FROM photo_),
         'photo_blurhash',         (SELECT j FROM photo_blurhash),
+        'photo_verification',     (SELECT j FROM photo_verification),
         'name',                   (SELECT j FROM name),
         'about',                  (SELECT j FROM about),
         'gender',                 (SELECT j FROM gender),
@@ -1516,7 +1548,11 @@ SELECT
 
         'show my location',       (SELECT j FROM show_my_location),
         'show my age',            (SELECT j FROM show_my_age),
-        'hide me from strangers', (SELECT j FROM hide_me_from_strangers)
+        'hide me from strangers', (SELECT j FROM hide_me_from_strangers),
+
+        'verified_gender',       (SELECT j FROM verified_gender),
+        'verified_age',          (SELECT j FROM verified_age),
+        'verified_ethnicity',    (SELECT j FROM verified_ethnicity)
     ) AS j
 """
 
@@ -2206,4 +2242,94 @@ ON
     banned_person_admin_token.person_id = person.id
 WHERE
     banned_person_admin_token.token = %(token)s
+"""
+
+Q_DELETE_VERIFICATION_JOB = """
+WITH deleted_job AS (
+    DELETE FROM
+        verification_job
+    WHERE
+        person_id = %(person_id)s
+    RETURNING
+        photo_uuid AS uuid
+)
+INSERT INTO undeleted_photo (
+    uuid
+)
+SELECT
+    uuid
+FROM
+    deleted_job
+"""
+
+Q_INSERT_VERIFICATION_JOB = """
+INSERT INTO verification_job (
+    person_id,
+    photo_uuid
+) VALUES (
+    %(person_id)s,
+    %(photo_uuid)s
+)
+"""
+
+Q_ENQUEUE_VERIFICATION_JOB = """
+UPDATE
+    verification_job
+SET
+    status = 'queued',
+    message = 'Waiting in line for the next selfie checker'
+WHERE
+    person_id = %(person_id)s
+"""
+
+Q_CHECK_VERIFICATION = """
+SELECT
+    person.verified_gender,
+    person.verified_age,
+    person.verified_ethnicity,
+    (
+        SELECT json_object_agg(position, verified) AS j
+        FROM photo
+        WHERE person_id = %(person_id)s
+    ) AS verified_photos,
+    verification_job.status,
+    verification_job.message
+FROM
+    person
+LEFT JOIN
+    verification_job
+ON
+    verification_job.person_id = person.id
+WHERE
+    person.id = %(person_id)s
+"""
+
+Q_UPDATE_VERIFICATION_LEVEL = """
+UPDATE
+    person
+SET
+    verification_level_id = CASE
+        WHEN EXISTS (
+            SELECT 1 FROM photo WHERE person_id = %(person_id)s AND verified
+        )
+        THEN 3
+
+        WHEN EXISTS (
+            SELECT
+                1
+            FROM
+                person
+            WHERE
+                id = %(person_id)s
+            AND
+                verified_age
+            AND
+                verified_gender
+        )
+        THEN 2
+
+        ELSE 1
+    END
+WHERE
+    id = %(person_id)s
 """

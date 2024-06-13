@@ -1,6 +1,5 @@
 import traceback
 import smtplib
-import threading
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import os
@@ -80,9 +79,7 @@ class Smtp:
                 print(traceback.format_exc())
                 print('Second attempt to send mail failed. Giving up.')
 
-aws_smtp = Smtp(
-    SMTP_HOST,
-    SMTP_PORT,
-    SMTP_USER,
-    SMTP_PASS,
-)
+def make_aws_smtp():
+    return Smtp(SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS)
+
+aws_smtp = make_aws_smtp();
