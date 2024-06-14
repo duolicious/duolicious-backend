@@ -381,6 +381,9 @@ def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo):
 
 @apost('/verify')
 def post_verify(s: t.SessionInfo):
+    return person.post_verify(s)
+
+    # TODO
     limit = "5 per day"
 
     rate_limited_verify = account_limiter(person.post_verify, limit=limit)
