@@ -10,6 +10,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -338,6 +339,10 @@ const App = () => {
     }
   }, [isLoading]);
 
+  const WelcomeScreen_ = useMemo(() => {
+    return WelcomeScreen(numUsers);
+  }, [numUsers]);
+
   if (serverStatus !== "ok") {
     return <UtilityScreen serverStatus={serverStatus}/>
   }
@@ -384,7 +389,7 @@ const App = () => {
                 </>
               ) : (
                 <>
-                  <Tab.Screen name="Welcome" component={WelcomeScreen(numUsers)} />
+                  <Tab.Screen name="Welcome" component={WelcomeScreen_} />
                 </>
               )
             }

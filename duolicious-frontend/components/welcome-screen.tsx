@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import {
   useCallback,
+  useMemo,
   useState,
 } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -27,6 +28,10 @@ import { otpDestination } from '../App';
 const Stack = createNativeStackNavigator();
 
 const WelcomeScreen = (numUsers: number) => () => {
+  const WelcomeScreen__ = useMemo(() => {
+    return WelcomeScreen_(numUsers);
+  }, [numUsers]);
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -34,7 +39,7 @@ const WelcomeScreen = (numUsers: number) => () => {
         animation: 'slide_from_right',
       }}
     >
-      <Stack.Screen name="Welcome Screen" component={WelcomeScreen_(numUsers)} />
+      <Stack.Screen name="Welcome Screen" component={WelcomeScreen__} />
 
       <Stack.Screen name="Create Account Or Sign In Screen" component={OptionScreen} />
     </Stack.Navigator>

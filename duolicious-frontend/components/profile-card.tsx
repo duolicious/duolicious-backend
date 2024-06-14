@@ -8,6 +8,7 @@ import {
   useCallback,
   useRef,
   useState,
+  memo,
 } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Skeleton } from '@rneui/themed';
@@ -23,7 +24,7 @@ import { X } from "react-native-feather";
 import { PageItem } from './search-tab';
 import { ImageBackground } from 'expo-image';
 
-const ImageOrSkeleton = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
+const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
   const {
     showGradient = true,
   } = rest;
@@ -86,6 +87,8 @@ const ImageOrSkeleton = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
     </View>
   );
 };
+
+const ImageOrSkeleton = memo(ImageOrSkeleton_);
 
 const ProfileCard = ({
   item,

@@ -13,6 +13,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -57,6 +58,14 @@ const ProspectProfileScreen = ({navigation, route}) => {
   const navigationRef = useRef(undefined);
   const personId = route.params.personId;
 
+  const ProspectProfileScreen_ = useMemo(() => {
+    return Content(navigationRef);
+  }, [navigationRef]);
+
+  const InDepthScreen_ = useMemo(() => {
+    return InDepthScreen(navigationRef);
+  }, [navigationRef]);
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -65,8 +74,8 @@ const ProspectProfileScreen = ({navigation, route}) => {
         animation: 'slide_from_right',
       }}
     >
-      <Stack.Screen name="Prospect Profile" component={Content(navigationRef)} />
-      <Stack.Screen name="In-Depth" component={InDepthScreen(navigationRef)} />
+      <Stack.Screen name="Prospect Profile" component={ProspectProfileScreen_} />
+      <Stack.Screen name="In-Depth" component={InDepthScreen_} />
       <Stack.Screen name="Gallery Screen" component={GalleryScreen} />
     </Stack.Navigator>
   );
@@ -536,6 +545,8 @@ const verifiedAnything = (data: UserData | null | undefined): boolean => {
 };
 
 const Content = (navigationRef) => ({navigation, route, ...props}) => {
+  console.log(navigation, route, props); // TODO
+
   navigationRef.current = navigation;
 
   const personId = route.params.personId;
