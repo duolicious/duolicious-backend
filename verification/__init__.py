@@ -191,6 +191,7 @@ def process_response(
         image_1_has_person_from_image_8 = float(image_1_has_person_from_image_8) if image_1_has_person_from_image_8 is not None else None
     except:
         print(traceback.format_exc())
+        print('JSON was:', str(response))
         return failure("Something went wrong.")
 
     general_truthiness_threshold = 0.7
@@ -329,7 +330,7 @@ async def verify(
                     claimed_gender=claimed_gender,
                     claimed_ethnicity=claimed_ethnicity,
                 ),
-                max_tokens=300,
+                max_tokens=500,
                 timeout=45,
             )).choices[0].message.content
         except:
