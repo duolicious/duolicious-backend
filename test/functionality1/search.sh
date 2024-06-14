@@ -557,7 +557,8 @@ test_json_format () {
     "profile_photo_uuid": null,
     "prospect_messaged_person": false,
     "prospect_person_id": ${user1_id},
-    "prospect_uuid": "${user1_uuid}"
+    "prospect_uuid": "${user1_uuid}",
+    "verified": false
   }
 ]
 EOF
@@ -577,7 +578,8 @@ EOF
     "profile_photo_uuid": null,
     "prospect_messaged_person": false,
     "prospect_person_id": ${user2_id},
-    "prospect_uuid": "${user2_uuid}"
+    "prospect_uuid": "${user2_uuid}",
+    "verified": false
   }
 ]
 EOF

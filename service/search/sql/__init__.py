@@ -490,7 +490,15 @@ SELECT
             subject_person_id = prospect_person_id
         AND
             object_person_id = %(searcher_person_id)s
-    ) AS prospect_messaged_person
+    ) AS prospect_messaged_person,
+    (
+        SELECT
+            verification_level_id > 1
+        FROM
+            person
+        WHERE
+            id = prospect_person_id
+    ) AS verified
 FROM
     updated_search_cache
 ORDER BY
@@ -529,7 +537,15 @@ SELECT
             subject_person_id = prospect_person_id
         AND
             object_person_id = %(searcher_person_id)s
-    ) AS prospect_messaged_person
+    ) AS prospect_messaged_person,
+    (
+        SELECT
+            verification_level_id > 1
+        FROM
+            person
+        WHERE
+            id = prospect_person_id
+    ) AS verified
 FROM
     search_cache
 WHERE
