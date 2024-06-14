@@ -23,6 +23,7 @@ import { listen } from '../events/events';
 import { X } from "react-native-feather";
 import { PageItem } from './search-tab';
 import { ImageBackground } from 'expo-image';
+import { VerificationBadge } from './verification-badge';
 
 const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
   const {
@@ -105,6 +106,7 @@ const ProfileCard = ({
     prospect_uuid: personUuid,
     person_messaged_prospect: personMessagedProspect,
     prospect_messaged_person: prospectMessagedPerson,
+    verified: verified,
   } = item;
 
   const [isSkipped, setIsSkipped] = useState(false);
@@ -200,6 +202,7 @@ const ProfileCard = ({
             name={name}
             age={age}
             matchPercentage={matchPercentage}
+            verified={verified}
           />
           {prospectMessagedPersonState &&
             <Ionicons
@@ -255,7 +258,7 @@ const ProfileCard = ({
   );
 };
 
-const UserDetails = ({name, age, matchPercentage, ...rest}) => {
+const UserDetails = ({name, age, matchPercentage, verified, ...rest}) => {
   const {
     containerStyle,
   } = rest;
@@ -274,6 +277,8 @@ const UserDetails = ({name, age, matchPercentage, ...rest}) => {
       <View
         style={{
           flexDirection: 'row',
+          gap: 7,
+          alignItems: 'center',
         }}
       >
         <DefaultText style={{
@@ -284,6 +289,17 @@ const UserDetails = ({name, age, matchPercentage, ...rest}) => {
         }}>
           {name}{age && `, ${age}`}
         </DefaultText>
+        {verified &&
+          <VerificationBadge
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 999,
+              minWidth: 16,
+              minHeight: 16,
+            }}
+            size={0}
+          />
+        }
       </View>
       <DefaultText
         style={{

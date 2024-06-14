@@ -50,6 +50,7 @@ type PageItem = {
   match_percentage: number
   person_messaged_prospect: boolean
   prospect_messaged_person: boolean
+  verified: boolean
 };
 
 const fetchPage = async (pageNumber: number): Promise<PageItem[] | null> => {

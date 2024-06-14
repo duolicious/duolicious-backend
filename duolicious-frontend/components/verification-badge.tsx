@@ -14,12 +14,17 @@ const VerificationBadge = (props) => {
     color = '#1d9bf0',
   } = props;
 
-  return <FontAwesomeIcon
-    icon={faCircleCheck}
-    size={size}
-    color={color}
-    style={style}
-  />
+  return (
+    <View
+      style={style}
+    >
+      <FontAwesomeIcon
+        icon={faCircleCheck}
+        size={size}
+        color={color}
+      />
+    </View>
+  );
 }
 
 const DetailedVerificationBadge = ({verified, name}) => {
