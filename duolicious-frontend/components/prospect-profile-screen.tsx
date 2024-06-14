@@ -130,13 +130,10 @@ const EnlargeableImage = ({
         <VerificationBadge
           style={{
             position: 'absolute',
-            top: 15,
-            right: 15,
-            backgroundColor: 'white',
-            borderRadius: 999,
-            padding: 2,
+            top: 18,
+            right: 18,
           }}
-          size={25}
+          size={28}
         />
       }
     </Pressable>

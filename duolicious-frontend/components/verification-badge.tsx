@@ -15,13 +15,38 @@ const VerificationBadge = (props) => {
   } = props;
 
   return (
-    <View
-      style={style}
-    >
+    <View style={[
+      {
+        height: size,
+        width: size,
+        borderRadius: 999,
+        shadowOffset: {
+          width: 0,
+          height: 2,
+        },
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+        elevation: 3,
+        overflow: 'visible',
+      },
+      style
+    ]}>
+      <View
+        style={{
+          position: 'absolute',
+          top: 1,
+          bottom: 1,
+          left: 1,
+          right: 1,
+          backgroundColor: 'white',
+          borderRadius: 999,
+          zIndex: -999,
+        }}
+      />
       <FontAwesomeIcon
         icon={faCircleCheck}
-        size={size}
         color={color}
+        size={size}
       />
     </View>
   );

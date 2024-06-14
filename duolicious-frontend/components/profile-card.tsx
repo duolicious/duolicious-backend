@@ -290,15 +290,7 @@ const UserDetails = ({name, age, matchPercentage, verified, ...rest}) => {
           {name}{age && `, ${age}`}
         </DefaultText>
         {verified &&
-          <VerificationBadge
-            style={{
-              backgroundColor: 'white',
-              borderRadius: 999,
-              minWidth: 16,
-              minHeight: 16,
-            }}
-            size={0}
-          />
+          <VerificationBadge size={20}/>
         }
       </View>
       <DefaultText
