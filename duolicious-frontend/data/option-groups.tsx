@@ -1,5 +1,5 @@
 import * as _ from "lodash";
-import { japi, ApiResponse } from '../api/api';
+import { api, japi, ApiResponse } from '../api/api';
 import { setSignedInUser } from '../App';
 import { sessionToken } from '../kv-storage/session-token';
 import { X } from "react-native-feather";
@@ -1668,7 +1668,7 @@ const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           },
           2 * 60 * 1000 // 2 minutes
         )).ok,
-        submitAll: async () => japi('post', '/verify'),
+        submitAll: async () => api('post', '/verify', undefined, undefined, 0),
         delete: async () => true,
         singlePhoto: true,
         showProtip: false,

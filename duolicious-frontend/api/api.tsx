@@ -24,11 +24,12 @@ const api = async (
   endpoint: string,
   init?: RequestInit,
   timeout?: number,
+  maxRetries?: number,
 ): Promise<ApiResponse> => {
   let response, json;
   let numRetries = 0;
 
-  while (true) {
+  while (maxRetries === undefined || numRetries <= maxRetries) {
     [response, json] = [undefined, undefined];
 
     const controller = new AbortController();
@@ -93,6 +94,7 @@ const japi = async (
   endpoint: string,
   body?: any,
   timeout?: number,
+  maxRetries?: number,
 ): Promise<ApiResponse> => {
   const init = body === undefined ? {} : {
     headers: {
@@ -102,7 +104,7 @@ const japi = async (
     body: JSON.stringify(body)
   }
 
-  return await api(method, endpoint, init, timeout);
+  return await api(method, endpoint, init, timeout, maxRetries);
 };
 
 export {

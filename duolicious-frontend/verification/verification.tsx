@@ -75,7 +75,7 @@ const verificationWatcher = async () => {
       }
     );
 
-    lastStatus = status ?? '';
+    lastStatus = response.json.status ?? '';
   }
 };
 
