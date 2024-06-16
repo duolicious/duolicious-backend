@@ -542,8 +542,6 @@ const verifiedAnything = (data: UserData | null | undefined): boolean => {
 };
 
 const Content = (navigationRef) => ({navigation, route, ...props}) => {
-  console.log(navigation, route, props); // TODO
-
   navigationRef.current = navigation;
 
   const personId = route.params.personId;
@@ -748,7 +746,7 @@ const ProspectUserDetails = ({
               age,
             ].filter(Boolean).join(', ')}
           </DefaultText>
-          {false && verified && // TODO: Enable once verification is out of beta
+          {verified &&
             <VerificationBadge/>
           }
         </View>
@@ -895,8 +893,8 @@ const Body = ({
             <Basic icon={faRulerVertical}>{cmToFeetInchesStr(data.height_cm)}</Basic>}
         </Basics>
 
-        <Title>Verification (Beta)</Title>
-        {data && <>
+        {verifiedAnything(data) && <>
+          <Title>Verification</Title>
           <DetailedVerificationBadges
             photos={(data?.photo_verifications ?? []).some(Boolean)}
             gender={data?.verified_gender ?? false}
@@ -911,8 +909,8 @@ const Body = ({
               color: '#999',
             }}
           >
-            Because verification is based on selfies, verified photos are most
-            accurate
+            Verification is based on selfies analyzed by our AI. Verified photos
+            are most accurate.
           </DefaultText>
           </>
         }

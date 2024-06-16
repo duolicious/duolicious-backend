@@ -20,14 +20,6 @@ const VerificationBadge = (props) => {
         height: size,
         width: size,
         borderRadius: 999,
-        shadowOffset: {
-          width: 0,
-          height: 2,
-        },
-        shadowOpacity: 0.3,
-        shadowRadius: 3,
-        elevation: 3,
-        overflow: 'visible',
       },
       style
     ]}>

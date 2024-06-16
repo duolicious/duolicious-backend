@@ -1337,6 +1337,8 @@ const OptionScreen = ({navigation, route}) => {
                   bottom: 0,
                   left: 10,
                   right: 10,
+                  borderBottomLeftRadius: 5,
+                  borderBottomRightRadius: 5,
                 }}
               />
             </>

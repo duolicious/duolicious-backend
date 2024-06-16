@@ -399,7 +399,7 @@ const Options = ({ navigation, data }) => {
 
   return (
     <View>
-      <Title>Verification (Beta)</Title>
+      <Title>Verification</Title>
       <DetailedVerificationBadges
         photos={Object.values(data?.photo_verification ?? {}).some(Boolean)}
         gender={data?.verified_gender ?? false}
