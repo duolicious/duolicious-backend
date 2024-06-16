@@ -47,7 +47,7 @@ const config: ExpoConfig = {
   android: {
     googleServicesFile: "./google-services.json",
     package: "app.duolicious",
-    versionCode: 11,
+    versionCode: 12,
   }
 };
 

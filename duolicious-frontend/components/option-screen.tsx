@@ -883,7 +883,7 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
     unverified: string[],
   }) => {
     return (
-      <View style={{ gap: 15, flex: 1 }} >
+      <View style={{ gap: 15, flex: 1, width: '100%' }} >
         {verified.length > 0 &&
           <DefaultText
             style={{
@@ -1000,7 +1000,7 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
                   We Couldn’t Verify You
                 </DefaultText>
               </View>
-              <View style={{ gap: 15, flex: 1 }}>
+              <View style={{ gap: 15, flex: 1, width: '100%' }}>
                 <DefaultText
                   style={{
                     color: '#333',
@@ -1110,6 +1110,10 @@ const OptionScreen = ({navigation, route}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isValid, setIsValid] = useState(true);
 
+  const [isBottom, setIsBottom] = useState(true);
+  const [contentHeight, setContentHeight] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
+
   const optionGroups: OptionGroup<OptionGroupInputs>[] = route?.params?.optionGroups ?? [];
   const showSkipButton: boolean = route?.params?.showSkipButton ?? true;
   const showCloseButton: boolean = route?.params?.showCloseButton ?? true;
@@ -1170,6 +1174,23 @@ const OptionScreen = ({navigation, route}) => {
     // !isLoading && skip && skip();
     _onSubmitSuccess();
   }, [isLoading, inputRef.current, _onSubmitSuccess]);
+
+  const handleScroll = ({ nativeEvent }) => {
+    checkIsBottom(nativeEvent);
+  };
+
+  const checkIsBottom = (nativeEvent) => {
+    const isCloseToBottom = nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
+      nativeEvent.contentSize.height - 20; // 20 is a threshold you can adjust
+    setIsBottom(isCloseToBottom);
+  };
+
+  useEffect(() => {
+    // Compare the heights to determine if there is more content offscreen when the component mounts.
+    if (containerHeight > 0 && contentHeight > 0) {
+      setIsBottom(containerHeight >= contentHeight);
+    }
+  }, [containerHeight, contentHeight]);
 
   return (
     <SafeAreaView
@@ -1246,7 +1267,7 @@ const OptionScreen = ({navigation, route}) => {
               textAlign: 'center',
               paddingLeft: 20,
               paddingRight: 20,
-              paddingTop: 20,
+              paddingTop: 10,
             }}
           >
             {description}
@@ -1274,6 +1295,9 @@ const OptionScreen = ({navigation, route}) => {
           }
           {scrollView !== false && <>
               <ScrollView
+                onScroll={handleScroll}
+                onContentSizeChange={(width, height) => setContentHeight(height)}
+                onLayout={({ nativeEvent }) => setContainerHeight(nativeEvent.layout.height)}
                 contentContainerStyle={{
                   flexGrow: 1,
                   justifyContent: 'center',
@@ -1297,19 +1321,22 @@ const OptionScreen = ({navigation, route}) => {
                 style={{
                   position: 'absolute',
                   height: 20,
-                  width: '100%',
                   top: 0,
-                  left: 0,
+                  left: 10,
+                  right: 10,
                 }}
               />
               <LinearGradient
-                colors={[transparentBackgroundColor, backgroundColor]}
+                colors={[
+                  transparentBackgroundColor,
+                  isBottom ? backgroundColor : '#00000033'
+                ]}
                 style={{
                   position: 'absolute',
-                  height: 20,
-                  width: '100%',
+                  height: 10,
                   bottom: 0,
-                  left: 0,
+                  left: 10,
+                  right: 10,
                 }}
               />
             </>
@@ -1319,14 +1346,18 @@ const OptionScreen = ({navigation, route}) => {
           style={{
             flexShrink: 1,
             justifyContent: 'flex-end',
-            padding: 20,
-            paddingBottom: 40,
+            alignItems: 'center',
+            padding: 10,
+            paddingBottom: 20,
           }}
         >
           <ButtonWithCenteredText
             secondary={theme !== 'light'}
             onPress={showSkipButton ? onPressSkip : onPressContinue}
             loading={isLoading}
+            containerStyle={{
+              width: '90%',
+            }}
           >
             {showSkipButton ? 'Skip' : 'Continue'}
           </ButtonWithCenteredText>

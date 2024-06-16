@@ -25,8 +25,6 @@ import { VerificationEvent } from '../verification/verification';
 
 // TODO: Image picker is shit and lets you upload any file type on web
 
-// TODO: The idiot maintainers of expo broke the image picker on Android
-
 const isSquareish = (width: number, height: number) => {
   if (width === 0) return true;
   if (height === 0) return true;
@@ -311,7 +309,7 @@ const UserImage = ({
           <FontAwesomeIcon
             icon={faCircleXmark}
             size={26}
-            color="#666"
+            color="#000"
           />
         </Pressable>
       </>
