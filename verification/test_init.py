@@ -9,8 +9,8 @@ estimated_age = 42
 
 success_content_template = """
 {
+  "image_1_was_not_edited": 1.0,
   "image_1_is_photograph": 1.0,
-  "image_1_is_undoctored": 1.0,
   "image_1_has_at_least_one_person": 1.0,
   "image_1_has_exactly_one_person": 1.0,
   "image_1_has_45_degree_angle": 1.0,
@@ -43,8 +43,8 @@ failure_content_1 = success_content_template.replace(
     '"image_1_is_photograph": 0.0')
 
 failure_content_2 = success_content_template.replace(
-    '"image_1_is_undoctored": 1.0',
-    '"image_1_is_undoctored": 0.0')
+    '"image_1_was_not_edited": 1.0',
+    '"image_1_was_not_edited": 0.0')
 
 failure_content_3 = success_content_template.replace(
     '"image_1_has_at_least_one_person": 1.0',
@@ -145,7 +145,7 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNone(processed.success)
 
         self.assertEqual(processed.failure.reason,
-            "Our AI thinks your photo was edited.")
+            "Our AI thinks your image might have been edited.")
 
     def test_failure_3(self):
         response = failure_content_3
@@ -254,26 +254,26 @@ class TestGetMessages(unittest.TestCase):
                 {
                     "role": "system",
                     "content": """
-You have been given one or more image(s) by a user attempting to verify their identity on a social media website. The user makes these claims about the image(s):
+You have been given one or more image(s) by a user attempting to verify their identity on a social media website. The user claims to be in Image #1. To verify that claim, you must verify these ones:
 
-* Image #1 is a photograph
-* Image #1 is undoctored
-* Image #1 contains at least one person
-* Image #1 contains exactly one person
-* Image #1 was photographed at about a 45 degree angle to the side of the person's face (i.e. a three-quarter profile)
-* Image #1 contains a person whose gender is: Male
-* Image #1 contains a person whose age is: 42
-* Image #1 contains a person whose age is 18 or older
-* Image #1 contains a person who is smiling
-* Image #1 contains a person who is touching their eyebrow
-* Image #1 contains a person who is pointing their thumb downward
+* Image #1 was not edited.
+* Image #1 is a photograph.
+* Image #1 contains at least one person.
+* Image #1 contains exactly one person.
+* Image #1 was photographed at about a 45 degree angle to the side of the person's face (i.e. a three-quarter profile).
+* Image #1 contains a person whose gender is: Male. (Users can choose from the options: Man, Woman, Agender, Intersex, Non-binary, Transgender, Trans woman, Trans man, and Other.)
+* Image #1 contains a person whose age is: 42.
+* Image #1 contains a person whose age is 18 or older.
+* Image #1 contains a person who is smiling.
+* Image #1 contains a person who is touching their eyebrow.
+* Image #1 contains a person who is pointing their thumb downward (not upward).
 
 Provide a JSON object in the following format which assigns a probability from 0.0 to 1.0 to each claim above:
 
 ```
 {
+  image_1_was_not_edited: number
   image_1_is_photograph: number
-  image_1_is_undoctored: number
   image_1_has_at_least_one_person: number
   image_1_has_exactly_one_person: number
   image_1_has_45_degree_angle: number
@@ -323,29 +323,29 @@ Provide a JSON object in the following format which assigns a probability from 0
                 {
                     "role": "system",
                     "content": """
-You have been given one or more image(s) by a user attempting to verify their identity on a social media website. The user makes these claims about the image(s):
+You have been given one or more image(s) by a user attempting to verify their identity on a social media website. The user claims to be in Image #1. To verify that claim, you must verify these ones:
 
-* Image #1 is a photograph
-* Image #1 is undoctored
-* Image #1 contains at least one person
-* Image #1 contains exactly one person
-* Image #1 was photographed at about a 45 degree angle to the side of the person's face (i.e. a three-quarter profile)
-* Image #1 contains a person whose gender is: Male
-* Image #1 contains a person whose age is: 42
-* Image #1 contains a person whose age is 18 or older
-* Image #1 contains a person whose primary or only ethnicity is: White
-* Image #1 contains a person who is smiling
-* Image #1 contains a person who is touching their eyebrow
-* Image #1 contains a person who is pointing their thumb downward
-* Image #1 contains a person who is in Image #2
-* Image #1 contains a person who is in Image #3
+* Image #1 was not edited.
+* Image #1 is a photograph.
+* Image #1 contains at least one person.
+* Image #1 contains exactly one person.
+* Image #1 was photographed at about a 45 degree angle to the side of the person's face (i.e. a three-quarter profile).
+* Image #1 contains a person whose gender is: Male. (Users can choose from the options: Man, Woman, Agender, Intersex, Non-binary, Transgender, Trans woman, Trans man, and Other.)
+* Image #1 contains a person whose age is: 42.
+* Image #1 contains a person whose age is 18 or older.
+* Image #1 contains a person whose primary or only ethnicity is: White. (Users can choose from the options: Black/African Descent, East Asian, Hispanic/Latino, Middle Eastern, Native American, Pacific Islander, South Asian, Southeast Asian, White/Caucasian, and Other.)
+* Image #1 contains a person who is smiling.
+* Image #1 contains a person who is touching their eyebrow.
+* Image #1 contains a person who is pointing their thumb downward (not upward).
+* Image #1 contains a person who is in Image #2.
+* Image #1 contains a person who is in Image #3.
 
 Provide a JSON object in the following format which assigns a probability from 0.0 to 1.0 to each claim above:
 
 ```
 {
+  image_1_was_not_edited: number
   image_1_is_photograph: number
-  image_1_is_undoctored: number
   image_1_has_at_least_one_person: number
   image_1_has_exactly_one_person: number
   image_1_has_45_degree_angle: number
@@ -417,30 +417,30 @@ class TestGetSystemContent(unittest.TestCase):
         self.assertEqual(
             system_content,
             """
-You have been given one or more image(s) by a user attempting to verify their identity on a social media website. The user makes these claims about the image(s):
+You have been given one or more image(s) by a user attempting to verify their identity on a social media website. The user claims to be in Image #1. To verify that claim, you must verify these ones:
 
-* Image #1 is a photograph
-* Image #1 is undoctored
-* Image #1 contains at least one person
-* Image #1 contains exactly one person
-* Image #1 was photographed at about a 45 degree angle to the side of the person's face (i.e. a three-quarter profile)
-* Image #1 contains a person whose gender is: Female
-* Image #1 contains a person whose age is: 42
-* Image #1 contains a person whose age is 18 or older
-* Image #1 contains a person whose primary or only ethnicity is: Black
-* Image #1 contains a person who is smiling
-* Image #1 contains a person who is touching their eyebrow
-* Image #1 contains a person who is pointing their thumb downward
-* Image #1 contains a person who is in Image #2
-* Image #1 contains a person who is in Image #3
-* Image #1 contains a person who is in Image #4
+* Image #1 was not edited.
+* Image #1 is a photograph.
+* Image #1 contains at least one person.
+* Image #1 contains exactly one person.
+* Image #1 was photographed at about a 45 degree angle to the side of the person's face (i.e. a three-quarter profile).
+* Image #1 contains a person whose gender is: Female. (Users can choose from the options: Man, Woman, Agender, Intersex, Non-binary, Transgender, Trans woman, Trans man, and Other.)
+* Image #1 contains a person whose age is: 42.
+* Image #1 contains a person whose age is 18 or older.
+* Image #1 contains a person whose primary or only ethnicity is: Black. (Users can choose from the options: Black/African Descent, East Asian, Hispanic/Latino, Middle Eastern, Native American, Pacific Islander, South Asian, Southeast Asian, White/Caucasian, and Other.)
+* Image #1 contains a person who is smiling.
+* Image #1 contains a person who is touching their eyebrow.
+* Image #1 contains a person who is pointing their thumb downward (not upward).
+* Image #1 contains a person who is in Image #2.
+* Image #1 contains a person who is in Image #3.
+* Image #1 contains a person who is in Image #4.
 
 Provide a JSON object in the following format which assigns a probability from 0.0 to 1.0 to each claim above:
 
 ```
 {
+  image_1_was_not_edited: number
   image_1_is_photograph: number
-  image_1_is_undoctored: number
   image_1_has_at_least_one_person: number
   image_1_has_exactly_one_person: number
   image_1_has_45_degree_angle: number
@@ -472,29 +472,29 @@ Provide a JSON object in the following format which assigns a probability from 0
         self.assertEqual(
             system_content,
             """
-You have been given one or more image(s) by a user attempting to verify their identity on a social media website. The user makes these claims about the image(s):
+You have been given one or more image(s) by a user attempting to verify their identity on a social media website. The user claims to be in Image #1. To verify that claim, you must verify these ones:
 
-* Image #1 is a photograph
-* Image #1 is undoctored
-* Image #1 contains at least one person
-* Image #1 contains exactly one person
-* Image #1 was photographed at about a 45 degree angle to the side of the person's face (i.e. a three-quarter profile)
-* Image #1 contains a person whose gender is: Female
-* Image #1 contains a person whose age is: 42
-* Image #1 contains a person whose age is 18 or older
-* Image #1 contains a person who is smiling
-* Image #1 contains a person who is touching their eyebrow
-* Image #1 contains a person who is pointing their thumb downward
-* Image #1 contains a person who is in Image #2
-* Image #1 contains a person who is in Image #3
-* Image #1 contains a person who is in Image #4
+* Image #1 was not edited.
+* Image #1 is a photograph.
+* Image #1 contains at least one person.
+* Image #1 contains exactly one person.
+* Image #1 was photographed at about a 45 degree angle to the side of the person's face (i.e. a three-quarter profile).
+* Image #1 contains a person whose gender is: Female. (Users can choose from the options: Man, Woman, Agender, Intersex, Non-binary, Transgender, Trans woman, Trans man, and Other.)
+* Image #1 contains a person whose age is: 42.
+* Image #1 contains a person whose age is 18 or older.
+* Image #1 contains a person who is smiling.
+* Image #1 contains a person who is touching their eyebrow.
+* Image #1 contains a person who is pointing their thumb downward (not upward).
+* Image #1 contains a person who is in Image #2.
+* Image #1 contains a person who is in Image #3.
+* Image #1 contains a person who is in Image #4.
 
 Provide a JSON object in the following format which assigns a probability from 0.0 to 1.0 to each claim above:
 
 ```
 {
+  image_1_was_not_edited: number
   image_1_is_photograph: number
-  image_1_is_undoctored: number
   image_1_has_at_least_one_person: number
   image_1_has_exactly_one_person: number
   image_1_has_45_degree_angle: number

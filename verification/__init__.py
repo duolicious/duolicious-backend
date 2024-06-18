@@ -23,7 +23,10 @@ def get_system_content(
     claimed_ethnicity: str | None
 ) -> str:
     english_ethnicity_lines = (
-        [f"* Image #1 contains a person whose primary or only ethnicity is: {claimed_ethnicity}"]
+        [
+            f"* Image #1 contains a person whose primary or only ethnicity is: {claimed_ethnicity}. "
+            "(Users can choose from the options: Black/African Descent, East Asian, Hispanic/Latino, Middle Eastern, Native American, Pacific Islander, South Asian, Southeast Asian, White/Caucasian, and Other.)"
+        ]
         if claimed_ethnicity
         else [])
 
@@ -33,7 +36,7 @@ def get_system_content(
         else [])
 
     english_image_lines = [
-        f'* Image #1 contains a person who is in Image #{i + 2}'
+        f'* Image #1 contains a person who is in Image #{i + 2}.'
         for i in range(num_claimed_uuids)
     ]
 
@@ -44,29 +47,29 @@ def get_system_content(
 
     content = '\n'.join([
         'You have been given one or more image(s) by a user attempting to '
-        'verify their identity on a social media website. The user makes '
-        'these claims about the image(s):',
+        'verify their identity on a social media website. The user claims to '
+        'be in Image #1. To verify that claim, you must verify these ones:',
         '',
-        '* Image #1 is a photograph',
-        '* Image #1 is undoctored',
-        '* Image #1 contains at least one person',
-        '* Image #1 contains exactly one person',
-        '* Image #1 was photographed at about a 45 degree angle to the side of the person\'s face (i.e. a three-quarter profile)',
-        f'* Image #1 contains a person whose gender is: {claimed_gender}',
-        f'* Image #1 contains a person whose age is: {claimed_age}',
-        f'* Image #1 contains a person whose age is 18 or older',
+        '* Image #1 was not edited.',
+        '* Image #1 is a photograph.',
+        '* Image #1 contains at least one person.',
+        '* Image #1 contains exactly one person.',
+        '* Image #1 was photographed at about a 45 degree angle to the side of the person\'s face (i.e. a three-quarter profile).',
+        f'* Image #1 contains a person whose gender is: {claimed_gender}. (Users can choose from the options: Man, Woman, Agender, Intersex, Non-binary, Transgender, Trans woman, Trans man, and Other.)',
+        f'* Image #1 contains a person whose age is: {claimed_age}.',
+        f'* Image #1 contains a person whose age is 18 or older.',
         *english_ethnicity_lines,
-        '* Image #1 contains a person who is smiling',
-        '* Image #1 contains a person who is touching their eyebrow',
-        '* Image #1 contains a person who is pointing their thumb downward',
+        '* Image #1 contains a person who is smiling.',
+        '* Image #1 contains a person who is touching their eyebrow.',
+        '* Image #1 contains a person who is pointing their thumb downward (not upward).',
         *english_image_lines,
         '',
         'Provide a JSON object in the following format which assigns a probability from 0.0 to 1.0 to each claim above:',
         '',
         '```',
         '{',
+        '  image_1_was_not_edited: number',
         '  image_1_is_photograph: number',
-        '  image_1_is_undoctored: number',
         '  image_1_has_at_least_one_person: number',
         '  image_1_has_exactly_one_person: number',
         '  image_1_has_45_degree_angle: number',
@@ -150,8 +153,8 @@ def process_response(
     try:
         json_obj = json.loads(response)
 
+        image_1_was_not_edited          = json_obj['image_1_was_not_edited']
         image_1_is_photograph           = json_obj['image_1_is_photograph']
-        image_1_is_undoctored           = json_obj['image_1_is_undoctored']
         image_1_has_at_least_one_person = json_obj['image_1_has_at_least_one_person']
         image_1_has_exactly_one_person  = json_obj['image_1_has_exactly_one_person']
         image_1_has_45_degree_angle     = json_obj['image_1_has_45_degree_angle']
@@ -170,8 +173,8 @@ def process_response(
         image_1_has_person_from_image_7 = json_obj.get('image_1_has_person_from_image_7')
         image_1_has_person_from_image_8 = json_obj.get('image_1_has_person_from_image_8')
 
+        image_1_was_not_edited          = float(image_1_was_not_edited)
         image_1_is_photograph           = float(image_1_is_photograph)
-        image_1_is_undoctored           = float(image_1_is_undoctored)
         image_1_has_at_least_one_person = float(image_1_has_at_least_one_person)
         image_1_has_exactly_one_person  = float(image_1_has_exactly_one_person)
         image_1_has_45_degree_angle     = float(image_1_has_45_degree_angle)
@@ -207,8 +210,8 @@ def process_response(
     if image_1_is_photograph < general_truthiness_threshold:
         return failure("Our AI thinks your image isn’t a real photo.")
 
-    if image_1_is_undoctored < general_truthiness_threshold:
-        return failure("Our AI thinks your photo was edited.")
+    if image_1_was_not_edited < general_truthiness_threshold:
+        return failure("Our AI thinks your image might have been edited.")
 
     if image_1_has_at_least_one_person < general_truthiness_threshold:
         return failure("Our AI thinks your photo doesn’t have a person in it.")
@@ -318,7 +321,7 @@ async def verify(
     else:
         try:
             response = (await AsyncOpenAI().chat.completions.create(
-                model="gpt-4-turbo",
+                model="gpt-4o",
                 response_format={"type": "json_object"},
                 temperature=0.0,
                 frequency_penalty=0.0,
