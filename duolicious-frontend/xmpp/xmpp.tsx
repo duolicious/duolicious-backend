@@ -284,6 +284,7 @@ const setInboxSent = (recipientPersonUuid: string, message: string) => {
     imageUuid: null,
     isAvailableUser: true,
     location: 'archive',
+    imageBlurhash: '',
     ...chatsConversation,
     ...introsConversation,
     lastMessage: message,
@@ -339,6 +340,7 @@ const setInboxRecieved = async (
     imageUuid: null,
     isAvailableUser: true,
     location: 'archive',
+    imageBlurhash: '',
     ...chatsConversation,
     ...introsConversation,
     lastMessage: message,
@@ -907,6 +909,7 @@ const _fetchInboxPage = async (
     const lastMessageTimestamp = new Date(timestamp.toString());
     const isAvailableUser = true;
     const location = 'archive';
+    const imageBlurhash = '';
 
     const conversation: Conversation = {
       personId,
@@ -919,6 +922,7 @@ const _fetchInboxPage = async (
       lastMessageTimestamp,
       isAvailableUser,
       location,
+      imageBlurhash,
     };
 
     conversationList.push(conversation);

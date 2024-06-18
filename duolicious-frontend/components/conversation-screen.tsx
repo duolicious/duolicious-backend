@@ -323,7 +323,10 @@ const ConversationScreen = ({navigation, route}) => {
     }
     isFetchingNextPage.current = true;
 
-    const fetchedMessages = await fetchConversation(personUuid, lastMamId);
+    const fetchedMessages = await fetchConversation(
+      personUuid || String(personId),
+      lastMamId
+    );
 
     isFetchingNextPage.current = false;
 
@@ -387,7 +390,9 @@ const ConversationScreen = ({navigation, route}) => {
       return;
     }
 
-    const fetchedMessages = await fetchConversation(personUuid);
+    const fetchedMessages = await fetchConversation(
+      personUuid || String(personId)
+    );
 
     if (fetchedMessages === 'timeout') {
       setMessageFetchTimeout(true);
