@@ -6,8 +6,10 @@ blurhash
 boto3
 flask-cors
 gunicorn
-numpy
+numpy==1.26.4
+onnxruntime
 openai
+pillow
 psycopg
 pydantic[email]
 redis

@@ -1,6 +1,7 @@
 Pillow
 blurhash
 boto3
+nsfw-detector
 numpy
 openai
 psycopg
