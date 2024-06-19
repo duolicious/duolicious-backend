@@ -1303,11 +1303,4 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
--- TODO
-ALTER TABLE
-    verification_job
-ADD COLUMN IF NOT EXISTS
-    raw_json TEXT NOT NULL DEFAULT ''
-;
-
 --------------------------------------------------------------------------------

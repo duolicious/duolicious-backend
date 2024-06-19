@@ -214,6 +214,7 @@ def process_response(
 
     # These settings are tuned to gpt-4-turbo. gpt-4o worked better with higher
     # numbers.
+    edit_truthiness_threshold = 0.9
     gender_truthiness_threshold = 0.7
     age_truthiness_threshold = 0.5
     minimum_age_truthiness_threshold = 0.8
@@ -223,7 +224,7 @@ def process_response(
     if image_1_is_photograph < general_truthiness_threshold:
         return failure("Our AI thinks your image isn’t a real photo.", response_str)
 
-    if image_1_was_not_edited < general_truthiness_threshold:
+    if image_1_was_not_edited < edit_truthiness_threshold:
         return failure("Our AI thinks your image might have been edited.", response_str)
 
     if image_1_has_at_least_one_person < general_truthiness_threshold:
@@ -335,7 +336,7 @@ async def verify(
     else:
         try:
             response = (await AsyncOpenAI().chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4-turbo",
                 response_format={"type": "json_object"},
                 temperature=0.0,
                 frequency_penalty=0.0,
