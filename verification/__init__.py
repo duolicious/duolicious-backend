@@ -23,7 +23,10 @@ def get_system_content(
     claimed_ethnicity: str | None
 ) -> str:
     english_ethnicity_lines = (
-        [f"* Image #1 contains a person whose primary or only ethnicity is: {claimed_ethnicity}"]
+        [
+            f"* Image #1 contains a person whose primary or only ethnicity is: {claimed_ethnicity}. "
+            "(Users can choose from the options: Black/African Descent, East Asian, Hispanic/Latino, Middle Eastern, Native American, Pacific Islander, South Asian, Southeast Asian, White/Caucasian, and Other.)"
+        ]
         if claimed_ethnicity
         else [])
 
@@ -33,7 +36,7 @@ def get_system_content(
         else [])
 
     english_image_lines = [
-        f'* Image #1 contains a person who is in Image #{i + 2}'
+        f'* Image #1 contains a person who is in Image #{i + 2}.'
         for i in range(num_claimed_uuids)
     ]
 
@@ -44,29 +47,29 @@ def get_system_content(
 
     content = '\n'.join([
         'You have been given one or more image(s) by a user attempting to '
-        'verify their identity on a social media website. The user makes '
-        'these claims about the image(s):',
+        'verify their identity on a social media website. The user claims to '
+        'be in Image #1. To verify that claim, you must verify these ones:',
         '',
-        '* Image #1 is a photograph',
-        '* Image #1 is undoctored',
-        '* Image #1 contains at least one person',
-        '* Image #1 contains exactly one person',
-        '* Image #1 was photographed at about a 45 degree angle to the side of the person\'s face (i.e. a three-quarter profile)',
-        f'* Image #1 contains a person whose gender is: {claimed_gender}',
-        f'* Image #1 contains a person whose age is: {claimed_age}',
-        f'* Image #1 contains a person whose age is 18 or older',
+        '* Image #1 was not edited.',
+        '* Image #1 is a photograph.',
+        '* Image #1 contains at least one person.',
+        '* Image #1 contains exactly one person.',
+        '* Image #1 was photographed at about a 45 degree angle to the side of the person\'s face (i.e. a three-quarter profile).',
+        f'* Image #1 contains a person whose gender is: {claimed_gender}. (Users can choose from the options: Man, Woman, Agender, Intersex, Non-binary, Transgender, Trans woman, Trans man, and Other.)',
+        f'* Image #1 contains a person whose age is: {claimed_age}.',
+        f'* Image #1 contains a person whose age is 18 or older.',
         *english_ethnicity_lines,
-        '* Image #1 contains a person who is smiling',
-        '* Image #1 contains a person who is touching their eyebrow',
-        '* Image #1 contains a person who is pointing their thumb downward',
+        '* Image #1 contains a person who is smiling.',
+        '* Image #1 contains a person who is touching their eyebrow.',
+        '* Image #1 contains a person who is pointing their thumb downward (not upward).',
         *english_image_lines,
         '',
         'Provide a JSON object in the following format which assigns a probability from 0.0 to 1.0 to each claim above:',
         '',
         '```',
         '{',
+        '  image_1_was_not_edited: number',
         '  image_1_is_photograph: number',
-        '  image_1_is_undoctored: number',
         '  image_1_has_at_least_one_person: number',
         '  image_1_has_exactly_one_person: number',
         '  image_1_has_45_degree_angle: number',
@@ -112,19 +115,28 @@ class Success:
     is_verified_gender: bool
     is_verified_ethnicity: bool
 
+    raw_json: str
+
 @dataclass
 class Failure:
     reason: str
+    raw_json: str
 
 @dataclass
 class VerificationResult:
     success: Success | None
     failure: Failure | None
 
-def failure(reason: str) -> VerificationResult:
+def failure(
+    reason: str,
+    raw_json: str,
+) -> VerificationResult:
     return VerificationResult(
         success=None,
-        failure=Failure(reason),
+        failure=Failure(
+            reason=reason,
+            raw_json=raw_json,
+        ),
     )
 
 def success(
@@ -132,6 +144,7 @@ def success(
     is_verified_age: bool,
     is_verified_gender: bool,
     is_verified_ethnicity: bool,
+    raw_json: str,
 ) -> VerificationResult:
     return VerificationResult(
         success=Success(
@@ -139,6 +152,7 @@ def success(
             is_verified_age=is_verified_age,
             is_verified_gender=is_verified_gender,
             is_verified_ethnicity=is_verified_ethnicity,
+            raw_json=raw_json,
         ),
         failure=None,
     )
@@ -147,11 +161,13 @@ def process_response(
     response: str | None,
     claimed_uuids: list[int],
 ) -> VerificationResult:
+    response_str = str(response)
+
     try:
         json_obj = json.loads(response)
 
+        image_1_was_not_edited          = json_obj['image_1_was_not_edited']
         image_1_is_photograph           = json_obj['image_1_is_photograph']
-        image_1_is_undoctored           = json_obj['image_1_is_undoctored']
         image_1_has_at_least_one_person = json_obj['image_1_has_at_least_one_person']
         image_1_has_exactly_one_person  = json_obj['image_1_has_exactly_one_person']
         image_1_has_45_degree_angle     = json_obj['image_1_has_45_degree_angle']
@@ -170,8 +186,8 @@ def process_response(
         image_1_has_person_from_image_7 = json_obj.get('image_1_has_person_from_image_7')
         image_1_has_person_from_image_8 = json_obj.get('image_1_has_person_from_image_8')
 
+        image_1_was_not_edited          = float(image_1_was_not_edited)
         image_1_is_photograph           = float(image_1_is_photograph)
-        image_1_is_undoctored           = float(image_1_is_undoctored)
         image_1_has_at_least_one_person = float(image_1_has_at_least_one_person)
         image_1_has_exactly_one_person  = float(image_1_has_exactly_one_person)
         image_1_has_45_degree_angle     = float(image_1_has_45_degree_angle)
@@ -191,8 +207,8 @@ def process_response(
         image_1_has_person_from_image_8 = float(image_1_has_person_from_image_8) if image_1_has_person_from_image_8 is not None else None
     except:
         print(traceback.format_exc())
-        print('JSON was:', str(response))
-        return failure("Something went wrong.")
+        print('JSON was:', response_str)
+        return failure("Something went wrong.", response_str)
 
     general_truthiness_threshold = 0.7
 
@@ -205,42 +221,42 @@ def process_response(
     photo_truthiness_threshold = 0.9
 
     if image_1_is_photograph < general_truthiness_threshold:
-        return failure("Our AI thinks your image isn’t a real photo.")
+        return failure("Our AI thinks your image isn’t a real photo.", response_str)
 
-    if image_1_is_undoctored < general_truthiness_threshold:
-        return failure("Our AI thinks your photo was edited.")
+    if image_1_was_not_edited < general_truthiness_threshold:
+        return failure("Our AI thinks your image might have been edited.", response_str)
 
     if image_1_has_at_least_one_person < general_truthiness_threshold:
-        return failure("Our AI thinks your photo doesn’t have a person in it.")
+        return failure("Our AI thinks your photo doesn’t have a person in it.", response_str)
 
     if image_1_has_exactly_one_person < general_truthiness_threshold:
-        return failure("Our AI thinks there’s more than one person in your photo.")
+        return failure("Our AI thinks there’s more than one person in your photo.", response_str)
 
     if image_1_has_45_degree_angle < general_truthiness_threshold:
-        return failure("Our AI thinks the shot wasn’t taken at the correct angle. The photo needs to be at about a 45 degree angle to the side of your face.")
+        return failure("Our AI thinks the shot wasn’t taken at the correct angle. The photo needs to be at about a 45 degree angle to the side of your face.", response_str)
 
     if image_1_has_claimed_gender < gender_truthiness_threshold:
-        return failure("Our AI couldn’t verify your gender.")
+        return failure("Our AI couldn’t verify your gender.", response_str)
 
     if (
             image_1_has_claimed_ethnicity is not None and
             image_1_has_claimed_ethnicity < ethnicity_truthiness_threshold):
-        return failure("Our AI couldn’t verify your ethnicity.")
+        return failure("Our AI couldn’t verify your ethnicity.", response_str)
 
     if image_1_has_claimed_age < age_truthiness_threshold:
-        return failure("Our AI couldn’t verify your age.")
+        return failure("Our AI couldn’t verify your age.", response_str)
 
     if image_1_has_claimed_minimum_age < minimum_age_truthiness_threshold:
-        return failure("Our AI couldn’t verify your age.")
+        return failure("Our AI couldn’t verify your age.", response_str)
 
     if image_1_has_smiling_person < general_truthiness_threshold:
-        return failure("Our AI thinks you’re not smiling.")
+        return failure("Our AI thinks you’re not smiling.", response_str)
 
     if image_1_has_eyebrow_touch < general_truthiness_threshold:
-        return failure("Our AI thinks you’re not touching your eyebrow.")
+        return failure("Our AI thinks you’re not touching your eyebrow.", response_str)
 
     if image_1_has_downward_thumb < general_truthiness_threshold:
-        return failure("Our AI thinks you’re not giving the thumbs down.")
+        return failure("Our AI thinks you’re not giving the thumbs down.", response_str)
 
     is_uuid_verified_seq = [
         (image_1_has_person_from_image_2 or 0.0) >= photo_truthiness_threshold,
@@ -261,6 +277,7 @@ def process_response(
         is_verified_age=True,
         is_verified_gender=True,
         is_verified_ethnicity=image_1_has_claimed_ethnicity is not None,
+        raw_json=response_str,
     )
 
 def get_image_url(uuid: str) -> str:
@@ -318,7 +335,7 @@ async def verify(
     else:
         try:
             response = (await AsyncOpenAI().chat.completions.create(
-                model="gpt-4-turbo",
+                model="gpt-4o",
                 response_format={"type": "json_object"},
                 temperature=0.0,
                 frequency_penalty=0.0,

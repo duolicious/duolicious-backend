@@ -69,7 +69,8 @@ WITH updated_verification_job AS (
         verification_job
     SET
         status = %(status)s,
-        message = %(message)s
+        message = %(message)s,
+        raw_json = %(raw_json)s
     WHERE
         id = %(verification_job_id)s
     RETURNING
