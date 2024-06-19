@@ -378,6 +378,7 @@ CREATE TABLE IF NOT EXISTS verification_job (
     status verification_job_status NOT NULL DEFAULT 'uploading-photo',
     message TEXT NOT NULL DEFAULT 'Verifying',
     photo_uuid TEXT NOT NULL,
+    raw_json TEXT NOT NULL DEFAULT '',
     expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 day')
 );
 
@@ -1301,5 +1302,12 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
+
+-- TODO
+ALTER TABLE
+    verification_job
+ADD COLUMN IF NOT EXISTS
+    raw_json TEXT NOT NULL DEFAULT ''
+;
 
 --------------------------------------------------------------------------------

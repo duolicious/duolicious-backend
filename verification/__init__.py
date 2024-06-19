@@ -115,19 +115,28 @@ class Success:
     is_verified_gender: bool
     is_verified_ethnicity: bool
 
+    raw_json: str
+
 @dataclass
 class Failure:
     reason: str
+    raw_json: str
 
 @dataclass
 class VerificationResult:
     success: Success | None
     failure: Failure | None
 
-def failure(reason: str) -> VerificationResult:
+def failure(
+    reason: str,
+    raw_json: str,
+) -> VerificationResult:
     return VerificationResult(
         success=None,
-        failure=Failure(reason),
+        failure=Failure(
+            reason=reason,
+            raw_json=raw_json,
+        ),
     )
 
 def success(
@@ -135,6 +144,7 @@ def success(
     is_verified_age: bool,
     is_verified_gender: bool,
     is_verified_ethnicity: bool,
+    raw_json: str,
 ) -> VerificationResult:
     return VerificationResult(
         success=Success(
@@ -142,6 +152,7 @@ def success(
             is_verified_age=is_verified_age,
             is_verified_gender=is_verified_gender,
             is_verified_ethnicity=is_verified_ethnicity,
+            raw_json=raw_json,
         ),
         failure=None,
     )
@@ -150,6 +161,8 @@ def process_response(
     response: str | None,
     claimed_uuids: list[int],
 ) -> VerificationResult:
+    response_str = str(response)
+
     try:
         json_obj = json.loads(response)
 
@@ -194,8 +207,8 @@ def process_response(
         image_1_has_person_from_image_8 = float(image_1_has_person_from_image_8) if image_1_has_person_from_image_8 is not None else None
     except:
         print(traceback.format_exc())
-        print('JSON was:', str(response))
-        return failure("Something went wrong.")
+        print('JSON was:', response_str)
+        return failure("Something went wrong.", response_str)
 
     general_truthiness_threshold = 0.7
 
@@ -208,42 +221,42 @@ def process_response(
     photo_truthiness_threshold = 0.9
 
     if image_1_is_photograph < general_truthiness_threshold:
-        return failure("Our AI thinks your image isn’t a real photo.")
+        return failure("Our AI thinks your image isn’t a real photo.", response_str)
 
     if image_1_was_not_edited < general_truthiness_threshold:
-        return failure("Our AI thinks your image might have been edited.")
+        return failure("Our AI thinks your image might have been edited.", response_str)
 
     if image_1_has_at_least_one_person < general_truthiness_threshold:
-        return failure("Our AI thinks your photo doesn’t have a person in it.")
+        return failure("Our AI thinks your photo doesn’t have a person in it.", response_str)
 
     if image_1_has_exactly_one_person < general_truthiness_threshold:
-        return failure("Our AI thinks there’s more than one person in your photo.")
+        return failure("Our AI thinks there’s more than one person in your photo.", response_str)
 
     if image_1_has_45_degree_angle < general_truthiness_threshold:
-        return failure("Our AI thinks the shot wasn’t taken at the correct angle. The photo needs to be at about a 45 degree angle to the side of your face.")
+        return failure("Our AI thinks the shot wasn’t taken at the correct angle. The photo needs to be at about a 45 degree angle to the side of your face.", response_str)
 
     if image_1_has_claimed_gender < gender_truthiness_threshold:
-        return failure("Our AI couldn’t verify your gender.")
+        return failure("Our AI couldn’t verify your gender.", response_str)
 
     if (
             image_1_has_claimed_ethnicity is not None and
             image_1_has_claimed_ethnicity < ethnicity_truthiness_threshold):
-        return failure("Our AI couldn’t verify your ethnicity.")
+        return failure("Our AI couldn’t verify your ethnicity.", response_str)
 
     if image_1_has_claimed_age < age_truthiness_threshold:
-        return failure("Our AI couldn’t verify your age.")
+        return failure("Our AI couldn’t verify your age.", response_str)
 
     if image_1_has_claimed_minimum_age < minimum_age_truthiness_threshold:
-        return failure("Our AI couldn’t verify your age.")
+        return failure("Our AI couldn’t verify your age.", response_str)
 
     if image_1_has_smiling_person < general_truthiness_threshold:
-        return failure("Our AI thinks you’re not smiling.")
+        return failure("Our AI thinks you’re not smiling.", response_str)
 
     if image_1_has_eyebrow_touch < general_truthiness_threshold:
-        return failure("Our AI thinks you’re not touching your eyebrow.")
+        return failure("Our AI thinks you’re not touching your eyebrow.", response_str)
 
     if image_1_has_downward_thumb < general_truthiness_threshold:
-        return failure("Our AI thinks you’re not giving the thumbs down.")
+        return failure("Our AI thinks you’re not giving the thumbs down.", response_str)
 
     is_uuid_verified_seq = [
         (image_1_has_person_from_image_2 or 0.0) >= photo_truthiness_threshold,
@@ -264,6 +277,7 @@ def process_response(
         is_verified_age=True,
         is_verified_gender=True,
         is_verified_ethnicity=image_1_has_claimed_ethnicity is not None,
+        raw_json=response_str,
     )
 
 def get_image_url(uuid: str) -> str:

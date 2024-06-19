@@ -96,6 +96,7 @@ class TestProcessResponse(unittest.TestCase):
         self.assertTrue(processed.success.is_verified_ethnicity)
 
         self.assertEqual(processed.success.verified_uuids, ['u2', 'u3'])
+        self.assertEqual(processed.success.raw_json, response)
 
     def test_success_2(self):
         response = success_content_2
@@ -110,6 +111,7 @@ class TestProcessResponse(unittest.TestCase):
         self.assertFalse(processed.success.is_verified_ethnicity)
 
         self.assertEqual(processed.success.verified_uuids, ['u2', 'u3'])
+        self.assertEqual(processed.success.raw_json, response)
 
     def test_success_3(self):
         response = success_content_3
@@ -124,6 +126,7 @@ class TestProcessResponse(unittest.TestCase):
         self.assertTrue(processed.success.is_verified_ethnicity)
 
         self.assertEqual(processed.success.verified_uuids, [])
+        self.assertEqual(processed.success.raw_json, response)
 
     def test_failure_1(self):
         response = failure_content_1
@@ -135,6 +138,7 @@ class TestProcessResponse(unittest.TestCase):
 
         self.assertEqual(processed.failure.reason,
             "Our AI thinks your image isn’t a real photo.")
+        self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_2(self):
         response = failure_content_2
@@ -146,6 +150,7 @@ class TestProcessResponse(unittest.TestCase):
 
         self.assertEqual(processed.failure.reason,
             "Our AI thinks your image might have been edited.")
+        self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_3(self):
         response = failure_content_3
@@ -157,6 +162,7 @@ class TestProcessResponse(unittest.TestCase):
 
         self.assertEqual(processed.failure.reason,
             "Our AI thinks your photo doesn’t have a person in it.")
+        self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_4(self):
         response = failure_content_4
@@ -168,6 +174,7 @@ class TestProcessResponse(unittest.TestCase):
 
         self.assertEqual(processed.failure.reason,
             "Our AI thinks there’s more than one person in your photo.")
+        self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_5(self):
         response = failure_content_5
@@ -179,6 +186,7 @@ class TestProcessResponse(unittest.TestCase):
 
         self.assertEqual(processed.failure.reason,
             "Our AI couldn’t verify your gender.")
+        self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_6(self):
         response = failure_content_6
@@ -190,6 +198,7 @@ class TestProcessResponse(unittest.TestCase):
 
         self.assertEqual(processed.failure.reason,
             "Our AI couldn’t verify your age.")
+        self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_7(self):
         response = failure_content_7
@@ -201,6 +210,7 @@ class TestProcessResponse(unittest.TestCase):
 
         self.assertEqual(processed.failure.reason,
             "Our AI couldn’t verify your ethnicity.")
+        self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_8(self):
         response = failure_content_8
@@ -212,6 +222,7 @@ class TestProcessResponse(unittest.TestCase):
 
         self.assertEqual(processed.failure.reason,
             "Our AI thinks you’re not smiling.")
+        self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_9(self):
         response = failure_content_9
@@ -223,6 +234,7 @@ class TestProcessResponse(unittest.TestCase):
 
         self.assertEqual(processed.failure.reason,
             "Our AI thinks you’re not touching your eyebrow.")
+        self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_10(self):
         response = failure_content_10
@@ -234,6 +246,7 @@ class TestProcessResponse(unittest.TestCase):
 
         self.assertEqual(processed.failure.reason,
             "Our AI thinks you’re not giving the thumbs down.")
+        self.assertEqual(processed.failure.raw_json, response)
 
 
 class TestGetMessages(unittest.TestCase):

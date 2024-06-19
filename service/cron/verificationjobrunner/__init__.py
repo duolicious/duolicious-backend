@@ -53,7 +53,8 @@ async def do_verification_job(verification_job: VerificationJob):
                 'Photos'
                 if verification_result.success.verified_uuids
                 else 'Basics only'
-            )
+            ),
+            raw_json=verification_result.success.raw_json,
         )
     else:
         message = (
@@ -70,7 +71,8 @@ async def do_verification_job(verification_job: VerificationJob):
             verified_ethnicity=False,
             status='failure',
             message=message,
-            verification_level_name='No verification'
+            verification_level_name='No verification',
+            raw_json=verification_result.failure.raw_json,
         )
 
     async with api_tx() as tx:
