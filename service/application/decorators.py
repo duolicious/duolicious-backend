@@ -85,6 +85,10 @@ shared_otp_limit = limiter.shared_limit(
     exempt_when=_is_private_ip,
 )
 
+def limiter_account():
+    return getattr(g, 'normalized_email', _get_remote_address())
+
+
 CORS(app, origins=CORS_ORIGINS.split(','))
 
 Q_GET_SESSION = """
@@ -106,18 +110,10 @@ AND
 """
 
 def account_limiter(func, limit=None):
-    def key_func():
-        key = (
-            func.__name__ +
-            ' ' +
-            getattr(g, 'normalized_email', _get_remote_address())
-        )
-        return key
-
-    _account_limiter = limiter.shared_limit(
+    _account_limiter = limiter.limit(
         limit or default_limits,
         scope="account",
-        key_func=key_func,
+        key_func=limiter_account,
         exempt_when=disable_account_rate_limit,
     )
 

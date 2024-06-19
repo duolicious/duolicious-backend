@@ -25,7 +25,8 @@ from service.application.decorators import (
     limiter,
     shared_otp_limit,
     disable_ip_rate_limit,
-    account_limiter,
+    disable_account_rate_limit,
+    limiter_account,
 )
 import time
 from antispam import normalize_email
@@ -212,17 +213,24 @@ def get_search(s: t.SessionInfo):
     n = request.args.get('n')
     o = request.args.get('o')
 
+    search_type, _ = search.get_search_type(n, o)
+
     limit = "10 per minute"
-
-    search_type = search.get_search_type(n, o)
-
-    rate_limited_search = account_limiter(search.get_search, limit=limit)
+    scope = search_type
 
     if search_type == 'uncached-search':
-        return limiter.limit(
-            limit,
-            exempt_when=disable_ip_rate_limit,
-        )(rate_limited_search)(s=s, n=n, o=o)
+        with (
+            limiter.limit(
+                limit,
+                scope=scope,
+                exempt_when=disable_ip_rate_limit),
+            limiter.limit(
+                limit,
+                scope=scope,
+                key_func=limiter_account,
+                exempt_when=disable_account_rate_limit)
+        ):
+            return search.get_search(s=s, n=n, o=o)
     else:
         return search.get_search(s=s, n=n, o=o)
 
@@ -246,14 +254,21 @@ def get_prospect_profile(s: t.SessionInfo, prospect_uuid: int):
 @validate(t.PostSkip)
 def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
     limit = "1 per 30 seconds"
-
-    rate_limited_skip = account_limiter(person.post_skip, limit=limit)
+    scope = "report"
 
     if req.report_reason:
-        return limiter.limit(
-            limit,
-            exempt_when=disable_ip_rate_limit,
-        )(rate_limited_skip)(req, s, prospect_person_id)
+        with (
+            limiter.limit(
+                limit,
+                scope=scope,
+                exempt_when=disable_ip_rate_limit),
+            limiter.limit(
+                limit,
+                scope=scope,
+                key_func=limiter_account,
+                exempt_when=disable_account_rate_limit)
+        ):
+            return person.post_skip(req, s, prospect_person_id)
     else:
         return person.post_skip(req, s, prospect_person_id)
 
@@ -261,17 +276,21 @@ def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
 @validate(t.PostSkip)
 def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: int):
     limit = "1 per 30 seconds"
-
-    rate_limited_skip_by_uuid = account_limiter(
-        person.post_skip_by_uuid,
-        limit=limit
-    )
+    scope = "report"
 
     if req.report_reason:
-        limiter.limit(
-            limit,
-            exempt_when=disable_ip_rate_limit,
-        )(person.post_skip_by_uuid)(req, s, prospect_uuid)
+        with (
+            limiter.limit(
+                limit,
+                scope=scope,
+                exempt_when=disable_ip_rate_limit),
+            limiter.limit(
+                limit,
+                scope=scope,
+                key_func=limiter_account,
+                exempt_when=disable_account_rate_limit)
+        ):
+            return person.post_skip_by_uuid(req, s, prospect_uuid)
     else:
         return person.post_skip_by_uuid(req, s, prospect_uuid)
 
@@ -381,17 +400,21 @@ def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo):
 
 @apost('/verify')
 def post_verify(s: t.SessionInfo):
-    return person.post_verify(s)
+    limit = "20 per day"
+    scope = "verify"
 
-    # TODO
-    limit = "5 per day"
-
-    rate_limited_verify = account_limiter(person.post_verify, limit=limit)
-
-    return limiter.limit(
-        limit,
-        exempt_when=disable_ip_rate_limit,
-    )(rate_limited_verify)(s)
+    with (
+        limiter.limit(
+            limit,
+            scope=scope,
+            exempt_when=disable_ip_rate_limit),
+        limiter.limit(
+            limit,
+            scope=scope,
+            key_func=limiter_account,
+            exempt_when=disable_account_rate_limit)
+    ):
+        return person.post_verify(s)
 
 @aget('/check-verification')
 def get_check_verification(s: t.SessionInfo):
