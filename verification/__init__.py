@@ -61,7 +61,7 @@ def get_system_content(
         *english_ethnicity_lines,
         '* Image #1 contains a person who is smiling.',
         '* Image #1 contains a person who is touching their eyebrow.',
-        '* Image #1 contains a person who is pointing their thumb downward (not upward).',
+        '* Image #1 contains a person who is pointing their thumb downward.',
         *english_image_lines,
         '',
         'Provide a JSON object in the following format which assigns a probability from 0.0 to 1.0 to each claim above:',
