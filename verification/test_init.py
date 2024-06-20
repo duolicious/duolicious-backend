@@ -279,7 +279,7 @@ You have been given one or more image(s) by a user attempting to verify their id
 * Image #1 contains a person whose age is 18 or older.
 * Image #1 contains a person who is smiling.
 * Image #1 contains a person who is touching their eyebrow.
-* Image #1 contains a person who is pointing their thumb downward (not upward).
+* Image #1 contains a person who is pointing their thumb downward.
 
 Provide a JSON object in the following format which assigns a probability from 0.0 to 1.0 to each claim above:
 
@@ -349,7 +349,7 @@ You have been given one or more image(s) by a user attempting to verify their id
 * Image #1 contains a person whose primary or only ethnicity is: White. (Users can choose from the options: Black/African Descent, East Asian, Hispanic/Latino, Middle Eastern, Native American, Pacific Islander, South Asian, Southeast Asian, White/Caucasian, and Other.)
 * Image #1 contains a person who is smiling.
 * Image #1 contains a person who is touching their eyebrow.
-* Image #1 contains a person who is pointing their thumb downward (not upward).
+* Image #1 contains a person who is pointing their thumb downward.
 * Image #1 contains a person who is in Image #2.
 * Image #1 contains a person who is in Image #3.
 
@@ -443,7 +443,7 @@ You have been given one or more image(s) by a user attempting to verify their id
 * Image #1 contains a person whose primary or only ethnicity is: Black. (Users can choose from the options: Black/African Descent, East Asian, Hispanic/Latino, Middle Eastern, Native American, Pacific Islander, South Asian, Southeast Asian, White/Caucasian, and Other.)
 * Image #1 contains a person who is smiling.
 * Image #1 contains a person who is touching their eyebrow.
-* Image #1 contains a person who is pointing their thumb downward (not upward).
+* Image #1 contains a person who is pointing their thumb downward.
 * Image #1 contains a person who is in Image #2.
 * Image #1 contains a person who is in Image #3.
 * Image #1 contains a person who is in Image #4.
@@ -497,7 +497,7 @@ You have been given one or more image(s) by a user attempting to verify their id
 * Image #1 contains a person whose age is 18 or older.
 * Image #1 contains a person who is smiling.
 * Image #1 contains a person who is touching their eyebrow.
-* Image #1 contains a person who is pointing their thumb downward (not upward).
+* Image #1 contains a person who is pointing their thumb downward.
 * Image #1 contains a person who is in Image #2.
 * Image #1 contains a person who is in Image #3.
 * Image #1 contains a person who is in Image #4.
