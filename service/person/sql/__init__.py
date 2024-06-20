@@ -1865,14 +1865,7 @@ SELECT
             verification_level
         WHERE
             verification_level.id = p.verification_level_id
-    ) AS verification_level,
-    ARRAY(
-        -- This will only yield a result if the selfie was recent
-        SELECT
-            'https://user-images.duolicious.app/450-' || photo_uuid || '.jpg'
-        FROM verification_job
-        WHERE verification_job.person_id = p.id
-    ) AS verification_selfies
+    ) AS verification_level
 FROM
     person AS p
 JOIN
