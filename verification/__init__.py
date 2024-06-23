@@ -22,65 +22,71 @@ def get_system_content(
     claimed_gender: str,
     claimed_ethnicity: str | None
 ) -> str:
-    english_ethnicity_lines = (
+    ethnicity_lines = (
         [
-            f"* Image #1 contains a person whose primary or only ethnicity is: {claimed_ethnicity}. "
-            "(Users can choose from the options: Black/African Descent, East Asian, Hispanic/Latino, Middle Eastern, Native American, Pacific Islander, South Asian, Southeast Asian, White/Caucasian, and Other.)"
+            f'  // Image #1 contains a person whose primary or only ethnicity is: {claimed_ethnicity}.\n'
+            f'  // When checking this claim, note the user chose this ethnicity from these options: Black/African Descent, East Asian, Hispanic/Latino, Middle Eastern, Native American, Pacific Islander, South Asian, Southeast Asian, White/Caucasian, and Other.\n'
+            f'  // In equivocal cases, prefer probabilities near 1.0.',
+            f'  image_1_has_claimed_ethnicity: number\n'
         ]
         if claimed_ethnicity
         else [])
 
-    json_ethnicity_lines = (
-        ['  image_1_has_claimed_ethnicity: number']
-        if claimed_ethnicity
-        else [])
-
-    english_image_lines = [
-        f'* Image #1 contains a person who is in Image #{i + 2}.'
-        for i in range(num_claimed_uuids)
-    ]
-
-    json_image_lines = [
-        f'  image_1_has_person_from_image_{i + 2}: number'
+    image_lines = [
+        f'  // Image #1 contains a person who is in Image #{i + 2}\n'
+        f'  image_1_has_person_from_image_{i + 2}: number\n'
         for i in range(num_claimed_uuids)
     ]
 
     content = '\n'.join([
         'You have been given one or more image(s) by a user attempting to '
-        'verify their identity on a social media website. The user claims to '
-        'be in Image #1. To verify that claim, you must verify these ones:',
+        'verify their identity on a social media website. The user provides '
+        'Image #1 as proof of their identity. The user makes some claims about '
+        'the image(s). Provide a JSON object in the following format which '
+        'assigns a probability from 0.0 to 1.0 to each claim being true:',
         '',
-        '* Image #1 was not edited.',
-        '* Image #1 is a photograph.',
-        '* Image #1 contains at least one person.',
-        '* Image #1 contains exactly one person.',
-        '* Image #1 was photographed at about a 45 degree angle to the side of the person\'s face (i.e. a three-quarter profile).',
-        f'* Image #1 contains a person whose gender is: {claimed_gender}. (Users can choose from the options: Man, Woman, Agender, Intersex, Non-binary, Transgender, Trans woman, Trans man, and Other.)',
-        f'* Image #1 contains a person whose age is: {claimed_age}.',
-        f'* Image #1 contains a person whose age is 18 or older.',
-        *english_ethnicity_lines,
-        '* Image #1 contains a person who is smiling.',
-        '* Image #1 contains a person who is touching their eyebrow.',
-        '* Image #1 contains a person who is pointing their thumb downward.',
-        *english_image_lines,
-        '',
-        'Provide a JSON object in the following format which assigns a probability from 0.0 to 1.0 to each claim above:',
-        '',
-        '```',
+        '```typescript',
         '{',
+        '  // Image #1 was not edited',
         '  image_1_was_not_edited: number',
+        '',
+        '  // Image #1 is a photograph',
         '  image_1_is_photograph: number',
+        '',
+        '  // Image #1 contains at least one person',
         '  image_1_has_at_least_one_person: number',
+        '',
+        '  // Image #1 contains exactly one person',
         '  image_1_has_exactly_one_person: number',
+        '',
+        '  // Image #1 was photographed at about a 45 degree angle to the side of the person\'s face (i.e. a three-quarter profile)',
         '  image_1_has_45_degree_angle: number',
+        '',
+        f'  // Image #1 contains a person whose gender is: {claimed_gender}.',
+        f'  // When checking this claim, note that the user chose this gender from these options: Man, Woman, Agender, Intersex, Non-binary, Transgender, Trans woman, Trans man, and Other.',
+        f'  // In equivocal cases, prefer probabilities near 1.0.',
         '  image_1_has_claimed_gender: number',
+        '',
+        f'  // Image #1 contains a person whose age is: {claimed_age}',
         '  image_1_has_claimed_age: number',
+        '',
+        f'  // Image #1 contains a person whose age is 18 or older',
         '  image_1_has_claimed_minimum_age: number',
-        *json_ethnicity_lines,
+        '',
+        *ethnicity_lines,
+        '  // Image #1 contains a person who is smiling',
         '  image_1_has_smiling_person: number',
+        '',
+        '  // Image #1 contains a person who is touching their eyebrow',
         '  image_1_has_eyebrow_touch: number',
+        '',
+        '  // Image #1 contains a person whose thumb is visible',
+        '  image_1_has_thumb: number',
+        '',
+        '  // Image #1 contains a person whose thumb is pointed downward',
         '  image_1_has_downward_thumb: number',
-        *json_image_lines,
+        '',
+        *image_lines,
         '}',
         '```',
     ])
@@ -215,7 +221,7 @@ def process_response(
     # These settings are tuned to gpt-4-turbo. gpt-4o worked better with higher
     # numbers.
     edit_truthiness_threshold = 0.9
-    gender_truthiness_threshold = 0.7
+    gender_truthiness_threshold = 0.5
     age_truthiness_threshold = 0.5
     minimum_age_truthiness_threshold = 0.8
     ethnicity_truthiness_threshold = 0.4
