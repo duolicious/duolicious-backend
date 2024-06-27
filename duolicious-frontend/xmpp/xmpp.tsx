@@ -234,7 +234,8 @@ const populateConversationList = async (
     const personId = c.personId;
 
     const personInfo = (
-      personIdToInfo[personId] ?? personUuidToInfo[personUuid]);
+      personUuidToInfo[personUuid] ?? personIdToInfo[personId]
+    );
 
     // Update conversation information
     c.name = personInfo?.name ?? 'Unavailable Person';
