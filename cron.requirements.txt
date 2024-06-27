@@ -1,7 +1,8 @@
 Pillow
 blurhash
 boto3
-nsfw-detector
 numpy
+numpy==1.26.4
+onnxruntime
 openai
 psycopg

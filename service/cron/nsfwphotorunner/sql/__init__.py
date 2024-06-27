@@ -4,16 +4,16 @@ SELECT
 FROM
     photo
 WHERE
-    NOT nsfw_checked
+    nsfw_score IS NULL
 LIMIT
     50
 """
 
-Q_SET_NSFW_CHECKED = """
+Q_SET_NSFW_SCORE = """
 UPDATE
     photo
 SET
-    nsfw_checked = TRUE
+    nsfw_score = %(nsfw_score)s
 WHERE
-    uuid = ANY(%(uuids)s::TEXT[])
+    uuid = %(uuid)s
 """

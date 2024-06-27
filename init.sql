@@ -307,7 +307,7 @@ CREATE TABLE IF NOT EXISTS photo (
     uuid TEXT NOT NULL,
     blurhash TEXT NOT NULL,
     verified BOOLEAN NOT NULL DEFAULT FALSE,
-    nsfw_checked BOOLEAN NOT NULL DEFAULT FALSE,
+    nsfw_score FLOAT4,
     PRIMARY KEY (person_id, position)
 );
 
@@ -636,9 +636,8 @@ CREATE INDEX IF NOT EXISTS idx__deleted_photo_admin_token__expires_at
 CREATE INDEX IF NOT EXISTS idx__photo__uuid
     ON photo(uuid);
 
-CREATE INDEX IF NOT EXISTS idx__photo__nsfw_checked
-    ON photo(nsfw_checked)
-    WHERE NOT nsfw_checked;
+CREATE INDEX IF NOT EXISTS idx__photo__nsfw_score
+    ON photo(nsfw_score);
 
 CREATE INDEX IF NOT EXISTS idx__onboardee_photo__uuid
     ON onboardee_photo(uuid);
@@ -1309,8 +1308,10 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 
 -- TODO
-ALTER TABLE photo ADD COLUMN IF NOT EXISTS
-nsfw_checked BOOLEAN NOT NULL DEFAULT FALSE
+ALTER TABLE
+    photo
+ADD COLUMN IF NOT EXISTS
+    nsfw_score FLOAT4
 ;
 
 --------------------------------------------------------------------------------

@@ -2,7 +2,7 @@ from service.cron.autodeactivate2 import autodeactivate2_forever
 from service.cron.checkphotos import check_photos_forever
 from service.cron.expiredrecords import delete_expired_records_forever
 from service.cron.notifications import send_notifications_forever
-from service.cron.nsfwphotocleaner import clean_nsfw_photos_forever
+from service.cron.nsfwphotorunner import predict_nsfw_photos_forever
 from service.cron.photocleaner import clean_photos_forever
 from service.cron.verificationjobrunner import verify_forever
 import asyncio
@@ -37,7 +37,7 @@ async def main():
         # Fetched: 0.1k, returned: 100k
         clean_photos_forever(),
 
-        clean_nsfw_photos_forever(),
+        predict_nsfw_photos_forever(),
 
         # Should only be enabled when it's likely that the object store contains
         # photos which aren't tracked by the DB

@@ -1,4 +1,8 @@
+from concurrent.futures import ThreadPoolExecutor
 from service.cron.util.sql import *
+import asyncio
+import boto3
+import io
 import os
 import traceback
 
@@ -88,9 +92,11 @@ async def delete_images_from_object_store(
                 await tx.execute(Q_MARK_PHOTO_DELETED, dict(uuids=chunk))
             print('Objects have been marked as deleted')
 
-# TODO: Parallelize?
-def download_450_images(uuids: list[str]) -> list[io.BytesIO]:
-    print('downloading images')
+async def download_450_images(
+    uuids: list[str],
+    max_workers: int = 5,
+) -> list[io.BytesIO]:
+    print('Downloading images')
 
     s3_client = boto3.client(
         's3',
@@ -99,25 +105,22 @@ def download_450_images(uuids: list[str]) -> list[io.BytesIO]:
         aws_secret_access_key=R2_ACCESS_KEY_SECRET,
     )
 
-    objects = []
-    for uuid in uuids:
-        # Create a BytesIO object to hold the binary data
+    def download_one(uuid):
         buffer = io.BytesIO()
-
-        # Download the object from S3 and put it into the buffer
         key = f'450-{uuid}.jpg'
         s3_client.download_fileobj(
             Bucket=R2_BUCKET_NAME,
             Key=key,
             Fileobj=buffer
         )
-
-        # Reset buffer pointer to the beginning after writing
         buffer.seek(0)
+        return buffer
 
-        # Store the buffer in a dictionary using the key as its identifier
-        objects.append(buffer)
+    def download_many():
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            return list(executor.map(download_one, uuids))
 
-    print('downloading images complete')
+    results = await asyncio.to_thread(download_many)
 
-    return objects
+    print('Downloading images complete')
+    return results

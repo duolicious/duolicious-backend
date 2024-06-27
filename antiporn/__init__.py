@@ -1,14 +1,10 @@
 import onnxruntime as ort
 import numpy as np
 from PIL import Image
-import sys
-import json
 from io import BytesIO
-from concurrent.futures import ThreadPoolExecutor
-from urllib.request import urlopen
 import traceback
 from pathlib import Path
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Union
 
 _IMAGE_SIZE: tuple[int, int] = (299, 299)
 
@@ -33,20 +29,13 @@ if not _MODEL_PATH.exists():
 SESSION: ort.InferenceSession = ort.InferenceSession(str(_MODEL_PATH))
 INPUT_NAME: str = SESSION.get_inputs()[0].name
 
-def download_image(url: str) -> BytesIO:
-    ''' Downloads an image and returns a BytesIO object containing its data. '''
-    with urlopen(url) as response:
-        return BytesIO(response.read())
-
-def download_images_parallel(image_urls: List[str], max_workers: int = 5) -> List[BytesIO]:
-    ''' Downloads multiple images in parallel and returns their data as BytesIO objects. '''
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        return list(executor.map(download_image, image_urls))
-
 def preprocess_image(data: BytesIO) -> Union[np.ndarray, None]:
     ''' Converts image data into a numpy array suitable for model input. '''
     try:
-        image = Image.open(data).convert('RGB').resize(_IMAGE_SIZE, Image.Resampling.NEAREST)
+        image = Image \
+            .open(data) \
+            .convert('RGB') \
+            .resize(_IMAGE_SIZE, Image.Resampling.NEAREST)
         return np.array(image).astype('float32') / 255
     except Exception as e:
         print(traceback.format_exc())
@@ -78,21 +67,16 @@ def format_predictions(predictions: np.ndarray) -> List[Dict[str, float]]:
         {_CATEGORIES[pred]: probs[i][j] for j, pred in enumerate(preds[i])}
         for i in range(len(preds))]
 
-def apply_threshold(image_predictions: Dict[str, Dict[str, float]], threshold: float) -> List[bool]:
-    ''' Classifies images as NSFW based on probabilities. '''
+def get_nsfw_prediction(
+    image_predictions: List[Dict[str, float]]
+) -> List[float]:
     return [
-        (data.get('porn', 0) + data.get('hentai', 0)) >= threshold
-        for data in image_predictions.values()
+        max((data.get('porn', 0), data.get('hentai', 0)))
+        for data in image_predictions
     ]
 
-def classify_nsfw(image_urls: List[str], nsfw_threshold: float = 0.9) -> List[bool]:
-    image_data = download_images_parallel(image_urls)
-    loaded_images = process_images(image_data)
+def predict_nsfw(image_data_seq: List[BytesIO]) -> List[float]:
+    loaded_images = process_images(image_data_seq)
     predictions = predict(loaded_images)
-    image_predictions = dict(zip(image_urls, format_predictions(predictions)))
-    return apply_threshold(image_predictions, threshold=nsfw_threshold)
-
-if __name__ == '__main__':
-    image_urls = sys.argv[1:]
-    results = classify_nsfw(image_urls, nsfw_threshold=0.9)
-    print(json.dumps(results, indent=2))
+    formatted_predictions = format_predictions(predictions)
+    return get_nsfw_prediction(formatted_predictions)

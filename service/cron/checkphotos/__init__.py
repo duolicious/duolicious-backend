@@ -45,7 +45,7 @@ s3_client = boto3.client(
 )
 
 async def update_blurhashes(uuids: list[str]):
-    images = download_450_images(uuids)
+    images = await download_450_images(uuids)
     blurhashes = compute_blurhashes(images)
 
     params_seq = [
