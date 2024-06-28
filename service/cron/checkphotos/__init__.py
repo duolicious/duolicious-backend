@@ -1,6 +1,11 @@
 # Remove unused imports
 from database.asyncdatabase import api_tx, chat_tx
-from service.cron.util import print_stacktrace, MAX_RANDOM_START_DELAY
+from service.cron.util import (
+    MAX_RANDOM_START_DELAY,
+    delete_images_from_object_store,
+    download_450_images,
+    print_stacktrace,
+)
 import asyncio
 import boto3
 import os
@@ -39,54 +44,8 @@ s3_client = boto3.client(
     aws_secret_access_key=R2_ACCESS_KEY_SECRET,
 )
 
-async def delete_images_from_object_store(uuids: list[str]):
-    # Split the uuids list into chunks of 300 since the limit is 1000 and
-    # there's three objects to delete per uuid
-    chunks = [uuids[i:i+300] for i in range(0, len(uuids), 300)]
-
-    for chunk in chunks:
-        keys_to_delete = [
-            key_to_delete
-            for uuid in chunk
-            for key_to_delete in [
-                f'original-{uuid}.jpg',
-                f'900-{uuid}.jpg',
-                f'450-{uuid}.jpg',
-            ]
-            if uuid is not None
-        ]
-
-        delete_request = {
-            'Objects': [{'Key': key} for key in keys_to_delete],
-            'Quiet': True
-        }
-
-        if DRY_RUN:
-            print(
-                'DUO_CHECK_PHOTOS_DRY_RUN env var prevented photo deletion:',
-                keys_to_delete
-            )
-            continue
-
-        # Use asyncio's run_in_executor to run synchronous boto3 call
-        response = await asyncio.get_event_loop().run_in_executor(
-            None,
-            lambda: s3_client.delete_objects(
-                Bucket=R2_BUCKET_NAME,
-                Delete=delete_request
-            )
-        )
-
-        if 'Errors' in response:
-            for error in response['Errors']:
-                print(f"checkphotos: Error deleting {error['Key']}: {error['Message']}")
-        else:
-            for key in keys_to_delete:
-                print('checkphotos: Deleted object', key)
-            print('checkphotos: Objects have been marked as deleted')
-
 async def update_blurhashes(uuids: list[str]):
-    images = download_450_images(uuids)
+    images = await download_450_images(uuids)
     blurhashes = compute_blurhashes(images)
 
     params_seq = [
@@ -163,32 +122,6 @@ async def resolve_uuids(uuids: list[str]) -> tuple[list[str], list[str]]:
     to_delete = [x['uuid'] for x in to_delete]
 
     return to_update, to_delete
-
-def download_450_images(uuids: list[str]) -> list[io.BytesIO]:
-    print('checkphotos: downloading images')
-
-    objects = []
-    for uuid in uuids:
-        # Create a BytesIO object to hold the binary data
-        buffer = io.BytesIO()
-
-        # Download the object from S3 and put it into the buffer
-        key = f'450-{uuid}.jpg'
-        s3_client.download_fileobj(
-            Bucket=R2_BUCKET_NAME,
-            Key=key,
-            Fileobj=buffer
-        )
-
-        # Reset buffer pointer to the beginning after writing
-        buffer.seek(0)
-
-        # Store the buffer in a dictionary using the key as its identifier
-        objects.append(buffer)
-
-    print('checkphotos: downloading images complete')
-
-    return objects
 
 def compute_blurhash(image_bytes: io.BytesIO) -> str:
     image = Image.open(image_bytes)

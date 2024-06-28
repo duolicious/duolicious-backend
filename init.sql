@@ -307,6 +307,7 @@ CREATE TABLE IF NOT EXISTS photo (
     uuid TEXT NOT NULL,
     blurhash TEXT NOT NULL,
     verified BOOLEAN NOT NULL DEFAULT FALSE,
+    nsfw_score FLOAT4,
     PRIMARY KEY (person_id, position)
 );
 
@@ -1302,5 +1303,16 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
+
+-- TODO
+ALTER TABLE
+    photo
+ADD COLUMN IF NOT EXISTS
+    nsfw_score FLOAT4
+;
+
+-- TODO Move to index section
+CREATE INDEX IF NOT EXISTS idx__photo__nsfw_score
+    ON photo(nsfw_score);
 
 --------------------------------------------------------------------------------

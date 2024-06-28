@@ -2,5 +2,7 @@ Pillow
 blurhash
 boto3
 numpy
+numpy==1.26.4
+onnxruntime
 openai
 psycopg
