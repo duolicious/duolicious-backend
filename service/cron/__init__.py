@@ -1,6 +1,6 @@
 from service.cron.autodeactivate2 import autodeactivate2_forever
 from service.cron.checkphotos import check_photos_forever
-from service.cron.expiredrecords import delete_expired_records_forever
+from service.cron.garbagerecords import delete_garbage_records_forever
 from service.cron.notifications import send_notifications_forever
 from service.cron.nsfwphotorunner import predict_nsfw_photos_forever
 from service.cron.photocleaner import clean_photos_forever
@@ -32,7 +32,7 @@ async def main():
         autodeactivate2_forever(),
 
         # Fetched: 0.1k, returned: 2k
-        delete_expired_records_forever(),
+        delete_garbage_records_forever(),
 
         # Fetched: 0.1k, returned: 100k
         clean_photos_forever(),
