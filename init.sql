@@ -636,6 +636,9 @@ CREATE INDEX IF NOT EXISTS idx__deleted_photo_admin_token__expires_at
 CREATE INDEX IF NOT EXISTS idx__photo__uuid
     ON photo(uuid);
 
+CREATE INDEX IF NOT EXISTS idx__photo__nsfw_score
+    ON photo(nsfw_score);
+
 CREATE INDEX IF NOT EXISTS idx__onboardee_photo__uuid
     ON onboardee_photo(uuid);
 CREATE INDEX IF NOT EXISTS idx__onboardee__created_at
@@ -1303,16 +1306,5 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
-
--- TODO
-ALTER TABLE
-    photo
-ADD COLUMN IF NOT EXISTS
-    nsfw_score FLOAT4
-;
-
--- TODO Move to index section
-CREATE INDEX IF NOT EXISTS idx__photo__nsfw_score
-    ON photo(nsfw_score);
 
 --------------------------------------------------------------------------------
