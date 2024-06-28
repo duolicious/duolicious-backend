@@ -7,6 +7,7 @@ import boto3
 import io
 import os
 import traceback
+import time
 
 R2_ACCT_ID           = os.environ['DUO_R2_ACCT_ID']
 R2_ACCESS_KEY_ID     = os.environ['DUO_R2_ACCESS_KEY_ID']
@@ -113,19 +114,25 @@ async def download_450_images(
     def download_one(uuid):
         buffer = io.BytesIO()
         key = f'450-{uuid}.jpg'
-        try:
-            s3_client.download_fileobj(
-                Bucket=R2_BUCKET_NAME,
-                Key=key,
-                Fileobj=buffer
-            )
-            buffer.seek(0)
-            return buffer
-        except ClientError as e:
-            if e.response['Error']['Code'] in ('NoSuchKey', '404'):
-                return None
-            else:
-                raise  # Re-raise the exception if it's not a 'NoSuchKey' error
+        retries = 3
+        for attempt in range(retries):
+            try:
+                s3_client.download_fileobj(
+                    Bucket=R2_BUCKET_NAME,
+                    Key=key,
+                    Fileobj=buffer
+                )
+                buffer.seek(0)
+                return buffer
+            except ClientError as e:
+                if e.response['Error']['Code'] in ('NoSuchKey', '404'):
+                    if attempt < retries - 1:
+                        time.sleep(2 ** attempt)
+                        continue
+                    else:
+                        return None
+                else:
+                    raise
 
     def download_many():
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
