@@ -1,4 +1,4 @@
-Q_DELETE_EXPIRED_RECORDS = """
+Q_DELETE_GARBAGE_RECORDS = """
 WITH q1 AS (
     DELETE FROM
         banned_person_admin_token
@@ -41,6 +41,13 @@ WITH q1 AS (
         expires_at < NOW()
     RETURNING
         photo_uuid AS uuid
+), q7 AS (
+    DELETE FROM
+        photo
+    WHERE
+        nsfw_score > 0.99
+    RETURNING
+        uuid
 ), each_deleted_photo AS (
     SELECT
         onboardee_photo.uuid
@@ -53,11 +60,12 @@ WITH q1 AS (
 
     UNION
 
-    SELECT
-        uuid
-    FROM
-        q6
-), q7 AS (
+    SELECT uuid FROM q6
+
+    UNION
+
+    SELECT uuid FROM q7
+), q8 AS (
     INSERT INTO
         undeleted_photo (uuid)
     SELECT
@@ -76,6 +84,7 @@ FROM (
     SELECT 1 AS n FROM q4 UNION ALL
     SELECT 1 AS n FROM q5 UNION ALL
     SELECT 1 AS n FROM q6 UNION ALL
-    SELECT 0 AS n FROM q7
+    SELECT 1 AS n FROM q7 UNION ALL
+    SELECT 0 AS n FROM q8
 ) AS t(n)
 """
