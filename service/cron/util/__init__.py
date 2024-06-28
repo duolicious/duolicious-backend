@@ -96,7 +96,10 @@ async def download_450_images(
     uuids: list[str],
     max_workers: int = 5,
 ) -> list[io.BytesIO]:
-    print('Downloading images')
+    if not uuids:
+        return []
+
+    print(f'Downloading {len(uuids)} images')
 
     s3_client = boto3.client(
         's3',
@@ -122,5 +125,5 @@ async def download_450_images(
 
     results = await asyncio.to_thread(download_many)
 
-    print('Downloading images complete')
+    print(f'Downloading {len(uuids)} images complete')
     return results

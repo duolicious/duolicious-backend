@@ -49,7 +49,10 @@ def process_images(image_data: List[BytesIO]) -> np.ndarray:
     preprocessed_images = [
         data for data in maybe_preprocessed_images if data is not None]
 
-    return np.asarray(preprocessed_images)
+    if preprocessed_images:
+        return np.asarray(preprocessed_images, dtype='float32')
+    else:
+        return np.empty((0,) + _IMAGE_SIZE + (3,), dtype='float32')
 
 def predict(loaded_images: np.ndarray) -> np.ndarray:
     ''' Runs the model prediction on loaded images. '''
