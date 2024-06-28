@@ -36,7 +36,12 @@ jc PATCH /profile-info \
           }
       }"
 
+q "
+  insert into photo (person_id, position, uuid, blurhash)
+  values ($PERSON_ID, 3, 'not-in-object-store', '')"
+
 sleep 2
 
-[[ "$(q "select count(*) from photo where position = 1 and nsfw_score > 0.95")" = 1 ]]
-[[ "$(q "select count(*) from photo where position = 2 and nsfw_score < 0.05")" = 1 ]]
+[[ "$(q "select count(*) from photo where position = 1 and abs(nsfw_score - 0.965) < 0.01")" = 1 ]]
+[[ "$(q "select count(*) from photo where position = 2 and abs(nsfw_score - 0.016) < 0.01")" = 1 ]]
+[[ "$(q "select count(*) from photo where position = 3 and abs(nsfw_score - 0.000) < 0.01")" = 1 ]]

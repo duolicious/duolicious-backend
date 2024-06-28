@@ -1,5 +1,6 @@
 from database.asyncdatabase import api_tx
 from concurrent.futures import ThreadPoolExecutor
+from botocore.exceptions import ClientError
 from service.cron.util.sql import *
 import asyncio
 import boto3
@@ -96,7 +97,7 @@ async def delete_images_from_object_store(
 async def download_450_images(
     uuids: list[str],
     max_workers: int = 5,
-) -> list[io.BytesIO]:
+) -> list[io.BytesIO | None]:
     if not uuids:
         return []
 
@@ -112,13 +113,19 @@ async def download_450_images(
     def download_one(uuid):
         buffer = io.BytesIO()
         key = f'450-{uuid}.jpg'
-        s3_client.download_fileobj(
-            Bucket=R2_BUCKET_NAME,
-            Key=key,
-            Fileobj=buffer
-        )
-        buffer.seek(0)
-        return buffer
+        try:
+            s3_client.download_fileobj(
+                Bucket=R2_BUCKET_NAME,
+                Key=key,
+                Fileobj=buffer
+            )
+            buffer.seek(0)
+            return buffer
+        except ClientError as e:
+            if e.response['Error']['Code'] in ('NoSuchKey', '404'):
+                return None
+            else:
+                raise  # Re-raise the exception if it's not a 'NoSuchKey' error
 
     def download_many():
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
