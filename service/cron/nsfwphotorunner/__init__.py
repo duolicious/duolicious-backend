@@ -23,13 +23,33 @@ async def predict_nsfw_photos_once():
         rows = await cur.fetchall()
 
     uuids = [r['uuid'] for r in rows]
+
     image_data_seq = await download_450_images(uuids)
 
-    nsfw_scores = await asyncio.to_thread(predict_nsfw, image_data_seq)
+    missing_uuids, missing_image_data_seq = [], []
+    present_uuids, present_image_data_seq = [], []
+
+    for uuid, image_data in zip(uuids, image_data_seq):
+        if image_data:
+            present_uuids.append(uuid)
+            present_image_data_seq.append(image_data)
+        else:
+            missing_uuids.append(uuid)
+            missing_image_data_seq.append(image_data)
+
+    missing_nsfw_scores = [
+        -1.0 for _ in missing_image_data_seq]
+    present_nsfw_scores = await asyncio.to_thread(
+        predict_nsfw, present_image_data_seq)
+
+    uuids_ = (
+        missing_uuids + present_uuids)
+    nsfw_scores_ = (
+        missing_nsfw_scores + present_nsfw_scores)
 
     params_seq = [
         dict(uuid=uuid, nsfw_score=nsfw_score)
-        for uuid, nsfw_score in zip(uuids, nsfw_scores)
+        for uuid, nsfw_score in zip(uuids_, nsfw_scores_)
     ]
 
     async with api_tx() as tx:
