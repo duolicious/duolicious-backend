@@ -1,4 +1,4 @@
-`model.onnx` was derived from
+`model.onnx.part*` was derived from
 [https://github.com/bumble-tech/private-detector](https://github.com/bumble-tech/private-detector).
 
 The license can be found [here](https://github.com/bumble-tech/private-detector/blob/main/LICENSE) and is as follows:
