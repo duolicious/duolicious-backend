@@ -1,20 +1,10 @@
-import onnxruntime as ort
-import numpy as np
 from PIL import Image
-from io import BytesIO
-import traceback
+from typing import List
+import numpy as np
+import onnxruntime as ort
+import argparse
 from pathlib import Path
-from typing import List, Dict, Union
-
-_IMAGE_SIZE: tuple[int, int] = (299, 299)
-
-_CATEGORIES: List[str] = [
-    'drawings',
-    'hentai',
-    'neutral',
-    'porn',
-    'sexy',
-]
+from io import BytesIO
 
 _MODEL_PATH: Path = (
     Path(__file__).parent.parent /
@@ -25,61 +15,97 @@ _MODEL_PATH: Path = (
 if not _MODEL_PATH.exists():
     raise FileNotFoundError(f"Can't find model at {_MODEL_PATH}")
 
-# Initialize the session globally
-SESSION: ort.InferenceSession = ort.InferenceSession(str(_MODEL_PATH))
-INPUT_NAME: str = SESSION.get_inputs()[0].name
+# Create a global ONNX runtime session
+session = ort.InferenceSession(str(_MODEL_PATH))
+input_name = session.get_inputs()[0].name
 
-def preprocess_image(data: BytesIO) -> Union[np.ndarray, None]:
-    ''' Converts image data into a numpy array suitable for model input. '''
-    try:
-        image = Image \
-            .open(data) \
-            .convert('RGB') \
-            .resize(_IMAGE_SIZE, Image.Resampling.NEAREST)
-        return np.array(image).astype('float32') / 255
-    except Exception as e:
-        print(traceback.format_exc())
-        return None
+def preprocess_for_evaluation(image: Image.Image, image_size: int) -> np.array:
+    """
+    Preprocess image for evaluation
+    Parameters
+    ----------
+    image : Image.Image
+        Image to be preprocessed
+    image_size : int
+        Height/Width of image to be resized to
+    dtype : str
+        Dtype of image to be used
+    Returns
+    -------
+    image : np.array
+        Image ready for evaluation
+    """
+    image = pad_resize_image(image, image_size)
+    image = np.array(image, dtype=np.float16)
+    image -= 128
+    image /= 128
+    return image
 
-def process_images(image_data: List[BytesIO]) -> np.ndarray:
-    ''' Processes multiple images for model inference. '''
-    maybe_preprocessed_images = [
-        preprocess_image(data) for data in image_data]
+def pad_resize_image(image: Image.Image, target_size: int) -> Image.Image:
+    """
+    Pad the image and resize it to target size using nearest neighbor interpolation.
+    Parameters
+    ----------
+    image : Image.Image
+        Image to be padded and resized
+    target_size : int
+        New size for the height/width of the image
+    Returns
+    -------
+    resized_image : Image.Image
+        Resized and padded image
+    """
+    old_size = image.size
+    ratio = float(target_size) / max(old_size)
+    new_size = tuple([int(x * ratio) for x in old_size])
+    image = image.resize(new_size, Image.NEAREST)  # Use nearest neighbor interpolation
+    new_im = Image.new("RGB", (target_size, target_size))
+    new_im.paste(image, ((target_size - new_size[0]) // 2, (target_size - new_size[1]) // 2))
+    return new_im
 
-    preprocessed_images = [
-        data for data in maybe_preprocessed_images if data is not None]
+def read_image_from_bytes(image_data: BytesIO) -> np.array:
+    """
+    Load and preprocess image from a BytesIO object for inference without adding batch dimension
+    Parameters
+    ----------
+    image_data : BytesIO
+        Image data as BytesIO object
+    Returns
+    -------
+    image : np.array
+        Image ready for inference, not adding batch dimension here
+    """
+    image = Image.open(image_data)
+    image = image.convert('RGB')
+    image = preprocess_for_evaluation(image, 480)
+    image = np.array(image)
+    image = image.flatten()  # Flatten the image to a rank 1 array
+    return image
 
-    if preprocessed_images:
-        return np.asarray(preprocessed_images, dtype='float32')
-    else:
-        return np.empty((0,) + _IMAGE_SIZE + (3,), dtype='float32')
+def predict_nsfw(image_data_list: List[BytesIO]) -> List[float]:
+    """
+    Predict NSFW content in given images using batch processing.
+    Parameters
+    ----------
+    image_data_list : List[BytesIO]
+        List of image data as BytesIO objects
+    Returns
+    -------
+    scores : List[float]
+        List of NSFW scores for each image
+    """
+    if not image_data_list:
+        return []
 
-def predict(loaded_images: np.ndarray) -> np.ndarray:
-    ''' Runs the model prediction on loaded images. '''
-    return SESSION.run(None, {INPUT_NAME: loaded_images})[0]
+    # Prepare the batch of images
+    batch_images = np.array([
+        read_image_from_bytes(image_data)
+        for image_data in image_data_list
+    ], dtype=np.float16)
 
-def format_predictions(predictions: np.ndarray) -> List[Dict[str, float]]:
-    ''' Formats model predictions into a structured dictionary. '''
-    preds = np.argsort(predictions, axis=1).tolist()
+    # Run the batch prediction
+    preds = session.run(None, {input_name: batch_images})
 
-    probs = [
-        [float(predictions[i][pred]) for pred in single_preds]
-        for i, single_preds in enumerate(preds)]
-
-    return [
-        {_CATEGORIES[pred]: probs[i][j] for j, pred in enumerate(preds[i])}
-        for i in range(len(preds))]
-
-def get_nsfw_prediction(
-    image_predictions: List[Dict[str, float]]
-) -> List[float]:
-    return [
-        max((data.get('porn', 0), data.get('hentai', 0)))
-        for data in image_predictions
-    ]
-
-def predict_nsfw(image_data_seq: List[BytesIO]) -> List[float]:
-    loaded_images = process_images(image_data_seq)
-    predictions = predict(loaded_images)
-    formatted_predictions = format_predictions(predictions)
-    return get_nsfw_prediction(formatted_predictions)
+    # Extract scores and convert to float for compatibility with databases or other operations
+    scores = [float(score[0]) for score in preds[0]]
+    return scores
