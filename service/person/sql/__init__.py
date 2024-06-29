@@ -980,7 +980,12 @@ SELECT
         -- Verifications
         'verified_age',           (SELECT verified_age       FROM prospect),
         'verified_gender',        (SELECT verified_gender    FROM prospect),
-        'verified_ethnicity',     (SELECT verified_ethnicity FROM prospect)
+        'verified_ethnicity',     (SELECT verified_ethnicity FROM prospect),
+
+        -- Theme
+        'title_color',           (SELECT title_color      FROM prospect),
+        'body_color',            (SELECT body_color       FROM prospect),
+        'background_color',      (SELECT background_color FROM prospect)
     ) AS j
 WHERE
     EXISTS (SELECT 1 FROM prospect)
