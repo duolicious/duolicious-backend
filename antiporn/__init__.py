@@ -5,19 +5,19 @@ import onnxruntime as ort
 import argparse
 from pathlib import Path
 from io import BytesIO
+from pathlib import Path
 
-_MODEL_PATH: Path = (
-    Path(__file__).parent.parent /
-    'antiporn' /
-    'model.onnx'
-)
+_MODEL_PATH_BASE = Path(__file__).parent.parent / 'antiporn'
 
-if not _MODEL_PATH.exists():
-    raise FileNotFoundError(f"Can't find model at {_MODEL_PATH}")
+_MODEL = bytearray()
+for file_path in sorted(_MODEL_PATH_BASE.glob('model.onnx.part*')):
+    with open(file_path, 'rb') as file:
+        _MODEL.extend(file.read())
+_MODEL = bytes(_MODEL)
 
 # Create a global ONNX runtime session
-session = ort.InferenceSession(str(_MODEL_PATH))
-input_name = session.get_inputs()[0].name
+_SESSION = ort.InferenceSession(_MODEL)
+_INPUT_NAME = _SESSION.get_inputs()[0].name
 
 def preprocess_for_evaluation(image: Image.Image, image_size: int) -> np.array:
     """
@@ -104,7 +104,7 @@ def predict_nsfw(image_data_list: List[BytesIO]) -> List[float]:
     ], dtype=np.float16)
 
     # Run the batch prediction
-    preds = session.run(None, {input_name: batch_images})
+    preds = _SESSION.run(None, {_INPUT_NAME: batch_images})
 
     # Extract scores and convert to float for compatibility with databases or other operations
     scores = [float(score[0]) for score in preds[0]]
