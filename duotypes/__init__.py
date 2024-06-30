@@ -18,6 +18,8 @@ import base64
 CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42
 
+HEX_COLOR_PATTERN = r"^#[0-9a-fA-F]{6}$"
+
 class Base64File(BaseModel):
     position: conint(ge=1, le=7)
     base64: str
@@ -75,6 +77,10 @@ class Base64File(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
+class Theme(BaseModel):
+    title_color: constr(pattern=HEX_COLOR_PATTERN)
+    body_color: constr(pattern=HEX_COLOR_PATTERN)
+    background_color: constr(pattern=HEX_COLOR_PATTERN)
 
 class SessionInfo(BaseModel):
     email: str
@@ -181,6 +187,7 @@ class PatchProfileInfo(BaseModel):
     show_my_location: Optional[str] = None
     show_my_age: Optional[str] = None
     hide_me_from_strangers: Optional[str] = None
+    theme: Optional[Theme] = None
 
     @model_validator(mode='after')
     def check_exactly_one(self):
