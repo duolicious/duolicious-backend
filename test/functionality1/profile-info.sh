@@ -132,6 +132,29 @@ test_photo () {
   [[ "$(q "select COUNT(*) from photo")" -eq 0 ]]
 }
 
+test_theme () {
+  local value=$(cat << EOF
+{
+  "theme": {
+    "background_color": "#012345",
+    "body_color":       "#123456",
+    "title_color":      "#abcdef"
+  }
+}
+EOF
+)
+
+  jc PATCH /profile-info -d "$value"
+
+  local new_field_value=$(
+    set +x
+    c GET /profile-info | jq -r 'with_entries(select(.key == "theme"))'
+  )
+  local formatted_original_value=$(jq -r <<< "$value")
+
+  diff <(echo "$new_field_value") <(echo "$formatted_original_value")
+}
+
 test_verification_loss_gender () {
   jc PATCH /profile-info -d '{ "gender": "Man" }'
 
@@ -254,6 +277,8 @@ test_set hide_me_from_strangers Yes
 test_club
 
 test_photo
+
+test_theme
 
 test_verification_loss_gender
 test_verification_loss_ethnicity

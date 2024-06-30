@@ -980,7 +980,14 @@ SELECT
         -- Verifications
         'verified_age',           (SELECT verified_age       FROM prospect),
         'verified_gender',        (SELECT verified_gender    FROM prospect),
-        'verified_ethnicity',     (SELECT verified_ethnicity FROM prospect)
+        'verified_ethnicity',     (SELECT verified_ethnicity FROM prospect),
+
+        -- Theme
+        'theme', json_build_object(
+            'title_color',         (SELECT title_color      FROM prospect),
+            'body_color',          (SELECT body_color       FROM prospect),
+            'background_color',    (SELECT background_color FROM prospect)
+        )
     ) AS j
 WHERE
     EXISTS (SELECT 1 FROM prospect)
@@ -1512,6 +1519,12 @@ WITH photo_ AS (
     SELECT verified_age AS j FROM person WHERE id = %(person_id)s
 ), verified_ethnicity AS (
     SELECT verified_ethnicity AS j FROM person WHERE id = %(person_id)s
+), title_color AS (
+    SELECT title_color AS j FROM person WHERE id = %(person_id)s
+), body_color AS (
+    SELECT body_color AS j FROM person WHERE id = %(person_id)s
+), background_color AS (
+    SELECT background_color AS j FROM person WHERE id = %(person_id)s
 )
 SELECT
     json_build_object(
@@ -1550,9 +1563,15 @@ SELECT
         'show my age',            (SELECT j FROM show_my_age),
         'hide me from strangers', (SELECT j FROM hide_me_from_strangers),
 
-        'verified_gender',       (SELECT j FROM verified_gender),
-        'verified_age',          (SELECT j FROM verified_age),
-        'verified_ethnicity',    (SELECT j FROM verified_ethnicity)
+        'verified_gender',        (SELECT j FROM verified_gender),
+        'verified_age',           (SELECT j FROM verified_age),
+        'verified_ethnicity',     (SELECT j FROM verified_ethnicity),
+
+        'theme', json_build_object(
+            'title_color',            (SELECT j FROM title_color),
+            'body_color',             (SELECT j FROM body_color),
+            'background_color',       (SELECT j FROM background_color)
+        )
     ) AS j
 """
 

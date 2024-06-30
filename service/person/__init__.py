@@ -1035,6 +1035,30 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             CASE WHEN %(field_value)s = 'Yes' THEN TRUE ELSE FALSE END)
         WHERE id = %(person_id)s
         """
+    elif field_name == 'theme':
+        try:
+            title_color = field_value['title_color']
+            body_color = field_value['body_color']
+            background_color = field_value['background_color']
+
+            params.update(
+                dict(
+                    title_color=title_color,
+                    body_color=body_color,
+                    background_color=background_color,
+                )
+            )
+        except:
+            return f'Invalid colors', 400
+
+        q1 = """
+        UPDATE person
+        SET
+            title_color = %(title_color)s,
+            body_color = %(body_color)s,
+            background_color = %(background_color)s
+        WHERE id = %(person_id)s
+        """
     else:
         return f'Invalid field name {field_name}', 400
 

@@ -235,6 +235,11 @@ CREATE TABLE IF NOT EXISTS person (
     religion_id SMALLINT REFERENCES religion(id) NOT NULL DEFAULT 1,
     star_sign_id SMALLINT REFERENCES star_sign(id) NOT NULL DEFAULT 1,
 
+    -- Theme
+    title_color TEXT NOT NULL DEFAULT '#000000',
+    body_color TEXT NOT NULL DEFAULT '#000000',
+    background_color TEXT NOT NULL DEFAULT '#ffffff',
+
     -- General Settings
     unit_id SMALLINT REFERENCES unit(id) NOT NULL,
 
@@ -1306,5 +1311,24 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
+
+-- TODO: Delete
+ALTER TABLE
+    person
+ADD COLUMN IF NOT EXISTS
+    title_color TEXT NOT NULL DEFAULT '#000000'
+;
+
+ALTER TABLE
+    person
+ADD COLUMN IF NOT EXISTS
+    body_color TEXT NOT NULL DEFAULT '#000000'
+;
+
+ALTER TABLE
+    person
+ADD COLUMN IF NOT EXISTS
+    background_color TEXT NOT NULL DEFAULT '#ffffff'
+;
 
 --------------------------------------------------------------------------------
