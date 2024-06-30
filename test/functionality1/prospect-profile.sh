@@ -50,6 +50,11 @@ expected=$(jq -r . << EOF
   "religion": null,
   "smoking": null,
   "star_sign": null,
+  "theme": {
+    "background_color": "#ffffff",
+    "body_color": "#000000",
+    "title_color": "#000000"
+  },
   "verified_age": false,
   "verified_ethnicity": false,
   "verified_gender": false,
@@ -108,6 +113,11 @@ expected=$(jq -r . << EOF
   "religion": null,
   "smoking": null,
   "star_sign": null,
+  "theme": {
+    "background_color": "#ffffff",
+    "body_color": "#000000",
+    "title_color": "#000000"
+  },
   "verified_age": false,
   "verified_ethnicity": false,
   "verified_gender": false,
