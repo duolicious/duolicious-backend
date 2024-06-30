@@ -391,6 +391,8 @@ const SeeQAndAButton = ({navigation, personId, name, countAnswers}) => {
       onPress={onPress}
       extraChildren={extraChildren}
       loading={name === undefined}
+      borderColor="rgba(255, 255, 255, 0.2)"
+      borderWidth={1}
     >
       {name}{determiner} Q&A Answers ({countAnswers})
     </ButtonWithCenteredText>
@@ -430,7 +432,7 @@ const BlockButton = ({navigation, name, personId, personUuid, isSkipped}) => {
     `You have skipped ${name}. Press to unskip.` :
     `Report ${name}`;
 
-  const iconStroke = isLoading ? "transparent" : "grey";
+  const iconStroke = isLoading ? "transparent" : 'black';
 
   return (
     <Pressable
@@ -441,6 +443,10 @@ const BlockButton = ({navigation, name, personId, personUuid, isSkipped}) => {
         alignSelf: 'center',
         flexDirection: 'row',
         gap: 7,
+        backgroundColor: 'white',
+        opacity: 0.5,
+        padding: 8,
+        borderRadius: 5,
       }}
     >
       {isLoading &&
@@ -465,7 +471,6 @@ const BlockButton = ({navigation, name, personId, personUuid, isSkipped}) => {
       {!isLoading &&
         <DefaultText
           style={{
-            color: '#777',
             overflow: 'hidden',
             textAlign: 'center',
           }}
@@ -523,9 +528,16 @@ type UserData = {
   wants_kids: string | null,
   is_skipped: boolean,
   person_id: number,
+
   verified_age: boolean,
   verified_gender: boolean,
   verified_ethnicity: boolean,
+
+  theme: {
+    title_color: string,
+    body_color: string,
+    background_color: string,
+  }
 };
 
 const verifiedAnything = (data: UserData | null | undefined): boolean => {
@@ -606,6 +618,9 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
   return (
     <>
       <ScrollView
+        style={{
+          backgroundColor: data?.theme?.background_color,
+        }}
         contentContainerStyle={{
           width: '100%',
           maxWidth: 600,
@@ -628,6 +643,7 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
           verified={verifiedAnything(data)}
           matchPercentage={data?.match_percentage}
           userLocation={data?.location}
+          textColor={data?.theme?.title_color}
         />
         <Shadow/>
         <Body
@@ -635,7 +651,6 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
           personId={personId}
           personUuid={personUuid}
           data={data}
-          onChangeEmbiggened={() => {}}
         />
       </ScrollView>
       {showBottomButtons &&
@@ -700,6 +715,7 @@ const ProspectUserDetails = ({
   verified,
   matchPercentage,
   userLocation,
+  textColor,
 }) => {
   const onPressDonutChart = useCallback(() => {
     if (personId === undefined) return;
@@ -739,6 +755,7 @@ const ProspectUserDetails = ({
             style={{
               fontWeight: '700',
               fontSize: 24,
+              color: textColor,
             }}
           >
             {[
@@ -750,20 +767,31 @@ const ProspectUserDetails = ({
             <VerificationBadge/>
           }
         </View>
-        <DefaultText style={{textAlign: 'left'}}>
+        <DefaultText
+          style={{
+            textAlign: 'left',
+            color: textColor,
+          }}
+        >
           {displayedLocation}{' '}
           <FontAwesomeIcon
             icon={faLocationDot}
             style={{
               transform: [ { translateY: 2 } ]
             }}
+            color={textColor}
           />
         </DefaultText>
       </View>
      <DonutChart
         percentage={matchPercentage}
         onPress={!isViewingSelf ? onPressDonutChart : undefined}
-        style={{opacity: isViewingSelf ? 0 : 1}}
+        textStyle={{
+          color: textColor,
+        }}
+        style={{
+          opacity: isViewingSelf ? 0 : 1,
+        }}
       >
         <DefaultText
           style={{
@@ -771,6 +799,7 @@ const ProspectUserDetails = ({
             fontWeight: '500',
             fontSize: 10,
             opacity: matchPercentage === undefined ? 0 : 1,
+            color: textColor,
           }}
         >
           See Why ›
@@ -785,13 +814,11 @@ const Body = ({
   personId,
   personUuid,
   data,
-  onChangeEmbiggened,
 }: {
   navigation: any,
   personId: number,
   personUuid: string,
   data: UserData | undefined,
-  onChangeEmbiggened: (uuid: string) => void,
 }) => {
   const imageUuid1 = data?.photo_uuids && data?.photo_uuids[1];
   const imageUuid2 = data?.photo_uuids && data?.photo_uuids[2];
@@ -816,6 +843,12 @@ const Body = ({
 
   const isViewingSelf = personId === signedInUser?.personId;
 
+  const basicsTheme = {
+    textStyle: {
+      color: data?.theme?.body_color,
+    },
+  };
+
   return (
     <>
       <View
@@ -825,88 +858,93 @@ const Body = ({
           marginBottom: 20,
         }}
       >
-        <Title>Summary</Title>
+        <Title style={{color: data?.theme?.title_color}}>Basics</Title>
         <Basics>
           {data?.gender &&
-            <Basic icon={faVenusMars}>{data.gender}</Basic>}
+            <Basic {...basicsTheme} icon={faVenusMars}>{data.gender}</Basic>}
 
           {data?.orientation &&
-            <Basic icon="person">{data.orientation}</Basic>}
+            <Basic {...basicsTheme} icon="person">{data.orientation}</Basic>}
 
           {data?.ethnicity &&
-            <Basic icon="globe-outline">{data.ethnicity}</Basic>}
+            <Basic {...basicsTheme} icon="globe-outline">{data.ethnicity}</Basic>}
 
           {data?.relationship_status &&
-            <Basic icon="heart">{data.relationship_status}</Basic>}
+            <Basic {...basicsTheme} icon="heart">{data.relationship_status}</Basic>}
 
           {data?.occupation &&
-            <Basic icon="briefcase">{data.occupation}</Basic>}
+            <Basic {...basicsTheme} icon="briefcase">{data.occupation}</Basic>}
 
           {data?.education &&
-            <Basic icon="school">{data.education}</Basic>}
+            <Basic {...basicsTheme} icon="school">{data.education}</Basic>}
 
           {data?.has_kids === 'Yes' &&
-            <Basic icon="people">Has kids</Basic>}
+            <Basic {...basicsTheme} icon="people">Has kids</Basic>}
           {data?.has_kids === 'No' &&
-            <Basic icon="people">Doesn't have kids</Basic>}
+            <Basic {...basicsTheme} icon="people">Doesn't have kids</Basic>}
 
           {data?.wants_kids === 'Yes' &&
-            <Basic icon="people">Wants kids</Basic>}
+            <Basic {...basicsTheme} icon="people">Wants kids</Basic>}
           {data?.wants_kids === 'No' &&
-            <Basic icon="people">Doesn't want kids</Basic>}
+            <Basic {...basicsTheme} icon="people">Doesn't want kids</Basic>}
           {data?.wants_kids === 'Maybe' &&
-            <Basic icon="people">Maybe wants kids</Basic>}
+            <Basic {...basicsTheme} icon="people">Maybe wants kids</Basic>}
 
           {data?.looking_for &&
-            <Basic icon="eye">Looking for {data.looking_for.toLowerCase()}</Basic>}
+            <Basic {...basicsTheme} icon="eye">Looking for {data.looking_for.toLowerCase()}</Basic>}
 
           {data?.smoking === 'Yes' &&
-            <Basic icon={faSmoking}>Smokes</Basic>}
+            <Basic {...basicsTheme} icon={faSmoking}>Smokes</Basic>}
           {data?.smoking === 'No' &&
-            <Basic icon={faSmoking}>Doesn't smoke</Basic>}
+            <Basic {...basicsTheme} icon={faSmoking}>Doesn't smoke</Basic>}
 
           {data?.drinking &&
-            <Basic icon="wine">{data.drinking} drinks</Basic>}
+            <Basic {...basicsTheme} icon="wine">{data.drinking} drinks</Basic>}
 
           {data?.drugs === 'Yes' &&
-            <Basic icon={faPills}>Does drugs</Basic>}
+            <Basic {...basicsTheme} icon={faPills}>Does drugs</Basic>}
           {data?.drugs === 'No' &&
-            <Basic icon={faPills}>Doesn't do drugs</Basic>}
+            <Basic {...basicsTheme} icon={faPills}>Doesn't do drugs</Basic>}
 
           {data?.religion &&
-            <Basic icon={faHandsPraying}>{data.religion}</Basic>}
+            <Basic {...basicsTheme} icon={faHandsPraying}>{data.religion}</Basic>}
 
           {data?.long_distance === 'Yes' &&
-            <Basic icon="globe">Open to long distance</Basic>}
+            <Basic {...basicsTheme} icon="globe">Open to long distance</Basic>}
           {data?.long_distance === 'No' &&
-            <Basic icon="globe">Not open to long distance</Basic>}
+            <Basic {...basicsTheme} icon="globe">Not open to long distance</Basic>}
 
           {data?.star_sign &&
-            <Basic icon="star">{data.star_sign}</Basic>}
+            <Basic {...basicsTheme} icon="star">{data.star_sign}</Basic>}
 
           {data?.exercise &&
-            <Basic icon="barbell">{data.exercise} exercises</Basic>}
+            <Basic {...basicsTheme} icon="barbell">{data.exercise} exercises</Basic>}
 
           {data?.height_cm && signedInUser?.units === 'Metric' &&
-            <Basic icon={faRulerVertical}>{data.height_cm} cm</Basic>}
+            <Basic {...basicsTheme} icon={faRulerVertical}>{data.height_cm} cm</Basic>}
           {data?.height_cm && signedInUser?.units === 'Imperial' &&
-            <Basic icon={faRulerVertical}>{cmToFeetInchesStr(data.height_cm)}</Basic>}
+            <Basic {...basicsTheme} icon={faRulerVertical}>{cmToFeetInchesStr(data.height_cm)}</Basic>}
         </Basics>
 
         {verifiedAnything(data) && <>
-          <Title>Verification</Title>
+          <Title style={{color: data?.theme?.title_color}}>Verification</Title>
           <DetailedVerificationBadges
             photos={(data?.photo_verifications ?? []).some(Boolean)}
             gender={data?.verified_gender ?? false}
             age={data?.verified_age ?? false}
             ethnicity={data?.verified_ethnicity ?? false}
             style={{
-              marginBottom: 10,
+              marginBottom: 5,
             }}
           />
           <DefaultText
             style={{
-              color: '#999',
+              color: 'black',
+              backgroundColor: 'white',
+              opacity: 0.4,
+              padding: 1,
+              borderRadius: 3,
+              marginBottom: 10,
             }}
           >
             Verification is based on selfies analyzed by our AI. Verified photos
@@ -925,12 +963,12 @@ const Body = ({
         />
 
         {!data?.name &&
-          <Title>About ...</Title>
+          <Title style={{color: data?.theme?.title_color}}>About ...</Title>
         }
         {!!data?.name && !!data?.about && data.about.trim() &&
           <>
-            <Title>About {data.name}</Title>
-            <DefaultText selectable={true}>
+            <Title style={{color: data?.theme?.title_color}}>About {data.name}</Title>
+            <DefaultText style={{color: data?.theme?.body_color}} selectable={true}>
               {data.about}
             </DefaultText>
           </>
@@ -947,13 +985,16 @@ const Body = ({
 
         {data !== undefined && data.mutual_clubs.length > 0 &&
           <>
-            <Title>Mutual clubs</Title>
+            <Title style={{color: data?.theme?.title_color}}>
+              Mutual clubs
+            </Title>
             <Clubs>
               {data.mutual_clubs.map((clubName, i) =>
                 <Club
                   key={i}
                   name={clubName}
                   isMutual={true}
+                  {...basicsTheme}
                 />
               )}
             </Clubs>
@@ -971,13 +1012,16 @@ const Body = ({
 
         {data !== undefined && data.other_clubs.length > 0 &&
           <>
-            <Title>{data.mutual_clubs.length > 0 ? 'Other clubs' : 'Clubs'}</Title>
+            <Title style={{color: data?.theme?.title_color}}>
+              {data.mutual_clubs.length > 0 ? 'Other clubs' : 'Clubs'}
+            </Title>
             <Clubs>
               {data.other_clubs.map((clubName, i) =>
                 <Club
                   key={i}
                   name={clubName}
                   isMutual={false}
+                  {...basicsTheme}
                 />
               )}
             </Clubs>

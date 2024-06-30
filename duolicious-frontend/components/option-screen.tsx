@@ -1,10 +1,11 @@
 import {
+  Animated,
+  Keyboard,
+  Platform,
   Pressable,
+  SafeAreaView,
   ScrollView,
   View,
-  SafeAreaView,
-  Platform,
-  Keyboard,
 } from 'react-native';
 import {
   forwardRef,
@@ -42,6 +43,7 @@ import {
   OptionGroupSlider,
   OptionGroupTextLong,
   OptionGroupTextShort,
+  OptionGroupThemePicker,
   OptionGroupVerificationChecker,
   isOptionGroupButtons,
   isOptionGroupCheckChips,
@@ -55,6 +57,7 @@ import {
   isOptionGroupSlider,
   isOptionGroupTextLong,
   isOptionGroupTextShort,
+  isOptionGroupThemePicker,
   isOptionGroupVerificationChecker,
 } from '../data/option-groups';
 import {
@@ -65,11 +68,13 @@ import { DefaultLongTextInput } from './default-long-text-input';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CheckChip as CheckChip_, CheckChips as CheckChips_ } from './check-chip';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons/faArrowLeft'
+import { faCaretDown } from '@fortawesome/free-solid-svg-icons/faCaretDown'
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { japi } from '../api/api';
 import { delay } from '../util/util';
 import { KeyboardDismissingView } from './keyboard-dismissing-view';
 import { listen, notify } from '../events/events';
+import { Title } from './title';
 
 type InputProps<T extends OptionGroupInputs> = {
   input: T,
@@ -1047,6 +1052,169 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
   );
 });
 
+const ThemePicker = forwardRef((props: InputProps<OptionGroupThemePicker>, ref) => {
+  const [titleColor, setTitleColor] = useState(
+    props.input.themePicker.currentTitleColor ?? '#000000');
+  const [bodyColor, setBodyColor] = useState(
+    props.input.themePicker.currentBodyColor ?? '#000000');
+  const [backgroundColor, setBackgroundColor] = useState(
+    props.input.themePicker.currentBackgroundColor ?? '#ffffff');
+
+  const lastSetter = useRef(setTitleColor);
+
+  const submit = useCallback(async () => {
+    props.setIsLoading(true);
+
+    const ok = await props.input.themePicker.submit(
+      titleColor, bodyColor, backgroundColor
+    );
+    ok && props.onSubmitSuccess();
+
+    props.setIsLoading(false);
+  }, [titleColor, bodyColor, backgroundColor]);
+
+  useImperativeHandle(ref, () => ({ submit }), [submit]);
+
+  useEffect(() => {
+    return listen('color-picked', (c: string) => lastSetter.current(c));
+  }, [lastSetter]);
+
+  const ColorPickerButton = useCallback(({
+    currentColor,
+    setColor,
+    style = {},
+  }: {
+    currentColor: string
+    setColor: (c: string) => void,
+    style?: any,
+  }) => {
+    const opacity = useRef(new Animated.Value(1)).current;
+
+    const fadeIn = useCallback(() => {
+      Animated.timing(opacity, {
+        toValue: 0.5,
+        duration: 0,
+        useNativeDriver: false,
+      }).start();
+    }, []);
+
+    const fadeOut = useCallback(() => {
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: false,
+      }).start();
+    }, []);
+
+    const onPress = useCallback(() => {
+      lastSetter.current = setColor;
+      notify('show-color-picker');
+    }, [setColor]);
+
+    return (
+      <Pressable
+        style={{
+          backgroundColor: 'white',
+          width: 55,
+          height: 30,
+          borderRadius: 3,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 5,
+          shadowOffset: {
+            width: 0,
+            height: 2,
+          },
+          shadowOpacity: 0.4,
+          shadowRadius: 4,
+          elevation: 4,
+          ...style,
+        }}
+        onPress={onPress}
+        onPressIn={fadeIn}
+        onPressOut={fadeOut}
+      >
+        <Animated.View
+          style={{
+            backgroundColor: currentColor,
+            width: 20,
+            height: 20,
+            borderRadius: 3,
+            borderColor: 'black',
+            borderWidth: 1,
+            opacity: opacity,
+          }}
+        />
+        <FontAwesomeIcon
+          style={{ width: 20 }}
+          icon={faCaretDown}
+          size={20}
+          color="black"
+        />
+      </Pressable>
+    );
+  }, []);
+
+  return (
+    <View
+      style={{
+        marginLeft: 10,
+        marginRight: 10,
+        padding: 10,
+        backgroundColor: backgroundColor,
+        borderRadius: 10,
+        shadowOffset: {
+          width: 0,
+          height: 2,
+        },
+        shadowOpacity: 0.4,
+        shadowRadius: 4,
+        elevation: 4,
+      }}
+    >
+      <View
+        style={{
+          flexDirection: 'row',
+          gap: 10,
+          alignItems: 'center',
+          marginBottom: 10,
+        }}
+      >
+        <Title style={{ color: titleColor, marginTop: 0, marginBottom: 0 }} >
+          Example Heading
+        </Title>
+        <ColorPickerButton currentColor={titleColor} setColor={setTitleColor} />
+      </View>
+      <View
+        style={{
+          flexDirection: 'row',
+          gap: 10,
+          alignItems: 'center',
+        }}
+      >
+        <DefaultText
+          style={{
+            color: bodyColor,
+            fontSize: 16,
+          }}
+        >
+          Your profile will look like this.
+        </DefaultText>
+        <ColorPickerButton currentColor={bodyColor} setColor={setBodyColor} />
+      </View>
+      <ColorPickerButton
+        currentColor={backgroundColor}
+        setColor={setBackgroundColor}
+        style={{
+          marginTop: 10,
+          marginLeft: 'auto',
+        }}
+      />
+    </View>
+  );
+});
+
 const None = forwardRef((props: InputProps<OptionGroupNone>, ref) => {
   const submit = useCallback(async () => {
     props.setIsLoading(true);
@@ -1099,6 +1267,8 @@ const InputElement = forwardRef((props: InputProps<OptionGroupInputs>, ref) => {
     return <RangeSlider {...{ref, ...props, input: props.input}}/>;
   } else if (isOptionGroupVerificationChecker(props.input)) {
     return <VerificationChecker {...{ref, ...props, input: props.input}}/>;
+  } else if (isOptionGroupThemePicker(props.input)) {
+    return <ThemePicker {...{ref, ...props, input: props.input}}/>;
   } else if (isOptionGroupNone(props.input)) {
     return <None {...{ref, ...props, input: props.input}}/>;
   } else {

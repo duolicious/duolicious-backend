@@ -33,8 +33,11 @@ import {
   isOptionGroupLocationSelector,
   isOptionGroupSlider,
   isOptionGroupTextShort,
+  isOptionGroupThemePicker,
+  isOptionGroupVerificationChecker,
   notificationSettingsOptionGroups,
   privacySettingsOptionGroups,
+  themePickerOptionGroups,
   verificationOptionGroups,
 } from '../data/option-groups';
 import { Images } from './images';
@@ -283,6 +286,15 @@ const Options = ({ navigation, data }) => {
               }
             }
           } : {},
+          isOptionGroupThemePicker(og.input) ? {
+            input: {
+              themePicker: {
+                currentTitleColor: data?.theme?.title_color,
+                currentBodyColor: data?.theme?.body_color,
+                currentBackgroundColor: data?.theme?.background_color,
+              }
+            }
+          } : {},
         )
     );
 
@@ -291,12 +303,14 @@ const Options = ({ navigation, data }) => {
     _generalSettingsOptionGroups,
     _notificationSettingsOptionGroups,
     _privacySettingsOptionGroups,
+    _themePickerOptionGroups,
   ] = useMemo(
     () => [
       addCurrentValue(basicsOptionGroups),
       addCurrentValue(generalSettingsOptionGroups),
       addCurrentValue(notificationSettingsOptionGroups),
       addCurrentValue(privacySettingsOptionGroups),
+      addCurrentValue(themePickerOptionGroups),
     ],
     [data]
   );
@@ -390,6 +404,12 @@ const Options = ({ navigation, data }) => {
     return data.clubs.map((clubItem: ClubItem) => clubItem.name).join(', ')
   })();
 
+  const goToThemePicker = useCallback(() => {
+    navigation.navigate(
+      "Profile Option Screen",
+    );
+  }, [navigation]);
+
   const isCompletelyVerified = (
     Object.values(data?.photo_verification ?? {}).every(Boolean) &&
     (data?.verified_gender ?? false) &&
@@ -430,6 +450,7 @@ const Options = ({ navigation, data }) => {
           />
         )
       }
+
       <Title>Clubs</Title>
       <ButtonForOption
         onPress={goToClubSelector}
@@ -448,6 +469,14 @@ const Options = ({ navigation, data }) => {
         When you join a club, mutual members will be shown to you first in
         search results
       </DefaultText>
+
+      <Title>Theme</Title>
+      <Button_
+        setting=""
+        optionGroups={_themePickerOptionGroups}
+        showSkipButton={false}
+        theme="light"
+      />
 
       <ButtonWithCenteredText
         onPress={() => navigation.navigate(

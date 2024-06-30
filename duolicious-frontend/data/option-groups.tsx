@@ -4,6 +4,7 @@ import { setSignedInUser } from '../App';
 import { sessionToken } from '../kv-storage/session-token';
 import { X } from "react-native-feather";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
+import { faPalette } from '@fortawesome/free-solid-svg-icons/faPalette'
 import { faRulerVertical } from '@fortawesome/free-solid-svg-icons/faRulerVertical'
 import { faRuler } from '@fortawesome/free-solid-svg-icons/faRuler'
 import { faHandsPraying } from '@fortawesome/free-solid-svg-icons/faHandsPraying'
@@ -100,6 +101,19 @@ type OptionGroupVerificationChecker = {
   verificationChecker: {}
 };
 
+type OptionGroupThemePicker = {
+  themePicker: {
+    currentTitleColor?: string,
+    currentBodyColor?: string,
+    currentBackgroundColor?: string,
+    submit: (
+      titleColor: string,
+      bodyColor: string,
+      backgroundColor: string
+    ) => Promise<boolean>,
+  }
+};
+
 type OptionGroupNone = {
   none: {
     description?: string,
@@ -149,6 +163,7 @@ type OptionGroupInputs
   | OptionGroupOtp
   | OptionGroupCheckChips
   | OptionGroupVerificationChecker
+  | OptionGroupThemePicker
   | OptionGroupNone;
 
 type OptionGroup<T extends OptionGroupInputs> = {
@@ -214,6 +229,10 @@ const isOptionGroupOtp = (x: any): x is OptionGroupOtp => {
 
 const isOptionGroupVerificationChecker = (x: any): x is OptionGroupVerificationChecker => {
   return hasExactKeys(x, ['verificationChecker']);
+}
+
+const isOptionGroupThemePicker = (x: any): x is OptionGroupThemePicker => {
+  return hasExactKeys(x, ['themePicker']);
 }
 
 const isOptionGroupNone = (x: any): x is OptionGroupNone => {
@@ -711,6 +730,39 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       }
     },
   },
+];
+
+const themePickerOptionGroups: OptionGroup<OptionGroupThemePicker>[] = [
+  {
+    title: 'Theme',
+    Icon: () => (
+      <FontAwesomeIcon
+        icon={faPalette}
+        size={14}
+        style={{color: 'black'}}
+      />
+    ),
+    description: "Customize your profile’s appearance",
+    input: {
+      themePicker: {
+        submit: async function (titleColor, bodyColor, backgroundColor) {
+          const theme = {
+            title_color: titleColor,
+            body_color: bodyColor,
+            background_color: backgroundColor,
+          };
+
+          const ok = (await japi('patch', '/profile-info', { theme })).ok;
+          if (ok) {
+            this.currentTitleColor = titleColor;
+            this.currentBodyColor = bodyColor;
+            this.currentBackgroundColor = backgroundColor;
+          }
+          return ok;
+        },
+      },
+    },
+  }
 ];
 
 const generalSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
@@ -1706,6 +1758,7 @@ export {
   OptionGroupSlider,
   OptionGroupTextLong,
   OptionGroupTextShort,
+  OptionGroupThemePicker,
   OptionGroupVerificationChecker,
   basicsOptionGroups,
   createAccountOptionGroups,
@@ -1726,11 +1779,13 @@ export {
   isOptionGroupSlider,
   isOptionGroupTextLong,
   isOptionGroupTextShort,
+  isOptionGroupThemePicker,
   isOptionGroupVerificationChecker,
   notificationSettingsOptionGroups,
   privacySettingsOptionGroups,
   searchInteractionsOptionGroups,
   searchOtherBasicsOptionGroups,
   searchTwoWayBasicsOptionGroups,
+  themePickerOptionGroups,
   verificationOptionGroups,
 };

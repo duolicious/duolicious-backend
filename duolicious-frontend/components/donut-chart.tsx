@@ -16,6 +16,7 @@ const DonutChart = ({percentage, ...rest}) => {
     children,
     style,
     onPress,
+    textStyle,
   } = rest;
 
   const size = 80;
@@ -75,7 +76,7 @@ const DonutChart = ({percentage, ...rest}) => {
                r={radius}
                stroke="#70f"
                fill="transparent"
-               strokeWidth={strokeWidth}
+               strokeWidth={strokeWidth * 0.8}
                strokeDasharray={circumference}
                strokeDashoffset={
                  Math.min(
@@ -101,6 +102,7 @@ const DonutChart = ({percentage, ...rest}) => {
                 style={{
                   fontWeight: '600',
                   fontSize: 20,
+                  ...textStyle,
                 }}
               >
                 {percentage === undefined && ""}

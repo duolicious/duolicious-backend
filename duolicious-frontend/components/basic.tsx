@@ -24,6 +24,7 @@ const Basic = ({children, ...rest}) => {
         size={16}
         style={{
           marginRight: 5,
+          ...textStyle,
         }}
       />
     } else {
@@ -31,6 +32,7 @@ const Basic = ({children, ...rest}) => {
         style={{
           fontSize: 16,
           marginRight: 5,
+          ...textStyle,
         }}
         name={icon}
       />
@@ -41,7 +43,7 @@ const Basic = ({children, ...rest}) => {
     <View
       style={[
         {
-          borderColor: '#ddd',
+          borderColor: 'rgba(0, 0, 0, 0.1)',
           borderWidth: 1,
           borderRadius: 999,
           paddingTop: 5,
@@ -51,14 +53,13 @@ const Basic = ({children, ...rest}) => {
           justifyContent: 'center',
           alignItems: 'center',
           flexDirection: 'row',
+          backgroundColor: 'rgba(255, 255, 255, 0.3)',
         },
         style
       ]}
     >
       {icon && <Icon icon={icon}/>}
-      <View>
-        <DefaultText style={textStyle}>{children}</DefaultText>
-      </View>
+      <DefaultText style={textStyle}>{children}</DefaultText>
     </View>
   );
 };

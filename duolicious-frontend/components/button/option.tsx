@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import {
   useCallback,
+  useRef,
 } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultText } from '../default-text';
@@ -41,7 +42,7 @@ const ButtonForOption = (props) => {
   const Icon_ = icon ?? (optionGroups ? optionGroups[0]?.Icon : undefined);
   const label_ = label ?? optionGroups[0].title
 
-  const opacity = new Animated.Value(1);
+  const opacity = useRef(new Animated.Value(1)).current;
 
   const fadeIn = useCallback(() => {
     Animated.timing(opacity, {
