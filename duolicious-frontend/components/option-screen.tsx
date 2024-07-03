@@ -75,6 +75,7 @@ import { delay } from '../util/util';
 import { KeyboardDismissingView } from './keyboard-dismissing-view';
 import { listen, notify } from '../events/events';
 import { Title } from './title';
+import { ShowColorPickerEvent } from './color-picker-modal/color-picker-modal';
 
 type InputProps<T extends OptionGroupInputs> = {
   input: T,
@@ -1108,8 +1109,8 @@ const ThemePicker = forwardRef((props: InputProps<OptionGroupThemePicker>, ref) 
 
     const onPress = useCallback(() => {
       lastSetter.current = setColor;
-      notify('show-color-picker');
-    }, [setColor]);
+      notify<ShowColorPickerEvent>('show-color-picker', currentColor);
+    }, [setColor, currentColor]);
 
     return (
       <Pressable
