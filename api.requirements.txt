@@ -8,6 +8,6 @@ flask-cors
 gunicorn
 numpy
 openai
-psycopg
+psycopg[binary]
 pydantic[email]
 redis

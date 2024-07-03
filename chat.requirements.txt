@@ -1,4 +1,4 @@
 lxml
-psycopg
+psycopg[binary]
 regex
 websockets
