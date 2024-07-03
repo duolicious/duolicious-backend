@@ -2330,33 +2330,3 @@ ON
 WHERE
     person.id = %(person_id)s
 """
-
-Q_UPDATE_VERIFICATION_LEVEL = """
-UPDATE
-    person
-SET
-    verification_level_id = CASE
-        WHEN EXISTS (
-            SELECT 1 FROM photo WHERE person_id = %(person_id)s AND verified
-        )
-        THEN 3
-
-        WHEN EXISTS (
-            SELECT
-                1
-            FROM
-                person
-            WHERE
-                id = %(person_id)s
-            AND
-                verified_age
-            AND
-                verified_gender
-        )
-        THEN 2
-
-        ELSE 1
-    END
-WHERE
-    id = %(person_id)s
-"""

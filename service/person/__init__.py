@@ -10,6 +10,7 @@ import io
 import boto3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from service.person.sql import *
+from sql import *
 from service.person.template import otp_template, report_template
 import traceback
 import threading
