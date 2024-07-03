@@ -1,4 +1,6 @@
-Q_DELETE_GARBAGE_RECORDS = """
+from sql import Q_UPDATE_VERIFICATION_LEVEL
+
+Q_DELETE_GARBAGE_RECORDS = f"""
 WITH q1 AS (
     DELETE FROM
         banned_person_admin_token
@@ -45,9 +47,9 @@ WITH q1 AS (
     DELETE FROM
         photo
     WHERE
-        nsfw_score > 0.99
+        nsfw_score > 0.9
     RETURNING
-        uuid
+        uuid, person_id
 ), each_deleted_photo AS (
     SELECT
         onboardee_photo.uuid
@@ -74,6 +76,13 @@ WITH q1 AS (
         each_deleted_photo
     RETURNING
         1
+), q9 AS (
+    {
+        Q_UPDATE_VERIFICATION_LEVEL.replace(
+            '= %(person_id)s',
+            'IN (SELECT person_id FROM q7)',
+        )
+    }
 )
 SELECT
     SUM(n) AS count
