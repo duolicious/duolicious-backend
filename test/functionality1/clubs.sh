@@ -8,7 +8,7 @@ source ../util/setup.sh
 set -xe
 
 club_quota () {
-  echo 'You can join no more than 25 clubs'
+  echo 'You can join no more than 100 clubs'
 
   q "delete from person"
   q "delete from person_club"
@@ -18,11 +18,11 @@ club_quota () {
   ../util/create-user.sh user2 0 0
 
   assume_role user1
-  for i in {1..25}
+  for i in {1..100}
   do
     jc POST /join-club -d '{ "name": "my-club-'$i'" }'
   done
-  ! jc POST /join-club -d '{ "name": "my-club-26" }'
+  ! jc POST /join-club -d '{ "name": "my-club-101" }'
 
   assume_role user2
   jc POST /join-club -d '{ "name": "my-club-1" }'

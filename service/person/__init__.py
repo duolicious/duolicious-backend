@@ -359,10 +359,8 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
         tx.execute(Q_UPDATE_LAST, params)
 
     return dict(
-        person_id=row['person_id'],
-        person_uuid=row['person_uuid'],
         onboarded=row['person_id'] is not None,
-        units=row['units'],
+        **row,
     )
 
 def post_sign_out(s: t.SessionInfo):
@@ -375,13 +373,13 @@ def post_check_session_token(s: t.SessionInfo):
     params = dict(person_id=s.person_id)
 
     with api_tx() as tx:
-        row = tx.execute(Q_SELECT_UNITS, params).fetchone()
+        row = tx.execute(Q_CHECK_SESSION_TOKEN, params).fetchone()
         if row:
             return dict(
                 person_id=s.person_id,
                 person_uuid=s.person_uuid,
                 onboarded=s.onboarded,
-                units=row['units'],
+                **row,
             )
 
 def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):

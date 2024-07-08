@@ -341,8 +341,21 @@ WITH valid_session AS (
 SELECT
     person_id,
     person_uuid,
-    email,
-    (SELECT name FROM unit WHERE id = existing_person.unit_id) AS units
+    (SELECT name FROM unit WHERE id = existing_person.unit_id) AS units,
+    COALESCE(
+        (
+            SELECT
+                json_agg(
+                    json_build_object(
+                        'name', club_name,
+                        'count_members', -1))
+            FROM
+                person_club
+            WHERE
+                person_id = existing_person.id
+        ),
+        '[]'::json
+    ) AS clubs
 FROM
     valid_session
 LEFT JOIN
@@ -748,7 +761,8 @@ WITH onboardee_country AS (
 SELECT
     new_person.id AS person_id,
     new_person.uuid AS person_uuid,
-    (SELECT name FROM unit WHERE unit.id = new_person.unit_id) AS units
+    (SELECT name FROM unit WHERE unit.id = new_person.unit_id) AS units,
+    '{}'::TEXT[] AS clubs
 FROM
     new_person
 """
@@ -993,9 +1007,23 @@ WHERE
     EXISTS (SELECT 1 FROM prospect)
 """
 
-Q_SELECT_UNITS = """
+Q_CHECK_SESSION_TOKEN = """
 SELECT
-    (SELECT name FROM unit WHERE unit.id = person.unit_id) AS units
+    (SELECT name FROM unit WHERE unit.id = person.unit_id) AS units,
+    COALESCE(
+        (
+            SELECT
+                json_agg(
+                    json_build_object(
+                        'name', club_name,
+                        'count_members', -1))
+            FROM
+                person_club
+            WHERE
+                person_id = person.id
+        ),
+        '[]'::json
+    ) AS clubs
 FROM
     person
 WHERE
@@ -1994,7 +2022,7 @@ WITH is_allowed_club_name AS (
     {_Q_IS_ALLOWED_CLUB_NAME.replace('%()s', '%(club_name)s')}
 ), will_be_within_club_quota AS (
     SELECT
-        COUNT(*) < 25 AS x
+        COUNT(*) < 100 AS x
     FROM
         person_club
     WHERE
