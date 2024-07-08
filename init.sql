@@ -1327,4 +1327,39 @@ EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
 -- Migrations
 --------------------------------------------------------------------------------
 
+-- TODO: delete
+with club_member_counts as (
+    select
+        club_name,
+        count(*) as c
+    from
+        person_club
+    join
+        person
+    on
+        person.id = person_club.person_id
+    where
+        person.activated
+    group by
+        club_name
+), all_clubs as (
+    select
+        name as club_name,
+        coalesce(cmc.c, 0) as c
+    from
+        club
+    left join
+        club_member_counts cmc
+    on
+        club.name = cmc.club_name
+)
+update
+    club
+set
+    count_members = all_clubs.c
+from
+    all_clubs
+where
+    all_clubs.club_name = club.name;
+
 --------------------------------------------------------------------------------
