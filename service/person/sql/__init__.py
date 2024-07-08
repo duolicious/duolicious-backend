@@ -337,6 +337,30 @@ WITH valid_session AS (
     FROM
         valid_session
     WHERE NOT EXISTS (SELECT 1 FROM existing_person)
+), club_to_increment AS (
+    SELECT
+        person_club.club_name
+    FROM
+        existing_person
+    LEFT JOIN
+        person_club
+    ON
+        person_club.person_id = existing_person.id
+    LEFT JOIN
+        person AS existing_person_before_update
+    ON
+        existing_person_before_update.id = existing_person.id
+    WHERE
+        NOT existing_person_before_update.activated
+), increment_club_count_if_not_activated AS (
+    UPDATE
+        club
+    SET
+        count_members = count_members + 1
+    FROM
+        club_to_increment
+    WHERE
+        club_to_increment.club_name = club.name
 )
 SELECT
     person_id,
@@ -1348,6 +1372,8 @@ WITH deleted_photo AS (
         person
     WHERE
         id = %(person_id)s
+    RETURNING
+        activated
 ), undeleted_photo_insertion AS (
     INSERT INTO undeleted_photo (
         uuid
@@ -1365,6 +1391,8 @@ WITH deleted_photo AS (
         deleted_person_club
     WHERE
         club.name = deleted_person_club.club_name
+    AND
+        (SELECT activated FROM deleted_person)
 )
 SELECT 1
 """
@@ -1401,12 +1429,30 @@ SELECT 1
 """
 
 Q_POST_DEACTIVATE = """
-UPDATE
-    person
-SET
-    activated = FALSE
-WHERE
-    id = %(person_id)s
+WITH updated_person AS (
+    UPDATE
+        person
+    SET
+        activated = FALSE
+    WHERE
+        activated = TRUE
+    AND
+        id = %(person_id)s
+    RETURNING
+        id
+), decrement_club AS (
+    UPDATE
+        club
+    SET
+        count_members = GREATEST(0, count_members - 1)
+    FROM
+        person_club
+    WHERE
+        person_club.club_name = club.name
+    AND
+        person_club.person_id IN (SELECT id FROM updated_person)
+)
+SELECT 1
 """
 
 Q_GET_PROFILE_INFO = """
