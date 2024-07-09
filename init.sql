@@ -257,7 +257,7 @@ CREATE TABLE IF NOT EXISTS person (
     sign_in_count INT NOT NULL DEFAULT 1,
     sign_in_time TIMESTAMP NOT NULL DEFAULT NOW(),
 
-    -- Whether the user deactivated their account via the settings
+    -- Whether the account was deactivated via the settings or automatically
     activated BOOLEAN NOT NULL DEFAULT TRUE,
 
     -- Primary keys and constraints
@@ -551,6 +551,13 @@ CREATE TABLE IF NOT EXISTS person_club (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     club_name TEXT NOT NULL REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
 
+    -- Columns are copied from the `person` table to make queries faster
+    activated BOOLEAN NOT NULL,
+    coordinates GEOGRAPHY(Point, 4326) NOT NULL,
+    gender_id SMALLINT NOT NULL,
+    date_of_birth DATE NOT NULL,
+    personality VECTOR(47) NOT NULL,
+
     PRIMARY KEY (person_id, club_name)
 );
 
@@ -587,8 +594,9 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     position SMALLINT,
     prospect_person_id INT NOT NULL,
     prospect_uuid UUID NOT NULL,
-    has_mutual_club BOOLEAN NOT NULL DEFAULT FALSE,
     profile_photo_uuid TEXT,
+    profile_photo_blurhash TEXT,
+    verified BOOLEAN NOT NULL DEFAULT FALSE,
     name TEXT NOT NULL,
     age SMALLINT,
     match_percentage SMALLINT NOT NULL,
@@ -602,6 +610,22 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
 
 CREATE INDEX IF NOT EXISTS idx__person__activated__coordinates__gender_id
     ON person
+    USING GIST(coordinates, gender_id)
+    WHERE activated;
+
+CREATE INDEX IF NOT EXISTS idx__person__sign_up_time
+    ON person(sign_up_time);
+CREATE INDEX IF NOT EXISTS idx__person__tiny_id
+    ON person(tiny_id);
+CREATE INDEX IF NOT EXISTS idx__person__email
+    ON person(email);
+CREATE INDEX IF NOT EXISTS idx__person__uuid
+    ON person(uuid);
+CREATE INDEX IF NOT EXISTS idx__person__normalized_email
+    ON person(normalized_email);
+
+CREATE INDEX IF NOT EXISTS idx__person_club__activated__coordinates__gender_id
+    ON person_club
     USING GIST(coordinates, gender_id)
     WHERE activated;
 
@@ -619,13 +643,6 @@ CREATE INDEX IF NOT EXISTS idx__location__coordinates ON location USING GIST(coo
 CREATE INDEX IF NOT EXISTS idx__location__long_friendly ON location USING GIST(long_friendly gist_trgm_ops);
 
 CREATE INDEX IF NOT EXISTS idx__question__question ON question USING GIST(question gist_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx__person__sign_up_time ON person(sign_up_time);
-CREATE INDEX IF NOT EXISTS idx__person__tiny_id ON person(tiny_id);
-CREATE INDEX IF NOT EXISTS idx__person__email ON person(email);
-CREATE INDEX IF NOT EXISTS idx__person__uuid ON person(uuid);
-CREATE INDEX IF NOT EXISTS idx__person__normalized_email
-    ON person(normalized_email);
 
 CREATE INDEX IF NOT EXISTS idx__club__name ON club USING GIST(name gist_trgm_ops);
 
@@ -1318,48 +1335,208 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER trigger_refresh_has_profile_picture_id
-AFTER INSERT OR DELETE ON photo
+CREATE OR REPLACE TRIGGER
+    trigger_refresh_has_profile_picture_id
+AFTER INSERT OR DELETE ON
+    photo
 FOR EACH ROW
-EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
+EXECUTE FUNCTION
+    trigger_fn_refresh_has_profile_picture_id();
+
+--------------------------------------------------------------------------------
+-- TRIGGER - Copy `person` columns to `person_club`
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION
+    copy_person_to_person_club()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.activated IS DISTINCT FROM NEW.activated THEN
+        UPDATE person_club
+        SET activated = NEW.activated
+        WHERE person_id = NEW.id;
+    END IF;
+
+    IF OLD.coordinates IS DISTINCT FROM NEW.coordinates THEN
+        UPDATE person_club
+        SET coordinates = NEW.coordinates
+        WHERE person_id = NEW.id;
+    END IF;
+
+    IF OLD.gender_id IS DISTINCT FROM NEW.gender_id THEN
+        UPDATE person_club
+        SET gender_id = NEW.gender_id
+        WHERE person_id = NEW.id;
+    END IF;
+
+    IF OLD.date_of_birth IS DISTINCT FROM NEW.date_of_birth THEN
+        UPDATE person_club
+        SET date_of_birth = NEW.date_of_birth
+        WHERE person_id = NEW.id;
+    END IF;
+
+    IF OLD.personality IS DISTINCT FROM NEW.personality THEN
+        UPDATE person_club
+        SET personality = NEW.personality
+        WHERE person_id = NEW.id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER
+    trigger_copy_person_to_person_club
+AFTER UPDATE ON
+    person
+FOR EACH ROW
+EXECUTE FUNCTION
+    copy_person_to_person_club();
+
+CREATE OR REPLACE FUNCTION
+    populate_person_club_defaults()
+RETURNS TRIGGER AS $$
+BEGIN
+    SELECT
+        activated,
+        coordinates,
+        gender_id,
+        date_of_birth,
+        personality
+    INTO
+        NEW.activated,
+        NEW.coordinates,
+        NEW.gender_id,
+        NEW.date_of_birth,
+        NEW.personality
+    FROM
+        person
+    WHERE
+        id = NEW.person_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER
+    trigger_populate_person_club_defaults
+BEFORE INSERT ON
+    person_club
+FOR EACH ROW EXECUTE FUNCTION
+    populate_person_club_defaults();
 
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
 
 -- TODO: delete
-with club_member_counts as (
-    select
+WITH club_member_counts AS (
+    SELECT
         club_name,
-        count(*) as c
-    from
+        count(*) AS c
+    FROM
         person_club
-    join
+    JOIN
         person
-    on
+    ON
         person.id = person_club.person_id
-    where
+    WHERE
         person.activated
-    group by
+    GROUP BY
         club_name
-), all_clubs as (
-    select
-        name as club_name,
-        coalesce(cmc.c, 0) as c
-    from
+), all_clubs AS (
+    SELECT
+        name AS club_name,
+        coalesce(cmc.c, 0) AS c
+    FROM
         club
-    left join
+    LEFT JOIN
         club_member_counts cmc
-    on
+    ON
         club.name = cmc.club_name
 )
-update
+UPDATE
     club
-set
+SET
     count_members = all_clubs.c
-from
+FROM
     all_clubs
-where
+WHERE
     all_clubs.club_name = club.name;
+
+-- TODO:
+ALTER TABLE
+    search_cache
+DROP COLUMN IF EXISTS
+    has_mutual_club
+;
+
+-- TODO:
+ALTER TABLE
+    search_cache
+ADD COLUMN IF NOT EXISTS
+    profile_photo_blurhash TEXT
+;
+
+
+
+
+ALTER TABLE
+    person_club
+ADD COLUMN IF NOT EXISTS
+    activated BOOLEAN NOT NULL DEFAULT TRUE
+;
+
+ALTER TABLE
+    person_club
+ADD COLUMN IF NOT EXISTS
+    coordinates GEOGRAPHY(Point, 4326) NOT NULL DEFAULT 'POINT(0 0)'
+;
+
+ALTER TABLE
+    person_club
+ADD COLUMN IF NOT EXISTS
+    gender_id SMALLINT NOT NULL DEFAULT 1
+;
+
+ALTER TABLE
+    person_club
+ADD COLUMN IF NOT EXISTS
+    date_of_birth DATE NOT NULL DEFAULT '1900-01-01'
+;
+
+ALTER TABLE
+    person_club
+ADD COLUMN IF NOT EXISTS
+    personality VECTOR(47) NOT NULL DEFAULT array_full(47, 0)
+;
+
+UPDATE person_club
+SET
+    activated = p.activated,
+    coordinates = p.coordinates,
+    gender_id = p.gender_id,
+    date_of_birth = p.date_of_birth,
+    personality = p.personality
+FROM
+    person p
+WHERE
+    person_club.person_id = p.id;
+
+ALTER TABLE person_club
+ALTER COLUMN activated DROP DEFAULT;
+
+ALTER TABLE person_club
+ALTER COLUMN coordinates DROP DEFAULT;
+
+ALTER TABLE person_club
+ALTER COLUMN gender_id DROP DEFAULT;
+
+ALTER TABLE person_club
+ALTER COLUMN date_of_birth DROP DEFAULT;
+
+ALTER TABLE person_club
+ALTER COLUMN personality DROP DEFAULT;
+
 
 --------------------------------------------------------------------------------

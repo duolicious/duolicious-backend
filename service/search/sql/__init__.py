@@ -1,3 +1,21 @@
+# TODO: Will probably need to copy some values to `person_club` table:
+# - activated
+# - coordinates
+# - gender_id
+# - age
+# - personality
+
+# TODO: What should the quiz card stack show if someone searches by club? Their best match in their selected club, or globally?
+#   The currently selected club should probably be stored, to enable the "club invitation flow" in the future
+
+# TODO: Benchmark changes, especially for women searching for anyone, anywhere
+
+# TODO: Write tests
+
+# TODO: Index on person_club
+
+# TODO: Store selected club in DB
+
 Q_UNCACHED_SEARCH_1 = """
 DELETE FROM search_cache
 WHERE searcher_person_id = %(searcher_person_id)s
@@ -71,15 +89,7 @@ WITH searcher AS MATERIALIZED (
         show_my_age,
         hide_me_from_strangers,
 
-        EXISTS (
-            SELECT club_name FROM searcher_club
-
-            INTERSECT
-
-            SELECT club_name FROM person_club
-            WHERE person_id = prospect.id
-            LIMIT 1
-        ) AS has_mutual_club
+        verification_level_id > 1 AS verified
 
     FROM
         person AS prospect
@@ -180,18 +190,13 @@ WITH searcher AS MATERIALIZED (
                 )
             LIMIT 1
         )
-    AND (
-            -- The users have at least a 50%% match
-            (personality <#> (SELECT personality FROM searcher)) < 1e-5
-        OR
-            -- Both users signed up before the introduction of the 50%% cut-off
-            prospect.id < 10630 AND %(searcher_person_id)s < 10630
-    )
+    AND
+        -- The users have at least a 50%% match
+        (personality <#> (SELECT personality FROM searcher)) < 1e-5
 
     ORDER BY
         -- If this is changed, other queries will need changing too
         has_profile_picture_id,
-        has_mutual_club DESC,
         negative_dot_prod
 
     LIMIT
@@ -209,11 +214,11 @@ WITH searcher AS MATERIALIZED (
                 position
             LIMIT 1
         ) AS profile_photo_uuid,
-        has_mutual_club,
         name,
         CASE WHEN show_my_age THEN age ELSE NULL END AS age,
         CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2) AS match_percentage,
-        personality
+        personality,
+        verified
     FROM
         prospects_first_pass AS prospect
     WHERE
@@ -434,11 +439,11 @@ WITH searcher AS MATERIALIZED (
         prospect_person_id,
         prospect_uuid,
         profile_photo_uuid,
-        has_mutual_club,
         name,
         age,
         match_percentage,
-        personality
+        personality,
+        verified
     )
     SELECT
         %(searcher_person_id)s,
@@ -446,17 +451,16 @@ WITH searcher AS MATERIALIZED (
             ORDER BY
                 -- If this is changed, other queries will need changing too
                 (profile_photo_uuid IS NOT NULL) DESC,
-                has_mutual_club DESC,
                 match_percentage DESC
         ) AS position,
         prospect_person_id,
         prospect_uuid,
         profile_photo_uuid,
-        has_mutual_club,
         name,
         age,
         match_percentage,
-        personality
+        personality,
+        verified
     FROM
         prospects_second_pass
     RETURNING *
@@ -491,14 +495,7 @@ SELECT
         AND
             object_person_id = %(searcher_person_id)s
     ) AS prospect_messaged_person,
-    (
-        SELECT
-            verification_level_id > 1
-        FROM
-            person
-        WHERE
-            id = prospect_person_id
-    ) AS verified
+    verified
 FROM
     updated_search_cache
 ORDER BY
@@ -538,14 +535,7 @@ SELECT
         AND
             object_person_id = %(searcher_person_id)s
     ) AS prospect_messaged_person,
-    (
-        SELECT
-            verification_level_id > 1
-        FROM
-            person
-        WHERE
-            id = prospect_person_id
-    ) AS verified
+    verified
 FROM
     search_cache
 WHERE
@@ -587,7 +577,6 @@ WHERE
 ORDER BY
     -- If this is changed, other queries will need changing too
     (profile_photo_uuid IS NOT NULL) DESC,
-    has_mutual_club DESC,
     match_percentage DESC
 LIMIT
     1

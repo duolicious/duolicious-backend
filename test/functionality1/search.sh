@@ -483,54 +483,6 @@ test_interaction_in_standard_search_skipped_symmetry() {
   assert_search_names 'user2'
 }
 
-test_mutual_club_members_promoted () {
-  setup
-  ../util/create-user.sh user3 0
-  ../util/create-user.sh user4 0
-
-  assert_search_names 'user1 user2 user3 user4' 10 0
-
-  q "
-  update person
-  set personality = array_full(47, 9e-2)
-  where email IN ('searcher@example.com', 'user1@example.com')"
-  q "
-  update person
-  set personality = array_full(47, 8e-2)
-  where email IN ('user2@example.com')"
-  q "
-  update person
-  set personality = array_full(47, 7e-2)
-  where email IN ('user3@example.com')"
-  q "
-  update person
-  set personality = array_full(47, 6e-2)
-  where email IN ('user4@example.com')"
-
-  local response1=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
-
-  assume_role user3
-  jc POST /join-club -d '{ "name": "my-club-shared-1" }'
-  jc POST /join-club -d '{ "name": "my-club-unshared-10" }'
-  jc POST /join-club -d '{ "name": "my-club-unshared-20" }'
-
-  assume_role user4
-  jc POST /join-club -d '{ "name": "my-club-shared-2" }'
-  jc POST /join-club -d '{ "name": "my-club-unshared-11" }'
-  jc POST /join-club -d '{ "name": "my-club-unshared-21" }'
-
-  assume_role searcher
-  jc POST /join-club -d '{ "name": "my-club-shared-1" }'
-  jc POST /join-club -d '{ "name": "my-club-shared-2" }'
-  jc POST /join-club -d '{ "name": "my-club-unshared-12" }'
-  jc POST /join-club -d '{ "name": "my-club-unshared-22" }'
-
-  local response2=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
-
-  [[ "$response1" = "user1 user2 user3 user4" ]]
-  [[ "$response2" = "user3 user4 user1 user2" ]]
-}
-
 test_json_format () {
   setup
 
@@ -751,8 +703,6 @@ test_basic star_sign 'Leo'
 test_bidirectional_gender_filter
 test_bidirectional_location_filter
 test_bidirectional_age_filter
-
-test_mutual_club_members_promoted
 
 test_json_format
 
