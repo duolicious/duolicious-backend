@@ -231,7 +231,11 @@ def put_image_in_object_store(
     key_img = [
         (
             f'{size if size else "original"}-{uuid}.jpg',
-            process_image_as_bytes(img, output_size=size)
+            process_image_as_bytes(
+                img,
+                output_size=size,
+                crop_size=None if size is None else crop_size
+            )
         )
         for size in sizes
     ]
