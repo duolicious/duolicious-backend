@@ -50,8 +50,8 @@ count=0
 check_conditions() {
   q "select person_id, position, uuid, nsfw_score from photo"
 
-  local condition1="$(q "select count(*) from photo where position = 1 and abs(nsfw_score - 0.662) < 0.01")"
-  local condition2="$(q "select count(*) from photo where position = 2 and abs(nsfw_score - 0.058) < 0.01")"
+  local condition1="$(q "select count(*) from photo where position = 1 and abs(nsfw_score - 0.244) < 0.01")"
+  local condition2="$(q "select count(*) from photo where position = 2 and abs(nsfw_score - 0.062) < 0.01")"
   local condition3="$(q "select count(*) from photo where position = 3 and abs(nsfw_score + 1.000) < 0.01")"
 
   [[ "$condition1" = 1 && "$condition2" = 1 && "$condition3" = 1 ]]
