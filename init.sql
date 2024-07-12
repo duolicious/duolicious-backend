@@ -672,10 +672,12 @@ CREATE INDEX IF NOT EXISTS idx__verification_job__expires_at
 -- DATA
 --------------------------------------------------------------------------------
 
+SELECT setval('verification_level_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM verification_level), FALSE);
 INSERT INTO verification_level (name) VALUES ('No verification') ON CONFLICT (name) DO NOTHING;
 INSERT INTO verification_level (name) VALUES ('Basics only') ON CONFLICT (name) DO NOTHING;
 INSERT INTO verification_level (name) VALUES ('Photos') ON CONFLICT (name) DO NOTHING;
 
+SELECT setval('gender_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM gender), FALSE);
 INSERT INTO gender (name) VALUES ('Man') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Woman') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Agender') ON CONFLICT (name) DO NOTHING;
@@ -686,6 +688,7 @@ INSERT INTO gender (name) VALUES ('Trans woman') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Trans man') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
+SELECT setval('orientation_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM orientation), FALSE);
 INSERT INTO orientation (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientation (name) VALUES ('Straight') ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientation (name) VALUES ('Gay') ON CONFLICT (name) DO NOTHING;
@@ -697,6 +700,7 @@ INSERT INTO orientation (name) VALUES ('Pansexual') ON CONFLICT (name) DO NOTHIN
 INSERT INTO orientation (name) VALUES ('Queer') ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientation (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
+SELECT setval('ethnicity_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM ethnicity), FALSE);
 INSERT INTO ethnicity (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO ethnicity (name) VALUES ('Black/African Descent') ON CONFLICT (name) DO NOTHING;
 INSERT INTO ethnicity (name) VALUES ('East Asian') ON CONFLICT (name) DO NOTHING;
@@ -709,12 +713,14 @@ INSERT INTO ethnicity (name) VALUES ('Southeast Asian') ON CONFLICT (name) DO NO
 INSERT INTO ethnicity (name) VALUES ('White/Caucasian') ON CONFLICT (name) DO NOTHING;
 INSERT INTO ethnicity (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
+SELECT setval('looking_for_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM looking_for), FALSE);
 INSERT INTO looking_for (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO looking_for (name) VALUES ('Friends') ON CONFLICT (name) DO NOTHING;
 INSERT INTO looking_for (name) VALUES ('Short-term dating') ON CONFLICT (name) DO NOTHING;
 INSERT INTO looking_for (name) VALUES ('Long-term dating') ON CONFLICT (name) DO NOTHING;
 INSERT INTO looking_for (name) VALUES ('Marriage') ON CONFLICT (name) DO NOTHING;
 
+SELECT setval('relationship_status_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM relationship_status), FALSE);
 INSERT INTO relationship_status (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Single') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Seeing someone') ON CONFLICT (name) DO NOTHING;
@@ -724,6 +730,7 @@ INSERT INTO relationship_status (name) VALUES ('Divorced') ON CONFLICT (name) DO
 INSERT INTO relationship_status (name) VALUES ('Widowed') ON CONFLICT (name) DO NOTHING;
 INSERT INTO relationship_status (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
+SELECT setval('religion_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM religion), FALSE);
 INSERT INTO religion (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO religion (name) VALUES ('Agnostic') ON CONFLICT (name) DO NOTHING;
 INSERT INTO religion (name) VALUES ('Atheist') ON CONFLICT (name) DO NOTHING;
@@ -735,6 +742,7 @@ INSERT INTO religion (name) VALUES ('Muslim') ON CONFLICT (name) DO NOTHING;
 INSERT INTO religion (name) VALUES ('Zoroastrian') ON CONFLICT (name) DO NOTHING;
 INSERT INTO religion (name) VALUES ('Other') ON CONFLICT (name) DO NOTHING;
 
+SELECT setval('star_sign_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM star_sign), FALSE);
 INSERT INTO star_sign (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO star_sign (name) VALUES ('Aquarius') ON CONFLICT (name) DO NOTHING;
 INSERT INTO star_sign (name) VALUES ('Aries') ON CONFLICT (name) DO NOTHING;
@@ -749,32 +757,39 @@ INSERT INTO star_sign (name) VALUES ('Scorpio') ON CONFLICT (name) DO NOTHING;
 INSERT INTO star_sign (name) VALUES ('Taurus') ON CONFLICT (name) DO NOTHING;
 INSERT INTO star_sign (name) VALUES ('Virgo') ON CONFLICT (name) DO NOTHING;
 
+SELECT setval('unit_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM unit), FALSE);
 INSERT INTO unit (name) VALUES ('Imperial') ON CONFLICT (name) DO NOTHING;
 INSERT INTO unit (name) VALUES ('Metric') ON CONFLICT (name) DO NOTHING;
 
+SELECT setval('immediacy_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM immediacy), FALSE);
 INSERT INTO immediacy (name) VALUES ('Immediately') ON CONFLICT (name) DO NOTHING;
 INSERT INTO immediacy (name) VALUES ('Daily') ON CONFLICT (name) DO NOTHING;
 INSERT INTO immediacy (name) VALUES ('Every 3 days') ON CONFLICT (name) DO NOTHING;
 INSERT INTO immediacy (name) VALUES ('Weekly') ON CONFLICT (name) DO NOTHING;
 INSERT INTO immediacy (name) VALUES ('Never') ON CONFLICT (name) DO NOTHING;
 
+SELECT setval('frequency_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM frequency), FALSE);
 INSERT INTO frequency (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO frequency (name) VALUES ('Often') ON CONFLICT (name) DO NOTHING;
 INSERT INTO frequency (name) VALUES ('Sometimes') ON CONFLICT (name) DO NOTHING;
 INSERT INTO frequency (name) VALUES ('Never') ON CONFLICT (name) DO NOTHING;
 
+SELECT setval('yes_no_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM yes_no), FALSE);
 INSERT INTO yes_no (name) VALUES ('Yes') ON CONFLICT (name) DO NOTHING;
 INSERT INTO yes_no (name) VALUES ('No') ON CONFLICT (name) DO NOTHING;
 
+SELECT setval('yes_no_optional_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM yes_no_optional), FALSE);
 INSERT INTO yes_no_optional (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO yes_no_optional (name) VALUES ('Yes') ON CONFLICT (name) DO NOTHING;
 INSERT INTO yes_no_optional (name) VALUES ('No') ON CONFLICT (name) DO NOTHING;
 
+SELECT setval('yes_no_maybe_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM yes_no_maybe), FALSE);
 INSERT INTO yes_no_maybe (name) VALUES ('Unanswered') ON CONFLICT (name) DO NOTHING;
 INSERT INTO yes_no_maybe (name) VALUES ('Yes') ON CONFLICT (name) DO NOTHING;
 INSERT INTO yes_no_maybe (name) VALUES ('No') ON CONFLICT (name) DO NOTHING;
 INSERT INTO yes_no_maybe (name) VALUES ('Maybe') ON CONFLICT (name) DO NOTHING;
 
+SELECT setval('trait_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM trait), FALSE);
 INSERT INTO trait (name, description, min_label, max_label) VALUES (
     'Agreeableness',
     'Captures an individual''s range of social behaviors, from demonstrating empathy, cooperation, and consideration for others to expressing assertiveness and independence in social situations.',
