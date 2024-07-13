@@ -64,9 +64,71 @@ WITH searcher AS (
     WHERE
         person.id = %(searcher_person_id)s
     LIMIT 1
-), prospects_first_pass AS (
+), prospects_first_pass_without_club AS (
     SELECT
-        id AS prospect_person_id,
+        id
+    FROM
+        person AS prospect
+    WHERE
+        prospect.activated
+    AND
+        -- The prospect meets the searcher's gender preference
+        prospect.gender_id IN (
+            SELECT
+                gender_id
+            FROM
+                search_preference_gender AS preference
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
+    AND
+        -- The prospect meets the searcher's location preference
+        ST_DWithin(
+            prospect.coordinates,
+            (SELECT coordinates FROM searcher),
+            (SELECT distance_preference FROM searcher)
+        )
+    AND
+        (SELECT club_preference FROM searcher) IS NULL
+
+    LIMIT
+        10000
+), prospects_first_pass_with_club AS (
+    SELECT
+        person_id AS id
+    FROM
+        person_club AS prospect
+    WHERE
+        prospect.activated
+    AND
+        -- The prospect meets the searcher's gender preference
+        prospect.gender_id IN (
+            SELECT
+                gender_id
+            FROM
+                search_preference_gender AS preference
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
+    AND
+        -- The prospect meets the searcher's location preference
+        ST_DWithin(
+            prospect.coordinates,
+            (SELECT coordinates FROM searcher),
+            (SELECT distance_preference FROM searcher)
+        )
+    AND
+        prospect.club_name = (SELECT club_preference FROM searcher)
+
+    LIMIT
+        10000
+), prospects_second_pass AS (
+    SELECT id FROM prospects_first_pass_without_club
+    UNION ALL
+    SELECT id FROM prospects_first_pass_with_club
+), prospects_third_pass AS (
+    SELECT
+        prospect.id AS prospect_person_id,
 
         uuid AS prospect_uuid,
 
@@ -74,44 +136,26 @@ WITH searcher AS (
 
         personality,
 
-        has_profile_picture_id,
-        orientation_id,
-        ethnicity_id,
-        occupation,
-        education,
-        height_cm,
-        looking_for_id,
-        smoking_id,
-        drinking_id,
-        drugs_id,
-        long_distance_id,
-        relationship_status_id,
-        has_kids_id,
-        wants_kids_id,
-        exercise_id,
-        religion_id,
-        star_sign_id,
-
-        show_my_age,
-        hide_me_from_strangers,
-
         verification_level_id > 1 AS verified,
 
-        -- TODO
         (
-            SELECT uuid
-            FROM photo
+            SELECT
+                uuid
+            FROM
+                photo
             WHERE
-                person_id = id
+                person_id = prospect.id
             ORDER BY
                 position
             LIMIT 1
         ) AS profile_photo_uuid,
+
         CASE
             WHEN show_my_age
             THEN EXTRACT(YEAR FROM AGE(date_of_birth))
             ELSE NULL
         END AS age,
+
         CLAMP(
             0,
             99,
@@ -122,25 +166,12 @@ WITH searcher AS (
 
     FROM
         person AS prospect
+    JOIN
+        prospects_second_pass
+    ON
+        prospects_second_pass.id = prospect.id
 
     WHERE
-        prospect.activated
-    AND
-        prospect.gender_id IN (
-            SELECT
-                gender_id
-            FROM
-                search_preference_gender AS preference
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
-    AND
-        ST_DWithin(
-            prospect.coordinates,
-            (SELECT coordinates FROM searcher),
-            (SELECT distance_preference FROM searcher)
-        )
-    AND
         prospect.id != %(searcher_person_id)s
     AND
         -- The searcher meets the prospect's gender preference
@@ -152,6 +183,7 @@ WITH searcher AS (
                 preference.gender_id = (SELECT gender_id FROM searcher)
             LIMIT 1
         )
+
     AND
         -- The searcher meets the prospect's location preference
         ST_DWithin(
@@ -177,29 +209,33 @@ WITH searcher AS (
                     )
             )
         )
+
+   -- The prospect meets the searcher's age preference
     AND
-       -- The prospect meets the searcher's age preference
-       EXISTS (
-            SELECT 1
-            FROM search_preference_age AS preference
+        prospect.date_of_birth <= (
+            SELECT
+                CURRENT_DATE -
+                INTERVAL '1 year' *
+                COALESCE(min_age, 0)
+            FROM
+                search_preference_age
             WHERE
-                preference.person_id = %(searcher_person_id)s
-            AND
-                prospect.date_of_birth <= (
-                    CURRENT_DATE -
-                    INTERVAL '1 year' *
-                    COALESCE(preference.min_age, 0)
-                )
-            AND
-                prospect.date_of_birth > (
-                    CURRENT_DATE -
-                    INTERVAL '1 year' *
-                    (COALESCE(preference.max_age, 999) + 1)
-                )
-            LIMIT 1
-        )
+                person_id = %(searcher_person_id)s
+        )::DATE
     AND
-       -- The searcher meets the prospect's age preference
+        prospect.date_of_birth > (
+            SELECT
+                CURRENT_DATE -
+                INTERVAL '1 year' *
+                (COALESCE(max_age, 999) + 1)
+            FROM
+                search_preference_age
+            WHERE
+                person_id = %(searcher_person_id)s
+        )::DATE
+
+   -- The searcher meets the prospect's age preference
+    AND
        EXISTS (
             SELECT 1
             FROM search_preference_age AS preference
@@ -219,198 +255,229 @@ WITH searcher AS (
                 )
             LIMIT 1
         )
+
+    -- The users have at least a 50%% match
     AND
-        -- The users have at least a 50%% match
         (personality <#> (SELECT personality FROM searcher)) < 1e-5
 
-    -- Second pass filters
+    -- One-way filters
     AND
-        EXISTS (
-            SELECT 1
-            FROM search_preference_orientation AS preference
+        prospect.orientation_id IN (
+            SELECT
+                orientation_id
+            FROM
+                search_preference_orientation
             WHERE
-                preference.person_id      = %(searcher_person_id)s AND
-                preference.orientation_id = prospect.orientation_id
-            LIMIT 1
+                person_id = %(searcher_person_id)s
         )
     AND
-        EXISTS (
-            SELECT 1
-            FROM search_preference_ethnicity AS preference
+        prospect.ethnicity_id IN (
+            SELECT
+                ethnicity_id
+            FROM
+                search_preference_ethnicity
             WHERE
-                preference.person_id      = %(searcher_person_id)s AND
-                preference.ethnicity_id   = prospect.ethnicity_id
-            LIMIT 1
+                person_id = %(searcher_person_id)s
         )
     AND
-       EXISTS (
-            SELECT 1
-            FROM search_preference_height_cm AS preference
-            WHERE
-                preference.person_id = %(searcher_person_id)s AND
-                COALESCE(preference.min_height_cm, 0)   <= COALESCE(prospect.height_cm, 0) AND
-                COALESCE(preference.max_height_cm, 999) >= COALESCE(prospect.height_cm, 999)
-            LIMIT 1
-        )
-    AND
-        EXISTS (
-            SELECT 1
-            FROM search_preference_has_profile_picture AS preference
-            WHERE
-                preference.person_id              = %(searcher_person_id)s AND
-                preference.has_profile_picture_id = prospect.has_profile_picture_id
-            LIMIT 1
-        )
-    AND
-        EXISTS (
-            SELECT 1
-            FROM search_preference_looking_for AS preference
-            WHERE
-                preference.person_id      = %(searcher_person_id)s AND
-                preference.looking_for_id = prospect.looking_for_id
-            LIMIT 1
-        )
-    AND
-        EXISTS (
-            SELECT 1
-            FROM search_preference_smoking AS preference
-            WHERE
-                preference.person_id  = %(searcher_person_id)s AND
-                preference.smoking_id = prospect.smoking_id
-            LIMIT 1
-        )
-    AND
-        EXISTS (
-            SELECT 1
-            FROM search_preference_drinking AS preference
-            WHERE
-                preference.person_id  = %(searcher_person_id)s AND
-                preference.drinking_id = prospect.drinking_id
-            LIMIT 1
-        )
-    AND
-        EXISTS (
-            SELECT 1
-            FROM search_preference_drugs AS preference
-            WHERE
-                preference.person_id = %(searcher_person_id)s AND
-                preference.drugs_id  = prospect.drugs_id
-            LIMIT 1
-        )
-    AND
-        EXISTS (
-            SELECT 1
-            FROM search_preference_long_distance AS preference
-            WHERE
-                preference.person_id         = %(searcher_person_id)s AND
-                preference.long_distance_id  = prospect.long_distance_id
-            LIMIT 1
-        )
-    AND
-        EXISTS (
-            SELECT 1
-            FROM search_preference_relationship_status AS preference
-            WHERE
-                preference.person_id               = %(searcher_person_id)s AND
-                preference.relationship_status_id  = prospect.relationship_status_id
-            LIMIT 1
-        )
-    AND
-        EXISTS (
-            SELECT 1
-            FROM search_preference_has_kids AS preference
-            WHERE
-                preference.person_id   = %(searcher_person_id)s AND
-                preference.has_kids_id = prospect.has_kids_id
-            LIMIT 1
-        )
-    AND
-        EXISTS (
-            SELECT 1
-            FROM search_preference_wants_kids AS preference
-            WHERE
-                preference.person_id     = %(searcher_person_id)s AND
-                preference.wants_kids_id = prospect.wants_kids_id
-            LIMIT 1
-        )
-    AND
-        EXISTS (
-            SELECT 1
-            FROM search_preference_exercise AS preference
-            WHERE
-                preference.person_id   = %(searcher_person_id)s AND
-                preference.exercise_id = prospect.exercise_id
-            LIMIT 1
-        )
-    AND
-        EXISTS (
-            SELECT 1
-            FROM search_preference_religion AS preference
-            WHERE
-                preference.person_id   = %(searcher_person_id)s AND
-                preference.religion_id = prospect.religion_id
-            LIMIT 1
-        )
-    AND
-        EXISTS (
-            SELECT 1
-            FROM search_preference_star_sign AS preference
-            WHERE
-                preference.person_id    = %(searcher_person_id)s AND
-                preference.star_sign_id = prospect.star_sign_id
-            LIMIT 1
-        )
-    AND
-        EXISTS (
+        COALESCE(prospect.height_cm, 0) >= COALESCE(
             (
-                SELECT 1 WHERE NOT prospect.hide_me_from_strangers
-            ) UNION ALL (
-                SELECT 1
-                FROM messaged
+                SELECT
+                    min_height_cm
+                FROM
+                    search_preference_height_cm
                 WHERE
-                    messaged.subject_person_id = prospect.id AND
-                    messaged.object_person_id = %(searcher_person_id)s AND
-                    prospect.hide_me_from_strangers
-                LIMIT 1
+                    person_id = %(searcher_person_id)s
+            ),
+            0
+        )
+    AND
+        COALESCE(prospect.height_cm, 999) <= COALESCE(
+            (
+                SELECT
+                    max_height_cm
+                FROM
+                    search_preference_height_cm
+                WHERE
+                    person_id = %(searcher_person_id)s
+            ),
+            999
+        )
+    AND
+        prospect.has_profile_picture_id IN (
+            SELECT
+                has_profile_picture_id
+            FROM
+                search_preference_has_profile_picture
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
+    AND
+        prospect.looking_for_id IN (
+            SELECT
+                looking_for_id
+            FROM
+                search_preference_looking_for
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
+    AND
+        prospect.smoking_id IN (
+            SELECT
+                smoking_id
+            FROM
+                search_preference_smoking
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
+    AND
+        prospect.drinking_id IN (
+            SELECT
+                drinking_id
+            FROM
+                search_preference_drinking
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
+    AND
+        prospect.drugs_id IN (
+            SELECT
+                drugs_id
+            FROM
+                search_preference_drugs
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
+    AND
+        prospect.long_distance_id IN (
+            SELECT
+                long_distance_id
+            FROM
+                search_preference_long_distance
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
+    AND
+        prospect.relationship_status_id IN (
+            SELECT
+                relationship_status_id
+            FROM
+                search_preference_relationship_status
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
+    AND
+        prospect.has_kids_id IN (
+            SELECT
+                has_kids_id
+            FROM
+                search_preference_has_kids
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
+    AND
+        prospect.wants_kids_id IN (
+            SELECT
+                wants_kids_id
+            FROM
+                search_preference_wants_kids
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
+    AND
+        prospect.exercise_id IN (
+            SELECT
+                exercise_id
+            FROM
+                search_preference_exercise
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
+    AND
+        prospect.religion_id IN (
+            SELECT
+                religion_id
+            FROM
+                search_preference_religion
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
+    AND
+        prospect.star_sign_id IN (
+            SELECT
+                star_sign_id
+            FROM
+                search_preference_star_sign
+            WHERE
+                person_id = %(searcher_person_id)s
+        )
+    AND
+        -- The prospect wants to be shown to strangers or isn't a stranger
+        (
+            prospect.id IN (
+                SELECT
+                    subject_person_id
+                FROM
+                    messaged
+                WHERE
+                    object_person_id = %(searcher_person_id)s
             )
-            LIMIT 1
+        OR
+            NOT prospect.hide_me_from_strangers
         )
     AND
         -- The prospect did not skip the searcher
-        NOT EXISTS (
-            SELECT 1
+        prospect.id NOT IN (
+            SELECT
+                subject_person_id
             FROM
                 skipped
             WHERE
-                subject_person_id = prospect.id AND
-                object_person_id  = %(searcher_person_id)s
-            LIMIT 1
+                object_person_id = %(searcher_person_id)s
         )
     AND
         -- The searcher did not skip the prospect, or the searcher wishes to
         -- view skipped prospects
-        NOT EXISTS (
-            SELECT 1
-            FROM search_preference_skipped AS preference
-            JOIN skipped
-            ON
-                preference.person_id      = %(searcher_person_id)s AND
-                preference.skipped_id     = 2 AND
-                skipped.subject_person_id = %(searcher_person_id)s AND
-                skipped.object_person_id  = prospect.id
-            LIMIT 1
+        (
+            prospect.id NOT IN (
+                SELECT
+                    object_person_id
+                FROM
+                    skipped
+                WHERE
+                    subject_person_id = %(searcher_person_id)s
+            )
+        OR
+            1 IN (
+                SELECT
+                    skipped_id
+                FROM
+                    search_preference_skipped
+                WHERE
+                    person_id = %(searcher_person_id)s
+            )
         )
     AND
-        NOT EXISTS (
-            SELECT 1
-            FROM search_preference_messaged AS preference
-            JOIN messaged
-            ON
-                preference.person_id       = %(searcher_person_id)s AND
-                preference.messaged_id     = 2 AND
-                messaged.subject_person_id = %(searcher_person_id)s AND
-                messaged.object_person_id  = prospect.id
-            LIMIT 1
+        -- The searcher did not message the prospect, or the searcher wishes to
+        -- view messaged prospects
+        (
+            prospect.id NOT IN (
+                SELECT
+                    object_person_id
+                FROM
+                    messaged
+                WHERE
+                    subject_person_id = %(searcher_person_id)s
+            )
+        OR
+            1 IN (
+                SELECT
+                    messaged_id
+                FROM
+                    search_preference_messaged
+                WHERE
+                    person_id = %(searcher_person_id)s
+            )
         )
     AND
         -- NOT EXISTS an answer contrary to the searcher's preference...
@@ -436,6 +503,11 @@ WITH searcher AS (
             LIMIT 1
         )
 
+    ORDER BY
+        -- If this is changed, other subqueries will need changing too
+        (has_profile_picture_id = 1) DESC,
+        match_percentage DESC
+
     LIMIT
         500
 ), updated_search_cache AS (
@@ -455,7 +527,7 @@ WITH searcher AS (
         %(searcher_person_id)s,
         ROW_NUMBER() OVER (
             ORDER BY
-                -- If this is changed, other queries will need changing too
+                -- If this is changed, other subqueries will need changing too
                 (profile_photo_uuid IS NOT NULL) DESC,
                 match_percentage DESC
         ) AS position,
@@ -468,9 +540,9 @@ WITH searcher AS (
         personality,
         verified
     FROM
-        prospects_first_pass
-    LIMIT
-        500
+        prospects_third_pass
+    ORDER BY
+        position
     RETURNING *
 )
 SELECT
@@ -583,7 +655,7 @@ FROM
 WHERE
     searcher_person_id = %(searcher_person_id)s
 ORDER BY
-    -- If this is changed, other queries will need changing too
+    -- If this is changed, other subqueries will need changing too
     (profile_photo_uuid IS NOT NULL) DESC,
     match_percentage DESC
 LIMIT

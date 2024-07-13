@@ -388,6 +388,49 @@ CREATE TABLE IF NOT EXISTS verification_job (
     expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 day')
 );
 
+CREATE TABLE IF NOT EXISTS club (
+    name TEXT NOT NULL,
+    count_members INT NOT NULL DEFAULT 0,
+
+    PRIMARY KEY (name)
+);
+
+CREATE TABLE IF NOT EXISTS person_club (
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    club_name TEXT NOT NULL REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+
+    -- Columns are copied from the `person` table to make queries faster
+    activated BOOLEAN NOT NULL,
+    coordinates GEOGRAPHY(Point, 4326) NOT NULL,
+    gender_id SMALLINT NOT NULL,
+
+    PRIMARY KEY (person_id, club_name)
+);
+
+CREATE TABLE IF NOT EXISTS deleted_photo_admin_token (
+    token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    photo_uuid TEXT NOT NULL,
+    generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month')
+);
+
+CREATE TABLE IF NOT EXISTS banned_person_admin_token (
+    token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month')
+);
+
+CREATE TABLE IF NOT EXISTS banned_person (
+    normalized_email TEXT NOT NULL,
+    ip_address inet NOT NULL DEFAULT '127.0.0.1',
+    banned_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month'),
+    report_reasons TEXT[] NOT NULL DEFAULT '{}'::TEXT[],
+
+    PRIMARY KEY (normalized_email, ip_address)
+);
+
 --------------------------------------------------------------------------------
 -- TABLES TO CONNECT PEOPLE TO THEIR SEARCH PREFERENCES
 --------------------------------------------------------------------------------
@@ -544,51 +587,6 @@ CREATE TABLE IF NOT EXISTS skipped (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
     PRIMARY KEY (subject_person_id, object_person_id)
-);
-
-CREATE TABLE IF NOT EXISTS club (
-    name TEXT NOT NULL,
-    count_members INT NOT NULL DEFAULT 0,
-
-    PRIMARY KEY (name)
-);
-
-CREATE TABLE IF NOT EXISTS person_club (
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    club_name TEXT NOT NULL REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
-
-    -- Columns are copied from the `person` table to make queries faster
-    activated BOOLEAN NOT NULL,
-    coordinates GEOGRAPHY(Point, 4326) NOT NULL,
-    gender_id SMALLINT NOT NULL,
-    date_of_birth DATE NOT NULL,
-    personality VECTOR(47) NOT NULL,
-
-    PRIMARY KEY (person_id, club_name)
-);
-
-CREATE TABLE IF NOT EXISTS deleted_photo_admin_token (
-    token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    photo_uuid TEXT NOT NULL,
-    generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month')
-);
-
-CREATE TABLE IF NOT EXISTS banned_person_admin_token (
-    token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month')
-);
-
-CREATE TABLE IF NOT EXISTS banned_person (
-    normalized_email TEXT NOT NULL,
-    ip_address inet NOT NULL DEFAULT '127.0.0.1',
-    banned_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month'),
-    report_reasons TEXT[] NOT NULL DEFAULT '{}'::TEXT[],
-
-    PRIMARY KEY (normalized_email, ip_address)
 );
 
 --------------------------------------------------------------------------------
@@ -1372,18 +1370,6 @@ BEGIN
         WHERE person_id = NEW.id;
     END IF;
 
-    IF OLD.date_of_birth IS DISTINCT FROM NEW.date_of_birth THEN
-        UPDATE person_club
-        SET date_of_birth = NEW.date_of_birth
-        WHERE person_id = NEW.id;
-    END IF;
-
-    IF OLD.personality IS DISTINCT FROM NEW.personality THEN
-        UPDATE person_club
-        SET personality = NEW.personality
-        WHERE person_id = NEW.id;
-    END IF;
-
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -1403,15 +1389,11 @@ BEGIN
     SELECT
         activated,
         coordinates,
-        gender_id,
-        date_of_birth,
-        personality
+        gender_id
     INTO
         NEW.activated,
         NEW.coordinates,
-        NEW.gender_id,
-        NEW.date_of_birth,
-        NEW.personality
+        NEW.gender_id
     FROM
         person
     WHERE
@@ -1509,25 +1491,11 @@ ADD COLUMN IF NOT EXISTS
     gender_id SMALLINT NOT NULL DEFAULT 1
 ;
 
-ALTER TABLE
-    person_club
-ADD COLUMN IF NOT EXISTS
-    date_of_birth DATE NOT NULL DEFAULT '1900-01-01'
-;
-
-ALTER TABLE
-    person_club
-ADD COLUMN IF NOT EXISTS
-    personality VECTOR(47) NOT NULL DEFAULT array_full(47, 0)
-;
-
 UPDATE person_club
 SET
     activated = p.activated,
     coordinates = p.coordinates,
-    gender_id = p.gender_id,
-    date_of_birth = p.date_of_birth,
-    personality = p.personality
+    gender_id = p.gender_id
 FROM
     person p
 WHERE
@@ -1542,18 +1510,13 @@ ALTER COLUMN coordinates DROP DEFAULT;
 ALTER TABLE person_club
 ALTER COLUMN gender_id DROP DEFAULT;
 
-ALTER TABLE person_club
-ALTER COLUMN date_of_birth DROP DEFAULT;
-
-ALTER TABLE person_club
-ALTER COLUMN personality DROP DEFAULT;
-
 
 
 -- TODO: DO NOT DELETE - MOVE ME INSTEAD
-CREATE INDEX IF NOT EXISTS idx__person_club__activated__coordinates__gender_id
+CREATE INDEX IF NOT EXISTS
+    idx__person_club__activated__club_name__coordinates__gender_id
     ON person_club
-    USING GIST(coordinates, gender_id)
+    USING GIST(club_name, coordinates, gender_id)
     WHERE activated;
 
 

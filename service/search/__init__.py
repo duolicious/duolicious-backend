@@ -1,3 +1,4 @@
+import psycopg
 import duotypes as t
 from database import api_tx
 from typing import Tuple, Optional
@@ -16,23 +17,21 @@ def _quiz_search_results(searcher_person_id: int):
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_QUIZ_SEARCH, params).fetchall()
 
-
 def _uncached_search_results(searcher_person_id: int, no: Tuple[int, int]):
-    with api_tx('READ COMMITTED') as tx:
-        params_1 = dict(
-            searcher_person_id=searcher_person_id,
-        )
+    n, o = no
 
-        tx.execute(Q_UNCACHED_SEARCH_1, params_1)
-
-        n, o = no
-        params_2 = dict(
-            searcher_person_id=searcher_person_id,
-            n=n,
-            o=o,
-        )
-
-        return tx.execute(Q_UNCACHED_SEARCH_2, params_2).fetchall()
+    params = dict(
+        searcher_person_id=searcher_person_id,
+        n=n,
+        o=o,
+    )
+    try:
+        with api_tx('READ COMMITTED') as tx:
+            tx.execute(Q_UNCACHED_SEARCH_1, params)
+            return tx.execute(Q_UNCACHED_SEARCH_2, params).fetchall()
+    except psycopg.errors.QueryCanceled:
+        # The query probably timed-out because it was too specific
+        return []
 
 
 def _cached_search_results(searcher_person_id: int, no: Tuple[int, int]):

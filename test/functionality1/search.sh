@@ -8,11 +8,11 @@ source ../util/setup.sh
 set -xe
 
 # TODO: Set search preferences via API calls instead of queries
-# TODO: Performance testing. Should only need 1000 users...
 
 setup () {
   q "delete from duo_session"
   q "delete from person"
+  q "delete from club"
   q "delete from onboardee"
   q "delete from undeleted_photo"
 
@@ -211,34 +211,34 @@ test_quiz_search () {
   update person set personality = array_full(47, -1)
   where id = ${user2_id}"
 
-  # Populate the search cache
+  echo Populate the search cache
   c GET '/search?n=1&o=0'
 
-  # user1 has the higher match percentage
+  echo user1 has the higher match percentage
   q "
   update person set personality = array_full(47, 1)
   where id = ${searcher_id}"
   local response1=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response1" = "$user1_id" ]]
 
-  # user1 has the lower match percentage
+  echo user1 has the lower match percentage
   q "
   update person set personality = array_full(47, -1)
   where id = ${searcher_id}"
   local response2=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response2" != "$user1_id" ]]
 
-  # user2 has the highest match percentage but user2 is skipped by searcher
+  echo user2 has the highest match percentage but user2 is skipped by searcher
   c POST "/skip/${user2_id}"
 
   local response3=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response3" != "${user2_id}" ]]
 
-  # Reset searcher's search cache
+  echo "Reset searcher's search cache"
   c POST "/unskip/${user2_id}"
   c GET '/search?n=1&o=0'
 
-  # user2 has the highest match percentage but searcher is skipped by user2
+  echo user2 has the highest match percentage but searcher is skipped by user2
   assume_role user2
   c POST "/skip/${searcher_id}"
   assume_role searcher
@@ -246,7 +246,7 @@ test_quiz_search () {
   local response4=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response4" != "${user2_id}" ]]
 
-  # Reset searcher's search cache
+  echo "Reset searcher's search cache"
   assume_role user2
   c POST "/unskip/${searcher_id}"
   assume_role searcher
@@ -665,6 +665,52 @@ test_search_page_size_limit () {
   ! search_names 11
   search_names 10
 }
+
+test_clubs () {
+  setup
+
+  assume_role user1
+  jc POST /join-club -d '{ "name": "Anime" }'
+  jc POST /join-club -d '{ "name": "K-pop" }'
+
+  assume_role user2
+  jc POST /join-club -d '{ "name": "Manga" }'
+  jc POST /join-club -d '{ "name": "J-pop" }'
+
+  assume_role searcher
+
+  echo Search for Anime
+  local response=$(
+    c GET "/search?n=10&o=0&club=Anime" | jq -r '[.[].name] | sort | join(" ")'
+  )
+  [[ "$response" = "user1" ]]
+
+  echo Anime club setting is remembered
+  local response=$(
+    c GET "/search?n=10&o=0" | jq -r '[.[].name] | sort | join(" ")'
+  )
+  [[ "$response" = "user1" ]]
+
+  echo Search for Manga
+  local response=$(
+    c GET "/search?n=10&o=0&club=Manga" | jq -r '[.[].name] | sort | join(" ")'
+  )
+  [[ "$response" = "user2" ]]
+
+  echo Manga club setting is remembered
+  local response=$(
+    c GET "/search?n=10&o=0" | jq -r '[.[].name] | sort | join(" ")'
+  )
+  [[ "$response" = "user2" ]]
+
+  echo Everyone is included again when the club setting is cleared
+  local response=$(
+    c GET "/search?n=10&o=0&club=%00" | jq -r '[.[].name] | sort | join(" ")'
+  )
+  [[ "$response" = "user1 user2" ]]
+}
+
+test_clubs
 
 test_quiz_search
 
