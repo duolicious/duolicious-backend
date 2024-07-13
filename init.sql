@@ -510,6 +510,12 @@ CREATE TABLE IF NOT EXISTS search_preference_star_sign (
     PRIMARY KEY (person_id, star_sign_id)
 );
 
+CREATE TABLE IF NOT EXISTS search_preference_club (
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    club_name TEXT REFERENCES club(name) ON DELETE CASCADE,
+    PRIMARY KEY (person_id)
+);
+
 CREATE TABLE IF NOT EXISTS search_preference_messaged (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     messaged_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
@@ -623,11 +629,6 @@ CREATE INDEX IF NOT EXISTS idx__person__uuid
     ON person(uuid);
 CREATE INDEX IF NOT EXISTS idx__person__normalized_email
     ON person(normalized_email);
-
-CREATE INDEX IF NOT EXISTS idx__person_club__activated__coordinates__gender_id
-    ON person_club
-    USING GIST(coordinates, gender_id)
-    WHERE activated;
 
 CREATE INDEX IF NOT EXISTS idx__search_cache__searcher_person_id__position ON search_cache(searcher_person_id, position);
 
@@ -1345,6 +1346,8 @@ EXECUTE FUNCTION
 
 --------------------------------------------------------------------------------
 -- TRIGGER - Copy `person` columns to `person_club`
+--
+-- This is used to speed up searches within clubs
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION
@@ -1478,6 +1481,13 @@ ADD COLUMN IF NOT EXISTS
     profile_photo_blurhash TEXT
 ;
 
+-- TODO:
+ALTER TABLE
+    search_cache
+ADD COLUMN IF NOT EXISTS
+    verified BOOLEAN NOT NULL DEFAULT FALSE
+;
+
 
 
 
@@ -1537,6 +1547,14 @@ ALTER COLUMN date_of_birth DROP DEFAULT;
 
 ALTER TABLE person_club
 ALTER COLUMN personality DROP DEFAULT;
+
+
+
+-- TODO: DO NOT DELETE - MOVE ME INSTEAD
+CREATE INDEX IF NOT EXISTS idx__person_club__activated__coordinates__gender_id
+    ON person_club
+    USING GIST(coordinates, gender_id)
+    WHERE activated;
 
 
 --------------------------------------------------------------------------------

@@ -1,20 +1,30 @@
-# TODO: Will probably need to copy some values to `person_club` table:
-# - activated
-# - coordinates
-# - gender_id
-# - age
-# - personality
-
-# TODO: What should the quiz card stack show if someone searches by club? Their best match in their selected club, or globally?
-#   The currently selected club should probably be stored, to enable the "club invitation flow" in the future
-
 # TODO: Benchmark changes, especially for women searching for anyone, anywhere
 
 # TODO: Write tests
 
-# TODO: Index on person_club
-
-# TODO: Store selected club in DB
+Q_UPDATE_SEARCH_PREFERENCE_CLUB = """
+WITH delete_search_preference_club AS (
+    DELETE FROM
+        search_preference_club
+    WHERE
+        person_id = %(person_id)s
+    AND
+        %(club_name)s::TEXT IS NULL
+), update_search_preference_club AS (
+    INSERT INTO search_preference_club (
+        person_id,
+        club_name
+    )
+    SELECT
+        %(person_id)s,
+        %(club_name)s::TEXT
+    WHERE
+        %(club_name)s::TEXT IS NOT NULL
+    ON CONFLICT (person_id) DO UPDATE SET
+        club_name = EXCLUDED.club_name
+)
+SELECT 1
+"""
 
 Q_UNCACHED_SEARCH_1 = """
 DELETE FROM search_cache
@@ -22,7 +32,7 @@ WHERE searcher_person_id = %(searcher_person_id)s
 """
 
 Q_UNCACHED_SEARCH_2 = """
-WITH searcher AS MATERIALIZED (
+WITH searcher AS (
     SELECT
         coordinates,
         personality,
@@ -32,30 +42,28 @@ WITH searcher AS MATERIALIZED (
                 SELECT
                     1000 * distance
                 FROM
-                    person
-                JOIN
                     search_preference_distance
-                ON
-                    person.id = person_id
                 WHERE
-                    person.id = %(searcher_person_id)s
+                    person_id = %(searcher_person_id)s
                 LIMIT 1
             ),
             1e9
         ) AS distance_preference,
+        (
+            SELECT
+                club_name
+            FROM
+                search_preference_club
+            WHERE
+                person_id = %(searcher_person_id)s
+            LIMIT 1
+        ) AS club_preference,
         date_of_birth
     FROM
         person
     WHERE
         person.id = %(searcher_person_id)s
     LIMIT 1
-), searcher_club AS MATERIALIZED (
-    SELECT
-        club_name
-    FROM
-        person_club
-    WHERE
-        person_id = %(searcher_person_id)s
 ), prospects_first_pass AS (
     SELECT
         id AS prospect_person_id,
@@ -63,10 +71,8 @@ WITH searcher AS MATERIALIZED (
         uuid AS prospect_uuid,
 
         name,
-        EXTRACT(YEAR FROM AGE(date_of_birth)) AS age,
 
         personality,
-        personality <#> (SELECT personality FROM searcher) AS negative_dot_prod,
 
         has_profile_picture_id,
         orientation_id,
@@ -89,7 +95,30 @@ WITH searcher AS MATERIALIZED (
         show_my_age,
         hide_me_from_strangers,
 
-        verification_level_id > 1 AS verified
+        verification_level_id > 1 AS verified,
+
+        -- TODO
+        (
+            SELECT uuid
+            FROM photo
+            WHERE
+                person_id = id
+            ORDER BY
+                position
+            LIMIT 1
+        ) AS profile_photo_uuid,
+        CASE
+            WHEN show_my_age
+            THEN EXTRACT(YEAR FROM AGE(date_of_birth))
+            ELSE NULL
+        END AS age,
+        CLAMP(
+            0,
+            99,
+            100 * (
+                1 - (personality <#> (SELECT personality FROM searcher))
+            ) / 2
+        ) AS match_percentage
 
     FROM
         person AS prospect
@@ -194,34 +223,8 @@ WITH searcher AS MATERIALIZED (
         -- The users have at least a 50%% match
         (personality <#> (SELECT personality FROM searcher)) < 1e-5
 
-    ORDER BY
-        -- If this is changed, other queries will need changing too
-        has_profile_picture_id,
-        negative_dot_prod
-
-    LIMIT
-        500
-), prospects_second_pass AS (
-    SELECT
-        prospect_person_id,
-        prospect_uuid,
-        (
-            SELECT uuid
-            FROM photo
-            WHERE
-                person_id = prospect_person_id
-            ORDER BY
-                position
-            LIMIT 1
-        ) AS profile_photo_uuid,
-        name,
-        CASE WHEN show_my_age THEN age ELSE NULL END AS age,
-        CLAMP(0, 99, 100 * (1 - negative_dot_prod) / 2) AS match_percentage,
-        personality,
-        verified
-    FROM
-        prospects_first_pass AS prospect
-    WHERE
+    -- Second pass filters
+    AND
         EXISTS (
             SELECT 1
             FROM search_preference_orientation AS preference
@@ -250,7 +253,7 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
-       EXISTS (
+        EXISTS (
             SELECT 1
             FROM search_preference_has_profile_picture AS preference
             WHERE
@@ -259,7 +262,7 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
-       EXISTS (
+        EXISTS (
             SELECT 1
             FROM search_preference_looking_for AS preference
             WHERE
@@ -268,7 +271,7 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
-       EXISTS (
+        EXISTS (
             SELECT 1
             FROM search_preference_smoking AS preference
             WHERE
@@ -277,7 +280,7 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
-       EXISTS (
+        EXISTS (
             SELECT 1
             FROM search_preference_drinking AS preference
             WHERE
@@ -286,7 +289,7 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
-       EXISTS (
+        EXISTS (
             SELECT 1
             FROM search_preference_drugs AS preference
             WHERE
@@ -295,7 +298,7 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
-       EXISTS (
+        EXISTS (
             SELECT 1
             FROM search_preference_long_distance AS preference
             WHERE
@@ -304,7 +307,7 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
-       EXISTS (
+        EXISTS (
             SELECT 1
             FROM search_preference_relationship_status AS preference
             WHERE
@@ -313,7 +316,7 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
-       EXISTS (
+        EXISTS (
             SELECT 1
             FROM search_preference_has_kids AS preference
             WHERE
@@ -322,7 +325,7 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
-       EXISTS (
+        EXISTS (
             SELECT 1
             FROM search_preference_wants_kids AS preference
             WHERE
@@ -331,7 +334,7 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
-       EXISTS (
+        EXISTS (
             SELECT 1
             FROM search_preference_exercise AS preference
             WHERE
@@ -340,7 +343,7 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
-       EXISTS (
+        EXISTS (
             SELECT 1
             FROM search_preference_religion AS preference
             WHERE
@@ -349,7 +352,7 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
-       EXISTS (
+        EXISTS (
             SELECT 1
             FROM search_preference_star_sign AS preference
             WHERE
@@ -358,14 +361,14 @@ WITH searcher AS MATERIALIZED (
             LIMIT 1
         )
     AND
-       EXISTS (
+        EXISTS (
             (
                 SELECT 1 WHERE NOT prospect.hide_me_from_strangers
             ) UNION ALL (
                 SELECT 1
                 FROM messaged
                 WHERE
-                    messaged.subject_person_id = prospect_person_id AND
+                    messaged.subject_person_id = prospect.id AND
                     messaged.object_person_id = %(searcher_person_id)s AND
                     prospect.hide_me_from_strangers
                 LIMIT 1
@@ -379,7 +382,7 @@ WITH searcher AS MATERIALIZED (
             FROM
                 skipped
             WHERE
-                subject_person_id = prospect_person_id AND
+                subject_person_id = prospect.id AND
                 object_person_id  = %(searcher_person_id)s
             LIMIT 1
         )
@@ -394,11 +397,11 @@ WITH searcher AS MATERIALIZED (
                 preference.person_id      = %(searcher_person_id)s AND
                 preference.skipped_id     = 2 AND
                 skipped.subject_person_id = %(searcher_person_id)s AND
-                skipped.object_person_id  = prospect_person_id
+                skipped.object_person_id  = prospect.id
             LIMIT 1
         )
     AND
-       NOT EXISTS (
+        NOT EXISTS (
             SELECT 1
             FROM search_preference_messaged AS preference
             JOIN messaged
@@ -406,7 +409,7 @@ WITH searcher AS MATERIALIZED (
                 preference.person_id       = %(searcher_person_id)s AND
                 preference.messaged_id     = 2 AND
                 messaged.subject_person_id = %(searcher_person_id)s AND
-                messaged.object_person_id  = prospect_person_id
+                messaged.object_person_id  = prospect.id
             LIMIT 1
         )
     AND
@@ -420,7 +423,7 @@ WITH searcher AS MATERIALIZED (
             LEFT JOIN
                 answer ans
             ON
-                ans.person_id = prospect_person_id AND
+                ans.person_id = prospect.id AND
                 ans.question_id = pref.question_id
             WHERE
                 -- Contrary because the answer exists and is wrong
@@ -432,6 +435,9 @@ WITH searcher AS MATERIALIZED (
                 pref.accept_unanswered = FALSE
             LIMIT 1
         )
+
+    LIMIT
+        500
 ), updated_search_cache AS (
     INSERT INTO search_cache (
         searcher_person_id,
@@ -462,7 +468,9 @@ WITH searcher AS MATERIALIZED (
         personality,
         verified
     FROM
-        prospects_second_pass
+        prospects_first_pass
+    LIMIT
+        500
     RETURNING *
 )
 SELECT

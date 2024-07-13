@@ -2,6 +2,11 @@ import duotypes as t
 from database import api_tx
 from typing import Tuple, Optional
 from service.search.sql import *
+from dataclasses import dataclass
+
+@dataclass
+class ClubHttpArg:
+    club: Optional[str]
 
 def _quiz_search_results(searcher_person_id: int):
     params = dict(
@@ -61,8 +66,20 @@ def get_search_type(n: Optional[str], o: Optional[str]):
         return 'cached-search', no
 
 
-def get_search(s: t.SessionInfo, n: Optional[str], o: Optional[str]):
+def get_search(
+    s: t.SessionInfo,
+    n: Optional[str],
+    o: Optional[str],
+    club: Optional[ClubHttpArg],
+):
     search_type, no = get_search_type(n, o)
+
+    if club:
+        with api_tx() as tx:
+            tx.execute(
+                Q_UPDATE_SEARCH_PREFERENCE_CLUB,
+                dict(person_id=s.person_id, club_name=club.club)
+            )
 
     if no is not None and no[0] > 10:
         return 'n must be less than or equal to 10', 400
