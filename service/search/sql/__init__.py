@@ -126,6 +126,8 @@ WITH searcher AS (
     SELECT id FROM prospects_first_pass_without_club
     UNION ALL
     SELECT id FROM prospects_first_pass_with_club
+    EXCEPT
+    SELECT %(searcher_person_id)s AS id
 ), prospects_third_pass AS (
     SELECT
         prospect.id AS prospect_person_id,
@@ -172,8 +174,6 @@ WITH searcher AS (
         prospects_second_pass.id = prospect.id
 
     WHERE
-        prospect.id != %(searcher_person_id)s
-    AND
         -- The searcher meets the prospect's gender preference
         EXISTS (
             SELECT 1
