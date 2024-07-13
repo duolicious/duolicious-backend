@@ -497,7 +497,7 @@ WITH onboardee_country AS (
             (20000.0,  1.0e12, 0)
         UNION ALL (
             WITH two_closest AS (
-                select
+                SELECT
                     dist,
                     cnt,
                     iters
@@ -506,7 +506,7 @@ WITH onboardee_country AS (
                 ORDER BY
                     iters DESC,
                     ABS(cnt - 2000),
-                    dist DESC
+                    dist
                 LIMIT 2
             ), midpoint AS (
                 SELECT
@@ -514,11 +514,10 @@ WITH onboardee_country AS (
                     MAX(iters) AS iters
                 FROM
                     two_closest
-            ), evaluated_midpoint AS (
+            ), limited_search_results AS (
                 SELECT
-                    MAX(midpoint.dist) AS dist,
-                    COUNT(*) AS cnt,
-                    MAX(midpoint.iters) AS iters
+                    midpoint.dist AS dist,
+                    midpoint.iters AS iters
                 FROM
                     person AS prospect, midpoint
                 WHERE
@@ -535,7 +534,7 @@ WITH onboardee_country AS (
                     ST_DWithin(
                         prospect.coordinates,
                         (SELECT coordinates FROM new_person),
-                        dist * 1000
+                        midpoint.dist * 1000
                     )
                 AND
                     -- The new_person meets the prospect's gender preference
@@ -612,10 +611,19 @@ WITH onboardee_country AS (
                             )
                         LIMIT 1
                     )
+                LIMIT
+                    2000 * 2
+            ), evaluated_midpoint AS (
+                SELECT
+                    MAX(dist) AS dist,
+                    COUNT(*) AS cnt,
+                    MAX(iters) AS iters
+                FROM
+                    limited_search_results
             ), points AS (
-                SELECT * FROM evaluated_midpoint
+                SELECT dist, cnt, iters FROM evaluated_midpoint
                 UNION
-                SELECT * FROM two_closest
+                SELECT dist, cnt, iters FROM two_closest
             )
             SELECT dist, cnt, iters + 1 FROM points WHERE iters < 10
         )
