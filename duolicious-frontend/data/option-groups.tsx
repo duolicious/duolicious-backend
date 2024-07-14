@@ -23,6 +23,7 @@ import { LOGARITHMIC_SCALE, Scale } from "../scales/scales";
 import { VerificationBadge } from '../components/verification-badge';
 import { VerificationEvent } from '../verification/verification';
 import { notify } from '../events/events';
+import { ClubItem } from '../components/club-selector';
 
 type OptionGroupButtons = {
   buttons: {
@@ -889,13 +890,17 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
             Boolean(response?.json?.onboarded) &&
             typeof existingSessionToken === 'string'
           ) {
+            const clubs: ClubItem[] = response?.json?.clubs;
+
             setSignedInUser((signedInUser) => ({
               personId: response?.json?.person_id,
               personUuid: response?.json?.person_uuid,
               units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
-              clubs: response?.json?.clubs,
+              clubs: clubs,
               sessionToken: existingSessionToken,
             }));
+
+            notify<ClubItem[]>('updated-clubs', clubs);
           }
 
           return response.ok;
@@ -1029,14 +1034,18 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           const _sessionToken = await sessionToken();
           const response = await japi('post', '/finish-onboarding');
           if (response.ok) {
+            const clubs: ClubItem[] = response?.json?.clubs;
+
             setSignedInUser((signedInUser) => ({
               sessionToken: _sessionToken ?? '',
               ...signedInUser,
               personId: response?.json?.person_id,
               personUuid: response?.json?.person_uuid,
               units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
-              clubs: response?.json?.clubs,
+              clubs: clubs,
             }));
+
+            notify<ClubItem[]>('updated-clubs', clubs);
           };
           return response.ok;
         }
