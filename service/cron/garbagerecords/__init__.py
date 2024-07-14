@@ -14,13 +14,24 @@ print('Hello from cron module: garbagerecords')
 
 async def delete_garbage_records_once():
     async with api_tx() as tx:
-        cur = await tx.execute(Q_DELETE_GARBAGE_RECORDS)
-        rows = await cur.fetchall()
+        cur = await tx.execute(Q_DELETE_GARBAGE_RECORDS_ON_DUO_API)
+        api_rows = await cur.fetchall()
+
+    async with chat_tx() as tx:
+        cur = await tx.execute(Q_DELETE_GARBAGE_RECORDS_ON_DUO_CHAT)
+        chat_rows = await cur.fetchall()
 
     try:
-        count = rows[0]['count']
+        api_count = int(api_rows[0]['count'])
     except:
-        count = 0
+        api_count = 0
+
+    try:
+        chat_count = int(chat_rows[0]['count'])
+    except:
+        chat_count = 0
+
+    count = api_count + chat_count
 
     if count:
         print(f'Deleted {count} garbage record(s)')

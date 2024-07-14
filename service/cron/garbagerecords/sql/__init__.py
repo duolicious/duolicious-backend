@@ -1,6 +1,6 @@
 from sql import Q_UPDATE_VERIFICATION_LEVEL
 
-Q_DELETE_GARBAGE_RECORDS = f"""
+Q_DELETE_GARBAGE_RECORDS_ON_DUO_API = f"""
 WITH q1 AS (
     DELETE FROM
         banned_person_admin_token
@@ -95,5 +95,25 @@ FROM (
     SELECT 1 AS n FROM q6 UNION ALL
     SELECT 1 AS n FROM q7 UNION ALL
     SELECT 0 AS n FROM q8
+) AS t(n)
+"""
+
+Q_DELETE_GARBAGE_RECORDS_ON_DUO_CHAT = """
+WITH q1 AS (
+    DELETE FROM
+        duo_push_token
+    USING
+        last
+    WHERE
+        duo_push_token.username = last.username
+    AND
+        last.seconds < EXTRACT(EPOCH FROM NOW() - INTERVAL '8 days')
+    RETURNING
+        1
+)
+SELECT
+    SUM(n) AS count
+FROM (
+    SELECT 1 AS n FROM q1
 ) AS t(n)
 """

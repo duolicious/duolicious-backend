@@ -476,6 +476,40 @@ test_sad_not_activated () {
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
 }
 
+test_push_token_deleted_after_inactivity () {
+  q "delete from person"
+  q "delete from duo_push_token" duo_chat
+  q "delete from last" duo_chat
+
+  q "
+  INSERT INTO
+    duo_push_token (username, token)
+  VALUES
+    ('00000000-0000-0000-0000-000000000000'::uuid, 'token_1'),
+    ('00000000-0000-0000-0000-000000000001'::uuid, 'token_2')
+  " duo_chat
+
+  local t1=$(db_now as-seconds '- 7 days')
+  local t2=$(db_now as-seconds '- 9 days')
+  q "
+  insert into last
+  values
+    ('duolicious.app', '00000000-0000-0000-0000-000000000000', $t1, ''),
+    ('duolicious.app', '00000000-0000-0000-0000-000000000001', $t2, '')
+  " duo_chat
+
+  sleep 2
+
+  [[
+    $(q "select count(*) \
+      from duo_push_token \
+      where username = '00000000-0000-0000-0000-000000000000'" duo_chat) = 1 ]]
+  [[
+    $(q "select count(*) \
+      from duo_push_token \
+      where username = '00000000-0000-0000-0000-000000000001'" duo_chat) = 0 ]]
+}
+
 test_happy_path_intros
 test_happy_path_chats
 test_happy_path_chat_not_deferred_by_intro
@@ -492,3 +526,5 @@ test_sad_already_notified_for_other_intro_in_drift_period
 test_sad_intro_within_day_and_chat_within_past_10_minutes
 
 test_sad_not_activated
+
+test_push_token_deleted_after_inactivity
