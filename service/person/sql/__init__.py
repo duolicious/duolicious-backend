@@ -337,12 +337,49 @@ WITH valid_session AS (
     FROM
         valid_session
     WHERE NOT EXISTS (SELECT 1 FROM existing_person)
+), club_to_increment AS (
+    SELECT
+        person_club.club_name
+    FROM
+        existing_person
+    LEFT JOIN
+        person_club
+    ON
+        person_club.person_id = existing_person.id
+    LEFT JOIN
+        person AS existing_person_before_update
+    ON
+        existing_person_before_update.id = existing_person.id
+    WHERE
+        NOT existing_person_before_update.activated
+), increment_club_count_if_not_activated AS (
+    UPDATE
+        club
+    SET
+        count_members = count_members + 1
+    FROM
+        club_to_increment
+    WHERE
+        club_to_increment.club_name = club.name
 )
 SELECT
     person_id,
     person_uuid,
-    email,
-    (SELECT name FROM unit WHERE id = existing_person.unit_id) AS units
+    (SELECT name FROM unit WHERE id = existing_person.unit_id) AS units,
+    COALESCE(
+        (
+            SELECT
+                json_agg(
+                    json_build_object(
+                        'name', club_name,
+                        'count_members', -1))
+            FROM
+                person_club
+            WHERE
+                person_id = existing_person.id
+        ),
+        '[]'::json
+    ) AS clubs
 FROM
     valid_session
 LEFT JOIN
@@ -460,7 +497,7 @@ WITH onboardee_country AS (
             (20000.0,  1.0e12, 0)
         UNION ALL (
             WITH two_closest AS (
-                select
+                SELECT
                     dist,
                     cnt,
                     iters
@@ -469,7 +506,7 @@ WITH onboardee_country AS (
                 ORDER BY
                     iters DESC,
                     ABS(cnt - 2000),
-                    dist DESC
+                    dist
                 LIMIT 2
             ), midpoint AS (
                 SELECT
@@ -477,11 +514,10 @@ WITH onboardee_country AS (
                     MAX(iters) AS iters
                 FROM
                     two_closest
-            ), evaluated_midpoint AS (
+            ), limited_search_results AS (
                 SELECT
-                    MAX(midpoint.dist) AS dist,
-                    COUNT(*) AS cnt,
-                    MAX(midpoint.iters) AS iters
+                    midpoint.dist AS dist,
+                    midpoint.iters AS iters
                 FROM
                     person AS prospect, midpoint
                 WHERE
@@ -498,7 +534,7 @@ WITH onboardee_country AS (
                     ST_DWithin(
                         prospect.coordinates,
                         (SELECT coordinates FROM new_person),
-                        dist * 1000
+                        midpoint.dist * 1000
                     )
                 AND
                     -- The new_person meets the prospect's gender preference
@@ -575,10 +611,19 @@ WITH onboardee_country AS (
                             )
                         LIMIT 1
                     )
+                LIMIT
+                    2000 * 2
+            ), evaluated_midpoint AS (
+                SELECT
+                    MAX(dist) AS dist,
+                    COUNT(*) AS cnt,
+                    MAX(iters) AS iters
+                FROM
+                    limited_search_results
             ), points AS (
-                SELECT * FROM evaluated_midpoint
+                SELECT dist, cnt, iters FROM evaluated_midpoint
                 UNION
-                SELECT * FROM two_closest
+                SELECT dist, cnt, iters FROM two_closest
             )
             SELECT dist, cnt, iters + 1 FROM points WHERE iters < 10
         )
@@ -748,7 +793,8 @@ WITH onboardee_country AS (
 SELECT
     new_person.id AS person_id,
     new_person.uuid AS person_uuid,
-    (SELECT name FROM unit WHERE unit.id = new_person.unit_id) AS units
+    (SELECT name FROM unit WHERE unit.id = new_person.unit_id) AS units,
+    '{}'::TEXT[] AS clubs
 FROM
     new_person
 """
@@ -993,9 +1039,23 @@ WHERE
     EXISTS (SELECT 1 FROM prospect)
 """
 
-Q_SELECT_UNITS = """
+Q_CHECK_SESSION_TOKEN = """
 SELECT
-    (SELECT name FROM unit WHERE unit.id = person.unit_id) AS units
+    (SELECT name FROM unit WHERE unit.id = person.unit_id) AS units,
+    COALESCE(
+        (
+            SELECT
+                json_agg(
+                    json_build_object(
+                        'name', club_name,
+                        'count_members', -1))
+            FROM
+                person_club
+            WHERE
+                person_id = person.id
+        ),
+        '[]'::json
+    ) AS clubs
 FROM
     person
 WHERE
@@ -1320,6 +1380,8 @@ WITH deleted_photo AS (
         person
     WHERE
         id = %(person_id)s
+    RETURNING
+        activated
 ), undeleted_photo_insertion AS (
     INSERT INTO undeleted_photo (
         uuid
@@ -1337,6 +1399,8 @@ WITH deleted_photo AS (
         deleted_person_club
     WHERE
         club.name = deleted_person_club.club_name
+    AND
+        (SELECT activated FROM deleted_person)
 )
 SELECT 1
 """
@@ -1373,12 +1437,30 @@ SELECT 1
 """
 
 Q_POST_DEACTIVATE = """
-UPDATE
-    person
-SET
-    activated = FALSE
-WHERE
-    id = %(person_id)s
+WITH updated_person AS (
+    UPDATE
+        person
+    SET
+        activated = FALSE
+    WHERE
+        activated = TRUE
+    AND
+        id = %(person_id)s
+    RETURNING
+        id
+), decrement_club AS (
+    UPDATE
+        club
+    SET
+        count_members = GREATEST(0, count_members - 1)
+    FROM
+        person_club
+    WHERE
+        person_club.club_name = club.name
+    AND
+        person_club.person_id IN (SELECT id FROM updated_person)
+)
+SELECT 1
 """
 
 Q_GET_PROFILE_INFO = """
@@ -1994,7 +2076,7 @@ WITH is_allowed_club_name AS (
     {_Q_IS_ALLOWED_CLUB_NAME.replace('%()s', '%(club_name)s')}
 ), will_be_within_club_quota AS (
     SELECT
-        COUNT(*) < 25 AS x
+        COUNT(*) < 100 AS x
     FROM
         person_club
     WHERE

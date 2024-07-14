@@ -19,15 +19,15 @@ WITH unnested_ids AS (
         unnested_ids
     WHERE
         uuid_or_null(id) IS NOT NULL
-), newly_deactivated AS (
+), updated_person AS (
     UPDATE
         person
     SET
         activated = FALSE
     WHERE
-        uuid IN (SELECT uuid FROM valid_uuid)
-    AND
         activated = TRUE
+    AND
+        uuid IN (SELECT uuid FROM valid_uuid)
     AND
         sign_in_time < NOW() - INTERVAL '10 minutes'
     AND
@@ -35,17 +35,28 @@ WITH unnested_ids AS (
     RETURNING
         id,
         email
-), deleted AS (
+), decrement_club AS (
+    UPDATE
+        club
+    SET
+        count_members = GREATEST(0, count_members - 1)
+    FROM
+        person_club
+    WHERE
+        person_club.club_name = club.name
+    AND
+        person_club.person_id IN (SELECT id FROM updated_person)
+), deleted_duo_session AS (
     DELETE FROM
         duo_session
     USING
-        newly_deactivated
+        updated_person
     WHERE
-        duo_session.person_id = newly_deactivated.id
+        duo_session.person_id = updated_person.id
 )
 SELECT
     id,
     email
 FROM
-    newly_deactivated
+    updated_person
 """

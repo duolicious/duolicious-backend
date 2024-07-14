@@ -47,8 +47,7 @@ do_test () {
   q "delete from duo_session"
   q "delete from last" duo_chat
   q "delete from inbox" duo_chat
-
-  delete_emails
+  q "delete from club"
 
   ../util/create-user.sh will-be-deactivated 0 0
 
@@ -58,18 +57,42 @@ do_test () {
 
   q "
   update person set
-    email = REPLACE(email, '@example.com', '@duolicious.app');
+    email = REPLACE(
+      email,
+      '@example.com',
+      '@duolicious.app'),
+    normalized_email = REPLACE(
+      normalized_email,
+      '@example.com',
+      '@duolicious.app')
   "
 
-  q "
-  update person set
-    -- In case one of the other cron modules deactivated the accounts
-    activated = true,
+  assume_role 'will-remain-active1@duolicious.app'
+  jc POST /join-club -d '{ "name": "my-club-1" }'
+  jc POST /join-club -d '{ "name": "my-club-2" }'
+  jc POST /join-club -d '{ "name": "my-club-3" }'
+  jc POST /join-club -d '{ "name": "my-club-4" }'
 
-    -- There's a mechanism which prevents accounts from being re-deactivated
-    -- immediately after signing in again. This overrides that mechanism.
-    sign_in_time = now() - interval '20 minutes'
-  "
+  assume_role 'will-remain-active2@duolicious.app'
+  jc POST /join-club -d '{ "name": "my-club-1" }'
+  jc POST /join-club -d '{ "name": "my-club-2" }'
+
+  assume_role 'will-be-deactivated@duolicious.app'
+  jc POST /join-club -d '{ "name": "my-club-2" }'
+  jc POST /join-club -d '{ "name": "my-club-3" }'
+
+  assume_role 'will-remain-active3@duolicious.app'
+  results=$(c GET '/search-clubs?q=my-club')
+  expected=$(
+    jq -r . <<< "[ \
+      {\"count_members\": 3, \"name\": \"my-club-2\"}, \
+      {\"count_members\": 2, \"name\": \"my-club-1\"}, \
+      {\"count_members\": 2, \"name\": \"my-club-3\"}, \
+      {\"count_members\": 1, \"name\": \"my-club-4\"}, \
+      {\"count_members\": 0, \"name\": \"my-club\"} \
+    ]"
+  )
+  diff <(echo "$results") <(echo "$expected")
 
   local user1uuid=$(get_uuid 'will-be-deactivated@duolicious.app')
   local user2uuid=$(get_uuid 'will-remain-active1@duolicious.app')
@@ -81,6 +104,19 @@ do_test () {
   local  days_ago_2=$(db_now as-seconds '- 21   days')
   local  days_ago_3=$(db_now as-seconds '- 31   days')
 
+  delete_emails
+
+  q "
+  update person set
+    -- In case one of the other cron modules deactivated the accounts
+    activated = true,
+
+    -- There's a mechanism which prevents accounts from being re-deactivated
+    -- immediately after signing in again. This overrides that mechanism.
+    sign_in_time = now() - interval '20 minutes'
+  "
+
+  q "delete from last" duo_chat
   q "
   insert into last (server, username, seconds, state)
   values
@@ -101,11 +137,24 @@ do_test () {
   [[ "$(q "select 1 from person where activated = true  and email like 'will-remain-active1%' ")" = "1" ]]
   [[ "$(q "select 1 from person where activated = true  and email like 'will-remain-active2%' ")" = "1" ]]
   [[ "$(q "select 1 from person where activated = true  and email like 'will-remain-active3%' ")" = "1" ]]
-  [[ "$(q "select count(*) from duo_session ")" = "3" ]]
+  [[ "$(q "select count(*) from duo_session where email like 'will-be-deactivated%'")" = "0" ]]
 
   diff \
     <(get_emails) \
     ../../test/fixtures/cron-autodeactivate2-email
+
+  results=$(c GET '/search-clubs?q=my-club')
+  expected=$(
+    jq -r . <<< "[ \
+      {\"count_members\": 2, \"name\": \"my-club-1\"}, \
+      {\"count_members\": 2, \"name\": \"my-club-2\"}, \
+      {\"count_members\": 1, \"name\": \"my-club-3\"}, \
+      {\"count_members\": 1, \"name\": \"my-club-4\"}, \
+      {\"count_members\": 0, \"name\": \"my-club\"} \
+    ]"
+  )
+
+  diff <(echo "$results") <(echo "$expected")
 }
 
 do_test

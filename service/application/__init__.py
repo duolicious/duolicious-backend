@@ -212,10 +212,19 @@ def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
 def get_search(s: t.SessionInfo):
     n = request.args.get('n')
     o = request.args.get('o')
+    club = (
+        search.ClubHttpArg(
+            request.args.get('club')
+            if request.args.get('club') != '\0'
+            else None
+        )
+        if 'club' in request.args
+        else None
+    )
 
     search_type, _ = search.get_search_type(n, o)
 
-    limit = "10 per minute"
+    limit = "20 per 2 minutes"
     scope = search_type
 
     if search_type == 'uncached-search':
@@ -230,9 +239,9 @@ def get_search(s: t.SessionInfo):
                 key_func=limiter_account,
                 exempt_when=disable_account_rate_limit)
         ):
-            return search.get_search(s=s, n=n, o=o)
+            return search.get_search(s=s, n=n, o=o, club=club)
     else:
-        return search.get_search(s=s, n=n, o=o)
+        return search.get_search(s=s, n=n, o=o, club=club)
 
 @get('/health', limiter=limiter.exempt)
 def get_health():

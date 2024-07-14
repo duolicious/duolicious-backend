@@ -257,7 +257,7 @@ CREATE TABLE IF NOT EXISTS person (
     sign_in_count INT NOT NULL DEFAULT 1,
     sign_in_time TIMESTAMP NOT NULL DEFAULT NOW(),
 
-    -- Whether the user deactivated their account via the settings
+    -- Whether the account was deactivated via the settings or automatically
     activated BOOLEAN NOT NULL DEFAULT TRUE,
 
     -- Primary keys and constraints
@@ -388,6 +388,49 @@ CREATE TABLE IF NOT EXISTS verification_job (
     expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 day')
 );
 
+CREATE TABLE IF NOT EXISTS club (
+    name TEXT NOT NULL,
+    count_members INT NOT NULL DEFAULT 0,
+
+    PRIMARY KEY (name)
+);
+
+CREATE TABLE IF NOT EXISTS person_club (
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    club_name TEXT NOT NULL REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+
+    -- Columns are copied from the `person` table to make queries faster
+    activated BOOLEAN NOT NULL,
+    coordinates GEOGRAPHY(Point, 4326) NOT NULL,
+    gender_id SMALLINT NOT NULL,
+
+    PRIMARY KEY (person_id, club_name)
+);
+
+CREATE TABLE IF NOT EXISTS deleted_photo_admin_token (
+    token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    photo_uuid TEXT NOT NULL,
+    generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month')
+);
+
+CREATE TABLE IF NOT EXISTS banned_person_admin_token (
+    token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month')
+);
+
+CREATE TABLE IF NOT EXISTS banned_person (
+    normalized_email TEXT NOT NULL,
+    ip_address inet NOT NULL DEFAULT '127.0.0.1',
+    banned_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month'),
+    report_reasons TEXT[] NOT NULL DEFAULT '{}'::TEXT[],
+
+    PRIMARY KEY (normalized_email, ip_address)
+);
+
 --------------------------------------------------------------------------------
 -- TABLES TO CONNECT PEOPLE TO THEIR SEARCH PREFERENCES
 --------------------------------------------------------------------------------
@@ -510,6 +553,12 @@ CREATE TABLE IF NOT EXISTS search_preference_star_sign (
     PRIMARY KEY (person_id, star_sign_id)
 );
 
+CREATE TABLE IF NOT EXISTS search_preference_club (
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    club_name TEXT REFERENCES club(name) ON DELETE CASCADE,
+    PRIMARY KEY (person_id)
+);
+
 CREATE TABLE IF NOT EXISTS search_preference_messaged (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     messaged_id SMALLINT REFERENCES yes_no(id) ON DELETE CASCADE,
@@ -540,44 +589,6 @@ CREATE TABLE IF NOT EXISTS skipped (
     PRIMARY KEY (subject_person_id, object_person_id)
 );
 
-CREATE TABLE IF NOT EXISTS club (
-    name TEXT NOT NULL,
-    count_members INT NOT NULL DEFAULT 0,
-
-    PRIMARY KEY (name)
-);
-
-CREATE TABLE IF NOT EXISTS person_club (
-    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    club_name TEXT NOT NULL REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
-
-    PRIMARY KEY (person_id, club_name)
-);
-
-CREATE TABLE IF NOT EXISTS deleted_photo_admin_token (
-    token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    photo_uuid TEXT NOT NULL,
-    generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month')
-);
-
-CREATE TABLE IF NOT EXISTS banned_person_admin_token (
-    token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month')
-);
-
-CREATE TABLE IF NOT EXISTS banned_person (
-    normalized_email TEXT NOT NULL,
-    ip_address inet NOT NULL DEFAULT '127.0.0.1',
-    banned_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month'),
-    report_reasons TEXT[] NOT NULL DEFAULT '{}'::TEXT[],
-
-    PRIMARY KEY (normalized_email, ip_address)
-);
-
 --------------------------------------------------------------------------------
 -- TABLES TO SPEED UP SEARCHING
 --------------------------------------------------------------------------------
@@ -587,8 +598,9 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
     position SMALLINT,
     prospect_person_id INT NOT NULL,
     prospect_uuid UUID NOT NULL,
-    has_mutual_club BOOLEAN NOT NULL DEFAULT FALSE,
     profile_photo_uuid TEXT,
+    profile_photo_blurhash TEXT,
+    verified BOOLEAN NOT NULL DEFAULT FALSE,
     name TEXT NOT NULL,
     age SMALLINT,
     match_percentage SMALLINT NOT NULL,
@@ -605,6 +617,17 @@ CREATE INDEX IF NOT EXISTS idx__person__activated__coordinates__gender_id
     USING GIST(coordinates, gender_id)
     WHERE activated;
 
+CREATE INDEX IF NOT EXISTS idx__person__sign_up_time
+    ON person(sign_up_time);
+CREATE INDEX IF NOT EXISTS idx__person__tiny_id
+    ON person(tiny_id);
+CREATE INDEX IF NOT EXISTS idx__person__email
+    ON person(email);
+CREATE INDEX IF NOT EXISTS idx__person__uuid
+    ON person(uuid);
+CREATE INDEX IF NOT EXISTS idx__person__normalized_email
+    ON person(normalized_email);
+
 CREATE INDEX IF NOT EXISTS idx__search_cache__searcher_person_id__position ON search_cache(searcher_person_id, position);
 
 CREATE INDEX IF NOT EXISTS idx__answer__question_id ON answer(question_id);
@@ -619,13 +642,6 @@ CREATE INDEX IF NOT EXISTS idx__location__coordinates ON location USING GIST(coo
 CREATE INDEX IF NOT EXISTS idx__location__long_friendly ON location USING GIST(long_friendly gist_trgm_ops);
 
 CREATE INDEX IF NOT EXISTS idx__question__question ON question USING GIST(question gist_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx__person__sign_up_time ON person(sign_up_time);
-CREATE INDEX IF NOT EXISTS idx__person__tiny_id ON person(tiny_id);
-CREATE INDEX IF NOT EXISTS idx__person__email ON person(email);
-CREATE INDEX IF NOT EXISTS idx__person__uuid ON person(uuid);
-CREATE INDEX IF NOT EXISTS idx__person__normalized_email
-    ON person(normalized_email);
 
 CREATE INDEX IF NOT EXISTS idx__club__name ON club USING GIST(name gist_trgm_ops);
 
@@ -1318,13 +1334,190 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER trigger_refresh_has_profile_picture_id
-AFTER INSERT OR DELETE ON photo
+CREATE OR REPLACE TRIGGER
+    trigger_refresh_has_profile_picture_id
+AFTER INSERT OR DELETE ON
+    photo
 FOR EACH ROW
-EXECUTE FUNCTION trigger_fn_refresh_has_profile_picture_id();
+EXECUTE FUNCTION
+    trigger_fn_refresh_has_profile_picture_id();
+
+--------------------------------------------------------------------------------
+-- TRIGGER - Copy `person` columns to `person_club`
+--
+-- This is used to speed up searches within clubs
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION
+    copy_person_to_person_club()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.activated IS DISTINCT FROM NEW.activated THEN
+        UPDATE person_club
+        SET activated = NEW.activated
+        WHERE person_id = NEW.id;
+    END IF;
+
+    IF OLD.coordinates IS DISTINCT FROM NEW.coordinates THEN
+        UPDATE person_club
+        SET coordinates = NEW.coordinates
+        WHERE person_id = NEW.id;
+    END IF;
+
+    IF OLD.gender_id IS DISTINCT FROM NEW.gender_id THEN
+        UPDATE person_club
+        SET gender_id = NEW.gender_id
+        WHERE person_id = NEW.id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER
+    trigger_copy_person_to_person_club
+AFTER UPDATE ON
+    person
+FOR EACH ROW
+EXECUTE FUNCTION
+    copy_person_to_person_club();
+
+CREATE OR REPLACE FUNCTION
+    populate_person_club_defaults()
+RETURNS TRIGGER AS $$
+BEGIN
+    SELECT
+        activated,
+        coordinates,
+        gender_id
+    INTO
+        NEW.activated,
+        NEW.coordinates,
+        NEW.gender_id
+    FROM
+        person
+    WHERE
+        id = NEW.person_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER
+    trigger_populate_person_club_defaults
+BEFORE INSERT ON
+    person_club
+FOR EACH ROW EXECUTE FUNCTION
+    populate_person_club_defaults();
 
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
+
+-- TODO: delete
+WITH club_member_counts AS (
+    SELECT
+        club_name,
+        count(*) AS c
+    FROM
+        person_club
+    JOIN
+        person
+    ON
+        person.id = person_club.person_id
+    WHERE
+        person.activated
+    GROUP BY
+        club_name
+), all_clubs AS (
+    SELECT
+        name AS club_name,
+        coalesce(cmc.c, 0) AS c
+    FROM
+        club
+    LEFT JOIN
+        club_member_counts cmc
+    ON
+        club.name = cmc.club_name
+)
+UPDATE
+    club
+SET
+    count_members = all_clubs.c
+FROM
+    all_clubs
+WHERE
+    all_clubs.club_name = club.name;
+
+-- TODO:
+ALTER TABLE
+    search_cache
+DROP COLUMN IF EXISTS
+    has_mutual_club
+;
+
+-- TODO:
+ALTER TABLE
+    search_cache
+ADD COLUMN IF NOT EXISTS
+    profile_photo_blurhash TEXT
+;
+
+-- TODO:
+ALTER TABLE
+    search_cache
+ADD COLUMN IF NOT EXISTS
+    verified BOOLEAN NOT NULL DEFAULT FALSE
+;
+
+
+
+
+ALTER TABLE
+    person_club
+ADD COLUMN IF NOT EXISTS
+    activated BOOLEAN NOT NULL DEFAULT TRUE
+;
+
+ALTER TABLE
+    person_club
+ADD COLUMN IF NOT EXISTS
+    coordinates GEOGRAPHY(Point, 4326) NOT NULL DEFAULT 'POINT(0 0)'
+;
+
+ALTER TABLE
+    person_club
+ADD COLUMN IF NOT EXISTS
+    gender_id SMALLINT NOT NULL DEFAULT 1
+;
+
+UPDATE person_club
+SET
+    activated = p.activated,
+    coordinates = p.coordinates,
+    gender_id = p.gender_id
+FROM
+    person p
+WHERE
+    person_club.person_id = p.id;
+
+ALTER TABLE person_club
+ALTER COLUMN activated DROP DEFAULT;
+
+ALTER TABLE person_club
+ALTER COLUMN coordinates DROP DEFAULT;
+
+ALTER TABLE person_club
+ALTER COLUMN gender_id DROP DEFAULT;
+
+
+
+-- TODO: DO NOT DELETE - MOVE ME INSTEAD
+CREATE INDEX IF NOT EXISTS
+    idx__person_club__activated__club_name__coordinates__gender_id
+    ON person_club
+    USING GIST(club_name, coordinates, gender_id)
+    WHERE activated;
+
 
 --------------------------------------------------------------------------------
