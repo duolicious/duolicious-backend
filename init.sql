@@ -612,9 +612,16 @@ CREATE UNLOGGED TABLE IF NOT EXISTS search_cache (
 -- INDEXES
 --------------------------------------------------------------------------------
 
-CREATE INDEX IF NOT EXISTS idx__person__activated__coordinates__gender_id
+CREATE INDEX IF NOT EXISTS
+    idx__person__activated__coordinates__gender_id
     ON person
     USING GIST(coordinates, gender_id)
+    WHERE activated;
+
+CREATE INDEX IF NOT EXISTS
+    idx__person_club__activated__club_name__coordinates__gender_id
+    ON person_club
+    USING GIST(club_name, coordinates, gender_id)
     WHERE activated;
 
 CREATE INDEX IF NOT EXISTS idx__person__sign_up_time
@@ -1413,111 +1420,5 @@ FOR EACH ROW EXECUTE FUNCTION
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
-
--- TODO: delete
-WITH club_member_counts AS (
-    SELECT
-        club_name,
-        count(*) AS c
-    FROM
-        person_club
-    JOIN
-        person
-    ON
-        person.id = person_club.person_id
-    WHERE
-        person.activated
-    GROUP BY
-        club_name
-), all_clubs AS (
-    SELECT
-        name AS club_name,
-        coalesce(cmc.c, 0) AS c
-    FROM
-        club
-    LEFT JOIN
-        club_member_counts cmc
-    ON
-        club.name = cmc.club_name
-)
-UPDATE
-    club
-SET
-    count_members = all_clubs.c
-FROM
-    all_clubs
-WHERE
-    all_clubs.club_name = club.name;
-
--- TODO:
-ALTER TABLE
-    search_cache
-DROP COLUMN IF EXISTS
-    has_mutual_club
-;
-
--- TODO:
-ALTER TABLE
-    search_cache
-ADD COLUMN IF NOT EXISTS
-    profile_photo_blurhash TEXT
-;
-
--- TODO:
-ALTER TABLE
-    search_cache
-ADD COLUMN IF NOT EXISTS
-    verified BOOLEAN NOT NULL DEFAULT FALSE
-;
-
-
-
-
-ALTER TABLE
-    person_club
-ADD COLUMN IF NOT EXISTS
-    activated BOOLEAN NOT NULL DEFAULT TRUE
-;
-
-ALTER TABLE
-    person_club
-ADD COLUMN IF NOT EXISTS
-    coordinates GEOGRAPHY(Point, 4326) NOT NULL DEFAULT 'POINT(0 0)'
-;
-
-ALTER TABLE
-    person_club
-ADD COLUMN IF NOT EXISTS
-    gender_id SMALLINT NOT NULL DEFAULT 1
-;
-
-UPDATE person_club
-SET
-    activated = p.activated,
-    coordinates = p.coordinates,
-    gender_id = p.gender_id
-FROM
-    person p
-WHERE
-    person_club.person_id = p.id;
-
-ALTER TABLE person_club
-ALTER COLUMN activated DROP DEFAULT;
-
-ALTER TABLE person_club
-ALTER COLUMN coordinates DROP DEFAULT;
-
-ALTER TABLE person_club
-ALTER COLUMN gender_id DROP DEFAULT;
-
-
-
--- TODO: DO NOT DELETE - MOVE ME INSTEAD
-CREATE INDEX IF NOT EXISTS
-    idx__person_club__activated__club_name__coordinates__gender_id
-    ON person_club
-    USING GIST(club_name, coordinates, gender_id)
-    WHERE activated;
-
 
 --------------------------------------------------------------------------------
