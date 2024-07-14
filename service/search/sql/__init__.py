@@ -1,7 +1,3 @@
-# TODO: Benchmark changes, especially for women searching for anyone, anywhere
-
-# TODO: Write tests
-
 Q_SEARCH_PREFERENCE = """
 WITH delete_search_preference_club AS (
     DELETE FROM
