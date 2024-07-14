@@ -1,3 +1,6 @@
+import os
+os.environ['DUO_CRON_NOTIFICATIONS_DRY_RUN'] = 'false'
+
 import unittest
 from unittest.mock import patch, MagicMock
 from service.cron.notifications import (

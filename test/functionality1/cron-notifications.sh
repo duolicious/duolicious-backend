@@ -43,6 +43,7 @@ setup () {
   q "delete from person"
   q "delete from last" duo_chat
   q "delete from duo_last_notification" duo_chat
+  q "delete from duo_push_token" duo_chat
 
   delete_emails
 
@@ -476,6 +477,60 @@ test_sad_not_activated () {
   [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
 }
 
+test_low_active_users_notified_via_email () {
+  setup
+
+  [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
+
+  local t1=$(db_now as-seconds '- 7 days')
+  local t2=$(db_now as-seconds '- 9 days')
+
+  q "
+  INSERT INTO
+    last
+  VALUES
+    ('duolicious.app', '$user1id', $t1, ''),
+    ('duolicious.app', '$user2id', $t2, '')
+  ON CONFLICT (server, username) DO UPDATE SET
+    server   = EXCLUDED.server,
+    username = EXCLUDED.username,
+    seconds  = EXCLUDED.seconds,
+    state    = EXCLUDED.state
+  " duo_chat
+
+  q "
+  INSERT INTO
+    duo_push_token (username, token)
+  VALUES
+    ('$user1id', 'token_1'),
+    ('$user2id', 'token_2')
+  ON CONFLICT (username) DO UPDATE SET
+    username = EXCLUDED.username
+  " duo_chat
+
+  local time_interval=$(db_now as-microseconds '- 11 minutes')
+
+  echo 1 > ../../test/input/disable-mobile-notifications
+
+  q "
+  INSERT INTO
+    inbox
+  VALUES
+    ('$user1id', '', '', '', 'inbox', '', ${time_interval}, 0, 42),
+    ('$user2id', '', '', '', 'inbox', '', ${time_interval}, 0, 43)
+  " duo_chat
+
+  sleep 2
+
+  echo 0 > ../../test/input/disable-mobile-notifications
+
+  [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 2 ]]
+
+  diff \
+    <(get_emails) \
+    ../../test/fixtures/cron-emails-active-users-notified-via-email
+}
+
 test_happy_path_intros
 test_happy_path_chats
 test_happy_path_chat_not_deferred_by_intro
@@ -492,3 +547,5 @@ test_sad_already_notified_for_other_intro_in_drift_period
 test_sad_intro_within_day_and_chat_within_past_10_minutes
 
 test_sad_not_activated
+
+test_low_active_users_notified_via_email

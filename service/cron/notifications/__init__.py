@@ -23,11 +23,18 @@ import random
 import urllib.request
 import json
 import traceback
+from pathlib import Path
 
 EMAIL_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_EMAIL_POLL_SECONDS',
     str(10), # 10 seconds
 ))
+
+_disable_mobile_notifications_file = (
+    Path(__file__).parent.parent.parent.parent /
+    'test' /
+    'input' /
+    'disable-mobile-notifications')
 
 print('Hello from cron module: notifications')
 
@@ -45,6 +52,13 @@ class PersonNotification:
     chats_drift_seconds: int
     intros_drift_seconds: int
     token: str | None
+
+def disable_mobile_notifications():
+    if _disable_mobile_notifications_file.is_file():
+        with _disable_mobile_notifications_file.open() as file:
+            if file.read().strip() == '1':
+                return True
+    return False
 
 def do_send_notification(row: PersonNotification):
     email = row.email
@@ -125,8 +139,15 @@ def send_mobile_notification(row: PersonNotification):
         method='POST'
     )
 
-    with urllib.request.urlopen(req) as response:
-        response_data = response.read().decode('utf-8')
+    if disable_mobile_notifications():
+        print(
+            'File prevented mobile notifications',
+            str(_disable_mobile_notifications_file.absolute())
+        )
+        response_data = '{"data": {"status": "ok"}}'
+    else:
+        with urllib.request.urlopen(req) as response:
+            response_data = response.read().decode('utf-8')
 
     try:
         parsed_data = json.loads(response_data)
