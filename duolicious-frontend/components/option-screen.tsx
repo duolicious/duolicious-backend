@@ -1346,18 +1346,26 @@ const OptionScreen = ({navigation, route}) => {
     _onSubmitSuccess();
   }, [isLoading, inputRef.current, _onSubmitSuccess]);
 
-  const handleScroll = ({ nativeEvent }) => {
-    checkIsBottom(nativeEvent);
-  };
-
-  const checkIsBottom = (nativeEvent) => {
-    const isCloseToBottom = nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
-      nativeEvent.contentSize.height - 20; // 20 is a threshold you can adjust
+  const checkIsBottom = useCallback((nativeEvent) => {
+    const isCloseToBottom = (
+      nativeEvent.layoutMeasurement.height +
+      nativeEvent.contentOffset.y) >= nativeEvent.contentSize.height - 10;
     setIsBottom(isCloseToBottom);
-  };
+  }, [setIsBottom]);
+
+  const onScroll = useCallback(({ nativeEvent }) => {
+    checkIsBottom(nativeEvent);
+  }, [checkIsBottom]);
+
+  const onContentSizeChange = useCallback((width, height) =>
+    setContentHeight(height), []);
+
+  const onLayout = useCallback(({ nativeEvent }) =>
+    setContainerHeight(nativeEvent.layout.height), []);
 
   useEffect(() => {
-    // Compare the heights to determine if there is more content offscreen when the component mounts.
+    // Compare the heights to determine if there is more content offscreen when
+    // the component mounts.
     if (containerHeight > 0 && contentHeight > 0) {
       setIsBottom(containerHeight >= contentHeight);
     }
@@ -1466,9 +1474,9 @@ const OptionScreen = ({navigation, route}) => {
           }
           {scrollView !== false && <>
               <ScrollView
-                onScroll={handleScroll}
-                onContentSizeChange={(width, height) => setContentHeight(height)}
-                onLayout={({ nativeEvent }) => setContainerHeight(nativeEvent.layout.height)}
+                onScroll={onScroll}
+                onContentSizeChange={onContentSizeChange}
+                onLayout={onLayout}
                 contentContainerStyle={{
                   flexGrow: 1,
                   justifyContent: 'center',

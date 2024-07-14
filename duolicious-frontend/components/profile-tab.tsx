@@ -332,7 +332,7 @@ const Options = ({ navigation, data }) => {
   useEffect(() => {
     return listen(
       'updated-clubs',
-      (newClubs: any) => {
+      (newClubs: ClubItem[]) => {
         if (data) {
           data['clubs'] = newClubs;
           triggerRender({});
@@ -458,17 +458,6 @@ const Options = ({ navigation, data }) => {
         setting={clubsSetting}
         noSettingText="None"
       />
-      <DefaultText
-        style={{
-          color: '#999',
-          textAlign: 'center',
-          marginLeft:  10,
-          marginRight: 10,
-        }}
-      >
-        When you join a club, mutual members will be shown to you first in
-        search results
-      </DefaultText>
 
       <Title>Theme</Title>
       <Button_

@@ -23,7 +23,7 @@
     "@xmldom/xmldom": "^0.8.10",
     "@xmpp/client": "^0.13.1",
     "date-fns": "^2.30.0",
-    "expo": "~51.0.17",
+    "expo": "~51.0.20",
     "expo-checkbox": "~3.0.0",
     "expo-clipboard": "~6.0.3",
     "expo-constants": "~16.0.2",

@@ -523,7 +523,7 @@ const QandQFilterScreen = ({navigation, route}) => {
                 textAlign: 'center'
               }}
             >
-              You haven't added any Q&A filters
+              You haven’t added any Q&A filters
             </DefaultText>
           }
           {searchText !== "" && _.isEmpty(searchResults) &&
@@ -552,11 +552,19 @@ const QandQFilterScreen = ({navigation, route}) => {
                   {a.question}
                 </SearchQuizCard>
               )}
-              <Notice style={{ marginTop: 5, marginBottom: 5, marginLeft: 0, marginRight: 0 }}>
-                <DefaultText style={{color: '#70f'}} >
-                  You haven't got any other Q&A filters
-                </DefaultText>
-              </Notice>
+              <DefaultText style={{
+                fontFamily: 'TruenoBold',
+                color: '#000',
+                fontSize: 16,
+                textAlign: 'center',
+                alignSelf: 'center',
+                marginTop: 30,
+                marginBottom: 80,
+                marginLeft: '15%',
+                marginRight: '15%',
+              }}>
+                You haven’t got any other Q&A filters
+              </DefaultText>
             </>
           }
           {searchText !== "" && !_.isEmpty(searchResults) &&

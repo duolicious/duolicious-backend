@@ -785,10 +785,7 @@ const generalSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
             this.currentValue = units;
             setSignedInUser((signedInUser) => {
               if (signedInUser) {
-                return {
-                  ...signedInUser,
-                  units,
-                }
+                return { ...signedInUser, units }
               } else {
                 return signedInUser;
               }
@@ -896,6 +893,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
               personId: response?.json?.person_id,
               personUuid: response?.json?.person_uuid,
               units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
+              clubs: response?.json?.clubs,
               sessionToken: existingSessionToken,
             }));
           }
@@ -1037,6 +1035,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
               personId: response?.json?.person_id,
               personUuid: response?.json?.person_uuid,
               units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
+              clubs: response?.json?.clubs,
             }));
           };
           return response.ok;

@@ -180,7 +180,7 @@ const ClubSelector = ({navigation, route}) => {
 
   const clearSearchText = useCallback(() => setSearchText(""), []);
 
-  const clubQuota = 25;
+  const clubQuota = 100;
 
   const _fetchClubItems = useCallback(debounce(async (q: string) => {
     const results = await fetchClubItems(q);

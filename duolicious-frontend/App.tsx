@@ -46,9 +46,12 @@ import { ImageCropper } from './components/image-cropper';
 import { StreamErrorModal } from './components/stream-error-modal';
 import { setNofications } from './notifications/notifications';
 import { navigationState } from './kv-storage/navigation-state';
-import { listen } from './events/events';
+import { listen, notify } from './events/events';
 import { verificationWatcher } from './verification/verification';
 import { ColorPickerModal } from './components/color-picker-modal/color-picker-modal';
+import { ClubItem } from './components/club-selector';
+
+// TODO: Check that the UI updates clubs when logging in and out
 
 // TODO: iOS UI testing
 // TODO: Add the ability to reply to things (e.g. pictures, quiz responses) from people's profiles. You'll need to change the navigation to make it easier to reply to things. Consider breaking profiles into sections which can be replied to, each having one image or block of text. Letting people reply to specific things on the profile will improve intro quality.
@@ -131,6 +134,7 @@ type SignedInUser = {
   units: 'Metric' | 'Imperial'
   sessionToken: string
   lastNavigationState?: any
+  clubs: ClubItem[]
 };
 
 type ServerStatus = "ok" | "down for maintenance" | "please update";
@@ -182,23 +186,37 @@ const App = () => {
 
   const fetchSignInState = useCallback(async () => {
     const existingSessionToken = await sessionToken();
+
     if (existingSessionToken === null) {
       setSignedInUser(undefined);
-    } else if (typeof existingSessionToken === 'string') {
-      const response = await japi('post', '/check-session-token');
-      if (response.ok && Boolean(response?.json?.onboarded)) {
-      const lastNavigationState = await navigationState();
-        setSignedInUser({
-          personId: response?.json?.person_id,
-          personUuid: response?.json?.person_uuid,
-          units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
-          sessionToken: existingSessionToken,
-          lastNavigationState,
-        });
-      } else {
-        setSignedInUser(undefined);
-      }
+      return;
     }
+
+    if (typeof existingSessionToken !== 'string') {
+      return;
+    }
+
+    const response = await japi('post', '/check-session-token');
+
+    if (!response.ok || !response?.json?.onboarded) {
+      setSignedInUser(undefined);
+      return;
+    }
+
+    const lastNavigationState = await navigationState();
+
+    const clubs: ClubItem[] = response?.json?.clubs;
+
+    setSignedInUser({
+      personId: response?.json?.person_id,
+      personUuid: response?.json?.person_uuid,
+      units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
+      clubs: clubs,
+      sessionToken: existingSessionToken,
+      lastNavigationState,
+    });
+
+    notify<ClubItem[]>('updated-clubs', clubs);
   }, []);
 
   const fetchServerStatusState = useCallback(async () => {
