@@ -64,15 +64,20 @@ const styles = StyleSheet.create({
     paddingRight: 10,
     paddingVertical: 5,
   },
-  clubEveryone: {
+  clubContainerEveryone: {
     marginHorizontal: 30,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  clubContainer: {
+    borderRadius: 5,
+    overflow: 'hidden',
   },
   selectedClubText: {
     fontSize: 16,
     fontFamily: 'Trueno',
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 5,
     color: 'white',
     backgroundColor: 'black',
   },
@@ -81,7 +86,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Trueno',
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 5,
     color: 'black',
     backgroundColor: 'white',
   },
@@ -370,7 +374,7 @@ const ClubSelector = (props: ClubSelectorProps) => {
           </DefaultText>
 
           <Pressable
-            style={styles.clubEveryone}
+            style={styles.clubContainerEveryone}
             onPress={() => props.onChangeSelectedClub(null)}
           >
             <DefaultText
@@ -386,6 +390,7 @@ const ClubSelector = (props: ClubSelectorProps) => {
 
           {clubs.map((club) =>
             <Pressable
+              style={styles.clubContainer}
               key={club.name}
               onPress={() => props.onChangeSelectedClub(club.name)}
             >

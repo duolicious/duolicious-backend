@@ -937,19 +937,25 @@ const Body = ({
               marginBottom: 5,
             }}
           />
-          <DefaultText
+          <View
             style={{
-              color: 'black',
               backgroundColor: 'white',
               opacity: 0.4,
-              padding: 1,
               borderRadius: 3,
+              overflow: 'hidden',
               marginBottom: 10,
             }}
           >
-            Verification is based on selfies analyzed by our AI. Verified photos
-            are most accurate.
-          </DefaultText>
+            <DefaultText
+              style={{
+                color: 'black',
+                padding: 1,
+              }}
+            >
+              Verification is based on selfies analyzed by our AI. Verified
+              photos are most accurate.
+            </DefaultText>
+          </View>
           </>
         }
 
