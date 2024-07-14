@@ -2,7 +2,7 @@
 
 # TODO: Write tests
 
-Q_UPDATE_SEARCH_PREFERENCE_CLUB = """
+Q_SEARCH_PREFERENCE = """
 WITH delete_search_preference_club AS (
     DELETE FROM
         search_preference_club
@@ -10,6 +10,8 @@ WITH delete_search_preference_club AS (
         person_id = %(person_id)s
     AND
         %(club_name)s::TEXT IS NULL
+    AND
+        %(do_modify)s
 ), update_search_preference_club AS (
     INSERT INTO search_preference_club (
         person_id,
@@ -20,10 +22,17 @@ WITH delete_search_preference_club AS (
         %(club_name)s::TEXT
     WHERE
         %(club_name)s::TEXT IS NOT NULL
+    AND
+        %(do_modify)s
     ON CONFLICT (person_id) DO UPDATE SET
         club_name = EXCLUDED.club_name
 )
-SELECT 1
+SELECT
+    gender_id
+FROM
+    search_preference_gender
+WHERE
+    person_id = %(person_id)s
 """
 
 Q_UNCACHED_SEARCH_1 = """
@@ -73,14 +82,7 @@ WITH searcher AS (
         prospect.activated
     AND
         -- The prospect meets the searcher's gender preference
-        prospect.gender_id IN (
-            SELECT
-                gender_id
-            FROM
-                search_preference_gender AS preference
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.gender_id = ANY(%(gender_preference)s::SMALLINT[])
     AND
         -- The prospect meets the searcher's location preference
         ST_DWithin(
@@ -92,7 +94,7 @@ WITH searcher AS (
         (SELECT club_preference FROM searcher) IS NULL
 
     LIMIT
-        10000
+        30000
 ), prospects_first_pass_with_club AS (
     SELECT
         person_id AS id
@@ -102,14 +104,7 @@ WITH searcher AS (
         prospect.activated
     AND
         -- The prospect meets the searcher's gender preference
-        prospect.gender_id IN (
-            SELECT
-                gender_id
-            FROM
-                search_preference_gender AS preference
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.gender_id = ANY(%(gender_preference)s::SMALLINT[])
     AND
         -- The prospect meets the searcher's location preference
         ST_DWithin(
@@ -121,14 +116,25 @@ WITH searcher AS (
         prospect.club_name = (SELECT club_preference FROM searcher)
 
     LIMIT
-        10000
+        30000
 ), prospects_second_pass AS (
     SELECT id FROM prospects_first_pass_without_club
     UNION ALL
     SELECT id FROM prospects_first_pass_with_club
-    EXCEPT
-    SELECT %(searcher_person_id)s AS id
 ), prospects_third_pass AS (
+    SELECT
+        prospect.id
+    FROM
+        person AS prospect
+    JOIN
+        prospects_second_pass
+    ON
+        prospects_second_pass.id = prospect.id
+    ORDER BY
+        personality <#> (SELECT personality FROM searcher)
+    LIMIT
+        10000
+), prospects_fourth_pass AS (
     SELECT
         prospect.id AS prospect_person_id,
 
@@ -169,11 +175,13 @@ WITH searcher AS (
     FROM
         person AS prospect
     JOIN
-        prospects_second_pass
+        prospects_third_pass
     ON
-        prospects_second_pass.id = prospect.id
+        prospects_third_pass.id = prospect.id
 
     WHERE
+        prospect.id != %(searcher_person_id)s
+    AND
         -- The searcher meets the prospect's gender preference
         EXISTS (
             SELECT 1
@@ -486,7 +494,8 @@ WITH searcher AS (
             FROM (
                 SELECT *
                 FROM search_preference_answer
-                WHERE person_id = %(searcher_person_id)s) AS pref
+                WHERE person_id = %(searcher_person_id)s
+            ) AS pref
             LEFT JOIN
                 answer ans
             ON
@@ -540,7 +549,7 @@ WITH searcher AS (
         personality,
         verified
     FROM
-        prospects_third_pass
+        prospects_fourth_pass
     ORDER BY
         position
     RETURNING *
