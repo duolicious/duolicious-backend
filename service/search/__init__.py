@@ -9,15 +9,15 @@ from dataclasses import dataclass
 class ClubHttpArg:
     club: Optional[str]
 
-def _quiz_search_results(searcher_person_id: int):
+def _quiz_search_results(tx, searcher_person_id: int):
     params = dict(
         searcher_person_id=searcher_person_id,
     )
 
-    with api_tx('READ COMMITTED') as tx:
-        return tx.execute(Q_QUIZ_SEARCH, params).fetchall()
+    return tx.execute(Q_QUIZ_SEARCH, params).fetchall()
 
 def _uncached_search_results(
+    tx,
     searcher_person_id: int,
     no: Tuple[int, int],
     gender_preference: list[int],
@@ -30,17 +30,16 @@ def _uncached_search_results(
         o=o,
         gender_preference=gender_preference,
     )
+
     try:
-        with api_tx('READ COMMITTED') as tx:
-            tx.execute('SET LOCAL statement_timeout = 10000') # 10 seconds
-            tx.execute(Q_UNCACHED_SEARCH_1, params)
-            return tx.execute(Q_UNCACHED_SEARCH_2, params).fetchall()
+        tx.execute(Q_UNCACHED_SEARCH_1, params)
+        return tx.execute(Q_UNCACHED_SEARCH_2, params).fetchall()
     except psycopg.errors.QueryCanceled:
         # The query probably timed-out because it was too specific
         return []
 
 
-def _cached_search_results(searcher_person_id: int, no: Tuple[int, int]):
+def _cached_search_results(tx, searcher_person_id: int, no: Tuple[int, int]):
     n, o = no
 
     params = dict(
@@ -49,8 +48,7 @@ def _cached_search_results(searcher_person_id: int, no: Tuple[int, int]):
         o=o
     )
 
-    with api_tx('READ COMMITTED') as tx:
-        return tx.execute(Q_CACHED_SEARCH, params).fetchall()
+    return tx.execute(Q_CACHED_SEARCH, params).fetchall()
 
 def get_search_type(n: Optional[str], o: Optional[str]):
     n_: Optional[int] = n if n is None else int(n)
@@ -79,33 +77,39 @@ def get_search(
 ):
     search_type, no = get_search_type(n, o)
 
-    with api_tx() as tx:
-        params = dict(
-            person_id=s.person_id,
-            club_name=club.club if club else None,
-            do_modify=club is not None,
-        )
-
-        rows = tx.execute(Q_SEARCH_PREFERENCE, params).fetchall()
-
-    gender_preference = [row['gender_id'] for row in rows]
-
     if no is not None and no[0] > 10:
         return 'n must be less than or equal to 10', 400
 
-    elif search_type == 'quiz-search':
-        return _quiz_search_results(
-            searcher_person_id=s.person_id)
+    params = dict(
+        person_id=s.person_id,
+        club_name=club.club if club else None,
+        do_modify=club is not None,
+    )
 
-    elif search_type == 'uncached-search':
-        return _uncached_search_results(
-            searcher_person_id=s.person_id,
-            no=no,
-            gender_preference=gender_preference)
+    with api_tx() as tx:
+        tx.execute('SET LOCAL statement_timeout = 10000') # 10 seconds
 
-    elif search_type == 'cached-search':
-        return _cached_search_results(
-            searcher_person_id=s.person_id, no=no)
+        rows = tx.execute(Q_SEARCH_PREFERENCE, params).fetchall()
 
-    else:
-        raise Exception('Unexpected quiz type')
+        gender_preference = [row['gender_id'] for row in rows]
+
+
+        if search_type == 'quiz-search':
+            return _quiz_search_results(
+                tx=tx,
+                searcher_person_id=s.person_id)
+
+        elif search_type == 'uncached-search':
+            return _uncached_search_results(
+                tx=tx,
+                searcher_person_id=s.person_id,
+                no=no,
+                gender_preference=gender_preference)
+
+        elif search_type == 'cached-search':
+            return _cached_search_results(
+                tx=tx,
+                searcher_person_id=s.person_id, no=no)
+
+        else:
+            raise Exception('Unexpected quiz type')
