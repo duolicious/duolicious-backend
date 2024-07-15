@@ -73,7 +73,8 @@ WITH ten_days_ago AS (
                 -- minutes ago
                 COALESCE(last.seconds, 0) <
                     (SELECT seconds FROM ten_minutes_ago)
-        ) AS has_chat
+        ) AS has_chat,
+        last.seconds AS last_seconds
     FROM inbox_first_pass
     LEFT JOIN
         last
@@ -99,6 +100,9 @@ LEFT JOIN
     duo_push_token
 ON
     duo_push_token.username = inbox_second_pass.person_uuid
+AND
+    inbox_second_pass.last_seconds
+        > EXTRACT(EPOCH FROM NOW() - INTERVAL '8 days')
 WHERE
     has_intro
 OR
