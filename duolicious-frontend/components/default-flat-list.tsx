@@ -381,6 +381,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
             marginBottom: 20,
           },
           style,
+          props.contentContainerStyle,
         ]}
       >
         <ActivityIndicator size="large" color="#70f" />

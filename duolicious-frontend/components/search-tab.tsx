@@ -36,6 +36,12 @@ import { listen } from '../events/events';
 //  not present in the list.
 
 const styles = StyleSheet.create({
+  safeAreaView: {
+    flex: 1,
+  },
+  scrollViewAndClubsBar: {
+    flex: 1,
+  },
   listContainerStyle: {
     paddingRight: 5,
   },
@@ -43,24 +49,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   clubsContentContainer: {
+    position: 'absolute',
+    top: 0,
+    left: isMobile() ? 4 : 0,
+    right: isMobile() ? 4 : 15,
     alignItems: 'stretch',
-    width: '100%',
-    maxWidth: 600,
-    marginTop: 10,
-    marginBottom: 5,
-    paddingLeft: isMobile() ? 5 : 0,
-    paddingRight: isMobile() ? 5 : 15,
     alignSelf: 'center',
+    paddingTop: 10,
+    paddingBottom: 5,
     overflow: 'hidden',
+    zIndex: 9999,
+    opacity: 0.9,
+    backgroundColor: 'white',
   },
   clubsContentContainerContainer: {
     borderRadius: 5,
     overflow: 'hidden',
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 600,
   },
   clubTitle: {
     fontSize: 18,
     fontWeight: '900',
-    paddingLeft: isMobile() ? 5 : 0,
+    paddingLeft: 5,
     paddingRight: 10,
     paddingVertical: 5,
   },
@@ -87,9 +99,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     color: 'black',
-    backgroundColor: 'white',
   },
 });
+
+const scrollIndicatorInsets = {
+  top: 50,
+};
 
 const Stack = createNativeStackNavigator();
 
@@ -235,7 +250,7 @@ const ClubSelector = (props: ClubSelectorProps) => {
         <LinearGradient
           start={{x: 0, y: 0 }}
           end={{x: 1, y: 0 }}
-          colors={['#00000033', '#00000000']}
+          colors={['#00000044', '#00000000']}
           style={{
             position: 'absolute',
             top: 0,
@@ -297,7 +312,7 @@ const ClubSelector = (props: ClubSelectorProps) => {
         <LinearGradient
           start={{x: 0, y: 0 }}
           end={{x: 1, y: 0 }}
-          colors={['#00000000', '#00000033']}
+          colors={['#00000000', '#00000044']}
           style={{
             position: 'absolute',
             top: 0,
@@ -474,7 +489,7 @@ const SearchScreen_ = ({navigation}) => {
   }, []);
 
   return (
-    <SafeAreaView style={{flex: 1}}>
+    <SafeAreaView style={styles.safeAreaView}>
       <DuoliciousTopNavBar>
         {Platform.OS === 'web' &&
           <TopNavBarButton
@@ -489,32 +504,35 @@ const SearchScreen_ = ({navigation}) => {
           style={{right: 15}}
         />
       </DuoliciousTopNavBar>
-      <ClubSelector
-        selectedClub={selectedClub}
-        onChangeSelectedClub={setSelectedClub}
-      />
-      <DefaultFlatList
-        ref={listRef}
-        emptyText={
-          "No matches found. Try adjusting your search filters to include " +
-          "more people."
-        }
-        errorText={
-          "Something went wrong while fetching search results"
-        }
-        endText={
-          "No more matches to show"
-        }
-        fetchPage={fetchPageHavingClub}
-        hideListHeaderComponentWhenEmpty={true}
-        numColumns={2}
-        contentContainerStyle={[
-          styles.listContainerStyle,
-          [hasClubs ? { paddingTop: 0 } : {}],
-        ]}
-        ListHeaderComponent={ListHeaderComponent}
-        renderItem={renderItem}
-      />
+      <View style={styles.scrollViewAndClubsBar}>
+        <ClubSelector
+          selectedClub={selectedClub}
+          onChangeSelectedClub={setSelectedClub}
+        />
+        <DefaultFlatList
+          ref={listRef}
+          emptyText={
+            "No matches found. Try adjusting your search filters to include " +
+            "more people."
+          }
+          errorText={
+            "Something went wrong while fetching search results"
+          }
+          endText={
+            "No more matches to show"
+          }
+          fetchPage={fetchPageHavingClub}
+          hideListHeaderComponentWhenEmpty={true}
+          numColumns={2}
+          contentContainerStyle={[
+            styles.listContainerStyle,
+            [hasClubs ? { paddingTop: 47 } : {}],
+          ]}
+          ListHeaderComponent={ListHeaderComponent}
+          renderItem={renderItem}
+          scrollIndicatorInsets={scrollIndicatorInsets}
+        />
+      </View>
     </SafeAreaView>
   );
 };
