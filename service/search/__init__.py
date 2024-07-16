@@ -86,7 +86,7 @@ def get_search(
         do_modify=club is not None,
     )
 
-    with api_tx() as tx:
+    with api_tx('READ COMMITTED') as tx:
         tx.execute('SET LOCAL statement_timeout = 10000') # 10 seconds
 
         rows = tx.execute(Q_SEARCH_PREFERENCE, params).fetchall()
