@@ -246,7 +246,6 @@ const InDepthScreen = (navigationRef) => ({navigation, route}) => {
     }
   }, []);
 
-  // TODO: Sometimes a spinner shows up at the bottom of the screen that won't go away
   return (
     <>
       <DefaultFlatList

@@ -118,7 +118,13 @@ const EnlargeableImage = ({
   return (
     <Pressable
       onPress={() => imageUuid && onChangeEmbiggened(imageUuid)}
-      style={style}
+      style={[
+        {
+          width: '100%',
+          aspectRatio: 1,
+        },
+        style,
+      ]}
     >
       <ImageOrSkeleton
         resolution={900}

@@ -349,6 +349,7 @@ const InboxTab_ = ({navigation}) => {
           fetchPage={fetchPage}
           dataKey={JSON.stringify({showArchive, sectionIndex})}
           ListHeaderComponent={showArchive ? undefined : ListHeaderComponent}
+          hideListHeaderComponentWhenLoading={false}
           renderItem={renderItem}
           disableRefresh={true}
         />

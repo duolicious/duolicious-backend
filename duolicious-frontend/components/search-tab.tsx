@@ -29,34 +29,28 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { ClubItem } from './club-selector';
 import { listen } from '../events/events';
 
-// TODO: Fix bug where Continuation shows when changing selecting different clubs
-
-// TODO: don't scan clubs when deciding if 'Everyone' should be selected
-//  to fix this, you'll need to ensure that `selectedClub` contains a club
-//  not present in the list.
-
 const styles = StyleSheet.create({
   safeAreaView: {
     flex: 1,
   },
-  scrollViewAndClubsBar: {
-    flex: 1,
-  },
   listContainerStyle: {
-    paddingRight: 5,
+    paddingTop: 0,
+    rowGap: 5,
+  },
+  listColumnWraperStyle: {
+    gap: 5,
+    paddingHorizontal: 5,
   },
   clubsScrollViewContainer: {
     alignItems: 'center',
   },
   clubsContentContainer: {
-    position: 'absolute',
-    top: 0,
-    left: isMobile() ? 4 : 0,
-    right: isMobile() ? 4 : 15,
+    width: '100%',
     alignItems: 'stretch',
     alignSelf: 'center',
     paddingTop: 10,
     paddingBottom: 5,
+    paddingHorizontal: 5,
     overflow: 'hidden',
     zIndex: 9999,
     opacity: 0.9,
@@ -429,6 +423,34 @@ const ClubSelector = (props: ClubSelectorProps) => {
   );
 };
 
+const ListHeaderComponent = ({
+  navigation,
+  hasClubs,
+  selectedClub,
+  setSelectedClub,
+}) => {
+  if (hasClubs) {
+    return <ClubSelector
+      selectedClub={selectedClub}
+      onChangeSelectedClub={setSelectedClub}
+    />;
+  }
+
+  return (
+    <Notice
+      onPress={() => navigation.navigate('Q&A')}
+      style={{
+        marginTop: 10,
+      }}
+    >
+      <DefaultText style={{color: '#70f'}} >
+        Get better matches by playing Q&A{' '}
+      </DefaultText>
+      <QAndADevice color="#70f"/>
+    </Notice>
+  );
+};
+
 const SearchScreen_ = ({navigation}) => {
   const listRef = useRef<any>(undefined);
 
@@ -446,26 +468,6 @@ const SearchScreen_ = ({navigation}) => {
       params: { onPressRefresh },
     });
   }, [onPressRefresh]);
-
-  const ListHeaderComponent = useCallback(() => {
-    if (hasClubs) {
-      return null;
-    }
-
-    return (
-      <Notice
-        onPress={() => navigation.navigate('Q&A')}
-        style={{
-          marginRight: 0,
-        }}
-      >
-        <DefaultText style={{color: '#70f'}} >
-          Get better matches by playing Q&A{' '}
-        </DefaultText>
-        <QAndADevice color="#70f"/>
-      </Notice>
-    );
-  }, [hasClubs]);
 
   const fetchPageHavingClub = useCallback(
     fetchPage(selectedClub), [selectedClub]);
@@ -495,44 +497,52 @@ const SearchScreen_ = ({navigation}) => {
           <TopNavBarButton
             onPress={onPressRefresh}
             iconName="refresh"
-            style={{left: 15}}
+            style={{ left: 15 }}
           />
         }
         <TopNavBarButton
           onPress={onPressOptions}
           iconName="options"
-          style={{right: 15}}
+          style={{ right: 15 }}
         />
       </DuoliciousTopNavBar>
-      <View style={styles.scrollViewAndClubsBar}>
-        <ClubSelector
-          selectedClub={selectedClub}
-          onChangeSelectedClub={setSelectedClub}
-        />
-        <DefaultFlatList
-          ref={listRef}
-          emptyText={
-            "No matches found. Try adjusting your search filters to include " +
-            "more people."
-          }
-          errorText={
-            "Something went wrong while fetching search results"
-          }
-          endText={
-            "No more matches to show"
-          }
-          fetchPage={fetchPageHavingClub}
-          hideListHeaderComponentWhenEmpty={true}
-          numColumns={2}
-          contentContainerStyle={[
-            styles.listContainerStyle,
-            [hasClubs ? { paddingTop: 47 } : {}],
-          ]}
-          ListHeaderComponent={ListHeaderComponent}
-          renderItem={renderItem}
-          scrollIndicatorInsets={scrollIndicatorInsets}
-        />
-      </View>
+      <DefaultFlatList
+        key={
+          // This is needed to trigger a re-render when the sticky header
+          // indicies change. Without this, the header is blank on Android.
+          String(hasClubs)
+        }
+        ref={listRef}
+        emptyText={
+          "No matches found. Try adjusting your search filters to include " +
+          "more people."
+        }
+        errorText={
+          "Something went wrong while fetching search results"
+        }
+        endText={
+          "No more matches to show"
+        }
+        fetchPage={fetchPageHavingClub}
+        dataKey={JSON.stringify(selectedClub)}
+        hideListHeaderComponentWhenEmpty={!hasClubs}
+        hideListHeaderComponentWhenLoading={!hasClubs}
+        numColumns={2}
+        contentContainerStyle={styles.listContainerStyle}
+        ListHeaderComponent={
+          <ListHeaderComponent
+            navigation={navigation}
+            hasClubs={hasClubs}
+            selectedClub={selectedClub}
+            setSelectedClub={setSelectedClub}
+          />
+        }
+        renderItem={renderItem}
+        scrollIndicatorInsets={scrollIndicatorInsets}
+        stickyHeaderHiddenOnScroll={hasClubs}
+        stickyHeaderIndices={hasClubs ? [0] : []}
+        columnWrapperStyle={styles.listColumnWraperStyle}
+      />
     </SafeAreaView>
   );
 };

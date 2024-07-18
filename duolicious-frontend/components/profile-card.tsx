@@ -11,7 +11,6 @@ import {
   memo,
 } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Skeleton } from '@rneui/themed';
 import { DefaultText } from './default-text';
 import { Avatar } from './avatar';
 import {
@@ -31,61 +30,50 @@ const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
   } = rest;
 
   return (
-    <View style={rest.style}>
-      {imageUuid !== undefined && !imageBlurhash &&
-        <Skeleton
-          style={{
-            position: 'absolute',
-            zIndex: -999,
-            width: '100%',
-            height: '100%',
-            borderRadius: 0,
-          }}
-        />
-      }
-      <ImageBackground
-        key={String(imageUuid) + ' ' + String(imageBlurhash)}
-        source={imageUuid && {
-          uri: `${IMAGES_URL}/${resolution}-${imageUuid}.jpg`
-        }}
-        placeholder={imageBlurhash && { blurhash: imageBlurhash }}
-        transition={150}
-        style={{
+    <ImageBackground
+      key={String(imageUuid) + ' ' + String(imageBlurhash)}
+      source={imageUuid && {
+        uri: `${IMAGES_URL}/${resolution}-${imageUuid}.jpg`
+      }}
+      placeholder={imageBlurhash && { blurhash: imageBlurhash }}
+      transition={150}
+      style={[
+        {
           width: '100%',
-          backgroundColor: imageUuid ? undefined : '#ccc',
-          height: undefined,
           aspectRatio: 1,
+          backgroundColor: imageUuid ? undefined : '#ccc',
+        },
+        rest.style,
+      ]}
+    >
+      <LinearGradient
+        colors={showGradient ? [
+          'rgba(0, 0, 0, 0.1)',
+          'transparent',
+          'transparent',
+          'transparent',
+          'transparent',
+          'rgba(0, 0, 0, 0.1)',
+          'rgba(0, 0, 0, 0.3)',
+          'rgba(0, 0, 0, 0.4)',
+        ] : [
+          'transparent',
+          'transparent',
+        ]}
+        style={{
+          height: '100%',
+          justifyContent: 'center',
+          alignItems: 'center',
         }}
       >
-        <LinearGradient
-          colors={showGradient ? [
-            'rgba(0, 0, 0, 0.1)',
-            'transparent',
-            'transparent',
-            'transparent',
-            'transparent',
-            'rgba(0, 0, 0, 0.1)',
-            'rgba(0, 0, 0, 0.3)',
-            'rgba(0, 0, 0, 0.4)',
-          ] : [
-            'transparent',
-            'transparent',
-          ]}
-          style={{
-            height: '100%',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          {imageUuid === null &&
-            <Ionicons
-              style={{fontSize: 100, color: '#eee'}}
-              name={'person'}
-            />
-          }
-        </LinearGradient>
-      </ImageBackground>
-    </View>
+        {imageUuid === null &&
+          <Ionicons
+            style={{fontSize: 100, color: '#eee'}}
+            name={'person'}
+          />
+        }
+      </LinearGradient>
+    </ImageBackground>
   );
 };
 
@@ -172,89 +160,76 @@ const ProfileCard = ({
   );
 
   return (
-    <View
-      style={{
-        paddingTop: 5,
-        paddingLeft: 5,
-        width: '50%',
-      }}
-    >
-      <Pressable
-        onPress={itemOnPress}
+    <Pressable onPress={itemOnPress} style={{ flex: 0.5, aspectRatio: 1 }}>
+      <View
         style={{
-          aspectRatio: 1,
+          width: '100%',
+          height: '100%',
+          borderRadius: 5,
+          overflow: 'hidden',
         }}
       >
+        <ImageOrSkeleton
+          resolution={450}
+          imageUuid={imageUuid}
+          imageBlurhash={imageBlurhash}
+        />
+        <UserDetails
+          name={name}
+          age={age}
+          matchPercentage={matchPercentage}
+          verified={verified}
+        />
+        {prospectMessagedPersonState &&
+          <Ionicons
+            style={{
+              fontSize: 18,
+              color: 'white',
+              position: 'absolute',
+              bottom: 0,
+              right: 18,
+              padding: 5,
+            }}
+            name="chatbubble"
+          />
+        }
+        {personMessagedProspectState &&
+          <Ionicons
+            style={{
+              transform: [ { scaleX: -1 } ],
+              fontSize: 18,
+              color: 'white',
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              padding: 5,
+            }}
+            name="chatbubble"
+          />
+        }
+      </View>
+      {isSkipped &&
         <View
           style={{
-            width: '100%',
-            height: '100%',
-            borderRadius: 5,
-            overflow: 'hidden',
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: 'white',
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
-          <ImageOrSkeleton
-            resolution={450}
-            imageUuid={imageUuid}
-            imageBlurhash={imageBlurhash}
+          <X
+            stroke="#70f"
+            strokeWidth={3}
+            height={48}
+            width={48}
           />
-          <UserDetails
-            name={name}
-            age={age}
-            matchPercentage={matchPercentage}
-            verified={verified}
-          />
-          {prospectMessagedPersonState &&
-            <Ionicons
-              style={{
-                fontSize: 18,
-                color: 'white',
-                position: 'absolute',
-                bottom: 0,
-                right: 18,
-                padding: 5,
-              }}
-              name="chatbubble"
-            />
-          }
-          {personMessagedProspectState &&
-            <Ionicons
-              style={{
-                transform: [ { scaleX: -1 } ],
-                fontSize: 18,
-                color: 'white',
-                position: 'absolute',
-                bottom: 0,
-                right: 0,
-                padding: 5,
-              }}
-              name="chatbubble"
-            />
-          }
         </View>
-        {isSkipped &&
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              bottom: 0,
-              left: 0,
-              right: 0,
-              backgroundColor: 'white',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <X
-              stroke="#70f"
-              strokeWidth={3}
-              height={48}
-              width={48}
-            />
-          </View>
-        }
-      </Pressable>
-    </View>
+      }
+    </Pressable>
   );
 };
 
