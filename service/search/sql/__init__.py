@@ -32,8 +32,10 @@ WHERE
 """
 
 Q_UNCACHED_SEARCH_1 = """
-DELETE FROM search_cache
-WHERE searcher_person_id = %(searcher_person_id)s
+DELETE FROM
+    search_cache
+WHERE
+    searcher_person_id = %(searcher_person_id)s
 """
 
 Q_UNCACHED_SEARCH_2 = """
@@ -548,6 +550,17 @@ WITH searcher AS (
         prospects_fourth_pass
     ORDER BY
         position
+    ON CONFLICT (searcher_person_id, position) DO UPDATE SET
+        searcher_person_id = EXCLUDED.searcher_person_id,
+        position = EXCLUDED.position,
+        prospect_person_id = EXCLUDED.prospect_person_id,
+        prospect_uuid = EXCLUDED.prospect_uuid,
+        profile_photo_uuid = EXCLUDED.profile_photo_uuid,
+        name = EXCLUDED.name,
+        age = EXCLUDED.age,
+        match_percentage = EXCLUDED.match_percentage,
+        personality = EXCLUDED.personality,
+        verified = EXCLUDED.verified
     RETURNING *
 )
 SELECT
