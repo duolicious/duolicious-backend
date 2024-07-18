@@ -36,7 +36,7 @@ echo The stricter rate limit should apply for reports
 ! jc POST "/skip/${user2id}" -d '{ "report_reason": "bad hair" }'
 
 echo Uncached search should be heavily rate-limited
-for x in {1..20}
+for x in {1..30}
 do
   c GET '/search?n=1&o=0'
 done
