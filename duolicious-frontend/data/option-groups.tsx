@@ -1395,7 +1395,7 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     title: "Relationship Status",
     Icon: () => <Ionicons style={{fontSize: 16 }} name="heart" />,
-    description: "What relationship statuses are you willing to accept from people in your search results?",
+    description: "Which relationship statuses are you willing to accept from people in your search results?",
     input: {
       checkChips: {
         values: [
@@ -1497,7 +1497,7 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         style={{color: 'black'}}
       />
     ),
-    description: "Do you want search results to include people who exercise?",
+    description: "Which religions do you want to see in search results?",
     input: {
       checkChips: {
       values: [
