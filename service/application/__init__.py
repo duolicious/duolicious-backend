@@ -224,7 +224,7 @@ def get_search(s: t.SessionInfo):
 
     search_type, _ = search.get_search_type(n, o)
 
-    limit = "20 per 2 minutes"
+    limit = "30 per 2 minutes"
     scope = search_type
 
     if search_type == 'uncached-search':
