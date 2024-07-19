@@ -28,6 +28,7 @@ import { notify } from '../events/events';
 type ClubItem = {
   name: string,
   count_members: number,
+  search_preference?: boolean,
 };
 
 const SelectedClub = ({

@@ -33,6 +33,19 @@ const listen = <T = any>(
   return () => unlisten(key, listener);
 };
 
+const lastEvent = <T = any>(
+  key: string,
+): T | undefined => {
+  // Ensure `listeners[key]` is set
+  listeners[key] = listeners[key] ?? {
+    listeners: new Set<Listener<T>>,
+    lastEvent: undefined,
+  };
+
+  // Return last event
+  return listeners[key].lastEvent;
+};
+
 const unlisten = (key: string, listener: Listener) => {
   listeners[key].listeners.delete(listener);
 };
@@ -55,4 +68,5 @@ export {
   listen,
   notify,
   unlisten,
+  lastEvent,
 };
