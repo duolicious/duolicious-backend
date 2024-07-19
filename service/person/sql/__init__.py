@@ -371,12 +371,22 @@ SELECT
             SELECT
                 json_agg(
                     json_build_object(
-                        'name', club_name,
-                        'count_members', -1))
+                        'name',
+                        person_club.club_name,
+
+                        'count_members',
+                        -1,
+
+                        'search_preference',
+                        person_club.club_name IS NOT DISTINCT FROM search_preference_club.club_name))
             FROM
                 person_club
+            LEFT JOIN
+                search_preference_club
+            ON
+                search_preference_club.person_id = person_club.person_id
             WHERE
-                person_id = existing_person.id
+                person_club.person_id = existing_person.id
         ),
         '[]'::json
     ) AS clubs
@@ -1047,12 +1057,22 @@ SELECT
             SELECT
                 json_agg(
                     json_build_object(
-                        'name', club_name,
-                        'count_members', -1))
+                        'name',
+                        person_club.club_name,
+
+                        'count_members',
+                        -1,
+
+                        'search_preference',
+                        person_club.club_name IS NOT DISTINCT FROM search_preference_club.club_name))
             FROM
                 person_club
+            LEFT JOIN
+                search_preference_club
+            ON
+                search_preference_club.person_id = person_club.person_id
             WHERE
-                person_id = person.id
+                person_club.person_id = person.id
         ),
         '[]'::json
     ) AS clubs
