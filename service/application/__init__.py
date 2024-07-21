@@ -431,7 +431,9 @@ def get_check_verification(s: t.SessionInfo):
 
 @get('/stats')
 def get_stats():
-    return person.get_stats(ttl_hash=get_ttl_hash(seconds=10))
+    return person.get_stats(
+        ttl_hash=get_ttl_hash(seconds=10),
+        club_name=request.args.get('club-name'))
 
 @get('/admin/ban-link/<token>')
 def get_admin_ban_link(token: str):

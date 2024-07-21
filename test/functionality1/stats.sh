@@ -6,9 +6,15 @@ cd "$script_dir"
 source ../util/setup.sh
 
 q "delete from person"
+q "delete from person_club"
+q "delete from club"
 
 ../util/create-user.sh user1 0 0
 ../util/create-user.sh user2 0 0
+
+assume_role user2
+jc POST /join-club -d '{ "name": "my-club-1" }'
+jc POST /join-club -d '{ "name": "my-club-2" }'
 
 set -xe
 
@@ -16,6 +22,16 @@ q "update person set activated = false where name = 'user1'"
 
 response=$(c GET '/stats')
 
-num_active_users=$(jq -r '.num_active_users' <<< "$response")
+[[ $(jq -r '.num_active_users' <<< "$response") = 1 ]]
 
-[[ "$num_active_users" -eq 1 ]]
+response=$(c GET '/stats?club-name=my-club-1')
+
+[[ $(jq -r '.num_active_users' <<< "$response") = 1 ]]
+
+response=$(c GET '/stats?club-name=my-club-2')
+
+[[ $(jq -r '.num_active_users' <<< "$response") = 1 ]]
+
+response=$(c GET '/stats?club-name=my-club-3')
+
+[[ $(jq -r '.num_active_users' <<< "$response") = 0 ]]

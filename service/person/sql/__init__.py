@@ -2333,6 +2333,15 @@ WHERE
     activated
 """
 
+Q_STATS_BY_CLUB_NAME = """
+SELECT
+    COALESCE(SUM(count_members), 0) AS num_active_users
+FROM
+    club
+WHERE
+    name = %(club_name)s
+"""
+
 Q_INSERT_LAST = """
 INSERT INTO
     last (server, username, seconds, state)

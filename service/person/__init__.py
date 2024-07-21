@@ -1549,9 +1549,20 @@ def check_verification(s: t.SessionInfo):
     return '', 400
 
 @lru_cache()
-def get_stats(ttl_hash=None):
+def get_stats(ttl_hash=None, club_name: Optional[str] = None):
+    if club_name:
+        q, params = Q_STATS_BY_CLUB_NAME, dict(club_name=club_name)
+    else:
+        q, params = Q_STATS, None
+
     with api_tx('READ COMMITTED') as tx:
-        return tx.execute(Q_STATS).fetchone()
+        return tx.execute(q, params).fetchone()
+
+@lru_cache()
+def get_stats_by_club_name(club_name: str):
+    with api_tx('READ COMMITTED') as tx:
+        return tx.execute(
+            Q_STATS_BY_CLUB_NAME, dict(club_name=club_name)).fetchone()
 
 def get_admin_ban_link(token: str):
     params = dict(token=token)
