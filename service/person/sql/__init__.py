@@ -2102,9 +2102,9 @@ WITH is_allowed_club_name AS (
     SET
         count_members = count_members + 1
     FROM
-        existing_club
+        inserted_person_club
     WHERE
-        existing_club.name = club.name
+        inserted_person_club.club_name = club.name
 )
 SELECT
     1
