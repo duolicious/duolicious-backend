@@ -11,7 +11,6 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DefaultText } from './default-text';
 import { DefaultTextInput } from './default-text-input';
-import { ButtonWithCenteredText } from './button/centered-text';
 import { OtpInput } from './otp-input';
 import { createAccountOptionGroups } from '../data/option-groups';
 import { OptionScreen } from './option-screen';

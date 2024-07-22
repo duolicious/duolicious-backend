@@ -9,8 +9,9 @@ import {
 } from 'react';
 import { DefaultText } from '../default-text';
 
-const ButtonWithCenteredText = ({children, ...rest}) => {
+const ButtonWithCenteredText = (props) => {
   const {
+    children,
     extraChildren,
     innerRef,
     backgroundColor,
@@ -23,7 +24,7 @@ const ButtonWithCenteredText = ({children, ...rest}) => {
     textColor,
     fontSize,
     loading = false,
-  } = rest;
+  } = props;
 
   const isEnabledRef = useRef(true);
 
@@ -104,7 +105,7 @@ const ButtonWithCenteredText = ({children, ...rest}) => {
         {loading &&
           <ActivityIndicator size="large" color={secondary ? "#70f" : 'white'} />
         }
-        {!loading &&
+        {!loading && children &&
           <DefaultText
             style={{
               color: textColor || (secondary ? 'black' : 'white'),
@@ -116,7 +117,7 @@ const ButtonWithCenteredText = ({children, ...rest}) => {
             {children}
           </DefaultText>
         }
-        {extraChildren}
+        {!loading && extraChildren}
       </Animated.View>
     </Pressable>
   );

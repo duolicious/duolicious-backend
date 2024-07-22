@@ -146,18 +146,19 @@ const UndoNoYesSkip = (props) => {
         backgroundColor="black"
         borderColor="white"
         borderWidth={2}
-      >
-        <Rewind
-          stroke="white"
-          strokeWidth={4}
-          height={30}
-          width={30}
-          style={{
-            marginTop: 3,
-            marginLeft: -3,
-          }}
-        />
-      </ButtonWithCenteredText>
+        extraChildren={
+          <Rewind
+            stroke="white"
+            strokeWidth={4}
+            height={30}
+            width={30}
+            style={{
+              marginTop: 3,
+              marginLeft: -3,
+            }}
+          />
+        }
+      />
       <ButtonWithCenteredText
         innerRef={noButtonRef}
         className="pressable"
@@ -166,17 +167,18 @@ const UndoNoYesSkip = (props) => {
         backgroundColor="#70f"
         borderColor="white"
         borderWidth={2}
-      >
-        <X
-          stroke="white"
-          strokeWidth={4}
-          width={30}
-          height={30}
-          style={{
-            marginTop: 3,
-          }}
-        />
-      </ButtonWithCenteredText>
+        extraChildren={
+          <X
+            stroke="white"
+            strokeWidth={4}
+            width={30}
+            height={30}
+            style={{
+              marginTop: 3,
+            }}
+          />
+        }
+      />
       <ButtonWithCenteredText
         innerRef={yesButtonRef}
         className="pressable"
@@ -185,7 +187,7 @@ const UndoNoYesSkip = (props) => {
         backgroundColor="#70f"
         borderColor="white"
         borderWidth={2}
-      >
+        extraChildren={
         <Check
           stroke="white"
           strokeWidth={4}
@@ -195,7 +197,8 @@ const UndoNoYesSkip = (props) => {
             marginTop: 3,
           }}
         />
-      </ButtonWithCenteredText>
+        }
+      />
       <ButtonWithCenteredText
         innerRef={skipButtonRef}
         className="pressable"
@@ -205,18 +208,19 @@ const UndoNoYesSkip = (props) => {
         backgroundColor="black"
         borderColor="white"
         borderWidth={2}
-      >
-        <FastForward
-          stroke="white"
-          strokeWidth={4}
-          height={30}
-          width={30}
-          style={{
-            marginTop: 3,
-            marginRight: -3,
-          }}
-        />
-      </ButtonWithCenteredText>
+        extraChildren={
+          <FastForward
+            stroke="white"
+            strokeWidth={4}
+            height={30}
+            width={30}
+            style={{
+              marginTop: 3,
+              marginRight: -3,
+            }}
+          />
+        }
+      />
     </View>
   );
 };

@@ -18,7 +18,6 @@ import {
   useState,
 } from 'react';
 import { DefaultText }  from './default-text';
-import { ButtonWithCenteredText } from './button/centered-text';
 
 const styles = StyleSheet.create({
   activityIndicator: {
