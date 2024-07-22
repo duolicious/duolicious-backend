@@ -908,27 +908,24 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       }
     },
   },
-  _.merge(
-    {},
-    yourPartnersGenderOptionGroup,
-    {
-      title: 'Step 1 of 7: ' + yourPartnersGenderOptionGroup.title,
-      input: {
-        checkChips: {
-          submit: async (input: string[]) => (await japi(
-            'patch',
-            '/onboardee-info',
-            { other_peoples_genders: input }
-          )).ok
-        }
+  {
+    title: "Step 1 of 5: Display Name",
+    description: "This could be your first name, or an alias",
+    input: {
+      givenName: {
+        submit: async (input) => (await japi(
+          'patch',
+          '/onboardee-info',
+          { name: input }
+        )).ok
       }
     },
-  ),
+  },
   _.merge(
     {},
     genderOptionGroup,
     {
-      title: 'Step 2 of 7: Your Gender',
+      title: 'Step 2 of 5: Your Gender',
       input: {
         buttons: {
           submit: async (input) => (await japi(
@@ -941,21 +938,24 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       }
     },
   ),
-  {
-    title: "Step 3 of 7: First Name",
-    description: "What’s your first name? You can’t change this later",
-    input: {
-      givenName: {
-        submit: async (input) => (await japi(
-          'patch',
-          '/onboardee-info',
-          { name: input }
-        )).ok
+  _.merge(
+    {},
+    yourPartnersGenderOptionGroup,
+    {
+      title: 'Step 3 of 5: ' + yourPartnersGenderOptionGroup.title,
+      input: {
+        checkChips: {
+          submit: async (input: string[]) => (await japi(
+            'patch',
+            '/onboardee-info',
+            { other_peoples_genders: input }
+          )).ok
+        }
       }
     },
-  },
+  ),
   {
-    title: 'Step 4 of 7: Birth Date',
+    title: 'Step 4 of 5: Birth Date',
     description: "When were you born? You can’t change this later",
     input: {
       date: {
@@ -972,7 +972,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     {},
     locationOptionGroup,
     {
-      title: 'Step 5 of 7: ' + locationOptionGroup.title,
+      title: 'Step 5 of 5: ' + locationOptionGroup.title,
       input: {
         locationSelector: {
           submit: async (input) => (await japi(
@@ -985,51 +985,13 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     },
   ),
   {
-    title: 'Step 6 of 7: Photos',
-    description: 'People with pics get about 11 times more messages, but you can add these later',
-    input: {
-      photos: {
-        submit: async (position, cropperOutput) => (await japi(
-          'patch',
-          '/onboardee-info',
-          {
-            base64_file: {
-              position,
-              base64: cropperOutput.originalBase64,
-              top: cropperOutput.top,
-              left: cropperOutput.left,
-            },
-          },
-          2 * 60 * 1000 // 2 minutes
-        )).ok,
-        delete: async (filename) => (await japi(
-          'delete',
-          '/onboardee-info',
-          { files: [filename] }
-        )).ok
-      }
-    }
-  },
-  {
-    title: 'Step 7 of 7: About',
-    description: 'Tell us about yourself...',
-    input: {
-      textLong: {
-        submit: async (input) => (await japi(
-          'patch',
-          '/onboardee-info',
-          { about: input }
-        )).ok,
-        invalidMsg: "Gotta write something",
-      }
-    }
-  },
-  {
     title: "You’re Looking Like A Snack 😋",
     description: "",
     input: {
       none: {
-        description: "You’re ready to go! You can always sweeten your profile even more once you’re signed in...",
+        description: (
+          "You’re ready to go! You can always sweeten your profile some more " +
+          "once you’re signed in..."),
         submit: async () => {
           const _sessionToken = await sessionToken();
           const response = await japi('post', '/finish-onboarding');
