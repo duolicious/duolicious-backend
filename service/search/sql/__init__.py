@@ -1,4 +1,20 @@
-Q_SEARCH_PREFERENCE = """
+Q_UPSERT_SEARCH_PREFERENCE_CLUB = """
+INSERT INTO search_preference_club (
+    person_id,
+    club_name
+)
+SELECT
+    %(person_id)s,
+    %(club_name)s::TEXT
+WHERE
+    %(club_name)s::TEXT IS NOT NULL
+AND
+    %(do_modify)s
+ON CONFLICT (person_id) DO UPDATE SET
+    club_name = EXCLUDED.club_name
+"""
+
+Q_SEARCH_PREFERENCE = f"""
 WITH delete_search_preference_club AS (
     DELETE FROM
         search_preference_club
@@ -8,20 +24,15 @@ WITH delete_search_preference_club AS (
         %(club_name)s::TEXT IS NULL
     AND
         %(do_modify)s
-), update_search_preference_club AS (
-    INSERT INTO search_preference_club (
-        person_id,
-        club_name
-    )
-    SELECT
-        %(person_id)s,
-        %(club_name)s::TEXT
+), set_pending_club_name_to_null AS (
+    UPDATE
+        duo_session
+    SET
+        pending_club_name = NULL
     WHERE
-        %(club_name)s::TEXT IS NOT NULL
-    AND
-        %(do_modify)s
-    ON CONFLICT (person_id) DO UPDATE SET
-        club_name = EXCLUDED.club_name
+        person_id = %(person_id)s
+), upsert_search_preference_club AS (
+    {Q_UPSERT_SEARCH_PREFERENCE_CLUB}
 )
 SELECT
     gender_id

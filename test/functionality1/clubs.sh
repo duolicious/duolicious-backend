@@ -7,6 +7,8 @@ source ../util/setup.sh
 
 set -xe
 
+# TODO: Test that joining a club is idempotent and recompute club counts
+
 club_quota () {
   echo 'You can join no more than 100 clubs'
 

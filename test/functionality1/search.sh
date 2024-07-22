@@ -710,6 +710,26 @@ test_clubs () {
   [[ "$response" = "user1 user2" ]]
 }
 
+test_pending_club_cleared () {
+  setup
+
+  jc POST /join-club -d '{ "name": "my-club" }'
+
+  q "update search_preference_club set club_name = 'my-club'"
+
+  search_names
+
+  local num_matches=$(
+    q "select count(*) \
+      from search_preference_club \
+      where person_id = '$searcher_id'"
+  )
+
+  [[ "$num_matches" = 0 ]]
+}
+
+test_pending_club_cleared
+
 test_clubs
 
 test_quiz_search

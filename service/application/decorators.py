@@ -96,7 +96,8 @@ SELECT
     duo_session.person_id,
     person.uuid::TEXT AS person_uuid,
     duo_session.email,
-    duo_session.signed_in
+    duo_session.signed_in,
+    duo_session.pending_club_name
 FROM
     duo_session
 LEFT JOIN
@@ -182,6 +183,7 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                 person_id=row['person_id']
                 person_uuid=row['person_uuid']
                 signed_in=row['signed_in']
+                pending_club_name=row['pending_club_name']
 
                 session_info = duotypes.SessionInfo(
                     email=email,
@@ -189,6 +191,7 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                     person_uuid=person_uuid,
                     signed_in=signed_in,
                     session_token_hash=session_token_hash,
+                    pending_club_name=pending_club_name,
                 )
 
                 g.normalized_email = normalize_email(email)

@@ -244,6 +244,7 @@ INSERT INTO duo_session (
     session_token_hash,
     person_id,
     email,
+    pending_club_name,
     otp,
     ip_address
 )
@@ -262,6 +263,7 @@ SELECT
         LIMIT 1
     ),
     %(email)s,
+    %(pending_club_name)s,
     otp,
     %(ip_address)s
 FROM
@@ -365,31 +367,7 @@ WITH valid_session AS (
 SELECT
     person_id,
     person_uuid,
-    (SELECT name FROM unit WHERE id = existing_person.unit_id) AS units,
-    COALESCE(
-        (
-            SELECT
-                json_agg(
-                    json_build_object(
-                        'name',
-                        person_club.club_name,
-
-                        'count_members',
-                        -1,
-
-                        'search_preference',
-                        person_club.club_name IS NOT DISTINCT FROM search_preference_club.club_name))
-            FROM
-                person_club
-            LEFT JOIN
-                search_preference_club
-            ON
-                search_preference_club.person_id = person_club.person_id
-            WHERE
-                person_club.person_id = existing_person.id
-        ),
-        '[]'::json
-    ) AS clubs
+    (SELECT name FROM unit WHERE id = existing_person.unit_id) AS units
 FROM
     valid_session
 LEFT JOIN
@@ -725,7 +703,7 @@ WITH onboardee_country AS (
     SELECT
         new_person.id,
         CASE
-            WHEN best_distance.cnt < 500
+            WHEN best_distance.cnt < 500 OR %(pending_club_name)s::TEXT IS NULL
             THEN NULL
             ELSE best_distance.dist
         END AS distance
@@ -803,8 +781,7 @@ WITH onboardee_country AS (
 SELECT
     new_person.id AS person_id,
     new_person.uuid AS person_uuid,
-    (SELECT name FROM unit WHERE unit.id = new_person.unit_id) AS units,
-    '{}'::TEXT[] AS clubs
+    (SELECT name FROM unit WHERE unit.id = new_person.unit_id) AS units
 FROM
     new_person
 """
@@ -1051,31 +1028,7 @@ WHERE
 
 Q_CHECK_SESSION_TOKEN = """
 SELECT
-    (SELECT name FROM unit WHERE unit.id = person.unit_id) AS units,
-    COALESCE(
-        (
-            SELECT
-                json_agg(
-                    json_build_object(
-                        'name',
-                        person_club.club_name,
-
-                        'count_members',
-                        -1,
-
-                        'search_preference',
-                        person_club.club_name IS NOT DISTINCT FROM search_preference_club.club_name))
-            FROM
-                person_club
-            LEFT JOIN
-                search_preference_club
-            ON
-                search_preference_club.person_id = person_club.person_id
-            WHERE
-                person_club.person_id = person.id
-        ),
-        '[]'::json
-    ) AS clubs
+    (SELECT name FROM unit WHERE unit.id = person.unit_id) AS units
 FROM
     person
 WHERE
@@ -2440,4 +2393,55 @@ ON
     verification_job.person_id = person.id
 WHERE
     person.id = %(person_id)s
+"""
+
+Q_GET_SESSION_CLUBS = """
+SELECT
+    COALESCE(
+        (
+            SELECT
+                json_agg(
+                    json_build_object(
+                        'name',
+                        person_club.club_name,
+
+                        'count_members',
+                        -1,
+
+                        'search_preference',
+                        person_club.club_name IS NOT DISTINCT FROM search_preference_club.club_name
+                    )
+                    ORDER BY
+                        person_club.club_name
+                )
+            FROM
+                person_club
+            LEFT JOIN
+                search_preference_club
+            ON
+                search_preference_club.person_id = person_club.person_id
+            WHERE
+                person_club.person_id = %(person_id)s
+        ),
+        '[]'::json
+    ) AS clubs,
+    (
+        SELECT
+            json_build_object(
+                'name',
+                %(pending_club_name)s::TEXT,
+
+                'count_members',
+                (
+                    SELECT
+                        coalesce(sum(count_members), 0)
+                    FROM
+                        club
+                    WHERE
+                        name = %(pending_club_name)s
+                )
+            )
+        WHERE
+            %(pending_club_name)s::TEXT IS NOT NULL
+    ) AS pending_club
 """

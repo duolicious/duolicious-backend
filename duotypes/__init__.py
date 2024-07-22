@@ -20,6 +20,11 @@ CLUB_MAX_LEN = 42
 
 HEX_COLOR_PATTERN = r"^#[0-9a-fA-F]{6}$"
 
+class ClubItem(BaseModel):
+    name: str
+    count_members: int
+    search_preference: Optional[bool]
+
 class Base64File(BaseModel):
     position: conint(ge=1, le=7)
     base64: str
@@ -89,6 +94,7 @@ class SessionInfo(BaseModel):
     person_uuid: Optional[str]
     onboarded: bool
     signed_in: bool
+    pending_club_name: Optional[str]
 
     @model_validator(mode='before')
     def set_onboarded(cls, values):
@@ -105,6 +111,11 @@ class DeleteAnswer(BaseModel):
 
 class PostRequestOtp(BaseModel):
     email: EmailStr
+    pending_club_name: Optional[
+        constr(
+            pattern=CLUB_PATTERN,
+            min_length=1,
+            max_length=CLUB_MAX_LEN)] = None
 
     @field_validator('email', mode='before')
     def validate_email(cls, value):
@@ -267,7 +278,10 @@ class PostInboxInfo(BaseModel):
     person_uuids: List[str]
 
 class PostJoinClub(BaseModel):
-    name: constr(pattern=CLUB_PATTERN, max_length=CLUB_MAX_LEN)
+    name: constr(
+            pattern=CLUB_PATTERN,
+            min_length=1,
+            max_length=CLUB_MAX_LEN)
 
     @model_validator(mode='before')
     def set_onboarded(cls, values):
@@ -285,7 +299,10 @@ class PostJoinClub(BaseModel):
         return values
 
 class PostLeaveClub(BaseModel):
-    name: constr(pattern=CLUB_PATTERN, min_length=1, max_length=CLUB_MAX_LEN)
+    name: constr(
+            pattern=CLUB_PATTERN,
+            min_length=1,
+            max_length=CLUB_MAX_LEN)
 
 class PostSkip(BaseModel):
     report_reason: Optional[constr(

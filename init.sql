@@ -298,6 +298,7 @@ CREATE TABLE IF NOT EXISTS duo_session (
     session_token_hash TEXT NOT NULL,
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     email TEXT NOT NULL,
+    pending_club_name TEXT,
     otp TEXT NOT NULL,
     ip_address inet,
     signed_in BOOLEAN NOT NULL DEFAULT FALSE,
@@ -1420,5 +1421,10 @@ FOR EACH ROW EXECUTE FUNCTION
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
+
+-- TODO
+alter table duo_session
+    add column if not exists pending_club_name TEXT
+;
 
 --------------------------------------------------------------------------------
