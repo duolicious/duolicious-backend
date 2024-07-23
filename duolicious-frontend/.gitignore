@@ -22,3 +22,7 @@ build-*.ipa
 # Vim's temporary files
 *.swo
 *.swp
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
