@@ -10,6 +10,7 @@ import io
 import boto3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from service.person.sql import *
+from service.search.sql import *
 from sql import *
 from service.person.template import otp_template, report_template
 import traceback
@@ -295,13 +296,13 @@ def post_request_otp(req: t.PostRequestOtp):
     if not check_and_update_bad_domains(req.email):
         return 'Disposable email', 400
 
-    email = req.email
     session_token = secrets.token_hex(64)
     session_token_hash = sha512(session_token)
 
     params = dict(
-        email=email,
-        normalized_email=normalize_email(email),
+        email=req.email,
+        normalized_email=normalize_email(req.email),
+        pending_club_name=req.pending_club_name,
         is_dev=DUO_ENV == 'dev',
         session_token_hash=session_token_hash,
         ip_address=request.remote_addr or "127.0.0.1",
@@ -316,7 +317,7 @@ def post_request_otp(req: t.PostRequestOtp):
     except:
         return 'Banned', 403
 
-    _send_otp(email, otp)
+    _send_otp(req.email, otp)
 
     return dict(session_token=session_token)
 
@@ -344,14 +345,31 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
     params = dict(
         otp=req.otp,
         session_token_hash=s.session_token_hash,
+        pending_club_name=s.pending_club_name,
     )
 
     with api_tx() as tx:
         tx.execute(Q_MAYBE_DELETE_ONBOARDEE, params)
         tx.execute(Q_MAYBE_SIGN_IN, params)
         row = tx.fetchone()
+
         if not row:
             return 'Invalid OTP', 401
+
+        club_params = dict(
+            person_id=s.person_id,
+            club_name=s.pending_club_name,
+            pending_club_name=s.pending_club_name,
+            do_modify=True,
+        )
+
+        if \
+                club_params['person_id'] is not None and \
+                club_params['club_name'] is not None:
+            tx.execute(Q_JOIN_CLUB, club_params)
+            tx.execute(Q_UPSERT_SEARCH_PREFERENCE_CLUB, club_params)
+
+        clubs = tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone()
 
     params = dict(person_uuid=row['person_uuid'])
 
@@ -361,6 +379,7 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
     return dict(
         onboarded=row['person_id'] is not None,
         **row,
+        **clubs,
     )
 
 def post_sign_out(s: t.SessionInfo):
@@ -370,17 +389,31 @@ def post_sign_out(s: t.SessionInfo):
         tx.execute(Q_DELETE_DUO_SESSION, params)
 
 def post_check_session_token(s: t.SessionInfo):
-    params = dict(person_id=s.person_id)
+    params = dict(
+        person_id=s.person_id,
+        pending_club_name=s.pending_club_name,
+    )
 
     with api_tx() as tx:
         row = tx.execute(Q_CHECK_SESSION_TOKEN, params).fetchone()
-        if row:
-            return dict(
-                person_id=s.person_id,
-                person_uuid=s.person_uuid,
-                onboarded=s.onboarded,
-                **row,
-            )
+
+        if not row:
+            return 'Invalid token', 401
+
+        club_params = dict(
+            person_id=s.person_id,
+            pending_club_name=s.pending_club_name,
+        )
+
+        clubs = tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone()
+
+        return dict(
+            person_id=s.person_id,
+            person_uuid=s.person_uuid,
+            onboarded=s.onboarded,
+            **row,
+            **clubs,
+        )
 
 def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
     [field_name] = req.__pydantic_fields_set__
@@ -555,10 +588,26 @@ def post_finish_onboarding(s: t.SessionInfo):
     api_params = dict(
         email=s.email,
         normalized_email=normalize_email(s.email),
+        pending_club_name=s.pending_club_name,
     )
 
     with api_tx() as tx:
         row = tx.execute(Q_FINISH_ONBOARDING, params=api_params).fetchone()
+
+        club_params = dict(
+            person_id=row['person_id'],
+            club_name=s.pending_club_name,
+            pending_club_name=s.pending_club_name,
+            do_modify=True,
+        )
+
+        if \
+                club_params['person_id'] is not None and \
+                club_params['club_name'] is not None:
+            tx.execute(Q_JOIN_CLUB, club_params)
+            tx.execute(Q_UPSERT_SEARCH_PREFERENCE_CLUB, club_params)
+
+        clubs = tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone()
 
     chat_params = dict(
         person_id=row['person_id'],
@@ -568,7 +617,7 @@ def post_finish_onboarding(s: t.SessionInfo):
     with chat_tx() as tx:
         tx.execute(Q_INSERT_LAST, params=chat_params)
 
-    return row
+    return dict(**row, **clubs)
 
 def get_me(
     person_id_as_int: int | None = None,
@@ -1549,9 +1598,20 @@ def check_verification(s: t.SessionInfo):
     return '', 400
 
 @lru_cache()
-def get_stats(ttl_hash=None):
+def get_stats(ttl_hash=None, club_name: Optional[str] = None):
+    if club_name:
+        q, params = Q_STATS_BY_CLUB_NAME, dict(club_name=club_name)
+    else:
+        q, params = Q_STATS, None
+
     with api_tx('READ COMMITTED') as tx:
-        return tx.execute(Q_STATS).fetchone()
+        return tx.execute(q, params).fetchone()
+
+@lru_cache()
+def get_stats_by_club_name(club_name: str):
+    with api_tx('READ COMMITTED') as tx:
+        return tx.execute(
+            Q_STATS_BY_CLUB_NAME, dict(club_name=club_name)).fetchone()
 
 def get_admin_ban_link(token: str):
     params = dict(token=token)

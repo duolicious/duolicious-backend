@@ -298,6 +298,7 @@ CREATE TABLE IF NOT EXISTS duo_session (
     session_token_hash TEXT NOT NULL,
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     email TEXT NOT NULL,
+    pending_club_name TEXT,
     otp TEXT NOT NULL,
     ip_address inet,
     signed_in BOOLEAN NOT NULL DEFAULT FALSE,
@@ -1420,5 +1421,45 @@ FOR EACH ROW EXECUTE FUNCTION
 --------------------------------------------------------------------------------
 -- Migrations
 --------------------------------------------------------------------------------
+
+-- TODO
+alter table duo_session
+    add column if not exists pending_club_name TEXT
+;
+
+-- TODO: delete
+WITH club_member_counts AS (
+    SELECT
+        club_name,
+        count(*) AS c
+    FROM
+        person_club
+    JOIN
+        person
+    ON
+        person.id = person_club.person_id
+    WHERE
+        person.activated
+    GROUP BY
+        club_name
+), all_clubs AS (
+    SELECT
+        name AS club_name,
+        coalesce(cmc.c, 0) AS c
+    FROM
+        club
+    LEFT JOIN
+        club_member_counts cmc
+    ON
+        club.name = cmc.club_name
+)
+UPDATE
+    club
+SET
+    count_members = all_clubs.c
+FROM
+    all_clubs
+WHERE
+    all_clubs.club_name = club.name;
 
 --------------------------------------------------------------------------------

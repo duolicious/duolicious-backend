@@ -7,6 +7,32 @@ source ../util/setup.sh
 
 set -xe
 
+club_idempotence () {
+  echo 'You can join no more than 100 clubs'
+
+  q "delete from person"
+  q "delete from person_club"
+  q "delete from club"
+
+  ../util/create-user.sh user1 0 0
+  ../util/create-user.sh user2 0 0
+
+  assume_role user1
+  jc POST /join-club -d '{ "name": "my-club-1" }'
+  jc POST /join-club -d '{ "name": "my-club-1" }'
+
+  assume_role user2
+  results=$(c GET '/search-clubs?q=my-club')
+  expected=$(
+    jq -r . <<< "[ \
+      {\"count_members\": 1, \"name\": \"my-club-1\"}, \
+      {\"count_members\": 0, \"name\": \"my-club\"}
+    ]"
+  )
+  [[ "$results" == "$expected" ]]
+
+}
+
 club_quota () {
   echo 'You can join no more than 100 clubs'
 
@@ -180,6 +206,7 @@ banned_clubs () {
   ! jc POST /join-club -d '{ "name": "did you know I HATE MINORITIES" }'
 }
 
+club_idempotence
 club_quota
 club_count_when_deleted
 club_count_when_activated_or_deactivated
