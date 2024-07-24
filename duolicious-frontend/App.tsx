@@ -145,7 +145,6 @@ const isImagePickerOpen = { value: false };
 
 const App = () => {
   const [numUnreadTitle, setNumUnreadTitle] = useState(0);
-  const [numUsers, setNumUsers] = useState(-1);
   const [isLoading, setIsLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
   [signedInUser, setSignedInUser] = useState<SignedInUser | undefined>();
@@ -271,12 +270,6 @@ const App = () => {
       }
 
       default: {
-        const response = await japi('GET', '/stats');
-
-        if (!response.ok)
-          break;
-
-        setNumUsers(response.json.num_active_users);
         break;
       }
     }
@@ -390,10 +383,6 @@ const App = () => {
     })();
   }, [isLoading]);
 
-  const WelcomeScreen_ = useMemo(() => {
-    return WelcomeScreen(numUsers);
-  }, [numUsers]);
-
   if (serverStatus !== "ok") {
     return <UtilityScreen serverStatus={serverStatus}/>
   }
@@ -440,7 +429,7 @@ const App = () => {
                   </>
                 ) : (
                   <>
-                    <Tab.Screen name="Welcome" component={WelcomeScreen_} />
+                    <Tab.Screen name="Welcome" component={WelcomeScreen} />
                     <Tab.Screen name="Invite Screen" component={InviteScreen} />
                   </>
                 )

@@ -1,16 +1,19 @@
 import {
+  Animated,
+  Keyboard,
   Linking,
   Platform,
+  SafeAreaView,
   StatusBar,
   Text,
   View,
   useWindowDimensions,
-  Keyboard,
-  SafeAreaView,
 } from 'react-native';
 import {
   useCallback,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -31,9 +34,10 @@ import { ClubItem, joinClub } from './club-selector';
 const activeMembersText = (
   numActiveMembers: number,
   minActiveMembers: number,
+  minText: string,
 ) => {
   if (numActiveMembers < minActiveMembers) {
-    return 'on the Duolicious dating app';
+    return minText;
   } else {
     return (
       `${numActiveMembers.toLocaleString()} active member` +
@@ -46,21 +50,56 @@ const ActiveMembers = ({
   numActiveMembers,
   minActiveMembers,
   color,
+  minText = 'on the Duolicious dating app',
 }) => {
+  const opacity = useRef(new Animated.Value(1)).current;
+  const [displayText, setDisplayText] = useState(
+    activeMembersText(numActiveMembers, minActiveMembers, minText));
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false; // Mark as not first render anymore
+      return; // Skip animation on first render
+    }
+
+    // Fade out, change text, and fade in sequence
+    Animated.sequence([
+      // Fade out
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true
+      })
+    ]).start(() => {
+      setDisplayText(
+        activeMembersText(numActiveMembers, minActiveMembers, minText));
+      // Fade in
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true
+      }).start();
+    });
+  }, [numActiveMembers, minActiveMembers]);
+
   return (
-    <DefaultText style={{ textAlign: 'center', color }}>
-      {activeMembersText(numActiveMembers, minActiveMembers)}
-    </DefaultText>
+    <Animated.Text
+      style={{
+        textAlign: 'center',
+        color,
+        opacity,
+        fontFamily: 'MontserratRegular',
+      }}
+    >
+      {displayText}
+    </Animated.Text>
   );
 };
 
 const Stack = createNativeStackNavigator();
 
-const WelcomeScreen = (numUsers: number) => () => {
-  const WelcomeScreen__ = useMemo(() => {
-    return WelcomeScreen_(numUsers);
-  }, [numUsers]);
-
+const WelcomeScreen = () => {
   return (
     <Stack.Navigator
       screenOptions={{
@@ -68,7 +107,7 @@ const WelcomeScreen = (numUsers: number) => () => {
         animation: 'slide_from_right',
       }}
     >
-      <Stack.Screen name="Welcome Screen" component={WelcomeScreen__} />
+      <Stack.Screen name="Welcome Screen" component={WelcomeScreen_} />
       <Stack.Screen name="Create Account Or Sign In Screen" component={OptionScreen} />
     </Stack.Navigator>
   );
@@ -203,7 +242,8 @@ const InviteScreen = ({navigation, route}) => {
               <ActiveMembers
                 numActiveMembers={numUsers}
                 minActiveMembers={10}
-                color="#555" />
+                color="#555"
+              />
             </View>
             <View
               style={{
@@ -263,9 +303,9 @@ const InviteScreen = ({navigation, route}) => {
   );
 };
 
-const WelcomeScreen_ = (numUsers: number) => ({navigation, route}) => {
+const WelcomeScreen_ = ({navigation, route}) => {
   const clubName_ = (route.params?.clubName) as string | undefined;
-  const numUsers_ = (route.params?.numUsers ?? numUsers) as number | undefined;
+  const [numUsers, setNumUsers] = useState<number | undefined>(route.params?.numUsers);
 
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -324,6 +364,21 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation, route}) => {
       );
     }
   };
+
+  useEffect(() => {
+    const updateNumUsers = async () => {
+      const response = await japi('GET', '/stats');
+
+      if (!response.ok)
+        return;
+
+      setNumUsers(response.json.num_active_users);
+    };
+
+    if (numUsers === undefined) {
+      updateNumUsers();
+    }
+  }, [numUsers]);
 
   const SuffixButton = useCallback(({suffix}) => (
     <ButtonWithCenteredText
@@ -409,9 +464,11 @@ const WelcomeScreen_ = (numUsers: number) => ({navigation, route}) => {
           </DefaultText>
           {(Platform.OS === 'web' || height > 500) &&
             <ActiveMembers
-              numActiveMembers={numUsers_}
+              numActiveMembers={numUsers ?? -1}
               minActiveMembers={0}
-              color="white" />
+              color="white"
+              minText={'\xa0'}
+            />
           }
         </View>
         <View style={{
