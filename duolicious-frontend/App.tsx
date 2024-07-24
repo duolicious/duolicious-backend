@@ -252,19 +252,9 @@ const App = () => {
       }
 
       case 'invite': {
-        const response = await japi(
-          'GET',
-          '/stats?club-name=' + parsedUrl.right);
-
-        if (!response.ok)
-          break;
-
         navigationContainerRef.current.navigate(
           'Invite Screen',
-          {
-            clubName: decodeURIComponent(parsedUrl.right),
-            numUsers: response.json.num_active_users,
-          },
+          { clubName: decodeURIComponent(parsedUrl.right) },
         );
         break;
       }

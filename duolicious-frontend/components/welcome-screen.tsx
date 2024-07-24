@@ -51,11 +51,25 @@ const ActiveMembers = ({
   minActiveMembers,
   color,
   minText = 'on the Duolicious dating app',
+}: {
+  numActiveMembers: number,
+  minActiveMembers: number
+  color: string,
+  minText?: string,
 }) => {
   const opacity = useRef(new Animated.Value(1)).current;
+
   const [displayText, setDisplayText] = useState(
     activeMembersText(numActiveMembers, minActiveMembers, minText));
+
+  const [nextDisplayText, setNextDisplayText] = useState(displayText);
+
   const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    setNextDisplayText(
+      activeMembersText(numActiveMembers, minActiveMembers, minText));
+  }, [numActiveMembers, minActiveMembers]);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -72,8 +86,8 @@ const ActiveMembers = ({
         useNativeDriver: true
       })
     ]).start(() => {
-      setDisplayText(
-        activeMembersText(numActiveMembers, minActiveMembers, minText));
+      setDisplayText(nextDisplayText);
+
       // Fade in
       Animated.timing(opacity, {
         toValue: 1,
@@ -81,7 +95,7 @@ const ActiveMembers = ({
         useNativeDriver: true
       }).start();
     });
-  }, [numActiveMembers, minActiveMembers]);
+  }, [nextDisplayText]);
 
   return (
     <Animated.Text
@@ -117,21 +131,17 @@ const InviteScreen = ({navigation, route}) => {
   const [loading, setLoading] = useState(false);
 
   const clubName = route.params?.clubName as string | undefined;
-  const numUsers = route.params?.numUsers as string | undefined;
+  const [numUsers, setNumUsers] = useState<number | undefined>(undefined);
 
   if (typeof clubName !== 'string') {
     throw new Error('clubName should be a string');
-  }
-
-  if (typeof numUsers !== 'number') {
-    throw new Error('numUsers should be a number');
   }
 
   const submit = async () => {
     if (signedInUser) {
       setLoading(true);
 
-      await joinClub(clubName, numUsers, true);
+      await joinClub(clubName, numUsers ?? 0, true);
 
       setLoading(false);
 
@@ -144,6 +154,23 @@ const InviteScreen = ({navigation, route}) => {
       navigation.navigate('Welcome Screen', { clubName, numUsers });
     }
   };
+
+  useEffect(() => {
+    const updateNumUsers = async () => {
+      const response = await japi(
+          'GET',
+          '/stats?club-name=' + encodeURIComponent(clubName));
+
+      if (!response.ok)
+        return;
+
+      setNumUsers(response.json.num_active_users);
+    };
+
+    if (numUsers === undefined) {
+      updateNumUsers();
+    }
+  }, [clubName, numUsers]);
 
   return (
     <SafeAreaView
@@ -240,7 +267,7 @@ const InviteScreen = ({navigation, route}) => {
                 {clubName}
               </DefaultText>
               <ActiveMembers
-                numActiveMembers={numUsers}
+                numActiveMembers={numUsers ?? -1}
                 minActiveMembers={10}
                 color="#555"
               />
