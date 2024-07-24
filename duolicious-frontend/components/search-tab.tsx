@@ -26,7 +26,7 @@ import { TopNavBarButton } from './top-nav-bar-button';
 import { LinearGradient } from 'expo-linear-gradient';
 import { delay, isMobile } from '../util/util';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ClubItem } from './club-selector';
+import { ClubItem, sortClubs } from './club-selector';
 import { listen, lastEvent } from '../events/events';
 
 const styles = StyleSheet.create({
@@ -111,21 +111,6 @@ const getStateFromClubItems = (cs: ClubItem[] | undefined) => {
 
   return { hasClubs, selectedClub };
 };
-
-const sortClubs = (cs: ClubItem[] | undefined) => {
-  const unsortedCs = cs ?? [];
-  const sortedCs = unsortedCs.sort((a, b) => {
-    if (a.name.toLowerCase() > b.name.toLowerCase()) return +1;
-    if (a.name.toLowerCase() < b.name.toLowerCase()) return -1;
-
-    if (a.name > b.name) return +1;
-    if (a.name < b.name) return -1;
-
-    return 0;
-  });
-
-  return sortedCs;
-}
 
 const Stack = createNativeStackNavigator();
 

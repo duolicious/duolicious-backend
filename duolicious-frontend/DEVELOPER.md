@@ -36,6 +36,17 @@ npx playwright test --trace on
 npx playwright show-trace -b firefox playwright-report/data/*.zip
 ```
 
+## Generating Tests
+
+```
+npx playwright codegen http://localhost:8081
+```
+
+## Updating screenshots
+
+```
+npx playwright test --update-snapshots playwright-tests/example.spec.ts
+```
 
 ## Building the Android APK
 

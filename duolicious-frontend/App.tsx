@@ -1,7 +1,6 @@
 import {
   ActivityIndicator,
   Animated,
-  Linking,
   Platform,
   StatusBar,
   UIManager,
@@ -35,12 +34,12 @@ import { TraitsTab } from './components/traits-tab';
 import { ConversationScreen } from './components/conversation-screen';
 import { UtilityScreen } from './components/utility-screen';
 import { ProspectProfileScreen } from './components/prospect-profile-screen';
-import { WelcomeScreen } from './components/welcome-screen';
+import { InviteScreen, WelcomeScreen } from './components/welcome-screen';
 import { sessionToken } from './kv-storage/session-token';
 import { japi, SUPPORTED_API_VERSIONS } from './api/api';
 import { login, logout, Inbox, inboxStats } from './xmpp/xmpp';
 import { STATUS_URL } from './env/env';
-import { delay } from './util/util';
+import { delay, parseUrl } from './util/util';
 import { ReportModal } from './components/report-modal';
 import { ImageCropper } from './components/image-cropper';
 import { StreamErrorModal } from './components/stream-error-modal';
@@ -54,7 +53,6 @@ import { ClubItem } from './components/club-selector';
 // TODO: iOS UI testing
 // TODO: Add the ability to reply to things (e.g. pictures, quiz responses) from people's profiles. You'll need to change the navigation to make it easier to reply to things. Consider breaking profiles into sections which can be replied to, each having one image or block of text. Letting people reply to specific things on the profile will improve intro quality.
 // TODO: A profile prompts. e.g. "If I had three wishes, I'd wish for...", "My favourite move is..."
-// TODO: Picture verification and a way to filter users by verified pics
 
 setNofications();
 verificationWatcher();
@@ -131,8 +129,7 @@ type SignedInUser = {
   personUuid: string,
   units: 'Metric' | 'Imperial'
   sessionToken: string
-  lastNavigationState?: any
-  clubs: ClubItem[]
+  pendingClub: ClubItem | null
 };
 
 type ServerStatus = "ok" | "down for maintenance" | "please update";
@@ -201,17 +198,14 @@ const App = () => {
       return;
     }
 
-    const lastNavigationState = await navigationState();
-
     const clubs: ClubItem[] = response?.json?.clubs;
 
     setSignedInUser({
       personId: response?.json?.person_id,
       personUuid: response?.json?.person_uuid,
       units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
-      clubs: clubs,
       sessionToken: existingSessionToken,
-      lastNavigationState,
+      pendingClub: response?.json?.pending_club,
     });
 
     notify<ClubItem[]>('updated-clubs', clubs);
@@ -249,18 +243,42 @@ const App = () => {
     }
   }, [serverStatus]);
 
-  const updateReferrerId = useCallback(async () => {
-    const initialUrl = await Linking.getInitialURL();
-    if (!initialUrl) return void setReferrerId(undefined);
-    const match = initialUrl.match(/\/me\/([^\/]+)$/);
-    const referrerId_ = match ? match[1] : undefined;
-    setReferrerId(referrerId_);
-  }, []);
+  const parseUrl_ = useCallback(async () => {
+    const parsedUrl = await parseUrl();
 
-  const fetchNumUsers = useCallback(async () => {
-    const response = await japi('GET', '/stats');
-    if (response.ok) {
-      setNumUsers(response.json.num_active_users);
+    switch (parsedUrl?.left) {
+      case 'me': {
+        setReferrerId(parsedUrl.right);
+        break;
+      }
+
+      case 'invite': {
+        const response = await japi(
+          'GET',
+          '/stats?club-name=' + parsedUrl.right);
+
+        if (!response.ok)
+          break;
+
+        navigationContainerRef.current.navigate(
+          'Invite Screen',
+          {
+            clubName: decodeURIComponent(parsedUrl.right),
+            numUsers: response.json.num_active_users,
+          },
+        );
+        break;
+      }
+
+      default: {
+        const response = await japi('GET', '/stats');
+
+        if (!response.ok)
+          break;
+
+        setNumUsers(response.json.num_active_users);
+        break;
+      }
     }
   }, []);
 
@@ -270,9 +288,7 @@ const App = () => {
         loadFonts(),
         lockScreenOrientation(),
         fetchSignInState(),
-        updateReferrerId(),
         fetchServerStatusState(),
-        fetchNumUsers(),
       ]);
 
       setIsLoading(false);
@@ -298,10 +314,26 @@ const App = () => {
 
   useEffect(() => {
     (async () => {
-      if (signedInUser?.personId && signedInUser?.sessionToken) {
-        login(signedInUser.personUuid, signedInUser.sessionToken);
-      } else {
+
+      if (!signedInUser?.personId || !signedInUser?.sessionToken) {
         logout();
+        return;
+      }
+
+      login(signedInUser.personUuid, signedInUser.sessionToken);
+
+      const lastNavigationState = await navigationState();
+
+      const navigationContainer = navigationContainerRef?.current;
+
+      const pendingClub = signedInUser?.pendingClub;
+
+      if (navigationContainer && pendingClub) {
+        navigationContainerRef.current.navigate('Search');
+      } else if (Platform.OS === 'web' && (await parseUrl())) {
+        ; // Don't restore last navigation state
+      } else if (navigationContainer && lastNavigationState) {
+        navigationContainer.reset(lastNavigationState);
       }
     })();
   }, [signedInUser?.personId, signedInUser?.sessionToken]);
@@ -310,16 +342,15 @@ const App = () => {
     if (Platform.OS === 'web') {
       history.pushState((history?.state ?? 0) + 1, "", "#");
     }
+
     if (!state) return;
 
     const lastNavigationState = {...state, stale: true};
 
-    await navigationState(lastNavigationState);
-
     if (signedInUser) {
-      setSignedInUser({...signedInUser, lastNavigationState});
+      await navigationState(lastNavigationState);
     }
-  }, []);
+  }, [signedInUser]);
 
   const onChangeInbox = useCallback((inbox: Inbox | null) => {
     const stats = inbox ? inboxStats(inbox) : undefined;
@@ -350,10 +381,13 @@ const App = () => {
     }, [onChangeInbox]);
   }
 
-  const onLayoutRootView = useCallback(async () => {
-    if (!isLoading) {
-      await SplashScreen.hideAsync();
-    }
+  useEffect(() => {
+    (async () => {
+      if (!isLoading) {
+        await parseUrl_();
+        await SplashScreen.hideAsync();
+      }
+    })();
   }, [isLoading]);
 
   const WelcomeScreen_ = useMemo(() => {
@@ -367,57 +401,59 @@ const App = () => {
   return (
     <>
       {!isLoading &&
-        <NavigationContainer
-          ref={navigationContainerRef}
-          initialState={signedInUser?.lastNavigationState}
-          onStateChange={onNavigationStateChange}
-          theme={{
-            ...DefaultTheme,
-            colors: {
-              ...DefaultTheme.colors,
-              background: 'white',
-            },
-          }}
-          onReady={onLayoutRootView}
-          documentTitle={{
-            formatter: () =>
-              (numUnreadTitle ? `(${numUnreadTitle}) ` : '') + 'Duolicious'
-          }}
-        >
-          <StatusBar
-            translucent={true}
-            backgroundColor="transparent"
-            barStyle="dark-content"
-          />
-          <Stack.Navigator
-            screenOptions={{
-              headerShown: false,
-              presentation: 'card',
+        <>
+          <NavigationContainer
+            ref={navigationContainerRef}
+            onStateChange={onNavigationStateChange}
+            theme={{
+              ...DefaultTheme,
+              colors: {
+                ...DefaultTheme.colors,
+                background: 'white',
+              },
+            }}
+            documentTitle={{
+              formatter: () =>
+                (numUnreadTitle ? `(${numUnreadTitle}) ` : '') + 'Duolicious'
             }}
           >
-            {
-              referrerId !== undefined ? (
-                <Tab.Screen name="Traits Screen" component={TraitsTab} />
-              ) : signedInUser ? (
-                <>
-                  <Tab.Screen name="Home" component={HomeTabs} />
-                  <Tab.Screen name="Conversation Screen" component={ConversationScreen} />
-                  <Tab.Screen name="Prospect Profile Screen" component={ProspectProfileScreen} />
-                </>
-              ) : (
-                <>
-                  <Tab.Screen name="Welcome" component={WelcomeScreen_} />
-                </>
-              )
-            }
-          </Stack.Navigator>
-        </NavigationContainer>
+            <StatusBar
+              translucent={true}
+              backgroundColor="transparent"
+              barStyle="dark-content"
+            />
+            <Stack.Navigator
+              screenOptions={{
+                headerShown: false,
+                presentation: 'card',
+              }}
+            >
+              {
+                referrerId !== undefined ? (
+                  <Tab.Screen name="Traits Screen" component={TraitsTab} />
+                ) : signedInUser ? (
+                  <>
+                    <Tab.Screen name="Home" component={HomeTabs} />
+                    <Tab.Screen name="Conversation Screen" component={ConversationScreen} />
+                    <Tab.Screen name="Prospect Profile Screen" component={ProspectProfileScreen} />
+                    <Tab.Screen name="Invite Screen" component={InviteScreen} />
+                  </>
+                ) : (
+                  <>
+                    <Tab.Screen name="Welcome" component={WelcomeScreen_} />
+                    <Tab.Screen name="Invite Screen" component={InviteScreen} />
+                  </>
+                )
+              }
+            </Stack.Navigator>
+          </NavigationContainer>
+          <ReportModal/>
+          <ImageCropper/>
+          <StreamErrorModal/>
+          <ColorPickerModal/>
+        </>
       }
-      <ReportModal/>
-      <ImageCropper/>
       <WebSplashScreen loading={isLoading}/>
-      <StreamErrorModal/>
-      <ColorPickerModal/>
     </>
   );
 };

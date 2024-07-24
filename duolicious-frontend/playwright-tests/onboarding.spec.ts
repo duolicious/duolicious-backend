@@ -17,9 +17,10 @@ test('has correct onboarding flow', async ({ page }) => {
     }
   });
 
-  await page.routeFromHAR('./playwright-hars/onboarding.har', {
-    update: false,
-  });
+  await page.routeFromHAR(
+    './playwright-hars/onboarding/onboarding.har',
+    { update: false }
+  );
 
   await page.goto('http://localhost:8081');
 
@@ -60,10 +61,6 @@ test('has correct onboarding flow', async ({ page }) => {
   await page.getByText('Continue').nth(5).click();
 
   await page.getByText('Continue').nth(6).click();
-
-  await page.route('*/**/sign-out', async route => {
-    await route.fulfill();
-  });
 
   await page.locator('button', { hasText: /Profile$/ }).last().click();
   await page.getByText('Sign Out').nth(1).click();

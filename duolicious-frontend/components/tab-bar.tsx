@@ -119,8 +119,8 @@ const TabBar = ({state, descriptors, navigation}) => {
           const isFocused = state.index === index;
 
           const onPress = () => {
-            // TODO: While this line works, it produces an error. I don't know why
-            navigation.dispatch(StackActions.popToTop());
+            // TODO: Do I even need this?
+            // navigation.dispatch(StackActions.popToTop());
 
             const event = navigation.emit({
               type: 'tabPress',

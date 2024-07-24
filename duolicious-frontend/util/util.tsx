@@ -1,4 +1,5 @@
 import {
+  Linking,
   Platform,
 } from 'react-native';
 import { format, isToday, isThisYear, isThisWeek } from 'date-fns'
@@ -73,6 +74,28 @@ const withTimeout = <T,>(ms: number, promise: Promise<T>): Promise<T | 'timeout'
   return Promise.race([promise, timeout]);
 };
 
+const parseUrl = async () => {
+  const initialUrl = await Linking.getInitialURL();
+
+  if (!initialUrl) {
+    return null;
+  }
+
+  const url = new URL(initialUrl);
+
+  const match = url.pathname.match(/^\/([^\/]+)\/([^\/]+)$/);
+  const left = match ? match[1] : undefined;
+  const right = match ? match[2] : undefined;
+
+  if (!left)
+    return null
+
+  if (!right)
+    return null;
+
+  return { left, right };
+};
+
 export {
   compareArrays,
   delay,
@@ -80,5 +103,6 @@ export {
   friendlyTimestamp,
   isMobile,
   longFriendlyTimestamp,
+  parseUrl,
   withTimeout,
 };

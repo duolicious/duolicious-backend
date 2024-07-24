@@ -7,6 +7,7 @@ const unsafeScreens = [
   "Club Selector",
   "Profile Option Screen",
   "Search Filter Option Screen",
+  "Invite Screen",
 ];
 
 const getCurrentScreen = (navigationState: any): string | null => {
