@@ -33,7 +33,7 @@ def emailtemplate():
                             <table border="0" cellspacing="0" cellpadding="0">
                               <tbody><tr>
                                 <td style="border-radius:50px; border:3px solid #70f; font-size: 20px; line-height:26px; color: #70f; text-align:center; min-width:auto!important">
-                                  <a href="https://web.duolicious.app/" style="display:block;padding:11px 40px;text-decoration:none;color:#70f" target="_blank">
+                                  <a href="https://get.duolicious.app/" style="display:block;padding:11px 40px;text-decoration:none;color:#70f" target="_blank">
                                     <span style="text-decoration:none;color:#70f">
                                       <strong>
                                         Get on Duolicious
