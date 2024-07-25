@@ -93,11 +93,17 @@ export DUO_IMAGES_URL=https://user-images.duolicious.app
 This generates an ipa file:
 
 ```bash
-eas build --platform ios --local
+EAS_LOCAL_BUILD_SKIP_CLEANUP=1 eas build --platform ios --local
 ```
 
 This generates an ad-hoc ipa file:
 
 ```bash
-eas build --profile preview --platform ios --local
+EAS_LOCAL_BUILD_SKIP_CLEANUP=1 eas build --profile preview --platform ios --local
+```
+
+### Making patch files
+
+```
+diff -u original modified > changes.patch
 ```

@@ -237,7 +237,6 @@ const InviteScreen = ({navigation, route}) => {
           >
             <View
               style={{
-                flex: 1,
                 alignSelf: 'center',
                 alignItems: 'center',
                 justifyContent: 'center',

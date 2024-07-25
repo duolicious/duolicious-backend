@@ -32,6 +32,9 @@ patch android/app/build.gradle \
 patch android/app/src/main/AndroidManifest.xml \
   < apk-build-resources/app/src/main/AndroidManifest.xml.notification.patch
 
+patch android/app/src/main/AndroidManifest.xml \
+  < apk-build-resources/app/src/main/AndroidManifest.xml.deep-links.patch
+
 if [ "$USES_CLEARTEXT_TRAFFIC" -eq 1 ]; then
   patch android/app/src/main/AndroidManifest.xml \
     < apk-build-resources/app/src/main/AndroidManifest.xml.patch

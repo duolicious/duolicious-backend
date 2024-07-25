@@ -6,18 +6,23 @@ import { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'Duolicious',
   slug: 'duolicious',
+  version: "14.0.0",
+  orientation: "portrait",
   icon: './assets/icon.png',
   splash: {
     image: './assets/splash.png',
     resizeMode: 'contain',
     backgroundColor: '#7700ff',
   },
+  updates: {
+    fallbackToCacheTimeout: 0
+  },
+  assetBundlePatterns: [
+    "**/*"
+  ],
   androidNavigationBar: {
     barStyle: "dark-content",
     backgroundColor: '#ffffff'
-  },
-  web: {
-    favicon: "./assets/favicon.png"
   },
   extra: {
     eas: {
@@ -28,8 +33,35 @@ const config: ExpoConfig = {
     imagesUrl: process.env.DUO_IMAGES_URL,
     statusUrl: process.env.DUO_STATUS_URL,
   },
+  web: {
+    favicon: "./assets/favicon.png"
+  },
   ios: {
-    bundleIdentifier: "app.duolicious"
+    bundleIdentifier: "app.duolicious",
+    supportsTablet: true,
+    associatedDomains: ["applinks:get.duolicious.app"],
+  },
+  android: {
+    googleServicesFile: "./google-services.json",
+    package: "app.duolicious",
+    versionCode: 14,
+    adaptiveIcon: {
+      foregroundImage: "./assets/adaptive-icon.png",
+      backgroundColor: "#ffffff"
+    },
+    intentFilters: [
+      {
+        action: "VIEW",
+        autoVerify: true,
+        data: [
+          {
+            scheme: "https",
+            host: "get.duolicious.app"
+          }
+        ],
+        category: ["BROWSABLE", "DEFAULT"]
+      }
+    ]
   },
   plugins: [
     "expo-secure-store",
@@ -44,11 +76,6 @@ const config: ExpoConfig = {
       }
     ]
   ],
-  android: {
-    googleServicesFile: "./google-services.json",
-    package: "app.duolicious",
-    versionCode: 14,
-  }
 };
 
 export default config;

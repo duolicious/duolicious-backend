@@ -313,7 +313,7 @@ const App = () => {
 
       if (navigationContainer && pendingClub) {
         navigationContainerRef.current.navigate('Search');
-      } else if (Platform.OS === 'web' && (await parseUrl())) {
+      } else if (await parseUrl()) {
         ; // Don't restore last navigation state
       } else if (navigationContainer && lastNavigationState) {
         navigationContainer.reset(lastNavigationState);
