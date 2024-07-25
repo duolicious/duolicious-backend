@@ -17,7 +17,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import { DefaultText }  from './default-text';
+import { DefaultText } from './default-text';
+import { RenderedHoc } from './rendered-hoc';
 
 const styles = StyleSheet.create({
   activityIndicator: {
@@ -179,16 +180,6 @@ const ActivityIndicator_ = memo(() => {
       <ActivityIndicator size="large" color="#70f" />
     </View>
   );
-});
-
-const RenderedHoc = memo(({Hoc}: {Hoc: any}) => {
-  if (isValidElement(Hoc)) {
-    return Hoc;
-  } else if (Hoc) {
-    return <Hoc/>;
-  } else {
-    return <></>;
-  }
 });
 
 const ListHeaderComponent = memo(({

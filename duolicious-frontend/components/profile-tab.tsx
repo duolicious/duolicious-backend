@@ -61,6 +61,8 @@ import { DetailedVerificationBadges } from './verification-badge';
 import {
   VerificationEvent,
 } from '../verification/verification';
+import { InviteEntrypoint } from './invite';
+import { InvitePicker } from './invite';
 
 
 const formatHeight = (og: OptionGroup<OptionGroupInputs>): string | undefined => {
@@ -88,6 +90,7 @@ const ProfileTab = ({navigation}) => {
       <Stack.Screen name="Profile Tab" component={ProfileTab_} />
       <Stack.Screen name="Profile Option Screen" component={OptionScreen} />
       <Stack.Screen name="Club Selector" component={ClubSelector} />
+      <Stack.Screen name="Invite Picker" component={InvitePicker} />
     </Stack.Navigator>
   );
 };
@@ -458,6 +461,7 @@ const Options = ({ navigation, data }) => {
         setting={clubsSetting}
         noSettingText="None"
       />
+      <InviteEntrypoint navigation={navigation}/>
 
       <Title>Theme</Title>
       <Button_

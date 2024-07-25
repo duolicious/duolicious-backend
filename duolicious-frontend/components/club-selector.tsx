@@ -80,19 +80,21 @@ const SelectedClub = ({
   onPress,
 }: {
   clubItem: ClubItem
-  onPress: (clubItem: ClubItem ) => any
+  onPress?: (clubItem: ClubItem) => any
 }) => {
   return (
     <Pressable
       style={{
         flexDirection: 'row',
         alignItems: 'center',
+        flexShrink: 1,
       }}
-      onPress={() => onPress(clubItem)}
+      onPress={onPress && (() => onPress(clubItem))}
     >
       <Basic
         style={{
           backgroundColor: 'rgba(119, 0, 255, 0.1)',
+          flexShrink: 1,
         }}
         textStyle={{
           color: '#70f',
@@ -441,6 +443,7 @@ const styles = StyleSheet.create({
 export {
   ClubItem,
   ClubSelector,
-  sortClubs,
+  SelectedClub,
   joinClub,
+  sortClubs,
 };
