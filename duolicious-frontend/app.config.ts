@@ -6,7 +6,7 @@ import { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'Duolicious',
   slug: 'duolicious',
-  version: "14.0.0",
+  version: "15.0.0",
   orientation: "portrait",
   icon: './assets/icon.png',
   splash: {
@@ -38,13 +38,13 @@ const config: ExpoConfig = {
   },
   ios: {
     bundleIdentifier: "app.duolicious",
-    supportsTablet: true,
+    supportsTablet: false,
     associatedDomains: ["applinks:get.duolicious.app"],
   },
   android: {
     googleServicesFile: "./google-services.json",
     package: "app.duolicious",
-    versionCode: 14,
+    versionCode: 15,
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#ffffff"

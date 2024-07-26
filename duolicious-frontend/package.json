@@ -1,6 +1,6 @@
 {
   "name": "duolicious",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -33,7 +33,7 @@
     "expo-image-manipulator": "~12.0.5",
     "expo-image-picker": "~15.0.7",
     "expo-linear-gradient": "~13.0.2",
-    "expo-notifications": "~0.28.11",
+    "expo-notifications": "~0.28.12",
     "expo-screen-orientation": "~7.0.5",
     "expo-secure-store": "~13.0.2",
     "expo-splash-screen": "~0.27.5",

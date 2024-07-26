@@ -102,6 +102,10 @@ This generates an ad-hoc ipa file:
 EAS_LOCAL_BUILD_SKIP_CLEANUP=1 eas build --profile preview --platform ios --local
 ```
 
+## Sending Duolicious to Tim Apple
+
+xcrun altool --upload-app -t ios -u "email@exmaple.com" -p "password" -f /path/to/duolicious-frontend/build-1720942386773.ipa
+
 ### Making patch files
 
 ```
