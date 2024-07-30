@@ -24,6 +24,7 @@ import urllib.request
 import json
 import traceback
 from pathlib import Path
+from notify import send_mobile_notification
 
 EMAIL_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_EMAIL_POLL_SECONDS',
@@ -114,49 +115,19 @@ async def send_email_notification(row: PersonNotification):
     aws_smtp = make_aws_smtp()
     await asyncio.to_thread(aws_smtp.send, **send_args)
 
-def send_mobile_notification(row: PersonNotification):
-    if not row.token:
-        raise ValueError('Token not present')
-
-    message = dict(
-        to=row.token,
-        sound='default',
-        title='You have a new message 😍',
-        body=big_part(row.has_intro, row.has_chat),
-        priority='high',
-    )
-
-    headers = {
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate',
-        'Content-Type': 'application/json',
-    }
-
-    req = urllib.request.Request(
-        url='https://exp.host/--/api/v2/push/send?useFcmV1=true',
-        data=json.dumps(message).encode('utf-8'),
-        headers=headers,
-        method='POST'
-    )
-
+def _send_mobile_notification(row: PersonNotification):
     if disable_mobile_notifications():
         print(
             'File prevented mobile notifications',
             str(_disable_mobile_notifications_file.absolute())
         )
-        response_data = '{"data": {"status": "ok"}}'
-    else:
-        with urllib.request.urlopen(req) as response:
-            response_data = response.read().decode('utf-8')
-
-    try:
-        parsed_data = json.loads(response_data)
-        assert parsed_data["data"]["status"] == "ok"
         return True
-    except:
-        print(traceback.format_exc())
-
-    return False
+    else:
+        return send_mobile_notification(
+            token=row.token,
+            title=title,
+            body=big_part(row.has_intro, row.has_chat),
+        )
 
 async def send_notification(row: PersonNotification):
     if not row.token:
@@ -164,7 +135,7 @@ async def send_notification(row: PersonNotification):
         return await send_email_notification(row)
 
     print('Sending mobile notification:', str(row))
-    if not await asyncio.to_thread(send_mobile_notification, row):
+    if not await asyncio.to_thread(_send_mobile_notification, row):
         print('Mobile notification failed; sending email')
         await delete_mobile_token(row)
         return await send_email_notification(row)

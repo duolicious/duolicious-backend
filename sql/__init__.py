@@ -34,3 +34,17 @@ SET
 WHERE
     id = %(person_id)s
 """
+
+Q_UPSERT_LAST = """
+INSERT INTO
+    last (server, username, seconds, state)
+SELECT
+    'duolicious.app',
+    %(person_uuid)s::text,
+    EXTRACT(EPOCH FROM NOW())::BIGINT,
+    ''
+WHERE
+    %(person_uuid)s IS NOT NULL
+ON CONFLICT (server, username) DO UPDATE SET
+    seconds  = EXCLUDED.seconds
+"""

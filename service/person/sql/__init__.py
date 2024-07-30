@@ -2293,24 +2293,6 @@ WHERE
     name = %(club_name)s
 """
 
-Q_INSERT_LAST = """
-INSERT INTO
-    last (server, username, seconds, state)
-VALUES
-    ('duolicious.app', %(person_uuid)s::text, EXTRACT(EPOCH FROM NOW())::BIGINT, '')
-"""
-
-Q_UPDATE_LAST = """
-UPDATE
-    last
-SET
-    seconds = EXTRACT(EPOCH FROM NOW())::BIGINT
-WHERE
-    server = 'duolicious.app'
-AND
-    username = %(person_uuid)s::TEXT
-"""
-
 Q_PERSON_ID_TO_UUID = """
 SELECT
     uuid::text
