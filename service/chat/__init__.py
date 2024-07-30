@@ -24,11 +24,6 @@ PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 #  public.duo_last_notification
 #  public.duo_push_token
 
-# TODO: Lock down the XMPP server by only allowing certain types of message
-
-# TODO: Update last via proxy
-# TODO: Instant notifications
-
 Q_UNIQUENESS = """
 INSERT INTO intro_hash (hash)
 VALUES (%(hash)s)
@@ -186,7 +181,6 @@ async def send_notification(
     to_username: str | None,
     message: str | None
 ):
-    print('argsz', from_name, to_username, message) # TODO
     if from_name is None:
         return
 
@@ -201,7 +195,6 @@ async def send_notification(
     async with chat_tx('read committed') as tx:
         cursor = await tx.execute(Q_CHAT_MESSAGE, params)
         rows = await cursor.fetchone()
-        print('rows', rows) # TODO
         to_token = rows['token'] if rows else None
 
     if to_token is None:
@@ -212,7 +205,7 @@ async def send_notification(
     await asyncio.to_thread(
         send_mobile_notification,
         token=to_token,
-        title=from_name,
+        title=f"{from_name} sent you a message",
         body=truncated_message,
     )
 
@@ -310,7 +303,7 @@ async def is_message_unique(message_str):
         print(traceback.format_exc())
     return True
 
-def process_auth(message_str, username):
+async def process_auth(message_str, username):
     if username.username is not None:
         return
 
@@ -333,6 +326,8 @@ def process_auth(message_str, username):
     except Exception as e:
         pass
 
+    await update_last(username)
+
 async def process_duo_message(message_xml, username):
     if await maybe_register(message_xml, username):
         return ['<duo_registration_successful />'], []
@@ -343,15 +338,12 @@ async def process_duo_message(message_xml, username):
     to_username = to_bare_jid(to_jid)
 
     if not is_message:
-        print('return 1') # TODO
         return [], [message_xml]
 
     if not maybe_message_body:
-        print('return 2') # TODO
         return [], []
 
     if is_message_too_long(maybe_message_body):
-        print('return 3') # TODO
         return [f'<duo_message_too_long id="{id}"/>'], []
 
     params = dict(
@@ -371,15 +363,12 @@ async def process_duo_message(message_xml, username):
         params['is_intro'] = is_intro
 
     if is_skipped:
-        print('return 4') # TODO
         return [f'<duo_message_blocked id="{id}"/>'], []
 
     if is_intro and not await is_message_unique(maybe_message_body):
-        print('return 5') # TODO
         return [f'<duo_message_not_unique id="{id}"/>'], []
 
     if is_immediate:
-        print('return 6') # TODO
         asyncio.create_task(
             send_notification(
                 from_name=from_name,
@@ -393,7 +382,8 @@ async def process_duo_message(message_xml, username):
 async def process(src, dst, username):
     try:
         async for message in src:
-            process_auth(message, username)
+            await process_auth(message, username)
+
             to_src, to_dst = await process_duo_message(message, username.username)
 
             for m in to_dst:
