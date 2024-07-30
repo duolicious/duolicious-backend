@@ -592,7 +592,9 @@ def post_finish_onboarding(s: t.SessionInfo):
     )
 
     with api_tx() as tx:
-        row = tx.execute(Q_FINISH_ONBOARDING, params=api_params).fetchone()
+        tx.execute('SET LOCAL statement_timeout = 10000') # 10 seconds
+        tx.execute(Q_FINISH_ONBOARDING, params=api_params)
+        row = tx.fetchone()
 
         club_params = dict(
             person_id=row['person_id'],
