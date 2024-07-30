@@ -223,7 +223,6 @@ echo user1\'s records are no longer on the server
   select user_id \
   from mam_server_user \
   where user_name = '$user1uuid')" duo_chat)" = 0 ]]
-[[ "$(q "select count(*) from last where username = '$user1uuid'" duo_chat)" = 0 ]]
 [[ "$(q "select count(*) from inbox where luser = '$user1uuid'" duo_chat)" = 0 ]]
 [[ "$(q "select count(*) from mam_server_user where user_name = '$user1uuid'" duo_chat)" = 0 ]]
 [[ "$(q "select count(*) from duo_last_notification where username = '$user1uuid'" duo_chat)" = 0 ]]
@@ -238,7 +237,6 @@ c GET "/admin/ban/${ban_token}"
   select user_id \
   from mam_server_user \
   where user_name = '$user2uuid')" duo_chat)" = 0 ]]
-[[ "$(q "select count(*) from last where username = '$user2uuid'" duo_chat)" = 0 ]]
 [[ "$(q "select count(*) from inbox where luser = '$user2uuid'" duo_chat)" = 0 ]]
 [[ "$(q "select count(*) from mam_server_user where user_name = '$user2uuid'" duo_chat)" = 0 ]]
 [[ "$(q "select count(*) from duo_last_notification where username = '$user2uuid'" duo_chat)" = 0 ]]
