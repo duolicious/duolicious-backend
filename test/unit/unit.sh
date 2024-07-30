@@ -18,3 +18,6 @@ fi
 
 "${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep api | cut -d ' ' -f 1)" \
   python3 -m unittest discover -s verification
+
+"${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep api | cut -d ' ' -f 1)" \
+  python3 -m unittest discover -s notify

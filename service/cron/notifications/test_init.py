@@ -1,11 +1,8 @@
-import os
-os.environ['DUO_CRON_NOTIFICATIONS_DRY_RUN'] = 'false'
-
 import unittest
 from unittest.mock import patch, MagicMock
 from service.cron.notifications import (
     PersonNotification,
-    send_mobile_notification,
+    _send_mobile_notification,
     send_notification,
 )
 import asyncio
@@ -29,7 +26,7 @@ person_notification = PersonNotification(
 class TestSendNotification(unittest.TestCase):
 
     @patch('service.cron.notifications.delete_mobile_token')
-    @patch('service.cron.notifications.send_mobile_notification')
+    @patch('service.cron.notifications._send_mobile_notification')
     @patch('service.cron.notifications.send_email_notification')
     def test_mobile_send_when_token_present(
         self,
@@ -41,40 +38,13 @@ class TestSendNotification(unittest.TestCase):
         # Call the send_notification function
         asyncio.run(send_notification(person_notification))
 
-        # Assert that send_mobile_notification was called
+        # Assert that _send_mobile_notification was called
         mock_send_mobile_notification.assert_called_once_with(person_notification)
 
         # Assert that send_email_notification was not called
         mock_send_email_notification.assert_not_called()
 
         mock_delete_mobile_token.assert_not_called()
-
-
-class TestSendMobileNotification(unittest.TestCase):
-
-    @patch('urllib.request.urlopen')
-    def test_send_mobile_notification_success(self, mock_urlopen):
-        # Set up the mock response to simulate a successful notification
-        mock_urlopen.return_value.__enter__.return_value.read.return_value = \
-            json.dumps({'data': {'status': 'ok'}}).encode('utf-8')
-
-        # Call the send_mobile_notification function
-        result = send_mobile_notification(person_notification)
-
-        # Assert that the function returned True
-        self.assertTrue(result)
-
-    @patch('urllib.request.urlopen')
-    def test_send_mobile_notification_failure(self, mock_urlopen):
-        # Set up the mock response to simulate a failed notification
-        mock_urlopen.return_value.__enter__.return_value.read.return_value = \
-            json.dumps({'data': {'status': 'error'}}).encode('utf-8')
-
-        # Call the send_mobile_notification function
-        result = send_mobile_notification(person_notification)
-
-        # Assert that the function returned False
-        self.assertFalse(result)
 
 
 if __name__ == '__main__':

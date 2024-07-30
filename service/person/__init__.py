@@ -374,7 +374,7 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
     params = dict(person_uuid=row['person_uuid'])
 
     with chat_tx() as tx:
-        tx.execute(Q_UPDATE_LAST, params)
+        tx.execute(Q_UPSERT_LAST, params)
 
     return dict(
         onboarded=row['person_id'] is not None,
@@ -615,7 +615,7 @@ def post_finish_onboarding(s: t.SessionInfo):
     )
 
     with chat_tx() as tx:
-        tx.execute(Q_INSERT_LAST, params=chat_params)
+        tx.execute(Q_UPSERT_LAST, params=chat_params)
 
     return dict(**row, **clubs)
 

@@ -1,16 +1,16 @@
 Q_UNREAD_INBOX = """
 WITH ten_days_ago AS (
     SELECT
-        (SELECT (EXTRACT(EPOCH FROM (
-            NOW() - INTERVAL '10 days')))::bigint) AS seconds,
-        (SELECT (EXTRACT(EPOCH FROM (
-            NOW() - INTERVAL '10 days')) * 1000000)::bigint) AS microseconds
+        EXTRACT(EPOCH FROM (
+            NOW() - INTERVAL '10 days'))::bigint AS seconds,
+        EXTRACT(EPOCH FROM (
+            NOW() - INTERVAL '10 days'))::bigint * 1000000 AS microseconds
 ), ten_minutes_ago AS (
     SELECT
-        (SELECT (EXTRACT(EPOCH FROM (
-            NOW() - INTERVAL '10 minutes')))::bigint) AS seconds,
-        (SELECT (EXTRACT(EPOCH FROM (
-            NOW() - INTERVAL '10 minutes')) * 1000000)::bigint) AS microseconds
+        EXTRACT(EPOCH FROM (
+            NOW() - INTERVAL '10 minutes'))::bigint AS seconds,
+        EXTRACT(EPOCH FROM (
+            NOW() - INTERVAL '10 minutes'))::bigint * 1000000 AS microseconds
 ), inbox_first_pass AS (
     SELECT
         luser AS username,
@@ -18,7 +18,8 @@ WITH ten_days_ago AS (
         MAX(CASE WHEN box = 'chats' THEN timestamp ELSE 0 END) / 1000000 AS last_chat_seconds,
         BOOL_OR(CASE WHEN box = 'inbox' THEN TRUE ELSE FALSE END) AS has_intro,
         BOOL_OR(CASE WHEN box = 'chats' THEN TRUE ELSE FALSE END) AS has_chat
-    FROM inbox
+    FROM
+        inbox
     WHERE
         unread_count > 0
     AND
@@ -159,14 +160,14 @@ Q_UPDATE_LAST_INTRO_NOTIFICATION_TIME = """
 INSERT INTO duo_last_notification (username, intro_seconds)
 VALUES (%(username)s, extract(epoch from now())::int)
 ON CONFLICT (username) DO UPDATE SET
-    intro_seconds = extract(epoch from now())::int
+    intro_seconds = EXCLUDED.intro_seconds
 """
 
 Q_UPDATE_LAST_CHAT_NOTIFICATION_TIME = """
 INSERT INTO duo_last_notification (username, chat_seconds)
 VALUES (%(username)s, extract(epoch from now())::int)
 ON CONFLICT (username) DO UPDATE SET
-    chat_seconds = extract(epoch from now())::int
+    chat_seconds = EXCLUDED.chat_seconds
 """
 
 Q_DELETE_MOBILE_TOKEN = """

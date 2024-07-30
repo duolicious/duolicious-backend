@@ -36,22 +36,6 @@
   program = "/app/chat.auth.main.sh"
   instances = 8
 
-[services.service_admin_extra]
-
-[services.service_mongoose_system_metrics]
-
-[modules.mod_adhoc]
-
-[modules.mod_disco]
-  users_can_see_hidden_services = false
-
-[modules.mod_presence]
-
-[modules.mod_last]
-  backend = "rdbms"
-
-[modules.mod_sic]
-
 [modules.mod_carboncopy]
 
 [modules.mod_inbox]
