@@ -420,7 +420,8 @@ WITH onboardee_country AS (
         gender_id,
         about,
         has_profile_picture_id,
-        unit_id
+        unit_id,
+        intros_notification
     ) SELECT
         email,
         %(normalized_email)s,
@@ -446,7 +447,8 @@ WITH onboardee_country AS (
                     END AS name
                 FROM onboardee_country
             )
-        ) AS unit_id
+        ) AS unit_id,
+        3 AS intros_notification
     FROM onboardee
     WHERE email = %(email)s
     RETURNING
