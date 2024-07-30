@@ -18,6 +18,8 @@ q "delete from inbox" duo_chat
 q "delete from mam_server_user" duo_chat
 q "delete from duo_last_notification" duo_chat
 q "delete from duo_push_token" duo_chat
+q "delete from duo_push_token" duo_chat
+q "delete from intro_hash" duo_chat
 
 ../util/create-user.sh user1 0 0
 ../util/create-user.sh user2 0 0
@@ -47,20 +49,15 @@ curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d
   "username": "'$user1uuid'",
   "password": "'$user1token'"
 }'
+
 sleep 0.5
 
-curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
-<duo_register_push_token token='test-push-token' />
-"
-sleep 0.5
+echo If user 2 blocks user 1 then user 1 can no longer message user 2
 
-echo The push token should be acknowledged and inserted into the database
-curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful />'
-[[ "$(q "select count(*) from duo_push_token \
-    where username = '$user1uuid' \
-    and token = 'test-push-token'" duo_chat)" = 1 ]]
+q "insert into skipped values ($user2id, $user1id, false, 'testing blocking')"
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
+
 <message
     type='chat'
     from='$user1uuid@duolicious.app'
@@ -72,13 +69,63 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
   <request xmlns='urn:xmpp:receipts'/>
 </message>
 "
+
 sleep 3 # MongooseIM takes some time to flush messages to the DB
 
-echo The message should be acknowledged and inserted into the database
+[[ "$(q "select count(*) from messaged where \
+    subject_person_id = $user1id and \
+    object_person_id = $user2id")" = 0 ]]
+[[ "$(q "select count(*) from messaged")" = 0 ]]
+
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1"/>'
+
+[[ "$(q "select count(*) from mam_message where \
+    search_body = 'hello user 2'" duo_chat)" = 0 ]]
+
+q "delete from skipped where subject_person_id = $user2id and object_person_id = $user1id"
+
+echo User 1 can message user 2
+
+curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
+
+<message
+    type='chat'
+    from='$user1uuid@duolicious.app'
+    to='$user2uuid@duolicious.app'
+    id='id1'
+    check_uniqueness='false'
+    xmlns='jabber:client'>
+  <body>hello user 2</body>
+  <request xmlns='urn:xmpp:receipts'/>
+</message>
+"
+
+sleep 3 # MongooseIM takes some time to flush messages to the DB
+
+[[ "$(q "select count(*) from messaged where \
+    subject_person_id = $user1id and \
+    object_person_id = $user2id")" = 1 ]]
+[[ "$(q "select count(*) from messaged")" = 1 ]]
+
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"/>'
+
 [[ "$(q "select count(*) from mam_message where \
     search_body = 'hello user 2'" duo_chat)" = 2 ]]
 
+echo The push token should be acknowledged and inserted into the database
+
+curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
+<duo_register_push_token token='user-1-token' />
+"
+
+sleep 0.5
+
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful />'
+[[ "$(q "select count(*) from duo_push_token \
+    where username = '$user1uuid' \
+    and token = 'user-1-token'" duo_chat)" = 1 ]]
+
+echo Unoriginal intros are rejected
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 <message
     type='chat'
@@ -87,21 +134,53 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
     id='id2'
     check_uniqueness='false'
     xmlns='jabber:client'>
+  <body>hello user 2</body>
+  <request xmlns='urn:xmpp:receipts'/>
+</message>
+"
+
+sleep 3 # MongooseIM takes some time to flush messages to the DB
+
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_not_unique id="id2"/>'
+
+[[ "$(q "select count(*) from mam_message where \
+    search_body = 'hello user 2'" duo_chat)" = 2 ]]
+
+[[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
+
+echo 'User 1 can message user 3 and notification is sent'
+
+q "insert into duo_push_token values ('$user2uuid', 'user-2-token')" duo_chat
+q "insert into duo_push_token values ('$user3uuid', 'user-3-token')" duo_chat
+
+curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
+<message
+    type='chat'
+    from='$user1uuid@duolicious.app'
+    to='$user3uuid@duolicious.app'
+    id='id3'
+    check_uniqueness='false'
+    xmlns='jabber:client'>
   <body>hello user 3</body>
   <request xmlns='urn:xmpp:receipts'/>
 </message>
 "
+
 sleep 3 # MongooseIM takes some time to flush messages to the DB
 
-echo The message should be acknowledged and inserted into the database
-curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id2"/>'
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id3"/>'
+
 [[ "$(q "select count(*) from mam_message where \
     search_body = 'hello user 3'" duo_chat)" = 2 ]]
 
-assume_role user1
-c DELETE /account
+[[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 1 ]]
 
 echo user 1 should no longer be authorized to chat after deleting their account
+
+assume_role user1
+
+c DELETE /account
+
 curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d '{
   "service": "ws://chat:5443",
   "domain": "duolicious.app",
@@ -109,6 +188,7 @@ curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d
   "username": "'$user1uuid'",
   "password": "'$user1token'"
 }'
+
 sleep 0.5
 
 curl -sX GET http://localhost:3000/pop | grep -qF "<failure xmlns='urn:ietf:params:xml:ns:xmpp-sasl'><not-authorized/></failure>"
@@ -120,9 +200,11 @@ curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d
   "username": "'$user2uuid'",
   "password": "'$user2token'"
 }'
+
 sleep 0.5
 
 echo user2 can still see user1\'s message after user1 deletes their account
+
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 <iq type='set' id='id3'>
   <inbox xmlns='erlang-solutions.com:xmpp:inbox:0' queryid='id3'>
@@ -130,11 +212,13 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
   </inbox>
 </iq>
 "
+
 sleep 0.5
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<body>hello user 2</body>'
 
 echo user1\'s records are no longer on the server
+
 [[ "$(q "select count(*) from mam_message where user_id in ( \
   select user_id \
   from mam_server_user \
@@ -147,6 +231,7 @@ echo user1\'s records are no longer on the server
 
 
 echo 'Banning user2 deletes them from the XMPP server'
+
 c GET "/admin/ban/${ban_token}"
 
 [[ "$(q "select count(*) from mam_message where user_id in ( \

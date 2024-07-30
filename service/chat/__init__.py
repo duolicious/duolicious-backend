@@ -27,9 +27,7 @@ PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 # TODO: Lock down the XMPP server by only allowing certain types of message
 
 # TODO: Update last via proxy
-# TODO: Tests
 # TODO: Instant notifications
-# TODO: read committed
 
 Q_UNIQUENESS = """
 INSERT INTO intro_hash (hash)
@@ -132,15 +130,15 @@ WITH select_duo_push_token AS (
     WHERE
         username = %(to_username)s::TEXT
 ), update_duo_last_notification AS (
-    UPDATE
-        duo_last_notification
-    SET
-        intro_seconds =
-            CASE WHEN     %(is_intro) THEN NOW() ELSE intro_seconds END,
-        chat_seconds =
-            CASE WHEN NOT %(is_intro) THEN NOW() ELSE chat_seconds  END
+    INSERT INTO
+        duo_last_notification (username, chat_seconds)
+    SELECT
+        %(to_username)s,
+        extract(epoch from now())::int
     WHERE
         EXISTS (SELECT 1 FROM select_duo_push_token)
+    ON CONFLICT (username) DO UPDATE SET
+        chat_seconds = EXCLUDED.chat_seconds
 )
 SELECT
     token
@@ -161,7 +159,7 @@ class Username:
 
 def to_bare_jid(jid: str | None):
     try:
-        return to_jid.split('@')[0]
+        return jid.split('@')[0]
     except:
         return None
 
@@ -188,6 +186,7 @@ async def send_notification(
     to_username: str | None,
     message: str | None
 ):
+    print('argsz', from_name, to_username, message) # TODO
     if from_name is None:
         return
 
@@ -202,10 +201,8 @@ async def send_notification(
     async with chat_tx('read committed') as tx:
         cursor = await tx.execute(Q_CHAT_MESSAGE, params)
         rows = await cursor.fetchone()
+        print('rows', rows) # TODO
         to_token = rows['token'] if rows else None
-
-    if from_name is None:
-        return
 
     if to_token is None:
         return

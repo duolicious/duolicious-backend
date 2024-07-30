@@ -160,14 +160,14 @@ Q_UPDATE_LAST_INTRO_NOTIFICATION_TIME = """
 INSERT INTO duo_last_notification (username, intro_seconds)
 VALUES (%(username)s, extract(epoch from now())::int)
 ON CONFLICT (username) DO UPDATE SET
-    intro_seconds = extract(epoch from now())::int
+    intro_seconds = EXCLUDED.intro_seconds
 """
 
 Q_UPDATE_LAST_CHAT_NOTIFICATION_TIME = """
 INSERT INTO duo_last_notification (username, chat_seconds)
 VALUES (%(username)s, extract(epoch from now())::int)
 ON CONFLICT (username) DO UPDATE SET
-    chat_seconds = extract(epoch from now())::int
+    chat_seconds = EXCLUDED.chat_seconds
 """
 
 Q_DELETE_MOBILE_TOKEN = """
