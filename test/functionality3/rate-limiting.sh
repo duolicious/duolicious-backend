@@ -36,7 +36,7 @@ echo The stricter rate limit should apply for reports
 ! jc POST "/skip/${user2id}" -d '{ "report_reason": "bad hair" }'
 
 echo Uncached search should be heavily rate-limited
-for x in {1..30}
+for x in {1..15}
 do
   c GET '/search?n=1&o=0'
 done
@@ -46,6 +46,16 @@ echo "Cached search shouldn't be heavily rate-limited"
 c GET '/search?n=1&o=1'
 c GET '/search?n=1&o=1'
 c GET '/search?n=1&o=1'
+
+echo "Rate limit should apply independently to clubs"
+jc POST /join-club -d '{ "name": "Anime" }'
+jc POST /join-club -d '{ "name": "Manga" }'
+for x in {1..15}
+do
+  c GET '/search?n=1&o=0&club=Anime'
+done
+! c GET '/search?n=1&o=0&club=Anime'
+  c GET '/search?n=1&o=0&club=Manga'
 
 echo Account-based rate limit should apply even if the IP address changes
 printf 1 > ../../test/input/disable-ip-rate-limit

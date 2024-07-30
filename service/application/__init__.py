@@ -30,6 +30,7 @@ from service.application.decorators import (
 )
 import time
 from antispam import normalize_email
+import json
 
 _init_sql_file = (
     Path(__file__).parent.parent.parent / 'init.sql')
@@ -212,20 +213,18 @@ def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
 def get_search(s: t.SessionInfo):
     n = request.args.get('n')
     o = request.args.get('o')
+
+    rawClub = request.args.get('club')
     club = (
-        search.ClubHttpArg(
-            request.args.get('club')
-            if request.args.get('club') != '\0'
-            else None
-        )
+        search.ClubHttpArg(rawClub if rawClub != '\0' else None)
         if 'club' in request.args
         else None
     )
 
     search_type, _ = search.get_search_type(n, o)
 
-    limit = "30 per 2 minutes"
-    scope = search_type
+    limit = "15 per 2 minutes"
+    scope = json.dumps([search_type, rawClub])
 
     if search_type == 'uncached-search':
         with (
