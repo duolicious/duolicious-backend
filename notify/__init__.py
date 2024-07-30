@@ -1,3 +1,7 @@
+import json
+import traceback
+import urllib.request
+
 def send_mobile_notification(
     token: str | None,
     title: str,
@@ -27,7 +31,8 @@ def send_mobile_notification(
         method='POST'
     )
 
-    response_data = response.read().decode('utf-8')
+    with urllib.request.urlopen(req) as response:
+        response_data = response.read().decode('utf-8')
 
     try:
         parsed_data = json.loads(response_data)

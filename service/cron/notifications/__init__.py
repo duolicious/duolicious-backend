@@ -20,7 +20,6 @@ import asyncio
 from smtp import make_aws_smtp
 import os
 import random
-import urllib.request
 import json
 import traceback
 from pathlib import Path
@@ -125,7 +124,7 @@ def _send_mobile_notification(row: PersonNotification):
     else:
         return send_mobile_notification(
             token=row.token,
-            title=title,
+            title='You have a new message 😍',
             body=big_part(row.has_intro, row.has_chat),
         )
 
