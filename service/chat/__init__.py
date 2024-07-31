@@ -178,7 +178,7 @@ async def send_notification(
     if to_token is None:
         return
 
-    truncated_message = message[:128]
+    truncated_message = message[:256]
 
     notify.enqueue_mobile_notification(
         token=to_token,
@@ -297,10 +297,7 @@ async def upsert_last_notification(username: str) -> None:
     async with chat_tx('read committed') as tx:
         await tx.execute(Q_UPSERT_LAST_NOTIFICATION, dict(username=username))
 
-# TODO: ttl=1 day
-@AsyncLruCache(maxsize=1024,
-               ttl=24 * 60 * 60,
-               cache_condition=lambda x: not x)  # 1 day
+@AsyncLruCache(maxsize=1024, cache_condition=lambda x: not x)
 async def is_message_unique(message_str):
     normalized = normalize_message(message_str)
     hashed = duohash.md5(normalized)
@@ -312,7 +309,7 @@ async def is_message_unique(message_str):
         rows = await cursor.fetchall()
         return bool(rows)
 
-# TODO: ttl=1 day
+@AsyncLruCache(maxsize=1024, ttl=24 * 60 * 60)  # 1 day
 async def fetch_id_from_username(username: str) -> str | None:
     async with api_tx('read committed') as tx:
         await tx.execute(Q_FETCH_PERSON_ID, dict(username=username))
@@ -320,7 +317,7 @@ async def fetch_id_from_username(username: str) -> str | None:
 
         return row.get('id')
 
-# TODO: ttl=5 seconds
+@AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
 async def fetch_is_skipped(from_id: int, to_id: int) -> bool:
     async with api_tx('read committed') as tx:
         await tx.execute(Q_IS_SKIPPED, dict(from_id=from_id, to_id=to_id))
@@ -328,7 +325,7 @@ async def fetch_is_skipped(from_id: int, to_id: int) -> bool:
 
         return bool(row)
 
-# TODO: Only cache true values
+@AsyncLruCache(maxsize=1024, cache_condition=lambda x: not x)
 async def fetch_is_intro(from_id: int, to_id: int) -> bool:
     async with api_tx('read committed') as tx:
         await tx.execute(Q_IS_CHAT, dict(from_id=from_id, to_id=to_id))
@@ -336,12 +333,12 @@ async def fetch_is_intro(from_id: int, to_id: int) -> bool:
 
         return not bool(row)
 
-# TODO: ttl=1 day
+@AsyncLruCache(maxsize=1024)
 async def set_messaged(from_id: int, to_id: int) -> None:
     async with api_tx('read committed') as tx:
         await tx.execute(Q_SET_MESSAGED, dict(from_id=from_id, to_id=to_id))
 
-# TODO: ttl=1 minute
+@AsyncLruCache(ttl=24 * 60 * 60)  # 1 day
 async def fetch_push_token(username: str) -> str | None:
     async with chat_tx('read committed') as tx:
         await tx.execute(Q_SELECT_PUSH_TOKEN, dict(username=username))
@@ -349,7 +346,7 @@ async def fetch_push_token(username: str) -> str | None:
 
         return row.get('token') if row else None
 
-# TODO: ttl=10 seconds
+@AsyncLruCache(ttl=10)  # 10 seconds
 async def fetch_immediate_name(person_id: int, is_intro: bool) -> str | None:
     async with api_tx('read committed') as tx:
         q = Q_IMMEDIATE_INTRO_NAME if is_intro else Q_IMMEDIATE_CHAT_NAME

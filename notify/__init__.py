@@ -116,14 +116,20 @@ def _send_next_batch():
     try:
         with urllib.request.urlopen(req) as response:
             response_data = response.read().decode('utf-8')
-        parsed_data_list = json.loads(response_data)
-        for parsed_data in parsed_data_list:
-            assert parsed_data["data"]["status"] == "ok"
+
+        parsed_data = json.loads(response_data)
+
+        data_list = parsed_data["data"]
+
+        for data in data_list:
+            assert data["status"] == "ok"
     except Exception:
         print(traceback.format_exc())
+
         if _get_do_retry():
             for notification in batch:
                 _notifications.put(notification)
+
             print('Re-added failed notifications to the queue')
 
 def _send_batches_forever():

@@ -86,6 +86,8 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1"
 
 q "delete from skipped where subject_person_id = $user2id and object_person_id = $user1id"
 
+sleep 5  # Wait for ttl cache to expire
+
 echo User 1 can message user 2
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
