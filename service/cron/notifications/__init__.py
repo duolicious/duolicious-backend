@@ -23,7 +23,7 @@ import random
 import json
 import traceback
 from pathlib import Path
-from notify import send_mobile_notification
+from notify import enqueue_mobile_notification
 
 EMAIL_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_EMAIL_POLL_SECONDS',
@@ -114,7 +114,7 @@ async def send_email_notification(row: PersonNotification):
     aws_smtp = make_aws_smtp()
     await asyncio.to_thread(aws_smtp.send, **send_args)
 
-def _send_mobile_notification(row: PersonNotification):
+def send_mobile_notification(row: PersonNotification):
     if disable_mobile_notifications():
         print(
             'File prevented mobile notifications',
@@ -122,7 +122,7 @@ def _send_mobile_notification(row: PersonNotification):
         )
         return True
     else:
-        return send_mobile_notification(
+        return enqueue_mobile_notification(
             token=row.token,
             title='You have a new message 😍',
             body=big_part(row.has_intro, row.has_chat),
@@ -134,7 +134,7 @@ async def send_notification(row: PersonNotification):
         return await send_email_notification(row)
 
     print('Sending mobile notification:', str(row))
-    if not await asyncio.to_thread(_send_mobile_notification, row):
+    if not await asyncio.to_thread(send_mobile_notification, row):
         print('Mobile notification failed; sending email')
         await delete_mobile_token(row)
         return await send_email_notification(row)

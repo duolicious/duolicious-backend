@@ -8,7 +8,7 @@ import traceback
 import websockets
 import sys
 from websockets.exceptions import ConnectionClosedError
-from notify import send_mobile_notification
+from notify import enqueue_mobile_notification
 from sql import *
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
@@ -181,8 +181,7 @@ async def send_notification(
 
     truncated_message = message[:128]
 
-    await asyncio.to_thread(
-        send_mobile_notification,
+    enqueue_mobile_notification(
         token=to_token,
         title=f"{from_name} sent you a message",
         body=truncated_message,
