@@ -13,6 +13,7 @@ import sys
 from websockets.exceptions import ConnectionClosedError
 import notify
 from sql import *
+from async_lru import alru_cache
 
 notify.set_flush_interval(1.0)
 notify.set_do_retry(True)
@@ -161,11 +162,6 @@ async def update_last_forever(username: Username):
         await update_last(username)
         await asyncio.sleep(LAST_UPDATE_INTERVAL_SECONDS)
 
-# TODO: ttl=1 minute
-async def upsert_last_notification(username: str) -> None:
-    async with chat_tx('read committed') as tx:
-        await tx.execute(Q_UPSERT_LAST_NOTIFICATION, dict(username=username))
-
 async def send_notification(
     from_name: str | None,
     to_username: str | None,
@@ -274,18 +270,6 @@ async def maybe_register(message_xml, username):
 
     return False
 
-# TODO: ttl=1 day
-async def is_message_unique(message_str):
-    normalized = normalize_message(message_str)
-    hashed = duohash.md5(normalized)
-
-    params = dict(hash=hashed)
-
-    async with chat_tx('read committed') as tx:
-        cursor = await tx.execute(Q_UNIQUENESS, params)
-        rows = await cursor.fetchall()
-        return bool(rows)
-
 async def process_auth(message_str, username):
     if username.username is not None:
         return
@@ -307,9 +291,27 @@ async def process_auth(message_str, username):
 
         username.username = auth_username
     except Exception as e:
-        pass
+        return
 
     await update_last(username)
+
+# TODO: ttl=1 minute
+@alru_cache(maxsize=1024, ttl=60)
+async def upsert_last_notification(username: str) -> None:
+    async with chat_tx('read committed') as tx:
+        await tx.execute(Q_UPSERT_LAST_NOTIFICATION, dict(username=username))
+
+# TODO: ttl=1 day
+async def is_message_unique(message_str):
+    normalized = normalize_message(message_str)
+    hashed = duohash.md5(normalized)
+
+    params = dict(hash=hashed)
+
+    async with chat_tx('read committed') as tx:
+        cursor = await tx.execute(Q_UNIQUENESS, params)
+        rows = await cursor.fetchall()
+        return bool(rows)
 
 # TODO: ttl=1 day
 async def fetch_id_from_username(username: str) -> str | None:
@@ -398,7 +400,6 @@ async def process_duo_message(message_xml, username):
             person_id=to_id, is_intro=is_intro)
 
     if immediate_name is not None:
-        # TODO: Check how many pending HTTP requests can safely be handled at once
         asyncio.create_task(
             send_notification(
                 from_name=immediate_name,
