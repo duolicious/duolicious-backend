@@ -35,6 +35,9 @@ import json
 _init_sql_file = (
     Path(__file__).parent.parent.parent / 'init.sql')
 
+_migrations_sql_file = (
+    Path(__file__).parent.parent.parent / 'migrations.sql')
+
 _email_domains_bad_file = (
     Path(__file__).parent.parent.parent / 'email-domains-bad.sql')
 
@@ -109,9 +112,23 @@ def migrate_unnormalized_emails():
         tx.executemany(q, params_seq)
         print('Done updating normalized emails in `banned_person` table')
 
-def init_db():
+def maybe_run_init():
+    with api_tx() as tx:
+        row = tx.execute("SELECT to_regclass('person')").fetchone()
+
+    if row ['to_regclass'] is not None:
+        print('Database already initialized')
+        return
+
     with open(_init_sql_file, 'r') as f:
         init_sql_file = f.read()
+
+    with api_tx() as tx:
+        tx.execute(init_sql_file)
+
+def init_db():
+    with open(_migrations_sql_file, 'r') as f:
+        migrations_sql_file = f.read()
 
     with open(_email_domains_bad_file, 'r') as f:
         email_domains_bad_file = f.read()
@@ -122,9 +139,11 @@ def init_db():
     with open(_banned_club_file, 'r') as f:
         banned_club_file = f.read()
 
+    maybe_run_init()
+
     with api_tx() as tx:
         tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
-        tx.execute(init_sql_file)
+        tx.execute(migrations_sql_file)
 
     with api_tx() as tx:
         tx.execute(email_domains_bad_file)

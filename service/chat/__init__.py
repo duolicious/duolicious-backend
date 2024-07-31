@@ -42,103 +42,82 @@ DO UPDATE SET
     token = EXCLUDED.token
 """
 
-Q_API_MESSAGE = """
-WITH from_id AS (
-    SELECT id FROM person WHERE uuid = %(from_username)s
-), to_id AS (
-    SELECT id FROM person WHERE uuid = %(to_username)s
-), participants_exist AS (
-    SELECT
-        EXISTS (SELECT 1 FROM from_id) AND
-        EXISTS (SELECT 1 FROM to_id) AS participants_exist
-), is_skipped AS (
-    SELECT
-        EXISTS (
-            SELECT
-                1
-            FROM
-                skipped
-            WHERE
-                (
-                    subject_person_id = (SELECT id FROM from_id) AND
-                    object_person_id  = (SELECT id FROM to_id)
-                )
-            OR
-                (
-                    subject_person_id = (SELECT id FROM to_id) AND
-                    object_person_id  = (SELECT id FROM from_id)
-                )
-        ) AS is_skipped
-), is_intro AS (
-    SELECT
-        NOT EXISTS (
-            SELECT
-                1
-            FROM
-                messaged
-            WHERE
-                object_person_id = (SELECT id FROM from_id) OR
-                object_person_id = (SELECT id FROM to_id)
-        ) AS is_intro
-), set_messaged AS (
-    INSERT INTO messaged (
-        subject_person_id,
-        object_person_id
-    )
-    SELECT
-        (SELECT id FROM from_id),
-        (SELECT id FROM to_id)
-    WHERE
-        (SELECT participants_exist FROM participants_exist)
-    AND
-        NOT (SELECT is_skipped FROM is_skipped)
-    ON CONFLICT DO NOTHING
-)
-SELECT
-    (
-        SELECT name
-        FROM person
-        WHERE uuid = uuid_or_null(%(from_username)s::TEXT)
-    ) AS from_name,
-
-    CASE
-    WHEN (SELECT is_intro FROM is_intro)
-    THEN (
-        SELECT intros_notification = 1
-        FROM person WHERE uuid = uuid_or_null(%(to_username)s::TEXT))
-    ELSE (
-        SELECT chats_notification = 1
-        FROM person WHERE uuid = uuid_or_null(%(to_username)s::TEXT))
-    END AS is_immediate,
-
-    (SELECT is_intro FROM is_intro) AS is_intro,
-
-    (SELECT is_skipped FROM is_skipped) AS is_skipped
+Q_FETCH_PERSON_ID = """
+SELECT id FROM person WHERE uuid = %(username)s
 """
 
-Q_CHAT_MESSAGE = """
-WITH select_duo_push_token AS (
-    SELECT
-        token
-    FROM
-        duo_push_token
-    WHERE
-        username = %(to_username)s::TEXT
-), update_duo_last_notification AS (
-    INSERT INTO
-        duo_last_notification (username, chat_seconds)
-    SELECT
-        %(to_username)s,
-        extract(epoch from now())::int
-    WHERE
-        EXISTS (SELECT 1 FROM select_duo_push_token)
-    ON CONFLICT (username) DO UPDATE SET
-        chat_seconds = EXCLUDED.chat_seconds
-)
+Q_IS_SKIPPED = """
+SELECT
+    1
+FROM
+    skipped
+WHERE
+    subject_person_id = %(from_id)s AND object_person_id  = %(to_id)s
+OR
+    subject_person_id = %(to_id)s   AND object_person_id  = %(from_id)s
+"""
+
+Q_IS_CHAT = """
+SELECT
+    1
+FROM
+    messaged
+WHERE
+    object_person_id = %(from_id)s OR
+    object_person_id = %(to_id)s
+"""
+
+Q_SET_MESSAGED = """
+INSERT INTO messaged (
+    subject_person_id,
+    object_person_id
+) VALUES (
+    %(from_id)s,
+    %(to_id)s
+) ON CONFLICT DO NOTHING
+"""
+
+Q_IMMEDIATE_INTRO_NAME = """
+SELECT
+    name
+FROM
+    person
+WHERE
+    id = %(person_id)s
+AND
+    intros_notification = 1
+"""
+
+Q_IMMEDIATE_CHAT_NAME = """
+SELECT
+    name
+FROM
+    person
+WHERE
+    id = %(person_id)s
+AND
+    chats_notification = 1
+"""
+
+Q_SELECT_PUSH_TOKEN = """
 SELECT
     token
 FROM
-    select_duo_push_token
+    duo_push_token
+WHERE
+    username = %(username)s::TEXT
+"""
+
+Q_UPSERT_LAST_NOTIFICATION = """
+INSERT INTO duo_last_notification (
+    username,
+    chat_seconds
+) VALUES (
+    %(username)s,
+    extract(epoch from now())::int
+)
+ON CONFLICT (username) DO UPDATE SET
+    chat_seconds = EXCLUDED.chat_seconds
 """
 
 MAX_MESSAGE_LEN = 5000
@@ -176,6 +155,11 @@ async def update_last_forever(username: Username):
         await update_last(username)
         await asyncio.sleep(LAST_UPDATE_INTERVAL_SECONDS)
 
+# TODO: ttl=1 minute
+async def upsert_last_notification(username: str) -> None:
+    async with chat_tx('read committed') as tx:
+        await tx.execute(Q_UPSERT_LAST_NOTIFICATION, dict(username=username))
+
 async def send_notification(
     from_name: str | None,
     to_username: str | None,
@@ -190,17 +174,12 @@ async def send_notification(
     if message is None:
         return
 
-    params = dict(to_username=to_username)
-
-    async with chat_tx('read committed') as tx:
-        cursor = await tx.execute(Q_CHAT_MESSAGE, params)
-        rows = await cursor.fetchone()
-        to_token = rows['token'] if rows else None
+    to_token = await fetch_push_token(username=to_username)
 
     if to_token is None:
         return
 
-    truncated_message = message[:1024]
+    truncated_message = message[:128]
 
     await asyncio.to_thread(
         send_mobile_notification,
@@ -208,6 +187,8 @@ async def send_notification(
         title=f"{from_name} sent you a message",
         body=truncated_message,
     )
+
+    await upsert_last_notification(username=to_username)
 
 def parse_xml(s):
     parser = etree.XMLParser(resolve_entities=False, no_network=True)
@@ -288,20 +269,17 @@ async def maybe_register(message_xml, username):
 
     return False
 
+# TODO: ttl=1 day
 async def is_message_unique(message_str):
     normalized = normalize_message(message_str)
     hashed = duohash.md5(normalized)
 
     params = dict(hash=hashed)
 
-    try:
-        async with chat_tx('read committed') as tx:
-            cursor = await tx.execute(Q_UNIQUENESS, params)
-            rows = await cursor.fetchall()
-            return bool(rows)
-    except:
-        print(traceback.format_exc())
-    return True
+    async with chat_tx('read committed') as tx:
+        cursor = await tx.execute(Q_UNIQUENESS, params)
+        rows = await cursor.fetchall()
+        return bool(rows)
 
 async def process_auth(message_str, username):
     if username.username is not None:
@@ -328,6 +306,54 @@ async def process_auth(message_str, username):
 
     await update_last(username)
 
+# TODO: ttl=1 day
+async def fetch_id_from_username(username: str) -> str | None:
+    async with api_tx('read committed') as tx:
+        await tx.execute(Q_FETCH_PERSON_ID, dict(username=username))
+        row = await tx.fetchone()
+
+        return row.get('id')
+
+# TODO: ttl=5 seconds
+async def fetch_is_skipped(from_id: int, to_id: int) -> bool:
+    async with api_tx('read committed') as tx:
+        await tx.execute(Q_IS_SKIPPED, dict(from_id=from_id, to_id=to_id))
+        row = await tx.fetchone()
+
+        return bool(row)
+
+# TODO: Only cache true values
+async def fetch_is_intro(from_id: int, to_id: int) -> bool:
+    async with api_tx('read committed') as tx:
+        await tx.execute(Q_IS_CHAT, dict(from_id=from_id, to_id=to_id))
+        row = await tx.fetchone()
+
+        return not bool(row)
+
+# TODO: ttl=1 day
+async def set_messaged(from_id: int, to_id: int) -> None:
+    async with api_tx('read committed') as tx:
+        await tx.execute(Q_SET_MESSAGED, dict(from_id=from_id, to_id=to_id))
+
+# TODO: ttl=1 minute
+async def fetch_push_token(username: str) -> str | None:
+    async with chat_tx('read committed') as tx:
+        await tx.execute(Q_SELECT_PUSH_TOKEN, dict(username=username))
+        row = await tx.fetchone()
+
+        return row.get('token') if row else None
+
+# TODO: ttl=10 seconds
+async def fetch_immediate_name(person_id: int, is_intro: bool) -> str | None:
+    async with api_tx('read committed') as tx:
+        q = Q_IMMEDIATE_INTRO_NAME if is_intro else Q_IMMEDIATE_CHAT_NAME
+
+        await tx.execute(q, dict(person_id=person_id))
+
+        row = await tx.fetchone()
+
+        return row.get('name') if row else None
+
 async def process_duo_message(message_xml, username):
     if await maybe_register(message_xml, username):
         return ['<duo_registration_successful />'], []
@@ -346,36 +372,37 @@ async def process_duo_message(message_xml, username):
     if is_message_too_long(maybe_message_body):
         return [f'<duo_message_too_long id="{id}"/>'], []
 
-    params = dict(
-        from_username=from_username,
-        to_username=to_username,
-    )
+    from_id = await fetch_id_from_username(from_username)
 
-    async with api_tx('read committed') as tx:
-        await tx.execute(Q_API_MESSAGE, params)
-        row = await tx.fetchone()
+    if not from_id:
+        return [], [message_xml]
 
-        from_name = row['from_name']
-        is_immediate = row['is_immediate']
-        is_intro = row['is_intro']
-        is_skipped = row['is_skipped']
+    to_id = await fetch_id_from_username(to_username)
 
-        params['is_intro'] = is_intro
+    if not to_id:
+        return [], [message_xml]
 
-    if is_skipped:
+    if await fetch_is_skipped(from_id=from_id, to_id=to_id):
         return [f'<duo_message_blocked id="{id}"/>'], []
 
+    is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
     if is_intro and not await is_message_unique(maybe_message_body):
         return [f'<duo_message_not_unique id="{id}"/>'], []
 
-    if is_immediate:
+    immediate_name = await fetch_immediate_name(
+            person_id=to_id, is_intro=is_intro)
+
+    if immediate_name is not None:
+        # TODO: Check how many pending HTTP requests can safely be handled at once
         asyncio.create_task(
             send_notification(
-                from_name=from_name,
+                from_name=immediate_name,
                 to_username=to_username,
                 message=maybe_message_body,
             )
         )
+
+    await set_messaged(from_id=from_id, to_id=to_id)
 
     return  [f'<duo_message_delivered id="{id}"/>'], [message_xml]
 

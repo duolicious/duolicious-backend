@@ -25,6 +25,8 @@ q "delete from intro_hash" duo_chat
 ../util/create-user.sh user2 0 0
 ../util/create-user.sh user3 0 0
 
+q "update person set intros_notification = 1"
+
 assume_role user1 ; user1token=$SESSION_TOKEN
 assume_role user2 ; user2token=$SESSION_TOKEN
 assume_role user3 ; user3token=$SESSION_TOKEN
