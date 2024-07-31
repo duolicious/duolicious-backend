@@ -1,3 +1,6 @@
+# TODO: https://github.com/aio-libs/aiocache
+# TODO: https://github.com/aio-libs/async-lru
+
 from database.asyncdatabase import api_tx, chat_tx, check_connections_forever
 from lxml import etree
 import asyncio
@@ -8,8 +11,11 @@ import traceback
 import websockets
 import sys
 from websockets.exceptions import ConnectionClosedError
-from notify import enqueue_mobile_notification
+import notify
 from sql import *
+
+notify.set_flush_interval(1.0)
+notify.set_do_retry(True)
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 
@@ -181,7 +187,7 @@ async def send_notification(
 
     truncated_message = message[:128]
 
-    enqueue_mobile_notification(
+    notify.enqueue_mobile_notification(
         token=to_token,
         title=f"{from_name} sent you a message",
         body=truncated_message,

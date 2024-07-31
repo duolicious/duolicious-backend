@@ -23,7 +23,7 @@ import random
 import json
 import traceback
 from pathlib import Path
-from notify import enqueue_mobile_notification
+import notify
 
 EMAIL_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_EMAIL_POLL_SECONDS',
@@ -37,6 +37,9 @@ _disable_mobile_notifications_file = (
     'disable-mobile-notifications')
 
 print('Hello from cron module: notifications')
+
+notify.set_flush_interval(1.0)
+notify.set_do_retry(True)
 
 @dataclass
 class PersonNotification:
@@ -122,7 +125,7 @@ def send_mobile_notification(row: PersonNotification):
         )
         return True
     else:
-        return enqueue_mobile_notification(
+        return notify.enqueue_mobile_notification(
             token=row.token,
             title='You have a new message 😍',
             body=big_part(row.has_intro, row.has_chat),

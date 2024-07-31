@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 from service.cron.notifications import (
     PersonNotification,
-    _send_mobile_notification,
+    send_mobile_notification,
     send_notification,
 )
 import asyncio
@@ -26,7 +26,7 @@ person_notification = PersonNotification(
 class TestSendNotification(unittest.TestCase):
 
     @patch('service.cron.notifications.delete_mobile_token')
-    @patch('service.cron.notifications._send_mobile_notification')
+    @patch('service.cron.notifications.send_mobile_notification')
     @patch('service.cron.notifications.send_email_notification')
     def test_mobile_send_when_token_present(
         self,
@@ -38,7 +38,7 @@ class TestSendNotification(unittest.TestCase):
         # Call the send_notification function
         asyncio.run(send_notification(person_notification))
 
-        # Assert that _send_mobile_notification was called
+        # Assert that send_mobile_notification was called
         mock_send_mobile_notification.assert_called_once_with(person_notification)
 
         # Assert that send_email_notification was not called
