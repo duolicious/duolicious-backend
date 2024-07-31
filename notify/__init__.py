@@ -116,7 +116,8 @@ def _send_next_batch():
     try:
         with urllib.request.urlopen(req) as response:
             response_data = response.read().decode('utf-8')
-            parsed_data = json.loads(response_data)
+        parsed_data_list = json.loads(response_data)
+        for parsed_data in parsed_data_list:
             assert parsed_data["data"]["status"] == "ok"
     except Exception:
         print(traceback.format_exc())

@@ -12,7 +12,7 @@ class TestSendMobileNotification(unittest.TestCase):
     def test_enqueue_mobile_notification_success(self, mock_urlopen):
         # Set up the mock response to simulate a successful notification
         mock_urlopen.return_value.__enter__.return_value.read.return_value = \
-            json.dumps({'data': {'status': 'ok'}}).encode('utf-8')
+            json.dumps([{'data': {'status': 'ok'}}]).encode('utf-8')
 
         # Call the _enqueue_mobile_notification function
         enqueue_mobile_notification(
@@ -84,7 +84,7 @@ class TestSendMobileNotification(unittest.TestCase):
     def test_enqueue_mobile_notification_failure(self, mock_urlopen):
         # Set up the mock response to simulate a failed notification
         mock_urlopen.return_value.__enter__.return_value.read.return_value = \
-            json.dumps({'data': {'status': 'error'}}).encode('utf-8')
+            json.dumps([{'data': {'status': 'error'}}]).encode('utf-8')
 
         # Call the _enqueue_mobile_notification function
         enqueue_mobile_notification(
