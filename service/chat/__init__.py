@@ -1,6 +1,3 @@
-# TODO: https://github.com/aio-libs/aiocache
-# TODO: https://github.com/aio-libs/async-lru
-
 from database.asyncdatabase import api_tx, chat_tx, check_connections_forever
 from lxml import etree
 import asyncio
@@ -13,7 +10,7 @@ import sys
 from websockets.exceptions import ConnectionClosedError
 import notify
 from sql import *
-from async_lru import alru_cache
+from async_lru_cache import AsyncLruCache
 
 notify.set_flush_interval(1.0)
 notify.set_do_retry(True)
@@ -295,13 +292,15 @@ async def process_auth(message_str, username):
 
     await update_last(username)
 
-# TODO: ttl=1 minute
-@alru_cache(maxsize=1024, ttl=60)
+@AsyncLruCache(maxsize=1024, ttl=60)  # 1 minute
 async def upsert_last_notification(username: str) -> None:
     async with chat_tx('read committed') as tx:
         await tx.execute(Q_UPSERT_LAST_NOTIFICATION, dict(username=username))
 
 # TODO: ttl=1 day
+@AsyncLruCache(maxsize=1024,
+               ttl=24 * 60 * 60,
+               cache_condition=lambda x: not x)  # 1 day
 async def is_message_unique(message_str):
     normalized = normalize_message(message_str)
     hashed = duohash.md5(normalized)
