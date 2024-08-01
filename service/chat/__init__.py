@@ -406,7 +406,7 @@ async def process_duo_message(message_xml, username: str | None):
         return [f'<duo_message_not_unique id="{id}"/>'], []
 
     immediate_name = await fetch_immediate_name(
-            person_id=to_id, is_intro=is_intro)
+            person_id=from_id, is_intro=is_intro)
 
     if immediate_name is not None:
         asyncio.create_task(
