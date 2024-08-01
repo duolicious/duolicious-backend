@@ -6,6 +6,12 @@ import threading
 import time
 import traceback
 import urllib.request
+import os
+
+# This should typically be: https://exp.host/--/api/v2/push/send?useFcmV1=true
+NOTIFICATION_API_URL = os.environ.get(
+    'DUO_NOTIFICATION_API_URL',
+    'http://localhost')
 
 # Global variable for flush_interval
 _flush_interval_lock = threading.Lock()
@@ -107,7 +113,7 @@ def _send_next_batch():
     }
 
     req = urllib.request.Request(
-        url='https://exp.host/--/api/v2/push/send?useFcmV1=true',
+        url=NOTIFICATION_API_URL,
         data=json.dumps(data).encode('utf-8'),
         headers=headers,
         method='POST',
@@ -115,22 +121,27 @@ def _send_next_batch():
 
     try:
         with urllib.request.urlopen(req) as response:
-            response_data = response.read().decode('utf-8')
-
-        parsed_data = json.loads(response_data)
-
-        data_list = parsed_data["data"]
-
-        for data in data_list:
-            assert data["status"] == "ok"
-    except Exception:
+            response_data = response.read()
+    except:
         print(traceback.format_exc())
 
         if _get_do_retry():
             for notification in batch:
                 _notifications.put(notification)
 
-            print('Re-added failed notifications to the queue')
+            print('Re-added failed all notifications to the queue')
+
+            return
+
+    parsed_data = json.loads(response_data.decode('utf-8'))
+
+    for notification, data in zip(batch, parsed_data["data"]):
+        if data["status"] == "ok":
+            continue
+
+        _notifications.put(notification)
+        print('Re-added failed notification to queue:', notification)
+        print('Failed notification response data was:', data)
 
 def _send_batches_forever():
     while True:
