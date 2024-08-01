@@ -472,12 +472,7 @@ async def proxy(local_ws, path):
             task.cancel()
 
 async def serve():
-    async with websockets.serve(
-            proxy,
-            '0.0.0.0',
-            PORT,
-            subprotocols=['xmpp'],
-            ping_interval=None):
+    async with websockets.serve(proxy, '0.0.0.0', PORT, subprotocols=['xmpp']):
         await asyncio.Future()
 
 
