@@ -1835,6 +1835,9 @@ VALUES
     ('zipperhead'),
     ('zipperhead beater'),
     ('zipperheads'),
+    ('n word screamer'),
+    ('n word'),
+    ('n-word'),
     ('zoophile')
 ON CONFLICT (name) DO NOTHING;
 
