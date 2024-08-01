@@ -280,7 +280,7 @@ def process_auth(message_str, username):
         root = parse_xml(message_str)
 
         if root.tag != '{urn:ietf:params:xml:ns:xmpp-sasl}auth':
-            return
+            return False
 
         base64encoded = root.text
         decodedBytes = base64.b64decode(base64encoded)
@@ -294,7 +294,9 @@ def process_auth(message_str, username):
 
         return True
     except Exception as e:
-        return False
+        pass
+
+    return False
 
 @AsyncLruCache(maxsize=1024, ttl=60)  # 1 minute
 async def upsert_last_notification(username: str) -> None:
