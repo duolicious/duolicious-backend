@@ -25,6 +25,8 @@ q "delete from intro_hash" duo_chat
 ../util/create-user.sh user2 0 0
 ../util/create-user.sh user3 0 0
 
+q "update person set intros_notification = 1"
+
 assume_role user1 ; user1token=$SESSION_TOKEN
 assume_role user2 ; user2token=$SESSION_TOKEN
 assume_role user3 ; user3token=$SESSION_TOKEN
@@ -83,6 +85,8 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1"
     search_body = 'hello user 2'" duo_chat)" = 0 ]]
 
 q "delete from skipped where subject_person_id = $user2id and object_person_id = $user1id"
+
+sleep 5  # Wait for ttl cache to expire
 
 echo User 1 can message user 2
 

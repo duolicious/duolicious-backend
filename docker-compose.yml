@@ -92,6 +92,7 @@ services:
       - ./chat.main.sh:/app/chat.main.sh:ro
       - ./chat.auth.main.sh:/app/chat.auth.main.sh:ro
       - ./notify:/app/notify:ro
+      - ./async_lru_cache:/app/async_lru_cache:ro
       - ./sql:/app/sql:ro
     environment:
       DUO_API_HOST: http://api:5000

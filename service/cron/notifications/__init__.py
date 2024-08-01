@@ -23,7 +23,7 @@ import random
 import json
 import traceback
 from pathlib import Path
-from notify import send_mobile_notification
+import notify
 
 EMAIL_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_EMAIL_POLL_SECONDS',
@@ -37,6 +37,8 @@ _disable_mobile_notifications_file = (
     'disable-mobile-notifications')
 
 print('Hello from cron module: notifications')
+
+notify.set_flush_interval(1.0)
 
 @dataclass
 class PersonNotification:
@@ -90,12 +92,6 @@ def do_send_email_notification(row: PersonNotification):
 
     return do_send_notification(row) and not is_example
 
-async def delete_mobile_token(row: PersonNotification):
-    params = dict(username=row.person_uuid)
-
-    async with chat_tx() as tx:
-        await tx.execute(Q_DELETE_MOBILE_TOKEN, params)
-
 async def send_email_notification(row: PersonNotification):
     if not do_send_email_notification(row):
         print('Email notification failed because it ends with @example.com')
@@ -114,15 +110,14 @@ async def send_email_notification(row: PersonNotification):
     aws_smtp = make_aws_smtp()
     await asyncio.to_thread(aws_smtp.send, **send_args)
 
-def _send_mobile_notification(row: PersonNotification):
+def send_mobile_notification(row: PersonNotification):
     if disable_mobile_notifications():
         print(
             'File prevented mobile notifications',
             str(_disable_mobile_notifications_file.absolute())
         )
-        return True
     else:
-        return send_mobile_notification(
+        return notify.enqueue_mobile_notification(
             token=row.token,
             title='You have a new message 😍',
             body=big_part(row.has_intro, row.has_chat),
@@ -134,10 +129,7 @@ async def send_notification(row: PersonNotification):
         return await send_email_notification(row)
 
     print('Sending mobile notification:', str(row))
-    if not await asyncio.to_thread(_send_mobile_notification, row):
-        print('Mobile notification failed; sending email')
-        await delete_mobile_token(row)
-        return await send_email_notification(row)
+    send_mobile_notification(row)
 
 async def update_last_notification_time(row: PersonNotification):
     params = dict(username=row.person_uuid)
