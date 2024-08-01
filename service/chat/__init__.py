@@ -141,6 +141,9 @@ def to_bare_jid(jid: str | None):
         return None
 
 async def update_last(username: Username):
+    # TODO
+    return
+
     if username is None:
         return
 
