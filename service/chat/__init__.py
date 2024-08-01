@@ -141,6 +141,9 @@ def to_bare_jid(jid: str | None):
         return None
 
 async def update_last(username: Username):
+    # TODO
+    return
+
     if username is None:
         return
 
@@ -177,7 +180,10 @@ async def send_notification(
     if to_token is None:
         return
 
-    truncated_message = message[:256]
+    max_notification_length = 128
+
+    truncated_message = message[:max_notification_length] + (
+            '...' if len(message) > max_notification_length else '')
 
     notify.enqueue_mobile_notification(
         token=to_token,
@@ -337,7 +343,7 @@ async def set_messaged(from_id: int, to_id: int) -> None:
     async with api_tx('read committed') as tx:
         await tx.execute(Q_SET_MESSAGED, dict(from_id=from_id, to_id=to_id))
 
-@AsyncLruCache(ttl=24 * 60 * 60)  # 1 day
+@AsyncLruCache(ttl=2 * 60)  # 2 minutes
 async def fetch_push_token(username: str) -> str | None:
     async with chat_tx('read committed') as tx:
         await tx.execute(Q_SELECT_PUSH_TOKEN, dict(username=username))
