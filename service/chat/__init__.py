@@ -59,6 +59,7 @@ WHERE
     subject_person_id = %(from_id)s AND object_person_id  = %(to_id)s
 OR
     subject_person_id = %(to_id)s   AND object_person_id  = %(from_id)s
+LIMIT 1
 """
 
 Q_IS_CHAT = """
@@ -67,8 +68,10 @@ SELECT
 FROM
     messaged
 WHERE
-    object_person_id = %(from_id)s OR
-    object_person_id = %(to_id)s
+    subject_person_id = %(from_id)s AND object_person_id  = %(to_id)s
+OR
+    subject_person_id = %(to_id)s   AND object_person_id  = %(from_id)s
+LIMIT 1
 """
 
 Q_SET_MESSAGED = """

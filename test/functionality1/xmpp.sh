@@ -179,6 +179,30 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 
 [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 1 ]]
 
+echo "User 1 can send user 3 an unoriginal message now that they're chatting"
+
+curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
+<message
+    type='chat'
+    from='$user1uuid@duolicious.app'
+    to='$user3uuid@duolicious.app'
+    id='id3'
+    check_uniqueness='false'
+    xmlns='jabber:client'>
+  <body>hello user 2</body>
+  <request xmlns='urn:xmpp:receipts'/>
+</message>
+"
+
+sleep 3 # MongooseIM takes some time to flush messages to the DB
+
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id3"/>'
+
+[[ "$(q "select count(*) from mam_message where \
+    search_body = 'hello user 2'" duo_chat)" = 4 ]]
+
+[[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 1 ]]
+
 echo user 1 should no longer be authorized to chat after deleting their account
 
 assume_role user1
