@@ -15,6 +15,7 @@ COPY service/chat/container/mongooseim.toml /mongooseim.template.toml
 COPY database /app/database
 COPY duohash /app/duohash
 COPY notify /app/notify
+COPY async_lru_cache /app/async_lru_cache
 COPY sql /app/sql
 COPY service/chat/__init__.py /app/service/chat/__init__.py
 COPY service/chat/auth.py /app/service/chat/auth.py
