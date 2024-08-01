@@ -315,7 +315,7 @@ async def is_message_unique(message_str):
         rows = await cursor.fetchall()
         return bool(rows)
 
-@AsyncLruCache(maxsize=1024, ttl=24 * 60 * 60)  # 1 day
+@AsyncLruCache(maxsize=1024)
 async def fetch_id_from_username(username: str) -> str | None:
     async with api_tx('read committed') as tx:
         await tx.execute(Q_FETCH_PERSON_ID, dict(username=username))
