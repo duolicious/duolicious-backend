@@ -141,12 +141,19 @@ def to_bare_jid(jid: str | None):
     except:
         return None
 
-async def update_last(username: Username):
+async def update_last(
+    username: Username,
+    min_random_delay: int = 0,
+    max_random_delay: int = 0,
+):
     if username is None:
         return
 
     if username.username is None:
         return
+
+    if min_random_delay and max_random_delay:
+        await asyncio.sleep(random.randint(min_random_delay, max_random_delay))
 
     try:
         async with chat_tx('read committed') as tx:
@@ -418,7 +425,7 @@ async def process(src, dst, username):
     try:
         async for message in src:
             if process_auth(message, username):
-                asyncio.create_task(update_last(username))
+                asyncio.create_task(update_last(username, 1, 10))
 
             to_src, to_dst = await process_duo_message(message, username.username)
 
