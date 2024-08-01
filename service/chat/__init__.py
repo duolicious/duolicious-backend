@@ -11,6 +11,7 @@ from websockets.exceptions import ConnectionClosedError
 import notify
 from sql import *
 from async_lru_cache import AsyncLruCache
+import random
 
 notify.set_flush_interval(1.0)
 
@@ -128,7 +129,7 @@ MAX_MESSAGE_LEN = 5000
 NON_ALPHANUMERIC_RE = regex.compile(r'[^\p{L}\p{N}]')
 REPEATED_CHARACTERS_RE = regex.compile(r'(.)\1{1,}')
 
-LAST_UPDATE_INTERVAL_SECONDS = 3 * 60
+LAST_UPDATE_INTERVAL_SECONDS = 4 * 60
 
 class Username:
     def __init__(self):
@@ -141,9 +142,6 @@ def to_bare_jid(jid: str | None):
         return None
 
 async def update_last(username: Username):
-    # TODO
-    return
-
     if username is None:
         return
 
@@ -158,8 +156,9 @@ async def update_last(username: Username):
 
 async def update_last_forever(username: Username):
     while True:
+        await asyncio.sleep(
+                LAST_UPDATE_INTERVAL_SECONDS + random.randint(-10, 10))
         await update_last(username)
-        await asyncio.sleep(LAST_UPDATE_INTERVAL_SECONDS)
 
 async def send_notification(
     from_name: str | None,
@@ -272,16 +271,16 @@ async def maybe_register(message_xml, username):
 
     return False
 
-async def process_auth(message_str, username):
+def process_auth(message_str, username):
     if username.username is not None:
-        return
+        return False
 
     try:
         # Create a safe XML parser
         root = parse_xml(message_str)
 
         if root.tag != '{urn:ietf:params:xml:ns:xmpp-sasl}auth':
-            raise Exception('Not an auth message')
+            return False
 
         base64encoded = root.text
         decodedBytes = base64.b64decode(base64encoded)
@@ -292,10 +291,12 @@ async def process_auth(message_str, username):
         auth_username = auth_parts[1]
 
         username.username = auth_username
-    except Exception as e:
-        return
 
-    await update_last(username)
+        return True
+    except Exception as e:
+        pass
+
+    return False
 
 @AsyncLruCache(maxsize=1024, ttl=60)  # 1 minute
 async def upsert_last_notification(username: str) -> None:
@@ -314,7 +315,7 @@ async def is_message_unique(message_str):
         rows = await cursor.fetchall()
         return bool(rows)
 
-@AsyncLruCache(maxsize=1024, ttl=24 * 60 * 60)  # 1 day
+@AsyncLruCache(maxsize=1024)
 async def fetch_id_from_username(username: str) -> str | None:
     async with api_tx('read committed') as tx:
         await tx.execute(Q_FETCH_PERSON_ID, dict(username=username))
@@ -362,7 +363,7 @@ async def fetch_immediate_name(person_id: int, is_intro: bool) -> str | None:
 
         return row.get('name') if row else None
 
-async def process_duo_message(message_xml, username):
+async def process_duo_message(message_xml, username: str | None):
     if await maybe_register(message_xml, username):
         return ['<duo_registration_successful />'], []
 
@@ -416,7 +417,8 @@ async def process_duo_message(message_xml, username):
 async def process(src, dst, username):
     try:
         async for message in src:
-            await process_auth(message, username)
+            if process_auth(message, username):
+                asyncio.create_task(update_last(username))
 
             to_src, to_dst = await process_duo_message(message, username.username)
 

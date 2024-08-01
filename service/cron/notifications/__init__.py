@@ -134,7 +134,7 @@ async def send_notification(row: PersonNotification):
 async def update_last_notification_time(row: PersonNotification):
     params = dict(username=row.person_uuid)
 
-    async with chat_tx() as tx:
+    async with chat_tx('read committed') as tx:
         if row.has_intro:
             await tx.execute(Q_UPDATE_LAST_INTRO_NOTIFICATION_TIME, params)
         if row.has_chat:
@@ -148,11 +148,11 @@ async def maybe_send_notification(row: PersonNotification):
     await update_last_notification_time(row)
 
 async def send_notifications_once():
-    async with chat_tx() as tx:
+    async with chat_tx('read committed') as tx:
         cur_unread_inbox = await tx.execute(Q_UNREAD_INBOX)
         rows_unread_inbox = await cur_unread_inbox.fetchall()
 
-    async with api_tx() as tx:
+    async with api_tx('read committed') as tx:
         cur_notification_settings = await tx.execute(
             Q_NOTIFICATION_SETTINGS,
             params=dict(ids=[r['person_uuid'] for r in rows_unread_inbox])
