@@ -39,7 +39,6 @@ _disable_mobile_notifications_file = (
 print('Hello from cron module: notifications')
 
 notify.set_flush_interval(1.0)
-notify.set_do_retry(True)
 
 @dataclass
 class PersonNotification:
@@ -93,12 +92,6 @@ def do_send_email_notification(row: PersonNotification):
 
     return do_send_notification(row) and not is_example
 
-async def delete_mobile_token(row: PersonNotification):
-    params = dict(username=row.person_uuid)
-
-    async with chat_tx() as tx:
-        await tx.execute(Q_DELETE_MOBILE_TOKEN, params)
-
 async def send_email_notification(row: PersonNotification):
     if not do_send_email_notification(row):
         print('Email notification failed because it ends with @example.com')
@@ -123,7 +116,6 @@ def send_mobile_notification(row: PersonNotification):
             'File prevented mobile notifications',
             str(_disable_mobile_notifications_file.absolute())
         )
-        return True
     else:
         return notify.enqueue_mobile_notification(
             token=row.token,
@@ -137,10 +129,7 @@ async def send_notification(row: PersonNotification):
         return await send_email_notification(row)
 
     print('Sending mobile notification:', str(row))
-    if not await asyncio.to_thread(send_mobile_notification, row):
-        print('Mobile notification failed; sending email')
-        await delete_mobile_token(row)
-        return await send_email_notification(row)
+    send_mobile_notification(row)
 
 async def update_last_notification_time(row: PersonNotification):
     params = dict(username=row.person_uuid)

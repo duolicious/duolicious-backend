@@ -13,7 +13,6 @@ from sql import *
 from async_lru_cache import AsyncLruCache
 
 notify.set_flush_interval(1.0)
-notify.set_do_retry(True)
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 

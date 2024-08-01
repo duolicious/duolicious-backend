@@ -129,9 +129,11 @@ def _send_next_batch():
             for notification in batch:
                 _notifications.put(notification)
 
-            print('Re-added failed all notifications to the queue')
+            print("Notifications failed; will retry entire batch:", batch)
+        else:
+            print("Notifications failed; won't retry batch:", batch)
 
-            return
+        return
 
     parsed_data = json.loads(response_data.decode('utf-8'))
 
@@ -139,9 +141,19 @@ def _send_next_batch():
         if data["status"] == "ok":
             continue
 
-        _notifications.put(notification)
-        print('Re-added failed notification to queue:', notification)
-        print('Failed notification response data was:', data)
+        if _get_do_retry():
+            _notifications.put(notification)
+            print(
+                    "Notification failed; will retry notification:",
+                    notification,
+                    "Data was:",
+                    data)
+        else:
+            print(
+                    "Notification failed; won't retry notification:",
+                    notification,
+                    "Data was:",
+                    data)
 
 def _send_batches_forever():
     while True:
