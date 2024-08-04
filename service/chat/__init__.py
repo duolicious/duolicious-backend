@@ -442,7 +442,20 @@ async def process_duo_message(message_xml, username: str | None):
 
     await set_messaged(from_id=from_id, to_id=to_id)
 
-    return  [f'<duo_message_delivered id="{id}"/>'], [message_xml]
+    return  (
+        [f'<duo_message_delivered id="{id}"/>'],
+        [
+            message_xml,
+            f"<iq id='{duohash.duo_uuid()}' type='set'>"
+            f"  <query"
+            f"    xmlns='erlang-solutions.com:xmpp:inbox:0#conversation'"
+            f"    jid='{to_jid}'"
+            f"  >"
+            f"    <box>chats</box>"
+            f"  </query>"
+            f"</iq>"
+        ]
+    )
 
 async def process(src, dst, username):
     try:

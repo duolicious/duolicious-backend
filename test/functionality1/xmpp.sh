@@ -54,6 +54,8 @@ curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d
 
 sleep 0.5
 
+
+
 echo If user 2 blocks user 1 then user 1 can no longer message user 2
 
 q "insert into skipped values ($user2id, $user1id, false, 'testing blocking')"
@@ -88,6 +90,8 @@ q "delete from skipped where subject_person_id = $user2id and object_person_id =
 
 sleep 5  # Wait for ttl cache to expire
 
+
+
 echo User 1 can message user 2
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
@@ -116,6 +120,18 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 [[ "$(q "select count(*) from mam_message where \
     search_body = 'hello user 2'" duo_chat)" = 2 ]]
 
+[[ "$(q "select count(*) from inbox where \
+    luser = '${user1uuid}' and \
+    remote_bare_jid = '${user2uuid}@duolicious.app' and \
+    box = 'chats'" duo_chat)" = 1 ]]
+
+[[ "$(q "select count(*) from inbox where \
+    luser = '${user2uuid}' and \
+    remote_bare_jid = '${user1uuid}@duolicious.app' and \
+    box = 'inbox'" duo_chat)" = 1 ]]
+
+
+
 echo The push token should be acknowledged and inserted into the database
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
@@ -128,6 +144,8 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful 
 [[ "$(q "select count(*) from duo_push_token \
     where username = '$user1uuid' \
     and token = 'user-1-token'" duo_chat)" = 1 ]]
+
+
 
 echo Unoriginal intros are rejected
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
@@ -151,6 +169,8 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_not_unique id="i
     search_body = 'hello user 2'" duo_chat)" = 2 ]]
 
 [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
+
+
 
 echo 'User 1 can message user 3 and notification is sent'
 
@@ -179,6 +199,8 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 
 [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 1 ]]
 
+
+
 echo "User 1 can send user 3 an unoriginal message now that they're chatting"
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
@@ -202,6 +224,8 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
     search_body = 'hello user 2'" duo_chat)" = 4 ]]
 
 [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 1 ]]
+
+
 
 echo user 1 should no longer be authorized to chat after deleting their account
 
@@ -231,6 +255,8 @@ curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d
 
 sleep 0.5
 
+
+
 echo user2 can still see user1\'s message after user1 deletes their account
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
@@ -245,6 +271,8 @@ sleep 0.5
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<body>hello user 2</body>'
 
+
+
 echo user1\'s records are no longer on the server
 
 [[ "$(q "select count(*) from mam_message where user_id in ( \
@@ -255,6 +283,7 @@ echo user1\'s records are no longer on the server
 [[ "$(q "select count(*) from mam_server_user where user_name = '$user1uuid'" duo_chat)" = 0 ]]
 [[ "$(q "select count(*) from duo_last_notification where username = '$user1uuid'" duo_chat)" = 0 ]]
 [[ "$(q "select count(*) from duo_push_token where username = '$user1uuid'" duo_chat)" = 0 ]]
+
 
 
 echo 'Banning user2 deletes them from the XMPP server'
