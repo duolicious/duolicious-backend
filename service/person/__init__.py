@@ -1068,6 +1068,14 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         WHERE person.id = %(person_id)s
         AND immediacy.name = %(field_value)s
         """
+    elif field_name == 'verification_level':
+        q1 = """
+        UPDATE person
+        SET privacy_verification_level_id = verification_level.id
+        FROM verification_level
+        WHERE person.id = %(person_id)s AND
+        verification_level.name = %(field_value)s
+        """
     elif field_name == 'show_my_location':
         q1 = """
         UPDATE person

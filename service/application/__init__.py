@@ -1,3 +1,7 @@
+# TODO When the user isn't authorized to access a profile, GET /prospect-profile/<uuid> should indicate which verification level is needed with a HTTP 403
+# TODO Search results should indicate when the user isn't authorized to access a profile
+# TODO Ensure UX is good in search tab
+# TODO Ensure UX is good in Q&A stack
 from pathlib import Path
 from flask import request
 import duotypes as t

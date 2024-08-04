@@ -1553,6 +1553,13 @@ WITH photo_ AS (
     FROM immediacy JOIN person ON intros_notification = immediacy.id
     WHERE person.id = %(person_id)s
 
+), privacy_verification_level AS (
+    SELECT
+        verification_level.name AS j
+    FROM person
+    JOIN verification_level
+    ON verification_level.id = person.privacy_verification_level_id
+    WHERE person.id = %(person_id)s
 ), show_my_location AS (
     SELECT
         CASE WHEN show_my_location THEN 'Yes' ELSE 'No' END AS j
@@ -1614,6 +1621,7 @@ SELECT
         'chats',                  (SELECT j FROM chat),
         'intros',                 (SELECT j FROM intro),
 
+        'verification level',     (SELECT j FROM privacy_verification_level),
         'show my location',       (SELECT j FROM show_my_location),
         'show my age',            (SELECT j FROM show_my_age),
         'hide me from strangers', (SELECT j FROM hide_me_from_strangers),

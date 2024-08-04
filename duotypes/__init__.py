@@ -195,6 +195,7 @@ class PatchProfileInfo(BaseModel):
     units: Optional[str] = None
     chats: Optional[str] = None
     intros: Optional[str] = None
+    verification_level: Optional[str] = None
     show_my_location: Optional[str] = None
     show_my_age: Optional[str] = None
     hide_me_from_strangers: Optional[str] = None
