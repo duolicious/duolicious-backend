@@ -23,6 +23,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Font from 'expo-font';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Notifications from 'expo-notifications';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { TabBar } from './components/tab-bar';
@@ -35,7 +36,7 @@ import { ConversationScreen } from './components/conversation-screen';
 import { UtilityScreen } from './components/utility-screen';
 import { ProspectProfileScreen } from './components/prospect-profile-screen';
 import { InviteScreen, WelcomeScreen } from './components/welcome-screen';
-import { sessionToken } from './kv-storage/session-token';
+import { sessionToken, sessionPersonUuid } from './kv-storage/session-token';
 import { japi, SUPPORTED_API_VERSIONS } from './api/api';
 import { login, logout, Inbox, inboxStats } from './xmpp/xmpp';
 import { STATUS_URL } from './env/env';
@@ -43,7 +44,7 @@ import { delay, parseUrl } from './util/util';
 import { ReportModal } from './components/report-modal';
 import { ImageCropper } from './components/image-cropper';
 import { StreamErrorModal } from './components/stream-error-modal';
-import { setNofications } from './notifications/notifications';
+import { setNofications, useNotificationObserver } from './notifications/notifications';
 import { navigationState } from './kv-storage/navigation-state';
 import { listen, notify } from './events/events';
 import { verificationWatcher } from './verification/verification';
@@ -184,6 +185,8 @@ const App = () => {
     const existingSessionToken = await sessionToken();
 
     if (existingSessionToken === null) {
+      await sessionPersonUuid(null);
+      await sessionToken(null);
       setSignedInUser(undefined);
       return;
     }
@@ -195,6 +198,8 @@ const App = () => {
     const response = await japi('post', '/check-session-token');
 
     if (!response.ok || !response?.json?.onboarded) {
+      await sessionPersonUuid(null);
+      await sessionToken(null);
       setSignedInUser(undefined);
       return;
     }
@@ -208,6 +213,8 @@ const App = () => {
       sessionToken: existingSessionToken,
       pendingClub: response?.json?.pending_club,
     });
+
+    await sessionPersonUuid(response?.json?.person_uuid);
 
     notify<ClubItem[]>('updated-clubs', clubs);
   }, []);
@@ -244,6 +251,17 @@ const App = () => {
     }
   }, [serverStatus]);
 
+  const ensureLoggedIntoXmpp = async () => {
+    const personUuid = (await sessionPersonUuid()) ?? signedInUser?.personUuid;
+    const token = await sessionToken();
+
+    if (!personUuid || !token) {
+      return;
+    }
+
+    await login(personUuid, token);
+  };
+
   const parseUrl_ = useCallback(async () => {
     const parsedUrl = await parseUrl();
 
@@ -254,10 +272,14 @@ const App = () => {
       }
 
       case 'invite': {
-        navigationContainerRef.current.navigate(
-          'Invite Screen',
-          { clubName: decodeURIComponent(parsedUrl.right) },
-        );
+        const navigationContainer = navigationContainerRef?.current;
+
+        if (navigationContainer) {
+          navigationContainerRef.current.navigate(
+            'Invite Screen',
+            { clubName: decodeURIComponent(parsedUrl.right) },
+          );
+        }
         break;
       }
 
@@ -279,6 +301,10 @@ const App = () => {
       setIsLoading(false);
     })();
   }, []);
+
+  useEffect(() => {
+      ensureLoggedIntoXmpp()
+  }, [signedInUser?.personUuid]);
 
   useEffect(() => {
     // Without this flag, an infinite loop will start each time this effect
@@ -305,8 +331,6 @@ const App = () => {
         return;
       }
 
-      login(signedInUser.personUuid, signedInUser.sessionToken);
-
       const lastNavigationState = await navigationState();
 
       const navigationContainer = navigationContainerRef?.current;
@@ -314,7 +338,7 @@ const App = () => {
       const pendingClub = signedInUser?.pendingClub;
 
       if (navigationContainer && pendingClub) {
-        navigationContainerRef.current.navigate('Search');
+        navigationContainer.navigate('Search');
       } else if (await parseUrl()) {
         ; // Don't restore last navigation state
       } else if (navigationContainer && lastNavigationState) {
@@ -365,6 +389,19 @@ const App = () => {
       return listen<Inbox | null>('inbox', onChangeInbox, true);
     }, [onChangeInbox]);
   }
+
+  useNotificationObserver((notification: Notifications.Notification) => {
+    if (!isLoading) {
+      const navigationContainer = navigationContainerRef.current;
+
+      const { screen, params } = notification.request.content.data;
+
+      if (!navigationContainer) return;
+      if (!screen) return;
+
+      navigationContainer.navigate(screen, params);
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     (async () => {

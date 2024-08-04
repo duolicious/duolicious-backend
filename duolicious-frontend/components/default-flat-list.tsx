@@ -167,7 +167,6 @@ type DefaultFlatListProps<ItemT> =
     | "ListEmptyComponent"
     | "ListFooterComponent"
     | "data"
-    | "keyExtractor"
     | "onContentSizeChange"
     | "onLayout"
     | "onRefresh"
@@ -313,7 +312,6 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
   const onRefresh = () => {
     const book = getBookOrDefault(books, dataKey);
 
-    if (props.disableRefresh) return;
     if (book.isRefreshing) return;
 
     setBooks({
@@ -328,9 +326,16 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
 
   useImperativeHandle(ref, () => ({ refresh: onRefresh }), [onRefresh]);
 
-  const onContentSizeChange = useCallback((width: number, height: number) => {
+  const onContentSizeChange = (width: number, height: number) => {
     contentHeight.current = height;
-  }, []);
+
+    if (
+      contentHeight.current < viewportHeight.current &&
+      !isBookComplete(book)
+    ) {
+      fetchNextPage()
+    }
+  };
 
   const onLayout = useCallback(({ nativeEvent: { layout: { height } } }) => {
     viewportHeight.current = height;
@@ -343,22 +348,6 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
     ];
   }
 
-  useEffect(() => {
-    const book = getBookOrDefault(books, dataKey);
-
-    if (
-      contentHeight.current < viewportHeight.current &&
-      !isBookComplete(book)
-    ) {
-      fetchNextPage()
-    }
-  }, [
-    contentHeight,
-    viewportHeight,
-    books,
-    dataKey,
-  ]);
-
   const book = getBookOrDefault(books, dataKey);
   const items = bookToItems(book);
 
@@ -366,7 +355,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
     <FlatList
       ref={flatList}
       refreshing={false}
-      onRefresh={onRefresh}
+      onRefresh={props.disableRefresh ? undefined : onRefresh}
       onEndReachedThreshold={props.onEndReachedThreshold ?? 1}
       onEndReached={fetchNextPage}
       data={items}
@@ -400,7 +389,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
         />
       }
       onContentSizeChange={onContentSizeChange}
-      keyExtractor={keyExtractor}
+      keyExtractor={props.keyExtractor ?? keyExtractor}
       initialNumToRender={1}
       onLayout={onLayout}
     />

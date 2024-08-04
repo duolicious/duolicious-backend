@@ -15,7 +15,6 @@ import { OtpInput } from './otp-input';
 import { createAccountOptionGroups } from '../data/option-groups';
 import { OptionScreen } from './option-screen';
 import { japi } from '../api/api';
-import { sessionToken } from '../kv-storage/session-token';
 import {
   randomGagMaintenanceNotice,
   randomGagUpdateNotice,

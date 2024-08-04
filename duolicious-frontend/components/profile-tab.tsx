@@ -42,7 +42,7 @@ import {
 } from '../data/option-groups';
 import { Images } from './images';
 import { DefaultText } from './default-text';
-import { sessionToken } from '../kv-storage/session-token';
+import { sessionToken, sessionPersonUuid } from '../kv-storage/session-token';
 import { api, japi } from '../api/api';
 import { signedInUser, setSignedInUser } from '../App';
 import { cmToFeetInchesStr } from '../units/units';
@@ -388,6 +388,7 @@ const Options = ({ navigation, data }) => {
     setIsLoadingSignOut(true);
     await logout();
     if ((await api('post', '/sign-out')).ok) {
+      await sessionPersonUuid(null);
       await sessionToken(null);
       setSignedInUser(undefined);
     }

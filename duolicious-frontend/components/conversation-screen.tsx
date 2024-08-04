@@ -1,17 +1,19 @@
 import {
   ActivityIndicator,
   Animated,
+  AppState,
+  AppStateStatus,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
+  SafeAreaView,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TextStyle,
   View,
   ViewStyle,
-  SafeAreaView,
-  StyleSheet,
-  KeyboardAvoidingView,
 } from 'react-native';
 import {
   useCallback,
@@ -44,8 +46,22 @@ import { RotateCcw, Flag, X } from "react-native-feather";
 import { setSkipped } from '../hide-and-block/hide-and-block';
 import { delay, isMobile } from '../util/util';
 import { ReportModalInitialData } from './report-modal';
-import { listen, notify } from '../events/events';
+import { listen, notify, lastEvent } from '../events/events';
 import { Image, ImageBackground } from 'expo-image';
+
+const propAt = (messages: Message[] | null | undefined, index: number, prop: string): string => {
+  if (!messages) return '';
+
+  const message = messages[index];
+
+  if (!message) return '';
+
+  return message[prop] ?? '';
+};
+
+const lastPropAt = (messages: Message[] | null | undefined, prop: string): string => {
+  return propAt(messages, (messages ?? []).length - 1, prop);
+}
 
 const Menu = ({navigation, name, personId, personUuid, messages, closeFn}) => {
   const [isSkipped, setIsSkipped] = useState<boolean | undefined>();
@@ -258,22 +274,9 @@ const ConversationScreen = ({navigation, route}) => {
     messages[messages.length - 1] :
     null;
 
-  const listRef = useRef<ScrollView>(null)
-
-  const lastMamId = (() => {
-    if (!messages) return '';
-    if (!messages.length) return '';
-
-    const mamId = messages[0].mamId;
-
-    if (!mamId) return '';
-
-    return mamId;
-  })();
+  const listRef = useRef<ScrollView>(null);
 
   const onPressSend = useCallback(async (text: string): Promise<MessageStatus> => {
-    const isFirstMessage = messages === null || messages.length === 0;
-
     const message: Message = {
       text: text,
       from: '',
@@ -285,11 +288,7 @@ const ConversationScreen = ({navigation, route}) => {
 
     setLastMessageStatus(null);
 
-    const messageStatus = await sendMessage(
-      personUuid,
-      message.text,
-      isFirstMessage,
-    );
+    const messageStatus = await sendMessage(personUuid, message.text);
 
     if (messageStatus === 'sent') {
       hasScrolled.current = false;
@@ -325,7 +324,7 @@ const ConversationScreen = ({navigation, route}) => {
 
     const fetchedMessages = await fetchConversation(
       personUuid || String(personId),
-      lastMamId
+      propAt(messages, 0, 'mamId')
     );
 
     isFetchingNextPage.current = false;
@@ -340,7 +339,7 @@ const ConversationScreen = ({navigation, route}) => {
 
       hasFetchedAll.current = !(fetchedMessages && fetchedMessages.length);
     }
-  }, [messages, lastMamId]);
+  }, [messages]);
 
   const _onReceiveMessage = useCallback((msg) => {
     hasScrolled.current = false;
@@ -386,24 +385,44 @@ const ConversationScreen = ({navigation, route}) => {
     if (!isOnline) {
       return;
     }
-    if (messages !== null) {
-      return;
-    }
 
     const fetchedMessages = await fetchConversation(
       personUuid || String(personId)
     );
 
+    setMessageFetchTimeout(fetchedMessages === 'timeout');
+
     if (fetchedMessages === 'timeout') {
-      setMessageFetchTimeout(true);
-    } else {
-      setMessages(fetchedMessages ?? []);
+      return;
     }
-  }, [messages, personUuid]);
+
+    if (fetchedMessages === undefined) {
+      return;
+    }
+
+    const lastIdOfPage = lastPropAt(fetchedMessages, 'id');
+    const lastIdOfConversation = lastPropAt(messages, 'id');
+
+    if (messages === null || lastIdOfPage !== lastIdOfConversation) {
+      setMessages(fetchedMessages);
+    }
+  }, [personUuid, messages]);
 
   useEffect(() => {
-    return listen('xmpp-is-online', maybeFetchFirstPage, true)
+    const onChangeAppState = (state: AppStateStatus) => {
+      if (Platform.OS !== 'web' && state === 'active') {
+        maybeFetchFirstPage(lastEvent('xmpp-is-online') ?? false);
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', onChangeAppState);
+
+    return () => subscription.remove();
   }, [maybeFetchFirstPage]);
+
+  useEffect(() => {
+    return listen('xmpp-is-online', maybeFetchFirstPage, messages === null)
+  }, [maybeFetchFirstPage, messages]);
 
   // Scroll to end when last message changes
   useEffect(() => {
@@ -594,9 +613,8 @@ const ConversationScreen = ({navigation, route}) => {
               key={x.id}
               fromCurrentUser={x.fromCurrentUser}
               timestamp={x.timestamp}
-            >
-              {x.text}
-            </SpeechBubble>
+              text={x.text}
+            />
           )}
         </ScrollView>
       }

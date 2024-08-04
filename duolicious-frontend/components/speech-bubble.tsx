@@ -12,12 +12,15 @@ import { longFriendlyTimestamp } from '../util/util';
 type State = 'Read' | 'Delivered';
 
 type Props = {
-  fromCurrentUser?: boolean,
-  state?: State,
+  fromCurrentUser: boolean,
   timestamp: Date,
-  children?: string | string[],
-  style?: Object,
+  text: string,
 };
+
+const isEmojiOnly = (str: string) => {
+  const emojiRegex = /^\p{Emoji_Presentation}+$/u;
+  return emojiRegex.test(str);
+}
 
 const SpeechBubble = (props: Props) => {
   const [showTimestamp, setShowTimestamp] = useState(false);
@@ -25,6 +28,16 @@ const SpeechBubble = (props: Props) => {
   const onPress = useCallback(() => {
     setShowTimestamp(t => !t);
   }, [setShowTimestamp]);
+
+  const backgroundColor = (() => {
+    if (isEmojiOnly(props.text)) {
+      return 'transparent';
+    } else if (props.fromCurrentUser) {
+      return '#70f';
+    } else {
+      return '#eee';
+    }
+  })();
 
   return (
     <View
@@ -39,21 +52,20 @@ const SpeechBubble = (props: Props) => {
         onPress={onPress}
         style={{
           borderRadius: 10,
-          backgroundColor: props.fromCurrentUser ? '#70f' : '#eee',
+          backgroundColor: backgroundColor,
           alignSelf: props.fromCurrentUser ? 'flex-end' : 'flex-start',
           maxWidth: '80%',
           padding: 10,
-          ...props.style,
         }}
       >
         <DefaultText
           selectable={true}
           style={{
             color: props.fromCurrentUser ? 'white' : 'black',
-            fontSize: 15,
+            fontSize: isEmojiOnly(props.text) ? 50 : 15,
           }}
         >
-          {props.children}
+          {props.text}
         </DefaultText>
       </Pressable>
       {showTimestamp &&
@@ -67,19 +79,6 @@ const SpeechBubble = (props: Props) => {
           }}
         >
           {longFriendlyTimestamp(props.timestamp)}
-        </DefaultText>
-      }
-      {props.state &&
-        <DefaultText
-          selectable={true}
-          style={{
-            fontSize: 13,
-            paddingTop: 10,
-            alignSelf: props.fromCurrentUser ? 'flex-end' : 'flex-start',
-            color: '#666',
-          }}
-        >
-          {props.state}
         </DefaultText>
       }
     </View>

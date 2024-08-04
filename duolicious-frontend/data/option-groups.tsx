@@ -1,7 +1,7 @@
 import * as _ from "lodash";
 import { api, japi, ApiResponse } from '../api/api';
 import { setSignedInUser } from '../App';
-import { sessionToken } from '../kv-storage/session-token';
+import { sessionToken, sessionPersonUuid } from '../kv-storage/session-token';
 import { X } from "react-native-feather";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faPalette } from '@fortawesome/free-solid-svg-icons/faPalette'
@@ -847,6 +847,8 @@ const deletionOptionGroups: OptionGroup<OptionGroupTextShort>[] = [
 
           if (!response.ok) return false;
 
+          await sessionPersonUuid(null);
+          await sessionToken(null);
           setSignedInUser(undefined);
 
           return true;
@@ -866,6 +868,8 @@ const deactivationOptionGroups: OptionGroup<OptionGroupNone>[] = [
         submit: async () => {
           const ok = (await japi('post', '/deactivate')).ok
           if (ok) {
+            await sessionPersonUuid(null);
+            await sessionToken(null);
             setSignedInUser(undefined);
           }
           return ok;
@@ -899,6 +903,8 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
               sessionToken: existingSessionToken,
               pendingClub: response?.json?.pending_club,
             }));
+
+            await sessionPersonUuid(response?.json?.person_uuid);
 
             notify<ClubItem[]>('updated-clubs', clubs);
           }
@@ -1006,6 +1012,8 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
               units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
               pendingClub: response?.json?.pending_club,
             }));
+
+            await sessionPersonUuid(response?.json?.person_uuid);
 
             notify<ClubItem[]>('updated-clubs', clubs);
           };

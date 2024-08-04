@@ -15,9 +15,15 @@ import { deviceId } from '../kv-storage/device-id';
 import { japi } from '../api/api';
 import { deleteFromArray, withTimeout, delay } from '../util/util';
 
-import { notify, listen } from '../events/events';
+import { notify, lastEvent } from '../events/events';
 
 import { registerForPushNotificationsAsync } from '../notifications/notifications';
+
+import {
+  AppState,
+  AppStateStatus,
+  Platform,
+} from 'react-native';
 
 let _xmpp: Client | undefined;
 
@@ -102,9 +108,7 @@ type Inbox = {
 };
 
 const getInbox = (): Inbox | null => {
-  let inbox: Inbox | null = null;
-  listen<Inbox | null>('inbox', (i) => inbox = (i ?? null), true)();
-  return inbox;
+  return lastEvent<Inbox | null>('inbox') ?? null;
 }
 
 const inboxStats = (inbox: Inbox): {
@@ -208,23 +212,19 @@ const conversationListToMap = (
 };
 
 const populateConversationList = async (
-  conversationList: Conversation[]
+  conversationList: Conversation[],
+  apiData: any,
 ): Promise<void> => {
   const personUuids: string[] = conversationList
     .map(c => c.personUuid)
     .filter(isValidUuid);
 
-  // TODO: Better error handling
-  const response = (
-    await japi('post', '/inbox-info', {person_uuids: []})
-  ).json;
-
-  const personIdToInfo = response.reduce((obj, item) => {
+  const personIdToInfo = apiData.reduce((obj, item) => {
     obj[item.person_id] = item;
     return obj;
   }, {});
 
-  const personUuidToInfo = response.reduce((obj, item) => {
+  const personUuidToInfo = apiData.reduce((obj, item) => {
     obj[item.person_uuid] = item;
     return obj;
   }, {});
@@ -251,7 +251,11 @@ const populateConversationList = async (
 const populateConversation = async (
   conversation: Conversation
 ): Promise<void> => {
-  await populateConversationList([conversation]);
+  const apiData = (
+    await japi('post',
+    '/inbox-info',
+    {person_uuids: [conversation.personUuid]})).json;
+  await populateConversationList([conversation], apiData);
 };
 
 const inboxToPersonUuids = (inbox: Inbox): string[] => {
@@ -413,6 +417,10 @@ const select1 = (query: string, stanza: Element): xpath.SelectedValue => {
 };
 
 const login = async (username: string, password: string) => {
+  if (_xmpp) {
+    return; // Already logged in
+  }
+
   try {
     _xmpp = client({
       service: CHAT_URL,
@@ -437,31 +445,9 @@ const login = async (username: string, password: string) => {
       if (_xmpp) {
         notify('xmpp-is-online', true);
 
-        await _xmpp.send(xml("presence", { type: "available" }));
-
-        !getInbox() && refreshInbox();
+        refreshInbox();
 
         await registerForPushNotificationsAsync();
-
-        // This is a hack to help figure out if the user is online. The
-        // server-side notification logic relies on coarse-grained last-online
-        // information to figure out if a notification should be sent.
-        //
-        // The XMPP server's mod_last module records the last disconnection
-        // time. But other than that, I don't see an indication of online
-        // status. So we periodically set users to "unavailable" to refresh the
-        // last disconnection time. Caveat: Messages can't be received while
-        // offline, so if someone gets a message during the split second they're
-        // unavailable, they won't see it until they refresh the app. So it
-        // could be better to set this to a higher number in the future.
-        (async () => {
-          while (true) {
-            if (!_xmpp) break;
-            await delay(3 * 60 * 1000); // 3 minutes
-            await _xmpp.send(xml("presence", { type: "unavailable" }));
-            await _xmpp.send(xml("presence", { type: "available" }));
-          }
-        })();
       }
     });
 
@@ -474,7 +460,7 @@ const login = async (username: string, password: string) => {
 
     console.error(e);
   }
-}
+};
 
 const markDisplayed = async (message: Message) => {
   if (!_xmpp) return;
@@ -494,7 +480,6 @@ const _sendMessage = (
   recipientPersonUuid: string,
   message: string,
   callback: (messageStatus: Omit<MessageStatus, 'unsent: error'>) => void,
-  checkUniqueness: boolean,
 ): void => {
   const id = getRandomString(40);
   const fromJid = (
@@ -514,7 +499,6 @@ const _sendMessage = (
       from: fromJid,
       to: toJid,
       id: id,
-      check_uniqueness: checkUniqueness ? 'true' : 'false',
     },
     xml("body", {}, message),
     xml("request", { xmlns: 'urn:xmpp:receipts' }),
@@ -574,11 +558,10 @@ const _sendMessage = (
 const sendMessage = async (
   recipientPersonUuid: string,
   message: string,
-  checkUniqueness: boolean = false,
 ): Promise<MessageStatus> => {
   const __sendMessage = new Promise(
     (resolve: (messageStatus: MessageStatus) => void) =>
-      _sendMessage(recipientPersonUuid, message, resolve, checkUniqueness)
+      _sendMessage(recipientPersonUuid, message, resolve)
   );
 
   return await withTimeout(30000, __sendMessage);
@@ -702,7 +685,7 @@ const onReceiveMessage = (
 
   _xmpp.addListener("stanza", _onReceiveMessage);
   return _removeListener;
-}
+};
 
 const _fetchConversation = async (
   withPersonUuid: string,
@@ -811,7 +794,7 @@ const _fetchConversation = async (
   _xmpp.addListener("stanza", maybeCollect);
   _xmpp.addListener("stanza", maybeFin);
 
-  await _xmpp.send(queryStanza);
+  await _xmpp.send(queryStanza).catch(console.warn);
 };
 
 const fetchConversation = async (
@@ -834,6 +817,8 @@ const _fetchInboxPage = async (
   if (!_xmpp) {
     return callback(undefined);
   }
+
+  const apiDataPromise = japi('post', '/inbox-info', {person_uuids: []});
 
   const queryId = getRandomString(10);
 
@@ -945,7 +930,8 @@ const _fetchInboxPage = async (
       conversationsMap: conversationListToMap(conversationList),
     };
 
-    await populateConversationList(conversations.conversations);
+    const apiData = (await apiDataPromise).json;
+    await populateConversationList(conversations.conversations, apiData);
 
     const inbox = conversationsToInbox(conversations.conversations);
 
@@ -960,7 +946,7 @@ const _fetchInboxPage = async (
   _xmpp.addListener("stanza", maybeCollect);
   _xmpp.addListener("stanza", maybeFin);
 
-  await _xmpp.send(queryStanza);
+  await _xmpp.send(queryStanza).catch(console.warn);
 };
 
 const fetchInboxPage = async (
@@ -997,9 +983,9 @@ const refreshInbox = async (): Promise<void> => {
 const logout = async () => {
   if (_xmpp) {
     notify('xmpp-is-online', false);
-    await _xmpp.send(xml("presence", { type: "unavailable" })).catch(console.error);
     await _xmpp.stop().catch(console.error);
     notify('inbox', null);
+    _xmpp = undefined;
   }
 };
 
@@ -1010,6 +996,14 @@ const registerPushToken = async (token: string) => {
 
   await _xmpp.send(stanza);
 };
+
+const onChangeAppState = (state: AppStateStatus) => {
+  if (Platform.OS !== 'web' && state === 'active') {
+    refreshInbox();
+  }
+};
+
+AppState.addEventListener('change', onChangeAppState);
 
 export {
   Conversation,
