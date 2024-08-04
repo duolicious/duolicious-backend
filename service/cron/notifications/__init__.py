@@ -121,6 +121,7 @@ def send_mobile_notification(row: PersonNotification):
             token=row.token,
             title='You have a new message 😍',
             body=big_part(row.has_intro, row.has_chat),
+            data={'screen': 'Inbox'},
         )
 
 async def send_notification(row: PersonNotification):

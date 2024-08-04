@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import Any, List
 import json
 import queue
 import threading
@@ -28,6 +28,7 @@ class _Notification:
     token: str
     title: str
     body: str
+    data: Any
 
 def set_flush_interval(value: float):
     """Sets the global flush_interval value in a thread-safe manner."""
@@ -51,11 +52,17 @@ def _get_do_retry() -> bool:
     with _do_retry_lock:
         return _do_retry_value
 
-def enqueue_mobile_notification(token: str | None, title: str, body: str):
+def enqueue_mobile_notification(
+    token: str | None,
+    title: str,
+    body: str,
+    data = None
+):
     if not token:
         return
 
-    notification = _Notification(token=token, title=title, body=body)
+    notification = _Notification(token=token, title=title, body=body, data=data)
+
     _notifications.put(notification)
 
 def _wait_for_next_batch(min_batch_size: int = 1, max_batch_size: int = 100) -> List[_Notification]:
@@ -100,6 +107,7 @@ def _send_next_batch():
             to=notification.token,
             title=notification.title,
             body=notification.body,
+            **(dict(data=notification.data) if notification.data else {}),
             sound='default',
             priority='high',
         )

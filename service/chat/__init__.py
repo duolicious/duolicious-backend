@@ -84,27 +84,32 @@ INSERT INTO messaged (
 ) ON CONFLICT DO NOTHING
 """
 
-Q_IMMEDIATE_INTRO_NAME = """
+Q_IMMEDIATE_NAME = """
 SELECT
-    name
+    person.id AS person_id,
+    person.uuid::TEXT AS person_uuid,
+    person.name AS name,
+    photo.uuid AS image_uuid,
+    photo.blurhash AS image_blurhash
 FROM
     person
+LEFT JOIN
+    photo
+ON
+    photo.person_id = person.id
 WHERE
-    id = %(person_id)s
+    person.id = %(person_id)s
 AND
-    intros_notification = 1
+    person.[[type]]_notification = 1
+ORDER BY
+    photo.position
+LIMIT
+    1
 """
 
-Q_IMMEDIATE_CHAT_NAME = """
-SELECT
-    name
-FROM
-    person
-WHERE
-    id = %(person_id)s
-AND
-    chats_notification = 1
-"""
+Q_IMMEDIATE_INTRO_NAME = Q_IMMEDIATE_NAME.replace('[[type]]', 'intros')
+
+Q_IMMEDIATE_CHAT_NAME = Q_IMMEDIATE_NAME.replace('[[type]]', 'chats')
 
 Q_SELECT_PUSH_TOKEN = """
 SELECT
@@ -173,7 +178,8 @@ async def update_last_forever(username: Username):
 async def send_notification(
     from_name: str | None,
     to_username: str | None,
-    message: str | None
+    message: str | None,
+    data,
 ):
     if from_name is None:
         return
@@ -182,6 +188,9 @@ async def send_notification(
         return
 
     if message is None:
+        return
+
+    if data is None:
         return
 
     to_token = await fetch_push_token(username=to_username)
@@ -198,6 +207,7 @@ async def send_notification(
         token=to_token,
         title=f"{from_name} sent you a message",
         body=truncated_message,
+        data=data,
     )
 
     await upsert_last_notification(username=to_username)
@@ -363,7 +373,7 @@ async def fetch_push_token(username: str) -> str | None:
         return row.get('token') if row else None
 
 @AsyncLruCache(ttl=10)  # 10 seconds
-async def fetch_immediate_name(person_id: int, is_intro: bool) -> str | None:
+async def fetch_immediate_data(person_id: int, is_intro: bool):
     async with api_tx('read committed') as tx:
         q = Q_IMMEDIATE_INTRO_NAME if is_intro else Q_IMMEDIATE_CHAT_NAME
 
@@ -371,7 +381,7 @@ async def fetch_immediate_name(person_id: int, is_intro: bool) -> str | None:
 
         row = await tx.fetchone()
 
-        return row.get('name') if row else None
+        return row if row else None
 
 async def process_duo_message(message_xml, username: str | None):
     if await maybe_register(message_xml, username):
@@ -408,21 +418,44 @@ async def process_duo_message(message_xml, username: str | None):
     if is_intro and not await is_message_unique(maybe_message_body):
         return [f'<duo_message_not_unique id="{id}"/>'], []
 
-    immediate_name = await fetch_immediate_name(
+    immediate_data = await fetch_immediate_data(
             person_id=from_id, is_intro=is_intro)
 
-    if immediate_name is not None:
+    if immediate_data is not None:
         asyncio.create_task(
             send_notification(
-                from_name=immediate_name,
+                from_name=immediate_data['name'],
                 to_username=to_username,
                 message=maybe_message_body,
+                data={
+                    'screen': 'Conversation Screen',
+                    'params': {
+                        'personId': immediate_data['person_id'],
+                        'personUuid': immediate_data['person_uuid'],
+                        'name': immediate_data['name'],
+                        'imageUuid': immediate_data['image_uuid'],
+                        'imageBlurhash': immediate_data['image_blurhash'],
+                    },
+                },
             )
         )
 
     await set_messaged(from_id=from_id, to_id=to_id)
 
-    return  [f'<duo_message_delivered id="{id}"/>'], [message_xml]
+    return  (
+        [f'<duo_message_delivered id="{id}"/>'],
+        [
+            message_xml,
+            f"<iq id='{duohash.duo_uuid()}' type='set'>"
+            f"  <query"
+            f"    xmlns='erlang-solutions.com:xmpp:inbox:0#conversation'"
+            f"    jid='{to_jid}'"
+            f"  >"
+            f"    <box>chats</box>"
+            f"  </query>"
+            f"</iq>"
+        ]
+    )
 
 async def process(src, dst, username):
     try:
