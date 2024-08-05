@@ -197,7 +197,11 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 [[ "$(q "select count(*) from mam_message where \
     search_body = 'hello user 3'" duo_chat)" = 2 ]]
 
-[[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 1 ]]
+[[ "$(q " \
+  select count(*) \
+  from duo_last_notification \
+  where chat_seconds = 0 and \
+  intro_seconds > 0" duo_chat)" = 1 ]]
 
 
 
@@ -235,7 +239,17 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 [[ "$(q "select count(*) from mam_message where \
     search_body = 'hello user 2'" duo_chat)" = 4 ]]
 
-[[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 2 ]]
+[[ "$(q " \
+  select count(*) \
+  from duo_last_notification \
+  where chat_seconds = 0 and \
+  intro_seconds > 0" duo_chat)" = 1 ]]
+
+[[ "$(q " \
+  select count(*) \
+  from duo_last_notification \
+  where chat_seconds > 0 and \
+  intro_seconds = 0" duo_chat)" = 1 ]]
 
 
 
