@@ -63,15 +63,13 @@ OR
 LIMIT 1
 """
 
-Q_IS_CHAT = """
+Q_HAS_MESSAGE = """
 SELECT
-    1
+    subject_person_id
 FROM
     messaged
 WHERE
-    subject_person_id = %(from_id)s AND object_person_id  = %(to_id)s
-OR
-    subject_person_id = %(to_id)s   AND object_person_id  = %(from_id)s
+    subject_person_id = %(to_id)s AND object_person_id = %(from_id)s
 LIMIT 1
 """
 
@@ -85,32 +83,48 @@ INSERT INTO messaged (
 ) ON CONFLICT DO NOTHING
 """
 
-Q_IMMEDIATE_NAME = """
+Q_IMMEDIATE_DATA = """
+WITH from_data AS (
+    SELECT
+        person.id AS person_id,
+        person.uuid::TEXT AS person_uuid,
+        person.name AS name,
+        photo.uuid AS image_uuid,
+        photo.blurhash AS image_blurhash
+    FROM
+        person
+    LEFT JOIN
+        photo
+    ON
+        photo.person_id = person.id
+    WHERE
+        id = %(from_id)s
+    ORDER BY
+        photo.position
+    LIMIT 1
+), to_notification AS (
+    SELECT
+        1
+    FROM
+        person
+    WHERE
+        id = %(to_id)s
+    AND
+        [[type]]_notification = 1 -- Immediate notification ID
+    LIMIT 1
+)
 SELECT
-    person.id AS person_id,
-    person.uuid::TEXT AS person_uuid,
-    person.name AS name,
-    photo.uuid AS image_uuid,
-    photo.blurhash AS image_blurhash
+    *
 FROM
-    person
-LEFT JOIN
-    photo
-ON
-    photo.person_id = person.id
+    from_data
 WHERE
-    person.id = %(person_id)s
-AND
-    person.[[type]]_notification = 1
-ORDER BY
-    photo.position
-LIMIT
-    1
+    EXISTS (SELECT 1 FROM to_notification)
+LIMIT 1
 """
 
-Q_IMMEDIATE_INTRO_NAME = Q_IMMEDIATE_NAME.replace('[[type]]', 'intros')
+Q_IMMEDIATE_INTRO_DATA = Q_IMMEDIATE_DATA.replace('[[type]]', 'intros')
 
-Q_IMMEDIATE_CHAT_NAME = Q_IMMEDIATE_NAME.replace('[[type]]', 'chats')
+Q_IMMEDIATE_CHAT_DATA = Q_IMMEDIATE_DATA.replace('[[type]]', 'chats')
 
 Q_UPSERT_LAST_NOTIFICATION = """
 INSERT INTO duo_last_notification (
@@ -366,7 +380,7 @@ async def fetch_is_skipped(from_id: int, to_id: int) -> bool:
 @AsyncLruCache(maxsize=1024, cache_condition=lambda x: not x)
 async def fetch_is_intro(from_id: int, to_id: int) -> bool:
     async with api_tx('read committed') as tx:
-        await tx.execute(Q_IS_CHAT, dict(from_id=from_id, to_id=to_id))
+        await tx.execute(Q_HAS_MESSAGE, dict(from_id=from_id, to_id=to_id))
         row = await tx.fetchone()
 
     return not bool(row)
@@ -385,11 +399,11 @@ async def fetch_push_token(username: str) -> str | None:
     return row.get('token') if row else None
 
 @AsyncLruCache(ttl=10)  # 10 seconds
-async def fetch_immediate_data(person_id: int, is_intro: bool):
-    q = Q_IMMEDIATE_INTRO_NAME if is_intro else Q_IMMEDIATE_CHAT_NAME
+async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
+    q = Q_IMMEDIATE_INTRO_DATA if is_intro else Q_IMMEDIATE_CHAT_DATA
 
     async with api_tx('read committed') as tx:
-        await tx.execute(q, dict(person_id=person_id))
+        await tx.execute(q, dict(from_id=from_id, to_id=to_id))
         row = await tx.fetchone()
 
     return row if row else None
@@ -430,7 +444,9 @@ async def process_duo_message(message_xml, username: str | None):
         return [f'<duo_message_not_unique id="{id}"/>'], []
 
     immediate_data = await fetch_immediate_data(
-            person_id=from_id, is_intro=is_intro)
+            from_id=from_id,
+            to_id=to_id,
+            is_intro=is_intro)
 
     if immediate_data is not None:
         asyncio.create_task(
