@@ -65,7 +65,7 @@ LIMIT 1
 
 Q_HAS_MESSAGE = """
 SELECT
-    subject_person_id
+    1
 FROM
     messaged
 WHERE
