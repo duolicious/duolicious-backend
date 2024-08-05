@@ -84,25 +84,7 @@ INSERT INTO messaged (
 """
 
 Q_IMMEDIATE_DATA = """
-WITH from_data AS (
-    SELECT
-        person.id AS person_id,
-        person.uuid::TEXT AS person_uuid,
-        person.name AS name,
-        photo.uuid AS image_uuid,
-        photo.blurhash AS image_blurhash
-    FROM
-        person
-    LEFT JOIN
-        photo
-    ON
-        photo.person_id = person.id
-    WHERE
-        id = %(from_id)s
-    ORDER BY
-        photo.position
-    LIMIT 1
-), to_notification AS (
+WITH to_notification AS (
     SELECT
         1
     FROM
@@ -114,11 +96,23 @@ WITH from_data AS (
     LIMIT 1
 )
 SELECT
-    *
+    person.id AS person_id,
+    person.uuid::TEXT AS person_uuid,
+    person.name AS name,
+    photo.uuid AS image_uuid,
+    photo.blurhash AS image_blurhash
 FROM
-    from_data
+    person
+LEFT JOIN
+    photo
+ON
+    photo.person_id = person.id
 WHERE
+    id = %(from_id)s
+AND
     EXISTS (SELECT 1 FROM to_notification)
+ORDER BY
+    photo.position
 LIMIT 1
 """
 
