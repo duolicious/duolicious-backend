@@ -1189,13 +1189,7 @@ WITH person_info AS (
         ) AS prospect_skipped_person
     FROM
         (
-            SELECT id, uuid
-            FROM person
-            WHERE uuid = ANY(%(prospect_person_uuids)s::uuid[])
-
-            UNION
-
-            SELECT
+            SELECT DISTINCT
                 id,
                 uuid
             FROM
@@ -1210,7 +1204,6 @@ WITH person_info AS (
                 messaged.subject_person_id = person.id
             AND
                 messaged.object_person_id = %(person_id)s
-            WHERE %(prospect_person_uuids)s::uuid[] = array[]::uuid[]
         ) AS id_table
     LEFT JOIN
         person AS prospect

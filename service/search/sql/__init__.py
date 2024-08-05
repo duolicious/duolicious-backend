@@ -1,3 +1,7 @@
+# TODO: Ensure search keys are unique in frontend, despite the lack of person_id and person_uuid
+# TODO: GET /prospect-profile should return a 404 if verification level isn't right
+# TODO: Check that /inbox-info still works
+
 Q_UPSERT_SEARCH_PREFERENCE_CLUB = """
 INSERT INTO search_preference_club (
     person_id,
@@ -528,131 +532,154 @@ WITH searcher AS (
 
     LIMIT
         500
-), updated_search_cache AS (
-    INSERT INTO search_cache (
-        searcher_person_id,
-        position,
-        prospect_person_id,
-        prospect_uuid,
-        profile_photo_uuid,
-        name,
-        age,
-        match_percentage,
-        personality,
-        verified
-    )
-    SELECT
-        %(searcher_person_id)s,
-        ROW_NUMBER() OVER (
-            ORDER BY
-                -- If this is changed, other subqueries will need changing too
-                (profile_photo_uuid IS NOT NULL) DESC,
-                match_percentage DESC
-        ) AS position,
-        prospect_person_id,
-        prospect_uuid,
-        profile_photo_uuid,
-        name,
-        age,
-        match_percentage,
-        personality,
-        verified
-    FROM
-        prospects_fourth_pass
-    ORDER BY
-        position
-    ON CONFLICT (searcher_person_id, position) DO UPDATE SET
-        searcher_person_id = EXCLUDED.searcher_person_id,
-        position = EXCLUDED.position,
-        prospect_person_id = EXCLUDED.prospect_person_id,
-        prospect_uuid = EXCLUDED.prospect_uuid,
-        profile_photo_uuid = EXCLUDED.profile_photo_uuid,
-        name = EXCLUDED.name,
-        age = EXCLUDED.age,
-        match_percentage = EXCLUDED.match_percentage,
-        personality = EXCLUDED.personality,
-        verified = EXCLUDED.verified
-    RETURNING *
 )
-SELECT
+INSERT INTO search_cache (
+    searcher_person_id,
+    position,
     prospect_person_id,
     prospect_uuid,
     profile_photo_uuid,
-    (
-        SELECT blurhash FROM photo WHERE profile_photo_uuid = photo.uuid
-    ) AS profile_photo_blurhash,
     name,
     age,
     match_percentage,
-    EXISTS (
-        SELECT
-            1
-        FROM
-            messaged
-        WHERE
-            subject_person_id = %(searcher_person_id)s
-        AND
-            object_person_id = prospect_person_id
-    ) AS person_messaged_prospect,
-    EXISTS (
-        SELECT
-            1
-        FROM
-            messaged
-        WHERE
-            subject_person_id = prospect_person_id
-        AND
-            object_person_id = %(searcher_person_id)s
-    ) AS prospect_messaged_person,
+    personality,
+    verified
+)
+SELECT
+    %(searcher_person_id)s,
+    ROW_NUMBER() OVER (
+        ORDER BY
+            -- If this is changed, other subqueries will need changing too
+            (profile_photo_uuid IS NOT NULL) DESC,
+            match_percentage DESC
+    ) AS position,
+    prospect_person_id,
+    prospect_uuid,
+    profile_photo_uuid,
+    name,
+    age,
+    match_percentage,
+    personality,
     verified
 FROM
-    updated_search_cache
+    prospects_fourth_pass
 ORDER BY
     position
-LIMIT
-    %(n)s
+ON CONFLICT (searcher_person_id, position) DO UPDATE SET
+    searcher_person_id = EXCLUDED.searcher_person_id,
+    position = EXCLUDED.position,
+    prospect_person_id = EXCLUDED.prospect_person_id,
+    prospect_uuid = EXCLUDED.prospect_uuid,
+    profile_photo_uuid = EXCLUDED.profile_photo_uuid,
+    name = EXCLUDED.name,
+    age = EXCLUDED.age,
+    match_percentage = EXCLUDED.match_percentage,
+    personality = EXCLUDED.personality,
+    verified = EXCLUDED.verified
 """
 
 Q_CACHED_SEARCH = """
+WITH page AS (
+    SELECT
+        prospect_person_id,
+        prospect_uuid,
+        profile_photo_uuid,
+        (
+            SELECT blurhash FROM photo WHERE profile_photo_uuid = photo.uuid
+        ) AS profile_photo_blurhash,
+        name,
+        age,
+        match_percentage,
+        EXISTS (
+            SELECT
+                1
+            FROM
+                messaged
+            WHERE
+                subject_person_id = %(searcher_person_id)s
+            AND
+                object_person_id = prospect_person_id
+        ) AS person_messaged_prospect,
+        EXISTS (
+            SELECT
+                1
+            FROM
+                messaged
+            WHERE
+                subject_person_id = prospect_person_id
+            AND
+                object_person_id = %(searcher_person_id)s
+        ) AS prospect_messaged_person,
+        verified,
+        (
+            SELECT
+                verification_level_id
+            FROM
+                person
+            WHERE
+                id = %(searcher_person_id)s
+        ) AS searcher_verification_level_id,
+        (
+            SELECT
+                privacy_verification_level_id
+            FROM
+                person
+            WHERE
+                id = prospect_person_id
+        ) AS privacy_verification_level_id
+    FROM
+        search_cache
+    WHERE
+        searcher_person_id = %(searcher_person_id)s AND
+        position >  %(o)s AND
+        position <= %(o)s + %(n)s
+    ORDER BY
+        position
+)
 SELECT
-    prospect_person_id,
-    prospect_uuid,
-    profile_photo_uuid,
-    (
-        SELECT blurhash FROM photo WHERE profile_photo_uuid = photo.uuid
-    ) AS profile_photo_blurhash,
-    name,
-    age,
-    match_percentage,
-    EXISTS (
-        SELECT
-            1
-        FROM
-            messaged
-        WHERE
-            subject_person_id = %(searcher_person_id)s
-        AND
-            object_person_id = prospect_person_id
-    ) AS person_messaged_prospect,
-    EXISTS (
-        SELECT
-            1
-        FROM
-            messaged
-        WHERE
-            subject_person_id = prospect_person_id
-        AND
-            object_person_id = %(searcher_person_id)s
-    ) AS prospect_messaged_person,
-    verified
+    public_page.profile_photo_blurhash,
+    public_page.name,
+    public_page.age,
+    public_page.match_percentage,
+    public_page.person_messaged_prospect,
+    public_page.prospect_messaged_person,
+    public_page.verified,
+    public_page.verification_required_to_view,
+
+    private_page.prospect_person_id,
+    private_page.prospect_uuid,
+    private_page.profile_photo_uuid
 FROM
-    search_cache
-WHERE
-    searcher_person_id = %(searcher_person_id)s AND
-    position >  %(o)s AND
-    position <= %(o)s + %(n)s
-ORDER BY
-    position
+    (
+        SELECT
+            *,
+
+            CASE
+                WHEN
+                    searcher_verification_level_id >=
+                    privacy_verification_level_id
+                THEN NULL
+                WHEN
+                    privacy_verification_level_id = 2
+                THEN 'basics'
+                WHEN
+                    privacy_verification_level_id = 3
+                THEN 'photos'
+            END AS verification_required_to_view
+        FROM
+            page
+    ) AS public_page
+LEFT JOIN
+    (
+        SELECT
+            *
+        FROM
+            page
+        WHERE
+            searcher_verification_level_id >= privacy_verification_level_id
+    ) AS private_page
+ON
+    private_page.prospect_person_id = public_page.prospect_person_id
 """
 
 Q_QUIZ_SEARCH = """
@@ -664,29 +691,87 @@ WITH searcher AS (
     WHERE
         person.id = %(searcher_person_id)s
     LIMIT 1
+), page AS (
+    SELECT
+        prospect_person_id,
+        prospect_uuid,
+        profile_photo_uuid,
+        (
+            SELECT blurhash FROM photo WHERE profile_photo_uuid = photo.uuid
+        ) AS profile_photo_blurhash,
+        name,
+        age,
+        CLAMP(
+            0,
+            99,
+            100 * (1 - (personality <#> (SELECT personality FROM searcher))) / 2
+        )::SMALLINT AS match_percentage,
+        (
+            SELECT
+                verification_level_id
+            FROM
+                person
+            WHERE
+                id = %(searcher_person_id)s
+        ) AS searcher_verification_level_id,
+        (
+            SELECT
+                privacy_verification_level_id
+            FROM
+                person
+            WHERE
+                id = prospect_person_id
+        ) AS privacy_verification_level_id
+    FROM
+        search_cache
+    WHERE
+        searcher_person_id = %(searcher_person_id)s
+    ORDER BY
+        -- If this is changed, other subqueries will need changing too
+        (profile_photo_uuid IS NOT NULL) DESC,
+        match_percentage DESC
+    LIMIT
+        1
 )
 SELECT
-    prospect_person_id,
-    prospect_uuid,
-    profile_photo_uuid,
-    (
-        SELECT blurhash FROM photo WHERE profile_photo_uuid = photo.uuid
-    ) AS profile_photo_blurhash,
-    name,
-    age,
-    CLAMP(
-        0,
-        99,
-        100 * (1 - (personality <#> (SELECT personality FROM searcher))) / 2
-    )::SMALLINT AS match_percentage
+    public_page.profile_photo_blurhash,
+    public_page.name,
+    public_page.age,
+    public_page.match_percentage,
+    public_page.verification_required_to_view,
+
+    private_page.prospect_person_id,
+    private_page.prospect_uuid,
+    private_page.profile_photo_uuid
 FROM
-    search_cache
-WHERE
-    searcher_person_id = %(searcher_person_id)s
-ORDER BY
-    -- If this is changed, other subqueries will need changing too
-    (profile_photo_uuid IS NOT NULL) DESC,
-    match_percentage DESC
-LIMIT
-    1
+    (
+        SELECT
+            *,
+
+            CASE
+                WHEN
+                    searcher_verification_level_id >=
+                    privacy_verification_level_id
+                THEN NULL
+                WHEN
+                    privacy_verification_level_id = 2
+                THEN 'basics'
+                WHEN
+                    privacy_verification_level_id = 3
+                THEN 'photos'
+            END AS verification_required_to_view
+        FROM
+            page
+    ) AS public_page
+LEFT JOIN
+    (
+        SELECT
+            *
+        FROM
+            page
+        WHERE
+            searcher_verification_level_id >= privacy_verification_level_id
+    ) AS private_page
+ON
+    private_page.prospect_person_id = public_page.prospect_person_id
 """
