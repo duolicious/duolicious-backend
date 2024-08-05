@@ -197,17 +197,33 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 [[ "$(q "select count(*) from mam_message where \
     search_body = 'hello user 3'" duo_chat)" = 2 ]]
 
-[[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 1 ]]
+[[ "$(q " \
+  select count(*) \
+  from duo_last_notification \
+  where chat_seconds = 0 and \
+  intro_seconds > 0" duo_chat)" = 1 ]]
 
 
 
-echo "User 1 can send user 3 an unoriginal message now that they're chatting"
+echo "User 3 can send user 1 an unoriginal message now that they're chatting"
+
+curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d '{
+  "service": "ws://chat:5443",
+  "domain": "duolicious.app",
+  "resource": "testresource",
+  "username": "'$user3uuid'",
+  "password": "'$user3token'"
+}'
+
+sleep 0.5
+
+
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 <message
     type='chat'
-    from='$user1uuid@duolicious.app'
-    to='$user3uuid@duolicious.app'
+    from='$user3uuid@duolicious.app'
+    to='$user1uuid@duolicious.app'
     id='id3'
     check_uniqueness='false'
     xmlns='jabber:client'>
@@ -223,7 +239,17 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 [[ "$(q "select count(*) from mam_message where \
     search_body = 'hello user 2'" duo_chat)" = 4 ]]
 
-[[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 1 ]]
+[[ "$(q " \
+  select count(*) \
+  from duo_last_notification \
+  where chat_seconds = 0 and \
+  intro_seconds > 0" duo_chat)" = 1 ]]
+
+[[ "$(q " \
+  select count(*) \
+  from duo_last_notification \
+  where chat_seconds > 0 and \
+  intro_seconds = 0" duo_chat)" = 1 ]]
 
 
 

@@ -12,6 +12,7 @@ import notify
 from sql import *
 from async_lru_cache import AsyncLruCache
 import random
+from typing import Any
 
 notify.set_flush_interval(1.0)
 
@@ -62,15 +63,13 @@ OR
 LIMIT 1
 """
 
-Q_IS_CHAT = """
+Q_HAS_MESSAGE = """
 SELECT
     1
 FROM
     messaged
 WHERE
-    subject_person_id = %(from_id)s AND object_person_id  = %(to_id)s
-OR
-    subject_person_id = %(to_id)s   AND object_person_id  = %(from_id)s
+    subject_person_id = %(to_id)s AND object_person_id = %(from_id)s
 LIMIT 1
 """
 
@@ -84,7 +83,18 @@ INSERT INTO messaged (
 ) ON CONFLICT DO NOTHING
 """
 
-Q_IMMEDIATE_NAME = """
+Q_IMMEDIATE_DATA = """
+WITH to_notification AS (
+    SELECT
+        1
+    FROM
+        person
+    WHERE
+        id = %(to_id)s
+    AND
+        [[type]]_notification = 1 -- Immediate notification ID
+    LIMIT 1
+)
 SELECT
     person.id AS person_id,
     person.uuid::TEXT AS person_uuid,
@@ -98,18 +108,33 @@ LEFT JOIN
 ON
     photo.person_id = person.id
 WHERE
-    person.id = %(person_id)s
+    id = %(from_id)s
 AND
-    person.[[type]]_notification = 1
+    EXISTS (SELECT 1 FROM to_notification)
 ORDER BY
     photo.position
-LIMIT
-    1
+LIMIT 1
 """
 
-Q_IMMEDIATE_INTRO_NAME = Q_IMMEDIATE_NAME.replace('[[type]]', 'intros')
+Q_IMMEDIATE_INTRO_DATA = Q_IMMEDIATE_DATA.replace('[[type]]', 'intros')
 
-Q_IMMEDIATE_CHAT_NAME = Q_IMMEDIATE_NAME.replace('[[type]]', 'chats')
+Q_IMMEDIATE_CHAT_DATA = Q_IMMEDIATE_DATA.replace('[[type]]', 'chats')
+
+Q_UPSERT_LAST_NOTIFICATION = """
+INSERT INTO duo_last_notification (
+    username,
+    [[type]]_seconds
+) VALUES (
+    %(username)s,
+    extract(epoch from now())::int
+)
+ON CONFLICT (username) DO UPDATE SET
+    [[type]]_seconds = EXCLUDED.[[type]]_seconds
+"""
+
+Q_UPSERT_LAST_INTRO_NOTIFICATION = Q_UPSERT_LAST_NOTIFICATION.replace('[[type]]', 'intro')
+
+Q_UPSERT_LAST_CHAT_NOTIFICATION = Q_UPSERT_LAST_NOTIFICATION.replace('[[type]]', 'chat')
 
 Q_SELECT_PUSH_TOKEN = """
 SELECT
@@ -118,18 +143,6 @@ FROM
     duo_push_token
 WHERE
     username = %(username)s::TEXT
-"""
-
-Q_UPSERT_LAST_NOTIFICATION = """
-INSERT INTO duo_last_notification (
-    username,
-    chat_seconds
-) VALUES (
-    %(username)s,
-    extract(epoch from now())::int
-)
-ON CONFLICT (username) DO UPDATE SET
-    chat_seconds = EXCLUDED.chat_seconds
 """
 
 MAX_MESSAGE_LEN = 5000
@@ -179,7 +192,8 @@ async def send_notification(
     from_name: str | None,
     to_username: str | None,
     message: str | None,
-    data,
+    is_intro: bool,
+    data: Any,
 ):
     if from_name is None:
         return
@@ -210,7 +224,7 @@ async def send_notification(
         data=data,
     )
 
-    await upsert_last_notification(username=to_username)
+    await upsert_last_notification(username=to_username, is_intro=is_intro)
 
 def parse_xml(s):
     parser = etree.XMLParser(resolve_entities=False, no_network=True)
@@ -319,9 +333,14 @@ def process_auth(message_str, username):
     return False
 
 @AsyncLruCache(maxsize=1024, ttl=60)  # 1 minute
-async def upsert_last_notification(username: str) -> None:
+async def upsert_last_notification(username: str, is_intro: bool) -> None:
+    q = (
+            Q_UPSERT_LAST_INTRO_NOTIFICATION
+            if is_intro
+            else Q_UPSERT_LAST_CHAT_NOTIFICATION)
+
     async with chat_tx('read committed') as tx:
-        await tx.execute(Q_UPSERT_LAST_NOTIFICATION, dict(username=username))
+        await tx.execute(q, dict(username=username))
 
 @AsyncLruCache(maxsize=1024, cache_condition=lambda x: not x)
 async def is_message_unique(message_str):
@@ -333,7 +352,8 @@ async def is_message_unique(message_str):
     async with chat_tx('read committed') as tx:
         cursor = await tx.execute(Q_UNIQUENESS, params)
         rows = await cursor.fetchall()
-        return bool(rows)
+
+    return bool(rows)
 
 @AsyncLruCache(maxsize=1024)
 async def fetch_id_from_username(username: str) -> str | None:
@@ -341,7 +361,7 @@ async def fetch_id_from_username(username: str) -> str | None:
         await tx.execute(Q_FETCH_PERSON_ID, dict(username=username))
         row = await tx.fetchone()
 
-        return row.get('id')
+    return row.get('id')
 
 @AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
 async def fetch_is_skipped(from_id: int, to_id: int) -> bool:
@@ -349,15 +369,15 @@ async def fetch_is_skipped(from_id: int, to_id: int) -> bool:
         await tx.execute(Q_IS_SKIPPED, dict(from_id=from_id, to_id=to_id))
         row = await tx.fetchone()
 
-        return bool(row)
+    return bool(row)
 
 @AsyncLruCache(maxsize=1024, cache_condition=lambda x: not x)
 async def fetch_is_intro(from_id: int, to_id: int) -> bool:
     async with api_tx('read committed') as tx:
-        await tx.execute(Q_IS_CHAT, dict(from_id=from_id, to_id=to_id))
+        await tx.execute(Q_HAS_MESSAGE, dict(from_id=from_id, to_id=to_id))
         row = await tx.fetchone()
 
-        return not bool(row)
+    return not bool(row)
 
 @AsyncLruCache(maxsize=1024)
 async def set_messaged(from_id: int, to_id: int) -> None:
@@ -370,18 +390,17 @@ async def fetch_push_token(username: str) -> str | None:
         await tx.execute(Q_SELECT_PUSH_TOKEN, dict(username=username))
         row = await tx.fetchone()
 
-        return row.get('token') if row else None
+    return row.get('token') if row else None
 
 @AsyncLruCache(ttl=10)  # 10 seconds
-async def fetch_immediate_data(person_id: int, is_intro: bool):
+async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
+    q = Q_IMMEDIATE_INTRO_DATA if is_intro else Q_IMMEDIATE_CHAT_DATA
+
     async with api_tx('read committed') as tx:
-        q = Q_IMMEDIATE_INTRO_NAME if is_intro else Q_IMMEDIATE_CHAT_NAME
-
-        await tx.execute(q, dict(person_id=person_id))
-
+        await tx.execute(q, dict(from_id=from_id, to_id=to_id))
         row = await tx.fetchone()
 
-        return row if row else None
+    return row if row else None
 
 async def process_duo_message(message_xml, username: str | None):
     if await maybe_register(message_xml, username):
@@ -419,7 +438,9 @@ async def process_duo_message(message_xml, username: str | None):
         return [f'<duo_message_not_unique id="{id}"/>'], []
 
     immediate_data = await fetch_immediate_data(
-            person_id=from_id, is_intro=is_intro)
+            from_id=from_id,
+            to_id=to_id,
+            is_intro=is_intro)
 
     if immediate_data is not None:
         asyncio.create_task(
@@ -427,6 +448,7 @@ async def process_duo_message(message_xml, username: str | None):
                 from_name=immediate_data['name'],
                 to_username=to_username,
                 message=maybe_message_body,
+                is_intro=is_intro,
                 data={
                     'screen': 'Conversation Screen',
                     'params': {
