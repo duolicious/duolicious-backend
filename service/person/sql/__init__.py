@@ -613,7 +613,7 @@ WITH onboardee_country AS (
                 UNION
                 SELECT dist, cnt, iters FROM two_closest
             )
-            SELECT dist, cnt, iters + 1 FROM points WHERE iters < 10
+            SELECT dist, cnt, iters + 1 FROM points WHERE iters < 7
         )
     )
     SELECT
@@ -703,7 +703,7 @@ WITH onboardee_country AS (
     SELECT
         new_person.id,
         CASE
-            WHEN best_distance.cnt < 500 OR %(pending_club_name)s::TEXT IS NULL
+            WHEN best_distance.cnt < 500 OR %(pending_club_name)s::TEXT IS NOT NULL
             THEN NULL
             ELSE best_distance.dist
         END AS distance
