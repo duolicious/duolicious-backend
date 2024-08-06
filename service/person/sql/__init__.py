@@ -787,43 +787,36 @@ FROM
 """
 
 Q_SELECT_PROSPECT_PROFILE = """
-WITH prospect_person_id AS (
-    SELECT
-        id
-    FROM
-        person
-    WHERE
-        uuid = %(prospect_uuid)s
-), prospect AS (
+WITH prospect AS (
     SELECT
         *,
         (
-            SELECT EXTRACT(YEAR FROM AGE(p.date_of_birth))::SMALLINT
-            WHERE p.show_my_age
+            SELECT EXTRACT(YEAR FROM AGE(prospect.date_of_birth))::SMALLINT
+            WHERE prospect.show_my_age
         ) AS age,
         (
             SELECT short_friendly
             FROM location
-            WHERE p.show_my_location
-            ORDER BY location.coordinates <-> p.coordinates
+            WHERE prospect.show_my_location
+            ORDER BY location.coordinates <-> prospect.coordinates
             LIMIT 1
         ) AS location
     FROM
-        person AS p
+        person AS prospect
     WHERE
-        id = (SELECT id FROM prospect_person_id)
+        uuid = uuid_or_null(%(prospect_uuid)s::TEXT)
     AND
         activated
     AND (
             NOT hide_me_from_strangers
         OR
-            (SELECT id FROM prospect_person_id) = %(person_id)s
+            prospect.id = %(person_id)s
         OR
             EXISTS (
                 SELECT 1
                 FROM messaged
                 WHERE
-                    messaged.subject_person_id = (SELECT id FROM prospect_person_id)
+                    messaged.subject_person_id = prospect.id
                 AND
                     messaged.object_person_id = %(person_id)s
             )
@@ -833,9 +826,18 @@ WITH prospect_person_id AS (
             SELECT 1
             FROM skipped
             WHERE
-                subject_person_id = (SELECT id FROM prospect_person_id) AND
+                subject_person_id = prospect.id AND
                 object_person_id  = %(person_id)s
             LIMIT 1
+        )
+    AND
+        prospect.privacy_verification_level_id <= (
+            SELECT
+                verification_level_id
+            FROM
+                person
+            WHERE
+                id = %(person_id)s
         )
     LIMIT
         1
@@ -855,17 +857,20 @@ WITH prospect_person_id AS (
     FROM
         negative_dot_prod
 ), photo_uuids AS (
-    SELECT COALESCE(json_agg(uuid ORDER BY position), '[]'::json) AS j
+    SELECT COALESCE(json_agg(photo.uuid ORDER BY position), '[]'::json) AS j
     FROM photo
-    WHERE person_id = (SELECT id FROM prospect_person_id)
+    JOIN prospect
+    ON   prospect.id = photo.person_id
 ), photo_blurhashes AS (
-    SELECT COALESCE(json_agg(blurhash ORDER BY position), '[]'::json) AS j
+    SELECT COALESCE(json_agg(photo.blurhash ORDER BY position), '[]'::json) AS j
     FROM photo
-    WHERE person_id = (SELECT id FROM prospect_person_id)
+    JOIN prospect
+    ON   prospect.id = photo.person_id
 ), photo_verifications AS (
-    SELECT COALESCE(json_agg(verified ORDER BY position), '[]'::json) AS j
+    SELECT COALESCE(json_agg(photo.verified ORDER BY position), '[]'::json) AS j
     FROM photo
-    WHERE person_id = (SELECT id FROM prospect_person_id)
+    JOIN prospect
+    ON   prospect.id = photo.person_id
 ), gender AS (
     SELECT gender.name AS j
     FROM gender JOIN prospect ON gender_id = gender.id
@@ -929,7 +934,7 @@ WITH prospect_person_id AS (
             FROM skipped
             WHERE
                 subject_person_id = %(person_id)s AND
-                object_person_id  = (SELECT id FROM prospect_person_id)
+                object_person_id  = (SELECT id FROM prospect)
         ) AS j
 ), clubs AS (
     SELECT
@@ -944,7 +949,7 @@ WITH prospect_person_id AS (
     AND
         person_club_.person_id = %(person_id)s
     WHERE
-        prospect_person_club.person_id = (SELECT id FROM prospect_person_id)
+        prospect_person_club.person_id = (SELECT id FROM prospect)
     ORDER BY
         is_mutual DESC,
         club_name
@@ -975,7 +980,7 @@ WITH prospect_person_id AS (
 )
 SELECT
     json_build_object(
-        'person_id',              (SELECT id            FROM prospect_person_id),
+        'person_id',              (SELECT id            FROM prospect),
         'photo_uuids',            (SELECT j             FROM photo_uuids),
         'photo_blurhashes',       (SELECT j             FROM photo_blurhashes),
         'photo_verifications',    (SELECT j             FROM photo_verifications),
@@ -1189,13 +1194,7 @@ WITH person_info AS (
         ) AS prospect_skipped_person
     FROM
         (
-            SELECT id, uuid
-            FROM person
-            WHERE uuid = ANY(%(prospect_person_uuids)s::uuid[])
-
-            UNION
-
-            SELECT
+            SELECT DISTINCT
                 id,
                 uuid
             FROM
@@ -1210,7 +1209,6 @@ WITH person_info AS (
                 messaged.subject_person_id = person.id
             AND
                 messaged.object_person_id = %(person_id)s
-            WHERE %(prospect_person_uuids)s::uuid[] = array[]::uuid[]
         ) AS id_table
     LEFT JOIN
         person AS prospect
@@ -1553,6 +1551,13 @@ WITH photo_ AS (
     FROM immediacy JOIN person ON intros_notification = immediacy.id
     WHERE person.id = %(person_id)s
 
+), privacy_verification_level AS (
+    SELECT
+        verification_level.name AS j
+    FROM person
+    JOIN verification_level
+    ON verification_level.id = person.privacy_verification_level_id
+    WHERE person.id = %(person_id)s
 ), show_my_location AS (
     SELECT
         CASE WHEN show_my_location THEN 'Yes' ELSE 'No' END AS j
@@ -1614,6 +1619,7 @@ SELECT
         'chats',                  (SELECT j FROM chat),
         'intros',                 (SELECT j FROM intro),
 
+        'verification level',     (SELECT j FROM privacy_verification_level),
         'show my location',       (SELECT j FROM show_my_location),
         'show my age',            (SELECT j FROM show_my_age),
         'hide me from strangers', (SELECT j FROM hide_me_from_strangers),

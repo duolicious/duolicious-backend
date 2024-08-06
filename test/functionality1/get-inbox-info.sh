@@ -11,6 +11,7 @@ q "delete from duo_session"
 q "delete from person"
 q "delete from onboardee"
 q "delete from undeleted_photo"
+q "delete from messaged"
 
 ../util/create-user.sh user1 0 0
 ../util/create-user.sh user2 0 0
@@ -28,43 +29,21 @@ user4_uuid=$(q "select uuid from person where email = 'user4@example.com'")
 
 q "update photo set uuid = 'my-uuid', blurhash = 'my-blurhash'"
 
-response=$(jc POST /request-otp -d '{ "email": "user2@example.com" }')
-SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
-jc POST /check-otp -d '{ "otp": "000000" }'
+assume_role user2
 
-echo Test 1 - Nobody was messsaged
+echo Test 1 - Nobody was messaged
 response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
 actual=$(jq -r 'sort_by(.name)' <<< "$response")
-expected=$(cat <<EOF
-[
-  {
-    "conversation_location": "nowhere",
-    "image_blurhash": null,
-    "image_uuid": null,
-    "match_percentage": 50,
-    "name": "user1",
-    "person_id": ${user1_id},
-    "person_uuid": "${user1_uuid}"
-  },
-  {
-    "conversation_location": "nowhere",
-    "image_blurhash": "my-blurhash",
-    "image_uuid": "my-uuid",
-    "match_percentage": 50,
-    "name": "user4",
-    "person_id": ${user4_id},
-    "person_uuid": "${user4_uuid}"
-  }
-]
-EOF
-)
+expected='[]'
 
 [[ "$expected" = "$actual" ]]
 
 
 echo Test 2 - user4 deactivated
 q "update person set activated = false where name = 'user4'"
+q "insert into messaged values (${user1_id}, ${user2_id})"
+q "insert into messaged values (${user4_id}, ${user2_id})"
 
 response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
@@ -72,7 +51,7 @@ actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
 [
   {
-    "conversation_location": "nowhere",
+    "conversation_location": "intros",
     "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
@@ -81,7 +60,7 @@ expected=$(cat <<EOF
     "person_uuid": "${user1_uuid}"
   },
   {
-    "conversation_location": "nowhere",
+    "conversation_location": "archive",
     "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": null,
@@ -106,7 +85,7 @@ actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
 [
   {
-    "conversation_location": "nowhere",
+    "conversation_location": "intros",
     "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
@@ -115,7 +94,7 @@ expected=$(cat <<EOF
     "person_uuid": "${user1_uuid}"
   },
   {
-    "conversation_location": "nowhere",
+    "conversation_location": "archive",
     "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": null,
@@ -139,7 +118,7 @@ actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
 [
   {
-    "conversation_location": "nowhere",
+    "conversation_location": "intros",
     "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": 50,
@@ -148,7 +127,7 @@ expected=$(cat <<EOF
     "person_uuid": "${user1_uuid}"
   },
   {
-    "conversation_location": "nowhere",
+    "conversation_location": "archive",
     "image_blurhash": null,
     "image_uuid": null,
     "match_percentage": null,
@@ -175,15 +154,6 @@ expected=$(cat <<EOF
 [
   {
     "conversation_location": "nowhere",
-    "image_blurhash": null,
-    "image_uuid": null,
-    "match_percentage": 50,
-    "name": "user1",
-    "person_id": ${user1_id},
-    "person_uuid": "${user1_uuid}"
-  },
-  {
-    "conversation_location": "nowhere",
     "image_blurhash": "my-blurhash",
     "image_uuid": "my-uuid",
     "match_percentage": 50,
@@ -204,15 +174,6 @@ response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user2_uuid}\", \"$
 actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
 [
-  {
-    "conversation_location": "nowhere",
-    "image_blurhash": null,
-    "image_uuid": null,
-    "match_percentage": 50,
-    "name": "user1",
-    "person_id": ${user1_id},
-    "person_uuid": "${user1_uuid}"
-  },
   {
     "conversation_location": "intros",
     "image_blurhash": null,
@@ -242,15 +203,6 @@ actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
 [
   {
-    "conversation_location": "nowhere",
-    "image_blurhash": null,
-    "image_uuid": null,
-    "match_percentage": 50,
-    "name": "user1",
-    "person_id": ${user1_id},
-    "person_uuid": "${user1_uuid}"
-  },
-  {
     "conversation_location": "chats",
     "image_blurhash": "my-blurhash",
     "image_uuid": "my-uuid",
@@ -273,15 +225,6 @@ response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user2_uuid}\", \"$
 actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
 [
-  {
-    "conversation_location": "nowhere",
-    "image_blurhash": null,
-    "image_uuid": null,
-    "match_percentage": 50,
-    "name": "user1",
-    "person_id": ${user1_id},
-    "person_uuid": "${user1_uuid}"
-  },
   {
     "conversation_location": "chats",
     "image_blurhash": null,
@@ -313,15 +256,6 @@ expected=$(cat <<EOF
     "conversation_location": "nowhere",
     "image_blurhash": null,
     "image_uuid": null,
-    "match_percentage": 50,
-    "name": "user1",
-    "person_id": ${user1_id},
-    "person_uuid": "${user1_uuid}"
-  },
-  {
-    "conversation_location": "nowhere",
-    "image_blurhash": null,
-    "image_uuid": null,
     "match_percentage": null,
     "name": null,
     "person_id": ${user4_id},
@@ -341,15 +275,6 @@ response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user2_uuid}\", \"$
 actual=$(jq -r '.' <<< "$response")
 expected=$(cat <<EOF
 [
-  {
-    "conversation_location": "nowhere",
-    "image_blurhash": null,
-    "image_uuid": null,
-    "match_percentage": 50,
-    "name": "user1",
-    "person_id": ${user1_id},
-    "person_uuid": "${user1_uuid}"
-  },
   {
     "conversation_location": "archive",
     "image_blurhash": null,

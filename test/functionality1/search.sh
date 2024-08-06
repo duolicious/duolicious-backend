@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
@@ -17,8 +18,10 @@ setup () {
   q "delete from undeleted_photo"
 
   ../util/create-user.sh searcher 0
-  ../util/create-user.sh user1 0
-  ../util/create-user.sh user2 0
+  ../util/create-user.sh user1 0 1
+  ../util/create-user.sh user2 0 1
+
+  q "update photo set blurhash = 'the-blurhash'"
 
   searcher_id=$(q "select id from person where email = 'searcher@example.com'")
   user1_id=$(q "select id from person where email = 'user1@example.com'")
@@ -295,41 +298,28 @@ test_photos_promoted () {
   q "
   update person
   set personality = array_full(47, 9e-2)
-  where email IN ('searcher@example.com', 'user1@example.com')"
+  where email IN ('searcher@example.com', 'user4@example.com')"
   q "
   update person
   set personality = array_full(47, 8e-2)
-  where email IN ('user2@example.com')"
-  q "
-  update person
-  set personality = array_full(47, 7e-2)
   where email IN ('user3@example.com')"
   q "
   update person
+  set personality = array_full(47, 7e-2)
+  where email IN ('user2@example.com')"
+  q "
+  update person
   set personality = array_full(47, 6e-2)
-  where email IN ('user4@example.com')"
+  where email IN ('user1@example.com')"
 
   local response1=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
 
-  q "
-  insert into photo (person_id, position, uuid, blurhash)
-  SELECT
-    (select id from person where email = 'user3@example.com'),
-    1,
-    'user3-uuid',
-    ''"
-  q "
-  insert into photo (person_id, position, uuid, blurhash)
-  select
-    (select id from person where email = 'user4@example.com'),
-    1,
-    'user4-uuid',
-    ''"
+  q "delete from photo"
 
   local response2=$(c GET '/search?n=10&o=0' | jq -r '[.[].name] | join(" ")')
 
-  [[ "$response1" = "user1 user2 user3 user4" ]]
-  [[ "$response2" = "user3 user4 user1 user2" ]]
+  [[ "$response1" = "user2 user1 user4 user3" ]]
+  [[ "$response2" = "user4 user3 user2 user1" ]]
 }
 
 test_quiz_filters () {
@@ -461,6 +451,99 @@ test_hide_me_from_strangers () {
   assert_search_names 'user1 user2'
 }
 
+test_verified_privacy () {
+  setup
+
+  q "update person set privacy_verification_level_id = 2 where name = 'user1'"
+  q "update person set privacy_verification_level_id = 3 where name = 'user2'"
+
+  # Ensure `user1` is ranked first in search results
+  q "
+  update
+    person
+  set
+    personality = array_full(47, 1),
+    count_answers = 1
+  where
+    email IN ('searcher@example.com', 'user1@example.com')"
+
+  # Q_UNCACHED_SEARCH_2 yields the right format
+  local response=$(c GET "/search?n=10&o=0")
+  local expected=$(jq -r . << EOF
+[
+  {
+    "age": 26,
+    "match_percentage": 99,
+    "name": "user1",
+    "person_messaged_prospect": false,
+    "profile_photo_blurhash": "the-blurhash",
+    "profile_photo_uuid": null,
+    "prospect_messaged_person": false,
+    "prospect_person_id": null,
+    "prospect_uuid": null,
+    "verification_required_to_view": "basics",
+    "verified": false
+  },
+  {
+    "age": 26,
+    "match_percentage": 50,
+    "name": "user2",
+    "person_messaged_prospect": false,
+    "profile_photo_blurhash": "the-blurhash",
+    "profile_photo_uuid": null,
+    "prospect_messaged_person": false,
+    "prospect_person_id": null,
+    "prospect_uuid": null,
+    "verification_required_to_view": "photos",
+    "verified": false
+  }
+]
+EOF
+)
+  diff <(echo "$response") <(echo "$expected")
+
+  # Q_CACHED_SEARCH yields the right format
+  local response=$(c GET "/search?n=10&o=1")
+  local expected=$(jq -r . << EOF
+[
+  {
+    "age": 26,
+    "match_percentage": 50,
+    "name": "user2",
+    "person_messaged_prospect": false,
+    "profile_photo_blurhash": "the-blurhash",
+    "profile_photo_uuid": null,
+    "prospect_messaged_person": false,
+    "prospect_person_id": null,
+    "prospect_uuid": null,
+    "verification_required_to_view": "photos",
+    "verified": false
+  }
+]
+EOF
+)
+  diff <(echo "$response") <(echo "$expected")
+
+  # Q_QUIZ_SEARCH yields the right format
+  local response=$(c GET '/search')
+  local expected=$(jq -r . << EOF
+[
+  {
+    "age": 26,
+    "match_percentage": 99,
+    "name": "user1",
+    "profile_photo_blurhash": "the-blurhash",
+    "profile_photo_uuid": null,
+    "prospect_person_id": null,
+    "prospect_uuid": null,
+    "verification_required_to_view": "basics"
+  }
+]
+EOF
+)
+  diff <(echo "$response") <(echo "$expected")
+}
+
 test_interaction_in_standard_search_skipped_symmetry() {
   setup
 
@@ -496,6 +579,8 @@ test_json_format () {
   where
     email IN ('searcher@example.com', 'user1@example.com')"
 
+  q "delete from photo"
+
   # Q_UNCACHED_SEARCH_2 yields the right format
   local response=$(c GET '/search?n=1&o=0')
   local expected=$(jq -r . << EOF
@@ -510,12 +595,13 @@ test_json_format () {
     "prospect_messaged_person": false,
     "prospect_person_id": ${user1_id},
     "prospect_uuid": "${user1_uuid}",
+    "verification_required_to_view": null,
     "verified": false
   }
 ]
 EOF
 )
-  [[ "$response" == "$expected" ]]
+  diff <(echo "$response") <(echo "$expected")
 
   # Q_CACHED_SEARCH yields the right format
   local response=$(c GET '/search?n=1&o=1')
@@ -531,12 +617,13 @@ EOF
     "prospect_messaged_person": false,
     "prospect_person_id": ${user2_id},
     "prospect_uuid": "${user2_uuid}",
+    "verification_required_to_view": null,
     "verified": false
   }
 ]
 EOF
 )
-  [[ "$response" == "$expected" ]]
+  diff <(echo "$response") <(echo "$expected")
 
   # Q_QUIZ_SEARCH yields the right format
   local response=$(c GET '/search')
@@ -549,12 +636,13 @@ EOF
     "profile_photo_blurhash": null,
     "profile_photo_uuid": null,
     "prospect_person_id": ${user1_id},
-    "prospect_uuid": "${user1_uuid}"
+    "prospect_uuid": "${user1_uuid}",
+    "verification_required_to_view": null
   }
 ]
 EOF
 )
-  [[ "$response" == "$expected" ]]
+  diff <(echo "$response") <(echo "$expected")
 }
 
 test_bidirectional_gender_filter () {
@@ -728,6 +816,8 @@ test_pending_club_cleared () {
   [[ "$num_matches" = 0 ]]
 }
 
+
+
 test_pending_club_cleared
 
 test_clubs
@@ -735,6 +825,7 @@ test_clubs
 test_quiz_search
 
 test_hide_me_from_strangers
+test_verified_privacy
 
 test_interaction_in_standard_search skipped /skip /unskip
 test_interaction_in_standard_search_skipped_symmetry
@@ -753,7 +844,7 @@ test_basic ethnicity 'Middle Eastern'
 test_basic_age
 test_basic_furthest_distance
 test_basic_height
-test_basic has_profile_picture 'Yes' yes_no
+test_basic has_profile_picture 'No' yes_no
 test_basic looking_for 'Long-term dating'
 test_basic smoking 'Yes' yes_no_optional
 test_basic drinking 'Often' frequency

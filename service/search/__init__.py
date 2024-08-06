@@ -33,7 +33,9 @@ def _uncached_search_results(
 
     try:
         tx.execute(Q_UNCACHED_SEARCH_1, params)
-        return tx.execute(Q_UNCACHED_SEARCH_2, params).fetchall()
+        tx.execute(Q_UNCACHED_SEARCH_2, params)
+        tx.execute(Q_CACHED_SEARCH, params)
+        return tx.fetchall()
     except psycopg.errors.QueryCanceled:
         # The query probably timed-out because it was too specific
         return []

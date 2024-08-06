@@ -251,6 +251,7 @@ CREATE TABLE IF NOT EXISTS person (
     show_my_location BOOLEAN NOT NULL DEFAULT TRUE,
     show_my_age BOOLEAN NOT NULL DEFAULT TRUE,
     hide_me_from_strangers BOOLEAN NOT NULL DEFAULT FALSE,
+    privacy_verification_level_id SMALLINT REFERENCES verification_level(id) NOT NULL DEFAULT 1,
 
     -- Bookkeeping
     sign_up_time TIMESTAMP NOT NULL DEFAULT NOW(),
