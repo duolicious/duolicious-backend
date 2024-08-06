@@ -16,6 +16,7 @@ setup () {
   user1id=$(q "select id from person where email = 'user1@example.com'")
   user2id=$(q "select id from person where email = 'user2@example.com'")
 
+  user1uuid=$(q "select uuid from person where email = 'user1@example.com'")
   user2uuid=$(q "select uuid from person where email = 'user2@example.com'")
 }
 
@@ -51,6 +52,40 @@ deactivating () {
   ! c GET "/prospect-profile/${user2uuid}"
 }
 
+verified_privacy () {
+  setup
+
+  echo "User 2 hides their profile from people without verified basics"
+  assume_role user2
+  jc PATCH /profile-info -d '{ "verification_level": "Basics only" }'
+
+  echo "User 1 can no longer get user 2's profile"
+  assume_role user1
+  ! c GET "/prospect-profile/${user2uuid}"
+
+  echo "User 1 gets verified basics"
+  q "update person set verification_level_id = 2 where uuid = '${user1uuid}'"
+
+  echo "User 1 can now view user 2's profile"
+  assume_role user1
+  c GET "/prospect-profile/${user2uuid}"
+
+  echo "User 2 hides their profile from people without verified photos"
+  assume_role user2
+  jc PATCH /profile-info -d '{ "verification_level": "Photos" }'
+
+  echo "User 1 can no longer get user 2's profile"
+  assume_role user1
+  ! c GET "/prospect-profile/${user2uuid}"
+
+  echo "User 1 gets verified basics"
+  q "update person set verification_level_id = 3 where uuid = '${user1uuid}'"
+
+  echo "User 1 can now view user 2's profile"
+  assume_role user1
+  c GET "/prospect-profile/${user2uuid}"
+}
+
 hide_me_from_strangers () {
   setup
 
@@ -76,3 +111,4 @@ non_private_profile_is_accessible
 skipping
 deactivating
 hide_me_from_strangers
+verified_privacy
