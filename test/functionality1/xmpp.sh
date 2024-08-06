@@ -113,6 +113,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 [[ "$(q "select count(*) from messaged where \
     subject_person_id = $user1id and \
     object_person_id = $user2id")" = 1 ]]
+
 [[ "$(q "select count(*) from messaged")" = 1 ]]
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"/>'
@@ -192,6 +193,12 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 
 sleep 3 # MongooseIM takes some time to flush messages to the DB
 
+[[ "$(q "select count(*) from messaged where \
+    subject_person_id = $user1id and \
+    object_person_id = $user3id")" = 1 ]]
+
+[[ "$(q "select count(*) from messaged")" = 2 ]]
+
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id3"/>'
 
 [[ "$(q "select count(*) from mam_message where \
@@ -200,7 +207,9 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 [[ "$(q " \
   select count(*) \
   from duo_last_notification \
-  where chat_seconds = 0 and \
+  where \
+  username = '$user3uuid' and \
+  chat_seconds = 0 and \
   intro_seconds > 0" duo_chat)" = 1 ]]
 
 
@@ -216,8 +225,6 @@ curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d
 }'
 
 sleep 0.5
-
-
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 <message
@@ -242,14 +249,47 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 [[ "$(q " \
   select count(*) \
   from duo_last_notification \
-  where chat_seconds = 0 and \
+  where \
+  username = '$user3uuid' and \
+  chat_seconds = 0 and \
   intro_seconds > 0" duo_chat)" = 1 ]]
 
 [[ "$(q " \
   select count(*) \
   from duo_last_notification \
-  where chat_seconds > 0 and \
+  where \
+  chat_seconds > 0 and \
+  username = '$user1uuid' and \
   intro_seconds = 0" duo_chat)" = 1 ]]
+
+
+
+echo "User 1 can stop getting immediate notifications by updating their preferences"
+
+q "update person set chats_notification = 2 where id = $user1id"
+q "delete from duo_last_notification" duo_chat
+
+curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
+<message
+    type='chat'
+    from='$user3uuid@duolicious.app'
+    to='$user1uuid@duolicious.app'
+    id='id3'
+    check_uniqueness='false'
+    xmlns='jabber:client'>
+  <body>message will be sent with no notification</body>
+  <request xmlns='urn:xmpp:receipts'/>
+</message>
+"
+
+sleep 3 # MongooseIM takes some time to flush messages to the DB
+
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id3"/>'
+
+[[ "$(q "select count(*) from mam_message where \
+    search_body = 'message will be sent with no notification'" duo_chat)" = 2 ]]
+
+[[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 0 ]]
 
 
 
