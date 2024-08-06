@@ -188,6 +188,7 @@ const App = () => {
       await sessionPersonUuid(null);
       await sessionToken(null);
       setSignedInUser(undefined);
+      logout();
       return;
     }
 
@@ -201,6 +202,7 @@ const App = () => {
       await sessionPersonUuid(null);
       await sessionToken(null);
       setSignedInUser(undefined);
+      logout();
       return;
     }
 

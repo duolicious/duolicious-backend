@@ -141,6 +141,7 @@ type PageItem = {
   person_messaged_prospect: boolean
   prospect_messaged_person: boolean
   verified: boolean
+  verification_required_to_view: string | null
 };
 
 const fetchPage = (club: string | null) => async (pageNumber: number): Promise<PageItem[] | null> => {

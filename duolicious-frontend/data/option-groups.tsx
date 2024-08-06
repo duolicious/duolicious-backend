@@ -383,6 +383,12 @@ const immediacy = [
   'Never'
 ];
 
+const verificationLevel = [
+  'No verification',
+  'Basics only',
+  'Photos',
+];
+
 const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
   title: 'Gender',
   Icon: () => (
@@ -1568,37 +1574,28 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
 ];
 
-const hideMeFromStrangersOptionGroup: OptionGroup<OptionGroupInputs> = {
-  title: 'Hide Me From Strangers',
-  Icon: () => (
-    <Ionicons
-      style={{
-        transform: [ { scaleX: -1 } ],
-        fontSize: 16,
-      }}
-      name="chatbubble"
-    />
-  ),
-  description: "With this option set to ‘Yes’, people won’t see you anywhere in Duolicious until you message them first.",
-  input: {
-    buttons: {
-      values: yesNo,
-      submit: async function(hideMeFromStrangers: string) {
-        const ok = (
-          await japi(
-            'patch',
-            '/profile-info',
-            { hide_me_from_strangers: hideMeFromStrangers }
-          )
-        ).ok;
-        if (ok) this.currentValue = hideMeFromStrangers;
-        return ok;
-      },
-    }
-  },
-};
-
 const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
+  {
+    title: 'Verification Level',
+    Icon: () => <VerificationBadge color="black" size={14} />,
+    description: "What’s the minimum verification level that people need to view your profile?",
+    input: {
+      buttons: {
+        values: verificationLevel,
+        submit: async function(verificationLevel: string) {
+          const ok = (
+            await japi(
+              'patch',
+              '/profile-info',
+              { verification_level: verificationLevel }
+            )
+          ).ok;
+          if (ok) this.currentValue = verificationLevel;
+          return ok;
+        },
+      }
+    },
+  },
   {
     title: 'Show My Location',
     Icon: () => (
@@ -1653,7 +1650,35 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       }
     },
   },
-  hideMeFromStrangersOptionGroup,
+  {
+    title: 'Hide Me From Strangers',
+    Icon: () => (
+      <Ionicons
+        style={{
+          transform: [ { scaleX: -1 } ],
+          fontSize: 16,
+        }}
+        name="chatbubble"
+      />
+    ),
+    description: "With this option set to ‘Yes’, people won’t see you anywhere in Duolicious until you message them first.",
+    input: {
+      buttons: {
+        values: yesNo,
+        submit: async function(hideMeFromStrangers: string) {
+          const ok = (
+            await japi(
+              'patch',
+              '/profile-info',
+              { hide_me_from_strangers: hideMeFromStrangers }
+            )
+          ).ok;
+          if (ok) this.currentValue = hideMeFromStrangers;
+          return ok;
+        },
+      }
+    },
+  },
 ];
 
 const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
@@ -1744,7 +1769,6 @@ export {
   deletionOptionGroups,
   generalSettingsOptionGroups,
   getCurrentValue,
-  hideMeFromStrangersOptionGroup,
   isOptionGroupButtons,
   isOptionGroupCheckChips,
   isOptionGroupDate,

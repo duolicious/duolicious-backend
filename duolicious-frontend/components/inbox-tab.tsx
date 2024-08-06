@@ -20,7 +20,6 @@ import { IntrosItem, ChatsItem } from './inbox-item';
 import { DefaultText } from './default-text';
 import { ButtonGroup } from './button-group';
 import { OptionScreen } from './option-screen';
-import { hideMeFromStrangersOptionGroup } from '../data/option-groups';
 import { DefaultFlatList } from './default-flat-list';
 import { Inbox, Conversation, inboxStats } from '../xmpp/xmpp';
 import { compareArrays } from '../util/util';
@@ -54,7 +53,6 @@ const InboxTab_ = ({navigation}) => {
 
   const [sectionIndex, setSectionIndex] = useState(0);
   const [sortByIndex, setSortByIndex] = useState(0);
-  const [isTooManyTapped, setIsTooManyTapped] = useState(false);
   const [inbox, setInbox] = useState<Inbox | null>(null);
   const [showArchive, setShowArchive] = useState(false);
   const listRef = useRef<any>(undefined);
@@ -105,16 +103,6 @@ const InboxTab_ = ({navigation}) => {
   const setSortByIndex_  = useCallback((value: number) => {
     setSortByIndex(value);
     inboxOrder(value);
-  }, []);
-
-  const onPressTooMany = useCallback(() => {
-    navigation.navigate(
-      'Inbox Option Screen',
-      {
-        optionGroups: [hideMeFromStrangersOptionGroup],
-      }
-    );
-    setIsTooManyTapped(true);
   }, []);
 
   const onPressArchiveButton = useCallback(() => {

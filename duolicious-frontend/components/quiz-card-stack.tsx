@@ -102,7 +102,8 @@ const prospectState = (
   personUuid: string,
   imageUuid: string,
   imageBlurhash: string,
-  matchPercentage: number
+  matchPercentage: number,
+  verificationRequired: 'photos' | 'basics' | null,
 ): ProspectState => {
   const animation = new Animated.Value(0);
 
@@ -137,6 +138,7 @@ const prospectState = (
     imageUuid: imageUuid,
     imageBlurhash: imageBlurhash,
     matchPercentage: matchPercentage,
+    verificationRequired: verificationRequired,
     style: {
       transform: [
         { scale: interpolatedScale },
@@ -167,7 +169,8 @@ const fetchNBestProspects = async (
     x.prospect_uuid,
     x.profile_photo_uuid,
     x.profile_photo_blurhash,
-    x.match_percentage
+    x.match_percentage,
+    x.verification_required_to_view,
   ));
 };
 
@@ -205,6 +208,7 @@ type ProspectState = {
   imageUuid: string
   imageBlurhash: string
   matchPercentage: number
+  verificationRequired: 'photos' | 'basics' | null
   style: {
     transform: [
       { scale: Animated.AnimatedInterpolation<string | number> },
@@ -372,6 +376,7 @@ const Prospect = ({
   imageUuid,
   imageBlurhash,
   matchPercentage,
+  verificationRequired,
 }) => {
   const [isSkipped, setIsSkipped] = useState(false);
 
@@ -404,6 +409,7 @@ const Prospect = ({
       percentage={matchPercentage}
       shadow={true}
       isSkipped={isSkipped}
+      verificationRequired={verificationRequired}
     />
   </Animated.View>
 };
@@ -542,7 +548,8 @@ const Prospects = ({
               personUuid={prospect.personUuid}
               imageUuid={prospect.imageUuid}
               imageBlurhash={prospect.imageBlurhash}
-              matchPercentage={prospect.matchPercentage} />
+              matchPercentage={prospect.matchPercentage}
+              verificationRequired={prospect.verificationRequired} />
           )
         }
         <View style={dcViewStyle}>

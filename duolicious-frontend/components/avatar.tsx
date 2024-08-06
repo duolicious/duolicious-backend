@@ -13,6 +13,9 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { X } from "react-native-feather";
 import { ImageBackground } from "expo-image";
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
+import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
+import { verificationOptionGroups } from '../data/option-groups';
 
 const Avatar = ({percentage, ...props}) => {
   const {
@@ -24,9 +27,10 @@ const Avatar = ({percentage, ...props}) => {
     size,
     shadow = false,
     isSkipped = false,
+    verificationRequired = null,
   } = props;
 
-  const shadowStyle = (shadow && !isSkipped) ? {
+  const shadowStyle = (shadow && !isSkipped && !verificationRequired) ? {
     shadowOffset: {
       width: 0,
       height: 2,
@@ -44,14 +48,22 @@ const Avatar = ({percentage, ...props}) => {
   }).current;
 
   const onPress = useCallback(() => {
-    return navigation && navigation.navigate(
-      'Prospect Profile Screen',
-      {
-        screen: 'Prospect Profile',
-        params: { personId, personUuid, imageBlurhash },
-      }
-    );
-  }, [navigation, personId]);
+    if (!navigation) {
+      return;
+    }
+
+    if (verificationRequired) {
+      return navigation.navigate('Profile');
+    } else if (personUuid) {
+      return navigation.navigate(
+        'Prospect Profile Screen',
+        {
+          screen: 'Prospect Profile',
+          params: { personId, personUuid, imageBlurhash },
+        }
+      );
+    }
+  }, [navigation, personId, verificationRequired]);
 
   return (
     <Element
@@ -137,6 +149,36 @@ const Avatar = ({percentage, ...props}) => {
             height={48}
             width={48}
           />
+        </View>
+      }
+      {verificationRequired &&
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 5,
+          }}
+        >
+          <FontAwesomeIcon
+            icon={faLock}
+            size={18}
+            style={{color: 'black'}}
+          />
+          <DefaultText
+            style={{
+              fontSize: 12,
+              fontWeight: '900',
+              textAlign: 'center',
+            }}
+          >
+            Verify your {verificationRequired} to unlock
+          </DefaultText>
         </View>
       }
     </Element>
