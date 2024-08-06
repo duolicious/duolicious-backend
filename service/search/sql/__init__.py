@@ -1,7 +1,3 @@
-# TODO: Ensure search keys are unique in frontend, despite the lack of person_id and person_uuid
-# TODO: GET /prospect-profile should return a 404 if verification level isn't right
-# TODO: Check that /inbox-info still works
-
 Q_UPSERT_SEARCH_PREFERENCE_CLUB = """
 INSERT INTO search_preference_club (
     person_id,
