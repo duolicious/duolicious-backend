@@ -305,7 +305,7 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-      ensureLoggedIntoXmpp()
+    ensureLoggedIntoXmpp()
   }, [signedInUser?.personUuid]);
 
   useEffect(() => {

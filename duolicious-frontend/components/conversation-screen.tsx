@@ -63,7 +63,7 @@ const lastPropAt = (messages: Message[] | null | undefined, prop: string): strin
   return propAt(messages, (messages ?? []).length - 1, prop);
 }
 
-const Menu = ({navigation, name, personId, personUuid, messages, closeFn}) => {
+const Menu = ({navigation, name, personId, personUuid, closeFn}) => {
   const [isSkipped, setIsSkipped] = useState<boolean | undefined>();
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -102,7 +102,7 @@ const Menu = ({navigation, name, personId, personUuid, messages, closeFn}) => {
     };
 
     notify('open-report-modal', data);
-  }, [name, personId, messages, closeFn]);
+  }, [name, personId, closeFn]);
 
   useEffect(() => {
     (async () => {
@@ -251,8 +251,106 @@ const Menu = ({navigation, name, personId, personUuid, messages, closeFn}) => {
   );
 };
 
-const ConversationScreen = ({navigation, route}) => {
+const ConversationScreenNavBar = ({
+  navigation,
+  personId,
+  personUuid,
+  isAvailableUser,
+  imageUuid,
+  imageBlurhash,
+  name,
+}) => {
+  const [isOnline, setIsOnline] = useState(lastEvent<boolean>('xmpp-is-online'));
   const [showMenu, setShowMenu] = useState(false);
+
+  const onPressName = useCallback(() => {
+    if (isAvailableUser) {
+      navigation.navigate(
+        'Prospect Profile Screen',
+        {
+          screen: 'Prospect Profile',
+          params: { personId, personUuid, showBottomButtons: false },
+        }
+      );
+    }
+  }, [isAvailableUser, personId, name]);
+
+  const toggleMenu = useCallback(() => {
+    setShowMenu(x => !x);
+  }, []);
+
+  useEffect(() => listen<boolean>('xmpp-is-online', setIsOnline), []);
+
+  return (
+    <TopNavBar>
+      <TopNavBarButton
+        onPress={() => navigation.goBack()}
+        iconName="arrow-back"
+        style={{left: 15}}
+      />
+      <Pressable
+        onPress={onPressName}
+        style={{
+          justifyContent: 'center',
+          alignItems: 'center',
+          maxWidth: 220,
+        }}
+      >
+        <Image
+          source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
+          placeholder={imageBlurhash && { blurhash: imageBlurhash }}
+          transition={150}
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 9999,
+            position: 'absolute',
+            left: -40,
+            top: -3,
+          }}
+        />
+        <DefaultText
+          style={{
+            fontWeight: '700',
+            fontSize: 20,
+          }}
+          numberOfLines={1}
+        >
+          {name ?? '...'}
+        </DefaultText>
+        {!isOnline &&
+          <ActivityIndicator
+            size="small"
+            color="#70f"
+            style={{
+              position: 'absolute',
+              right: -40,
+              top: 3,
+            }}
+          />
+        }
+      </Pressable>
+      {isAvailableUser &&
+        <TopNavBarButton
+          onPress={toggleMenu}
+          iconName="ellipsis-vertical"
+          style={{right: 10}}
+        />
+      }
+      {showMenu &&
+        <Menu
+          navigation={navigation}
+          name={name}
+          personId={personId}
+          personUuid={personUuid}
+          closeFn={() => setShowMenu(false)}
+        />
+      }
+    </TopNavBar>
+  );
+};
+
+const ConversationScreen = ({navigation, route}) => {
   const [messageFetchTimeout, setMessageFetchTimeout] = useState(false);
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [lastMessageStatus, setLastMessageStatus] = useState<
@@ -300,18 +398,6 @@ const ConversationScreen = ({navigation, route}) => {
     return messageStatus;
   }, [personId, messages]);
 
-  const onPressName = useCallback(() => {
-    if (isAvailableUser) {
-      navigation.navigate(
-        'Prospect Profile Screen',
-        {
-          screen: 'Prospect Profile',
-          params: { personId, personUuid, showBottomButtons: false },
-        }
-      );
-    }
-  }, [isAvailableUser, personId, name]);
-
   const maybeLoadNextPage = useCallback(async () => {
     if (hasFetchedAll.current) {
       return;
@@ -333,7 +419,7 @@ const ConversationScreen = ({navigation, route}) => {
     if (fetchedMessages !== 'timeout') {
       // Prevents the list from moving up to the newly added speech bubbles and
       // triggering another fetch
-      if (listRef.current) listRef.current.scrollTo({y: 1, animated: false});
+      if (listRef.current) listRef.current.scrollTo({y: 2, animated: false});
 
       setMessages([...(fetchedMessages ?? []), ...(messages ?? [])]);
 
@@ -346,7 +432,7 @@ const ConversationScreen = ({navigation, route}) => {
     setMessages(msgs => [...(msgs ?? []), msg]);
   }, []);
 
-  const isCloseToTop = ({contentOffset}) => contentOffset.y === 0;
+  const isCloseToTop = ({contentOffset}) => contentOffset.y < 1;
 
   const isAtBottom = ({layoutMeasurement, contentOffset, contentSize}) =>
     layoutMeasurement.height + contentOffset.y >= contentSize.height;
@@ -360,10 +446,6 @@ const ConversationScreen = ({navigation, route}) => {
       hasFinishedFirstLoad.current = true;
     }
   }, [maybeLoadNextPage]);
-
-  const toggleMenu = useCallback(() => {
-    setShowMenu(x => !x);
-  }, []);
 
   const markLastMessageRead = useCallback(async () => {
     if (!lastMessage) {
@@ -470,71 +552,18 @@ const ConversationScreen = ({navigation, route}) => {
 
   return (
     <SafeAreaView style={styles.safeAreaView}>
-      <TopNavBar>
-        <TopNavBarButton
-          onPress={() => navigation.goBack()}
-          iconName="arrow-back"
-          style={{left: 15}}
-        />
-        <Pressable
-          onPress={onPressName}
-          style={{
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <Image
-            source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
-            placeholder={imageBlurhash && { blurhash: imageBlurhash }}
-            transition={150}
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 9999,
-              position: 'absolute',
-              left: -40,
-              top: -3,
-            }}
-          />
-          <DefaultText
-            style={{
-              fontWeight: '700',
-              fontSize: 20,
-            }}
-          >
-            {name ?? '...'}
-          </DefaultText>
-        </Pressable>
-        {isAvailableUser &&
-          <TopNavBarButton
-            onPress={toggleMenu}
-            iconName="ellipsis-vertical"
-            style={{right: 10}}
-          />
-        }
-        {showMenu &&
-          <Menu
-            navigation={navigation}
-            name={name}
-            personId={personId}
-            personUuid={personUuid}
-            messages={(messages ?? []).slice(-10)}
-            closeFn={() => setShowMenu(false)}
-          />
-        }
-      </TopNavBar>
-      {messages === null && !messageFetchTimeout &&
+      <ConversationScreenNavBar
+        navigation={navigation}
+        personId={personId}
+        personUuid={personUuid}
+        isAvailableUser={isAvailableUser}
+        imageUuid={imageUuid}
+        imageBlurhash={imageBlurhash}
+        name={name}
+      />
+      {messages === null &&
         <View style={{flexGrow: 1, justifyContent: 'center', alignItems: 'center'}}>
           <ActivityIndicator size="large" color="#70f" />
-        </View>
-      }
-      {messages === null && messageFetchTimeout &&
-        <View style={{flexGrow: 1, justifyContent: 'center', alignItems: 'center'}}>
-          <DefaultText
-            style={{fontFamily: 'Trueno'}}
-          >
-            You’re offline
-          </DefaultText>
         </View>
       }
       {messages !== null &&
@@ -636,10 +665,10 @@ const ConversationScreen = ({navigation, route}) => {
         {lastMessageStatus === 'not unique' ? `Someone already sent that intro! Try sending ${name} a different message...` : '' }
         {lastMessageStatus === 'too long' ? 'That message is too big! 😩' : '' }
       </DefaultText>
-      {!messageFetchTimeout && isAvailableUser &&
+      {isAvailableUser &&
         <TextInputWithButton onPress={onPressSend}/>
       }
-      {!messageFetchTimeout && !isAvailableUser &&
+      {!isAvailableUser &&
         <DefaultText
           style={{
             maxWidth: 600,
@@ -779,7 +808,7 @@ const TextInputWithButton = ({
               }}
             >
               {isLoading &&
-                <ActivityIndicator size="large" color="#70f" />
+                <ActivityIndicator size="small" color="#70f" />
               }
               {!isLoading &&
                 <FontAwesomeIcon
