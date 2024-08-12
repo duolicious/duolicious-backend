@@ -964,14 +964,14 @@ const refreshInbox = async (): Promise<void> => {
   while (true) {
     const page = await fetchInboxPage(inbox.endTimestamp);
 
-    const isLastPage = (
+    const isEmptyPage = (
       !page ||
       !page.archive.conversations.length &&
       !page.chats.conversations.length &&
       !page.intros.conversations.length
     );
 
-    if (isLastPage) {
+    if (isEmptyPage) {
       notify<Inbox>('inbox', inbox);
       break;
     } else {
@@ -1004,7 +1004,8 @@ const registerPushToken = async (token: string) => {
 };
 
 const onChangeAppState = (state: AppStateStatus) => {
-  if (Platform.OS !== 'web' && state === 'active') {
+  const hasInitialInbox = lastEvent<Inbox>('inbox');
+  if (Platform.OS !== 'web' && state === 'active' && hasInitialInbox) {
     refreshInbox();
   }
 };

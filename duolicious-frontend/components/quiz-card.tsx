@@ -4,6 +4,8 @@ import {
   ImageBackground,
   Pressable,
   View,
+  StyleProp,
+  TextStyle,
 } from 'react-native';
 import {
   createElement,
@@ -620,6 +622,12 @@ const AnsweredQuizCard = ({
     }
   }, [state.answer])();
 
+  const textStyle: StyleProp<TextStyle> = {
+    fontWeight: '500',
+    color: textColor,
+    maxWidth: 120,
+  };
+
   const onPressAnswerIconGroup = useCallback(async (pressedButton: boolean) => {
     setState((state: CardState): CardState => {
       const nextAnswer_ = nextAnswer(state.answer, pressedButton);
@@ -690,8 +698,11 @@ const AnsweredQuizCard = ({
           marginRight: 30,
         }}
       >
-        <DefaultText style={{ fontWeight: '500', marginRight: 5, color: textColor }} >
-          {user1}:
+        <DefaultText style={textStyle} numberOfLines={1} >
+          {user1}
+        </DefaultText>
+        <DefaultText style={[textStyle, { marginRight: 5 }]}>
+          :
         </DefaultText>
         <AnswerIconGroup answer={answer1} enabled={false}/>
       </View>

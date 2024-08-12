@@ -434,8 +434,14 @@ const ConversationScreen = ({navigation, route}) => {
 
   const isCloseToTop = ({contentOffset}) => contentOffset.y < 1;
 
-  const isAtBottom = ({layoutMeasurement, contentOffset, contentSize}) =>
-    layoutMeasurement.height + contentOffset.y >= contentSize.height;
+  const isAtBottom = ({layoutMeasurement, contentOffset, contentSize}) => {
+    const epsilon = 1;
+
+    return Math.abs(
+      layoutMeasurement.height + contentOffset.y -
+      contentSize.height
+    ) >= epsilon;
+  };
 
   const onScroll = useCallback(({nativeEvent}) => {
     if (isCloseToTop(nativeEvent) && hasFinishedFirstLoad.current) {
