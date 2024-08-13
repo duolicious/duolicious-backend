@@ -1578,7 +1578,7 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     title: 'Verification Level',
     Icon: () => <VerificationBadge color="black" size={14} />,
-    description: "What’s the minimum verification level that people need to view your profile?",
+    description: "What’s the minimum verification level that people need to view your profile in search results?",
     input: {
       buttons: {
         values: verificationLevel,
