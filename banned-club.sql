@@ -1938,6 +1938,7 @@ VALUES
     ('rapist'),
     ('rapist homo thug'),
     ('rapists'),
+    ('real gooner'),
     ('#realnigga'),
     ('real nigga'),
     ('respect niggers'),
