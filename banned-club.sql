@@ -2208,6 +2208,7 @@ VALUES
     ('ten years old'),
     ('ten yo'),
     ('terf'),
+    ('terminally horny'),
     ('terorist'),
     ('terror'),
     ('terrorism'),
