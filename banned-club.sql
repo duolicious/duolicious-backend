@@ -1751,6 +1751,7 @@ VALUES
     ('not suicidal'),
     ('not trans'),
     ('nsbm'),
+    ('nsdap'),
     ('nudes sender'),
     ('nuke africa'),
     ('nuke china'),
