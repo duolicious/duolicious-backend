@@ -808,6 +808,7 @@ VALUES
     ('gook'),
     ('gooks'),
     ('gooner'),
+    ('gooning'),
     ('goonslut'),
     ('gore'),
     ('gorecore'),
