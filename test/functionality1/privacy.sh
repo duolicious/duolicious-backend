@@ -84,6 +84,16 @@ verified_privacy () {
   echo "User 1 can now view user 2's profile"
   assume_role user1
   c GET "/prospect-profile/${user2uuid}"
+
+  echo "User 1 gets unverified"
+  q "update person set verification_level_id = 1 where uuid = '${user1uuid}'"
+  ! c GET "/prospect-profile/${user2uuid}"
+
+  echo "User 1 gets messaged by user 2"
+  q "
+    insert into messaged (subject_person_id, object_person_id)
+    values (${user2id}, ${user1id})"
+  c GET "/prospect-profile/${user2uuid}"
 }
 
 hide_me_from_strangers () {
