@@ -922,6 +922,7 @@ VALUES
     ('hitler did nothing wrong'),
     ('hitler enjoyer'),
     ('hitler''s top guy'),
+    ('hitlers top guy'),
     ('hitler youth'),
     ('homeless nigga'),
     ('homicide'),
