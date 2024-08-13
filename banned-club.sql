@@ -939,6 +939,7 @@ VALUES
     ('hornypilled'),
     ('hot fortnite sex'),
     ('husband beater'),
+    ('hypersexual'),
     ('i abuse men'),
     ('i abuse women'),
     ('i am 10'),
