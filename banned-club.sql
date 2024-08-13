@@ -932,6 +932,7 @@ VALUES
     ('hong kong fuck you'),
     ('hood nigga from bronx'),
     ('horny'),
+    ('horny 24/7'),
     ('hornyaf'),
     ('horny but not all the time'),
     ('horny like jf'),
