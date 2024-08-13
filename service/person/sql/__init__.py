@@ -810,7 +810,24 @@ WITH prospect AS (
     AND (
             NOT hide_me_from_strangers
         OR
-            prospect.id = %(person_id)s
+            EXISTS (
+                SELECT 1
+                FROM messaged
+                WHERE
+                    messaged.subject_person_id = prospect.id
+                AND
+                    messaged.object_person_id = %(person_id)s
+            )
+    )
+    AND (
+        prospect.privacy_verification_level_id <= (
+            SELECT
+                verification_level_id
+            FROM
+                person
+            WHERE
+                id = %(person_id)s
+        )
         OR
             EXISTS (
                 SELECT 1
@@ -830,15 +847,13 @@ WITH prospect AS (
                 object_person_id  = %(person_id)s
             LIMIT 1
         )
+    OR
+
+    -- User is viewing their own profile
+        uuid = uuid_or_null(%(prospect_uuid)s::TEXT)
     AND
-        prospect.privacy_verification_level_id <= (
-            SELECT
-                verification_level_id
-            FROM
-                person
-            WHERE
-                id = %(person_id)s
-        )
+        prospect.id = %(person_id)s
+
     LIMIT
         1
 ), negative_dot_prod AS (
