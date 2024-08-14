@@ -218,8 +218,8 @@ const InviteEntrypoint = ({navigation}) => {
           opacity,
         }}
       >
-        <DefaultText style={{ fontSize: 16 }}>
-          Invite
+        <DefaultText>
+          Invite To Clubs
         </DefaultText>
         <FontAwesomeIcon
           icon={faUserPlus}
