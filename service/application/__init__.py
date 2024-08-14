@@ -404,7 +404,8 @@ def get_search_clubs(s: t.SessionInfo):
 
 @get('/search-public-clubs')
 def get_search_public_clubs():
-    return person.get_search_clubs(s=None, search_str=request.args.get('q', ''))
+    return person.get_search_clubs(
+            s=None, search_str=request.args.get('q', ''), allow_empty=True)
 
 @apost('/join-club')
 @validate(t.PostJoinClub)

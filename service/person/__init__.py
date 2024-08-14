@@ -1507,11 +1507,15 @@ def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo):
         else:
             return dict(answer=answer)
 
-def get_search_clubs(s: Optional[t.SessionInfo], search_str: str):
-    if not re.match(t.CLUB_PATTERN, search_str):
+def get_search_clubs(
+        s: Optional[t.SessionInfo],
+        search_str: str,
+        allow_empty: bool = False):
+    if allow_empty and not search_str:
+        pass
+    elif not re.match(t.CLUB_PATTERN, search_str):
         return []
-
-    if not len(search_str) <= t.CLUB_MAX_LEN:
+    elif not len(search_str) <= t.CLUB_MAX_LEN:
         return []
 
     params = dict(
