@@ -653,6 +653,7 @@ CREATE INDEX IF NOT EXISTS idx__location__long_friendly ON location USING GIST(l
 CREATE INDEX IF NOT EXISTS idx__question__question ON question USING GIST(question gist_trgm_ops);
 
 CREATE INDEX IF NOT EXISTS idx__club__name ON club USING GIST(name gist_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx__club__count_members__name ON club(count_members, name);
 
 CREATE INDEX IF NOT EXISTS idx__banned_person__ip_address ON banned_person(ip_address);
 CREATE INDEX IF NOT EXISTS idx__banned_person__expires_at ON banned_person(expires_at);

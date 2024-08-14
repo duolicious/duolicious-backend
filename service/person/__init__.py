@@ -1507,17 +1507,22 @@ def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo):
         else:
             return dict(answer=answer)
 
-def get_search_clubs(s: t.SessionInfo, q: str):
-    if not re.match(t.CLUB_PATTERN, q) or not len(q) <= t.CLUB_MAX_LEN:
+def get_search_clubs(s: Optional[t.SessionInfo], search_str: str):
+    if not re.match(t.CLUB_PATTERN, search_str):
+        return []
+
+    if not len(search_str) <= t.CLUB_MAX_LEN:
         return []
 
     params = dict(
-        person_id=s.person_id,
-        search_string=q,
+        person_id=s.person_id if s else None,
+        search_string=search_str,
     )
 
+    q = Q_SEARCH_CLUBS if search_str else Q_TOP_CLUBS
+
     with api_tx('READ COMMITTED') as tx:
-        return tx.execute(Q_SEARCH_CLUBS, params).fetchall()
+        return tx.execute(q, params).fetchall()
 
 def post_join_club(req: t.PostJoinClub, s: t.SessionInfo):
     params = dict(

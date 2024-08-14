@@ -2009,6 +2009,17 @@ ORDER BY
     id
 """
 
+Q_TOP_CLUBS = """
+SELECT
+    name,
+    count_members
+FROM
+    club
+ORDER BY
+    count_members DESC,
+    name
+"""
+
 Q_SEARCH_CLUBS = f"""
 WITH currently_joined_club AS (
     SELECT
