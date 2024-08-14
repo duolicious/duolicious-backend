@@ -1,3 +1,5 @@
+MAX_CLUB_SEARCH_RESULTS = 20
+
 _Q_IS_ALLOWED_CLUB_NAME = """
 WITH similar_banned_club AS (
     SELECT
@@ -2009,6 +2011,18 @@ ORDER BY
     id
 """
 
+Q_TOP_CLUBS = f"""
+SELECT
+    name,
+    count_members
+FROM
+    club
+ORDER BY
+    count_members DESC,
+    name
+LIMIT {MAX_CLUB_SEARCH_RESULTS}
+"""
+
 Q_SEARCH_CLUBS = f"""
 WITH currently_joined_club AS (
     SELECT
@@ -2049,7 +2063,7 @@ WITH currently_joined_club AS (
     ORDER BY
         name <-> %(search_string)s
     LIMIT
-        20 - (SELECT COUNT(*) FROM maybe_stuff_the_user_typed)
+        {MAX_CLUB_SEARCH_RESULTS} - (SELECT COUNT(*) FROM maybe_stuff_the_user_typed)
 )
 SELECT
     name,

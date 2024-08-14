@@ -8,7 +8,7 @@ source ../util/setup.sh
 set -xe
 
 club_idempotence () {
-  echo 'You can join no more than 100 clubs'
+  echo 'Joining a club twice is the same as joining it once'
 
   q "delete from person"
   q "delete from person_club"
@@ -30,7 +30,6 @@ club_idempotence () {
     ]"
   )
   [[ "$results" == "$expected" ]]
-
 }
 
 club_quota () {
@@ -206,6 +205,85 @@ banned_clubs () {
   ! jc POST /join-club -d '{ "name": "did you know I HATE MINORITIES" }'
 }
 
+empty_club_search_string () {
+  echo 'An empty search string returns the most popular clubs'
+
+  q "delete from person"
+  q "delete from person_club"
+  q "delete from club"
+
+  ../util/create-user.sh user1 0 0
+  ../util/create-user.sh user2 0 0
+  ../util/create-user.sh user3 0 0
+  ../util/create-user.sh user4 0 0
+
+  assume_role user1
+  jc POST /join-club -d '{ "name": "my-club-1" }'
+  jc POST /join-club -d '{ "name": "my-club-2" }'
+  jc POST /join-club -d '{ "name": "my-club-3" }'
+
+  assume_role user2
+  jc POST /join-club -d '{ "name": "my-club-1" }'
+  jc POST /join-club -d '{ "name": "my-club-2" }'
+
+  assume_role user3
+  jc POST /join-club -d '{ "name": "my-club-1" }'
+
+  assume_role user4
+
+  results=$(SESSION_TOKEN='' c GET '/search-public-clubs')
+  expected=$(
+    jq -r . <<< "[ \
+      {\"count_members\": 3, \"name\": \"my-club-1\"}, \
+      {\"count_members\": 2, \"name\": \"my-club-2\"}, \
+      {\"count_members\": 1, \"name\": \"my-club-3\"} \
+    ]"
+  )
+  [[ "$results" == "$expected" ]]
+}
+
+public_club_search () {
+  echo 'Public club search returns something'
+
+  q "delete from person"
+  q "delete from person_club"
+  q "delete from club"
+
+  ../util/create-user.sh user1 0 0
+  ../util/create-user.sh user2 0 0
+  ../util/create-user.sh user3 0 0
+  ../util/create-user.sh user4 0 0
+
+  assume_role user1
+  jc POST /join-club -d '{ "name": "my-club-1" }'
+  jc POST /join-club -d '{ "name": "my-club-2" }'
+  jc POST /join-club -d '{ "name": "my-club-3" }'
+
+  assume_role user2
+  jc POST /join-club -d '{ "name": "my-club-1" }'
+  jc POST /join-club -d '{ "name": "my-club-2" }'
+
+  assume_role user3
+  jc POST /join-club -d '{ "name": "my-club-1" }'
+
+  assume_role user4
+
+  results1=$(c GET '/search-clubs?q=my-club-3')
+  results2=$(SESSION_TOKEN='' c GET '/search-public-clubs?q=my-club-3')
+  expected=$(
+    jq -r . <<< "[ \
+      {\"count_members\": 1, \"name\": \"my-club-3\"}, \
+      {\"count_members\": 3, \"name\": \"my-club-1\"}, \
+      {\"count_members\": 2, \"name\": \"my-club-2\"} \
+    ]"
+  )
+
+  [[ "$results1" == "$expected" ]]
+  [[ "$results1" == "$results2" ]]
+}
+
+public_club_search
+empty_club_search_string
 club_idempotence
 club_quota
 club_count_when_deleted

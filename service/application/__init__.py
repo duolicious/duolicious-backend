@@ -400,7 +400,12 @@ def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo):
 
 @aget('/search-clubs')
 def get_search_clubs(s: t.SessionInfo):
-    return person.get_search_clubs(s=s, q=request.args.get('q', ''))
+    return person.get_search_clubs(s=s, search_str=request.args.get('q', ''))
+
+@get('/search-public-clubs')
+def get_search_public_clubs():
+    return person.get_search_clubs(
+            s=None, search_str=request.args.get('q', ''), allow_empty=True)
 
 @apost('/join-club')
 @validate(t.PostJoinClub)
