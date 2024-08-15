@@ -13,7 +13,6 @@ success_content_template = """
   "image_1_is_photograph": 1.0,
   "image_1_has_at_least_one_person": 1.0,
   "image_1_has_exactly_one_person": 1.0,
-  "image_1_has_45_degree_angle": 1.0,
   "image_1_has_claimed_gender": 1.0,
   "image_1_has_claimed_age": 1.0,
   "image_1_has_claimed_minimum_age": 1.0,
@@ -283,9 +282,6 @@ You have been given one or more image(s) by a user attempting to verify their id
   // Image #1 contains exactly one person
   image_1_has_exactly_one_person: number
 
-  // Image #1 was photographed at about a 45 degree angle to the side of the person's face (i.e. a three-quarter profile)
-  image_1_has_45_degree_angle: number
-
   // Image #1 contains a person whose gender is: Man.
   // When checking this claim, note that the user chose this gender from these options: Man, Woman, Agender, Intersex, Non-binary, Transgender, Trans woman, Trans man, and Other.
   // In equivocal cases, prefer probabilities near 1.0.
@@ -364,9 +360,6 @@ You have been given one or more image(s) by a user attempting to verify their id
 
   // Image #1 contains exactly one person
   image_1_has_exactly_one_person: number
-
-  // Image #1 was photographed at about a 45 degree angle to the side of the person's face (i.e. a three-quarter profile)
-  image_1_has_45_degree_angle: number
 
   // Image #1 contains a person whose gender is: Man.
   // When checking this claim, note that the user chose this gender from these options: Man, Woman, Agender, Intersex, Non-binary, Transgender, Trans woman, Trans man, and Other.
@@ -477,9 +470,6 @@ You have been given one or more image(s) by a user attempting to verify their id
   // Image #1 contains exactly one person
   image_1_has_exactly_one_person: number
 
-  // Image #1 was photographed at about a 45 degree angle to the side of the person's face (i.e. a three-quarter profile)
-  image_1_has_45_degree_angle: number
-
   // Image #1 contains a person whose gender is: Woman.
   // When checking this claim, note that the user chose this gender from these options: Man, Woman, Agender, Intersex, Non-binary, Transgender, Trans woman, Trans man, and Other.
   // In equivocal cases, prefer probabilities near 1.0.
@@ -550,9 +540,6 @@ You have been given one or more image(s) by a user attempting to verify their id
 
   // Image #1 contains exactly one person
   image_1_has_exactly_one_person: number
-
-  // Image #1 was photographed at about a 45 degree angle to the side of the person's face (i.e. a three-quarter profile)
-  image_1_has_45_degree_angle: number
 
   // Image #1 contains a person whose gender is: Woman.
   // When checking this claim, note that the user chose this gender from these options: Man, Woman, Agender, Intersex, Non-binary, Transgender, Trans woman, Trans man, and Other.

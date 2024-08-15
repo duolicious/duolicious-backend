@@ -59,9 +59,6 @@ def get_system_content(
         '  // Image #1 contains exactly one person',
         '  image_1_has_exactly_one_person: number',
         '',
-        '  // Image #1 was photographed at about a 45 degree angle to the side of the person\'s face (i.e. a three-quarter profile)',
-        '  image_1_has_45_degree_angle: number',
-        '',
         f'  // Image #1 contains a person whose gender is: {claimed_gender}.',
         f'  // When checking this claim, note that the user chose this gender from these options: Man, Woman, Agender, Intersex, Non-binary, Transgender, Trans woman, Trans man, and Other.',
         f'  // In equivocal cases, prefer probabilities near 1.0.',
@@ -176,7 +173,6 @@ def process_response(
         image_1_is_photograph           = json_obj['image_1_is_photograph']
         image_1_has_at_least_one_person = json_obj['image_1_has_at_least_one_person']
         image_1_has_exactly_one_person  = json_obj['image_1_has_exactly_one_person']
-        image_1_has_45_degree_angle     = json_obj['image_1_has_45_degree_angle']
         image_1_has_claimed_gender      = json_obj['image_1_has_claimed_gender']
         image_1_has_claimed_age         = json_obj['image_1_has_claimed_age']
         image_1_has_claimed_minimum_age = json_obj['image_1_has_claimed_minimum_age']
@@ -196,7 +192,6 @@ def process_response(
         image_1_is_photograph           = float(image_1_is_photograph)
         image_1_has_at_least_one_person = float(image_1_has_at_least_one_person)
         image_1_has_exactly_one_person  = float(image_1_has_exactly_one_person)
-        image_1_has_45_degree_angle     = float(image_1_has_45_degree_angle)
         image_1_has_claimed_gender      = float(image_1_has_claimed_gender)
         image_1_has_claimed_age         = float(image_1_has_claimed_age)
         image_1_has_claimed_minimum_age = float(image_1_has_claimed_minimum_age)
@@ -238,9 +233,6 @@ def process_response(
 
     if image_1_has_exactly_one_person < general_truthiness_threshold:
         return failure("Our AI thinks there’s more than one person in your photo.", response_str)
-
-    if image_1_has_45_degree_angle < general_truthiness_threshold:
-        return failure("Our AI thinks the shot wasn’t taken at the correct angle. The photo needs to be at about a 45 degree angle to the side of your face.", response_str)
 
     if image_1_has_claimed_gender < gender_truthiness_threshold:
         return failure("Our AI couldn’t verify your gender.", response_str)
