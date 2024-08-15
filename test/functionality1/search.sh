@@ -21,6 +21,7 @@ setup () {
   ../util/create-user.sh user1 0 1
   ../util/create-user.sh user2 0 1
 
+  q "update person set privacy_verification_level_id = 1"
   q "update photo set blurhash = 'the-blurhash'"
 
   searcher_id=$(q "select id from person where email = 'searcher@example.com'")

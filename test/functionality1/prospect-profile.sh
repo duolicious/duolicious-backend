@@ -15,6 +15,8 @@ q "delete from club"
 ../util/create-user.sh user1 0 0
 ../util/create-user.sh user2 0 0
 
+q "update person set privacy_verification_level_id = 1"
+
 assume_role user1
 user2_id=$(  q "select id   from person where name = 'user2'")
 user2_uuid=$(q "select uuid from person where name = 'user2'")

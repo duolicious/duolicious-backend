@@ -13,6 +13,8 @@ setup () {
   ../util/create-user.sh user1 0 0
   ../util/create-user.sh user2 0 0
 
+  q "update person set privacy_verification_level_id = 1"
+
   user1id=$(q "select id from person where email = 'user1@example.com'")
   user2id=$(q "select id from person where email = 'user2@example.com'")
 
