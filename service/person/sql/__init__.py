@@ -423,7 +423,8 @@ WITH onboardee_country AS (
         about,
         has_profile_picture_id,
         unit_id,
-        intros_notification
+        intros_notification,
+        privacy_verification_level_id
     ) SELECT
         email,
         %(normalized_email)s,
@@ -450,7 +451,8 @@ WITH onboardee_country AS (
                 FROM onboardee_country
             )
         ) AS unit_id,
-        3 AS intros_notification
+        3 AS intros_notification,
+        3 AS privacy_verification_level_id
     FROM onboardee
     WHERE email = %(email)s
     RETURNING
