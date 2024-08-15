@@ -485,8 +485,8 @@ WITH onboardee_country AS (
     -- which causes search results to contain as close as possible to 2000 users
     WITH RECURSIVE t(dist, cnt, iters) AS (
         VALUES
-            (    0.0,     0.0, 0),
-            (20000.0,  1.0e12, 0)
+            (    0.0,    0.0, 0),
+            (10000.0,  1.0e9, 0)
         UNION ALL (
             WITH two_closest AS (
                 SELECT
@@ -617,11 +617,11 @@ WITH onboardee_country AS (
                 UNION
                 SELECT dist, cnt, iters FROM two_closest
             )
-            SELECT dist, cnt, iters + 1 FROM points WHERE iters < 7
+            SELECT dist, cnt, iters + 1 FROM points WHERE iters < 5
         )
     )
     SELECT
-        LEAST(dist, 9999) AS dist,
+        LEAST(dist, 10000) AS dist,
         cnt
     FROM
         t
@@ -707,8 +707,15 @@ WITH onboardee_country AS (
     SELECT
         new_person.id,
         CASE
-            WHEN best_distance.cnt < 500 OR %(pending_club_name)s::TEXT IS NOT NULL
+            WHEN best_distance.cnt < 500
             THEN NULL
+
+            WHEN best_distance.dist > 9999
+            THEN NULL
+
+            WHEN %(pending_club_name)s::TEXT IS NOT NULL
+            THEN NULL
+
             ELSE best_distance.dist
         END AS distance
     FROM new_person, best_distance
