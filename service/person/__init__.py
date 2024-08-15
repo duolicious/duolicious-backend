@@ -592,7 +592,7 @@ def post_finish_onboarding(s: t.SessionInfo):
     )
 
     with api_tx() as tx:
-        tx.execute('SET LOCAL statement_timeout = 10000') # 10 seconds
+        tx.execute('SET LOCAL statement_timeout = 15000') # 15 seconds
         tx.execute(Q_FINISH_ONBOARDING, params=api_params)
         row = tx.fetchone()
 
