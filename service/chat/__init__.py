@@ -47,6 +47,13 @@ DO UPDATE SET
     token = EXCLUDED.token
 """
 
+Q_DELETE_TOKEN = """
+DELETE FROM
+    duo_push_token
+WHERE
+    username = %(username)s
+"""
+
 Q_FETCH_PERSON_ID = """
 SELECT id FROM person WHERE uuid = %(username)s
 """
@@ -288,16 +295,15 @@ async def maybe_register(message_xml, username):
 
         token = root.attrib.get('token')
 
-        if not token:
-            raise Exception('Token not set in duo_register_push_token')
-
         params = dict(
             username=username,
             token=token,
         )
 
+        q = Q_SET_TOKEN if token else Q_DELETE_TOKEN
+
         async with chat_tx('read committed') as tx:
-            await tx.execute(Q_SET_TOKEN, params)
+            await tx.execute(q, params)
 
         return True
     except Exception as e:
@@ -361,7 +367,7 @@ async def fetch_id_from_username(username: str) -> str | None:
         await tx.execute(Q_FETCH_PERSON_ID, dict(username=username))
         row = await tx.fetchone()
 
-    return row.get('id')
+    return row.get('id') if row else None
 
 @AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
 async def fetch_is_skipped(from_id: int, to_id: int) -> bool:
