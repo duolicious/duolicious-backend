@@ -1627,10 +1627,9 @@ def get_stats(ttl_hash=None, club_name: Optional[str] = None):
         return tx.execute(q, params).fetchone()
 
 @lru_cache()
-def get_stats_by_club_name(club_name: str):
+def get_gender_stats(ttl_hash=None):
     with api_tx('READ COMMITTED') as tx:
-        return tx.execute(
-            Q_STATS_BY_CLUB_NAME, dict(club_name=club_name)).fetchone()
+        return tx.execute(Q_GENDER_STATS).fetchone()
 
 def get_admin_ban_link(token: str):
     params = dict(token=token)

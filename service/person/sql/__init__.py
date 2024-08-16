@@ -2339,6 +2339,20 @@ WHERE
     name = %(club_name)s
 """
 
+Q_GENDER_STATS = """
+SELECT
+    count(*) FILTER (WHERE activated AND gender_id = 1)::real /
+    count(*) FILTER (WHERE activated AND gender_id = 2)::real
+    AS gender_ratio,
+
+    count(*) FILTER (WHERE activated AND gender_id NOT IN (1, 2))::real /
+    count(*) FILTER (WHERE activated)::real *
+    100.0
+    AS non_binary_percentage
+FROM
+    person
+"""
+
 Q_PERSON_ID_TO_UUID = """
 SELECT
     uuid::text
