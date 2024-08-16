@@ -30,6 +30,7 @@ const setNofications = () => {
 
 const registerForPushNotificationsAsync = async (): Promise<void> => {
   if (Platform.OS === 'web') {
+    registerPushToken(null);
     return;
   }
 

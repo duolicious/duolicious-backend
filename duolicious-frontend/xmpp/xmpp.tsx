@@ -995,10 +995,14 @@ const logout = async () => {
   }
 };
 
-const registerPushToken = async (token: string) => {
+const registerPushToken = async (token: string | null) => {
   if (!_xmpp.current) return;
 
-  const stanza = parse(`<duo_register_push_token token='${token}' />`);
+  const xmlStr = token ?
+    `<duo_register_push_token token='${token}' />` :
+    `<duo_register_push_token />`;
+
+  const stanza = parse(xmlStr);
 
   await _xmpp.current.send(stanza);
 };
