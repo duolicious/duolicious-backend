@@ -361,7 +361,7 @@ async def fetch_id_from_username(username: str) -> str | None:
         await tx.execute(Q_FETCH_PERSON_ID, dict(username=username))
         row = await tx.fetchone()
 
-    return row.get('id')
+    return row.get('id') if row else None
 
 @AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
 async def fetch_is_skipped(from_id: int, to_id: int) -> bool:
