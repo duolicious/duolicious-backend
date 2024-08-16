@@ -133,7 +133,37 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 
 
 
-echo The push token should be acknowledged and inserted into the database
+echo The push token user-x-token should be acknowledged and inserted into the database
+
+curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
+<duo_register_push_token token='user-x-token' />
+"
+
+sleep 0.5
+
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful />'
+[[ "$(q "select count(*) from duo_push_token \
+    where username = '$user1uuid' \
+    and token = 'user-x-token'" duo_chat)" = 1 ]]
+
+
+
+echo The push token should be acknowledged and deleted from the database
+
+curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
+<duo_register_push_token />
+"
+
+sleep 0.5
+
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful />'
+[[ "$(q "select count(*) from duo_push_token \
+    where username = '$user1uuid' \
+    and token = 'user-x-token'" duo_chat)" = 0 ]]
+
+
+
+echo The push token user-1-token should be acknowledged and inserted into the database
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 <duo_register_push_token token='user-1-token' />
