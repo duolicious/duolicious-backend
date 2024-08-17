@@ -455,8 +455,12 @@ def get_check_verification(s: t.SessionInfo):
 @get('/stats')
 def get_stats():
     return person.get_stats(
-        ttl_hash=get_ttl_hash(seconds=10),
+        ttl_hash=get_ttl_hash(seconds=60),
         club_name=request.args.get('club-name'))
+
+@get('/gender-stats')
+def get_gender_stats():
+    return person.get_gender_stats(ttl_hash=get_ttl_hash(seconds=60))
 
 @get('/admin/ban-link/<token>')
 def get_admin_ban_link(token: str):

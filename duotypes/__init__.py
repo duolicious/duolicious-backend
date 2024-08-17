@@ -214,9 +214,12 @@ class PatchProfileInfo(BaseModel):
 
         return self
 
-    @field_validator('about', mode='before')
-    def strip_about(cls, about):
-        return about if about is None else about.strip()
+    @model_validator(mode='before')
+    def strip_strs(cls, values):
+        for key, val in values.items():
+            values[key] = val.strip() if type(val) is str else val
+
+        return values
 
     class Config:
         arbitrary_types_allowed = True
