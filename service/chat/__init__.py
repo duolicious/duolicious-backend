@@ -13,6 +13,7 @@ from sql import *
 from async_lru_cache import AsyncLruCache
 import random
 from typing import Any
+from datetime import datetime
 
 notify.set_flush_interval(1.0)
 
@@ -497,23 +498,27 @@ async def process(src, dst, username):
                 await dst.send(m)
             for m in to_src:
                 await src.send(m)
-    except ConnectionClosedError as e:
-        print("Connection closed while processing:", e)
-    except Exception as e:
-        print("Error processing messages:", e)
+    except:
+        print(
+            datetime.utcnow(),
+            f"Exception while processing for username: {username.username}"
+        )
+        print(traceback.format_exc())
     finally:
         await src.close()
         await dst.close()
         print("Connections closed in process()")
 
-async def forward(src, dst):
+async def forward(src, dst, username):
     try:
         async for message in src:
             await dst.send(message)
-    except ConnectionClosedError:
-        print("Connection closed while forwarding")
-    except Exception as e:
-        print("Error forwarding messages:", e)
+    except:
+        print(
+            datetime.utcnow(),
+            f"Exception while forwarding for user {username.username}:"
+        )
+        print(traceback.format_exc())
     finally:
         await src.close()
         await dst.close()
@@ -524,7 +529,7 @@ async def proxy(local_ws, path):
 
     async with websockets.connect('ws://127.0.0.1:5442') as remote_ws:
         l2r_task = asyncio.create_task(process(local_ws, remote_ws, username))
-        r2l_task = asyncio.create_task(forward(remote_ws, local_ws))
+        r2l_task = asyncio.create_task(forward(remote_ws, local_ws, username))
         last_task = asyncio.create_task(update_last_forever(username))
 
         done, pending = await asyncio.wait(
