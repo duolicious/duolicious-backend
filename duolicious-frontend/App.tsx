@@ -198,7 +198,7 @@ const App = () => {
 
     const response = await japi('post', '/check-session-token');
 
-    if (!response.ok || !response?.json?.onboarded) {
+    if (response.clientError || !response?.json?.onboarded) {
       await sessionPersonUuid(null);
       await sessionToken(null);
       setSignedInUser(undefined);
