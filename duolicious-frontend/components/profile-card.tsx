@@ -309,7 +309,7 @@ const UserDetails = ({name, age, matchPercentage, verified, ...rest}) => {
         style={{
           flexDirection: 'row',
           gap: 7,
-          alignItems: 'center',
+          alignItems: 'flex-end',
         }}
       >
         <DefaultText style={{
@@ -317,6 +317,7 @@ const UserDetails = ({name, age, matchPercentage, verified, ...rest}) => {
           fontWeight: '600',
           color: 'white',
           overflow: 'hidden',
+          flexShrink: 1,
         }}>
           {name}{age && `, ${age}`}
         </DefaultText>

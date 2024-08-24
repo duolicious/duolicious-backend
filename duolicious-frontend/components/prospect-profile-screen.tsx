@@ -742,6 +742,7 @@ const ProspectUserDetails = ({
         alignItems: 'center',
         justifyContent: 'space-between',
         margin: 10,
+        gap: 10,
       }}
     >
       <View
@@ -761,6 +762,7 @@ const ProspectUserDetails = ({
             style={{
               fontWeight: '700',
               fontSize: 24,
+              flexShrink: 1,
               color: textColor,
             }}
           >
@@ -789,7 +791,7 @@ const ProspectUserDetails = ({
           />
         </DefaultText>
       </View>
-     <DonutChart
+      <DonutChart
         percentage={matchPercentage}
         onPress={!isViewingSelf ? onPressDonutChart : undefined}
         textStyle={{
