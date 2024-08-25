@@ -1689,21 +1689,19 @@ const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     input: {
       none: {
         description: (
-          'To prove you’re real, you can take a selfie while you do four ' +
+          'To prove you’re real, you can take a selfie while you do three ' +
           'things at once:\n\n' +
 
           '\xa0\xa01. Smile 😊\n' +
-          '\xa0\xa02. Turn partway from the camera 😒\n' +
-          '\xa0\xa03. Give one thumb down 👎\n' +
-          '\xa0\xa04. Touch your eyebrow 🤨\n\n' +
+          '\xa0\xa02. Give one thumb down 👎\n' +
+          '\xa0\xa03. Touch your eyebrow 🤨\n\n' +
 
           'You can use one hand for those last two. Our AI will check your ' +
           'selfie and let you know if you’re verified.\n\n' +
 
-          'Also, we promise not to add this goofy selfie to your profile.\n\n' +
-
-          'When you think you’ve got all that, press ‘Continue’ to take your ' +
-          'selfie!'
+          'To verify your photos, your face needs to be visible on your ' +
+          'profile. But never reveal your verification selfie to anyone, or ' +
+          'they’ll be able able to verify themselves as you.'
         ),
         textAlign: 'left',
         submit: async () => true,

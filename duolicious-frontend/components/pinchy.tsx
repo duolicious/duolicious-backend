@@ -72,7 +72,7 @@ const FitWithinScreenImage = ({ source, style, onUpdateImageSize, ...rest }) => 
     );
   }
 
-  return <ActivityIndicator size={60} color="#70f"/>;
+  return <ActivityIndicator size="large" color="white"/>;
 };
 
 const constrainPosition = (

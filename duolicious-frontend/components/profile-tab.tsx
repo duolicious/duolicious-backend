@@ -186,7 +186,7 @@ const ProfileTab_ = ({navigation}) => {
             flexGrow: 1,
           }}
         >
-          <ActivityIndicator size={60} color="#70f"/>
+          <ActivityIndicator size="large" color="#70f"/>
         </View>
       }
     </SafeAreaView>

@@ -390,7 +390,7 @@ const ClubSelector = ({navigation, route}) => {
               flexGrow: 1,
             }}
           >
-            <ActivityIndicator size={60} color="#70f"/>
+            <ActivityIndicator size="large" color="#70f"/>
           </View>
         }
         {!isLoading && searchText !== "" && _.isEmpty(searchResults) &&
