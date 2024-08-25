@@ -56,12 +56,23 @@ sleep 0.5
 
 
 
+echo 'Ping results in pong'
+curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
+<duo_ping/>
+"
+
+sleep 0.5
+
+curl -sX GET http://localhost:3000/pop | \
+  grep -E '<duo_pong preferred_interval="[0-9]+" preferred_timeout="[0-9]+" />'
+
+
+
 echo If user 2 blocks user 1 then user 1 can no longer message user 2
 
 q "insert into skipped values ($user2id, $user1id, false, 'testing blocking')"
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
-
 <message
     type='chat'
     from='$user1uuid@duolicious.app'
