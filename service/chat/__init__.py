@@ -238,31 +238,34 @@ def parse_xml(s):
     parser = etree.XMLParser(resolve_entities=False, no_network=True)
     return etree.fromstring(s, parser=parser)
 
-def get_message_attrs(message_xml):
+def parse_xml_or_none(s):
     try:
-        # Create a safe XML parser
-        root = parse_xml(message_xml)
+        return parse_xml(s)
+    except:
+        return None
 
-        if root.tag != '{jabber:client}message':
+def get_message_attrs(parsed_xml):
+    try:
+        if parsed_xml.tag != '{jabber:client}message':
             raise Exception('Not a message')
 
-        if root.attrib.get('type') != 'chat':
+        if parsed_xml.attrib.get('type') != 'chat':
             raise Exception('type != chat')
 
-        maybe_message_body = root.find('{jabber:client}body')
+        maybe_message_body = parsed_xml.find('{jabber:client}body')
 
         maybe_message_body = None
-        body = root.find('{jabber:client}body')
+        body = parsed_xml.find('{jabber:client}body')
         if body is not None:
             maybe_message_body = body.text
 
-        _id = root.attrib.get('id')
+        _id = parsed_xml.attrib.get('id')
         assert _id is not None
 
-        to = root.attrib.get('to')
+        to = parsed_xml.attrib.get('to')
         assert to is not None
 
-        return (True, _id, to, maybe_message_body)
+        return True, _id, to, maybe_message_body
     except Exception as e:
         pass
 
@@ -283,18 +286,21 @@ def is_message_too_long(message_str):
     # TODO: Enforce this limit on XMPP server
     return len(message_str) > MAX_MESSAGE_LEN
 
-async def maybe_register(message_xml, username):
+def is_ping(parsed_xml):
+    try:
+        return parsed_xml.tag == 'duo_ping'
+    except:
+        return False
+
+async def maybe_register(parsed_xml, username):
     if not username:
         return False
 
     try:
-        # Create a safe XML parser
-        root = parse_xml(message_xml)
-
-        if root.tag != 'duo_register_push_token':
+        if parsed_xml.tag != 'duo_register_push_token':
             raise Exception('Not a duo_register_push_token message')
 
-        token = root.attrib.get('token')
+        token = parsed_xml.attrib.get('token')
 
         params = dict(
             username=username,
@@ -307,23 +313,21 @@ async def maybe_register(message_xml, username):
             await tx.execute(q, params)
 
         return True
-    except Exception as e:
+    except:
         pass
 
     return False
 
-def process_auth(message_str, username):
+def process_auth(parsed_xml, username):
     if username.username is not None:
         return False
 
     try:
         # Create a safe XML parser
-        root = parse_xml(message_str)
-
-        if root.tag != '{urn:ietf:params:xml:ns:xmpp-sasl}auth':
+        if parsed_xml.tag != '{urn:ietf:params:xml:ns:xmpp-sasl}auth':
             return False
 
-        base64encoded = root.text
+        base64encoded = parsed_xml.text
         decodedBytes = base64.b64decode(base64encoded)
         decodedString = decodedBytes.decode('utf-8')
 
@@ -409,20 +413,22 @@ async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
 
     return row if row else None
 
-async def process_duo_message(message_xml, username: str | None):
-    if await maybe_register(message_xml, username):
+async def process_duo_message(xml_str, parsed_xml, username: str | None):
+    if is_ping(parsed_xml):
+        return [
+            '<duo_pong preferred_interval="5000" preferred_timeout="10000" />',
+        ], []
+
+    if await maybe_register(parsed_xml, username):
         return ['<duo_registration_successful />'], []
 
-    is_message, id, to_jid, maybe_message_body = get_message_attrs(message_xml)
+    is_message, id, to_jid, maybe_message_body = get_message_attrs(parsed_xml)
 
     from_username = username
     to_username = to_bare_jid(to_jid)
 
-    if not is_message:
-        return [], [message_xml]
-
-    if not maybe_message_body:
-        return [], []
+    if not is_message or not maybe_message_body:
+        return [], [xml_str]
 
     if is_message_too_long(maybe_message_body):
         return [f'<duo_message_too_long id="{id}"/>'], []
@@ -430,12 +436,12 @@ async def process_duo_message(message_xml, username: str | None):
     from_id = await fetch_id_from_username(from_username)
 
     if not from_id:
-        return [], [message_xml]
+        return [], [xml_str]
 
     to_id = await fetch_id_from_username(to_username)
 
     if not to_id:
-        return [], [message_xml]
+        return [], [xml_str]
 
     if await fetch_is_skipped(from_id=from_id, to_id=to_id):
         return [f'<duo_message_blocked id="{id}"/>'], []
@@ -450,23 +456,21 @@ async def process_duo_message(message_xml, username: str | None):
             is_intro=is_intro)
 
     if immediate_data is not None:
-        asyncio.create_task(
-            send_notification(
-                from_name=immediate_data['name'],
-                to_username=to_username,
-                message=maybe_message_body,
-                is_intro=is_intro,
-                data={
-                    'screen': 'Conversation Screen',
-                    'params': {
-                        'personId': immediate_data['person_id'],
-                        'personUuid': immediate_data['person_uuid'],
-                        'name': immediate_data['name'],
-                        'imageUuid': immediate_data['image_uuid'],
-                        'imageBlurhash': immediate_data['image_blurhash'],
-                    },
+        await send_notification(
+            from_name=immediate_data['name'],
+            to_username=to_username,
+            message=maybe_message_body,
+            is_intro=is_intro,
+            data={
+                'screen': 'Conversation Screen',
+                'params': {
+                    'personId': immediate_data['person_id'],
+                    'personUuid': immediate_data['person_uuid'],
+                    'name': immediate_data['name'],
+                    'imageUuid': immediate_data['image_uuid'],
+                    'imageBlurhash': immediate_data['image_blurhash'],
                 },
-            )
+            },
         )
 
     await set_messaged(from_id=from_id, to_id=to_id)
@@ -474,7 +478,7 @@ async def process_duo_message(message_xml, username: str | None):
     return  (
         [f'<duo_message_delivered id="{id}"/>'],
         [
-            message_xml,
+            xml_str,
             f"<iq id='{duohash.duo_uuid()}' type='set'>"
             f"  <query"
             f"    xmlns='erlang-solutions.com:xmpp:inbox:0#conversation'"
@@ -487,12 +491,24 @@ async def process_duo_message(message_xml, username: str | None):
     )
 
 async def process(src, dst, username):
+    # asyncio.create_task requires some manual memory management!
+    # https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
+    # https://github.com/python/cpython/issues/91887
+    update_last_task = None
+
     try:
         async for message in src:
-            if process_auth(message, username):
-                asyncio.create_task(update_last(username, 1, 10))
+            parsed_xml = parse_xml_or_none(message)
 
-            to_src, to_dst = await process_duo_message(message, username.username)
+            if process_auth(parsed_xml, username):
+                update_last_task = asyncio.create_task(
+                        update_last(
+                            username, 1, 10))
+
+            to_src, to_dst = await process_duo_message(
+                    message,
+                    parsed_xml,
+                    username.username)
 
             for m in to_dst:
                 await dst.send(m)
@@ -508,6 +524,9 @@ async def process(src, dst, username):
         await src.close()
         await dst.close()
         print("Connections closed in process()")
+
+    if update_last_task:
+        update_last_task.cancel()
 
 async def forward(src, dst, username):
     try:
