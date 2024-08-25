@@ -259,8 +259,8 @@ const ConversationScreenNavBar = ({
   imageUuid,
   imageBlurhash,
   name,
+  isOnline,
 }) => {
-  const [isOnline, setIsOnline] = useState(lastEvent<boolean>('xmpp-is-online'));
   const [showMenu, setShowMenu] = useState(false);
 
   const onPressName = useCallback(() => {
@@ -278,8 +278,6 @@ const ConversationScreenNavBar = ({
   const toggleMenu = useCallback(() => {
     setShowMenu(x => !x);
   }, []);
-
-  useEffect(() => listen<boolean>('xmpp-is-online', setIsOnline), []);
 
   return (
     <TopNavBar>
@@ -351,6 +349,9 @@ const ConversationScreenNavBar = ({
 };
 
 const ConversationScreen = ({navigation, route}) => {
+  const [isActive, setIsActive] = useState(AppState.currentState === 'active');
+  const [isOnline, setIsOnline] = useState(lastEvent('xmpp-is-online') ?? false);
+
   const [messageFetchTimeout, setMessageFetchTimeout] = useState(false);
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [lastMessageStatus, setLastMessageStatus] = useState<
@@ -469,11 +470,7 @@ const ConversationScreen = ({navigation, route}) => {
 
   // Fetch the first page of messages when the conversation is first opened
   // while online
-  const maybeFetchFirstPage = useCallback(async (isOnline: boolean) => {
-    if (!isOnline) {
-      return;
-    }
-
+  const fetchFirstPage = useCallback(async (personUuid, personId) => {
     const fetchedMessages = await fetchConversation(
       personUuid || String(personId)
     );
@@ -488,29 +485,38 @@ const ConversationScreen = ({navigation, route}) => {
       return;
     }
 
-    const lastIdOfPage = lastPropAt(fetchedMessages, 'id');
-    const lastIdOfConversation = lastPropAt(messages, 'id');
+    setMessages((messages) => {
+      const lastIdOfPage = lastPropAt(fetchedMessages, 'id');
+      const lastIdOfConversation = lastPropAt(messages, 'id');
 
-    if (messages === null || lastIdOfPage !== lastIdOfConversation) {
-      setMessages(fetchedMessages);
-    }
-  }, [personUuid, messages]);
+      if (messages === null || lastIdOfPage !== lastIdOfConversation) {
+        return fetchedMessages;
+      } else {
+        return messages;
+      }
+    });
+
+  }, [messages]);
 
   useEffect(() => {
     const onChangeAppState = (state: AppStateStatus) => {
-      if (Platform.OS !== 'web' && state === 'active') {
-        maybeFetchFirstPage(lastEvent('xmpp-is-online') ?? false);
-      }
+      setIsActive(state === 'active');
     };
 
     const subscription = AppState.addEventListener('change', onChangeAppState);
 
     return () => subscription.remove();
-  }, [maybeFetchFirstPage]);
+  }, []);
 
   useEffect(() => {
-    return listen('xmpp-is-online', maybeFetchFirstPage, messages === null)
-  }, [maybeFetchFirstPage, messages]);
+    return listen('xmpp-is-online', setIsOnline);
+  }, []);
+
+  useEffect(() => {
+    if (isActive && isOnline) {
+      fetchFirstPage(personUuid, personId)
+    }
+  }, [personUuid, personId, isActive && isOnline]);
 
   // Scroll to end when last message changes
   useEffect(() => {
@@ -566,6 +572,7 @@ const ConversationScreen = ({navigation, route}) => {
         imageUuid={imageUuid}
         imageBlurhash={imageBlurhash}
         name={name}
+        isOnline={isOnline}
       />
       {messages === null &&
         <View style={{flexGrow: 1, justifyContent: 'center', alignItems: 'center'}}>
