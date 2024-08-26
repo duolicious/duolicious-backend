@@ -128,22 +128,6 @@ Q_IMMEDIATE_INTRO_DATA = Q_IMMEDIATE_DATA.replace('[[type]]', 'intros')
 
 Q_IMMEDIATE_CHAT_DATA = Q_IMMEDIATE_DATA.replace('[[type]]', 'chats')
 
-Q_UPSERT_LAST_NOTIFICATION = """
-INSERT INTO duo_last_notification (
-    username,
-    [[type]]_seconds
-) VALUES (
-    %(username)s,
-    extract(epoch from now())::int
-)
-ON CONFLICT (username) DO UPDATE SET
-    [[type]]_seconds = EXCLUDED.[[type]]_seconds
-"""
-
-Q_UPSERT_LAST_INTRO_NOTIFICATION = Q_UPSERT_LAST_NOTIFICATION.replace('[[type]]', 'intro')
-
-Q_UPSERT_LAST_CHAT_NOTIFICATION = Q_UPSERT_LAST_NOTIFICATION.replace('[[type]]', 'chat')
-
 Q_SELECT_PUSH_TOKEN = """
 SELECT
     token
@@ -346,9 +330,9 @@ def process_auth(parsed_xml, username):
 @AsyncLruCache(maxsize=1024, ttl=60)  # 1 minute
 async def upsert_last_notification(username: str, is_intro: bool) -> None:
     q = (
-            Q_UPSERT_LAST_INTRO_NOTIFICATION
+            Q_UPSERT_LAST_INTRO_NOTIFICATION_TIME
             if is_intro
-            else Q_UPSERT_LAST_CHAT_NOTIFICATION)
+            else Q_UPSERT_LAST_CHAT_NOTIFICATION_TIME)
 
     async with chat_tx('read committed') as tx:
         await tx.execute(q, dict(username=username))
