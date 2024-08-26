@@ -3,8 +3,6 @@ from dataclasses import dataclass
 from service.cron.notifications.sql import (
     Q_NOTIFICATION_SETTINGS,
     Q_UNREAD_INBOX,
-    Q_UPDATE_LAST_CHAT_NOTIFICATION_TIME,
-    Q_UPDATE_LAST_INTRO_NOTIFICATION_TIME,
     Q_DELETE_MOBILE_TOKEN,
 )
 from service.cron.notifications.template import (
@@ -15,6 +13,10 @@ from service.cron.util import (
     MAX_RANDOM_START_DELAY,
     join_lists_of_dicts,
     print_stacktrace,
+)
+from sql import (
+    Q_UPSERT_LAST_INTRO_NOTIFICATION_TIME,
+    Q_UPSERT_LAST_CHAT_NOTIFICATION_TIME,
 )
 import asyncio
 from smtp import make_aws_smtp
@@ -137,9 +139,9 @@ async def update_last_notification_time(row: PersonNotification):
 
     async with chat_tx('read committed') as tx:
         if row.has_intro:
-            await tx.execute(Q_UPDATE_LAST_INTRO_NOTIFICATION_TIME, params)
+            await tx.execute(Q_UPSERT_LAST_INTRO_NOTIFICATION_TIME, params)
         if row.has_chat:
-            await tx.execute(Q_UPDATE_LAST_CHAT_NOTIFICATION_TIME, params)
+            await tx.execute(Q_UPSERT_LAST_CHAT_NOTIFICATION_TIME, params)
 
 async def maybe_send_notification(row: PersonNotification):
     if not do_send_notification(row):

@@ -48,3 +48,17 @@ WHERE
 ON CONFLICT (server, username) DO UPDATE SET
     seconds  = EXCLUDED.seconds
 """
+
+Q_UPSERT_LAST_INTRO_NOTIFICATION_TIME = """
+INSERT INTO duo_last_notification (username, intro_seconds)
+VALUES (%(username)s, extract(epoch from now())::int)
+ON CONFLICT (username) DO UPDATE SET
+    intro_seconds = EXCLUDED.intro_seconds
+"""
+
+Q_UPSERT_LAST_CHAT_NOTIFICATION_TIME = """
+INSERT INTO duo_last_notification (username, chat_seconds)
+VALUES (%(username)s, extract(epoch from now())::int)
+ON CONFLICT (username) DO UPDATE SET
+    chat_seconds = EXCLUDED.chat_seconds
+"""

@@ -128,22 +128,6 @@ Q_IMMEDIATE_INTRO_DATA = Q_IMMEDIATE_DATA.replace('[[type]]', 'intros')
 
 Q_IMMEDIATE_CHAT_DATA = Q_IMMEDIATE_DATA.replace('[[type]]', 'chats')
 
-Q_UPSERT_LAST_NOTIFICATION = """
-INSERT INTO duo_last_notification (
-    username,
-    [[type]]_seconds
-) VALUES (
-    %(username)s,
-    extract(epoch from now())::int
-)
-ON CONFLICT (username) DO UPDATE SET
-    [[type]]_seconds = EXCLUDED.[[type]]_seconds
-"""
-
-Q_UPSERT_LAST_INTRO_NOTIFICATION = Q_UPSERT_LAST_NOTIFICATION.replace('[[type]]', 'intro')
-
-Q_UPSERT_LAST_CHAT_NOTIFICATION = Q_UPSERT_LAST_NOTIFICATION.replace('[[type]]', 'chat')
-
 Q_SELECT_PUSH_TOKEN = """
 SELECT
     token
@@ -191,10 +175,13 @@ async def update_last(
         print(traceback.format_exc())
 
 async def update_last_forever(username: Username):
-    while True:
-        await asyncio.sleep(
-                LAST_UPDATE_INTERVAL_SECONDS + random.randint(-10, 10))
-        await update_last(username)
+    try:
+        while True:
+            await asyncio.sleep(
+                    LAST_UPDATE_INTERVAL_SECONDS + random.randint(-10, 10))
+            await update_last(username)
+    except asyncio.exceptions.CancelledError:
+        pass
 
 async def send_notification(
     from_name: str | None,
@@ -346,9 +333,9 @@ def process_auth(parsed_xml, username):
 @AsyncLruCache(maxsize=1024, ttl=60)  # 1 minute
 async def upsert_last_notification(username: str, is_intro: bool) -> None:
     q = (
-            Q_UPSERT_LAST_INTRO_NOTIFICATION
+            Q_UPSERT_LAST_INTRO_NOTIFICATION_TIME
             if is_intro
-            else Q_UPSERT_LAST_CHAT_NOTIFICATION)
+            else Q_UPSERT_LAST_CHAT_NOTIFICATION_TIME)
 
     async with chat_tx('read committed') as tx:
         await tx.execute(q, dict(username=username))
@@ -546,7 +533,10 @@ async def forward(src, dst, username):
 async def proxy(local_ws, path):
     username = Username()
 
-    async with websockets.connect('ws://127.0.0.1:5442') as remote_ws:
+    async with websockets.connect(
+            'ws://127.0.0.1:5442',
+            ping_timeout=60 * 3, # 3 minutes
+            ) as remote_ws:
         l2r_task = asyncio.create_task(process(local_ws, remote_ws, username))
         r2l_task = asyncio.create_task(forward(remote_ws, local_ws, username))
         last_task = asyncio.create_task(update_last_forever(username))
@@ -560,7 +550,13 @@ async def proxy(local_ws, path):
             task.cancel()
 
 async def serve():
-    async with websockets.serve(proxy, '0.0.0.0', PORT, subprotocols=['xmpp']):
+    async with websockets.serve(
+            proxy,
+            '0.0.0.0',
+            PORT,
+            subprotocols=['xmpp'],
+            ping_timeout=60 * 3, # 3 minutes
+            ):
         await asyncio.Future()
 
 

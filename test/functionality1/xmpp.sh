@@ -299,8 +299,8 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
   select count(*) \
   from duo_last_notification \
   where \
-  chat_seconds > 0 and \
   username = '$user1uuid' and \
+  chat_seconds > 0 and \
   intro_seconds = 0" duo_chat)" = 1 ]]
 
 
