@@ -106,7 +106,13 @@ test_happy_path_intros () {
 
   sleep 2
 
-  [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 1 ]]
+  [[ "$(q " \
+    select count(*) \
+    from duo_last_notification \
+    where \
+    username = '$user1id' and \
+    chat_seconds = 0 and \
+    intro_seconds > 0" duo_chat)" = 1 ]]
 
   diff \
     <(get_emails) \
@@ -129,7 +135,13 @@ test_happy_path_chats () {
 
   sleep 2
 
-  [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 1 ]]
+  [[ "$(q " \
+    select count(*) \
+    from duo_last_notification \
+    where \
+    username = '$user1id' and \
+    chat_seconds > 0 and \
+    intro_seconds = 0" duo_chat)" = 1 ]]
 
   diff \
     <(get_emails) \
@@ -350,7 +362,21 @@ test_sad_already_notified_for_particular_message () {
 
   sleep 2
 
-  [[ "$(q "select count(*) from duo_last_notification" duo_chat)" = 2 ]]
+  [[ "$(q " \
+    select count(*) \
+    from duo_last_notification \
+    where \
+    username = '$user1id' and \
+    chat_seconds = 0 and \
+    intro_seconds = $t2" duo_chat)" = 1 ]]
+
+  [[ "$(q " \
+    select count(*) \
+    from duo_last_notification \
+    where \
+    username = '$user2id' and \
+    chat_seconds = 0 and \
+    intro_seconds > 0" duo_chat)" = 1 ]]
 
   diff \
     <(get_emails) \
