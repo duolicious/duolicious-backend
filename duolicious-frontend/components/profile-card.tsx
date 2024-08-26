@@ -302,6 +302,7 @@ const UserDetails = ({name, age, matchPercentage, verified, ...rest}) => {
         left: 0,
         width: '100%',
         padding: 5,
+        gap: 2,
         ...containerStyle,
       }}
     >
@@ -322,7 +323,12 @@ const UserDetails = ({name, age, matchPercentage, verified, ...rest}) => {
           {name}{age && `, ${age}`}
         </DefaultText>
         {verified &&
-          <VerificationBadge size={20}/>
+          <VerificationBadge
+            size={20}
+            style={{
+              marginBottom: 2,
+            }}
+          />
         }
       </View>
       <DefaultText
