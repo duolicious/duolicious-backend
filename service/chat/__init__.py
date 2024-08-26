@@ -175,10 +175,13 @@ async def update_last(
         print(traceback.format_exc())
 
 async def update_last_forever(username: Username):
-    while True:
-        await asyncio.sleep(
-                LAST_UPDATE_INTERVAL_SECONDS + random.randint(-10, 10))
-        await update_last(username)
+    try:
+        while True:
+            await asyncio.sleep(
+                    LAST_UPDATE_INTERVAL_SECONDS + random.randint(-10, 10))
+            await update_last(username)
+    except asyncio.exceptions.CancelledError:
+        pass
 
 async def send_notification(
     from_name: str | None,
