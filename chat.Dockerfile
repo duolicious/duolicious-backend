@@ -14,6 +14,7 @@ COPY service/chat/container/mongooseim.toml /mongooseim.template.toml
 # Proxy
 COPY database /app/database
 COPY duohash /app/duohash
+COPY batcher /app/batcher
 COPY notify /app/notify
 COPY async_lru_cache /app/async_lru_cache
 COPY sql /app/sql

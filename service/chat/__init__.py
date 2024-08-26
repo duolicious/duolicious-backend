@@ -15,8 +15,6 @@ import random
 from typing import Any
 from datetime import datetime
 
-notify.set_flush_interval(1.0)
-
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 
 # TODO: Tables to migrate to monolithic DB:
