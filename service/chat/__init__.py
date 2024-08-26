@@ -533,7 +533,10 @@ async def forward(src, dst, username):
 async def proxy(local_ws, path):
     username = Username()
 
-    async with websockets.connect('ws://127.0.0.1:5442') as remote_ws:
+    async with websockets.connect(
+            'ws://127.0.0.1:5442',
+            ping_timeout=60 * 3, # 3 minutes
+            ) as remote_ws:
         l2r_task = asyncio.create_task(process(local_ws, remote_ws, username))
         r2l_task = asyncio.create_task(forward(remote_ws, local_ws, username))
         last_task = asyncio.create_task(update_last_forever(username))
@@ -547,7 +550,13 @@ async def proxy(local_ws, path):
             task.cancel()
 
 async def serve():
-    async with websockets.serve(proxy, '0.0.0.0', PORT, subprotocols=['xmpp']):
+    async with websockets.serve(
+            proxy,
+            '0.0.0.0',
+            PORT,
+            subprotocols=['xmpp'],
+            ping_timeout=60 * 3, # 3 minutes
+            ):
         await asyncio.Future()
 
 
