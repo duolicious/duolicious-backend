@@ -4,6 +4,8 @@ from service.chat.username import Username
 from typing import List
 from database import chat_tx
 
+LAST_UPDATE_INTERVAL_SECONDS = 4 * 60
+
 def process_batch(usernames: List[str]):
     params_seq = [dict(person_uuid=username) for username in usernames]
 
