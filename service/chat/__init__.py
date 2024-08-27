@@ -14,10 +14,11 @@ from async_lru_cache import AsyncLruCache
 import random
 from typing import Any
 from datetime import datetime
-from service.chat.updatelast import update_last_forever
 from service.chat.username import Username
+from service.chat.updatelast import update_last_forever
 from service.chat.upsertlastnotification import upsert_last_notification
 from service.chat.mayberegister import maybe_register
+from service.chat.insertintrohash import insert_intro_hash
 
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
@@ -33,11 +34,13 @@ PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 #  public.duo_last_notification
 #  public.duo_push_token
 
-Q_UNIQUENESS = """
-INSERT INTO intro_hash (hash)
-VALUES (%(hash)s)
-ON CONFLICT DO NOTHING
-RETURNING hash
+Q_SELECT_INTRO_HASH = """
+SELECT
+    1
+FROM
+    intro_hash
+WHERE
+    hash = %(hash)s
 """
 
 Q_FETCH_PERSON_ID = """
@@ -262,10 +265,15 @@ async def is_message_unique(message_str):
     params = dict(hash=hashed)
 
     async with chat_tx('read committed') as tx:
-        cursor = await tx.execute(Q_UNIQUENESS, params)
+        cursor = await tx.execute(Q_SELECT_INTRO_HASH, params)
         rows = await cursor.fetchall()
 
-    return bool(rows)
+    is_unique = not bool(rows)
+
+    if is_unique:
+        insert_intro_hash(hashed)
+
+    return is_unique
 
 @AsyncLruCache(maxsize=1024)
 async def fetch_id_from_username(username: str) -> str | None:
