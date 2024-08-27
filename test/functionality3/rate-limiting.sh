@@ -21,19 +21,20 @@ q 'delete from person'
 ../util/create-user.sh user1 0 0
 ../util/create-user.sh user2 0 0
 user2id=$(q "select id from person where name = 'user2'")
+user2uuid=$(q "select uuid from person where name = 'user2'")
 assume_role user1
 printf 0 > ../../test/input/disable-ip-rate-limit
 printf 1 > ../../test/input/disable-account-rate-limit
 
 echo Only the global rate limit should apply for regular skips
-c POST "/skip/${user2id}"
+c POST "/skip/by-uuid/${user2uuid}"
 c POST "/unskip/${user2id}"
-c POST "/skip/${user2id}"
+c POST "/skip/by-uuid/${user2uuid}"
 
 echo The stricter rate limit should apply for reports
-  jc POST "/skip/${user2id}" -d '{ "report_reason": "smells bad" }'
+  jc POST "/skip/by-uuid/${user2uuid}" -d '{ "report_reason": "smells bad" }'
    c POST "/unskip/${user2id}"
-! jc POST "/skip/${user2id}" -d '{ "report_reason": "bad hair" }'
+! jc POST "/skip/by-uuid/${user2uuid}" -d '{ "report_reason": "bad hair" }'
 
 echo Uncached search should be heavily rate-limited
 for x in {1..15}
@@ -64,10 +65,10 @@ for x in {1..10}
 do
   printf "256.256.256.${x}" > ../../test/input/mock-ip-address
   c GET '/search?n=1&o=0'
-  c POST "/skip/${user2id}"
+  c POST "/skip/by-uuid/${user2uuid}"
 done
 ! c GET '/search?n=1&o=0'
-! c POST "/skip/${user2id}"
+! c POST "/skip/by-uuid/${user2uuid}"
 
 echo "The rate limit doesn't apply to other accounts"
 ../util/create-user.sh user3 0 0

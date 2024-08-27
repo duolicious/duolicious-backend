@@ -35,7 +35,7 @@ skipping () {
 
   # User 2 skips user 1
   assume_role user2
-  c POST "/skip/${user1id}"
+  c POST "/skip/by-uuid/${user1uuid}"
 
   # User 1 can no longer get user 2's profile
   assume_role user1
