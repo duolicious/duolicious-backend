@@ -14,6 +14,8 @@ from async_lru_cache import AsyncLruCache
 import random
 from typing import Any
 from datetime import datetime
+from service.chat.updatelast import update_last_forever
+from service.chat.username import Username
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 
@@ -142,44 +144,11 @@ REPEATED_CHARACTERS_RE = regex.compile(r'(.)\1{1,}')
 
 LAST_UPDATE_INTERVAL_SECONDS = 4 * 60
 
-class Username:
-    def __init__(self):
-        self.username = None
-
 def to_bare_jid(jid: str | None):
     try:
         return jid.split('@')[0]
     except:
         return None
-
-async def update_last(
-    username: Username,
-    min_random_delay: int = 0,
-    max_random_delay: int = 0,
-):
-    if username is None:
-        return
-
-    if username.username is None:
-        return
-
-    if min_random_delay and max_random_delay:
-        await asyncio.sleep(random.randint(min_random_delay, max_random_delay))
-
-    try:
-        async with chat_tx('read committed') as tx:
-            await tx.execute(Q_UPSERT_LAST, dict(person_uuid=username.username))
-    except:
-        print(traceback.format_exc())
-
-async def update_last_forever(username: Username):
-    try:
-        while True:
-            await asyncio.sleep(
-                    LAST_UPDATE_INTERVAL_SECONDS + random.randint(-10, 10))
-            await update_last(username)
-    except asyncio.exceptions.CancelledError:
-        pass
 
 async def send_notification(
     from_name: str | None,
@@ -328,6 +297,11 @@ def process_auth(parsed_xml, username):
 
     return False
 
+# TODO: Remove catching
+# TODO: Use batching
+# TODO: Make sure the notification time is after the message was received (not
+#       sent). These could be slightly different, depending on MongooseIM's
+#       async DB logic
 @AsyncLruCache(maxsize=1024, ttl=60)  # 1 minute
 async def upsert_last_notification(username: str, is_intro: bool) -> None:
     q = (
@@ -487,8 +461,7 @@ async def process(src, dst, username):
 
             if process_auth(parsed_xml, username):
                 update_last_task = asyncio.create_task(
-                        update_last(
-                            username, 1, 10))
+                        update_last_forever(username))
 
             to_src, to_dst = await process_duo_message(
                     message,
@@ -508,10 +481,10 @@ async def process(src, dst, username):
     finally:
         await src.close()
         await dst.close()
+        if update_last_task:
+            update_last_task.cancel()
         print("Connections closed in process()")
 
-    if update_last_task:
-        update_last_task.cancel()
 
 async def forward(src, dst, username):
     try:
@@ -537,10 +510,9 @@ async def proxy(local_ws, path):
             ) as remote_ws:
         l2r_task = asyncio.create_task(process(local_ws, remote_ws, username))
         r2l_task = asyncio.create_task(forward(remote_ws, local_ws, username))
-        last_task = asyncio.create_task(update_last_forever(username))
 
         done, pending = await asyncio.wait(
-            [l2r_task, r2l_task, last_task],
+            [l2r_task, r2l_task],
             return_when=asyncio.FIRST_COMPLETED,
         )
 

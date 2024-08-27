@@ -44,6 +44,11 @@ jc POST "/skip/by-uuid/${user2uuid}" -d '{ "report_reason": "smells bad" }'
 ban_token=$(
   q "select token from banned_person_admin_token where person_id = $user2id")
 
+
+
+echo '`last` is updated upon logging in'
+q "delete from last" duo_chat
+
 curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d '{
   "service": "ws://chat:5443",
   "domain": "duolicious.app",
@@ -52,7 +57,9 @@ curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d
   "password": "'$user1token'"
 }'
 
-sleep 0.5
+sleep 3
+
+[[ "$(q "select count(*) from last" duo_chat)" = 1 ]]
 
 
 

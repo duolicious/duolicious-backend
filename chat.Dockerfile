@@ -18,8 +18,7 @@ COPY batcher /app/batcher
 COPY notify /app/notify
 COPY async_lru_cache /app/async_lru_cache
 COPY sql /app/sql
-COPY service/chat/__init__.py /app/service/chat/__init__.py
-COPY service/chat/auth.py /app/service/chat/auth.py
+COPY service/chat /app/service/chat
 COPY chat.main.sh /app
 COPY chat.auth.main.sh /app
 COPY chat.requirements.txt /app
