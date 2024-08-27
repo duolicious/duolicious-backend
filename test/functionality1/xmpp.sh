@@ -18,7 +18,6 @@ q "delete from inbox" duo_chat
 q "delete from mam_server_user" duo_chat
 q "delete from duo_last_notification" duo_chat
 q "delete from duo_push_token" duo_chat
-q "delete from duo_push_token" duo_chat
 q "delete from intro_hash" duo_chat
 
 ../util/create-user.sh user1 0 0
@@ -44,6 +43,11 @@ jc POST "/skip/by-uuid/${user2uuid}" -d '{ "report_reason": "smells bad" }'
 ban_token=$(
   q "select token from banned_person_admin_token where person_id = $user2id")
 
+
+
+echo '`last` is updated upon logging in'
+q "delete from last" duo_chat
+
 curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d '{
   "service": "ws://chat:5443",
   "domain": "duolicious.app",
@@ -52,7 +56,9 @@ curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d
   "password": "'$user1token'"
 }'
 
-sleep 0.5
+sleep 3
+
+[[ "$(q "select count(*) from last" duo_chat)" = 1 ]]
 
 
 
@@ -150,7 +156,7 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 <duo_register_push_token token='user-x-token' />
 "
 
-sleep 0.5
+sleep 1.5
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful />'
 [[ "$(q "select count(*) from duo_push_token \
@@ -165,7 +171,7 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 <duo_register_push_token />
 "
 
-sleep 0.5
+sleep 1.5
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful />'
 [[ "$(q "select count(*) from duo_push_token \
@@ -308,6 +314,8 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 echo "User 1 can stop getting immediate notifications by updating their preferences"
 
 q "update person set chats_notification = 2 where id = $user1id"
+sleep 10 # Wait for ttl cache to expire
+
 q "delete from duo_last_notification" duo_chat
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
