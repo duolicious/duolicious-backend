@@ -150,6 +150,7 @@ async def maybe_send_notification(row: PersonNotification):
 
 async def send_notifications_once():
     async with chat_tx('read committed') as tx:
+        await tx.execute('SET LOCAL statement_timeout = 15000') # 15 seconds
         cur_unread_inbox = await tx.execute(Q_UNREAD_INBOX)
         rows_unread_inbox = await cur_unread_inbox.fetchall()
 
