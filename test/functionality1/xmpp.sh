@@ -315,6 +315,8 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 echo "User 1 can stop getting immediate notifications by updating their preferences"
 
 q "update person set chats_notification = 2 where id = $user1id"
+sleep 10 # Wait for ttl cache to expire
+
 q "delete from duo_last_notification" duo_chat
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "

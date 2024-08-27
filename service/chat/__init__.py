@@ -16,6 +16,7 @@ from typing import Any
 from datetime import datetime
 from service.chat.updatelast import update_last_forever
 from service.chat.username import Username
+from service.chat.upsertlastnotification import upsert_last_notification
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 
@@ -186,7 +187,7 @@ async def send_notification(
         data=data,
     )
 
-    await upsert_last_notification(username=to_username, is_intro=is_intro)
+    upsert_last_notification(username=to_username, is_intro=is_intro)
 
 def parse_xml(s):
     parser = etree.XMLParser(resolve_entities=False, no_network=True)
@@ -296,21 +297,6 @@ def process_auth(parsed_xml, username):
         pass
 
     return False
-
-# TODO: Remove catching
-# TODO: Use batching
-# TODO: Make sure the notification time is after the message was received (not
-#       sent). These could be slightly different, depending on MongooseIM's
-#       async DB logic
-@AsyncLruCache(maxsize=1024, ttl=60)  # 1 minute
-async def upsert_last_notification(username: str, is_intro: bool) -> None:
-    q = (
-            Q_UPSERT_LAST_INTRO_NOTIFICATION_TIME
-            if is_intro
-            else Q_UPSERT_LAST_CHAT_NOTIFICATION_TIME)
-
-    async with chat_tx('read committed') as tx:
-        await tx.execute(q, dict(username=username))
 
 @AsyncLruCache(maxsize=1024, cache_condition=lambda x: not x)
 async def is_message_unique(message_str):
