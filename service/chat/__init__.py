@@ -127,8 +127,6 @@ MAX_MESSAGE_LEN = 5000
 NON_ALPHANUMERIC_RE = regex.compile(r'[^\p{L}\p{N}]')
 REPEATED_CHARACTERS_RE = regex.compile(r'(.)\1{1,}')
 
-LAST_UPDATE_INTERVAL_SECONDS = 4 * 60
-
 def to_bare_jid(jid: str | None):
     try:
         return jid.split('@')[0]
