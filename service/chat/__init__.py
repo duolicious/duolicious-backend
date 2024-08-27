@@ -19,6 +19,7 @@ from service.chat.updatelast import update_last_forever
 from service.chat.upsertlastnotification import upsert_last_notification
 from service.chat.mayberegister import maybe_register
 from service.chat.insertintrohash import insert_intro_hash
+from service.chat.setmessaged import set_messaged
 
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
@@ -67,16 +68,6 @@ FROM
 WHERE
     subject_person_id = %(to_id)s AND object_person_id = %(from_id)s
 LIMIT 1
-"""
-
-Q_SET_MESSAGED = """
-INSERT INTO messaged (
-    subject_person_id,
-    object_person_id
-) VALUES (
-    %(from_id)s,
-    %(to_id)s
-) ON CONFLICT DO NOTHING
 """
 
 Q_IMMEDIATE_DATA = """
@@ -299,11 +290,6 @@ async def fetch_is_intro(from_id: int, to_id: int) -> bool:
 
     return not bool(row)
 
-@AsyncLruCache(maxsize=1024)
-async def set_messaged(from_id: int, to_id: int) -> None:
-    async with api_tx('read committed') as tx:
-        await tx.execute(Q_SET_MESSAGED, dict(from_id=from_id, to_id=to_id))
-
 @AsyncLruCache(ttl=2 * 60)  # 2 minutes
 async def fetch_push_token(username: str) -> str | None:
     async with chat_tx('read committed') as tx:
@@ -382,7 +368,7 @@ async def process_duo_message(xml_str, parsed_xml, username: str | None):
             },
         )
 
-    await set_messaged(from_id=from_id, to_id=to_id)
+    set_messaged(from_id=from_id, to_id=to_id)
 
     return  (
         [f'<duo_message_delivered id="{id}"/>'],
