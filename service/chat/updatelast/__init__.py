@@ -3,6 +3,7 @@ from batcher import Batcher
 from service.chat.username import Username
 from typing import List
 from database import chat_tx
+import asyncio
 
 LAST_UPDATE_INTERVAL_SECONDS = 4 * 60
 
@@ -38,3 +39,7 @@ async def update_last_forever(username: Username):
             await asyncio.sleep(LAST_UPDATE_INTERVAL_SECONDS)
     except asyncio.exceptions.CancelledError:
         pass
+    except:
+        print(traceback.format_exc())
+        raise
+
