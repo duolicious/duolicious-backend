@@ -18,7 +18,6 @@ q "delete from inbox" duo_chat
 q "delete from mam_server_user" duo_chat
 q "delete from duo_last_notification" duo_chat
 q "delete from duo_push_token" duo_chat
-q "delete from duo_push_token" duo_chat
 q "delete from intro_hash" duo_chat
 
 ../util/create-user.sh user1 0 0
@@ -157,7 +156,7 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 <duo_register_push_token token='user-x-token' />
 "
 
-sleep 0.5
+sleep 1.5
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful />'
 [[ "$(q "select count(*) from duo_push_token \
@@ -172,7 +171,7 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 <duo_register_push_token />
 "
 
-sleep 0.5
+sleep 1.5
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful />'
 [[ "$(q "select count(*) from duo_push_token \

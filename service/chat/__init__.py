@@ -17,6 +17,8 @@ from datetime import datetime
 from service.chat.updatelast import update_last_forever
 from service.chat.username import Username
 from service.chat.upsertlastnotification import upsert_last_notification
+from service.chat.mayberegister import maybe_register
+
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 
@@ -36,24 +38,6 @@ INSERT INTO intro_hash (hash)
 VALUES (%(hash)s)
 ON CONFLICT DO NOTHING
 RETURNING hash
-"""
-
-Q_SET_TOKEN = """
-INSERT INTO duo_push_token (username, token)
-VALUES (
-    %(username)s,
-    %(token)s
-)
-ON CONFLICT (username)
-DO UPDATE SET
-    token = EXCLUDED.token
-"""
-
-Q_DELETE_TOKEN = """
-DELETE FROM
-    duo_push_token
-WHERE
-    username = %(username)s
 """
 
 Q_FETCH_PERSON_ID = """
@@ -247,32 +231,6 @@ def is_ping(parsed_xml):
     except:
         return False
 
-async def maybe_register(parsed_xml, username):
-    if not username:
-        return False
-
-    try:
-        if parsed_xml.tag != 'duo_register_push_token':
-            raise Exception('Not a duo_register_push_token message')
-
-        token = parsed_xml.attrib.get('token')
-
-        params = dict(
-            username=username,
-            token=token,
-        )
-
-        q = Q_SET_TOKEN if token else Q_DELETE_TOKEN
-
-        async with chat_tx('read committed') as tx:
-            await tx.execute(q, params)
-
-        return True
-    except:
-        pass
-
-    return False
-
 def process_auth(parsed_xml, username):
     if username.username is not None:
         return False
@@ -364,7 +322,7 @@ async def process_duo_message(xml_str, parsed_xml, username: str | None):
             '<duo_pong preferred_interval="5000" preferred_timeout="10000" />',
         ], []
 
-    if await maybe_register(parsed_xml, username):
+    if maybe_register(parsed_xml, username):
         return ['<duo_registration_successful />'], []
 
     is_message, id, to_jid, maybe_message_body = get_message_attrs(parsed_xml)
