@@ -40,8 +40,6 @@ _disable_mobile_notifications_file = (
 
 print('Hello from cron module: notifications')
 
-notify.set_flush_interval(1.0)
-
 @dataclass
 class PersonNotification:
     person_uuid: int

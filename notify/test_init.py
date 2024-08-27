@@ -1,10 +1,11 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from notify import enqueue_mobile_notification, set_flush_interval
+from notify import enqueue_mobile_notification, _batcher
 import json
 import time
 
-set_flush_interval(1e-2)
+_batcher.set_flush_interval(1e-2)
+time.sleep(1.1) # Wait for the new flush interval to take effect
 
 class TestSendMobileNotification(unittest.TestCase):
 
