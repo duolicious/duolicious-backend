@@ -2261,9 +2261,9 @@ WITH deleted_token AS (
         this_banned_person.normalized_email AS normalized_email,
         COALESCE(duo_session.ip_address, '127.0.0.1') AS ip_address
     FROM
-        duo_session
-    JOIN
         this_banned_person
+    LEFT JOIN
+        duo_session
     ON
         duo_session.person_id = this_banned_person.person_id
 ), banned_person_insertion AS (
