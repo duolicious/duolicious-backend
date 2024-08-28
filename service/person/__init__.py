@@ -674,18 +674,6 @@ def get_prospect_profile(s: t.SessionInfo, prospect_uuid):
         return profile
     return '', 500
 
-# TODO: Delete me
-def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
-    params = dict(person_id=prospect_person_id)
-
-    with api_tx() as tx:
-        prospect_uuid = tx.execute(
-            Q_PERSON_ID_TO_UUID,
-            params
-        ).fetchone()['uuid']
-
-    post_skip_by_uuid(req=req, s=s, prospect_uuid=prospect_uuid)
-
 def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
     params = dict(
         subject_person_id=s.person_id,

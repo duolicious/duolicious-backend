@@ -28,6 +28,7 @@ setup () {
   user1_id=$(q "select id from person where email = 'user1@example.com'")
   user2_id=$(q "select id from person where email = 'user2@example.com'")
 
+  searcher_uuid=$(q "select uuid from person where email = 'searcher@example.com'")
   user1_uuid=$(q "select uuid from person where email = 'user1@example.com'")
   user2_uuid=$(q "select uuid from person where email = 'user2@example.com'")
 
@@ -233,7 +234,7 @@ test_quiz_search () {
   [[ "$response2" != "$user1_id" ]]
 
   echo user2 has the highest match percentage but user2 is skipped by searcher
-  c POST "/skip/${user2_id}"
+  c POST "/skip/by-uuid/${user2_uuid}"
 
   local response3=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response3" != "${user2_id}" ]]
@@ -244,7 +245,7 @@ test_quiz_search () {
 
   echo user2 has the highest match percentage but searcher is skipped by user2
   assume_role user2
-  c POST "/skip/${searcher_id}"
+  c POST "/skip/by-uuid/${searcher_uuid}"
   assume_role searcher
 
   local response4=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
@@ -263,7 +264,7 @@ test_quiz_search () {
   [[ "$response2" = "$user2_id" ]]
 
   # user2 has the highest match percentage but user2 is hidden by searcher
-  c POST "/skip/${user2_id}"
+  c POST "/skip/by-uuid/${user2_uuid}"
 
   local response3=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response3" != "${user2_id}" ]]
@@ -371,52 +372,31 @@ test_quiz_filters () {
   assert_search_names 'searcher user2 user3'
 }
 
-test_interaction_in_standard_search () {
-  local interaction_name=$1
-  local do_endpoint=$2
-  local undo_endpoint=$3
-
+test_interaction_in_standard_search_skipped () {
   setup
 
-  # searcher messaged/blocked/etc'd user1
-  if [[ -n "${do_endpoint}" ]]
-  then
-    c POST "${do_endpoint}/${user1_id}"
-  else
-    q "
-    insert into ${interaction_name} (subject_person_id, object_person_id)
-    values (${searcher_id}, ${user1_id})
-    "
-  fi
+  # searcher skipped user1
+  c POST "/skip/by-uuid/${user1_uuid}"
 
   q "
-  update search_preference_${interaction_name}
+  update search_preference_skipped
   set
-    ${interaction_name}_id = 1
+    skipped_id = 1
   where
     person_id = (select id from person where email = 'searcher@example.com')"
 
   assert_search_names 'user1 user2'
 
   q "
-  update search_preference_${interaction_name}
+  update search_preference_skipped
   set
-    ${interaction_name}_id = 2
+    skipped_id = 2
   where
     person_id = (select id from person where email = 'searcher@example.com')"
 
   assert_search_names 'user2'
 
-  if [[ -n "${undo_endpoint}" ]]
-  then
-    c POST "${undo_endpoint}/${user1_id}"
-  else
-    q "
-    delete from ${interaction_name} where
-      subject_person_id = ${searcher_id} and
-      object_person_id  = ${user1_id}
-    "
-  fi
+  c POST "/unskip/${user1_id}"
 
   assert_search_names 'user1 user2'
 }
@@ -828,7 +808,7 @@ test_quiz_search
 test_hide_me_from_strangers
 test_verified_privacy
 
-test_interaction_in_standard_search skipped /skip /unskip
+test_interaction_in_standard_search_skipped /skip/by-uuid /unskip
 test_interaction_in_standard_search_skipped_symmetry
 
 test_quiz_filters

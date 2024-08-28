@@ -277,28 +277,6 @@ def get_me_by_id(person_id: str):
 def get_prospect_profile(s: t.SessionInfo, prospect_uuid: int):
     return person.get_prospect_profile(s, prospect_uuid)
 
-@apost('/skip/<int:prospect_person_id>')
-@validate(t.PostSkip)
-def post_skip(req: t.PostSkip, s: t.SessionInfo, prospect_person_id: int):
-    limit = "1 per 30 seconds"
-    scope = "report"
-
-    if req.report_reason:
-        with (
-            limiter.limit(
-                limit,
-                scope=scope,
-                exempt_when=disable_ip_rate_limit),
-            limiter.limit(
-                limit,
-                scope=scope,
-                key_func=limiter_account,
-                exempt_when=disable_account_rate_limit)
-        ):
-            return person.post_skip(req, s, prospect_person_id)
-    else:
-        return person.post_skip(req, s, prospect_person_id)
-
 @apost('/skip/by-uuid/<prospect_uuid>')
 @validate(t.PostSkip)
 def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: int):

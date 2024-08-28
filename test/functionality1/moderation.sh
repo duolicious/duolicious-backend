@@ -23,14 +23,14 @@ setup () {
     ../util/create-user.sh 'bystander@gmail.com' 0 "${num_photos}"
   fi
 
-  reporter_id=$(
-    q "select id from person where email = 'reporter@gmail.com'")
-
   accused_id=$(
     q "select id from person where email = 'accuse.d+1@gmail.com'")
 
-  bystander_id=$(
-    q "select id from person where email = 'bystander@gmail.com'")
+  accused_uuid=$(
+    q "select uuid from person where email = 'accuse.d+1@gmail.com'")
+
+  bystander_uuid=$(
+    q "select uuid from person where email = 'bystander@gmail.com'")
 }
 
 tear_down () {
@@ -61,7 +61,7 @@ no_otp_when_email_banned () {
 
   assume_role 'reporter@gmail.com'
 
-  jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "n/a" }'
 
   c GET "/admin/ban/$(ban_token)"
 
@@ -76,7 +76,7 @@ no_otp_when_ip_banned () {
 
   assume_role 'reporter@gmail.com'
 
-  jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "n/a" }'
 
   c GET "/admin/ban/$(ban_token)"
 
@@ -91,7 +91,7 @@ otp_when_others_are_banned () {
 
   assume_role 'reporter@gmail.com'
 
-  jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "n/a" }'
 
   c GET "/admin/ban/$(ban_token)"
 
@@ -107,7 +107,7 @@ ban_expiry () {
 
   assume_role 'reporter@gmail.com'
 
-  jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "n/a" }'
 
   c GET "/admin/ban/$(ban_token)"
 
@@ -124,7 +124,7 @@ ban_token_expiry () {
 
   assume_role 'reporter@gmail.com'
 
-  jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "n/a" }'
 
   q "update banned_person_admin_token set expires_at = NOW() - interval '1 day'"
   ! c GET "/admin/ban/$(ban_token)"
@@ -136,7 +136,7 @@ photo_token_expiry () {
 
   assume_role 'reporter@gmail.com'
 
-  jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "n/a" }'
 
   q "update deleted_photo_admin_token set expires_at = NOW() - interval '1 day'"
   ! c GET "/admin/delete-photo/$(deleted_photo_token)"
@@ -148,8 +148,8 @@ specific_person_is_banned () {
 
   assume_role 'reporter@gmail.com'
 
-  jc POST "/skip/${accused_id}" -d '{ "report_reason": "my target" }'
-  jc POST "/skip/${bystander_id}" -d '{ "report_reason": "collateral damage" }'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "my target" }'
+  jc POST "/skip/by-uuid/${bystander_uuid}" -d '{ "report_reason": "collateral damage" }'
 
   [[ "$(q "select count(*) from person")" -eq 3 ]]
 
@@ -170,7 +170,7 @@ specific_photo_is_banned () {
 
   assume_role 'reporter@gmail.com'
 
-  jc POST "/skip/${accused_id}" -d '{ "report_reason": "n/a" }'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "n/a" }'
 
   [[ "$(q "select count(*) from photo")" -eq 3 ]]
 
