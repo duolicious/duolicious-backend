@@ -14,10 +14,12 @@ from async_lru_cache import AsyncLruCache
 import random
 from typing import Any
 from datetime import datetime
-from service.chat.updatelast import update_last_forever
 from service.chat.username import Username
+from service.chat.updatelast import update_last_forever
 from service.chat.upsertlastnotification import upsert_last_notification
 from service.chat.mayberegister import maybe_register
+from service.chat.insertintrohash import insert_intro_hash
+from service.chat.setmessaged import set_messaged
 
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
@@ -33,11 +35,13 @@ PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 #  public.duo_last_notification
 #  public.duo_push_token
 
-Q_UNIQUENESS = """
-INSERT INTO intro_hash (hash)
-VALUES (%(hash)s)
-ON CONFLICT DO NOTHING
-RETURNING hash
+Q_SELECT_INTRO_HASH = """
+SELECT
+    1
+FROM
+    intro_hash
+WHERE
+    hash = %(hash)s
 """
 
 Q_FETCH_PERSON_ID = """
@@ -64,16 +68,6 @@ FROM
 WHERE
     subject_person_id = %(to_id)s AND object_person_id = %(from_id)s
 LIMIT 1
-"""
-
-Q_SET_MESSAGED = """
-INSERT INTO messaged (
-    subject_person_id,
-    object_person_id
-) VALUES (
-    %(from_id)s,
-    %(to_id)s
-) ON CONFLICT DO NOTHING
 """
 
 Q_IMMEDIATE_DATA = """
@@ -262,10 +256,15 @@ async def is_message_unique(message_str):
     params = dict(hash=hashed)
 
     async with chat_tx('read committed') as tx:
-        cursor = await tx.execute(Q_UNIQUENESS, params)
+        cursor = await tx.execute(Q_SELECT_INTRO_HASH, params)
         rows = await cursor.fetchall()
 
-    return bool(rows)
+    is_unique = not bool(rows)
+
+    if is_unique:
+        insert_intro_hash(hashed)
+
+    return is_unique
 
 @AsyncLruCache(maxsize=1024)
 async def fetch_id_from_username(username: str) -> str | None:
@@ -290,11 +289,6 @@ async def fetch_is_intro(from_id: int, to_id: int) -> bool:
         row = await tx.fetchone()
 
     return not bool(row)
-
-@AsyncLruCache(maxsize=1024)
-async def set_messaged(from_id: int, to_id: int) -> None:
-    async with api_tx('read committed') as tx:
-        await tx.execute(Q_SET_MESSAGED, dict(from_id=from_id, to_id=to_id))
 
 @AsyncLruCache(ttl=2 * 60)  # 2 minutes
 async def fetch_push_token(username: str) -> str | None:
@@ -374,7 +368,7 @@ async def process_duo_message(xml_str, parsed_xml, username: str | None):
             },
         )
 
-    await set_messaged(from_id=from_id, to_id=to_id)
+    set_messaged(from_id=from_id, to_id=to_id)
 
     return  (
         [f'<duo_message_delivered id="{id}"/>'],
