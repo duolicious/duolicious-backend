@@ -179,7 +179,31 @@ specific_photo_is_banned () {
   [[ "$(q "select count(*) from photo")" -eq 2 ]]
 }
 
+bans_work_despite_no_active_sessions () {
+  setup 0 true
+
+  assume_role 'reporter@gmail.com'
+
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "my target" }'
+  jc POST "/skip/by-uuid/${bystander_uuid}" -d '{ "report_reason": "collateral damage" }'
+
+  q "delete from duo_session"
+
+  [[ "$(q "select count(*) from person")" -eq 3 ]]
+
+  c GET "/admin/ban/$(ban_token)"
+
+  [[ "$(q "select count(*) from person")" -eq 2 ]]
+
+  [[ "$(q "select count(*) from person where id = ${accused_id}")" -eq 0 ]]
+
+  [[ "$(q "select report_reasons \
+    from banned_person \
+    where normalized_email = 'accused@gmail.com'")" == '{"my target"}' ]]
+}
+
 # Execute tests
+bans_work_despite_no_active_sessions
 no_otp_when_email_banned
 no_otp_when_ip_banned
 otp_when_others_are_banned
