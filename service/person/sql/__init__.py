@@ -1869,7 +1869,8 @@ WITH object_person_id AS (
     SELECT
         photo_ban.photo_uuid AS uuid,
         token.person_id AS person_id,
-        photo_ban.token AS token
+        photo_ban.token AS token,
+        photo.position AS position
     FROM
         photo_ban
     JOIN
@@ -1911,6 +1912,7 @@ SELECT
             uuid || ': https://api.duolicious.app/admin/delete-photo-link/' || photo_ban_with_id.token
         FROM photo_ban_with_id
         WHERE photo_ban_with_id.person_id = p.id
+        ORDER BY position
     ) AS photo_deletion_links,
     EXTRACT(YEAR FROM AGE(date_of_birth))::int AS age,
     name,
