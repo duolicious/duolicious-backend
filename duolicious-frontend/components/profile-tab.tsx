@@ -173,7 +173,6 @@ const ProfileTab_ = ({navigation}) => {
         >
           <Title>Profile Pictures</Title>
           <Images_ data={data}/>
-          <AboutPerson navigation={navigation} data={data}/>
           <Options navigation={navigation} data={data}/>
           <AboutDuolicious/>
         </ScrollView>
@@ -439,6 +438,8 @@ const Options = ({ navigation, data }) => {
           theme="light"
         />
       }
+
+      <AboutPerson navigation={navigation} data={data}/>
 
       <Title>Basics</Title>
       {

@@ -324,7 +324,7 @@ const UserDetails = ({name, age, matchPercentage, verified, ...rest}) => {
         </DefaultText>
         {verified &&
           <VerificationBadge
-            size={20}
+            size={18}
             style={{
               marginBottom: 2,
             }}

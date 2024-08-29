@@ -390,7 +390,7 @@ const SearchFilterScreen_ = ({navigation, route}) => {
             flexGrow: 1,
           }}
         >
-          <ActivityIndicator size={60} color="#70f"/>
+          <ActivityIndicator size="large" color="#70f"/>
         </View>
       }
     </SafeAreaView>
@@ -501,7 +501,7 @@ const QandQFilterScreen = ({navigation, route}) => {
             flexGrow: 1,
           }}
         >
-          <ActivityIndicator size={60} color="#70f"/>
+          <ActivityIndicator size="large" color="#70f"/>
         </View>
       }
       {!isLoading &&

@@ -1701,7 +1701,7 @@ const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
 
           'To verify your photos, your face needs to be visible on your ' +
           'profile. But never reveal your verification selfie to anyone, or ' +
-          'they’ll be able able to verify themselves as you.'
+          'they can pretend they’re you.'
         ),
         textAlign: 'left',
         submit: async () => true,
