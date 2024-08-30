@@ -53,7 +53,7 @@ import * as _ from "lodash";
 import debounce from 'lodash/debounce';
 import { aboutQueue } from '../api/queue';
 import { ClubItem, ClubSelector } from './club-selector';
-import { listen } from '../events/events';
+import { listen, notify } from '../events/events';
 import { ButtonWithCenteredText } from './button/centered-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { logout } from '../xmpp/xmpp';
@@ -151,9 +151,16 @@ const ProfileTab_ = ({navigation}) => {
   useEffect(() => {
     (async () => {
       const response = await api('get', '/profile-info');
-      if (response.json) {
-        setData(response.json);
+      if (!response.json) {
+        return;
       }
+
+      setData(response.json);
+
+      notify<VerificationEvent>(
+        'updated-verification',
+        { photos: response.json.photo_verification }
+      );
     })();
   }, []);
 

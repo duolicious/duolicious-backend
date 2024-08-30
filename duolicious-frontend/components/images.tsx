@@ -22,6 +22,7 @@ import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { isImagePickerOpen } from '../App';
 import { Image } from 'expo-image';
 import { VerificationEvent } from '../verification/verification';
+import { VerificationBadge } from './verification-badge';
 
 // TODO: Image picker is shit and lets you upload any file type on web
 
@@ -123,6 +124,7 @@ const UserImage = ({
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBlurhash, setImageBlurhash] = useState<string | null>(null);
   const [isLoading_, setIsLoading_] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
 
   const imageCropperCallback = `image-cropped-${fileNumber}`;
 
@@ -280,41 +282,29 @@ const UserImage = ({
     );
   }, []);
 
-  const Image_ = ({uri}) => {
-    return (
-      <>
-        <Image
-          source={{uri: uri}}
-          placeholder={imageBlurhash && { blurhash: imageBlurhash }}
-          transition={150}
-          style={{
-            height: '100%',
-            width: '100%',
-            borderRadius: 5,
-            borderColor: '#eee',
-            borderWidth: 1,
-          }}
-        />
-        <Pressable
-          style={{
-            position: 'absolute',
-            top: -10,
-            left: -10,
-            padding: 2,
-            borderRadius: 999,
-            backgroundColor: 'white',
-          }}
-          onPress={(imageUri === null || isLoading_) ? undefined : removeImage}
-        >
-          <FontAwesomeIcon
-            icon={faCircleXmark}
-            size={26}
-            color="#000"
-          />
-        </Pressable>
-      </>
+  useEffect(() => {
+    return listen<VerificationEvent>(
+      'updated-verification',
+      (data) => {
+        if (!data) {
+          return;
+        }
+
+        if (!data.photos) {
+          return;
+        }
+
+        const photoData: boolean | undefined = data.photos[fileNumber];
+
+        if (photoData === undefined) {
+          return;
+        }
+
+        setIsVerified(photoData);
+      },
+      true
     );
-  };
+  }, []);
 
   return (
     <View
@@ -337,7 +327,53 @@ const UserImage = ({
       >
         { isLoading_ && <Loading/>}
         {!isLoading_ && imageUri === null && <AddIcon/>}
-        {!isLoading_ && imageUri !== null && <Image_ uri={imageUri}/>}
+        {!isLoading_ && imageUri !== null &&
+          <>
+            <Image
+              source={{uri: imageUri}}
+              placeholder={imageBlurhash && { blurhash: imageBlurhash }}
+              transition={150}
+              style={{
+                height: '100%',
+                width: '100%',
+                borderRadius: 5,
+                borderColor: '#eee',
+                borderWidth: 1,
+              }}
+            />
+            <Pressable
+              style={{
+                position: 'absolute',
+                top: -10,
+                left: -10,
+                padding: 2,
+                borderRadius: 999,
+                backgroundColor: 'white',
+              }}
+              onPress={
+                (imageUri === null || isLoading_) ?
+                undefined :
+                removeImage
+              }
+            >
+              <FontAwesomeIcon
+                icon={faCircleXmark}
+                size={26}
+                color="#000"
+              />
+            </Pressable>
+            {isVerified &&
+              <VerificationBadge
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                }}
+                size={20}
+              />
+            }
+          </>
+        }
       </Pressable>
     </View>
   );
