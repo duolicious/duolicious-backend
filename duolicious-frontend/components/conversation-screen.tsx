@@ -48,6 +48,9 @@ import { delay, isMobile } from '../util/util';
 import { ReportModalInitialData } from './report-modal';
 import { listen, notify, lastEvent } from '../events/events';
 import { Image, ImageBackground } from 'expo-image';
+import * as StoreReview from 'expo-store-review';
+import { askedForReviewBefore } from '../kv-storage/asked-for-review-before';
+
 
 const propAt = (messages: Message[] | null | undefined, index: number, prop: string): string => {
   if (!messages) return '';
@@ -62,6 +65,13 @@ const propAt = (messages: Message[] | null | undefined, index: number, prop: str
 const lastPropAt = (messages: Message[] | null | undefined, prop: string): string => {
   return propAt(messages, (messages ?? []).length - 1, prop);
 }
+
+const maybeRequestReview = async (delayMs: number = 0) => {
+  if (await StoreReview.hasAction() && !await askedForReviewBefore()) {
+    await delay(delayMs);
+    await StoreReview.requestReview();
+  }
+};
 
 const Menu = ({navigation, name, personId, personUuid, closeFn}) => {
   const [isSkipped, setIsSkipped] = useState<boolean | undefined>();
@@ -392,6 +402,10 @@ const ConversationScreen = ({navigation, route}) => {
     if (messageStatus === 'sent') {
       hasScrolled.current = false;
       setMessages(messages => [...(messages ?? []), message]);
+    }
+
+    if (messageStatus === 'sent' && text.toLowerCase().includes('hahahaha')) {
+      maybeRequestReview(1000);
     }
 
     setLastMessageStatus(messageStatus);

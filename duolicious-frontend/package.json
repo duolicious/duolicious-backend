@@ -48,7 +48,8 @@
     "react-native-screens": "3.31.1",
     "react-native-svg": "15.2.0",
     "react-native-web": "~0.19.10",
-    "xpath": "^0.0.33"
+    "xpath": "^0.0.33",
+    "expo-store-review": "~7.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",

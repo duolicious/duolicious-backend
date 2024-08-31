@@ -40,6 +40,7 @@ const config: ExpoConfig = {
     bundleIdentifier: "app.duolicious",
     supportsTablet: false,
     associatedDomains: ["applinks:get.duolicious.app"],
+    appStoreUrl: "https://apps.apple.com/us/app/duolicious-dating-app/id6499066647",
   },
   android: {
     googleServicesFile: "./google-services.json",
@@ -61,7 +62,8 @@ const config: ExpoConfig = {
         ],
         category: ["BROWSABLE", "DEFAULT"]
       }
-    ]
+    ],
+    playStoreUrl: "https://play.google.com/store/apps/details?id=app.duolicious",
   },
   plugins: [
     "expo-secure-store",
