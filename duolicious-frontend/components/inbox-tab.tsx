@@ -27,7 +27,7 @@ import { TopNavBarButton } from './top-nav-bar-button';
 import { inboxOrder, inboxSection } from '../kv-storage/inbox';
 import { signedInUser } from '../App';
 import { Notice } from './notice';
-import { listen } from '../events/events';
+import { listen, lastEvent } from '../events/events';
 
 const Stack = createNativeStackNavigator();
 
@@ -311,21 +311,10 @@ const InboxTab_ = ({navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeAreaView}>
-      <TopNavBar>
-        <DefaultText
-          style={{
-            fontWeight: '700',
-            fontSize: 20,
-          }}
-        >
-          {'Inbox' + (showArchive ? ' (Archive)' : '')}
-        </DefaultText>
-        <TopNavBarButton
-          onPress={onPressArchiveButton}
-          iconName={showArchive ? 'chatbubbles-outline' : 'file-tray-full-outline'}
-          style={{right: 15}}
-        />
-      </TopNavBar>
+      <InboxTabNavBar
+        showArchive={showArchive}
+        onPressArchiveButton={onPressArchiveButton}
+      />
       {inbox === null &&
         <View style={{height: '100%', justifyContent: 'center', alignItems: 'center'}}>
           <ActivityIndicator size="large" color="#70f" />
@@ -346,6 +335,48 @@ const InboxTab_ = ({navigation}) => {
         />
       }
     </SafeAreaView>
+  );
+};
+
+const InboxTabNavBar = ({
+  showArchive,
+  onPressArchiveButton,
+}) => {
+  const [isOnline, setIsOnline] = useState(lastEvent('xmpp-is-online') ?? false);
+
+  useEffect(() => {
+    return listen('xmpp-is-online', setIsOnline);
+  }, []);
+
+  return (
+      <TopNavBar>
+        <View>
+          <DefaultText
+            style={{
+              fontWeight: '700',
+              fontSize: 20,
+            }}
+          >
+            {'Inbox' + (showArchive ? ' (Archive)' : '')}
+          </DefaultText>
+          {!isOnline &&
+            <ActivityIndicator
+              size="small"
+              color="#70f"
+              style={{
+                position: 'absolute',
+                right: -40,
+                top: 3,
+              }}
+            />
+          }
+        </View>
+        <TopNavBarButton
+          onPress={onPressArchiveButton}
+          iconName={showArchive ? 'chatbubbles-outline' : 'file-tray-full-outline'}
+          style={{right: 15}}
+        />
+      </TopNavBar>
   );
 };
 

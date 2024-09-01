@@ -222,8 +222,12 @@ const App = () => {
   }, []);
 
   const fetchServerStatusState = useCallback(async () => {
-    const response = await fetch(STATUS_URL, {cache: 'no-cache'});
-    if (!response.ok) {
+    let response: Response | null = null
+    try {
+      response = await fetch(STATUS_URL, {cache: 'no-cache'});
+    } catch (e) {};
+
+    if (response === null || !response.ok) {
       // If even the status server is down, things are *very* not-okay. But odds
       // are it can't be contacted because the user has a crappy internet
       // connection. The "You're offline" notice should still provide some

@@ -1,4 +1,5 @@
 import {
+  Platform,
   Text,
   View,
 } from 'react-native';
@@ -17,6 +18,10 @@ const StreamErrorModal = () => {
   if (!showError) {
     return <></>;
   };
+
+  if (Platform.OS !== 'web') {
+    return <></>;
+  }
 
   return (
     <View
