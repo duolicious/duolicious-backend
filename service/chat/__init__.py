@@ -311,7 +311,7 @@ async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
 async def process_duo_message(xml_str, parsed_xml, username: str | None):
     if is_ping(parsed_xml):
         return [
-            '<duo_pong preferred_interval="5000" preferred_timeout="10000" />',
+            '<duo_pong preferred_interval="10000" preferred_timeout="5000" />',
         ], []
 
     if maybe_register(parsed_xml, username):
