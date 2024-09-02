@@ -14,6 +14,7 @@ import {
   TextStyle,
   View,
   ViewStyle,
+  useWindowDimensions,
 } from 'react-native';
 import {
   useCallback,
@@ -722,6 +723,8 @@ const TextInputWithButton = ({
 }: {
   onPress: (text: string) => Promise<MessageStatus>,
 }) => {
+  const { height } = useWindowDimensions();
+
   const opacity = useRef(new Animated.Value(1)).current;
   const [isLoading, setIsLoading] = useState(false);
 
@@ -788,7 +791,10 @@ const TextInputWithButton = ({
       enabled={Platform.OS === 'ios'}
     >
       <TextInput
-        style={styles.textInput}
+        style={[
+          styles.textInput,
+          { maxHeight: height * 0.4 },
+        ]}
         value={text}
         onChangeText={maybeSetText}
         onKeyPress={onKeyPress}
