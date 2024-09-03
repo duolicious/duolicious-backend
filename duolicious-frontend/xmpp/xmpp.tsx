@@ -521,6 +521,9 @@ const markDisplayed = async (message: Message) => {
   if (!_xmpp.current) return;
   if (message.fromCurrentUser) return;
 
+  if (!isValidUuid(jidToBareJid(message.from))) return;
+  if (!isValidUuid(jidToBareJid(message.to))) return;
+
   const stanza = parse(`
     <message to='${message.from}' from='${message.to}'>
       <displayed xmlns='urn:xmpp:chat-markers:0' id='${message.id}'/>
