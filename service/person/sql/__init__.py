@@ -452,7 +452,10 @@ WITH onboardee_country AS (
             )
         ) AS unit_id,
         3 AS intros_notification,
-        3 AS privacy_verification_level_id
+        CASE
+            WHEN RANDOM() < 0.9 THEN 1
+            ELSE 3
+        END AS privacy_verification_level_id
     FROM onboardee
     WHERE email = %(email)s
     RETURNING
