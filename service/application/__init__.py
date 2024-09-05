@@ -410,7 +410,7 @@ def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo):
 
 @apost('/verify')
 def post_verify(s: t.SessionInfo):
-    limit = "15 per day"
+    limit = "5 per day"
     scope = "verify"
 
     with (

@@ -78,7 +78,7 @@ echo Account-based rate limit applies to /verify endpoint when IP changes
 printf 1 > ../../test/input/disable-ip-rate-limit
 printf 0 > ../../test/input/disable-account-rate-limit
 true     > ../../test/input/verification-mock-response-file
-for x in {1..15}
+for x in {1..5}
 do
   printf "256.256.256.${x}" > ../../test/input/mock-ip-address
   c POST /verify
