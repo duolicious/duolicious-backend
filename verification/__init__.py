@@ -215,6 +215,15 @@ def process_response(
 
     # These settings are tuned to gpt-4-turbo. gpt-4o worked better with higher
     # numbers.
+    #
+    # edit_truthiness_threshold = 0.9
+    # gender_truthiness_threshold = 0.5
+    # age_truthiness_threshold = 0.5
+    # minimum_age_truthiness_threshold = 0.8
+    # ethnicity_truthiness_threshold = 0.4
+    # photo_truthiness_threshold = 0.9
+
+    # These settings are tuned to gpt-4o-2024-08-06
     edit_truthiness_threshold = 0.9
     gender_truthiness_threshold = 0.5
     age_truthiness_threshold = 0.5
@@ -334,7 +343,7 @@ async def verify(
     else:
         try:
             response = (await AsyncOpenAI().chat.completions.create(
-                model="gpt-4-turbo",
+                model="gpt-4o-2024-08-06",
                 response_format={"type": "json_object"},
                 temperature=0.0,
                 frequency_penalty=0.0,
