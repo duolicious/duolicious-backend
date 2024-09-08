@@ -908,6 +908,9 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
               units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
               sessionToken: existingSessionToken,
               pendingClub: response?.json?.pending_club,
+              doShowDonationNag: response?.json?.do_show_donation_nag,
+              estimatedEndDate: new Date(response?.json?.estimated_end_date),
+              name: response?.json?.name,
             }));
 
             await sessionPersonUuid(response?.json?.person_uuid);
@@ -1017,6 +1020,9 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
               personUuid: response?.json?.person_uuid,
               units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
               pendingClub: response?.json?.pending_club,
+              doShowDonationNag: response?.json?.do_show_donation_nag,
+              estimatedEndDate: new Date(response?.json?.estimated_end_date),
+              name: response?.json?.name,
             }));
 
             await sessionPersonUuid(response?.json?.person_uuid);

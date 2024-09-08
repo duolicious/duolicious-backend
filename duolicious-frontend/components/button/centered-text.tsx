@@ -74,6 +74,7 @@ const ButtonWithCenteredText = (props) => {
   return (
     <Pressable
       style={{
+        outline: 'none',
         marginTop: 10,
         marginBottom: 10,
         height: 50,
