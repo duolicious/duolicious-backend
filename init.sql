@@ -1201,7 +1201,7 @@ WHERE
 ON CONFLICT DO NOTHING;
 
 INSERT INTO funding (id, estimated_end_date)
-VALUES (1, '2024-09-15 14:06:14.128773+00')
+VALUES (1, '2024-09-17 15:02:10.866000+00')
 ON CONFLICT (id) DO NOTHING;
 
 --------------------------------------------------------------------------------

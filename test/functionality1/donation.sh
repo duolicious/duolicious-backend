@@ -20,7 +20,7 @@ response=$( jc POST /check-otp -d '{ "otp": "000000" }' )
 
 [[ "$(jq -r '.name' <<< "$response")" = user1 ]]
 [[ "$(jq -r '.do_show_donation_nag' <<< "$response")" = false ]]
-[[ "$(jq -r '.estimated_end_date' <<< "$response")" = '2024-09-15 14:06:14.128773+00' ]]
+[[ "$(jq -r '.estimated_end_date' <<< "$response")" = '2024-09-17 15:02:10.866+00' ]]
 
 # Satisfy conditions for .do_show_donation_nag to be true
 q "update person set count_answers = 25"

@@ -97,7 +97,7 @@ response=$(c POST /finish-onboarding)
 [[ "$(jq -r .units <<< "$response")" = Metric ]]
 [[ "$(jq -r .do_show_donation_nag <<< "$response")" = false ]]
 [[ "$(jq -r .name <<< "$response")" = Jeff ]]
-[[ "$(jq -r '.estimated_end_date' <<< "$response")" = '2024-09-15 14:06:14.128773+00' ]]
+[[ "$(jq -r '.estimated_end_date' <<< "$response")" = '2024-09-17 15:02:10.866+00' ]]
 
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 0 ]]
 
