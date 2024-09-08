@@ -434,6 +434,13 @@ CREATE TABLE IF NOT EXISTS banned_person (
     PRIMARY KEY (normalized_email, ip_address)
 );
 
+CREATE TABLE IF NOT EXISTS funding (
+    id SMALLINT PRIMARY KEY,
+    estimated_end_date TIMESTAMP NOT NULL,
+
+    CONSTRAINT id CHECK (id = 1)
+);
+
 --------------------------------------------------------------------------------
 -- TABLES TO CONNECT PEOPLE TO THEIR SEARCH PREFERENCES
 --------------------------------------------------------------------------------
@@ -1192,6 +1199,10 @@ WHERE
             name IN ('MBTI', 'Big 5', 'Attachment', 'Politics')
     )
 ON CONFLICT DO NOTHING;
+
+INSERT INTO funding (id, estimated_end_date)
+VALUES (1, '2024-09-15 14:06:14.128773+00')
+ON CONFLICT (id) DO NOTHING;
 
 --------------------------------------------------------------------------------
 -- FUNCTIONS (2)
