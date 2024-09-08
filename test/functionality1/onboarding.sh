@@ -94,7 +94,10 @@ jc PATCH /onboardee-info -d '{ "about": "Im a reasonable person" }'
 
 ! c GET /next-questions
 response=$(c POST /finish-onboarding)
-[[ "$(echo "$response" | jq -r .units)" = Metric ]]
+[[ "$(jq -r .units <<< "$response")" = Metric ]]
+[[ "$(jq -r .do_show_donation_nag <<< "$response")" = false ]]
+[[ "$(jq -r .name <<< "$response")" = Jeff ]]
+[[ "$(jq -r '.estimated_end_date' <<< "$response")" = '2024-09-15 14:06:14.128773+00' ]]
 
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 0 ]]
 
