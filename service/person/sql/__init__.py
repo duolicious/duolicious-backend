@@ -1,5 +1,19 @@
 MAX_CLUB_SEARCH_RESULTS = 20
 
+_Q_DO_SHOW_DONATION_NAG = """
+(
+        {table}.last_nag_time < NOW() - interval '1 day'
+    AND
+        {table}.sign_up_time < NOW() - interval '1 day'
+    AND
+        {table}.count_answers >= 25
+) AS do_show_donation_nag
+"""
+
+_Q_ESTIMATED_END_DATE = """
+(SELECT estimated_end_date::timestamptz::text FROM funding) AS estimated_end_date
+"""
+
 _Q_IS_ALLOWED_CLUB_NAME = """
 WITH similar_banned_club AS (
     SELECT
@@ -304,7 +318,7 @@ WHERE email IN (SELECT email FROM valid_session)
 RETURNING email
 """
 
-Q_MAYBE_SIGN_IN = """
+Q_MAYBE_SIGN_IN = f"""
 WITH valid_session AS (
     UPDATE
         duo_session
@@ -331,7 +345,11 @@ WITH valid_session AS (
     RETURNING
         person.id,
         person.uuid AS person_uuid,
-        person.unit_id
+        person.unit_id,
+        person.name,
+        person.last_nag_time,
+        person.sign_up_time,
+        person.count_answers
 ), new_onboardee AS (
     INSERT INTO onboardee (
         email
@@ -369,7 +387,10 @@ WITH valid_session AS (
 SELECT
     person_id,
     person_uuid,
-    (SELECT name FROM unit WHERE id = existing_person.unit_id) AS units
+    (SELECT name FROM unit WHERE id = existing_person.unit_id) AS units,
+    {_Q_DO_SHOW_DONATION_NAG.format(table='existing_person')},
+    {_Q_ESTIMATED_END_DATE},
+    existing_person.name AS name
 FROM
     valid_session
 LEFT JOIN
@@ -402,7 +423,7 @@ DELETE FROM duo_session
 WHERE session_token_hash = %(session_token_hash)s
 """
 
-Q_FINISH_ONBOARDING = """
+Q_FINISH_ONBOARDING = f"""
 WITH onboardee_country AS (
     SELECT country
     FROM location
@@ -464,7 +485,8 @@ WITH onboardee_country AS (
         email,
         unit_id,
         coordinates,
-        date_of_birth
+        date_of_birth,
+        person.name
 ), best_age AS (
     WITH new_person_age AS (
         SELECT
@@ -795,7 +817,10 @@ WITH onboardee_country AS (
 SELECT
     new_person.id AS person_id,
     new_person.uuid AS person_uuid,
-    (SELECT name FROM unit WHERE unit.id = new_person.unit_id) AS units
+    (SELECT name FROM unit WHERE unit.id = new_person.unit_id) AS units,
+    false AS do_show_donation_nag,
+    {_Q_ESTIMATED_END_DATE},
+    new_person.name AS name
 FROM
     new_person
 """
@@ -1060,8 +1085,11 @@ WHERE
     EXISTS (SELECT 1 FROM prospect)
 """
 
-Q_CHECK_SESSION_TOKEN = """
+Q_CHECK_SESSION_TOKEN = f"""
 SELECT
+    name,
+    {_Q_DO_SHOW_DONATION_NAG.format(table='person')},
+    {_Q_ESTIMATED_END_DATE},
     (SELECT name FROM unit WHERE unit.id = person.unit_id) AS units
 FROM
     person
@@ -2438,6 +2466,15 @@ ON
     verification_job.person_id = person.id
 WHERE
     person.id = %(person_id)s
+"""
+
+Q_DISMISS_DONATION = """
+UPDATE
+    person
+SET
+    last_nag_time = NOW()
+WHERE
+    id = %(person_id)s
 """
 
 Q_GET_SESSION_CLUBS = """

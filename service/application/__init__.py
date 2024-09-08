@@ -428,7 +428,11 @@ def post_verify(s: t.SessionInfo):
 
 @aget('/check-verification')
 def get_check_verification(s: t.SessionInfo):
-    return person.check_verification(s=s)
+    return person.get_check_verification(s=s)
+
+@apost('/dismiss-donation')
+def post_dismiss_donation(s: t.SessionInfo):
+    return person.post_dismiss_donation(s=s)
 
 @get('/stats')
 def get_stats():

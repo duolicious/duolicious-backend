@@ -1593,7 +1593,7 @@ def post_verify(s: t.SessionInfo):
     with api_tx() as tx:
         tx.execute(Q_ENQUEUE_VERIFICATION_JOB, dict(person_id=s.person_id))
 
-def check_verification(s: t.SessionInfo):
+def get_check_verification(s: t.SessionInfo):
     with api_tx() as tx:
         row = tx.execute(
             Q_CHECK_VERIFICATION,
@@ -1603,6 +1603,10 @@ def check_verification(s: t.SessionInfo):
     if row:
         return row
     return '', 400
+
+def post_dismiss_donation(s: t.SessionInfo):
+    with api_tx() as tx:
+        tx.execute(Q_DISMISS_DONATION, dict(person_id=s.person_id))
 
 @lru_cache()
 def get_stats(ttl_hash=None, club_name: Optional[str] = None):
