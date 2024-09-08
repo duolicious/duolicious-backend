@@ -2440,6 +2440,15 @@ WHERE
     person.id = %(person_id)s
 """
 
+Q_DISMISS_DONATION = """
+UPDATE
+    person
+SET
+    last_nag_time = NOW()
+WHERE
+    id = %(person_id)s
+"""
+
 Q_GET_SESSION_CLUBS = """
 SELECT
     COALESCE(
