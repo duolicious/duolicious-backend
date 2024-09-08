@@ -257,6 +257,7 @@ CREATE TABLE IF NOT EXISTS person (
     sign_up_time TIMESTAMP NOT NULL DEFAULT NOW(),
     sign_in_count INT NOT NULL DEFAULT 1,
     sign_in_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    last_nag_time TIMESTAMP DEFAULT to_timestamp(0),
 
     -- Whether the account was deactivated via the settings or automatically
     activated BOOLEAN NOT NULL DEFAULT TRUE,
