@@ -14,8 +14,6 @@ import { signedInUser } from '../App';
 import { api } from '../api/api';
 
 const DonationNagModal = () => {
-  return null; // TODO
-
   const name = signedInUser?.name;
   const estimatedEndDate = signedInUser?.estimatedEndDate;
   const doShowDonationNag = signedInUser?.doShowDonationNag;
