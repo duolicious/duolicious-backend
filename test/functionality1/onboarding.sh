@@ -11,11 +11,14 @@ img3=$(rand_image)
 
 set -xe
 
+date_in_20_days=$(q "select now() + interval '20 days'")
+
 q "delete from duo_session"
 q "delete from person"
 q "delete from onboardee"
 q "delete from undeleted_photo"
 q "update question set count_yes = 0, count_no = 0"
+q "update funding set estimated_end_date = '$date_in_20_days'"
 
 response=$(jc POST /request-otp -d '{ "email": "MAIL@example.com" }')
 
@@ -97,7 +100,7 @@ response=$(c POST /finish-onboarding)
 [[ "$(jq -r .units <<< "$response")" = Metric ]]
 [[ "$(jq -r .do_show_donation_nag <<< "$response")" = false ]]
 [[ "$(jq -r .name <<< "$response")" = Jeff ]]
-[[ "$(jq -r '.estimated_end_date' <<< "$response")" = '2024-09-17 15:02:10.866+00' ]]
+[[ "$(jq -r '.estimated_end_date' <<< "$response")" = "$date_in_20_days" ]]
 
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 0 ]]
 

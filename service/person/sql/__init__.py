@@ -1,12 +1,23 @@
 MAX_CLUB_SEARCH_RESULTS = 20
 
-_Q_DO_SHOW_DONATION_NAG = """
+# How often the user should be nagged to donate, in days. The frequency
+# increases as funds run out.
+_Q_DONATION_NAG_FREQUENCY = """
+SELECT
+    make_interval(
+        days => greatest(2, estimated_end_date::date - NOW()::date) / 2
+    )
+FROM
+    funding
+"""
+
+_Q_DO_SHOW_DONATION_NAG = f"""
 (
-        {table}.last_nag_time < NOW() - interval '1 day'
+        {{table}}.last_nag_time < NOW() - ({_Q_DONATION_NAG_FREQUENCY})
     AND
-        {table}.sign_up_time < NOW() - interval '1 day'
+        {{table}}.sign_up_time < NOW() - ({_Q_DONATION_NAG_FREQUENCY})
     AND
-        {table}.count_answers >= 25
+        {{table}}.count_answers >= 25
 ) AS do_show_donation_nag
 """
 
