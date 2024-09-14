@@ -286,15 +286,6 @@ const populateConversation = async (
   await populateConversationList([conversation], apiData);
 };
 
-const inboxToPersonUuids = (inbox: Inbox): string[] => {
-  const personUuids = new Set<string>();
-
-  inbox.chats .conversations.forEach((c) => personUuids.add(c.personUuid));
-  inbox.intros.conversations.forEach((c) => personUuids.add(c.personUuid));
-
-  return [...personUuids];
-};
-
 const jidToBareJid = (jid: string): string =>
   jid.split('@')[0];
 
@@ -333,8 +324,8 @@ const setInboxSent = (recipientPersonUuid: string, message: string) => {
   else if (!chatsConversation) {
     updatedConversation.location = 'chats';
 
-    i.chats.conversations.push(updatedConversation);
     i.chats.conversationsMap[recipientPersonUuid] = updatedConversation;
+    i.chats.conversations = Object.values(i.chats.conversationsMap);
 
     // Remove conversation from intros
     deleteFromArray(i.intros.conversations, introsConversation);
@@ -384,12 +375,12 @@ const setInboxRecieved = async (
   if (!chatsConversation && !introsConversation) {
     await populateConversation(updatedConversation);
     if (updatedConversation.location === 'chats') {
-      inbox.chats.conversations.push(updatedConversation);
       inbox.chats.conversationsMap[fromPersonUuid] = updatedConversation;
+      inbox.chats.conversations = Object.values(inbox.chats.conversationsMap);
     }
     if (updatedConversation.location === 'intros') {
-      inbox.intros.conversations.push(updatedConversation);
       inbox.intros.conversationsMap[fromPersonUuid] = updatedConversation;
+      inbox.intros.conversations = Object.values(inbox.intros.conversationsMap);
     }
   } else if (chatsConversation) {
     Object.assign(chatsConversation, updatedConversation);
