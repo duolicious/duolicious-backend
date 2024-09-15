@@ -97,6 +97,8 @@ const OtpInput = (props: Props) => {
       joinedInputValues[i] || ''
     );
 
+    const updatedDigitsString = updatedDigits.join('');
+
     const updatedDigitStates = Array(props.codeLength).fill(undefined).map(
       (_, i) => ({
         digit: updatedDigits[i],
@@ -105,13 +107,18 @@ const OtpInput = (props: Props) => {
     );
 
 
-    setState(_ => updatedDigitStates)
+    setState(updatedDigitStates)
 
     // Move focus
     moveFocusToIndex(joinedInputValues.length);
 
     // Provide OTP to callback
-    props.onChangeOtp(updatedDigits.join(''));
+    props.onChangeOtp(updatedDigitsString);
+
+    // Submit if the OTP is complete
+    if (updatedDigitsString.length === props.codeLength) {
+      props.submit();
+    }
   };
 
   const onFocus = (i: number) => () => {
