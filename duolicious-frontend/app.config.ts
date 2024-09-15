@@ -6,7 +6,7 @@ import { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'Duolicious',
   slug: 'duolicious',
-  version: "19.0.0",
+  version: "20.0.0",
   orientation: "portrait",
   icon: './assets/icon.png',
   splash: {
@@ -45,7 +45,7 @@ const config: ExpoConfig = {
   android: {
     googleServicesFile: "./google-services.json",
     package: "app.duolicious",
-    versionCode: 19,
+    versionCode: 20,
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#ffffff"
