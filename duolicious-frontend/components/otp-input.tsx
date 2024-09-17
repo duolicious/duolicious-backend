@@ -1,5 +1,6 @@
 import React, {useState, useRef} from 'react';
 import {
+  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
@@ -117,6 +118,7 @@ const OtpInput = (props: Props) => {
 
     // Submit if the OTP is complete
     if (updatedDigitsString.length === props.codeLength) {
+      Keyboard.dismiss();
       props.submit();
     }
   };
