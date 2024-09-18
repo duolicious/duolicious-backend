@@ -1,24 +1,44 @@
 class PromiseQueue {
-  private taskQueue: Array<() => Promise<any>>;
+  private queue: (() => Promise<any>)[] = [];
+  private isProcessing = false;
 
-  constructor() {
-    this.taskQueue = [];
+  addTask<T>(task: () => Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      // Enqueue the task
+      this.queue.push(async () => {
+        try {
+          const result = await task();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      this.processQueue();
+    });
   }
 
-  async addTask(task: () => Promise<any>): Promise<void> {
-    // Add task to the queue
-    this.taskQueue.push(task);
-
-    // If there's more than one task in the queue, the previous tasks are still
-    // running So we just return and let them finish
-    if (this.taskQueue.length > 1) return;
-
-    // Process all tasks
-    while (this.taskQueue.length > 0) {
-      const currentTask = this.taskQueue[0];
-      await currentTask();
-      this.taskQueue.shift();
+  private async processQueue() {
+    if (this.isProcessing) {
+      return;
     }
+
+    this.isProcessing = true;
+
+    while (this.queue.length > 0) {
+      const task = this.queue.shift();
+      if (!task) {
+        continue;
+      }
+
+      try {
+        await task();
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    this.isProcessing = false;
   }
 }
 
@@ -31,7 +51,13 @@ const quizQueue = new PromiseQueue();
 
 const aboutQueue = new PromiseQueue();
 
+// Search queries need to be issued in sequence because each query updates the
+// club to search by on the server (and the list of matches too). This could
+// cause one query in a pair of queries to overwrite the other's results.
+const searchQueue = new PromiseQueue();
+
 export {
   aboutQueue,
   quizQueue,
+  searchQueue,
 };

@@ -28,6 +28,7 @@ import { delay, isMobile } from '../util/util';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ClubItem, sortClubs } from './club-selector';
 import { listen, lastEvent } from '../events/events';
+import { searchQueue } from '../api/queue';
 
 const styles = StyleSheet.create({
   safeAreaView: {
@@ -144,7 +145,10 @@ type PageItem = {
   verification_required_to_view: string | null
 };
 
-const fetchPage = (club: string | null) => async (pageNumber: number): Promise<PageItem[] | null> => {
+const fetchPageWithoutQueue = async (
+  club: string | null,
+  pageNumber: number
+): Promise<PageItem[] | null> => {
   const resultsPerPage = 10;
   const offset = resultsPerPage * (pageNumber - 1);
   const response = await japi(
@@ -156,6 +160,15 @@ const fetchPage = (club: string | null) => async (pageNumber: number): Promise<P
   );
 
   return response.ok ? response.json : null;
+};
+
+const fetchPage = (
+  club: string | null
+) => async (
+  pageNumber: number
+): Promise<PageItem[] | null> => {
+  return searchQueue.addTask(
+    async () => fetchPageWithoutQueue(club, pageNumber));
 };
 
 type ClubSelectorProps = {

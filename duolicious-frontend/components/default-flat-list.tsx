@@ -104,7 +104,7 @@ const setBookFetched = <ItemT,>(
   index: number,
 ): void => {
   if (index < 0 || index > book.pages.length - 1) {
-    throw new Error('Index out of range');
+    return;
   }
 
   book.pages[index] = page;
@@ -114,6 +114,12 @@ const setBookError = <ItemT,>(book: Book<ItemT>): void => {
   book.pages = [];
   book.isRefreshing = false;
   book.isError = true;
+};
+
+const setBookRefreshing = <ItemT,>(book: Book<ItemT>): void => {
+  book.pages = [];
+  book.isRefreshing = true;
+  book.isError = false;
 };
 
 const getBookOrDefault = <ItemT,>(
@@ -148,6 +154,14 @@ const setBookErrorInBooks = <ItemT,>(
 ) => {
   books[dataKey] = getBookOrDefault(books, dataKey);
   setBookError(books[dataKey]);
+};
+
+const setBookRefreshingInBooks = <ItemT,>(
+  books: Books<ItemT>,
+  dataKey: string,
+) => {
+  books[dataKey] = getBookOrDefault(books, dataKey);
+  setBookRefreshing(books[dataKey]);
 };
 
 type DefaultFlatListProps<ItemT> =
@@ -306,7 +320,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
       setBookFetchedInBooks(books, page, dataKey, pageNumberToFetchVal - 1);
     }
 
-    setBooks({ ...books });
+    setBooks(oldBooks => ({ ...oldBooks, ...books }));
   };
 
   const onRefresh = () => {
@@ -314,14 +328,11 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
 
     if (book.isRefreshing) return;
 
-    setBooks({
-      ...books,
-      [dataKey]: {
-        pages: [],
-        isRefreshing: true,
-        isError: false,
-      }
-    });
+    setBookRefreshingInBooks(books, dataKey);
+
+    setBooks(oldBooks => ({ ...oldBooks, ...books }));
+
+    fetchNextPage();
   };
 
   useImperativeHandle(ref, () => ({ refresh: onRefresh }), [onRefresh]);
@@ -329,11 +340,8 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
   const onContentSizeChange = (width: number, height: number) => {
     contentHeight.current = height;
 
-    if (
-      contentHeight.current < viewportHeight.current &&
-      !isBookComplete(book)
-    ) {
-      fetchNextPage()
+    if (contentHeight.current < viewportHeight.current) {
+      fetchNextPage();
     }
   };
 
