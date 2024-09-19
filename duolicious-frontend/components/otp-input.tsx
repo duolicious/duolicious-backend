@@ -139,8 +139,14 @@ const OtpInput = (props: Props) => {
         justifyContent: 'center',
       }}
     >
-      <DefaultText style={{ color: 'white' }} >
-        One-time pass sent to:
+      <DefaultText
+        style={{
+          color: 'white',
+          paddingHorizontal: 10,
+          textAlign: 'center',
+        }}
+      >
+        Check your spam if your one-time pass isn’t at
       </DefaultText>
       <DefaultText
         style={{
