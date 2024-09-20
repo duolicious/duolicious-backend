@@ -30,6 +30,7 @@ import { otpDestination } from '../App';
 import { signedInUser } from '../App';
 import { notify, lastEvent } from '../events/events';
 import { ClubItem, joinClub } from './club-selector';
+import { isMobile } from '../util/util';
 
 const activeMembersText = (
   numActiveMembers: number,
@@ -515,6 +516,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
             inputMode="email"
             value={email}
             onChangeText={setEmailSafely}
+            onSubmitEditing={isMobile() ? undefined : () => submit()}
             autoFocus={Platform.OS !== 'ios'}
           />
           <DefaultText

@@ -11,6 +11,7 @@ import {
 } from './default-text-input';
 import { DefaultText } from './default-text';
 import { otpDestination } from '../App';
+import { isMobile } from '../util/util';
 
 type Props = {
   codeLength: number,
@@ -172,6 +173,7 @@ const OtpInput = (props: Props) => {
               onBlur={onBlur(i)}
               onChangeText={onChangeText(i)}
               onKeyPress={onKeyPress(i)}
+              onSubmitEditing={isMobile() ? undefined : () => props.submit()}
               value={digitState.digit}
               inputMode="numeric"
               keyboardType="number-pad"

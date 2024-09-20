@@ -76,6 +76,7 @@ import { KeyboardDismissingView } from './keyboard-dismissing-view';
 import { listen, notify } from '../events/events';
 import { Title } from './title';
 import { ShowColorPickerEvent } from './color-picker-modal/color-picker-modal';
+import { isMobile } from '../util/util';
 
 type InputProps<T extends OptionGroupInputs> = {
   input: T,
@@ -266,6 +267,7 @@ const GivenName = forwardRef((props: InputProps<OptionGroupGivenName>, ref) => {
         textContentType="givenName"
         autoComplete="name-given"
         onChangeText={onChangeInputValue}
+        onSubmitEditing={isMobile() ? undefined : () => submit()}
       />
       <DefaultText
         style={{
@@ -566,6 +568,7 @@ const TextLong = forwardRef((props: InputProps<OptionGroupTextLong>, ref) => {
         }}
         autoFocus={Platform.OS !== 'ios'}
         onChangeText={onChangeInputValue}
+        onSubmitEditing={isMobile() ? undefined : () => submit()}
         numberOfLines={8}
       />
       {props.input?.textLong?.invalidMsg &&
@@ -615,6 +618,7 @@ const TextShort = forwardRef((props: InputProps<OptionGroupTextShort>, ref) => {
         }}
         defaultValue={inputValueRef.current}
         onChangeText={onChangeInputValue}
+        onSubmitEditing={isMobile() ? undefined : () => submit()}
         placeholder="Type here..."
       />
       {props.input?.textShort?.invalidMsg &&
