@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~3.2.3",
-    "@expo/vector-icons": "14.0.2",
+    "@expo/vector-icons": "^14.0.3",
     "@fortawesome/fontawesome-svg-core": "^6.2.1",
     "@fortawesome/free-solid-svg-icons": "^6.2.1",
     "@fortawesome/react-native-fontawesome": "^0.3.0",
@@ -33,7 +33,7 @@
     "expo-image-manipulator": "~12.0.5",
     "expo-image-picker": "~15.0.7",
     "expo-linear-gradient": "~13.0.2",
-    "expo-notifications": "~0.28.16",
+    "expo-notifications": "~0.28.17",
     "expo-screen-orientation": "~7.0.5",
     "expo-secure-store": "~13.0.2",
     "expo-splash-screen": "~0.27.5",

@@ -339,13 +339,18 @@ const WelcomeScreen_ = ({navigation, route}) => {
 
   const { height } = useWindowDimensions();
 
+  const setEmailSafely = (e: string) => {
+    const sanitizedText = e.replace(/\s/g, '');
+    setEmail(sanitizedText);
+  };
+
   const submit = async (suffix?: string) => {
     const suffix_ = suffix ?? '';
     const email_ = email + (email.endsWith(suffix_) ? '': suffix_);
 
     setLoginStatus("");
     setIsLoading(true);
-    setEmail(email_);
+    setEmailSafely(email_);
     otpDestination.value = email_;
 
     Keyboard.dismiss();
@@ -507,9 +512,9 @@ const WelcomeScreen_ = ({navigation, route}) => {
             textContentType="emailAddress"
             autoComplete="email"
             autoCapitalize="none"
+            inputMode="email"
             value={email}
-            onChangeText={setEmail}
-            onSubmitEditing={() => submit()}
+            onChangeText={setEmailSafely}
             autoFocus={Platform.OS !== 'ios'}
           />
           <DefaultText

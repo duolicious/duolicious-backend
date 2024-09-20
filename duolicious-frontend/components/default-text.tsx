@@ -26,6 +26,7 @@ const DefaultText = (props: TextProps) => {
       {fontWeight: undefined},
     ]
   };
+
   return (
     <Text
       selectable={false}

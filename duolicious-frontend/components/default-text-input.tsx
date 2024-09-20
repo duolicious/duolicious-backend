@@ -1,4 +1,5 @@
 import {
+  Keyboard,
   TextInput,
 } from 'react-native';
 
@@ -10,6 +11,8 @@ const DefaultTextInput = (props) => {
       ref={innerRef}
       placeholderTextColor="#888"
       cursorColor="#70f"
+      returnKeyType="done"
+      onSubmitEditing={() => Keyboard.dismiss()}
       style={{
         backgroundColor: 'white',
         padding: 10,

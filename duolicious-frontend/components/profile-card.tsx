@@ -25,7 +25,6 @@ import { ImageBackground } from 'expo-image';
 import { VerificationBadge } from './verification-badge';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
-import { verificationOptionGroups } from '../data/option-groups';
 
 const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
   const {

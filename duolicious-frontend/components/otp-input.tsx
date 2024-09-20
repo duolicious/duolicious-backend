@@ -172,7 +172,6 @@ const OtpInput = (props: Props) => {
               onBlur={onBlur(i)}
               onChangeText={onChangeText(i)}
               onKeyPress={onKeyPress(i)}
-              onSubmitEditing={props.submit}
               value={digitState.digit}
               inputMode="numeric"
               keyboardType="number-pad"

@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 
 const KeyboardDismissingView = ({children, ...rest}) => {
-  if (Platform.OS === 'web') {
+  if (Platform.OS === 'web' || rest.enabled === false) {
     return <View {...rest}>{children}</View>
   } else {
     return <Pressable onPress={Keyboard.dismiss} {...rest}>

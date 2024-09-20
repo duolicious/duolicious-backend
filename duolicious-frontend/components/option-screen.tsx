@@ -1,6 +1,5 @@
 import {
   Animated,
-  Keyboard,
   Platform,
   Pressable,
   SafeAreaView,
@@ -59,6 +58,7 @@ import {
   isOptionGroupTextShort,
   isOptionGroupThemePicker,
   isOptionGroupVerificationChecker,
+  noneFontSize,
 } from '../data/option-groups';
 import {
   PrimaryImage,
@@ -266,7 +266,6 @@ const GivenName = forwardRef((props: InputProps<OptionGroupGivenName>, ref) => {
         textContentType="givenName"
         autoComplete="name-given"
         onChangeText={onChangeInputValue}
-        onSubmitEditing={submit}
       />
       <DefaultText
         style={{
@@ -567,7 +566,6 @@ const TextLong = forwardRef((props: InputProps<OptionGroupTextLong>, ref) => {
         }}
         autoFocus={Platform.OS !== 'ios'}
         onChangeText={onChangeInputValue}
-        onSubmitEditing={submit}
         numberOfLines={8}
       />
       {props.input?.textLong?.invalidMsg &&
@@ -617,7 +615,6 @@ const TextShort = forwardRef((props: InputProps<OptionGroupTextShort>, ref) => {
         }}
         defaultValue={inputValueRef.current}
         onChangeText={onChangeInputValue}
-        onSubmitEditing={submit}
         placeholder="Type here..."
       />
       {props.input?.textShort?.invalidMsg &&
@@ -633,6 +630,7 @@ const TextShort = forwardRef((props: InputProps<OptionGroupTextShort>, ref) => {
         </DefaultText>
       }
       <ButtonWithCenteredText
+        loading={props.isLoading}
         onPress={submit}
         containerStyle={{
           marginTop: 15,
@@ -1228,19 +1226,30 @@ const None = forwardRef((props: InputProps<OptionGroupNone>, ref) => {
 
   useImperativeHandle(ref, () => ({ submit }), []);
 
-  return (
-    <DefaultText
-      style={{
-        color: props.theme !== 'light' ? 'white' : 'black',
-        textAlign: props.input.none.textAlign ?? 'center',
-        paddingLeft: 20,
-        paddingRight: 20,
-        fontSize: 16,
-      }}
-    >
-      {props.input.none.description}
-    </DefaultText>
-  );
+  const Description = props.input.none.description;
+
+  const style = {
+    color: props.theme !== 'light' ? 'white' : 'black',
+    textAlign: props.input.none.textAlign ?? 'center',
+    paddingHorizontal: 20,
+    fontSize: noneFontSize,
+  };
+
+  if (!Description) {
+    return null;
+  } else if (typeof Description === 'string') {
+    return (
+      <DefaultText style={style}>
+        {Description}
+      </DefaultText>
+    );
+  } else {
+    return (
+      <KeyboardDismissingView style={style}>
+        <Description/>
+      </KeyboardDismissingView>
+    );
+  }
 });
 
 const InputElement = forwardRef((props: InputProps<OptionGroupInputs>, ref) => {
@@ -1379,7 +1388,7 @@ const OptionScreen = ({navigation, route}) => {
         height: '100%',
       }}
     >
-      <KeyboardDismissingView
+      <KeyboardDismissingView enabled={scrollView === false}
         style={{
           height: '100%',
           width: '100%',
@@ -1481,6 +1490,8 @@ const OptionScreen = ({navigation, route}) => {
                   flexGrow: 1,
                   justifyContent: 'center',
                 }}
+                bounces={false}
+                overScrollMode="never"
               >
                 <View style={{height: 20}}/>
                 <InputElement
@@ -1550,4 +1561,5 @@ const OptionScreen = ({navigation, route}) => {
 
 export {
   OptionScreen,
+  noneFontSize,
 };
