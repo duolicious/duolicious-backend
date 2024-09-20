@@ -1,11 +1,13 @@
 import {
   Animated,
+  Image,
   PanResponder,
   Platform,
   Pressable,
   StatusBar,
   StyleSheet,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import {
   useCallback,
@@ -14,10 +16,6 @@ import {
   useRef,
   useState,
 } from 'react'
-import {
-  Image,
-  useWindowDimensions,
-} from 'react-native'
 import { DefaultText } from './default-text';
 import { listen, notify } from '../events/events';
 
@@ -25,6 +23,8 @@ const buttonHeight = 110; // Define the height for the button
 
 type ImageCropperInput = {
   base64: string
+  height: number
+  width: number
   callback: string
   showProtip?: boolean
 };
@@ -40,11 +40,8 @@ type NonNullImageCropperOutput = Exclude<ImageCropperOutput, null>;
 
 const ImageCropper = () => {
   const [data, setData] = useState<ImageCropperInput>();
-  const [realImageSize, setRealImageSize] = useState({ width: 0, height: 0 });
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const imageSource = useMemo(() => ({uri: data?.base64}), [data?.base64]);
-
-  const imageSize = useRef<{width: number, height: number}>();
 
   const cropAreaBase = useRef<
     {top: number, left: number, size: number} | null
@@ -71,8 +68,35 @@ const ImageCropper = () => {
   const statusBarHeight = (
     Platform.OS === 'web' ? 0 : (StatusBar.currentHeight ?? 0));
 
+  const computeRenderedImageSize = () => {
+    if (!data) {
+      return null;
+    }
+
+    const aspectRatio = data.width / data.height;
+
+    // Reduce the available height by the button's height
+    const availableHeight = windowHeight - buttonHeight - statusBarHeight;
+
+    let newWidth: number;
+    let newHeight: number;
+
+    if (windowWidth / availableHeight < aspectRatio) {
+      newWidth = windowWidth;
+      newHeight = windowWidth / aspectRatio;
+    } else {
+      newWidth = availableHeight * aspectRatio;
+      newHeight = availableHeight;
+    }
+
+    return { width: newWidth, height: newHeight };
+  };
+
+  const renderedImageSize = useRef(computeRenderedImageSize());
+  renderedImageSize.current = computeRenderedImageSize();
+
   const onPanResponderMove = (event, gestureState) => {
-    if (!imageSize.current) {
+    if (!renderedImageSize.current) {
       return;
     }
 
@@ -90,8 +114,8 @@ const ImageCropper = () => {
     // Bounds checking
     newTop = Math.max(0, newTop);
     newLeft = Math.max(0, newLeft);
-    const maxTop = imageSize.current.height - cropAreaBase.current.size;
-    const maxLeft = imageSize.current.width - cropAreaBase.current.size;
+    const maxTop = renderedImageSize.current.height - cropAreaBase.current.size;
+    const maxLeft = renderedImageSize.current.width - cropAreaBase.current.size;
     newTop = Math.min(maxTop, newTop);
     newLeft = Math.min(maxLeft, newLeft);
 
@@ -111,25 +135,13 @@ const ImageCropper = () => {
     })
   ).current;
 
-  const initDims = useCallback((width: number, height: number) => {
-    const aspectRatio = width / height;
-
-    // Reduce the available height by the button's height
-    const availableHeight = windowHeight - buttonHeight - statusBarHeight;
-
-    let newWidth, newHeight;
-
-    if (windowWidth / availableHeight < aspectRatio) {
-      newWidth = windowWidth;
-      newHeight = windowWidth / aspectRatio;
-    } else {
-      newWidth = availableHeight * aspectRatio;
-      newHeight = availableHeight;
+  const initCropArea = useCallback((width: number, height: number) => {
+    if (!renderedImageSize.current) {
+      return;
     }
 
-    imageSize.current = { width: newWidth, height: newHeight };
+    const { width: newWidth, height: newHeight } = renderedImageSize.current;
 
-    setRealImageSize({ width, height });
     const cropSize = Math.min(newWidth, newHeight);
 
     setCropArea({
@@ -137,20 +149,20 @@ const ImageCropper = () => {
       left: (newWidth - cropSize) / 2,
       size: cropSize
     });
-  }, [windowWidth, windowHeight]);
+  }, [JSON.stringify(renderedImageSize.current)]);
 
   useEffect(() => {
     if (!data) return;
 
-    Image.getSize(data.base64, initDims, console.error);
-  }, [data, initDims]);
+    initCropArea(data.width, data.height);
+  }, [data, initCropArea]);
 
   useEffect(() => {
     return listen<ImageCropperInput>(
       'image-cropper-open',
       (data) => setData(data)
     );
-  }, [listen, data]);
+  }, []);
 
   const onCancelPress = () => {
     if (!data) {
@@ -160,7 +172,6 @@ const ImageCropper = () => {
     notify<ImageCropperOutput>(data.callback, null);
 
     setData(undefined);
-    imageSize.current = undefined;
   };
 
   const onCropPress = async () => {
@@ -168,14 +179,14 @@ const ImageCropper = () => {
       return;
     }
 
-    if (!imageSize.current) {
+    if (!renderedImageSize.current) {
       return;
     }
 
     const realCropArea = {
-      top: realImageSize.height / imageSize.current.height * cropArea.current.top,
-      left: realImageSize.width / imageSize.current.width * cropArea.current.left,
-      size: Math.min(realImageSize.height, realImageSize.width),
+      top: data.height / renderedImageSize.current.height * cropArea.current.top,
+      left: data.width / renderedImageSize.current.width * cropArea.current.left,
+      size: Math.min(data.height, data.width),
     };
 
     notify<ImageCropperOutput>(
@@ -189,7 +200,6 @@ const ImageCropper = () => {
     );
 
     setData(undefined);
-    imageSize.current = undefined;
   };
 
   const Button = ({onPress, title, color}) => {
@@ -247,8 +257,8 @@ const ImageCropper = () => {
     <View style={styles.container}>
       <View style={{
         marginTop: statusBarHeight,
-        width:  imageSize.current?.width ?? 0,
-        height: imageSize.current?.height ?? 0,
+        width:  renderedImageSize.current?.width ?? 0,
+        height: renderedImageSize.current?.height ?? 0,
         backgroundColor: 'black'
       }}>
         <Image

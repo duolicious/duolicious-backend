@@ -209,6 +209,8 @@ const UserImage = ({
         'image-cropper-open',
         {
           base64: base64Uri,
+          height,
+          width,
           callback: imageCropperCallback,
           showProtip: showProtip,
         }
