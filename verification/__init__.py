@@ -74,7 +74,7 @@ def get_system_content(
         '  // Image #1 contains a person who is smiling',
         '  image_1_has_smiling_person: number',
         '',
-        '  // Image #1 contains a person who is touching their eyebrow',
+        '  // Image #1 contains a person whose hand is in contact with their eyebrow or a part of their face adjacent to their eyebrow (e.g. their forehead)',
         '  image_1_has_eyebrow_touch: number',
         '',
         '  // Image #1 contains a person whose thumb is visible',
@@ -104,7 +104,7 @@ def get_user_content(
                 "type": "image_url",
                 "image_url": {
                     "url": get_image_url(uuid),
-                    "detail": "low"
+                    "detail": "high" if i == 0 else "low"
                 }
             }
 
