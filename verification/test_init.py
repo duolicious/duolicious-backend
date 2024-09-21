@@ -296,7 +296,7 @@ You have been given one or more image(s) by a user attempting to verify their id
   // Image #1 contains a person who is smiling
   image_1_has_smiling_person: number
 
-  // Image #1 contains a person who is touching their eyebrow
+  // Image #1 contains a person whose hand is in contact with their eyebrow or a part of their face adjacent to their eyebrow (e.g. their forehead)
   image_1_has_eyebrow_touch: number
 
   // Image #1 contains a person whose thumb is visible
@@ -320,7 +320,7 @@ You have been given one or more image(s) by a user attempting to verify their id
                             "type": "image_url",
                             "image_url": {
                                 "url": 'https://user-images.duolicious.app/450-u1.jpg',
-                                "detail": "low"
+                                "detail": "high"
                             }
                         },
                     ]
@@ -380,7 +380,7 @@ You have been given one or more image(s) by a user attempting to verify their id
   // Image #1 contains a person who is smiling
   image_1_has_smiling_person: number
 
-  // Image #1 contains a person who is touching their eyebrow
+  // Image #1 contains a person whose hand is in contact with their eyebrow or a part of their face adjacent to their eyebrow (e.g. their forehead)
   image_1_has_eyebrow_touch: number
 
   // Image #1 contains a person whose thumb is visible
@@ -410,7 +410,7 @@ You have been given one or more image(s) by a user attempting to verify their id
                             "type": "image_url",
                             "image_url": {
                                 "url": 'https://user-images.duolicious.app/450-u1.jpg',
-                                "detail": "low"
+                                "detail": "high"
                             }
                         },
                         {
@@ -489,7 +489,7 @@ You have been given one or more image(s) by a user attempting to verify their id
   // Image #1 contains a person who is smiling
   image_1_has_smiling_person: number
 
-  // Image #1 contains a person who is touching their eyebrow
+  // Image #1 contains a person whose hand is in contact with their eyebrow or a part of their face adjacent to their eyebrow (e.g. their forehead)
   image_1_has_eyebrow_touch: number
 
   // Image #1 contains a person whose thumb is visible
@@ -555,7 +555,7 @@ You have been given one or more image(s) by a user attempting to verify their id
   // Image #1 contains a person who is smiling
   image_1_has_smiling_person: number
 
-  // Image #1 contains a person who is touching their eyebrow
+  // Image #1 contains a person whose hand is in contact with their eyebrow or a part of their face adjacent to their eyebrow (e.g. their forehead)
   image_1_has_eyebrow_touch: number
 
   // Image #1 contains a person whose thumb is visible
