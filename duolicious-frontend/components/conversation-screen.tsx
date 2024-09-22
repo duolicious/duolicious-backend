@@ -409,7 +409,7 @@ const ConversationScreen = ({navigation, route}) => {
       messageStatus === 'sent' &&
       text.toLowerCase().includes('hahaha') &&
       messages &&
-      messages.length > 25
+      messages.length > 40
     ) {
       maybeRequestReview(1000);
     }
