@@ -781,7 +781,6 @@ const ProspectUserDetails = ({
             color: textColor,
           }}
         >
-          {displayedLocation}{' '}
           <FontAwesomeIcon
             icon={faLocationDot}
             style={{
@@ -789,6 +788,8 @@ const ProspectUserDetails = ({
             }}
             color={textColor}
           />
+          {'\u2002'}
+          {displayedLocation}
         </DefaultText>
       </View>
       <DonutChart
@@ -854,6 +855,17 @@ const Body = ({
   const basicsTheme = {
     textStyle: {
       color: data?.theme?.body_color,
+    },
+  };
+
+  const clubsTheme = {
+    ...basicsTheme,
+  };
+
+  const mutualClubsTheme = {
+    ...basicsTheme,
+    style: {
+      borderColor: clubsTheme.textStyle.color,
     },
   };
 
@@ -1008,7 +1020,7 @@ const Body = ({
                   key={i}
                   name={clubName}
                   isMutual={true}
-                  {...basicsTheme}
+                  {...mutualClubsTheme}
                 />
               )}
             </Clubs>
@@ -1035,7 +1047,7 @@ const Body = ({
                   key={i}
                   name={clubName}
                   isMutual={false}
-                  {...basicsTheme}
+                  {...clubsTheme}
                 />
               )}
             </Clubs>

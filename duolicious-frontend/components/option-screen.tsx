@@ -1026,7 +1026,7 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
                     width: '100%',
                   }}
                 >
-                  Not to worry! You can try up to five times per day.
+                  Not to worry! You can try up to eight times per day.
                 </DefaultText>
               </View>
             </>

@@ -13,6 +13,7 @@ const Club = ({
 }) => {
   return (
     <Basic
+      style={style}
       textStyle={{
         fontFamily: isMutual ? 'TruenoBold' : 'Trueno',
         fontWeight: isMutual ? '900' : '400',

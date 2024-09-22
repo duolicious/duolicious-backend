@@ -394,45 +394,17 @@ const verificationLevel = [
   'Photos',
 ];
 
-const demoFontSize = 32;
+const verificationDescription = `
+To prove you’re real, you can take a selfie while you do three things at once:
 
-const UpsideDownShaka = () => {
-  return (
-    <View
-      style={{
-        transform: [
-          { rotate: '160deg' },
-          { translateX: 2 },
-          { translateY: 2 },
-        ],
-      }}
-    >
-      <DefaultText style={{ fontSize: demoFontSize }}>🤙</DefaultText>
-    </View>
-  );
-};
+\xa0\xa01. Smile 😊
+\xa0\xa02. Give one thumb down 👎
+\xa0\xa03. Touch your eyebrow 🤨
 
-const SlightlySmiling = () => {
-  return (
-    <View>
-      <DefaultText style={{ fontSize: demoFontSize }}>🙂</DefaultText>
-    </View>
-  );
-};
+You can use one hand for those last two. Our AI will check your selfie and let you know if you’re verified.
 
-const VerificationDemo = () => {
-  return (
-    <View
-      style={{
-        justifyContent: 'center',
-        flexDirection: 'row',
-      }}
-    >
-      <SlightlySmiling/>
-      <UpsideDownShaka/>
-    </View>
-  );
-};
+To verify your photos, your face needs to be visible on your profile. But never reveal your verification selfie to anyone, or they can pretend they’re you.
+`.trim();
 
 const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
   title: 'Gender',
@@ -1739,29 +1711,7 @@ const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: 'Get a pretty blue badge by taking a selfie!',
     input: {
       none: {
-        description: () => <>
-          <DefaultText style={{ fontSize: noneFontSize }}>
-            {'To prove you’re real, you can take a selfie while you do three '}
-            {'things at once:\n\n'}
-
-            {'\xa0\xa01. Smile 😊\n'}
-            {'\xa0\xa02. Give one thumb down 👎\n'}
-            {'\xa0\xa03. Touch your eyebrow 🤨\n\n'}
-
-            {'You can use one hand for those last two, like this:'}
-          </DefaultText>
-
-          <VerificationDemo/>
-
-          <DefaultText style={{ fontSize: noneFontSize }}>
-            {'\nOur AI will check your '}
-            {'selfie and let you know if you’re verified.\n\n'}
-
-            {'To verify your photos, your face needs to be visible on your '}
-            {'profile. But never reveal your verification selfie to anyone, '}
-            {'or they can pretend they’re you.'}
-          </DefaultText>
-        </>,
+        description: verificationDescription,
         textAlign: 'left',
         submit: async () => true,
       }
