@@ -4,6 +4,7 @@ Pillow
 PyYAML
 blurhash
 boto3
+erlastic
 flask-cors
 gunicorn
 numpy
