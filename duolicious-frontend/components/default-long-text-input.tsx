@@ -9,6 +9,7 @@ const DefaultLongTextInput = (props) => {
       placeholderTextColor="#888888"
       multiline={true}
       numberOfLines={4}
+      returnKeyType={undefined}
       style={{
         textAlignVertical: 'top',
         borderColor: '#ccc',
