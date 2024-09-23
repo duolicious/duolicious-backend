@@ -17,7 +17,7 @@ import traceback
 import threading
 import re
 from smtp import aws_smtp
-from flask import request
+from flask import request, send_file
 from dataclasses import dataclass
 import psycopg
 from functools import lru_cache
@@ -25,11 +25,25 @@ import random
 from antispam import check_and_update_bad_domains, normalize_email
 import blurhash
 import numpy
+import erlastic
+from datetime import datetime, timezone
+
 
 @dataclass
 class EmailEntry:
     email: str
     count: int
+
+
+class BytesEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            try:
+                return obj.decode('utf-8')
+            except:
+                return str(obj)
+
+        return super().default(obj)
 
 def parse_email_string(email_string):
     # Regular expression to match an email followed optionally by a number
@@ -1694,7 +1708,7 @@ def get_admin_delete_photo(token: str):
         return 'Photo deletion failed', 401
 
 # TODO: Test that export doesnt leak other users' data
-# TODO: Delete expired tokens
+# TODO: Test expired tokens are deleted
 # TODO: Images?
 def get_export_data_token(s: t.SessionInfo):
     params = dict(person_id=s.person_id)
@@ -1716,7 +1730,7 @@ def get_export_data(token: str):
         raw_api_data = tx.execute(Q_EXPORT_API_DATA, params).fetchone()['j']
 
     with chat_tx('read committed') as tx:
-        raw_chat_data = tx.execute(Q_EXPORT_CHAT_DATA, params).fetchone()['j']
+        raw_chat_data = tx.execute(Q_EXPORT_CHAT_DATA, params).fetchall()
 
     person_id = params['person_id']
 
@@ -1734,10 +1748,35 @@ def get_export_data(token: str):
         del duo_session['otp']
         del duo_session['otp_expiry']
 
+    # Decode messages
+    for row in raw_chat_data:
+        row['timestamp'] = datetime.fromtimestamp(
+            timestamp=(row['id'] >> 8) / 1_000_000,
+            tz=timezone.utc,
+        ).isoformat()
+
+        row['message'] = json.dumps(
+            erlastic.decode(row['message']),
+            cls=BytesEncoder,
+        )
+
     # Return the result
-    return dict(
+    exported_dict = dict(
         raw_api_data=raw_api_data,
         raw_chat_data=raw_chat_data,
         inferred_personality_data=inferred_personality_data,
         search_filters=search_filters,
+    )
+
+    exported_string = json.dumps(exported_dict, indent=2)
+
+    exported_bytes = exported_string.encode()
+
+    exported_bytesio = io.BytesIO(exported_bytes)
+
+    return send_file(
+        exported_bytesio,
+        mimetype='text/json',
+        as_attachment=True,
+        download_name='export.json',
     )

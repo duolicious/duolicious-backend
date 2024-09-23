@@ -2726,7 +2726,17 @@ SELECT json_build_object(
 
 Q_EXPORT_CHAT_DATA = """
 SELECT
-    1 AS j
+    mam_message.*
+FROM
+    mam_message
+JOIN
+    mam_server_user
+ON
+    mam_message.user_id = mam_server_user.id
+WHERE
+    mam_server_user.server = 'duolicious.app'
+AND
+    mam_server_user.user_name = %(person_uuid)s::TEXT
 """
 
 Q_GET_SESSION_CLUBS = """
