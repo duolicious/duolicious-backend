@@ -1124,7 +1124,10 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             return '', 500
 
 def get_search_filters(s: t.SessionInfo):
-    params = dict(person_id=s.person_id)
+    return get_search_filters_by_person_id(person_id=s.person_id)
+
+def get_search_filters_by_person_id(person_id: Optional[int]):
+    params = dict(person_id=person_id)
 
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_SEARCH_FILTERS, params).fetchone()['j']
@@ -1689,3 +1692,52 @@ def get_admin_delete_photo(token: str):
         return f'Deleted photo {rows}'
     else:
         return 'Photo deletion failed', 401
+
+# TODO: Test that export doesnt leak other users' data
+# TODO: Delete expired tokens
+# TODO: Images?
+def get_export_data_token(s: t.SessionInfo):
+    params = dict(person_id=s.person_id)
+
+    with api_tx() as tx:
+        return tx.execute(Q_INSERT_EXPORT_DATA_TOKEN, params).fetchone()
+
+def get_export_data(token: str):
+    token_params = dict(token=token)
+
+    # Fetch data from database
+    with api_tx('read committed') as tx:
+        params = tx.execute(Q_CHECK_EXPORT_DATA_TOKEN, token_params).fetchone()
+
+    if not params:
+        return 'Invalid token. Link might have expired.', 401
+
+    with api_tx('read committed') as tx:
+        raw_api_data = tx.execute(Q_EXPORT_API_DATA, params).fetchone()['j']
+
+    with chat_tx('read committed') as tx:
+        raw_chat_data = tx.execute(Q_EXPORT_CHAT_DATA, params).fetchone()['j']
+
+    person_id = params['person_id']
+
+    inferred_personality_data = get_me(person_id_as_int=person_id)
+
+    search_filters = get_search_filters_by_person_id(person_id=person_id)
+
+    # Redact sensitive fields
+    for person in raw_api_data['person']:
+        del person['id_salt']
+
+    for duo_session in raw_api_data['duo_session']:
+        del duo_session['session_token_hash']
+        del duo_session['email']
+        del duo_session['otp']
+        del duo_session['otp_expiry']
+
+    # Return the result
+    return dict(
+        raw_api_data=raw_api_data,
+        raw_chat_data=raw_chat_data,
+        inferred_personality_data=inferred_personality_data,
+        search_filters=search_filters,
+    )

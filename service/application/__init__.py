@@ -459,3 +459,25 @@ def get_admin_delete_photo_link(token: str):
 @get('/admin/delete-photo/<token>')
 def get_admin_delete_photo(token: str):
     return person.get_admin_delete_photo(token)
+
+@aget('/export-data-token')
+def get_export_data_token(s: t.SessionInfo):
+    limit = "3 per day"
+    scope = "export_data_token"
+
+    with (
+        limiter.limit(
+            limit,
+            scope=scope,
+            exempt_when=disable_ip_rate_limit),
+        limiter.limit(
+            limit,
+            scope=scope,
+            key_func=limiter_account,
+            exempt_when=disable_account_rate_limit)
+    ):
+        return person.get_export_data_token(s=s)
+
+@get('/export-data/<token>')
+def get_export_data(token: str):
+    return person.get_export_data(token=token)

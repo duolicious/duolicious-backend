@@ -424,6 +424,13 @@ CREATE TABLE IF NOT EXISTS banned_person_admin_token (
     expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 month')
 );
 
+CREATE TABLE IF NOT EXISTS export_data_token (
+    token UUID PRIMARY key default gen_random_uuid(),
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '10 minutes')
+);
+
 CREATE TABLE IF NOT EXISTS banned_person (
     normalized_email TEXT NOT NULL,
     ip_address inet NOT NULL DEFAULT '127.0.0.1',
@@ -668,6 +675,9 @@ CREATE INDEX IF NOT EXISTS idx__banned_person__expires_at ON banned_person(expir
 
 CREATE INDEX IF NOT EXISTS idx__banned_person_admin_token__expires_at
     ON banned_person_admin_token(expires_at);
+
+CREATE INDEX IF NOT EXISTS idx__export_data_token__expires_at
+    ON export_data_token(expires_at);
 
 CREATE INDEX IF NOT EXISTS idx__deleted_photo_admin_token__expires_at
     ON deleted_photo_admin_token(expires_at);
