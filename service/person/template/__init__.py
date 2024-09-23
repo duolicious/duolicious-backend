@@ -1,6 +1,7 @@
 import html
 import yaml
 from io import StringIO
+import erlastic
 
 def obj_to_yaml_string(obj):
     class IndentDumper(yaml.Dumper):
@@ -71,6 +72,23 @@ def otp_template(otp: str):
 </html>
 """
 
+def decode_last_messages_in_place(last_messages: list[dict]):
+    for message in last_messages:
+        m = erlastic.decode(message['message'])
+
+        try:
+            m = m[3][0][3][0][1].decode('utf-8')
+        except:
+            m = dict(error="Couldn't unpack message while generating report")
+
+        message['message'] = m
+
+def repack_last_messages_in_place(last_messages: list[dict]):
+    for i in range(len(last_messages)):
+        m = last_messages[i]
+
+        last_messages[i] = { m['sent_by']: m['message'] }
+
 def report_template(
     report_obj,
     report_reason: str,
@@ -82,6 +100,9 @@ def report_template(
     accused_photo_links = report_obj[1]['photo_links']
 
     object_person_id = report_obj[1]['id']
+
+    decode_last_messages_in_place(last_messages)
+    repack_last_messages_in_place(last_messages)
 
     report_str = obj_to_yaml_string(report_obj)
     last_messages_str = obj_to_yaml_string(last_messages)

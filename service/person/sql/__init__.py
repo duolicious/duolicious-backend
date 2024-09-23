@@ -2035,7 +2035,7 @@ WITH last_messages AS (
             THEN 'reporter'
             ELSE 'accused'
         END AS sent_by,
-        search_body AS message
+        message
     FROM
         mam_message
     JOIN
