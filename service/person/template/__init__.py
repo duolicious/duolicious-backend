@@ -74,12 +74,22 @@ def otp_template(otp: str):
 
 def decode_last_messages_in_place(last_messages: list[dict]):
     for message in last_messages:
+        try:
+            search_body = message['search_body']
+        except:
+            search_body = None
+
         m = erlastic.decode(message['message'])
 
         try:
             m = m[3][0][3][0][1].decode('utf-8')
         except:
-            m = dict(error="Couldn't unpack message while generating report")
+            m = dict(
+                error=(
+                    "Couldn't unpack message while generating report. "
+                    "Falling back to message search body"),
+                search_body=search_body,
+            )
 
         message['message'] = m
 
