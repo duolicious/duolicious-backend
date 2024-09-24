@@ -68,6 +68,13 @@ WITH q1 AS (
 
     SELECT uuid FROM q7
 ), q8 AS (
+    DELETE FROM
+        export_data_token
+    WHERE
+        expires_at < NOW()
+    RETURNING
+        1
+), q9 AS (
     INSERT INTO
         undeleted_photo (uuid)
     SELECT
@@ -76,7 +83,7 @@ WITH q1 AS (
         each_deleted_photo
     RETURNING
         1
-), q9 AS (
+), q10 AS (
     {
         Q_UPDATE_VERIFICATION_LEVEL.replace(
             '= %(person_id)s',
@@ -94,6 +101,6 @@ FROM (
     SELECT 1 AS n FROM q5 UNION ALL
     SELECT 1 AS n FROM q6 UNION ALL
     SELECT 1 AS n FROM q7 UNION ALL
-    SELECT 0 AS n FROM q8
+    SELECT 1 AS n FROM q8
 ) AS t(n)
 """

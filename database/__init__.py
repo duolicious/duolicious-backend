@@ -68,15 +68,21 @@ class api_tx:
                     row_factory=psycopg.rows.dict_row,
                 )
             except:
+                _api_conn_lock.release()
                 print(traceback.format_exc())
                 raise
 
         self.cur = _api_conn.cursor()
 
         if self.isolation_level != _default_transaction_isolation:
-            self.cur.execute(
-                f'SET TRANSACTION ISOLATION LEVEL {self.isolation_level}'
-            )
+            try:
+                self.cur.execute(
+                    f'SET TRANSACTION ISOLATION LEVEL {self.isolation_level}'
+                )
+            except:
+                _api_conn_lock.release()
+                print(traceback.format_exc())
+                raise
         return self.cur
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -85,6 +91,7 @@ class api_tx:
                 _api_conn.commit()
             else:
                 _api_conn.rollback()
+        except:
                 traceback.print_exception(exc_type, exc_val, exc_tb)
         finally:
             try:
@@ -116,15 +123,21 @@ class chat_tx:
                     row_factory=psycopg.rows.dict_row,
                 )
             except:
+                _chat_conn_lock.release()
                 print(traceback.format_exc())
                 raise
 
         self.cur = _chat_conn.cursor()
 
         if self.isolation_level != _default_transaction_isolation:
-            self.cur.execute(
-                f'SET TRANSACTION ISOLATION LEVEL {self.isolation_level}'
-            )
+            try:
+                self.cur.execute(
+                    f'SET TRANSACTION ISOLATION LEVEL {self.isolation_level}'
+                )
+            except:
+                _chat_conn_lock.release()
+                print(traceback.format_exc())
+                raise
         return self.cur
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -133,6 +146,7 @@ class chat_tx:
                 _chat_conn.commit()
             else:
                 _chat_conn.rollback()
+        except:
                 traceback.print_exception(exc_type, exc_val, exc_tb)
         finally:
             try:

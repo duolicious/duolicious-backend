@@ -2490,6 +2490,257 @@ WHERE
     id = %(person_id)s
 """
 
+Q_INSERT_EXPORT_DATA_TOKEN = """
+INSERT INTO export_data_token (
+    person_id
+)
+VALUES
+    (%(person_id)s)
+RETURNING
+    token
+"""
+
+Q_CHECK_EXPORT_DATA_TOKEN = """
+WITH deleted_export_data_token AS (
+    DELETE FROM
+        export_data_token
+    WHERE
+        token = %(token)s
+    AND
+        expires_at > NOW()
+    RETURNING
+        person_id
+)
+SELECT
+    person.id AS person_id,
+    person.uuid AS person_uuid
+FROM
+    person
+JOIN
+    deleted_export_data_token
+ON
+    deleted_export_data_token.person_id = person.id
+"""
+
+Q_EXPORT_API_DATA = """
+SELECT json_build_object(
+    'person', (
+        SELECT
+            json_agg(row_to_json(t))
+        FROM (
+            SELECT
+                person.*,
+                gender.name AS gender_name,
+                has_profile_picture.name AS has_profile_picture_name,
+                verification_level.name AS verification_level_name,
+                orientation.name AS orientation_name,
+                ethnicity.name AS ethnicity_name,
+                looking_for.name AS looking_for_name,
+                smoking.name AS smoking_name,
+                drinking.name AS drinking_name,
+                drugs.name AS drugs_name,
+                long_distance.name AS long_distance_name,
+                relationship_status.name AS relationship_status_name,
+                has_kids.name AS has_kids_name,
+                wants_kids.name AS wants_kids_name,
+                exercise.name AS exercise_name,
+                religion.name AS religion_name,
+                star_sign.name AS star_sign_name,
+                unit.name AS unit_name,
+                chats_notification.name AS chats_notification_name,
+                intros_notification.name AS intros_notification_name,
+                privacy_verification_level.name AS privacy_verification_level_name
+            FROM
+                person
+            LEFT JOIN
+                gender ON
+                gender.id = gender_id
+            LEFT JOIN
+                yes_no AS
+                has_profile_picture ON
+                has_profile_picture.id = has_profile_picture_id
+            LEFT JOIN
+                verification_level ON
+                verification_level.id = verification_level_id
+            LEFT JOIN
+                orientation ON
+                orientation.id = person.id
+            LEFT JOIN
+                ethnicity ON
+                ethnicity.id = ethnicity_id
+            LEFT JOIN
+                looking_for ON
+                looking_for.id = looking_for_id
+            LEFT JOIN
+                yes_no_optional AS
+                smoking ON
+                smoking.id = smoking_id
+            LEFT JOIN
+                frequency AS
+                drinking ON
+                drinking.id = drinking_id
+            LEFT JOIN
+                yes_no_optional AS
+                drugs ON
+                drugs.id = drugs_id
+            LEFT JOIN
+                yes_no_optional AS
+                long_distance ON
+                long_distance.id = long_distance_id
+            LEFT JOIN
+                yes_no_optional AS
+                relationship_status ON
+                relationship_status.id = relationship_status_id
+            LEFT JOIN
+                yes_no_optional AS
+                has_kids ON
+                has_kids.id = has_kids_id
+            LEFT JOIN
+                yes_no_maybe AS
+                wants_kids ON
+                wants_kids.id = wants_kids_id
+            LEFT JOIN
+                frequency AS
+                exercise ON
+                exercise.id = exercise_id
+            LEFT JOIN
+                religion ON
+                religion.id = religion_id
+            LEFT JOIN
+                star_sign ON
+                star_sign.id = star_sign_id
+            LEFT JOIN
+                unit ON
+                unit.id = unit_id
+            LEFT JOIN
+                immediacy AS
+                chats_notification ON
+                chats_notification.id = person.chats_notification
+            LEFT JOIN
+                immediacy AS
+                intros_notification ON
+                intros_notification.id = person.intros_notification
+            LEFT JOIN
+                verification_level AS
+                privacy_verification_level ON
+                privacy_verification_level.id = person.privacy_verification_level_id
+
+            WHERE
+                person.id = %(person_id)s
+        ) AS t
+    ),
+
+    'duo_session', (
+        SELECT
+            json_agg(row_to_json(duo_session))
+        FROM
+            duo_session
+        WHERE
+            person_id = %(person_id)s
+    ),
+
+    'photo', (
+        SELECT
+            json_agg(row_to_json(t))
+        FROM (
+            SELECT
+                *,
+
+                'https://user-images.duolicious.app/original-' ||
+                    uuid ||
+                    '.jpg' AS photo_url
+
+            FROM
+                photo
+            WHERE
+                person_id = %(person_id)s
+        ) AS t
+    ),
+
+    'answer', (
+        SELECT
+            json_agg(row_to_json(t))
+        FROM (
+            SELECT
+                question.id,
+                question.question,
+                answer.answer,
+                answer.public_
+            FROM
+                answer
+            JOIN
+                question
+            ON
+                question.id = question_id
+            WHERE
+                person_id = %(person_id)s
+        ) AS t
+    ),
+
+    'verification_job', (
+        SELECT
+            json_agg(row_to_json(t))
+        FROM (
+            SELECT
+                *,
+
+                'https://user-images.duolicious.app/450-' ||
+                    photo_uuid ||
+                    '.jpg' AS photo_url
+            FROM
+                verification_job
+            WHERE
+                person_id = %(person_id)s
+        ) AS t
+    ),
+
+    'person_club', (
+        SELECT
+            json_agg(row_to_json(person_club))
+        FROM
+            person_club
+        WHERE
+            person_id = %(person_id)s
+    ),
+
+    'skipped', (
+        SELECT
+            json_agg(row_to_json(skipped))
+        FROM
+            skipped
+        WHERE
+            subject_person_id = %(person_id)s
+    ),
+
+    'messaged', (
+        SELECT
+            json_agg(row_to_json(messaged))
+        FROM
+            messaged
+        WHERE
+            subject_person_id = %(person_id)s
+    )
+
+) AS j
+"""
+
+Q_EXPORT_CHAT_DATA = """
+SELECT
+    mam_message.*
+FROM
+    mam_message
+JOIN
+    mam_server_user
+ON
+    mam_message.user_id = mam_server_user.id
+WHERE
+    mam_server_user.server = 'duolicious.app'
+AND
+    mam_server_user.user_name = %(person_uuid)s::TEXT
+ORDER BY
+    mam_message.id
+"""
+
 Q_GET_SESSION_CLUBS = """
 SELECT
     COALESCE(

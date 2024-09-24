@@ -1,0 +1,858 @@
+{
+  "raw_api_data": {
+    "person": [
+      {
+        "id": 1,
+        "tiny_id": "5dNW",
+        "uuid": "67b244f3-d03c-4c75-9977-02f9fc3f59f5",
+        "email": "user1@example.com",
+        "normalized_email": "user1@example.com",
+        "name": "user1",
+        "date_of_birth": "1998-03-25",
+        "coordinates": "0101000020E610000064CBE994238052C0CED872F76C5C4440",
+        "gender_id": 9,
+        "about": "Im a reasonable person",
+        "personality": "[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]",
+        "presence_score": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "absence_score": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "count_answers": 0,
+        "has_profile_picture_id": 2,
+        "verification_level_id": 1,
+        "verified_age": false,
+        "verified_gender": false,
+        "verified_ethnicity": false,
+        "orientation_id": 1,
+        "ethnicity_id": 1,
+        "occupation": null,
+        "education": null,
+        "height_cm": null,
+        "looking_for_id": 1,
+        "smoking_id": 1,
+        "drinking_id": 1,
+        "drugs_id": 1,
+        "long_distance_id": 1,
+        "relationship_status_id": 1,
+        "has_kids_id": 1,
+        "wants_kids_id": 1,
+        "exercise_id": 1,
+        "religion_id": 1,
+        "star_sign_id": 1,
+        "title_color": "#000000",
+        "body_color": "#000000",
+        "background_color": "#ffffff",
+        "unit_id": 1,
+        "chats_notification": 1,
+        "intros_notification": 3,
+        "show_my_location": true,
+        "show_my_age": true,
+        "hide_me_from_strangers": false,
+        "privacy_verification_level_id": 1,
+        "sign_up_time": "2024-09-24T18:16:13.918337",
+        "sign_in_count": 14,
+        "sign_in_time": "2024-09-24T19:59:41.588678",
+        "last_nag_time": "1970-01-01T00:00:00",
+        "activated": true,
+        "gender_name": "Other",
+        "has_profile_picture_name": "No",
+        "verification_level_name": "No verification",
+        "orientation_name": "Unanswered",
+        "ethnicity_name": "Unanswered",
+        "looking_for_name": "Unanswered",
+        "smoking_name": "Unanswered",
+        "drinking_name": "Unanswered",
+        "drugs_name": "Unanswered",
+        "long_distance_name": "Unanswered",
+        "relationship_status_name": "Unanswered",
+        "has_kids_name": "Unanswered",
+        "wants_kids_name": "Unanswered",
+        "exercise_name": "Unanswered",
+        "religion_name": "Unanswered",
+        "star_sign_name": "Unanswered",
+        "unit_name": "Imperial",
+        "chats_notification_name": "Immediately",
+        "intros_notification_name": "Every 3 days",
+        "privacy_verification_level_name": "No verification"
+      }
+    ],
+    "duo_session": [
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      },
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      },
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      },
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      },
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      },
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      },
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      },
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      },
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      },
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      },
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      },
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      },
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      },
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      },
+      {
+        "person_id": 1,
+        "pending_club_name": null,
+        "ip_address": "172.18.0.1",
+        "signed_in": true,
+        "session_expiry": "2099-01-01T00:00:00"
+      }
+    ],
+    "photo": null,
+    "answer": null,
+    "verification_job": null,
+    "person_club": null,
+    "skipped": null,
+    "messaged": [
+      {
+        "subject_person_id": 1,
+        "object_person_id": 2,
+        "created_at": "2024-09-24T18:16:31.938028"
+      },
+      {
+        "subject_person_id": 1,
+        "object_person_id": 3,
+        "created_at": "2024-09-24T18:17:28.454662"
+      }
+    ]
+  },
+  "raw_chat_data": [
+    {
+      "id": 442163658736238593,
+      "user_id": 1,
+      "from_jid": "/MmXR1Z69e1AqzyEp",
+      "remote_bare_jid": "72cc40af-6b48-4411-94ec-35182dc675f1",
+      "remote_resource": "",
+      "direction": "O",
+      "message": "[\"xmlel\", \"message\", [[\"type\", \"chat\"], [\"from\", \"67b244f3-d03c-4c75-9977-02f9fc3f59f5@duolicious.app\"], [\"to\", \"72cc40af-6b48-4411-94ec-35182dc675f1@duolicious.app\"], [\"id\", \"Gv9z0PxNYVlObAoHyiS5cmm30fnTCCN8uMSFzqAg\"], [\"xmlns\", \"jabber:client\"]], [[\"xmlel\", \"body\", [], [[\"xmlcdata\", \"Hi, user 2\"]]], [\"xmlel\", \"request\", [[\"xmlns\", \"urn:xmpp:receipts\"]], []]]]",
+      "search_body": "hi user 2",
+      "origin_id": null,
+      "timestamp": "2024-09-24T18:16:31.938432+00:00"
+    },
+    {
+      "id": 442163669271165953,
+      "user_id": 1,
+      "from_jid": "/MmXR1Z69e1AqzyEp",
+      "remote_bare_jid": "72cc40af-6b48-4411-94ec-35182dc675f1",
+      "remote_resource": "",
+      "direction": "O",
+      "message": "[\"xmlel\", \"message\", [[\"type\", \"chat\"], [\"from\", \"67b244f3-d03c-4c75-9977-02f9fc3f59f5@duolicious.app\"], [\"to\", \"72cc40af-6b48-4411-94ec-35182dc675f1@duolicious.app\"], [\"id\", \"KPTdFUnnE0Q6K8sFsVPiwXMJk7cfQVnXpY03iYe3\"], [\"xmlns\", \"jabber:client\"]], [[\"xmlel\", \"body\", [], [[\"xmlcdata\", \"How's user 2? - user 1\"]]], [\"xmlel\", \"request\", [[\"xmlns\", \"urn:xmpp:receipts\"]], []]]]",
+      "search_body": "hows user 2 user 1",
+      "origin_id": null,
+      "timestamp": "2024-09-24T18:17:13.090492+00:00"
+    },
+    {
+      "id": 442163673204519169,
+      "user_id": 1,
+      "from_jid": "/MmXR1Z69e1AqzyEp",
+      "remote_bare_jid": "fdd009e1-7de9-4243-8e9d-379811674c2b",
+      "remote_resource": "",
+      "direction": "O",
+      "message": "[\"xmlel\", \"message\", [[\"type\", \"chat\"], [\"from\", \"67b244f3-d03c-4c75-9977-02f9fc3f59f5@duolicious.app\"], [\"to\", \"fdd009e1-7de9-4243-8e9d-379811674c2b@duolicious.app\"], [\"id\", \"3N9HCgN3f864zMrVz5WMEPX2zftFfCzgBv6Gujk3\"], [\"xmlns\", \"jabber:client\"]], [[\"xmlel\", \"body\", [], [[\"xmlcdata\", \"Hello to user 3 from user 1\"]]], [\"xmlel\", \"request\", [[\"xmlns\", \"urn:xmpp:receipts\"]], []]]]",
+      "search_body": "hello to user 3 from user 1",
+      "origin_id": null,
+      "timestamp": "2024-09-24T18:17:28.455153+00:00"
+    },
+    {
+      "id": 442163674460742401,
+      "user_id": 1,
+      "from_jid": "/MmXR1Z69e1AqzyEp",
+      "remote_bare_jid": "fdd009e1-7de9-4243-8e9d-379811674c2b",
+      "remote_resource": "",
+      "direction": "O",
+      "message": "[\"xmlel\", \"message\", [[\"type\", \"chat\"], [\"from\", \"67b244f3-d03c-4c75-9977-02f9fc3f59f5@duolicious.app\"], [\"to\", \"fdd009e1-7de9-4243-8e9d-379811674c2b@duolicious.app\"], [\"id\", \"hFGfgbmN5hRCQztwZJIkNL4mdAjQMI3fyHFBhcp4\"], [\"xmlns\", \"jabber:client\"]], [[\"xmlel\", \"body\", [], [[\"xmlcdata\", \"hope you're well!\"]]], [\"xmlel\", \"request\", [[\"xmlns\", \"urn:xmpp:receipts\"]], []]]]",
+      "search_body": "hope youre well",
+      "origin_id": null,
+      "timestamp": "2024-09-24T18:17:33.362275+00:00"
+    },
+    {
+      "id": 442163683322292225,
+      "user_id": 1,
+      "from_jid": "72cc40af-6b48-4411-94ec-35182dc675f1/MmXR1Z69e1AqzyEp",
+      "remote_bare_jid": "72cc40af-6b48-4411-94ec-35182dc675f1",
+      "remote_resource": "MmXR1Z69e1AqzyEp",
+      "direction": "I",
+      "message": "[\"xmlel\", \"message\", [[\"type\", \"chat\"], [\"from\", \"72cc40af-6b48-4411-94ec-35182dc675f1@duolicious.app\"], [\"to\", \"67b244f3-d03c-4c75-9977-02f9fc3f59f5@duolicious.app\"], [\"id\", \"a3qJI89DJJIvcs6y3ePrW0nPTEEjHfDKqrMCBK4J\"], [\"xmlns\", \"jabber:client\"]], [[\"xmlel\", \"body\", [], [[\"xmlcdata\", \"hello to user 1 from user 2\"]]], [\"xmlel\", \"request\", [[\"xmlns\", \"urn:xmpp:receipts\"]], []]]]",
+      "search_body": "hello to user 1 from user 2",
+      "origin_id": null,
+      "timestamp": "2024-09-24T18:18:07.977704+00:00"
+    },
+    {
+      "id": 442163684106514689,
+      "user_id": 1,
+      "from_jid": "72cc40af-6b48-4411-94ec-35182dc675f1/MmXR1Z69e1AqzyEp",
+      "remote_bare_jid": "72cc40af-6b48-4411-94ec-35182dc675f1",
+      "remote_resource": "MmXR1Z69e1AqzyEp",
+      "direction": "I",
+      "message": "[\"xmlel\", \"message\", [[\"type\", \"chat\"], [\"from\", \"72cc40af-6b48-4411-94ec-35182dc675f1@duolicious.app\"], [\"to\", \"67b244f3-d03c-4c75-9977-02f9fc3f59f5@duolicious.app\"], [\"id\", \"al4oDes2IzGI3RLJ1aaIUHuh780grN31kuqAaqJX\"], [\"xmlns\", \"jabber:client\"]], [[\"xmlel\", \"body\", [], [[\"xmlcdata\", \"I'm great\"]]], [\"xmlel\", \"request\", [[\"xmlns\", \"urn:xmpp:receipts\"]], []]]]",
+      "search_body": "im great",
+      "origin_id": null,
+      "timestamp": "2024-09-24T18:18:11.041073+00:00"
+    },
+    {
+      "id": 442163694673324033,
+      "user_id": 1,
+      "from_jid": "fdd009e1-7de9-4243-8e9d-379811674c2b/MmXR1Z69e1AqzyEp",
+      "remote_bare_jid": "fdd009e1-7de9-4243-8e9d-379811674c2b",
+      "remote_resource": "MmXR1Z69e1AqzyEp",
+      "direction": "I",
+      "message": "[\"xmlel\", \"message\", [[\"type\", \"chat\"], [\"from\", \"fdd009e1-7de9-4243-8e9d-379811674c2b@duolicious.app\"], [\"to\", \"67b244f3-d03c-4c75-9977-02f9fc3f59f5@duolicious.app\"], [\"id\", \"BWkPJZxX6o6XpTctNAuijCNJhDlo1WAZO8TZ0RaD\"], [\"xmlns\", \"jabber:client\"]], [[\"xmlel\", \"body\", [], [[\"xmlcdata\", \"hello to user 1 from user 3\"]]], [\"xmlel\", \"request\", [[\"xmlns\", \"urn:xmpp:receipts\"]], []]]]",
+      "search_body": "hello to user 1 from user 3",
+      "origin_id": null,
+      "timestamp": "2024-09-24T18:18:52.317672+00:00"
+    },
+    {
+      "id": 442163696480659457,
+      "user_id": 1,
+      "from_jid": "fdd009e1-7de9-4243-8e9d-379811674c2b/MmXR1Z69e1AqzyEp",
+      "remote_bare_jid": "fdd009e1-7de9-4243-8e9d-379811674c2b",
+      "remote_resource": "MmXR1Z69e1AqzyEp",
+      "direction": "I",
+      "message": "[\"xmlel\", \"message\", [[\"type\", \"chat\"], [\"from\", \"fdd009e1-7de9-4243-8e9d-379811674c2b@duolicious.app\"], [\"to\", \"67b244f3-d03c-4c75-9977-02f9fc3f59f5@duolicious.app\"], [\"id\", \"ANp0Tem2XScnf3Cm9M1fF8e0P2VU1UkauKHJmJ92\"], [\"xmlns\", \"jabber:client\"]], [[\"xmlel\", \"body\", [], [[\"xmlcdata\", \"hope you're well too\"]]], [\"xmlel\", \"request\", [[\"xmlns\", \"urn:xmpp:receipts\"]], []]]]",
+      "search_body": "hope youre well too",
+      "origin_id": null,
+      "timestamp": "2024-09-24T18:18:59.377576+00:00"
+    }
+  ],
+  "inferred_personality_data": {
+    "name": "user1",
+    "person_id": "5dNW",
+    "personality": [
+      {
+        "trait_name": "Agreeableness",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "Captures an individual's range of social behaviors, from demonstrating empathy, cooperation, and consideration for others to expressing assertiveness and independence in social situations.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Anxious Attachment",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "Measures the extent to which a person seeks reassurance and fears abandonment in close relationships. If a person scores low on this and the \"Avoidant Attachment\" scale, they're said to be \"securely\" attached. Secure attachment is associated with longer, more stable relationships.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Avoidant Attachment",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "Measures the preference for emotional distance and self-reliance in relationships. If a person scores low on this and the \"Anxious Attachment\" scale, they're said to be \"securely\" attached. Secure attachment is associated with longer, more stable relationships.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Career Focus",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait reflects the importance you place on your career. Those scoring high value their career and tend to prioritize it, while those scoring low might prioritize other aspects of life over their career.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Conscientiousness",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "Represents an individual's approach to organization, reliability, and goal-setting, encompassing both highly structured and responsible behavior as well as a more flexible and spontaneous approach.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Drug Friendliness",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait measures your openness to drug use. High scores could indicate a liberal attitude towards drugs or personal use, while low scores may represent a more conservative view or no personal use of drugs.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Emotional Openness in Relationships",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait measures how comfortable you are with expressing emotions in a relationship. High scores mean you are open to discussing your feelings, while low scores might indicate a more reserved emotional style.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Empathy",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait indicates how well you understand and share the feelings of others. High empathy means you easily connect with others' emotions, while low empathy might indicate a more logical, detached approach.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Emphasis on Boundaries",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait signifies a person's tendency to define, communicate, and respect personal limits and spaces. People who score high on this trait believe in the importance of setting clear personal boundaries in their relationships.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Environmentalism/Anthropocentrism",
+        "trait_min_label": "Environmentalism",
+        "trait_max_label": "Anthropocentrism",
+        "trait_description": "Measures prioritization of preserving the environment and non-human species versus human-centered resource utilization and economic development.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Equanimity",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait pertains to a person's ability to maintain calm and composure, especially during stressful situations. Individuals who score high on this trait are able to keep their cool and think clearly, regardless of the circumstances.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Equity/Meritocracy",
+        "trait_min_label": "Equity",
+        "trait_max_label": "Meritocracy",
+        "trait_description": "Measures a person's preference for a system that rewards individuals based on their abilities and achievements versus a system that prioritizes fairness and equal opportunities for everyone.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Family Focus",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait is about how much a person values family relationships and commitments. Individuals who score high on this trait often place their family as a top priority and enjoy spending quality time with their loved ones.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Fitness Focus",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait indicates the importance a person places on maintaining physical fitness and living a healthy lifestyle. Those with high scores for this trait are likely to enjoy activities like regular exercise, eating balanced meals, and living an overall active lifestyle.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Honesty",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait describes a person's tendency to speak the truth, behave transparently, and avoid deception. Individuals who score high on this trait value truthfulness and believe in being straightforward in their communications.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Humility",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait reflects a person's ability to remain modest and unpretentious, even in the face of success. Those who score high on this trait believe in acknowledging the role of others in their achievements and avoiding arrogance.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Independence",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "Do you take charge of your own life and make decisions without leaning on others? This trait measures your self-reliance and ability to handle things on your own.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Individualism/Collectivism",
+        "trait_min_label": "Individualism",
+        "trait_max_label": "Collectivism",
+        "trait_description": "This trait measures a person's preference for individual rights and freedoms versus collective good and social cohesion.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Introversion/Extraversion",
+        "trait_min_label": "Introversion",
+        "trait_max_label": "Extraversion",
+        "trait_description": "Measures a person's preference for engaging with the world, ranging from drawing energy from social interactions and being action-oriented (Extraversion) to finding energy in solitude and focusing on thoughts and feelings (Introversion).",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Isolationism/Internationalism",
+        "trait_min_label": "Isolationism",
+        "trait_max_label": "Internationalism",
+        "trait_description": "This trait measures preference for national self-reliance and limited global engagement versus active participation in international affairs and cooperation.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Judging/Perceiving",
+        "trait_min_label": "Judging",
+        "trait_max_label": "Perceiving",
+        "trait_description": "This trait captures someone's approach to organizing and structuring their life, ranging from preferring a planned, orderly, and decisive lifestyle (Judging), to embracing spontaneity, flexibility, and adaptability (Perceiving).",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Libertarianism/Authoritarianism",
+        "trait_min_label": "Libertarianism",
+        "trait_max_label": "Authoritarianism",
+        "trait_description": "This trait measures the preference for individual liberties and minimal government intervention, versus strong central authority and extensive government control.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Love Focus",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "How central is love in your life? This trait captures the importance you place on romantic relationships and the effort you're willing to put into finding and maintaining them.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Loyalty",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait shows us how committed you are. When you make a promise, do you keep it?",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Maturity",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "A measure of how much a person takes responsibility for their actions, understands the world around them, and is ready to deal with complex issues. It is not about age, but about mindset and experience.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Neuroticism",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "Depicts the diversity in how people experience and cope with emotions, spanning the range from calmness and emotional steadiness to sensitivity and emotional responsiveness.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Non-interventionism/Interventionism",
+        "trait_min_label": "Non-interventionism",
+        "trait_max_label": "Interventionism",
+        "trait_description": "Measures a person's preference for an active foreign policy with military and diplomatic interventions versus a non-interventionist approach that emphasizes diplomacy and trade.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Openness to Experience",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "Represents a person's willingness to explore new ideas, activities, and experiences. People high in this trait tend to be imaginative, creative, and curious. Those lower might appreciate routine, predictability, and familiar surroundings.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Patience",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "Measures your ability to stay calm and tolerant when facing challenges.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Persistence",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "Indicates how much you're willing to stick with tasks, goals or beliefs, even in the face of adversity. Those lower in this trait might be more flexible, adaptive, and ready to pivot when needed.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Playfulness",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait measures your tendency to seek joy, humor, and fun in life. High scores often enjoy spontaneity, games, and laughter. Those scoring lower might appreciate seriousness, focus, and quiet reflection.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Preference for Monogamy",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait measures your inclination towards having one partner at a time. A low score doesn't necessarily mean a preference for multiple partners simultaneously, but might reflect a desire for serial monogamy, or simply being open to different relationship structures.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Rationality",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait determines the extent to which you prefer using logical reasoning and objective analysis over emotional intuition. Both approaches have their advantages, and neither is inherently better or worse than the other.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Religiosity",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait measures the extent to which religious beliefs influence your life. It doesn't indicate which religion you follow, or how devout you are, just the importance religion holds for you. It includes both traditionally religious and spiritual orientations.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Security/Freedom",
+        "trait_min_label": "Security",
+        "trait_max_label": "Freedom",
+        "trait_description": "Measures how much a person values national security and public safety versus individual freedoms and civil liberties.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Self-acceptance",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait measures your level of acceptance and appreciation for who you are as an individual. It doesn't mean being complacent or avoiding personal growth, but rather denotes a healthy self-perception and an acceptance of one's strengths and weaknesses.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Self-esteem",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait signifies your overall subjective emotional evaluation of your own worth. High self-esteem doesn't mean arrogance but refers to a positive, balanced view of oneself. Low self-esteem doesn't necessarily indicate lack of confidence but may reflect humility or a more critical self-view.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Sensing/Intuition",
+        "trait_min_label": "Sensing",
+        "trait_max_label": "Intuition",
+        "trait_description": "This trait represents someone's preferred way of processing information, covering the spectrum from focusing on concrete, tangible details and experiences (Sensing), to exploring abstract concepts, patterns, and possibilities (Intuition).",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Sex Focus",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait measures how much a person prioritises sex over love",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Stability of Self-image",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait assesses how consistent a person's self-perception is. If you score high, you typically have a strong and steady sense of who you are, while a low score indicates that your self-image may change based on circumstances, moods, or new experiences.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Thinking/Feeling",
+        "trait_min_label": "Thinking",
+        "trait_max_label": "Feeling",
+        "trait_description": "This trait reflects a person's decision-making style, encompassing both logical, objective analysis and rationality (Thinking), as well as empathy, values, and consideration for others' emotions (Feeling).",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Thriftiness",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait reflects how careful you are with your resources, especially financial ones. High scorers tend to be frugal and prioritize saving, while low scorers may be more inclined to spend on experiences or items that bring them joy or satisfaction.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Thrill-seeking",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait measures a person's desire for excitement and adventure. If you score high, you're likely to enjoy taking risks and exploring new experiences. A lower score indicates a preference for routine, comfort, and safety.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Traditionalism about Love",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait gauges how much a person values traditional beliefs and practices about love and relationships. A high score indicates a preference for traditional courtship and relationship roles, while a low score might suggest an openness to modern or non-traditional expressions of love.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Trust",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait represents a person's propensity to trust others. A high scorer generally assumes that people are well-intentioned and reliable, while a low scorer tends to be more cautious and requires more evidence to trust others.",
+        "person_percentage": null
+      },
+      {
+        "trait_name": "Wholesomeness",
+        "trait_min_label": null,
+        "trait_max_label": null,
+        "trait_description": "This trait measures a person's inclination towards innocence, kindness, and a general appreciation for the simple things in life. High scorers are typically viewed as pure-hearted and genuine.",
+        "person_percentage": null
+      }
+    ]
+  },
+  "search_filters": {
+    "answer": [],
+    "gender": [
+      "Agender",
+      "Intersex",
+      "Man",
+      "Non-binary",
+      "Other",
+      "Transgender",
+      "Trans man",
+      "Trans woman",
+      "Woman"
+    ],
+    "orientation": [
+      "Asexual",
+      "Bisexual",
+      "Demisexual",
+      "Gay",
+      "Lesbian",
+      "Other",
+      "Pansexual",
+      "Queer",
+      "Straight",
+      "Unanswered"
+    ],
+    "ethnicity": [
+      "Black/African Descent",
+      "East Asian",
+      "Hispanic/Latino",
+      "Middle Eastern",
+      "Native American",
+      "Other",
+      "Pacific Islander",
+      "South Asian",
+      "Southeast Asian",
+      "Unanswered",
+      "White/Caucasian"
+    ],
+    "age": {
+      "min_age": null,
+      "max_age": 36
+    },
+    "furthest_distance": null,
+    "height": {
+      "min_height_cm": null,
+      "max_height_cm": null
+    },
+    "has_a_profile_picture": [
+      "No",
+      "Yes"
+    ],
+    "looking_for": [
+      "Friends",
+      "Long-term dating",
+      "Marriage",
+      "Short-term dating",
+      "Unanswered"
+    ],
+    "smoking": [
+      "No",
+      "Unanswered",
+      "Yes"
+    ],
+    "drinking": [
+      "Never",
+      "Often",
+      "Sometimes",
+      "Unanswered"
+    ],
+    "drugs": [
+      "No",
+      "Unanswered",
+      "Yes"
+    ],
+    "long_distance": [
+      "No",
+      "Unanswered",
+      "Yes"
+    ],
+    "relationship_status": [
+      "Divorced",
+      "Engaged",
+      "Married",
+      "Other",
+      "Seeing someone",
+      "Single",
+      "Unanswered",
+      "Widowed"
+    ],
+    "has_kids": [
+      "No",
+      "Unanswered",
+      "Yes"
+    ],
+    "wants_kids": [
+      "Maybe",
+      "No",
+      "Unanswered",
+      "Yes"
+    ],
+    "exercise": [
+      "Never",
+      "Often",
+      "Sometimes",
+      "Unanswered"
+    ],
+    "religion": [
+      "Agnostic",
+      "Atheist",
+      "Buddhist",
+      "Christian",
+      "Hindu",
+      "Jewish",
+      "Muslim",
+      "Other",
+      "Unanswered",
+      "Zoroastrian"
+    ],
+    "star_sign": [
+      "Aquarius",
+      "Aries",
+      "Cancer",
+      "Capricorn",
+      "Gemini",
+      "Leo",
+      "Libra",
+      "Pisces",
+      "Sagittarius",
+      "Scorpio",
+      "Taurus",
+      "Unanswered",
+      "Virgo"
+    ],
+    "people_you_messaged": "Yes",
+    "people_you_skipped": "No"
+  }
+}
