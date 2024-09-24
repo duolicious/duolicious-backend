@@ -125,7 +125,7 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 </message>
 "
 
-sleep 3 # MongooseIM takes some time to flush messages to the DB
+sleep 4 # MongooseIM takes some time to flush messages to the DB
 
 [[ "$(q "select count(*) from messaged where \
     subject_person_id = $user1id and \
