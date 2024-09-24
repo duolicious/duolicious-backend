@@ -4,3 +4,6 @@ CREATE TABLE IF NOT EXISTS export_data_token (
     generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '10 minutes')
 );
+
+CREATE INDEX IF NOT EXISTS idx__export_data_token__expires_at
+    ON export_data_token(expires_at);
