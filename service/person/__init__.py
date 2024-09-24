@@ -1707,9 +1707,6 @@ def get_admin_delete_photo(token: str):
     else:
         return 'Photo deletion failed', 401
 
-# TODO: Test that export doesnt leak other users' data
-# TODO: Test expired tokens are deleted
-# TODO: Images?
 def get_export_data_token(s: t.SessionInfo):
     params = dict(person_id=s.person_id)
 

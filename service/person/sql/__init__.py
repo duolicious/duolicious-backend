@@ -2737,6 +2737,8 @@ WHERE
     mam_server_user.server = 'duolicious.app'
 AND
     mam_server_user.user_name = %(person_uuid)s::TEXT
+ORDER BY
+    mam_message.id
 """
 
 Q_GET_SESSION_CLUBS = """
