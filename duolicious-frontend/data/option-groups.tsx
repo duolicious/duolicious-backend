@@ -30,6 +30,8 @@ import { FC } from 'react';
 
 const noneFontSize = 16;
 
+const maxDailySelfies = 'eight';
+
 type OptionGroupButtons = {
   buttons: {
     values: string[],
@@ -401,9 +403,9 @@ To prove you’re real, you can take a selfie while you do three things at once:
 \xa0\xa02. Give one thumb down 👎
 \xa0\xa03. Touch your eyebrow 🤨
 
-You can use one hand for those last two. Our AI will check your selfie and let you know if you’re verified.
+You can use one hand for those last two by touching your eyebrow with your thumb. Using two hands is also fine. Our AI will check your selfie and let you know if you’re verified.
 
-To verify your photos, your face needs to be visible on your profile. But never reveal your verification selfie to anyone, or they can pretend they’re you.
+To verify your photos, your face should be in at least one profile pic. But never reveal your verification selfie to anyone, or they can pretend they’re you.
 `.trim();
 
 const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
@@ -1719,7 +1721,7 @@ const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Get Verified',
-    description: 'Press ‘Continue’ to submit your selfie. You can submit five selfies per day.',
+    description: `Press ‘Continue’ to submit your selfie. You can submit ${maxDailySelfies} selfies per day.`,
     input: {
       photos: {
         submit: async (position, cropperOutput) => (await japi(
@@ -1791,6 +1793,7 @@ export {
   isOptionGroupThemePicker,
   isOptionGroupVerificationChecker,
   noneFontSize,
+  maxDailySelfies,
   notificationSettingsOptionGroups,
   privacySettingsOptionGroups,
   searchInteractionsOptionGroups,

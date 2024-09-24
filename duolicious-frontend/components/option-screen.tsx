@@ -59,6 +59,7 @@ import {
   isOptionGroupThemePicker,
   isOptionGroupVerificationChecker,
   noneFontSize,
+  maxDailySelfies,
 } from '../data/option-groups';
 import {
   PrimaryImage,
@@ -1026,7 +1027,7 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
                     width: '100%',
                   }}
                 >
-                  Not to worry! You can try up to eight times per day.
+                  Not to worry! You can try up to {maxDailySelfies} times per day.
                 </DefaultText>
               </View>
             </>
