@@ -107,14 +107,23 @@ qrestore () {
   q "
   SELECT pg_terminate_backend(pg_stat_activity.pid)
   FROM pg_stat_activity
-  WHERE pg_stat_activity.datname IN ('duo_api', 'duo_chat')
+  WHERE pg_stat_activity.datname = 'duo_api'
     AND pid <> pg_backend_pid()
   " postgres
 
   q 'drop database duo_api' postgres
+
+  q "
+  SELECT pg_terminate_backend(pg_stat_activity.pid)
+  FROM pg_stat_activity
+  WHERE pg_stat_activity.datname = 'duo_chat'
+    AND pid <> pg_backend_pid()
+  " postgres
+
   q 'drop database duo_chat' postgres
 
   q 'create database duo_api' postgres
+
   q 'create database duo_chat' postgres
 
   zstd -d "../fixtures/duo_api-$1.zstd" -c | \
