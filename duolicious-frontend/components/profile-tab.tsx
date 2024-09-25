@@ -257,6 +257,9 @@ const AboutPerson = ({navigation, data}) => {
 const Options = ({ navigation, data }) => {
   const [, triggerRender] = useState({});
   const [isLoadingSignOut, setIsLoadingSignOut] = useState(false);
+  const [dataExportStatus, setDataExportStatus] = useState<
+    'error' | 'loading' | 'ok'
+  >('ok');
 
   const addCurrentValue = (optionGroups: OptionGroup<OptionGroupInputs>[]) =>
     optionGroups.map(
@@ -399,6 +402,23 @@ const Options = ({ navigation, data }) => {
       setSignedInUser(undefined);
     }
     setIsLoadingSignOut(false);
+  }, []);
+
+  const exportData = useCallback(async () => {
+    setDataExportStatus('loading');
+
+    const token: string | undefined = (
+      await api('get', '/export-data-token'))?.json?.token;
+
+
+    if (!token) {
+      setDataExportStatus('error');
+      return;
+    }
+
+    await Linking.openURL(`https://duolicious.app/export-data/?token=${token}`);
+
+    setDataExportStatus('ok');
   }, []);
 
   const goToClubSelector = useCallback(() => {
@@ -559,6 +579,14 @@ const Options = ({ navigation, data }) => {
 
       <Title>Delete My Account</Title>
       <Button_ optionGroups={deletionOptionGroups} setting=""/>
+
+      <Title style={{ marginTop: 70 }}>Export My Data</Title>
+      <ButtonForOption
+        onPress={exportData}
+        label="Export My Data"
+        setting={dataExportStatus === 'error' ? 'Try again later' : ''}
+        loading={dataExportStatus === 'loading'}
+      />
     </View>
   );
 };
