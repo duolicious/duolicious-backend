@@ -25,7 +25,11 @@ import { VerificationEvent } from '../verification/verification';
 import { notify } from '../events/events';
 import { ClubItem } from '../components/club-selector';
 import { DefaultText } from '../components/default-text';
-import { View } from 'react-native';
+import {
+  Linking,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { FC } from 'react';
 
 const noneFontSize = 16;
@@ -180,6 +184,7 @@ type OptionGroup<T extends OptionGroupInputs> = {
   description: string,
   input: T,
   scrollView?: boolean,
+  buttonLabel?: string,
 };
 
 const hasExactKeys = (obj, keys) => {
@@ -407,6 +412,86 @@ You can use one hand for those last two by touching your eyebrow with your thumb
 
 To verify your photos, your face should be in at least one profile pic. But never reveal your verification selfie to anyone, or they can pretend they’re you.
 `.trim();
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  bullet: {
+    color: 'white',
+    flexShrink: 1,
+  },
+  bulletText: {
+    color: 'white',
+    flexShrink: 1
+  },
+  list: {
+    gap: 1,
+  },
+});
+
+const FinishOnboardingDescription = () => (
+  <View style={{ gap: 15 }}>
+    <DefaultText style={{ color: 'white' }}>
+      You’re ready to go! But before we unleash you on the other members, let’s
+      recap our Guidelines. Do:
+    </DefaultText>
+
+    <View style={styles.list}>
+      <View style={styles.row}>
+        <DefaultText style={styles.bullet}>✅</DefaultText>
+        <DefaultText style={styles.bulletText}>Respect others</DefaultText>
+      </View>
+
+      <View style={styles.row}>
+        <DefaultText style={styles.bullet}>✅</DefaultText>
+        <DefaultText style={styles.bulletText}>Be 18 or older</DefaultText>
+      </View>
+
+      <View style={styles.row}>
+        <DefaultText style={styles.bullet}>✅</DefaultText>
+        <DefaultText style={styles.bulletText}>
+          Frame our {}
+
+          <DefaultText
+            onPress={() => Linking.openURL('https://duolicious.app/guidelines/')}
+            style={{ fontWeight: '700' }}
+          >
+            Community Guidelines
+          </DefaultText>
+          {} and hang them on your wall
+        </DefaultText>
+      </View>
+    </View>
+
+    <DefaultText style={{ color: 'white' }}>
+      Don’t:
+    </DefaultText>
+
+    <View style={styles.list}>
+      <View style={styles.row}>
+        <DefaultText style={styles.bullet}>❌</DefaultText>
+        <DefaultText style={styles.bulletText}>
+          Be racist, sexist, or any -ist that makes people sad
+        </DefaultText>
+      </View>
+
+      <View style={styles.row}>
+        <DefaultText style={styles.bullet}>❌</DefaultText>
+        <DefaultText style={styles.bulletText}>
+          Promote self-harm, or harm of others
+        </DefaultText>
+      </View>
+    </View>
+
+    <DefaultText style={{ color: 'white' }}>
+      tl;dr – We want everyone to have fun. Now get in there and find a cute
+      date!
+    </DefaultText>
+  </View>
+);
 
 const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
   title: 'Gender',
@@ -1019,13 +1104,12 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     },
   ),
   {
-    title: "You’re Looking Like A Snack 😋",
+    title: "You’re Looking Like A Snack\u00A0😋",
     description: "",
+    buttonLabel: 'Complete Sign Up',
     input: {
       none: {
-        description: (
-          "You’re ready to go! You can always sweeten your profile some more " +
-          "once you’re signed in..."),
+        description: FinishOnboardingDescription,
         submit: async () => {
           const _sessionToken = await sessionToken();
           const response = await japi('post', '/finish-onboarding');

@@ -1319,6 +1319,7 @@ const OptionScreen = ({navigation, route}) => {
     description,
     input,
     scrollView,
+    buttonLabel,
   } = thisOptionGroup;
 
   if (!input) {
@@ -1556,7 +1557,7 @@ const OptionScreen = ({navigation, route}) => {
               width: '90%',
             }}
           >
-            {showSkipButton ? 'Skip' : 'Continue'}
+            {buttonLabel ?? (showSkipButton ? 'Skip' : 'Continue')}
           </ButtonWithCenteredText>
         </View>
       </KeyboardDismissingView>
