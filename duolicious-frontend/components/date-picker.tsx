@@ -95,7 +95,7 @@ const DatePicker = forwardRef((
   const currentYear = new Date().getFullYear();
   const years = [...Array(100)].map(
     (_, i) => {
-      const year = (currentYear - i - 18).toString();
+      const year = (currentYear - i - 17).toString();
       return {label: year, value: year}
     }
   );
