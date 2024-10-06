@@ -554,13 +554,15 @@ const SearchScreen_ = ({navigation}) => {
           <TopNavBarButton
             onPress={onPressRefresh}
             iconName="refresh"
-            style={{ left: 15 }}
+            position="left"
+            secondary={true}
           />
         }
         <TopNavBarButton
           onPress={onPressOptions}
-          iconName="options"
-          style={{ right: 15 }}
+          iconName="options-outline"
+          position="right"
+          secondary={false}
         />
       </DuoliciousTopNavBar>
       <DefaultFlatList

@@ -7,8 +7,19 @@ import {
   useRef,
 } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { isMobile } from '../util/util';
 
-const TopNavBarButton = ({onPress, iconName, style}) => {
+const TopNavBarButton = ({
+  onPress,
+  iconName,
+  secondary,
+  position,
+}: {
+  onPress: any
+  iconName: any
+  secondary: boolean
+  position: 'left' | 'right'
+}) => {
   const opacity = useRef(new Animated.Value(1)).current;
 
   const onPressIn = useCallback(() => {
@@ -34,14 +45,23 @@ const TopNavBarButton = ({onPress, iconName, style}) => {
         height: '100%',
         alignItems: 'center',
         justifyContent: 'center',
-        ...style,
+        ...(position === 'left' ? { left: 10 } : { right: 10 }),
       }}
     >
-      <Animated.View style={{opacity: opacity}}>
+      <Animated.View style={{
+        opacity: opacity,
+        borderColor: secondary || isMobile() ? undefined : '#ccc',
+        borderWidth: secondary || isMobile() ? undefined : 1,
+        borderRadius: 7,
+        padding: secondary || isMobile() ? undefined : 4,
+        aspectRatio: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
         <Ionicons
           style={{
-            color: '#333',
-            fontSize: 26,
+            color: 'black',
+            fontSize: secondary || isMobile() ? 28 : 22,
           }}
           name={iconName}
         />

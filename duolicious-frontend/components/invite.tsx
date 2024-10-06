@@ -97,7 +97,8 @@ const InvitePicker = ({navigation}) => {
         <TopNavBarButton
           onPress={goBack}
           iconName="arrow-back"
-          style={{left: 15}}
+          position="left"
+          secondary={true}
         />
         <DefaultText
           style={{

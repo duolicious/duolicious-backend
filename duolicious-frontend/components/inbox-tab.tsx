@@ -374,7 +374,8 @@ const InboxTabNavBar = ({
         <TopNavBarButton
           onPress={onPressArchiveButton}
           iconName={showArchive ? 'chatbubbles-outline' : 'file-tray-full-outline'}
-          style={{right: 15}}
+          position="right"
+          secondary={false}
         />
       </TopNavBar>
   );

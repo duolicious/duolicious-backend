@@ -295,7 +295,8 @@ const ConversationScreenNavBar = ({
       <TopNavBarButton
         onPress={() => navigation.goBack()}
         iconName="arrow-back"
-        style={{left: 15}}
+        position="left"
+        secondary={true}
       />
       <Pressable
         onPress={onPressName}
@@ -343,7 +344,8 @@ const ConversationScreenNavBar = ({
         <TopNavBarButton
           onPress={toggleMenu}
           iconName="ellipsis-vertical"
-          style={{right: 10}}
+          position="right"
+          secondary={true}
         />
       }
       {showMenu &&

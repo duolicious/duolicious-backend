@@ -43,6 +43,7 @@ import { cmToFeetInchesStr, kmToMilesStr } from '../units/units';
 import debounce from 'lodash/debounce';
 import { Notice } from './notice';
 import { TopNavBarButton } from './top-nav-bar-button';
+import { QAndADevice } from './q-and-a-device';
 
 const getCurrentValueAsLabel = (og: OptionGroup<OptionGroupInputs> | undefined) => {
   if (!og) return undefined;
@@ -304,7 +305,8 @@ const SearchFilterScreen_ = ({navigation, route}) => {
         <TopNavBarButton
           onPress={goBack}
           iconName="arrow-back"
-          style={{left: 15}}
+          position="left"
+          secondary={true}
         />
         <DefaultText
           style={{
@@ -327,7 +329,32 @@ const SearchFilterScreen_ = ({navigation, route}) => {
             paddingBottom: 50,
           }}
         >
-          <Title>Basics (Two-way Filters)</Title>
+          <Title>Q&A Answers</Title>
+          <ButtonForOption
+            label="Q&A Answers"
+            setting={
+              (answers === undefined || answers.length === 0) ?
+              undefined :
+              (`${answers.length} Answer` + (answers.length === 1 ? '' : 's'))
+            }
+            noSettingText="Any"
+            onPress={onPressQAndAAnswers}
+            icon={
+              () => <QAndADevice color="black" fontSize={14} />
+            }
+          />
+          <DefaultText
+            style={{
+              color: '#999',
+              textAlign: 'center',
+              marginRight: 10,
+              marginLeft: 10,
+            }}
+          >
+            Set the Q&A answers you’ll accept from your matches
+          </DefaultText>
+
+          <Title style={{marginTop: 40}}>Basics (Two-way Filters)</Title>
           {
             _searchTwoWayBasicsOptionGroups.map((og, i) =>
               <Button_
@@ -359,17 +386,6 @@ const SearchFilterScreen_ = ({navigation, route}) => {
               />
             )
           }
-          <Title style={{marginTop: 40}}>Q&A Answers</Title>
-          <ButtonForOption
-            label="Q&A Answers"
-            setting={
-              (answers === undefined || answers.length === 0) ?
-              undefined :
-              (`${answers.length} Answer` + (answers.length === 1 ? '' : 's'))
-            }
-            noSettingText="Any"
-            onPress={onPressQAndAAnswers}
-          />
           <Title style={{marginTop: 40}}>Interactions</Title>
           {
             _searchInteractionsOptionGroups.map((og, i) =>
@@ -539,7 +555,7 @@ const QandQFilterScreen = ({navigation, route}) => {
           }
           {searchText === "" && !_.isEmpty(answers) &&
             <>
-              <Title>Q&A Answers You'll Accept ({(answers ?? []).length})</Title>
+              <Title>Q&A Answers You’ll Accept ({(answers ?? []).length})</Title>
               {(answers ?? []).map((a) =>
                 <SearchQuizCard
                   key={JSON.stringify(a)}
