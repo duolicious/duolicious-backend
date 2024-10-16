@@ -67,9 +67,11 @@ const storeKv = async (
 ): Promise<string | null | void> => {
   try {
     return await storeKvUnsafe(key, value);
-  } catch (e) {
+  } catch { };
+
+  try {
     return await storeKvUnsafe(key, null);
-  }
+  } catch { };
 }
 
 export {
