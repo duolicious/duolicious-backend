@@ -678,6 +678,7 @@ const ConversationScreen = ({navigation, route}) => {
               fromCurrentUser={x.fromCurrentUser}
               timestamp={x.timestamp}
               text={x.text}
+              imageUuid={x.fromCurrentUser ? null : imageUuid}
             />
           )}
         </ScrollView>

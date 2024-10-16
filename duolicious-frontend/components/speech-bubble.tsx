@@ -8,6 +8,8 @@ import {
 } from 'react-native';
 import { DefaultText } from './default-text';
 import { longFriendlyTimestamp } from '../util/util';
+import { Image } from 'expo-image';
+import { IMAGES_URL } from '../env/env';
 
 type State = 'Read' | 'Delivered';
 
@@ -15,6 +17,7 @@ type Props = {
   fromCurrentUser: boolean,
   timestamp: Date,
   text: string,
+  imageUuid: string | null | undefined,
 };
 
 const isEmojiOnly = (str: string) => {
@@ -46,28 +49,49 @@ const SpeechBubble = (props: Props) => {
         paddingBottom: 5,
         paddingLeft: 10,
         paddingRight: 10,
+        alignItems: props.fromCurrentUser ? 'flex-end' : 'flex-start',
+        width: '100%',
       }}
     >
-      <Pressable
-        onPress={onPress}
+      <View
         style={{
-          borderRadius: 10,
-          backgroundColor: backgroundColor,
-          alignSelf: props.fromCurrentUser ? 'flex-end' : 'flex-start',
+          flexDirection: 'row',
+          gap: 5,
+          alignItems: 'flex-end',
           maxWidth: '80%',
-          padding: 10,
         }}
       >
-        <DefaultText
-          selectable={true}
+        {props.imageUuid &&
+          <Image
+            source={{ uri: `${IMAGES_URL}/450-${props.imageUuid}.jpg` }}
+            transition={150}
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 9999,
+            }}
+          />
+        }
+        <Pressable
+          onPress={onPress}
           style={{
-            color: props.fromCurrentUser ? 'white' : 'black',
-            fontSize: isEmojiOnly(props.text) ? 50 : 15,
+            borderRadius: 10,
+            backgroundColor: backgroundColor,
+            padding: 10,
+            flexShrink: 1,
           }}
         >
-          {props.text}
-        </DefaultText>
-      </Pressable>
+          <DefaultText
+            selectable={true}
+            style={{
+              color: props.fromCurrentUser ? 'white' : 'black',
+              fontSize: isEmojiOnly(props.text) ? 50 : 15,
+            }}
+          >
+            {props.text}
+          </DefaultText>
+        </Pressable>
+      </View>
       {showTimestamp &&
         <DefaultText
           selectable={true}
