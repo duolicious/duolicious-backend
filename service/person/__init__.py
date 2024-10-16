@@ -915,6 +915,12 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         """
 
         q2 = Q_UPDATE_VERIFICATION_LEVEL
+    elif field_name == 'name':
+        q1 = """
+        UPDATE person
+        SET name = %(field_value)s
+        WHERE id = %(person_id)s
+        """
     elif field_name == 'about':
         q1 = """
         UPDATE person

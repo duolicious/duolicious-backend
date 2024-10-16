@@ -20,6 +20,12 @@ CLUB_MAX_LEN = 42
 
 HEX_COLOR_PATTERN = r"^#[0-9a-fA-F]{6}$"
 
+MIN_NAME_LEN = 1
+MAX_NAME_LEN = 64
+
+MIN_ABOUT_LEN = 0
+MAX_ABOUT_LEN = 10000
+
 class ClubItem(BaseModel):
     name: str
     count_members: int
@@ -126,13 +132,19 @@ class PostCheckOtp(BaseModel):
     otp: constr(pattern=r'^\d{6}$')
 
 class PatchOnboardeeInfo(BaseModel):
-    name: Optional[constr(min_length=1, max_length=64, strip_whitespace=True)] = None
+    name: Optional[constr(
+        min_length=MIN_NAME_LEN,
+        max_length=MAX_NAME_LEN,
+        strip_whitespace=True)] = None
     date_of_birth: Optional[str] = None
     location: Optional[constr(min_length=1)] = None
     gender: Optional[constr(min_length=1)] = None
     other_peoples_genders: Optional[conlist(constr(min_length=1), min_length=1)] = None
     base64_file: Optional[Base64File] = None
-    about: Optional[constr(min_length=0, max_length=10000)] = None
+    about: Optional[constr(
+        min_length=MIN_ABOUT_LEN,
+        max_length=MAX_ABOUT_LEN,
+        strip_whitespace=True)] = None
 
     @field_validator('date_of_birth')
     def age_must_be_18_or_up(cls, date_of_birth):
@@ -173,7 +185,14 @@ class DeleteProfileInfo(BaseModel):
 
 class PatchProfileInfo(BaseModel):
     base64_file: Optional[Base64File] = None
-    about: Optional[constr(min_length=0, max_length=10000)] = None
+    name: Optional[constr(
+        min_length=MIN_NAME_LEN,
+        max_length=MAX_NAME_LEN,
+        strip_whitespace=True)] = None
+    about: Optional[constr(
+        min_length=MIN_ABOUT_LEN,
+        max_length=MAX_ABOUT_LEN,
+        strip_whitespace=True)] = None
     gender: Optional[str] = None
     orientation: Optional[str] = None
     ethnicity: Optional[str] = None

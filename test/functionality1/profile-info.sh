@@ -248,6 +248,7 @@ test_verification_loss_photo () {
     where uuid = '$USER_UUID' and verification_level_id = 2")" -eq 1 ]]
 }
 
+test_set name "Jeff"
 test_set about "I'm a bad ass motherfuckin' DJ / This is why I walk and talk this way"
 test_set gender Woman
 test_set orientation Asexual
