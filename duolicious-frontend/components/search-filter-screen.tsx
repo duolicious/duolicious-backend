@@ -484,6 +484,7 @@ const QandQFilterScreen = ({navigation, route}) => {
           }}
           value={searchText}
           onChangeText={onChangeTextDebounced}
+          autoFocus={true}
         />
         {searchText !== "" &&
           <Pressable

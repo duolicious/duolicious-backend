@@ -14,7 +14,7 @@ const DefaultLongTextInput = (props) => {
         textAlignVertical: 'top',
         borderColor: '#ccc',
         borderWidth: 1,
-        borderRadius: 5,
+        borderRadius: 10,
         marginLeft: undefined,
         marginRight: undefined,
         height: undefined,
