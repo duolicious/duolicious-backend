@@ -31,6 +31,12 @@ const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
     showGradient = true,
   } = rest;
 
+  // This is a workaround for an issue where images that are only blurhashes
+  // appear as blank. I'm guessing the root cause is another issue I vaguely
+  // remember in React Native, where animations can be blocked by the rendering
+  // of a flat list.
+  const transition = !imageUuid ? { duration: 0, effect: null } : 150;
+
   return (
     <ImageBackground
       key={String(imageUuid) + ' ' + String(imageBlurhash)}
@@ -38,7 +44,7 @@ const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
         uri: `${IMAGES_URL}/${resolution}-${imageUuid}.jpg`
       }}
       placeholder={imageBlurhash && { blurhash: imageBlurhash }}
-      transition={150}
+      transition={transition}
       style={[
         {
           width: '100%',
@@ -250,7 +256,7 @@ const ProfileCard = ({
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
             justifyContent: 'center',
             alignItems: 'center',
           }}
