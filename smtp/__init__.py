@@ -47,34 +47,47 @@ class Smtp:
 
     def _try_send(
         self,
-        to: str,
         subject: str,
         body: str,
+        to_addr: str,
         from_addr: str | None = None,
     ):
         _from_addr = from_addr or 'no-reply@duolicious.app'
 
         msg = MIMEMultipart('alternative')
         msg['From'] = f'Duolicious <{_from_addr}>'
-        msg['To'] = to
+        msg['To'] = to_addr
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'html'))
 
         self.smtp.sendmail(
             from_addr=_from_addr,
-            to_addrs=to,
+            to_addrs=to_addr,
             msg=msg.as_string(),
         )
 
-    def send(self, to: str, subject: str, body: str, from_addr: str | None = None):
+    def send(
+            self,
+            subject: str,
+            body: str,
+            to_addr: str,
+            from_addr: str | None = None):
         try:
-            self._try_send(to=to, subject=subject, body=body, from_addr=from_addr)
+            self._try_send(
+                    subject=subject,
+                    body=body,
+                    to_addr=to_addr,
+                    from_addr=from_addr)
         except:
             print(traceback.format_exc())
             print('First attempt to send mail failed. Trying again.')
             try:
                 self._connect()
-                self._try_send(to=to, subject=subject, body=body, from_addr=from_addr)
+                self._try_send(
+                        subject=subject,
+                        body=body,
+                        to_addr=to_addr,
+                        from_addr=from_addr)
             except:
                 print(traceback.format_exc())
                 print('Second attempt to send mail failed. Giving up.')
