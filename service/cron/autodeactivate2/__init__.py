@@ -24,9 +24,9 @@ def maybe_send_email(email: str):
         return
 
     send_args = dict(
-        to=email,
         subject="Your profile is invisible 👻",
-        body=emailtemplate()
+        body=emailtemplate(),
+        to_addr=email,
     )
 
     print('autodeactivate2: sending deactivation email to', email)

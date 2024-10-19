@@ -118,13 +118,13 @@ def _send_report(
 
     try:
         aws_smtp.send(
-            to=report_email,
             subject=f"Report: {subject_person_id} - {object_person_id}",
             body=report_template(
                 report_obj=report_obj,
                 report_reason=report_reason,
                 last_messages=last_messages,
             ),
+            to_addr=report_email,
             from_addr=PRIMARY_REPORT_EMAIL,
         )
     except:
@@ -301,9 +301,10 @@ def _send_otp(email: str, otp: str):
         return
 
     aws_smtp.send(
-        to=email,
         subject="Sign in to Duolicious",
-        body=otp_template(otp)
+        body=otp_template(otp),
+        to_addr=email,
+        from_addr='noreply-otp@duolicious.app',
     )
 
 def post_request_otp(req: t.PostRequestOtp):

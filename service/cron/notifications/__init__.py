@@ -98,13 +98,13 @@ async def send_email_notification(row: PersonNotification):
         return
 
     send_args = dict(
-        to=row.email,
         subject="You have a new message 😍",
         body=emailtemplate(
             email=row.email,
             has_intro=row.has_intro,
             has_chat=row.has_chat,
-        )
+        ),
+        to_addr=row.email,
     )
 
     aws_smtp = make_aws_smtp()
