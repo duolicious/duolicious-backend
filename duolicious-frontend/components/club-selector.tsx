@@ -24,7 +24,8 @@ import * as _ from "lodash";
 import debounce from 'lodash/debounce';
 import { Basic } from './basic';
 import { listen, lastEvent  } from '../events/events';
-import { ClubItem, joinClub, leaveClub } from '../club/club';
+import { ClubItem, joinClub, leaveClub, CLUB_QUOTA } from '../club/club';
+import { useShake } from '../animation/animation';
 
 const SelectedClub = ({
   clubItem,
@@ -66,8 +67,9 @@ const UnselectedClub = ({
   onPress: (clubItem: ClubItem) => any
   isAtQuota: boolean
 }) => {
-  const shakeAnimation = useRef(new Animated.Value(0)).current;
-  const opacityAnimation = useRef(new Animated.Value(1)).current; // Initial opacity set to 1
+  const [shakeAnimation, startShake] = useShake();
+
+  const opacityAnimation = useRef(new Animated.Value(1)).current;
 
   const animateOpacity = useCallback(() => {
     // Animate opacity to 0.3 if at quota, otherwise animate back to 1
@@ -81,35 +83,6 @@ const UnselectedClub = ({
   useEffect(() => {
     animateOpacity();
   }, [animateOpacity]);
-
-  const startShake = useCallback(() => {
-    Animated.sequence([
-      Animated.timing(shakeAnimation, {
-        toValue: -25,
-        duration: 75,
-        useNativeDriver: true,
-        easing: Easing.linear
-      }),
-      Animated.timing(shakeAnimation, {
-        toValue: 20,
-        duration: 75,
-        useNativeDriver: true,
-        easing: Easing.linear
-      }),
-      Animated.timing(shakeAnimation, {
-        toValue: -15,
-        duration: 75,
-        useNativeDriver: true,
-        easing: Easing.linear
-      }),
-      Animated.timing(shakeAnimation, {
-        toValue: 0,
-        duration: 75,
-        useNativeDriver: true,
-        easing: Easing.linear
-      })
-    ]).start();
-  }, [shakeAnimation]);
 
   const _onPress = useCallback(
     () => isAtQuota ? startShake() : onPress(clubItem),
@@ -177,8 +150,6 @@ const ClubSelector = ({navigation}) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const clearSearchText = useCallback(() => setSearchText(""), []);
-
-  const clubQuota = 100;
 
   const _fetchClubItems = useCallback(debounce(async (q: string) => {
     const results = await fetchClubItems(q);
@@ -292,7 +263,7 @@ const ClubSelector = ({navigation}) => {
       >
         {!_.isEmpty(selectedClubs) &&
           <>
-            <Title>Clubs you’re in ({selectedClubs.length}/{clubQuota})</Title>
+            <Title>Clubs you’re in ({selectedClubs.length}/{CLUB_QUOTA})</Title>
             <View
               style={{
                 flexDirection: 'row',
@@ -354,7 +325,7 @@ const ClubSelector = ({navigation}) => {
                 key={String(i)}
                 clubItem={a}
                 onPress={onSelectClub}
-                isAtQuota={selectedClubs.length >= clubQuota}
+                isAtQuota={selectedClubs.length >= CLUB_QUOTA}
               />
             )}
             <DefaultText style={{

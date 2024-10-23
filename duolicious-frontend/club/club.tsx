@@ -2,6 +2,8 @@ import { japi } from '../api/api';
 import { notify, lastEvent } from '../events/events';
 import { searchQueue } from '../api/queue';
 
+const CLUB_QUOTA = 100;
+
 type ClubItem = {
   name: string,
   count_members: number,
@@ -27,10 +29,14 @@ const joinClub = (
   name: string,
   countMembers: number,
   searchPreference?: boolean,
-): void => {
-  searchQueue.addTask(async () => await japi('post', '/join-club', { name }));
-
+): boolean => {
   const existingClubs = lastEvent<ClubItem[]>('updated-clubs') ?? [];
+
+  if (existingClubs.length >= CLUB_QUOTA) {
+    return false;
+  }
+
+  searchQueue.addTask(async () => await japi('post', '/join-club', { name }));
 
   const updatedClubs = [
     ...existingClubs
@@ -50,6 +56,8 @@ const joinClub = (
   sortClubs(updatedClubs)
 
   notify<ClubItem[]>('updated-clubs', updatedClubs);
+
+  return true;
 };
 
 const leaveClub = (name: string): void => {
@@ -65,6 +73,7 @@ const leaveClub = (name: string): void => {
 };
 
 export {
+  CLUB_QUOTA,
   ClubItem,
   joinClub,
   leaveClub,

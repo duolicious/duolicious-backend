@@ -1,4 +1,5 @@
 import {
+  Animated,
   Pressable,
   View,
 } from 'react-native';
@@ -6,6 +7,7 @@ import { DefaultText } from './default-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import { useShake } from '../animation/animation';
 
 const isIconDefinition = (x: any): x is IconDefinition => {
   return x.iconName !== undefined;
@@ -41,30 +43,48 @@ const Basic = ({children, ...rest}) => {
     onPress,
   } = rest;
 
+  const [shakeAnimation, startShake] = useShake();
+
   return (
-    <Pressable
-      disabled={!onPress}
-      onPress={onPress}
+    <Animated.View
       style={[
         {
           borderColor: 'rgba(0, 0, 0, 0.1)',
           borderWidth: 1,
           borderRadius: 999,
-          paddingTop: 5,
-          paddingBottom: 5,
-          paddingLeft: 10,
-          paddingRight: 10,
           justifyContent: 'center',
-          alignItems: 'center',
-          flexDirection: 'row',
           backgroundColor: 'rgba(255, 255, 255, 0.3)',
+          transform: [{ translateX: shakeAnimation }],
+          flexShrink: 1,
         },
         style
       ]}
     >
-      {icon && <Icon icon={icon} textStyle={textStyle} />}
-      <DefaultText style={textStyle}>{children}</DefaultText>
-    </Pressable>
+      <Pressable
+        disabled={!onPress}
+        onPress={
+          () => {
+            if (!onPress) {
+              return;
+            }
+
+            if (onPress() === false) {
+              startShake();
+            }
+          }
+        }
+        style={{
+          paddingHorizontal: 10,
+          paddingVertical: 5,
+          alignItems: 'center',
+          flexDirection: 'row',
+          flexShrink: 1,
+        }}
+      >
+        {icon && <Icon icon={icon} textStyle={textStyle} />}
+        <DefaultText style={textStyle}>{children}</DefaultText>
+      </Pressable>
+    </Animated.View>
   );
 };
 
