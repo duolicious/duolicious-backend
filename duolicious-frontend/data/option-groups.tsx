@@ -23,7 +23,7 @@ import { LOGARITHMIC_SCALE, Scale } from "../scales/scales";
 import { VerificationBadge } from '../components/verification-badge';
 import { VerificationEvent } from '../verification/verification';
 import { notify } from '../events/events';
-import { ClubItem } from '../components/club-selector';
+import { ClubItem } from '../club/club';
 import { DefaultText } from '../components/default-text';
 import {
   Linking,

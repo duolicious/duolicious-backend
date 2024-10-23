@@ -21,7 +21,8 @@ import { faUserPlus } from '@fortawesome/free-solid-svg-icons/faUserPlus'
 import { TopNavBar } from './top-nav-bar';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { listen, lastEvent } from '../events/events';
-import { ClubItem, SelectedClub } from './club-selector';
+import { SelectedClub } from './club-selector';
+import { ClubItem } from '../club/club';
 import { ButtonWithCenteredText } from './button/centered-text';
 import { notify } from '../events/events';
 import { faLink } from '@fortawesome/free-solid-svg-icons/faLink'

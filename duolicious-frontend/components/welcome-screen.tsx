@@ -29,7 +29,7 @@ import { KeyboardDismissingView } from './keyboard-dismissing-view';
 import { otpDestination } from '../App';
 import { signedInUser } from '../App';
 import { notify, lastEvent } from '../events/events';
-import { ClubItem, joinClub } from './club-selector';
+import { ClubItem, joinClub } from '../club/club';
 import { isMobile } from '../util/util';
 
 const activeMembersText = (

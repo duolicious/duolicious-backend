@@ -1,4 +1,5 @@
 import {
+  Pressable,
   View,
 } from 'react-native';
 import { DefaultText } from './default-text';
@@ -10,37 +11,40 @@ const isIconDefinition = (x: any): x is IconDefinition => {
   return x.iconName !== undefined;
 };
 
+const Icon = ({icon, textStyle}) => {
+  if (isIconDefinition(icon)) {
+    return <FontAwesomeIcon
+      icon={icon}
+      size={16}
+      style={{
+        marginRight: 5,
+        ...textStyle,
+      }}
+    />
+  } else {
+    return <Ionicons
+      style={{
+        fontSize: 16,
+        marginRight: 5,
+        ...textStyle,
+      }}
+      name={icon}
+    />
+  }
+};
+
 const Basic = ({children, ...rest}) => {
   const {
     icon,
     style = {},
     textStyle = {},
+    onPress,
   } = rest;
 
-  const Icon = ({icon}) => {
-    if (isIconDefinition(icon)) {
-      return <FontAwesomeIcon
-        icon={icon}
-        size={16}
-        style={{
-          marginRight: 5,
-          ...textStyle,
-        }}
-      />
-    } else {
-      return <Ionicons
-        style={{
-          fontSize: 16,
-          marginRight: 5,
-          ...textStyle,
-        }}
-        name={icon}
-      />
-    }
-  };
-
   return (
-    <View
+    <Pressable
+      disabled={!onPress}
+      onPress={onPress}
       style={[
         {
           borderColor: 'rgba(0, 0, 0, 0.1)',
@@ -58,9 +62,9 @@ const Basic = ({children, ...rest}) => {
         style
       ]}
     >
-      {icon && <Icon icon={icon}/>}
+      {icon && <Icon icon={icon} textStyle={textStyle} />}
       <DefaultText style={textStyle}>{children}</DefaultText>
-    </View>
+    </Pressable>
   );
 };
 
@@ -68,6 +72,7 @@ const Basics = ({children}) => {
   return (
     <View
       style={{
+        zIndex: 999,
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 5,

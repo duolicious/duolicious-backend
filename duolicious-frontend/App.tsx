@@ -49,7 +49,7 @@ import { navigationState } from './kv-storage/navigation-state';
 import { listen, notify } from './events/events';
 import { verificationWatcher } from './verification/verification';
 import { ColorPickerModal } from './components/color-picker-modal/color-picker-modal';
-import { ClubItem } from './components/club-selector';
+import { ClubItem } from './club/club';
 import { Toast } from './components/toast';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DonationNagModal } from './components/donation-nag-modal';

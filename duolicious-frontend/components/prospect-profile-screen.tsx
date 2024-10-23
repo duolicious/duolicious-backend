@@ -39,7 +39,6 @@ import {
   VerificationBadge,
   DetailedVerificationBadges,
 } from './verification-badge';
-
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons/faArrowLeft'
@@ -51,6 +50,15 @@ import { faVenusMars } from '@fortawesome/free-solid-svg-icons/faVenusMars'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
 import { RotateCcw, Flag, X } from "react-native-feather";
+import Reanimated, {
+  Easing,
+  FadeOut,
+  LinearTransition,
+} from 'react-native-reanimated';
+import { ClubItem, joinClub, leaveClub } from '../club/club';
+import _ from 'lodash';
+
+// TODO: Handle the case where club stealing causes someone to join too many clubs
 
 const Stack = createNativeStackNavigator();
 
@@ -488,18 +496,129 @@ const BlockButton = ({navigation, name, personId, personUuid, isSkipped}) => {
   );
 };
 
-const Columns = ({children, ...rest}) => {
+const AllClubsItem = ({kind, kids, props, ...rest}) => {
+  if (kind === 'Title') {
+    return <Title {...props}>{kids}</Title>;
+  }
+
+  if (kind === 'Club') {
+    return <Club {...props}>{kids}</Club>;
+  }
+
+  throw Error('Unexpected club kind');
+};
+
+const AllClubs = ({
+  mutualClubs,
+  otherClubs,
+  mutualClubsTheme,
+  clubsTheme,
+  titleColor,
+}: {
+  mutualClubs: string[],
+  otherClubs: string[],
+  mutualClubsTheme: any,
+  clubsTheme: any,
+  titleColor: any,
+}) => {
+  const [state, setState] = useState({
+    mutualClubs: mutualClubs,
+    otherClubs: otherClubs,
+  });
+
+  useEffect(() => {
+    setState({ mutualClubs, otherClubs })
+  }, [mutualClubs, otherClubs]);
+
+  useEffect(() =>
+    listen<ClubItem[]>(
+      'updated-clubs',
+      (cs) => {
+        if (!cs) {
+          return;
+        }
+
+        setState(s => {
+          const clubs = [...new Set(cs.map(c => c.name))];
+          const prospectClubs = [...new Set([...s.otherClubs, ...s.mutualClubs])];
+
+          return {
+            mutualClubs: [..._.intersection(clubs, prospectClubs)],
+            otherClubs: [..._.difference(prospectClubs, clubs)],
+          }
+        });
+      }
+    )
+  , []);
+
+  if (state.mutualClubs.length === 0 && state.otherClubs.length === 0) {
+    return null;
+  }
+
+  const childData = [
+    state.mutualClubs.length > 0 ? {
+      kind: 'Title',
+      props: { style: {color: titleColor, width: '100%'}},
+      kids: 'Mutual clubs' } : null,
+
+    ...state.mutualClubs.map((clubName, i) => ({
+        kind: 'Club',
+        props: {
+          onPress: () => leaveClub(clubName),
+          key: clubName,
+          name: clubName,
+          isMutual: true,
+          ...mutualClubsTheme,
+        },
+        kids: null,
+      })),
+
+      (state.otherClubs.length > 0 && state.mutualClubs.length > 0) ? {
+        kind: 'Title',
+        props: { style: {color: titleColor, width: '100%'}},
+        kids: 'Other clubs' } : null,
+
+      (state.otherClubs.length > 0 && state.mutualClubs.length === 0) ? {
+        kind: 'Title',
+        props: { style: {color: titleColor, width: '100%'}},
+        kids: 'Clubs' } : null,
+
+      ...state.otherClubs.map((clubName, i) => ({
+        kind: 'Club',
+        props: {
+          onPress: () => joinClub(clubName, -1, false),
+          key: clubName,
+          name: clubName,
+          isMutual: false,
+          ...clubsTheme,
+        },
+        kids: null,
+      })),
+  ].filter(Boolean);
+
   return (
-    <View style={{
-      width: '100%',
-      maxWidth: 600,
-      flexGrow: 1,
-      alignSelf: 'center',
-      ...rest.style,
-    }}
-    >
-      {children}
-    </View>
+    <Clubs>
+      {childData.map((d) =>
+        <Reanimated.View
+          key={
+            JSON.stringify({
+              kind: d?.kind,
+              kids: d?.kids,
+              clubName: d?.props.name,
+            })
+          }
+          style={d?.kind === 'Title' ? styles.wFull : null}
+          layout={LinearTransition.easing(Easing.out(Easing.poly(4)))}
+          exiting={FadeOut}
+        >
+          <AllClubsItem
+            kind={d?.kind}
+            kids={d?.kids}
+            props={d?.props}
+          />
+        </Reanimated.View>
+      )}
+    </Clubs>
   );
 };
 
@@ -1009,24 +1128,6 @@ const Body = ({
           verified={imageVerification2}
         />
 
-        {data !== undefined && data.mutual_clubs.length > 0 &&
-          <>
-            <Title style={{color: data?.theme?.title_color}}>
-              Mutual clubs
-            </Title>
-            <Clubs>
-              {data.mutual_clubs.map((clubName, i) =>
-                <Club
-                  key={i}
-                  name={clubName}
-                  isMutual={true}
-                  {...mutualClubsTheme}
-                />
-              )}
-            </Clubs>
-          </>
-        }
-
         <EnlargeableImage
           imageUuid={imageUuid3}
           imageBlurhash={imageBlurhash3}
@@ -1036,23 +1137,13 @@ const Body = ({
           verified={imageVerification3}
         />
 
-        {data !== undefined && data.other_clubs.length > 0 &&
-          <>
-            <Title style={{color: data?.theme?.title_color}}>
-              {data.mutual_clubs.length > 0 ? 'Other clubs' : 'Clubs'}
-            </Title>
-            <Clubs>
-              {data.other_clubs.map((clubName, i) =>
-                <Club
-                  key={i}
-                  name={clubName}
-                  isMutual={false}
-                  {...clubsTheme}
-                />
-              )}
-            </Clubs>
-          </>
-        }
+        <AllClubs
+          mutualClubs={data?.mutual_clubs ?? []}
+          otherClubs={data?.other_clubs ?? []}
+          mutualClubsTheme={mutualClubsTheme}
+          clubsTheme={clubsTheme}
+          titleColor={data?.theme?.title_color}
+        />
 
         <EnlargeableImage
           imageUuid={imageUuid4}
@@ -1107,6 +1198,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginTop: 10,
     marginBottom: 10,
+  },
+  wFull: {
+    width: '100%',
   },
 });
 

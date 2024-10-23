@@ -53,7 +53,8 @@ import {
 import * as _ from "lodash";
 import debounce from 'lodash/debounce';
 import { aboutQueue, nameQueue } from '../api/queue';
-import { ClubItem, ClubSelector } from './club-selector';
+import { ClubSelector } from './club-selector';
+import { ClubItem } from '../club/club';
 import { listen, notify } from '../events/events';
 import { ButtonWithCenteredText } from './button/centered-text';
 import Ionicons from '@expo/vector-icons/Ionicons';

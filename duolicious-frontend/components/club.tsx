@@ -5,14 +5,17 @@ const Club = ({
   isMutual,
   style,
   textStyle,
+  onPress,
 }: {
   name: string,
   isMutual: boolean,
   style?: any,
   textStyle?: any,
+  onPress?: any,
 }) => {
   return (
     <Basic
+      onPress={onPress}
       style={style}
       textStyle={{
         fontFamily: isMutual ? 'TruenoBold' : 'Trueno',

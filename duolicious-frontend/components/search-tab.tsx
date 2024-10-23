@@ -26,7 +26,7 @@ import { TopNavBarButton } from './top-nav-bar-button';
 import { LinearGradient } from 'expo-linear-gradient';
 import { delay, isMobile } from '../util/util';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ClubItem, sortClubs } from './club-selector';
+import { ClubItem, sortClubs } from '../club/club';
 import { listen, lastEvent } from '../events/events';
 import { searchQueue } from '../api/queue';
 
