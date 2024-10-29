@@ -307,6 +307,7 @@ const ConversationScreenNavBar = ({
         }}
       >
         <Image
+          key={imageUuid}
           source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
           placeholder={imageBlurhash && { blurhash: imageBlurhash }}
           transition={150}

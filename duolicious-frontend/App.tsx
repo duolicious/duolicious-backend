@@ -17,13 +17,13 @@ import {
   DefaultTheme,
   NavigationContainer,
   NavigationContainerRef,
+  createNavigationContainerRef,
 } from '@react-navigation/native';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Font from 'expo-font';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Notifications from 'expo-notifications';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { TabBar } from './components/tab-bar';
@@ -44,7 +44,11 @@ import { delay, parseUrl } from './util/util';
 import { ReportModal } from './components/report-modal';
 import { ImageCropper } from './components/image-cropper';
 import { StreamErrorModal } from './components/stream-error-modal';
-import { setNofications, useNotificationObserver } from './notifications/notifications';
+import {
+  setNofications,
+  useNotificationObserver,
+  getLastNotificationResponseAsync,
+} from './notifications/notifications';
 import { navigationState } from './kv-storage/navigation-state';
 import { listen, notify } from './events/events';
 import { verificationWatcher } from './verification/verification';
@@ -53,10 +57,6 @@ import { ClubItem } from './club/club';
 import { Toast } from './components/toast';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DonationNagModal } from './components/donation-nag-modal';
-
-// TODO: iOS UI testing
-// TODO: Add the ability to reply to things (e.g. pictures, quiz responses) from people's profiles. You'll need to change the navigation to make it easier to reply to things. Consider breaking profiles into sections which can be replied to, each having one image or block of text. Letting people reply to specific things on the profile will improve intro quality.
-// TODO: A profile prompts. e.g. "If I had three wishes, I'd wish for...", "My favourite move is..."
 
 setNofications();
 verificationWatcher();
@@ -150,13 +150,15 @@ let setSignedInUser: React.Dispatch<React.SetStateAction<typeof signedInUser>>;
 const otpDestination = { value: '' };
 const isImagePickerOpen = { value: false };
 
+const navigationContainerRef = createNavigationContainerRef<any>();
+
 const App = () => {
   const [numUnreadTitle, setNumUnreadTitle] = useState(0);
+  const [initialState, setInitialState] = useState<any>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
   [signedInUser, setSignedInUser] = useState<SignedInUser | undefined>();
   [referrerId, setReferrerId] = useState<string | undefined>();
-  const navigationContainerRef = useRef<any>();
 
   const loadFonts = useCallback(async () => {
     await Font.loadAsync({
@@ -185,10 +187,39 @@ const App = () => {
     }
   }, []);
 
-  const fetchSignInState = useCallback(async () => {
+  const restoreSessionAndNavigate = useCallback(async () => {
+    const existingPersonUuid = await sessionPersonUuid();
     const existingSessionToken = await sessionToken();
+    const existingNavigationState = await navigationState();
+    const parsedUrl = await parseUrl();
+    const notification = await getLastNotificationResponseAsync();
 
-    if (existingSessionToken === null) {
+    if (!parsedUrl) {
+      ;
+    } else if (parsedUrl.left === 'me') {
+      setReferrerId(parsedUrl.right);
+      setInitialState({
+        routes: [
+          {
+            name: "Traits Screen",
+          }
+        ]
+      });
+      return;
+    } else if (parsedUrl.left === 'invite') {
+      setInitialState({
+        routes: [
+          {
+            name: "Invite Screen",
+            params: {
+              clubName: decodeURIComponent(parsedUrl.right),
+            }
+          }
+        ]
+      });
+    }
+
+    if (!existingPersonUuid || !existingSessionToken) {
       await sessionPersonUuid(null);
       await sessionToken(null);
       setSignedInUser(undefined);
@@ -199,6 +230,9 @@ const App = () => {
     if (typeof existingSessionToken !== 'string') {
       return;
     }
+
+    // Log into XMPP
+    login(existingPersonUuid, existingSessionToken);
 
     const response = await japi('post', '/check-session-token');
 
@@ -212,20 +246,55 @@ const App = () => {
 
     const clubs: ClubItem[] = response?.json?.clubs;
 
+    const personId = response?.json?.person_id as number;
+
+    const personUuid = response?.json?.person_uuid as string;
+
+    const pendingClub = response?.json?.pending_club as ClubItem | null;
+
     setSignedInUser({
-      personId: response?.json?.person_id,
-      personUuid: response?.json?.person_uuid,
+      personId: personId,
+      personUuid: personUuid,
       units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
       sessionToken: existingSessionToken,
-      pendingClub: response?.json?.pending_club,
+      pendingClub: pendingClub,
       doShowDonationNag: response?.json?.do_show_donation_nag,
       estimatedEndDate: new Date(response?.json?.estimated_end_date),
       name: response?.json?.name,
     });
 
-    await sessionPersonUuid(response?.json?.person_uuid);
-
     notify<ClubItem[]>('updated-clubs', clubs);
+
+    if (parsedUrl) {
+      // Navigation was already handled before logging in; Do nothing.
+      ;
+    } else if (notification) {
+      setInitialState({
+        index: 1,
+        routes: [
+          { name: "Home" },
+          { name: notification.screen, params: notification.params },
+        ]
+      });
+    } else if (pendingClub) {
+      // Navigate to search
+      setInitialState({
+        routes: [
+          {
+            name: "Home",
+            state: {
+              routes: [
+                {
+                  name: "Search"
+                }
+              ]
+            }
+          }
+        ]
+      });
+    } else if (existingNavigationState) {
+      setInitialState(existingNavigationState);
+    }
   }, []);
 
   const fetchServerStatusState = useCallback(async () => {
@@ -264,60 +333,18 @@ const App = () => {
     }
   }, [serverStatus]);
 
-  const ensureLoggedIntoXmpp = async () => {
-    const personUuid = (await sessionPersonUuid()) ?? signedInUser?.personUuid;
-    const token = await sessionToken();
-
-    if (!personUuid || !token) {
-      return;
-    }
-
-    await login(personUuid, token);
-  };
-
-  const parseUrl_ = useCallback(async () => {
-    const parsedUrl = await parseUrl();
-
-    switch (parsedUrl?.left) {
-      case 'me': {
-        setReferrerId(parsedUrl.right);
-        break;
-      }
-
-      case 'invite': {
-        const navigationContainer = navigationContainerRef?.current;
-
-        if (navigationContainer) {
-          navigationContainerRef.current.navigate(
-            'Invite Screen',
-            { clubName: decodeURIComponent(parsedUrl.right) },
-          );
-        }
-        break;
-      }
-
-      default: {
-        break;
-      }
-    }
-  }, []);
-
   useEffect(() => {
     (async () => {
       await Promise.all([
         loadFonts(),
         lockScreenOrientation(),
-        fetchSignInState(),
+        restoreSessionAndNavigate(),
         fetchServerStatusState(),
       ]);
 
       setIsLoading(false);
     })();
   }, []);
-
-  useEffect(() => {
-    ensureLoggedIntoXmpp()
-  }, [signedInUser?.personUuid]);
 
   useEffect(() => {
     // Without this flag, an infinite loop will start each time this effect
@@ -336,30 +363,6 @@ const App = () => {
     return () => { doBreak = true; };
   }, [fetchServerStatusState]);
 
-  useEffect(() => {
-    (async () => {
-
-      if (!signedInUser?.personId || !signedInUser?.sessionToken) {
-        logout();
-        return;
-      }
-
-      const lastNavigationState = await navigationState();
-
-      const navigationContainer = navigationContainerRef?.current;
-
-      const pendingClub = signedInUser?.pendingClub;
-
-      if (navigationContainer && pendingClub) {
-        navigationContainer.navigate('Search');
-      } else if (await parseUrl()) {
-        ; // Don't restore last navigation state
-      } else if (navigationContainer && lastNavigationState) {
-        navigationContainer.reset(lastNavigationState);
-      }
-    })();
-  }, [signedInUser?.personId, signedInUser?.sessionToken]);
-
   const onNavigationStateChange = useCallback(async (state) => {
     if (Platform.OS === 'web') {
       history.pushState((history?.state ?? 0) + 1, "", "#");
@@ -367,10 +370,8 @@ const App = () => {
 
     if (!state) return;
 
-    const lastNavigationState = {...state, stale: true};
-
     if (signedInUser) {
-      await navigationState(lastNavigationState);
+      await navigationState(state);
     }
   }, [signedInUser]);
 
@@ -388,7 +389,7 @@ const App = () => {
       const handlePopstate = (ev) => {
         ev.preventDefault();
 
-        const navigationContainer = navigationContainerRef?.current;
+        const navigationContainer = navigationContainerRef.current;
 
         if (navigationContainer) {
           navigationContainer.goBack();
@@ -403,23 +404,18 @@ const App = () => {
     }, [onChangeInbox]);
   }
 
-  useNotificationObserver((notification: Notifications.Notification) => {
-    if (!isLoading) {
-      const navigationContainer = navigationContainerRef.current;
+  useNotificationObserver((screen: string, params: any) => {
+    const navigationContainer = navigationContainerRef.current;
 
-      const { screen, params } = notification.request.content.data;
+    if (!navigationContainer) return;
+    if (!screen) return;
 
-      if (!navigationContainer) return;
-      if (!screen) return;
-
-      navigationContainer.navigate(screen, params);
-    }
-  }, [isLoading]);
+    navigationContainer.navigate(screen, params);
+  });
 
   useEffect(() => {
     (async () => {
       if (!isLoading) {
-        await parseUrl_();
         await SplashScreen.hideAsync();
       }
     })();
@@ -435,6 +431,11 @@ const App = () => {
         <>
           <NavigationContainer
             ref={navigationContainerRef}
+            initialState={
+              initialState ?
+              { ...initialState, stale: true } :
+              undefined
+            }
             onStateChange={onNavigationStateChange}
             theme={{
               ...DefaultTheme,
@@ -459,23 +460,24 @@ const App = () => {
                 presentation: 'card',
               }}
             >
-              {
-                referrerId !== undefined ? (
-                  <Tab.Screen name="Traits Screen" component={TraitsTab} />
-                ) : signedInUser ? (
-                  <>
-                    <Tab.Screen name="Home" component={HomeTabs} />
-                    <Tab.Screen name="Conversation Screen" component={ConversationScreen} />
-                    <Tab.Screen name="Prospect Profile Screen" component={ProspectProfileScreen} />
-                    <Tab.Screen name="Invite Screen" component={InviteScreen} />
-                  </>
-                ) : (
-                  <>
-                    <Tab.Screen name="Welcome" component={WelcomeScreen} />
-                    <Tab.Screen name="Invite Screen" component={InviteScreen} />
-                  </>
-                )
-              }
+              <Tab.Screen
+                name="Welcome"
+                component={WelcomeScreen} />
+              <Tab.Screen
+                name="Home"
+                component={HomeTabs} />
+              <Tab.Screen
+                name="Conversation Screen"
+                component={ConversationScreen} />
+              <Tab.Screen
+                name="Prospect Profile Screen"
+                component={ProspectProfileScreen} />
+              <Tab.Screen
+                name="Invite Screen"
+                component={InviteScreen} />
+              <Tab.Screen
+                name="Traits Screen"
+                component={TraitsTab} />
             </Stack.Navigator>
           </NavigationContainer>
           <DonationNagModal/>
@@ -494,6 +496,7 @@ const App = () => {
 export default App;
 export {
   isImagePickerOpen,
+  navigationContainerRef,
   otpDestination,
   referrerId,
   setSignedInUser,

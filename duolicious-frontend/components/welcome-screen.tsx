@@ -152,7 +152,21 @@ const InviteScreen = ({navigation, route}) => {
 
       navigation.navigate('Home', { screen: 'Search' });
     } else {
-      navigation.navigate('Welcome Screen', { clubName, numUsers });
+      navigation.reset({
+        routes: [
+          {
+            name: 'Welcome',
+            state: {
+              routes: [
+                {
+                  name: 'Welcome Screen',
+                  params: { clubName, numUsers }
+                },
+              ]
+            },
+          },
+        ],
+      });
     }
   };
 

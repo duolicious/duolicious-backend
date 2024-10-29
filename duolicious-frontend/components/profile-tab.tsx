@@ -467,6 +467,7 @@ const Options = ({ navigation, data }) => {
       await sessionPersonUuid(null);
       await sessionToken(null);
       setSignedInUser(undefined);
+      navigation.reset({ routes: [ { name: 'Welcome' } ] });
     }
     setIsLoadingSignOut(false);
   }, []);

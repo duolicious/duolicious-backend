@@ -1,6 +1,6 @@
 import * as _ from "lodash";
 import { api, japi, ApiResponse } from '../api/api';
-import { setSignedInUser } from '../App';
+import { setSignedInUser, navigationContainerRef } from '../App';
 import { sessionToken, sessionPersonUuid } from '../kv-storage/session-token';
 import { X } from "react-native-feather";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
@@ -961,7 +961,9 @@ const deletionOptionGroups: OptionGroup<OptionGroupTextShort>[] = [
           await sessionToken(null);
           setSignedInUser(undefined);
 
-          return true;
+          navigationContainerRef.reset({ routes: [ { name: 'Welcome' } ]});
+
+          return false;
         },
         invalidMsg: 'Try again',
       }
@@ -981,8 +983,10 @@ const deactivationOptionGroups: OptionGroup<OptionGroupNone>[] = [
             await sessionPersonUuid(null);
             await sessionToken(null);
             setSignedInUser(undefined);
+
+            navigationContainerRef.reset({ routes: [ { name: 'Welcome' } ]});
           }
-          return ok;
+          return false;
         }
       }
     }
@@ -999,30 +1003,55 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           const existingSessionToken = await sessionToken();
           const response = await japi('post', '/check-otp', { otp: input });
 
-          if (
-            response.ok &&
-            Boolean(response?.json?.onboarded) &&
-            typeof existingSessionToken === 'string'
-          ) {
-            const clubs: ClubItem[] = response?.json?.clubs;
+          if (!response.ok) return false;
+          if (typeof existingSessionToken !== 'string') return false;
 
-            setSignedInUser((signedInUser) => ({
-              personId: response?.json?.person_id,
-              personUuid: response?.json?.person_uuid,
-              units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
-              sessionToken: existingSessionToken,
-              pendingClub: response?.json?.pending_club,
-              doShowDonationNag: response?.json?.do_show_donation_nag,
-              estimatedEndDate: new Date(response?.json?.estimated_end_date),
-              name: response?.json?.name,
-            }));
+          const onboarded = response.json.onboarded;
+          const pendingClub = response?.json?.pending_club;
 
-            await sessionPersonUuid(response?.json?.person_uuid);
-
-            notify<ClubItem[]>('updated-clubs', clubs);
+          if (!onboarded) {
+            return true;
+          } else if (!navigationContainerRef.current) {
+            ;
+          } else if (pendingClub) {
+            navigationContainerRef.reset({
+              routes: [
+                {
+                  name: "Home",
+                  state: {
+                    routes: [
+                      {
+                        name: "Search"
+                      }
+                    ]
+                  }
+                }
+              ]
+            });
+          } else {
+            navigationContainerRef.reset({
+              routes: [ { name: 'Home' } ]
+            });
           }
 
-          return response.ok;
+          const clubs: ClubItem[] = response?.json?.clubs;
+
+          setSignedInUser((signedInUser) => ({
+            personId: response?.json?.person_id,
+            personUuid: response?.json?.person_uuid,
+            units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
+            sessionToken: existingSessionToken,
+            pendingClub: response?.json?.pending_club,
+            doShowDonationNag: response?.json?.do_show_donation_nag,
+            estimatedEndDate: new Date(response?.json?.estimated_end_date),
+            name: response?.json?.name,
+          }));
+
+          await sessionPersonUuid(response?.json?.person_uuid);
+
+          notify<ClubItem[]>('updated-clubs', clubs);
+
+          return false;
         }
       }
     },
@@ -1113,26 +1142,49 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         submit: async () => {
           const _sessionToken = await sessionToken();
           const response = await japi('post', '/finish-onboarding');
-          if (response.ok) {
-            const clubs: ClubItem[] = response?.json?.clubs;
 
-            setSignedInUser((signedInUser) => ({
-              sessionToken: _sessionToken ?? '',
-              ...signedInUser,
-              personId: response?.json?.person_id,
-              personUuid: response?.json?.person_uuid,
-              units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
-              pendingClub: response?.json?.pending_club,
-              doShowDonationNag: response?.json?.do_show_donation_nag,
-              estimatedEndDate: new Date(response?.json?.estimated_end_date),
-              name: response?.json?.name,
-            }));
+          if (!response.ok) {
+            return false
+          }
 
-            await sessionPersonUuid(response?.json?.person_uuid);
+          const clubs: ClubItem[] = response?.json?.clubs;
 
-            notify<ClubItem[]>('updated-clubs', clubs);
-          };
-          return response.ok;
+          const pendingClub = response?.json?.pending_club;
+
+          setSignedInUser((signedInUser) => ({
+            sessionToken: _sessionToken ?? '',
+            ...signedInUser,
+            personId: response?.json?.person_id,
+            personUuid: response?.json?.person_uuid,
+            units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
+            pendingClub: pendingClub,
+            doShowDonationNag: response?.json?.do_show_donation_nag,
+            estimatedEndDate: new Date(response?.json?.estimated_end_date),
+            name: response?.json?.name,
+          }));
+
+          await sessionPersonUuid(response?.json?.person_uuid);
+
+          notify<ClubItem[]>('updated-clubs', clubs);
+
+          if (pendingClub) {
+            navigationContainerRef.reset({
+              routes: [
+                {
+                  name: "Home",
+                  state: {
+                    routes: [
+                      {
+                        name: "Search"
+                      }
+                    ]
+                  }
+                }
+              ]
+            });
+          }
+
+          return false;
         }
       }
     }

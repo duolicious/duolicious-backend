@@ -51,8 +51,21 @@ const registerForPushNotificationsAsync = async (): Promise<void> => {
   registerPushToken(token.data);
 };
 
+const unpackNotificationResponse = (
+  response: Notifications.NotificationResponse | null,
+) => {
+  if (!response) {
+    return null;
+  }
+
+  const screen: string = response.notification.request.content.data.screen;
+  const params: any = response.notification.request.content.data.params;
+
+  return { screen, params };
+}
+
 const useNotificationObserver = (
-  func: (notification: Notifications.Notification) => void,
+  func: (screen: string, params: any) => void,
   deps?: React.DependencyList | undefined,
 ) => {
   if (Platform.OS === 'web') {
@@ -60,29 +73,31 @@ const useNotificationObserver = (
   }
 
   useEffect(() => {
-    let isMounted = true;
-
-    Notifications.getLastNotificationResponseAsync()
-      .then(response => {
-        if (!isMounted || !response?.notification) {
-          return;
-        }
-        func(response?.notification);
-      });
-
     const subscription = Notifications
       .addNotificationResponseReceivedListener(response => {
-        func(response.notification);
+        const notification = unpackNotificationResponse(response);
+
+        if (notification) {
+          func(notification.screen, notification.params);
+        }
       });
 
-    return () => {
-      isMounted = false;
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, deps);
 };
 
+const getLastNotificationResponseAsync = async () => {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+
+  const notification = await Notifications.getLastNotificationResponseAsync();
+
+  return unpackNotificationResponse(notification);
+};
+
 export {
+  getLastNotificationResponseAsync,
   registerForPushNotificationsAsync,
   setNofications,
   useNotificationObserver,
