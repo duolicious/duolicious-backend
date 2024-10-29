@@ -224,6 +224,11 @@ const App = () => {
       await sessionToken(null);
       setSignedInUser(undefined);
       logout();
+
+      if (!parsedUrl) {
+        navigationContainerRef.reset({ routes: [ { name: 'Welcome' } ]});
+      }
+
       return;
     }
 
@@ -241,6 +246,11 @@ const App = () => {
       await sessionToken(null);
       setSignedInUser(undefined);
       logout();
+
+      if (!parsedUrl) {
+        navigationContainerRef.reset({ routes: [ { name: 'Welcome' } ]});
+      }
+
       return;
     }
 

@@ -3,11 +3,16 @@ import { storeKv } from './kv-storage';
 // The screens 'Profile Option Screen' and 'Search Filter Option Screen'
 // include parameters which aren't serializable. Those navigation states
 // shouldn't be stored.
-const unsafeScreens = [
-  "Club Selector",
-  "Profile Option Screen",
-  "Search Filter Option Screen",
-  "Invite Screen",
+const safeScreens = [
+  "Conversation Screen",
+  "Home/Inbox",
+  "Home/Profile/Profile Tab",
+  "Home/Q&A",
+  "Home/Search/Search Filter Screen/Q&A Filter Screen",
+  "Home/Search/Search Filter Screen/Search Filter Tab",
+  "Home/Search/Search Screen",
+  "Home/Traits",
+  "Prospect Profile Screen/Prospect Profile",
 ];
 
 const getCurrentScreen = (navigationState: any): string | null => {
@@ -29,7 +34,7 @@ const getCurrentScreen = (navigationState: any): string | null => {
 
   // Recurse into nested state if it exists
   if (currentRoute.state) {
-    return getCurrentScreen(currentRoute.state);
+    return currentRoute.name + "/" + getCurrentScreen(currentRoute.state);
   }
 
   // Return the name of the current route if available
@@ -38,7 +43,7 @@ const getCurrentScreen = (navigationState: any): string | null => {
 
 const navigationState = async (value?: any) => {
   const currentScreen = getCurrentScreen(value);
-  if (currentScreen && unsafeScreens.includes(currentScreen))
+  if (currentScreen && !safeScreens.includes(currentScreen))
     return null;
 
   const result = await storeKv(

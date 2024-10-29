@@ -35,20 +35,6 @@ const IntrosItemMemo = memo(IntrosItem);
 const ChatsItemMemo = memo(ChatsItem);
 
 const InboxTab = ({navigation}) => {
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-        animation: 'slide_from_right',
-      }}
-    >
-      <Stack.Screen name="Inbox Tab" component={InboxTab_} />
-      <Stack.Screen name="Inbox Option Screen" component={OptionScreen} />
-    </Stack.Navigator>
-  );
-};
-
-const InboxTab_ = ({navigation}) => {
   const maxIntros = 1000;
 
   const [sectionIndex, setSectionIndex] = useState(0);
