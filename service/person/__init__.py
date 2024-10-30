@@ -29,13 +29,6 @@ import erlastic
 from datetime import datetime, timezone
 
 
-# TODO: Deleting images should delete gif, if the gif exists
-# TODO: Enforce strict limits on gif resolution
-# TODO: Enforce strict limits on gif size
-# TODO: Make sure the client communicates gif size limits
-# TODO: migration for photo
-# TODO: migration for onboardee_photo
-
 @dataclass
 class EmailEntry:
     email: str
