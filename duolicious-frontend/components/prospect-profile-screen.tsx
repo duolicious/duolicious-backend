@@ -106,16 +106,20 @@ const goToGallery = (navigation, imageUuid) => () =>
 
 const EnlargeableImage = ({
   imageUuid,
+  imageExtraExts,
   imageBlurhash,
   onChangeEmbiggened,
   style,
+  innerStyle,
   isPrimary,
   verified = false,
 }: {
   imageUuid: string | undefined | null,
+  imageExtraExts?: string[] | undefined | null,
   imageBlurhash: string | undefined | null,
   onChangeEmbiggened: (uuid: string) => void,
   style?: any,
+  innerStyle?: any,
   isPrimary: boolean,
   verified?: boolean,
 }) => {
@@ -136,9 +140,11 @@ const EnlargeableImage = ({
     >
       <ImageOrSkeleton
         resolution={900}
+        imageExtraExts={imageExtraExts}
         imageUuid={imageUuid}
         imageBlurhash={imageBlurhash}
         showGradient={false}
+        style={innerStyle}
       />
       {verified &&
         <VerificationBadge
@@ -631,6 +637,7 @@ type UserData = {
   match_percentage: number,
   count_answers: number,
   photo_uuids: string[],
+  photo_extra_exts: string[][],
   photo_blurhashes: string[],
   photo_verifications: boolean[],
   age: number | null,
@@ -709,6 +716,8 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
 
   const imageUuids = data?.photo_uuids;
 
+  const imageExtraExts = data?.photo_extra_exts;
+
   const imageBlurhashes = data?.photo_blurhashes;
 
   const imageVerifications = data?.photo_verifications;
@@ -721,6 +730,16 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
       return null;
     }
     return imageUuids[0];
+  })();
+
+  const imageExtraExts0 = (() => {
+    if (imageExtraExts === undefined) {
+      return undefined;
+    }
+    if (imageExtraExts.length === 0) {
+      return null;
+    }
+    return imageExtraExts[0];
   })();
 
   const imageBlurhash0 = (() => {
@@ -755,6 +774,7 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
       >
         <EnlargeableImage
           imageUuid={imageUuid0}
+          imageExtraExts={imageExtraExts0}
           imageBlurhash={imageBlurhash0}
           onChangeEmbiggened={goToGallery(navigation, imageUuid0)}
           isPrimary={true}
@@ -955,6 +975,13 @@ const Body = ({
   const imageUuid5 = data?.photo_uuids && data?.photo_uuids[5];
   const imageUuid6 = data?.photo_uuids && data?.photo_uuids[6];
 
+  const imageExtraExts1 = data?.photo_extra_exts && data?.photo_extra_exts[1];
+  const imageExtraExts2 = data?.photo_extra_exts && data?.photo_extra_exts[2];
+  const imageExtraExts3 = data?.photo_extra_exts && data?.photo_extra_exts[3];
+  const imageExtraExts4 = data?.photo_extra_exts && data?.photo_extra_exts[4];
+  const imageExtraExts5 = data?.photo_extra_exts && data?.photo_extra_exts[5];
+  const imageExtraExts6 = data?.photo_extra_exts && data?.photo_extra_exts[6];
+
   const imageBlurhash1 = data?.photo_blurhashes && data?.photo_blurhashes[1];
   const imageBlurhash2 = data?.photo_blurhashes && data?.photo_blurhashes[2];
   const imageBlurhash3 = data?.photo_blurhashes && data?.photo_blurhashes[3];
@@ -1100,9 +1127,11 @@ const Body = ({
 
         <EnlargeableImage
           imageUuid={imageUuid1}
+          imageExtraExts={imageExtraExts1}
           imageBlurhash={imageBlurhash1}
           onChangeEmbiggened={goToGallery(navigation, imageUuid1)}
           style={styles.secondaryEnlargeableImage}
+          innerStyle={styles.secondaryEnlargeableImageInner}
           isPrimary={false}
           verified={imageVerification1}
         />
@@ -1121,18 +1150,22 @@ const Body = ({
 
         <EnlargeableImage
           imageUuid={imageUuid2}
+          imageExtraExts={imageExtraExts2}
           imageBlurhash={imageBlurhash2}
           onChangeEmbiggened={goToGallery(navigation, imageUuid2)}
           style={styles.secondaryEnlargeableImage}
+          innerStyle={styles.secondaryEnlargeableImageInner}
           isPrimary={false}
           verified={imageVerification2}
         />
 
         <EnlargeableImage
           imageUuid={imageUuid3}
+          imageExtraExts={imageExtraExts3}
           imageBlurhash={imageBlurhash3}
           onChangeEmbiggened={goToGallery(navigation, imageUuid3)}
           style={styles.secondaryEnlargeableImage}
+          innerStyle={styles.secondaryEnlargeableImageInner}
           isPrimary={false}
           verified={imageVerification3}
         />
@@ -1147,27 +1180,33 @@ const Body = ({
 
         <EnlargeableImage
           imageUuid={imageUuid4}
+          imageExtraExts={imageExtraExts4}
           imageBlurhash={imageBlurhash4}
           onChangeEmbiggened={goToGallery(navigation, imageUuid4)}
           style={styles.secondaryEnlargeableImage}
+          innerStyle={styles.secondaryEnlargeableImageInner}
           isPrimary={false}
           verified={imageVerification4}
         />
 
         <EnlargeableImage
           imageUuid={imageUuid5}
+          imageExtraExts={imageExtraExts5}
           imageBlurhash={imageBlurhash5}
           onChangeEmbiggened={goToGallery(navigation, imageUuid5)}
           style={styles.secondaryEnlargeableImage}
+          innerStyle={styles.secondaryEnlargeableImageInner}
           isPrimary={false}
           verified={imageVerification5}
         />
 
         <EnlargeableImage
           imageUuid={imageUuid6}
+          imageExtraExts={imageExtraExts6}
           imageBlurhash={imageBlurhash6}
           onChangeEmbiggened={goToGallery(navigation, imageUuid6)}
           style={styles.secondaryEnlargeableImage}
+          innerStyle={styles.secondaryEnlargeableImageInner}
           isPrimary={false}
           verified={imageVerification6}
         />
@@ -1198,6 +1237,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginTop: 10,
     marginBottom: 10,
+  },
+  secondaryEnlargeableImageInner: {
   },
   wFull: {
     width: '100%',

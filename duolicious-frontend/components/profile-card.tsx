@@ -28,8 +28,17 @@ import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
 
 const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
   const {
+    imageExtraExts = [],
     showGradient = true,
   } = rest;
+
+  const uriPrefix = imageExtraExts.length ? '' : `${resolution}-`;
+
+  const ext = imageExtraExts[0] ?? 'jpg';
+
+  const uri = imageUuid ?
+    `${IMAGES_URL}/${uriPrefix}${imageUuid}.${ext}` :
+    imageUuid;
 
   // This is a workaround for an issue where images that are only blurhashes
   // appear as blank. I'm guessing the root cause is another issue I vaguely
@@ -40,9 +49,7 @@ const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
   return (
     <ImageBackground
       key={String(imageUuid) + ' ' + String(imageBlurhash)}
-      source={imageUuid && {
-        uri: `${IMAGES_URL}/${resolution}-${imageUuid}.jpg`
-      }}
+      source={uri && { uri: uri }}
       placeholder={imageBlurhash && { blurhash: imageBlurhash }}
       transition={transition}
       style={[
@@ -53,6 +60,7 @@ const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
         },
         rest.style,
       ]}
+      contentFit="contain"
     >
       <LinearGradient
         colors={showGradient ? [

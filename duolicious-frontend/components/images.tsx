@@ -36,6 +36,8 @@ const isSquareish = (width: number, height: number) => {
   return biggerDim / smallerDim < 1.1;
 };
 
+const isGif = (mimeType: string) => mimeType === 'image/gif';
+
 const cropImage = async (
   base64: string,
   height: number,
@@ -43,6 +45,10 @@ const cropImage = async (
   originY: number,
   width: number,
 ): Promise<string> => {
+  if (base64.startsWith('data:image/gif;')) {
+    return base64;
+  }
+
   const result = await manipulateAsync(
     base64,
     [{ crop: { height, originX, originY, width }}],
@@ -130,6 +136,7 @@ const UserImage = ({
 
   const fetchImage = useCallback(async () => {
     const getUri = input.photos.getUri;
+    const getExtraExts = input.photos.getExtraExts;;
     const getBlurhash = input.photos.getBlurhash;
 
     if (getUri) {
@@ -178,21 +185,23 @@ const UserImage = ({
 
     const width = result.assets[0].width;
     const height = result.assets[0].height;
+    const mimeType = result.assets[0].mimeType;
+    const base64 = result.assets[0].base64;
     if (!width) return;
     if (!height) return;
-
-    const base64 = result.assets[0].base64;
+    if (!mimeType) return;
     if (!base64) {
-      throw Error('Unexpected output from launchImageLibraryAsync');
+      console.warn('Unexpected output from launchImageLibraryAsync');
+      return;
     }
 
-    const base64Uri = `data:image/jpeg;base64,${base64}`;
+    const base64Uri = `data:${mimeType};base64,${base64}`;
 
     setIsLoading(true);
     setIsLoading_(true);
     setIsInvalid(false);
 
-    if (isSquareish(width, height)) {
+    if (isGif(mimeType) || isSquareish(width, height)) {
       const size = Math.min(width, height);
 
       notify<ImageCropperOutput>(
@@ -342,6 +351,7 @@ const UserImage = ({
                 borderColor: '#eee',
                 borderWidth: 1,
               }}
+              contentFit="contain"
             />
             <Pressable
               style={{

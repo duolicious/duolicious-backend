@@ -140,9 +140,18 @@ const Images_ = ({data}) => {
           { files: [filename] }
         )).ok,
         getUri: (position: string, resolution: string) => {
-          const imageUuid = (data?.photo ?? {})[position] ?? null;
+          const imageUuid: string | null = (
+            data?.photo ?? {})[position] ?? null;
+
+          const extraExts: string[] = (
+            data?.photo_extra_exts ?? {})[position] ?? [];
+
+          const ext = extraExts[0] ?? 'jpg';
+
+          const prefix = extraExts.length ? '' : `${resolution}-`;
+
           if (imageUuid) {
-            return `${IMAGES_URL}/${resolution}-${imageUuid}.jpg`
+            return `${IMAGES_URL}/${prefix}${imageUuid}.${ext}`
           } else {
             return null;
           }
