@@ -1,5 +1,0 @@
-ALTER TABLE photo
-    ADD COLUMN IF NOT EXISTS extra_exts TEXT[] NOT NULL DEFAULT '{}';
-
-ALTER TABLE onboardee_photo
-    ADD COLUMN IF NOT EXISTS extra_exts TEXT[] NOT NULL DEFAULT '{}';
