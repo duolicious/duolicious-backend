@@ -1773,12 +1773,6 @@ def get_export_data(token: str):
     for person in raw_api_data['person']:
         del person['id_salt']
 
-    for duo_session in raw_api_data['duo_session']:
-        del duo_session['session_token_hash']
-        del duo_session['email']
-        del duo_session['otp']
-        del duo_session['otp_expiry']
-
     # Decode messages
     for row in raw_chat_data:
         row['timestamp'] = datetime.fromtimestamp(

@@ -2641,15 +2641,6 @@ SELECT json_build_object(
         ) AS t
     ),
 
-    'duo_session', (
-        SELECT
-            json_agg(row_to_json(duo_session))
-        FROM
-            duo_session
-        WHERE
-            person_id = %(person_id)s
-    ),
-
     'photo', (
         SELECT
             json_agg(row_to_json(t))
