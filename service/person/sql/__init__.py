@@ -926,6 +926,11 @@ WITH prospect AS (
     FROM photo
     JOIN prospect
     ON   prospect.id = photo.person_id
+), photo_extra_exts AS (
+    SELECT COALESCE(json_agg(photo.extra_exts ORDER BY position), '[]'::json) AS j
+    FROM photo
+    JOIN prospect
+    ON   prospect.id = photo.person_id
 ), photo_blurhashes AS (
     SELECT COALESCE(json_agg(photo.blurhash ORDER BY position), '[]'::json) AS j
     FROM photo
@@ -1047,6 +1052,7 @@ SELECT
     json_build_object(
         'person_id',              (SELECT id            FROM prospect),
         'photo_uuids',            (SELECT j             FROM photo_uuids),
+        'photo_extra_exts',       (SELECT j             FROM photo_extra_exts),
         'photo_blurhashes',       (SELECT j             FROM photo_blurhashes),
         'photo_verifications',    (SELECT j             FROM photo_verifications),
         'name',                   (SELECT name          FROM prospect),
@@ -1507,6 +1513,10 @@ WITH photo_ AS (
     SELECT json_object_agg(position, uuid) AS j
     FROM photo
     WHERE person_id = %(person_id)s
+), photo_extra_exts AS (
+    SELECT json_object_agg(position, extra_exts) AS j
+    FROM photo
+    WHERE person_id = %(person_id)s
 ), photo_blurhash AS (
     SELECT json_object_agg(position, blurhash) AS j
     FROM photo
@@ -1657,6 +1667,7 @@ WITH photo_ AS (
 SELECT
     json_build_object(
         'photo',                  (SELECT j FROM photo_),
+        'photo_extra_exts',       (SELECT j FROM photo_extra_exts),
         'photo_blurhash',         (SELECT j FROM photo_blurhash),
         'photo_verification',     (SELECT j FROM photo_verification),
         'name',                   (SELECT j FROM name),
@@ -2628,15 +2639,6 @@ SELECT json_build_object(
             WHERE
                 person.id = %(person_id)s
         ) AS t
-    ),
-
-    'duo_session', (
-        SELECT
-            json_agg(row_to_json(duo_session))
-        FROM
-            duo_session
-        WHERE
-            person_id = %(person_id)s
     ),
 
     'photo', (

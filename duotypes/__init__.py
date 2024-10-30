@@ -26,6 +26,38 @@ MAX_NAME_LEN = 64
 MIN_ABOUT_LEN = 0
 MAX_ABOUT_LEN = 10000
 
+MAX_IMAGE_DIM = 5000
+MIN_IMAGE_DIM = 50
+
+MAX_GIF_DIM = 800
+MIN_GIF_DIM = 10
+
+def validate_gif_dimensions(larger_dim: int, smaller_dim: int):
+    if larger_dim > MAX_GIF_DIM:
+        raise ValueError(
+                f'image is greater than '
+                f'{MAX_GIF_DIM}x{MAX_GIF_DIM} '
+                'pixels')
+
+    if smaller_dim < MIN_GIF_DIM:
+        raise ValueError(
+                f'image is less than '
+                f'{MIN_GIF_DIM}x{MIN_GIF_DIM} '
+                'pixels')
+
+def validate_image_dimensions(larger_dim: int, smaller_dim: int):
+    if larger_dim > MAX_IMAGE_DIM:
+        raise ValueError(
+                f'image is greater than '
+                f'{MAX_IMAGE_DIM}x{MAX_IMAGE_DIM} '
+                'pixels')
+
+    if smaller_dim < MIN_IMAGE_DIM:
+        raise ValueError(
+                f'image is less than '
+                f'{MIN_IMAGE_DIM}x{MIN_IMAGE_DIM} '
+                'pixels')
+
 class ClubItem(BaseModel):
     name: str
     count_members: int
@@ -34,6 +66,7 @@ class ClubItem(BaseModel):
 class Base64File(BaseModel):
     position: conint(ge=1, le=7)
     base64: str
+    bytes: bytes
     image: Image.Image
     top: int
     left: int
@@ -52,36 +85,30 @@ class Base64File(BaseModel):
 
         if len(decoded_bytes) > constants.MAX_IMAGE_SIZE:
             raise ValueError(
-                'Decoded file exceeds {constants.MAX_IMAGE_SIZE} bytes')
+                f'Decoded file exceeds {constants.MAX_IMAGE_SIZE} bytes')
 
         try:
             image = Image.open(io.BytesIO(decoded_bytes))
         except:
             raise ValueError(f'Base64 string is valid but is not an image')
 
-        width, height = image.size
-
-        larger_dim = max(width, height)
-        smaller_dim = min(width, height)
-
-        if larger_dim > constants.MAX_IMAGE_DIM:
-            raise ValueError(
-                    f'image is greater than '
-                    f'{constants.MAX_IMAGE_DIM}x{constants.MAX_IMAGE_DIM} '
-                    'pixels')
-
-        if smaller_dim < constants.MIN_IMAGE_DIM:
-            raise ValueError(
-                    f'image is less than '
-                    f'{constants.MIN_IMAGE_DIM}x{constants.MIN_IMAGE_DIM} '
-                    'pixels')
-
         try:
             image.load()
         except:
             raise ValueError(f'Image is not valid')
 
+        width, height = image.size
+
+        larger_dim = max(width, height)
+        smaller_dim = min(width, height)
+
+        if image.format == 'GIF':
+            validate_gif_dimensions(larger_dim, smaller_dim)
+        else:
+            validate_image_dimensions(larger_dim, smaller_dim)
+
         values['image'] = image
+        values['bytes'] = decoded_bytes
 
         return values
 

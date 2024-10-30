@@ -293,6 +293,7 @@ CREATE TABLE IF NOT EXISTS onboardee_photo (
     position SMALLINT NOT NULL,
     uuid TEXT NOT NULL,
     blurhash TEXT NOT NULL,
+    extra_exts TEXT[] NOT NULL DEFAULT '{}',
     PRIMARY KEY (email, position)
 );
 
@@ -316,6 +317,7 @@ CREATE TABLE IF NOT EXISTS photo (
     blurhash TEXT NOT NULL,
     verified BOOLEAN NOT NULL DEFAULT FALSE,
     nsfw_score FLOAT4,
+    extra_exts TEXT[] NOT NULL DEFAULT '{}',
     PRIMARY KEY (person_id, position)
 );
 

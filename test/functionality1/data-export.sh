@@ -20,26 +20,16 @@ quietly_assume_role () {
 
   q "update person set sign_in_count = $sign_in_count where name = '$1'"
   q "update person set sign_in_time = '$sign_in_time' where name = '$1'"
-
-  q "
-  DELETE FROM duo_session
-  WHERE
-    session_expiry = (
-      SELECT MIN(session_expiry)
-      FROM duo_session
-      WHERE email = '$1@example.com'
-    )
-  AND
-    email = '$1@example.com'
-  "
-
-  q "
-    update duo_session
-    set session_expiry = '2099-01-01'
-    where email = '$1@example.com'"
 }
 
 update_snapshot () {
+  q "delete from person"
+
+  ../util/create-user.sh user1 2 2
+
+  # Wait for images to be given nsfw scores
+  sleep 5
+
   qdump data-export
 
   quietly_assume_role user1
