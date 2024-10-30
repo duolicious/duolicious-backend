@@ -34,6 +34,7 @@ class ClubItem(BaseModel):
 class Base64File(BaseModel):
     position: conint(ge=1, le=7)
     base64: str
+    bytes: bytes
     image: Image.Image
     top: int
     left: int
@@ -82,6 +83,7 @@ class Base64File(BaseModel):
             raise ValueError(f'Image is not valid')
 
         values['image'] = image
+        values['bytes'] = decoded_bytes
 
         return values
 

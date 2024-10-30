@@ -29,6 +29,13 @@ import erlastic
 from datetime import datetime, timezone
 
 
+# TODO: Deleting images should delete gif, if the gif exists
+# TODO: Enforce strict limits on gif resolution
+# TODO: Enforce strict limits on gif size
+# TODO: Make sure the client communicates gif size limits
+# TODO: migration for photo
+# TODO: migration for onboardee_photo
+
 @dataclass
 class EmailEntry:
     email: str
@@ -208,17 +215,21 @@ def process_image_as_image(
     return image.convert('RGB')
 
 def process_image_as_bytes(
-    image: Image.Image,
+    base64_file: t.Base64File,
+    format: Literal['raw', 'jpeg'],
     output_size: Optional[int] = None,
     crop_size: Optional[CropSize] = None,
 ) -> io.BytesIO:
+    if format == 'raw':
+        return io.BytesIO(base64_file.bytes)
+
     output_bytes = io.BytesIO()
 
-    image = process_image_as_image(image, output_size, crop_size)
+    image = process_image_as_image(base64_file.image, output_size, crop_size)
 
     image.save(
         output_bytes,
-        format='JPEG',
+        format=format,
         quality=85,
         subsampling=2,
         progressive=True,
@@ -239,7 +250,7 @@ def put_object(key: str, io_bytes: io.BytesIO):
 
 def put_image_in_object_store(
     uuid: str,
-    img: Image.Image,
+    base64_file: t.Base64File,
     crop_size: CropSize,
     sizes: list[Literal[None, 900, 450]] = [None, 900, 450],
 ):
@@ -247,13 +258,20 @@ def put_image_in_object_store(
         (
             f'{size if size else "original"}-{uuid}.jpg',
             process_image_as_bytes(
-                img,
+                base64_file=base64_file,
+                format='jpeg',
                 output_size=size,
                 crop_size=None if size is None else crop_size
             )
         )
         for size in sizes
     ]
+
+    if base64_file.image.format == 'GIF' and None in sizes:
+        key_img.append((
+            f'{uuid}.gif',
+            process_image_as_bytes(base64_file=base64_file, format='raw')
+        ))
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = {
@@ -519,20 +537,21 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
         with api_tx() as tx:
             tx.execute(q_set_onboardee_field, params)
     elif field_name == 'base64_file':
-        position = field_value['position']
-        image = field_value['image']
-        top = field_value['top']
-        left = field_value['left']
+        base64_file = t.Base64File(**field_value)
 
-        crop_size = CropSize(top=top, left=left)
+        crop_size = CropSize(
+                top=base64_file.top,
+                left=base64_file.left)
         uuid = secrets.token_hex(32)
-        blurhash_ = compute_blurhash(image, crop_size=crop_size)
+        blurhash_ = compute_blurhash(base64_file.image, crop_size=crop_size)
+        extra_exts = ['gif'] if base64_file.image.format == 'GIF' else []
 
         params = dict(
             email=s.email,
-            position=position,
+            position=base64_file.position,
             uuid=uuid,
             blurhash=blurhash_,
+            extra_exts=extra_exts,
         )
 
         # Create new onboardee photos. Because we:
@@ -565,15 +584,18 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
                     email,
                     position,
                     uuid,
-                    blurhash
+                    blurhash,
+                    extra_exts
                 ) VALUES (
                     %(email)s,
                     %(position)s,
                     %(uuid)s,
-                    %(blurhash)s
+                    %(blurhash)s,
+                    %(extra_exts)s
                 ) ON CONFLICT (email, position) DO UPDATE SET
                     uuid = EXCLUDED.uuid,
-                    blurhash = EXCLUDED.blurhash
+                    blurhash = EXCLUDED.blurhash,
+                    extra_exts = EXCLUDED.extra_exts
             )
             SELECT 1
             """
@@ -582,7 +604,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
             tx.execute(q_set_onboardee_field, params)
 
         try:
-            put_image_in_object_store(uuid, image, crop_size)
+            put_image_in_object_store(uuid, base64_file, crop_size)
         except Exception as e:
             print('Upload failed with exception:', e)
             return '', 500
@@ -857,25 +879,26 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
     q2 = None
 
     uuid = None
-    image = None
+    base64_file = None
     crop_size = None
 
     if field_name == 'base64_file':
-        position = field_value['position']
-        image = field_value['image']
-        top = field_value['top']
-        left = field_value['left']
+        base64_file = t.Base64File(**field_value)
 
-        crop_size = CropSize(top=top, left=left)
+        crop_size = CropSize(
+                top=base64_file.top,
+                left=base64_file.left)
         uuid = secrets.token_hex(32)
-        blurhash_ = compute_blurhash(image, crop_size)
+        blurhash_ = compute_blurhash(base64_file.image, crop_size=crop_size)
+        extra_exts = ['gif'] if base64_file.image.format == 'GIF' else []
 
         params = dict(
             person_id=s.person_id,
             email=s.email,
-            position=position,
+            position=base64_file.position,
             uuid=uuid,
             blurhash=blurhash_,
+            extra_exts=extra_exts,
         )
 
         q1 = """
@@ -901,15 +924,18 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
                 person_id,
                 position,
                 uuid,
-                blurhash
+                blurhash,
+                extra_exts
             ) VALUES (
                 %(person_id)s,
                 %(position)s,
                 %(uuid)s,
-                %(blurhash)s
+                %(blurhash)s,
+                %(extra_exts)s
             ) ON CONFLICT (person_id, position) DO UPDATE SET
                 uuid = EXCLUDED.uuid,
                 blurhash = EXCLUDED.blurhash,
+                extra_exts = EXCLUDED.extra_exts,
                 verified = FALSE
         )
         SELECT 1
@@ -1137,11 +1163,11 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         if q1: tx.execute(q1, params)
         if q2: tx.execute(q2, params)
 
-    if uuid and image and crop_size:
+    if uuid and base64_file and crop_size:
         try:
-            put_image_in_object_store(uuid, image, crop_size)
-        except Exception as e:
-            print('Upload failed with exception:', e)
+            put_image_in_object_store(uuid, base64_file, crop_size)
+        except:
+            print(traceback.format_exc())
             return '', 500
 
 def get_search_filters(s: t.SessionInfo):
@@ -1608,7 +1634,8 @@ def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo):
         tx.execute(Q_INSERT_VERIFICATION_JOB, params)
 
     try:
-        put_image_in_object_store(photo_uuid, image, crop_size, sizes=[450])
+        put_image_in_object_store(
+            photo_uuid, req.base64_file, crop_size, sizes=[450])
     except Exception as e:
         print('Upload failed with exception:', e)
         return '', 500

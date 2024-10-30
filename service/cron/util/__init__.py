@@ -62,6 +62,7 @@ async def delete_images_from_object_store(
                 f'original-{uuid}.jpg',
                 f'900-{uuid}.jpg',
                 f'450-{uuid}.jpg',
+                f'{uuid}.gif',
             ]
             if uuid is not None
         ]
