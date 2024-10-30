@@ -151,9 +151,9 @@ def validate(RequestType):
                     req = RequestType(**{**j, **f})
                 else:
                     req = RequestType(j, **f)
-            except:
+            except Exception as e:
                 print(traceback.format_exc())
-                return f'Bad Request', 400
+                return str(e), 400
             return func(req, *args, **kwargs)
         go1.__name__ = func.__name__
         return go1
