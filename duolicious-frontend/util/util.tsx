@@ -2,7 +2,14 @@ import {
   Linking,
   Platform,
 } from 'react-native';
-import { format, isToday, isThisYear, isThisWeek } from 'date-fns'
+import {
+  format,
+  formatDistanceToNow,
+  isThisWeek,
+  isThisYear,
+  isToday,
+  subSeconds,
+} from 'date-fns'
 
 const isMobile = () => {
   const re = /(android|iphone|ipod|iemobile|blackberry|webos|symbian)/i;
@@ -96,10 +103,21 @@ const parseUrl = async () => {
   return { left, right };
 };
 
+const friendlyTimeAgo = (secondsAgo: number): string => {
+  if (secondsAgo < 300) { // 5 minutes
+    return "Now";
+  }
+
+  const lastOnlineDate = subSeconds(new Date(), secondsAgo);
+
+  return formatDistanceToNow(lastOnlineDate);
+}
+
 export {
   compareArrays,
   delay,
   deleteFromArray,
+  friendlyTimeAgo,
   friendlyTimestamp,
   isMobile,
   longFriendlyTimestamp,

@@ -57,6 +57,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { ClubItem, joinClub, leaveClub } from '../club/club';
 import _ from 'lodash';
+import { friendlyTimeAgo } from '../util/util';
 
 // TODO: Handle the case where club stealing causes someone to join too many clubs
 
@@ -368,7 +369,7 @@ const FloatingSendIntroButton = ({
   );
 };
 
-const SeeQAndAButton = ({navigation, personId, name, countAnswers}) => {
+const SeeQAndAButton = ({navigation, personId, name}) => {
   const containerStyle = useRef({
     marginTop: 40,
     marginLeft: 10,
@@ -401,10 +402,6 @@ const SeeQAndAButton = ({navigation, personId, name, countAnswers}) => {
 
   const determiner = String(name).endsWith('s') ? "'" : "'s";
 
-  if (!countAnswers) {
-    return <></>;
-  }
-
   return (
     <ButtonWithCenteredText
       containerStyle={containerStyle}
@@ -415,7 +412,7 @@ const SeeQAndAButton = ({navigation, personId, name, countAnswers}) => {
       borderColor="rgba(255, 255, 255, 0.2)"
       borderWidth={1}
     >
-      {name}{determiner} Q&A Answers ({countAnswers})
+      {name}{determiner} Q&A Answers
     </ButtonWithCenteredText>
   );
 };
@@ -671,6 +668,12 @@ type UserData = {
     body_color: string,
     background_color: string,
   }
+
+  seconds_since_last_online: number | null,
+  seconds_since_sign_up: number,
+
+  gets_reply_percentage: number | null,
+  gives_reply_percentage: number | null,
 };
 
 const verifiedAnything = (data: UserData | null | undefined): boolean => {
@@ -1212,21 +1215,60 @@ const Body = ({
           verified={imageVerification6}
         />
 
-        {!isViewingSelf && (<>
-        <SeeQAndAButton
-          navigation={navigation}
-          personId={personId}
-          name={data?.name}
-          countAnswers={data?.count_answers}
-        />
-        <BlockButton
-          navigation={navigation}
-          name={data?.name}
-          personId={personId}
-          personUuid={personUuid}
-          isSkipped={data?.is_skipped}
-        />
-        </>)}
+        <Title style={{color: data?.theme?.title_color}}>Stats</Title>
+        <Basics>
+          {data?.seconds_since_last_online !== null &&
+            <Basic {...basicsTheme}>
+              <DefaultText style={{ fontWeight: '700' }}>Last Online:</DefaultText>
+              {} {
+                data === undefined ?
+                'Loading...' :
+                data.seconds_since_last_online < 300 ?
+                'Now' :
+                `${friendlyTimeAgo(data.seconds_since_last_online)} ago`
+              }
+            </Basic>
+          }
+          <Basic {...basicsTheme}>
+            <DefaultText style={{ fontWeight: '700' }}>Q&A Answers:</DefaultText>
+            {} {data?.count_answers ?? 'Loading...'}
+          </Basic>
+          {data && !_.isNil(data.gives_reply_percentage) &&
+            <Basic {...basicsTheme}>
+              <DefaultText style={{ fontWeight: '700' }}>Gives Replies To:</DefaultText>
+              {} {Math.round(data.gives_reply_percentage)}% of intros
+            </Basic>
+          }
+          {data && !_.isNil(data.gets_reply_percentage) &&
+            <Basic {...basicsTheme}>
+              <DefaultText style={{ fontWeight: '700' }}>Gets Replies To:</DefaultText>
+              {} {Math.round(data.gets_reply_percentage)}% of intros
+            </Basic>
+          }
+          <Basic {...basicsTheme}>
+            <DefaultText style={{ fontWeight: '700' }}>Account Age:</DefaultText>
+            {} {
+              data === undefined ?
+              'Loading...' :
+              friendlyTimeAgo(data.seconds_since_sign_up)
+            }
+          </Basic>
+        </Basics>
+
+        {!isViewingSelf && !!data?.count_answers &&
+          <SeeQAndAButton
+            navigation={navigation}
+            personId={personId}
+            name={data?.name}
+          />}
+        {!isViewingSelf &&
+          <BlockButton
+            navigation={navigation}
+            name={data?.name}
+            personId={personId}
+            personUuid={personUuid}
+            isSkipped={data?.is_skipped}
+          />}
       </View>
     </>
   );
