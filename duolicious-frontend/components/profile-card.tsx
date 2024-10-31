@@ -32,9 +32,9 @@ const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
     showGradient = true,
   } = rest;
 
-  const uriPrefix = imageExtraExts.length ? '' : `${resolution}-`;
+  const uriPrefix = imageExtraExts?.length ? '' : `${resolution}-`;
 
-  const ext = imageExtraExts[0] ?? 'jpg';
+  const ext = (imageExtraExts && imageExtraExts[0]) ?? 'jpg';
 
   const uri = imageUuid ?
     `${IMAGES_URL}/${uriPrefix}${imageUuid}.${ext}` :
