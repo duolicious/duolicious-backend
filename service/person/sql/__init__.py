@@ -2819,12 +2819,11 @@ SELECT
 """
 
 
-# TODO
 Q_MESSAGE_STATS = """
 WITH message_sent AS (
     SELECT
         object_person_id AS other_person_id,
-        created_at AS message_sent_first_at
+        created_at AS message_sent_at
     FROM
         messaged
     JOIN
@@ -2836,7 +2835,7 @@ WITH message_sent AS (
 ), message_received AS (
     SELECT
         subject_person_id AS other_person_id,
-        created_at AS message_received_first_at
+        created_at AS message_received_at
     FROM
         messaged
     JOIN
@@ -2847,8 +2846,8 @@ WITH message_sent AS (
         person.uuid = %(prospect_uuid)s
 ), conversation AS (
     SELECT
-        message_sent_first_at,
-        message_received_first_at
+        message_sent_at,
+        message_received_at
     FROM
         message_sent
     FULL OUTER JOIN
@@ -2856,19 +2855,21 @@ WITH message_sent AS (
 ), absolute_numbers AS (
     SELECT
         count(*) FILTER (
-            WHERE message_sent_first_at < message_received_first_at)::real
+            WHERE message_sent_at < message_received_at)::real
             AS num_intros_sent_with_reply,
 
         count(*) FILTER (
-            WHERE message_sent_first_at IS NOT NULL)::real
+            WHERE message_sent_at < message_received_at
+            OR message_received_at IS NULL)::real
             AS num_intros_sent,
 
         count(*) FILTER (
-            WHERE message_received_first_at < message_sent_first_at)::real
+            WHERE message_received_at < message_sent_at)::real
             AS num_intros_received_with_reply,
 
         count(*) FILTER (
-            WHERE message_received_first_at IS NOT NULL)::real
+            WHERE message_received_at < message_sent_at
+            OR message_sent_at IS NULL)::real
             AS num_intros_received
     FROM
         conversation
@@ -2877,13 +2878,13 @@ SELECT
     CASE
         WHEN num_intros_sent < 1e-5
         THEN 100
-        ELSE num_intros_sent_with_reply / num_intros_sent
+        ELSE ROUND(num_intros_sent_with_reply / num_intros_sent * 100)
     END AS gets_reply_percentage,
 
     CASE
         WHEN num_intros_received < 1e-5
         THEN 100
-        ELSE num_intros_received_with_reply / num_intros_received
+        ELSE ROUND(num_intros_received_with_reply / num_intros_received * 100)
     END AS gives_reply_percentage
 FROM
     absolute_numbers
