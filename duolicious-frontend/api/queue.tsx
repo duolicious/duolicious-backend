@@ -53,6 +53,8 @@ const aboutQueue = new PromiseQueue();
 
 const nameQueue = new PromiseQueue();
 
+const onboardingQueue = new PromiseQueue();
+
 // Search queries need to be issued in sequence because each query updates the
 // club to search by on the server (and the list of matches too). This could
 // cause one query in a pair of queries to overwrite the other's results.
@@ -61,6 +63,7 @@ const searchQueue = new PromiseQueue();
 export {
   aboutQueue,
   nameQueue,
+  onboardingQueue,
   quizQueue,
   searchQueue,
 };

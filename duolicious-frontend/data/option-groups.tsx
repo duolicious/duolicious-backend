@@ -18,7 +18,7 @@ import { faCalendar } from '@fortawesome/free-solid-svg-icons/faCalendar'
 import { faPeopleGroup } from '@fortawesome/free-solid-svg-icons/faPeopleGroup'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { NonNullImageCropperOutput } from '../components/image-cropper';
-import { logout } from '../xmpp/xmpp';
+import { login, logout } from '../xmpp/xmpp';
 import { LOGARITHMIC_SCALE, Scale } from "../scales/scales";
 import { VerificationBadge } from '../components/verification-badge';
 import { VerificationEvent } from '../verification/verification';
@@ -31,6 +31,7 @@ import {
   View,
 } from 'react-native';
 import { FC } from 'react';
+import { onboardingQueue } from '../api/queue';
 
 const noneFontSize = 16;
 
@@ -1007,7 +1008,9 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (typeof existingSessionToken !== 'string') return false;
 
           const onboarded = response.json.onboarded;
+          const clubs: ClubItem[] = response?.json?.clubs;
           const pendingClub = response?.json?.pending_club;
+          const personUuid: string = response?.json?.person_uuid;
 
           if (!onboarded) {
             return true;
@@ -1034,20 +1037,20 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
             });
           }
 
-          const clubs: ClubItem[] = response?.json?.clubs;
+          login(personUuid, existingSessionToken);
 
           setSignedInUser((signedInUser) => ({
             personId: response?.json?.person_id,
-            personUuid: response?.json?.person_uuid,
+            personUuid: personUuid,
             units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
             sessionToken: existingSessionToken,
-            pendingClub: response?.json?.pending_club,
+            pendingClub: pendingClub,
             doShowDonationNag: response?.json?.do_show_donation_nag,
             estimatedEndDate: new Date(response?.json?.estimated_end_date),
             name: response?.json?.name,
           }));
 
-          await sessionPersonUuid(response?.json?.person_uuid);
+          await sessionPersonUuid(personUuid);
 
           notify<ClubItem[]>('updated-clubs', clubs);
 
@@ -1061,11 +1064,13 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: "This could be your first name, or an alias",
     input: {
       givenName: {
-        submit: async (input) => (await japi(
-          'patch',
-          '/onboardee-info',
-          { name: input }
-        )).ok
+        submit: async (input) => await onboardingQueue.addTask(
+          async () =>
+            (await japi(
+              'patch',
+              '/onboardee-info',
+              { name: input })).ok
+        ),
       }
     },
   },
@@ -1076,11 +1081,13 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       title: 'Step 2 of 5: Your Gender',
       input: {
         buttons: {
-          submit: async (input) => (await japi(
-            'patch',
-            '/onboardee-info',
-            { gender: input }
-          )).ok,
+          submit: async (input) => await onboardingQueue.addTask(
+            async () =>
+              (await japi(
+                'patch',
+                '/onboardee-info',
+                { gender: input })).ok
+          ),
           currentValue: 'Man',
         }
       }
@@ -1093,11 +1100,13 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       title: 'Step 3 of 5: ' + yourPartnersGenderOptionGroup.title,
       input: {
         checkChips: {
-          submit: async (input: string[]) => (await japi(
-            'patch',
-            '/onboardee-info',
-            { other_peoples_genders: input }
-          )).ok
+          submit: async (input: string[]) => await onboardingQueue.addTask(
+            async () =>
+              (await japi(
+                'patch',
+                '/onboardee-info',
+                { other_peoples_genders: input })).ok
+          ),
         }
       }
     },
@@ -1107,11 +1116,13 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: "When were you born? You can’t change this later",
     input: {
       date: {
-        submit: async (input) => (await japi(
-          'patch',
-          '/onboardee-info',
-          { date_of_birth: input }
-        )).ok
+        submit: async (input) => await onboardingQueue.addTask(
+          async () =>
+            (await japi(
+              'patch',
+              '/onboardee-info',
+              { date_of_birth: input })).ok
+        ),
       }
     },
     scrollView: false,
@@ -1123,11 +1134,13 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       title: 'Step 5 of 5: ' + locationOptionGroup.title,
       input: {
         locationSelector: {
-          submit: async (input) => (await japi(
-            'patch',
-            '/onboardee-info',
-            { location: input }
-          )).ok
+          submit: async (input) => await onboardingQueue.addTask(
+            async () =>
+              (await japi(
+                'patch',
+                '/onboardee-info',
+                { location: input })).ok
+          ),
         }
       }
     },
@@ -1140,34 +1153,21 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       none: {
         description: FinishOnboardingDescription,
         submit: async () => {
-          const _sessionToken = await sessionToken();
-          const response = await japi('post', '/finish-onboarding');
+          const existingSessionToken = await sessionToken();
+          const response = await onboardingQueue.addTask(
+            async () => await japi('post', '/finish-onboarding')
+          );
 
-          if (!response.ok) {
-            return false
-          }
+          if (!response.ok) return false;
+          if (typeof existingSessionToken !== 'string') return false;
 
           const clubs: ClubItem[] = response?.json?.clubs;
-
           const pendingClub = response?.json?.pending_club;
+          const personUuid: string = response?.json?.person_uuid;
 
-          setSignedInUser((signedInUser) => ({
-            sessionToken: _sessionToken ?? '',
-            ...signedInUser,
-            personId: response?.json?.person_id,
-            personUuid: response?.json?.person_uuid,
-            units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
-            pendingClub: pendingClub,
-            doShowDonationNag: response?.json?.do_show_donation_nag,
-            estimatedEndDate: new Date(response?.json?.estimated_end_date),
-            name: response?.json?.name,
-          }));
-
-          await sessionPersonUuid(response?.json?.person_uuid);
-
-          notify<ClubItem[]>('updated-clubs', clubs);
-
-          if (pendingClub) {
+          if (!navigationContainerRef.current) {
+            ;
+          } else if (pendingClub) {
             navigationContainerRef.reset({
               routes: [
                 {
@@ -1182,7 +1182,29 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
                 }
               ]
             });
+          } else {
+            navigationContainerRef.reset({
+              routes: [ { name: 'Home' } ]
+            });
           }
+
+          login(personUuid, existingSessionToken);
+
+          setSignedInUser((signedInUser) => ({
+            sessionToken: existingSessionToken ?? '',
+            ...signedInUser,
+            personId: response?.json?.person_id,
+            personUuid: personUuid,
+            units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
+            pendingClub: pendingClub,
+            doShowDonationNag: response?.json?.do_show_donation_nag,
+            estimatedEndDate: new Date(response?.json?.estimated_end_date),
+            name: response?.json?.name,
+          }));
+
+          await sessionPersonUuid(response?.json?.person_uuid);
+
+          notify<ClubItem[]>('updated-clubs', clubs);
 
           return false;
         }
