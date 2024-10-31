@@ -1010,7 +1010,9 @@ const Body = ({
   };
 
   const clubsTheme = {
-    ...basicsTheme,
+    textStyle: {
+      color: data?.theme?.body_color,
+    },
   };
 
   const mutualClubsTheme = {
@@ -1021,7 +1023,9 @@ const Body = ({
   };
 
   const statsTheme = {
-    ...basicsTheme,
+    textStyle: {
+      color: data?.theme?.title_color,
+    },
   };
 
   return (
@@ -1224,8 +1228,12 @@ const Body = ({
         <Stats>
           {data?.seconds_since_last_online !== null &&
             <Stat {...statsTheme}>
-              <DefaultText style={{ fontWeight: '700' }}>Last Online:</DefaultText>
-              {} {
+              <DefaultText
+                style={{ fontWeight: '700', color: data?.theme?.body_color }}
+              >
+                Last Online: {}
+              </DefaultText>
+              {
                 data === undefined ?
                 'Loading...' :
                 data.seconds_since_last_online < 300 ?
@@ -1235,24 +1243,40 @@ const Body = ({
             </Stat>
           }
           <Stat {...statsTheme}>
-            <DefaultText style={{ fontWeight: '700' }}>Q&A Answers:</DefaultText>
-            {} {data?.count_answers ?? 'Loading...'}
+            <DefaultText
+              style={{ fontWeight: '700', color: data?.theme?.body_color }}
+            >
+              Q&A Answers: {}
+            </DefaultText>
+            {data?.count_answers ?? 'Loading...'}
           </Stat>
           {data && !_.isNil(data.gives_reply_percentage) &&
             <Stat {...statsTheme}>
-              <DefaultText style={{ fontWeight: '700' }}>Gives Replies To:</DefaultText>
-              {} {Math.round(data.gives_reply_percentage)}% of intros
+              <DefaultText
+                style={{ fontWeight: '700', color: data?.theme?.body_color }}
+              >
+                Gives Replies To: {}
+              </DefaultText>
+              {Math.round(data.gives_reply_percentage)}% of intros
             </Stat>
           }
           {data && !_.isNil(data.gets_reply_percentage) &&
             <Stat {...statsTheme}>
-              <DefaultText style={{ fontWeight: '700' }}>Gets Replies To:</DefaultText>
-              {} {Math.round(data.gets_reply_percentage)}% of intros
+              <DefaultText
+                style={{ fontWeight: '700', color: data?.theme?.body_color }}
+              >
+                Gets Replies To: {}
+              </DefaultText>
+              {Math.round(data.gets_reply_percentage)}% of intros
             </Stat>
           }
           <Stat {...statsTheme}>
-            <DefaultText style={{ fontWeight: '700' }}>Account Age:</DefaultText>
-            {} {
+            <DefaultText
+              style={{ fontWeight: '700', color: data?.theme?.body_color }}
+            >
+              Account Age: {}
+            </DefaultText>
+            {
               data === undefined ?
               'Loading...' :
               friendlyTimeAgo(data.seconds_since_sign_up)
