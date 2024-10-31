@@ -693,16 +693,40 @@ def get_prospect_profile(s: t.SessionInfo, prospect_uuid):
     )
 
     with api_tx('READ COMMITTED') as tx:
-        row = tx.execute(Q_SELECT_PROSPECT_PROFILE, params).fetchone()
-        if not row:
+        api_row = tx.execute(Q_SELECT_PROSPECT_PROFILE, params).fetchone()
+        if not api_row:
             return '', 404
 
-        profile = row.get('j')
+        profile = api_row.get('j')
         if not profile:
             return '', 404
 
-        return profile
-    return '', 500
+    # Timeout in case someone with lots of messages hogs CPU time
+    try:
+        with api_tx('READ COMMITTED') as tx:
+            tx.execute('SET LOCAL statement_timeout = 1000') # 1 second
+
+            message_stats = tx.execute(Q_MESSAGE_STATS, params).fetchone()
+    except psycopg.errors.QueryCanceled:
+        message_stats = dict(
+            gets_reply_percentage=None,
+            gives_reply_percentage=None,
+        )
+
+    with chat_tx('READ COMMITTED') as tx:
+        chat_row = tx.execute(Q_LAST_ONLINE, params).fetchone()
+
+    # Sometimes the chat service might not register a last online time. In that
+    # case, we fall back to the less-accurate recording given by the API
+    # database.
+    profile['seconds_since_last_online'] = (
+        chat_row['seconds_since_last_online'] or
+        profile['seconds_since_last_online']
+    )
+
+    profile.update(message_stats)
+
+    return profile
 
 def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
     params = dict(
