@@ -33,6 +33,7 @@ import { ImageOrSkeleton } from './profile-card';
 import { Pinchy } from './pinchy';
 import { Basic, Basics } from './basic';
 import { Club, Clubs } from './club';
+import { Stat, Stats } from './stat';
 import { listen, notify } from '../events/events';
 import { ReportModalInitialData } from './report-modal';
 import {
@@ -1019,6 +1020,10 @@ const Body = ({
     },
   };
 
+  const statsTheme = {
+    ...basicsTheme,
+  };
+
   return (
     <>
       <View
@@ -1216,9 +1221,9 @@ const Body = ({
         />
 
         <Title style={{color: data?.theme?.title_color}}>Stats</Title>
-        <Basics>
+        <Stats>
           {data?.seconds_since_last_online !== null &&
-            <Basic {...basicsTheme}>
+            <Stat {...statsTheme}>
               <DefaultText style={{ fontWeight: '700' }}>Last Online:</DefaultText>
               {} {
                 data === undefined ?
@@ -1227,33 +1232,33 @@ const Body = ({
                 'Now' :
                 `${friendlyTimeAgo(data.seconds_since_last_online)} ago`
               }
-            </Basic>
+            </Stat>
           }
-          <Basic {...basicsTheme}>
+          <Stat {...statsTheme}>
             <DefaultText style={{ fontWeight: '700' }}>Q&A Answers:</DefaultText>
             {} {data?.count_answers ?? 'Loading...'}
-          </Basic>
+          </Stat>
           {data && !_.isNil(data.gives_reply_percentage) &&
-            <Basic {...basicsTheme}>
+            <Stat {...statsTheme}>
               <DefaultText style={{ fontWeight: '700' }}>Gives Replies To:</DefaultText>
               {} {Math.round(data.gives_reply_percentage)}% of intros
-            </Basic>
+            </Stat>
           }
           {data && !_.isNil(data.gets_reply_percentage) &&
-            <Basic {...basicsTheme}>
+            <Stat {...statsTheme}>
               <DefaultText style={{ fontWeight: '700' }}>Gets Replies To:</DefaultText>
               {} {Math.round(data.gets_reply_percentage)}% of intros
-            </Basic>
+            </Stat>
           }
-          <Basic {...basicsTheme}>
+          <Stat {...statsTheme}>
             <DefaultText style={{ fontWeight: '700' }}>Account Age:</DefaultText>
             {} {
               data === undefined ?
               'Loading...' :
               friendlyTimeAgo(data.seconds_since_sign_up)
             }
-          </Basic>
-        </Basics>
+          </Stat>
+        </Stats>
 
         {!isViewingSelf && !!data?.count_answers &&
           <SeeQAndAButton

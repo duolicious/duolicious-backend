@@ -10,6 +10,7 @@ import {
   isToday,
   subSeconds,
 } from 'date-fns'
+import _ from 'lodash';
 
 const isMobile = () => {
   const re = /(android|iphone|ipod|iemobile|blackberry|webos|symbian)/i;
@@ -110,7 +111,7 @@ const friendlyTimeAgo = (secondsAgo: number): string => {
 
   const lastOnlineDate = subSeconds(new Date(), secondsAgo);
 
-  return formatDistanceToNow(lastOnlineDate);
+  return _.capitalize(formatDistanceToNow(lastOnlineDate));
 }
 
 export {
