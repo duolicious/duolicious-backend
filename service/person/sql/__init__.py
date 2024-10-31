@@ -840,17 +840,27 @@ Q_SELECT_PROSPECT_PROFILE = """
 WITH prospect AS (
     SELECT
         *,
+
         (
             SELECT EXTRACT(YEAR FROM AGE(prospect.date_of_birth))::SMALLINT
             WHERE prospect.show_my_age
         ) AS age,
+
         (
             SELECT short_friendly
             FROM location
             WHERE prospect.show_my_location
             ORDER BY location.coordinates <-> prospect.coordinates
             LIMIT 1
-        ) AS location
+        ) AS location,
+
+        (
+            EXTRACT(EPOCH FROM NOW() - sign_in_time)
+        ) AS seconds_since_last_online,
+
+        (
+            EXTRACT(EPOCH FROM NOW() - sign_up_time)
+        ) AS seconds_since_sign_up
     FROM
         person AS prospect
     WHERE
@@ -1050,18 +1060,20 @@ WITH prospect AS (
 )
 SELECT
     json_build_object(
-        'person_id',              (SELECT id            FROM prospect),
-        'photo_uuids',            (SELECT j             FROM photo_uuids),
-        'photo_extra_exts',       (SELECT j             FROM photo_extra_exts),
-        'photo_blurhashes',       (SELECT j             FROM photo_blurhashes),
-        'photo_verifications',    (SELECT j             FROM photo_verifications),
-        'name',                   (SELECT name          FROM prospect),
-        'age',                    (SELECT age           FROM prospect),
-        'location',               (SELECT location      FROM prospect),
-        'match_percentage',       (SELECT j             FROM match_percentage),
-        'about',                  (SELECT about         FROM prospect),
-        'count_answers',          (SELECT count_answers FROM prospect),
-        'is_skipped',             (SELECT j             FROM is_skipped),
+        'person_id',                 (SELECT id                        FROM prospect),
+        'photo_uuids',               (SELECT j                         FROM photo_uuids),
+        'photo_extra_exts',          (SELECT j                         FROM photo_extra_exts),
+        'photo_blurhashes',          (SELECT j                         FROM photo_blurhashes),
+        'photo_verifications',       (SELECT j                         FROM photo_verifications),
+        'name',                      (SELECT name                      FROM prospect),
+        'age',                       (SELECT age                       FROM prospect),
+        'location',                  (SELECT location                  FROM prospect),
+        'match_percentage',          (SELECT j                         FROM match_percentage),
+        'about',                     (SELECT about                     FROM prospect),
+        'count_answers',             (SELECT count_answers             FROM prospect),
+        'is_skipped',                (SELECT j                         FROM is_skipped),
+        'seconds_since_last_online', (SELECT seconds_since_last_online FROM prospect),
+        'seconds_since_sign_up',     (SELECT seconds_since_sign_up     FROM prospect),
 
         -- Basics
         'occupation',             (SELECT occupation    FROM prospect),
@@ -2792,4 +2804,88 @@ SELECT
         WHERE
             %(pending_club_name)s::TEXT IS NOT NULL
     ) AS pending_club
+"""
+
+Q_LAST_ONLINE = """
+SELECT
+    COALESCE(
+        (
+            SELECT EXTRACT(EPOCH FROM NOW()) - seconds
+            FROM last
+            WHERE username = %(prospect_uuid)s
+        ),
+        NULL
+    ) AS seconds_since_last_online
+"""
+
+
+Q_MESSAGE_STATS = """
+WITH message_sent AS (
+    SELECT
+        object_person_id AS other_person_id,
+        created_at AS message_sent_at
+    FROM
+        messaged
+    JOIN
+        person
+    ON
+        person.id = messaged.subject_person_id
+    WHERE
+        person.uuid = %(prospect_uuid)s
+), message_received AS (
+    SELECT
+        subject_person_id AS other_person_id,
+        created_at AS message_received_at
+    FROM
+        messaged
+    JOIN
+        person
+    ON
+        person.id = messaged.object_person_id
+    WHERE
+        person.uuid = %(prospect_uuid)s
+), conversation AS (
+    SELECT
+        message_sent_at,
+        message_received_at
+    FROM
+        message_sent
+    FULL OUTER JOIN
+        message_received USING (other_person_id)
+), absolute_numbers AS (
+    SELECT
+        count(*) FILTER (
+            WHERE message_sent_at < message_received_at)::real
+            AS num_intros_sent_with_reply,
+
+        count(*) FILTER (
+            WHERE message_sent_at < message_received_at
+            OR message_received_at IS NULL)::real
+            AS num_intros_sent,
+
+        count(*) FILTER (
+            WHERE message_received_at < message_sent_at)::real
+            AS num_intros_received_with_reply,
+
+        count(*) FILTER (
+            WHERE message_received_at < message_sent_at
+            OR message_sent_at IS NULL)::real
+            AS num_intros_received
+    FROM
+        conversation
+)
+SELECT
+    CASE
+        WHEN num_intros_sent < 1e-5
+        THEN 100
+        ELSE ROUND(num_intros_sent_with_reply / num_intros_sent * 100)
+    END AS gets_reply_percentage,
+
+    CASE
+        WHEN num_intros_received < 1e-5
+        THEN 100
+        ELSE ROUND(num_intros_received_with_reply / num_intros_received * 100)
+    END AS gives_reply_percentage
+FROM
+    absolute_numbers
 """
