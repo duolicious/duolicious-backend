@@ -129,6 +129,7 @@ const EnlargeableImage = ({
 
   return (
     <Pressable
+      disabled={!!imageExtraExts?.length || !imageUuid}
       onPress={() => imageUuid && onChangeEmbiggened(imageUuid)}
       style={[
         {
