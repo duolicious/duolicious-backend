@@ -10,7 +10,7 @@ import { Buffer } from "buffer";
 import { NonNullImageCropperOutput } from '../components/image-cropper';
 import { delay } from '../util/util';
 
-const SUPPORTED_API_VERSIONS = [5];
+const SUPPORTED_API_VERSIONS = [5, 500_000];
 
 type ApiResponse = {
   ok: boolean
