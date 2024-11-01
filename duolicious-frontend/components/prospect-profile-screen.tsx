@@ -60,8 +60,6 @@ import { ClubItem, joinClub, leaveClub } from '../club/club';
 import _ from 'lodash';
 import { friendlyTimeAgo } from '../util/util';
 
-// TODO: Handle the case where club stealing causes someone to join too many clubs
-
 const Stack = createNativeStackNavigator();
 
 const ProspectProfileScreen = ({navigation, route}) => {
@@ -634,7 +632,6 @@ type UserData = {
   other_clubs: string[],
   gender: string,
   match_percentage: number,
-  count_answers: number,
   photo_uuids: string[],
   photo_extra_exts: string[][],
   photo_blurhashes: string[],
@@ -670,9 +667,10 @@ type UserData = {
     background_color: string,
   }
 
+  // Stats
+  count_answers: number | null,
   seconds_since_last_online: number | null,
-  seconds_since_sign_up: number,
-
+  seconds_since_sign_up: number | null,
   gets_reply_percentage: number | null,
   gives_reply_percentage: number | null,
 };
@@ -687,6 +685,24 @@ const verifiedAnything = (data: UserData | null | undefined): boolean => {
     data.verified_gender ||
     data.verified_age ||
     data.verified_ethnicity
+  );
+};
+
+const hasAnyStats = (data: UserData | null | undefined): boolean => {
+  if (data === undefined) {
+    return true;
+  }
+
+  if (data === null) {
+    return true;
+  }
+
+  return (
+    data.count_answers !== null ||
+    data.seconds_since_last_online !== null ||
+    data.seconds_since_sign_up !== null ||
+    data.gets_reply_percentage !== null ||
+    data.gives_reply_percentage !== null
   );
 };
 
@@ -1224,65 +1240,71 @@ const Body = ({
           verified={imageVerification6}
         />
 
-        <Title style={{color: data?.theme?.title_color}}>Stats</Title>
-        <Stats>
-          {data?.seconds_since_last_online !== null &&
-            <Stat {...statsTheme}>
-              <DefaultText
-                style={{ fontWeight: '700', color: data?.theme?.body_color }}
-              >
-                Last Online: {}
-              </DefaultText>
-              {
-                data === undefined ?
-                'Loading...' :
-                data.seconds_since_last_online < 300 ?
-                'Now' :
-                `${friendlyTimeAgo(data.seconds_since_last_online)} ago`
-              }
-            </Stat>
-          }
-          <Stat {...statsTheme}>
-            <DefaultText
-              style={{ fontWeight: '700', color: data?.theme?.body_color }}
-            >
-              Q&A Answers: {}
-            </DefaultText>
-            {data?.count_answers ?? 'Loading...'}
-          </Stat>
-          {data && !_.isNil(data.gives_reply_percentage) &&
-            <Stat {...statsTheme}>
-              <DefaultText
-                style={{ fontWeight: '700', color: data?.theme?.body_color }}
-              >
-                Gives Replies To: {}
-              </DefaultText>
-              {Math.round(data.gives_reply_percentage)}% of intros
-            </Stat>
-          }
-          {data && !_.isNil(data.gets_reply_percentage) &&
-            <Stat {...statsTheme}>
-              <DefaultText
-                style={{ fontWeight: '700', color: data?.theme?.body_color }}
-              >
-                Gets Replies To: {}
-              </DefaultText>
-              {Math.round(data.gets_reply_percentage)}% of intros
-            </Stat>
-          }
-          <Stat {...statsTheme}>
-            <DefaultText
-              style={{ fontWeight: '700', color: data?.theme?.body_color }}
-            >
-              Account Age: {}
-            </DefaultText>
-            {
-              data === undefined ?
-              'Loading...' :
-              friendlyTimeAgo(data.seconds_since_sign_up)
+        {hasAnyStats(data) && <>
+          <Title style={{color: data?.theme?.title_color}}>Stats</Title>
+          <Stats>
+            {data?.seconds_since_last_online !== null &&
+              <Stat {...statsTheme}>
+                <DefaultText
+                  style={{ fontWeight: '700', color: data?.theme?.body_color }}
+                >
+                  Last Online: {}
+                </DefaultText>
+                {
+                  data === undefined ?
+                  'Loading...' :
+                  data.seconds_since_last_online < 300 ?
+                  'Now' :
+                  `${friendlyTimeAgo(data.seconds_since_last_online)} ago`
+                }
+              </Stat>
             }
-          </Stat>
-        </Stats>
+            {data?.count_answers !== null &&
+              <Stat {...statsTheme}>
+                <DefaultText
+                  style={{ fontWeight: '700', color: data?.theme?.body_color }}
+                >
+                  Q&A Answers: {}
+                </DefaultText>
+                {data?.count_answers ?? 'Loading...'}
+              </Stat>
+            }
+            {data && !_.isNil(data.gives_reply_percentage) &&
+              <Stat {...statsTheme}>
+                <DefaultText
+                  style={{ fontWeight: '700', color: data?.theme?.body_color }}
+                >
+                  Gives Replies To: {}
+                </DefaultText>
+                {Math.round(data.gives_reply_percentage)}% of intros
+              </Stat>
+            }
+            {data && !_.isNil(data.gets_reply_percentage) &&
+              <Stat {...statsTheme}>
+                <DefaultText
+                  style={{ fontWeight: '700', color: data?.theme?.body_color }}
+                >
+                  Gets Replies To: {}
+                </DefaultText>
+                {Math.round(data.gets_reply_percentage)}% of intros
+              </Stat>
+            }
+            {data?.seconds_since_sign_up !== null &&
+              <Stat {...statsTheme}>
+                <DefaultText
+                  style={{ fontWeight: '700', color: data?.theme?.body_color }}
+                >
+                  Account Age: {}
+                </DefaultText>
+                {
+                  data === undefined ?
+                  'Loading...' :
+                  friendlyTimeAgo(data.seconds_since_sign_up)
+                }
+              </Stat>
+            }
+          </Stats>
+        </>}
 
         {!isViewingSelf && !!data?.count_answers &&
           <SeeQAndAButton
