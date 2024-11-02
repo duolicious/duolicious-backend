@@ -2855,20 +2855,20 @@ WITH message_sent AS (
 ), absolute_numbers AS (
     SELECT
         count(*) FILTER (
-            WHERE message_sent_at < message_received_at)::real
+            WHERE message_sent_at <= message_received_at)::real
             AS num_intros_sent_with_reply,
 
         count(*) FILTER (
-            WHERE message_sent_at < message_received_at
+            WHERE message_sent_at <= message_received_at
             OR message_received_at IS NULL)::real
             AS num_intros_sent,
 
         count(*) FILTER (
-            WHERE message_received_at < message_sent_at)::real
+            WHERE message_received_at <= message_sent_at)::real
             AS num_intros_received_with_reply,
 
         count(*) FILTER (
-            WHERE message_received_at < message_sent_at
+            WHERE message_received_at <= message_sent_at
             OR message_sent_at IS NULL)::real
             AS num_intros_received
     FROM
