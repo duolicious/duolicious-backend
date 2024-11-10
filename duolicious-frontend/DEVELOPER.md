@@ -76,27 +76,10 @@ adb install android/app/build/outputs/apk/release/app-release.apk
 Run:
 
 ```bash
-EXPO_NO_GIT_STATUS=1 npx expo prebuild --clean
+./build-ipa.sh
 ```
 
-Set up certificates in xcode.
-
-Add these to `ios/.xcode.env.local`:
-
-```bash
-export DUO_STATUS_URL=https://status.duolicious.app
-export DUO_API_URL=https://api.duolicious.app
-export DUO_CHAT_URL=wss://chat.duolicious.app
-export DUO_IMAGES_URL=https://user-images.duolicious.app
-```
-
-This generates an ipa file:
-
-```bash
-EAS_LOCAL_BUILD_SKIP_CLEANUP=1 eas build --platform ios --local
-```
-
-This generates an ad-hoc ipa file:
+To generate an ad-hoc ipa file you can replace the last line of the script with:
 
 ```bash
 EAS_LOCAL_BUILD_SKIP_CLEANUP=1 eas build --profile preview --platform ios --local
