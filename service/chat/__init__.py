@@ -437,7 +437,7 @@ async def forward(src, dst, username):
         await dst.close()
         print("Connections closed in forward()")
 
-async def proxy(local_ws, path):
+async def proxy(local_ws):
     username = Username()
 
     async with websockets.connect(
