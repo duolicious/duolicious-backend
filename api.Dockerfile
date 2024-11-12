@@ -7,6 +7,9 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install --no-cache-dir -r /app/api.requirements.txt
+RUN : \
+  && apt update \
+  && apt install -y ffmpeg \
+  && pip install --no-cache-dir -r /app/api.requirements.txt
 
 CMD /app/api.main.sh

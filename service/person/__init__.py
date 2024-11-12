@@ -28,6 +28,8 @@ import numpy
 import erlastic
 from datetime import datetime, timezone
 
+# TODO: cron job to delete audio files
+
 
 @dataclass
 class EmailEntry:
@@ -72,6 +74,7 @@ R2_ACCT_ID = os.environ['DUO_R2_ACCT_ID']
 R2_ACCESS_KEY_ID = os.environ['DUO_R2_ACCESS_KEY_ID']
 R2_ACCESS_KEY_SECRET = os.environ['DUO_R2_ACCESS_KEY_SECRET']
 R2_BUCKET_NAME = os.environ['DUO_R2_BUCKET_NAME']
+R2_AUDIO_BUCKET_NAME = os.environ['DUO_R2_AUDIO_BUCKET_NAME']
 
 BOTO_ENDPOINT_URL = os.getenv(
     'DUO_BOTO_ENDPOINT_URL',
@@ -86,6 +89,8 @@ s3 = boto3.resource(
 )
 
 bucket = s3.Bucket(R2_BUCKET_NAME)
+
+audio_bucket = s3.Bucket(R2_AUDIO_BUCKET_NAME)
 
 def init_db():
     pass
@@ -238,9 +243,6 @@ def compute_blurhash(image: Image.Image, crop_size: Optional[CropSize] = None):
 
     return blurhash.encode(numpy.array(image.convert("RGB")))
 
-def put_object(key: str, io_bytes: io.BytesIO):
-    bucket.put_object(Key=key, Body=io_bytes)
-
 def put_image_in_object_store(
     uuid: str,
     base64_file: t.Base64File,
@@ -268,8 +270,23 @@ def put_image_in_object_store(
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = {
-            executor.submit(put_object, key, img)
+            executor.submit(bucket.put_object, Key=key, Body=img)
             for key, img in key_img}
+
+        for future in as_completed(futures):
+            future.result()
+
+def put_audio_in_object_store(
+    uuid: str,
+    base64_audio_file: t.Base64AudioFile,
+):
+    key = f'{uuid}.webm'
+
+    audio = io.BytesIO(base64_audio_file.transcoded)
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [
+                executor.submit(audio_bucket.put_object, Key=key, Body=audio)]
 
         for future in as_completed(futures):
             future.result()
@@ -901,6 +918,8 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
     base64_file = None
     crop_size = None
 
+    base64_audio_file = None
+
     if field_name == 'base64_file':
         base64_file = t.Base64File(**field_value)
 
@@ -913,7 +932,6 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
 
         params = dict(
             person_id=s.person_id,
-            email=s.email,
             position=base64_file.position,
             uuid=uuid,
             blurhash=blurhash_,
@@ -961,6 +979,49 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         """
 
         q2 = Q_UPDATE_VERIFICATION_LEVEL
+    elif field_name == 'base64_audio_file':
+        base64_audio_file = t.Base64AudioFile(**field_value)
+
+        uuid = secrets.token_hex(32)
+
+        params = dict(
+            person_id=s.person_id,
+            uuid=uuid,
+        )
+
+        # TODO
+        q1 = """
+        WITH existing_uuid AS (
+            SELECT
+                uuid
+            FROM
+                audio
+            WHERE
+                person_id = %(person_id)s
+            AND
+                position = -1
+        ), undeleted_audio_insertion AS (
+            INSERT INTO undeleted_audio (
+                uuid
+            )
+            SELECT
+                uuid
+            FROM
+                existing_uuid
+        ), audio_insertion AS (
+            INSERT INTO audio (
+                person_id,
+                position,
+                uuid
+            ) VALUES (
+                %(person_id)s,
+                -1,
+                %(uuid)s
+            ) ON CONFLICT (person_id, position) DO UPDATE SET
+                uuid = EXCLUDED.uuid
+        )
+        SELECT 1
+        """
     elif field_name == 'name':
         q1 = """
         UPDATE person
@@ -1176,7 +1237,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         WHERE id = %(person_id)s
         """
     else:
-        return f'Invalid field name {field_name}', 400
+        return f'Unhandled field name {field_name}', 500
 
     with api_tx() as tx:
         if q1: tx.execute(q1, params)
@@ -1185,6 +1246,13 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
     if uuid and base64_file and crop_size:
         try:
             put_image_in_object_store(uuid, base64_file, crop_size)
+        except:
+            print(traceback.format_exc())
+            return '', 500
+
+    if uuid and base64_audio_file:
+        try:
+            put_audio_in_object_store(uuid, base64_audio_file)
         except:
             print(traceback.format_exc())
             return '', 500

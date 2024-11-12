@@ -14,6 +14,8 @@ from PIL import Image
 import constants
 import io
 import base64
+import duoaudio
+import traceback
 
 CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42
@@ -32,6 +34,7 @@ MIN_IMAGE_DIM = 50
 MAX_GIF_DIM = 800
 MIN_GIF_DIM = 10
 
+
 def validate_gif_dimensions(larger_dim: int, smaller_dim: int):
     if larger_dim > MAX_GIF_DIM:
         raise ValueError(
@@ -44,6 +47,7 @@ def validate_gif_dimensions(larger_dim: int, smaller_dim: int):
                 f'image is less than '
                 f'{MIN_GIF_DIM}x{MIN_GIF_DIM} '
                 'pixels')
+
 
 def validate_image_dimensions(larger_dim: int, smaller_dim: int):
     if larger_dim > MAX_IMAGE_DIM:
@@ -58,10 +62,49 @@ def validate_image_dimensions(larger_dim: int, smaller_dim: int):
                 f'{MIN_IMAGE_DIM}x{MIN_IMAGE_DIM} '
                 'pixels')
 
+
 class ClubItem(BaseModel):
     name: str
     count_members: int
     search_preference: Optional[bool]
+
+
+class Base64AudioFile(BaseModel):
+    base64: str
+    bytes: bytes
+    transcoded: bytes
+
+    @model_validator(mode='before')
+    def convert_base64(cls, values):
+        try:
+            base64_value = values['base64'].split(',')[-1]
+        except:
+            raise ValueError('Field base64 must be a valid base64 string')
+
+        try:
+            decoded_bytes = base64.b64decode(base64_value)
+        except base64.binascii.Error as e:
+            raise ValueError(f'Field base64 must be a valid base64 string')
+
+        if len(decoded_bytes) > constants.MAX_AUDIO_BYTES:
+            raise ValueError(
+                f'Decoded file exceeds {constants.MAX_AUDIO_BYTES} bytes')
+
+        try:
+            transcoded = duoaudio.transcode_and_trim_audio(
+                    io.BytesIO(decoded_bytes),
+                    constants.MAX_AUDIO_SECONDS)
+        except:
+            print(traceback.format_exc())
+            raise ValueError(f'Base64 string is valid but is not audio')
+
+        values['bytes'] = decoded_bytes
+        values['transcoded'] = transcoded.getvalue()
+
+        return values
+
+    class Config:
+        arbitrary_types_allowed = True
 
 class Base64File(BaseModel):
     position: conint(ge=1, le=7)
@@ -115,10 +158,12 @@ class Base64File(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
+
 class Theme(BaseModel):
     title_color: constr(pattern=HEX_COLOR_PATTERN)
     body_color: constr(pattern=HEX_COLOR_PATTERN)
     background_color: constr(pattern=HEX_COLOR_PATTERN)
+
 
 class SessionInfo(BaseModel):
     email: str
@@ -134,13 +179,16 @@ class SessionInfo(BaseModel):
         values['onboarded'] = values.get('person_id') is not None
         return values
 
+
 class PostAnswer(BaseModel):
     question_id: int
     answer: Optional[bool]
     public: bool
 
+
 class DeleteAnswer(BaseModel):
     question_id: int
+
 
 class PostRequestOtp(BaseModel):
     email: EmailStr
@@ -157,6 +205,7 @@ class PostRequestOtp(BaseModel):
 
 class PostCheckOtp(BaseModel):
     otp: constr(pattern=r'^\d{6}$')
+
 
 class PatchOnboardeeInfo(BaseModel):
     name: Optional[constr(
@@ -204,14 +253,18 @@ class PatchOnboardeeInfo(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
+
 class DeleteOnboardeeInfo(BaseModel):
     files: List[conint(ge=1, le=7)]
+
 
 class DeleteProfileInfo(BaseModel):
     files: List[conint(ge=1, le=7)]
 
+
 class PatchProfileInfo(BaseModel):
     base64_file: Optional[Base64File] = None
+    base64_audio_file: Optional[Base64AudioFile] = None
     name: Optional[constr(
         min_length=MIN_NAME_LEN,
         max_length=MAX_NAME_LEN,
@@ -270,6 +323,7 @@ class PatchProfileInfo(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
+
 class PostSearchFilter(BaseModel):
     class Age(BaseModel):
         min_age: Optional[int]
@@ -319,13 +373,16 @@ class PostSearchFilter(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
+
 class PostSearchFilterAnswer(BaseModel):
     question_id: int
     answer: Optional[bool]
     accept_unanswered: bool
 
+
 class PostInboxInfo(BaseModel):
     person_uuids: List[str]
+
 
 class PostJoinClub(BaseModel):
     name: constr(
@@ -348,15 +405,18 @@ class PostJoinClub(BaseModel):
 
         return values
 
+
 class PostLeaveClub(BaseModel):
     name: constr(
             pattern=CLUB_PATTERN,
             min_length=1,
             max_length=CLUB_MAX_LEN)
 
+
 class PostSkip(BaseModel):
     report_reason: Optional[constr(
         min_length=1, max_length=10000, strip_whitespace=True)] = None
+
 
 class PostVerificationSelfie(BaseModel):
     base64_file: Optional[Base64File] = None

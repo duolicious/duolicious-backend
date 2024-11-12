@@ -325,6 +325,18 @@ CREATE TABLE IF NOT EXISTS undeleted_photo (
     uuid TEXT PRIMARY KEY
 );
 
+CREATE TABLE IF NOT EXISTS audio (
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    position INT NOT NULL,
+    uuid TEXT NOT NULL,
+
+    PRIMARY KEY (person_id, position)
+);
+
+CREATE TABLE IF NOT EXISTS undeleted_audio (
+    uuid TEXT PRIMARY KEY
+);
+
 CREATE TABLE IF NOT EXISTS question (
     id SMALLSERIAL,
     question TEXT NOT NULL,
@@ -718,8 +730,10 @@ CREATE INDEX IF NOT EXISTS idx__verification_job__expires_at
 CREATE INDEX IF NOT EXISTS idx__messaged__object_person_id__subject_person_id
     ON messaged(object_person_id, subject_person_id);
 
+
 CREATE INDEX IF NOT EXISTS idx__skipped__object_person_id__subject_person_id
     ON skipped(object_person_id, subject_person_id);
+
 
 --------------------------------------------------------------------------------
 -- DATA
