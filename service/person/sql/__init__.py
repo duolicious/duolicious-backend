@@ -1,3 +1,5 @@
+import constants
+
 MAX_CLUB_SEARCH_RESULTS = 20
 
 # How often the user should be nagged to donate, in days. The frequency
@@ -951,6 +953,12 @@ WITH prospect AS (
     FROM photo
     JOIN prospect
     ON   prospect.id = photo.person_id
+), audio_bio_uuid AS (
+    SELECT audio.uuid AS j
+    FROM   audio
+    JOIN   prospect
+    ON     prospect.id = audio.person_id
+    WHERE  audio.position = -1
 ), gender AS (
     SELECT gender.name AS j
     FROM gender JOIN prospect ON gender_id = gender.id
@@ -1065,6 +1073,7 @@ SELECT
         'photo_extra_exts',          (SELECT j                         FROM photo_extra_exts),
         'photo_blurhashes',          (SELECT j                         FROM photo_blurhashes),
         'photo_verifications',       (SELECT j                         FROM photo_verifications),
+        'audio_bio_uuid',            (SELECT j                         FROM audio_bio_uuid),
         'name',                      (SELECT name                      FROM prospect),
         'age',                       (SELECT age                       FROM prospect),
         'location',                  (SELECT location                  FROM prospect),
@@ -1520,7 +1529,7 @@ WITH updated_person AS (
 SELECT 1
 """
 
-Q_GET_PROFILE_INFO = """
+Q_GET_PROFILE_INFO = f"""
 WITH photo_ AS (
     SELECT json_object_agg(position, uuid) AS j
     FROM photo
@@ -1537,6 +1546,8 @@ WITH photo_ AS (
     SELECT json_object_agg(position, verified) AS j
     FROM photo
     WHERE person_id = %(person_id)s
+), audio_bio AS (
+    SELECT uuid AS j FROM audio WHERE person_id = %(person_id)s AND position = -1
 ), name AS (
     SELECT name AS j FROM person WHERE id = %(person_id)s
 ), about AS (
@@ -1682,6 +1693,8 @@ SELECT
         'photo_extra_exts',       (SELECT j FROM photo_extra_exts),
         'photo_blurhash',         (SELECT j FROM photo_blurhash),
         'photo_verification',     (SELECT j FROM photo_verification),
+        'audio_bio_max_seconds',  {constants.MAX_AUDIO_SECONDS},
+        'audio_bio',              (SELECT j FROM audio_bio),
         'name',                   (SELECT j FROM name),
         'about',                  (SELECT j FROM about),
         'gender',                 (SELECT j FROM gender),
