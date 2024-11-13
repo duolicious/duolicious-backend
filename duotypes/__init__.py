@@ -255,17 +255,14 @@ class PatchOnboardeeInfo(BaseModel):
 
 
 class DeleteOnboardeeInfo(BaseModel):
-    files: conlist(
-            Literal[-1, 1, 2, 3, 4, 5, 6, 7],
-            min_length=1,
-            max_length=7)
+    files: List[conint(ge=1, le=7)]
 
 
 class DeleteProfileInfo(BaseModel):
-    files: conlist(
-            Literal[-1, 1, 2, 3, 4, 5, 6, 7],
-            min_length=1,
-            max_length=7)
+    files: Optional[
+            conlist(conint(ge=1, le=7), min_length=1, max_length=7)] = None
+    audio_files: Optional[
+            conlist(conint(ge=-1, le=-1), min_length=1, max_length=1)] = None
 
 
 class PatchProfileInfo(BaseModel):

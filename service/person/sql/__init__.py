@@ -1740,12 +1740,13 @@ SELECT
     ) AS j
 """
 
-Q_DELETE_PROFILE_INFO = """
+Q_DELETE_PROFILE_INFO_PHOTO = """
 WITH deleted_photo AS (
     DELETE FROM
         photo
     WHERE
-        person_id = %(person_id)s AND
+        person_id = %(person_id)s
+    AND
         position = %(position)s
     RETURNING
         uuid
@@ -1757,6 +1758,26 @@ SELECT
     uuid
 FROM
     deleted_photo
+"""
+
+Q_DELETE_PROFILE_INFO_AUDIO = """
+WITH deleted_audio AS (
+    DELETE FROM
+        audio
+    WHERE
+        person_id = %(person_id)s
+    AND
+        position = %(position)s
+    RETURNING
+        uuid
+)
+INSERT INTO undeleted_audio (
+    uuid
+)
+SELECT
+    uuid
+FROM
+    deleted_audio
 """
 
 Q_GET_SEARCH_FILTERS = """

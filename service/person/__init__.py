@@ -894,13 +894,23 @@ def get_profile_info(s: t.SessionInfo):
         return tx.execute(Q_GET_PROFILE_INFO, params).fetchone()['j']
 
 def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
-    params = [
+    files_params = [
         dict(person_id=s.person_id, position=position)
-        for position in req.files
+        for position in req.files or []
     ]
 
-    with api_tx() as tx:
-        tx.executemany(Q_DELETE_PROFILE_INFO, params)
+    audio_files_params = [
+        dict(person_id=s.person_id, position=-1)
+        for position in req.audio_files or []
+    ]
+
+    if files_params:
+        with api_tx() as tx:
+            tx.executemany(Q_DELETE_PROFILE_INFO_PHOTO, files_params)
+
+    if audio_files_params:
+        with api_tx() as tx:
+            tx.executemany(Q_DELETE_PROFILE_INFO_AUDIO, audio_files_params)
 
 def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
     [field_name] = req.__pydantic_fields_set__
