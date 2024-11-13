@@ -1,19 +1,22 @@
-import subprocess
 import io
+import subprocess
 
 def transcode_and_trim_audio(input_audio: io.BytesIO, duration: int) -> io.BytesIO:
     # Prepare the output buffer for the transcoded and trimmed audio
     output_audio = io.BytesIO()
 
-    # FFmpeg command to transcode the audio to Opus format at 64 kbps
+    # FFmpeg command to transcode audio with settings optimized for voice data
     ffmpeg_cmd = [
         'ffmpeg',
-        '-i', 'pipe:0',       # Read from stdin
-        '-t', str(duration),  # Set the maximum duration to `duration` seconds
-        '-c:a', 'libopus',    # Set codec to Opus
-        '-b:a', '64k',        # Set bitrate to 64 kbps
-        '-f', 'opus',         # Set output format to Opus
-        'pipe:1'              # Write to stdout
+        '-i', 'pipe:0',              # Read from stdin
+        '-t', str(duration),         # Set duration
+        '-c:a', 'aac',               # Use AAC codec
+        '-b:a', '32k',               # Lower bitrate for voice
+        '-ar', '16000',              # Set sample rate to 16 kHz
+        '-ac', '1',                  # Set audio to mono
+        '-af', 'highpass=f=100',     # Apply high-pass filter
+        '-f', 'adts',                # Set format to AAC
+        'pipe:1'                     # Output to stdout
     ]
 
     # Run FFmpeg as a subprocess
@@ -36,4 +39,3 @@ def transcode_and_trim_audio(input_audio: io.BytesIO, duration: int) -> io.Bytes
     output_audio.seek(0)  # Reset buffer position to the start
 
     return output_audio
-

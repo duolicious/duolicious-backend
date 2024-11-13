@@ -280,7 +280,7 @@ def put_audio_in_object_store(
     uuid: str,
     base64_audio_file: t.Base64AudioFile,
 ):
-    key = f'{uuid}.webm'
+    key = f'{uuid}.aac'
 
     audio = io.BytesIO(base64_audio_file.transcoded)
 
