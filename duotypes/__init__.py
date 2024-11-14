@@ -76,6 +76,10 @@ class Base64AudioFile(BaseModel):
 
     @model_validator(mode='before')
     def convert_base64(cls, values):
+        # Avoid performing transcoding a second time
+        if 'base64' in values and 'bytes' in values and 'transcoded' in values:
+            return values
+
         try:
             base64_value = values['base64'].split(',')[-1]
         except:

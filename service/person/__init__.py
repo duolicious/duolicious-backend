@@ -999,7 +999,6 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             uuid=uuid,
         )
 
-        # TODO
         q1 = """
         WITH existing_uuid AS (
             SELECT
