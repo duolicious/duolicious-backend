@@ -2,38 +2,107 @@ import {
   View,
 } from 'react-native';
 import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
   useState,
 } from 'react';
-import Slider from '@react-native-community/slider';
+import { Slider, SliderHandle } from './slider';
 import { DefaultText } from './default-text';
 import { LINEAR_SCALE } from '../scales/scales';
 
-const LabelledSlider = ({label, minimumValue, maximumValue, ...rest}) => {
+// TODO: Range slider doesn't adjust thumb
+
+const Label = forwardRef(({}, ref) => {
+  const [label, setLabel] = useState('');
+
+  useImperativeHandle(ref, () => ({ setLabel }), []);
+
+  return (
+    <View style={{marginTop: 10}} pointerEvents="none">
+      <DefaultText>
+        {label}
+      </DefaultText>
+    </View>
+  );
+});
+
+type Props = {
+  label: string
+  minimumValue: number
+  maximumValue: number
+  initialValue: number
+  onValueChange: (n: number) => void
+  style?: any,
+  addPlusAtMax: boolean
+  valueRewriter?: (x: any) => any
+  onSlidingComplete?: any
+  scale: any
+  step: number
+};
+
+const LabelledSlider = forwardRef(({label, minimumValue, maximumValue, ...rest}: Props, ref) => {
   const {
-    value,
     initialValue,
     onValueChange,
     style,
     addPlusAtMax,
     valueRewriter = (x) => x,
     scale: {scaleValue, descaleValue} = LINEAR_SCALE,
-    ...rest_
   } = rest;
 
-  const [valueState, setValueState] = useState(initialValue);
-  const roundedValue = Math.round(valueState);
+  const descaledInitialValue = descaleValue(initialValue, minimumValue, maximumValue);
 
-  if (value !== undefined && valueState !== value) {
-    setValueState(value);
-  }
+  const sliderRef = useRef<SliderHandle>(null);
+  const labelRef = useRef<any>(null);
+  const valueRef = useRef<number>(descaledInitialValue);
 
-  const onValueChange_ = (value_: number) => {
-    const scaledValue = scaleValue(value_, minimumValue, maximumValue);
-    setValueState(scaledValue);
-    if (onValueChange !== undefined) {
-      onValueChange(Math.round(scaledValue));
+  const _onValueChange = (value: number) => {
+    if (!labelRef.current) {
+      return;
     }
+
+    const scaledValue = scaleValue(value, minimumValue, maximumValue);
+
+    const roundedValue = Math.round(scaledValue);
+
+    const _label = (
+     `${label}: ` +
+     `${valueRewriter(roundedValue)}` +
+     `${addPlusAtMax && roundedValue === maximumValue ? '+' : ''}`
+    );
+
+    labelRef.current.setLabel(_label);
+    valueRef.current = scaledValue;
+
+    onValueChange(roundedValue);
+  };
+
+  const setValue = (value: number) => {
+    if (!sliderRef.current) {
+      return;
+    }
+    sliderRef.current.setValue(value);
+  };
+
+  const getValue = () => {
+    return valueRef.current;
   }
+
+  useEffect(() => {
+    _onValueChange(descaledInitialValue);
+  }, []);
+
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      setValue,
+      getValue,
+    }),
+    []
+  );
 
   return (
     <View
@@ -44,27 +113,17 @@ const LabelledSlider = ({label, minimumValue, maximumValue, ...rest}) => {
         ...style
       }}
     >
-      <View>
-        <Slider
-          minimumTrackTintColor="#ddd"
-          maximumTrackTintColor="#ddd"
-          minimumValue={descaleValue(minimumValue, minimumValue, maximumValue)}
-          maximumValue={descaleValue(maximumValue, minimumValue, maximumValue)}
-          thumbTintColor="#70f"
-          value={descaleValue(valueState, minimumValue, maximumValue)}
-          onValueChange={onValueChange_}
-          {...rest_}
-        />
-      </View>
-      <View style={{marginTop: 10}} pointerEvents="none">
-        <DefaultText>
-          {label}: {valueRewriter(roundedValue)}
-          {addPlusAtMax && roundedValue === maximumValue ? '+' : ''}
-        </DefaultText>
-      </View>
+      <Slider
+        ref={sliderRef}
+        minimumValue={descaleValue(minimumValue, minimumValue, maximumValue)}
+        maximumValue={descaleValue(maximumValue, minimumValue, maximumValue)}
+        initialValue={descaledInitialValue}
+        onValueChange={_onValueChange}
+      />
+      <Label ref={labelRef} />
     </View>
   );
-};
+});
 
 export {
   LabelledSlider,

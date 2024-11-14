@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import Slider from '@react-native-community/slider';
 
 import { LabelledSlider } from './labelled-slider';
 
@@ -25,47 +24,33 @@ const RangeSlider = forwardRef((props: any, ref) => {
     scale,
   } = props;
 
-  const args = {
-    minimumValue: minimumValue,
-    maximumValue: maximumValue,
-    step: 1,
-    valueRewriter: valueRewriter,
-    scale: scale,
-  };
-
-  const topSliderStyle = useRef({
-    marginBottom: 30
-  }).current;
-
-  const [lowerValue, setLowerValue] = useState(initialLowerValue ?? args.minimumValue);
-  const [upperValue, setUpperValue] = useState(initialUpperValue ?? args.maximumValue);
+  const upperRef = useRef<any>(null);
+  const lowerRef = useRef<any>(null);
 
   const _onLowerValueChange = (value: number) => {
-    setLowerValue(value);
     onLowerValueChange(value);
 
-    if (value > upperValue) {
-      setUpperValue(value);
-      onUpperValueChange(value);
+    if (upperRef.current && value > upperRef.current.getValue()) {
+      upperRef.current.setValue(value);
     }
   };
 
   const _onUpperValueChange = (value: number) => {
-    setUpperValue(value);
     onUpperValueChange(value);
 
-    if (value < lowerValue) {
-      setLowerValue(value)
-      onLowerValueChange(value);
+    if (lowerRef.current && value < lowerRef.current.getValue()) {
+      lowerRef.current.setValue(value);
     }
   };
 
   const setValues = (values: {lowerValue: any, upperValue: any}) => {
-    const lowerValue_ = values.lowerValue;
-    const upperValue_ = values.upperValue;
+    if (upperRef.current && values.upperValue !== undefined) {
+      upperRef.current.setValue(values.upperValue);
+    }
 
-    if (lowerValue_ !== undefined) setLowerValue(lowerValue_);
-    if (upperValue_ !== undefined) setUpperValue(upperValue_);
+    if (lowerRef.current && values.lowerValue !== undefined) {
+      lowerRef.current.setValue(values.lowerValue);
+    }
   };
 
   useImperativeHandle(ref, () => ({ setValues }), []);
@@ -73,11 +58,13 @@ const RangeSlider = forwardRef((props: any, ref) => {
   return (
     <View
       style={{
+        gap: 30,
         ...containerStyle,
       }}
     >
       <LabelledSlider
-        value={lowerValue}
+        ref={lowerRef}
+        initialValue={initialLowerValue}
         onValueChange={_onLowerValueChange}
         label={"Min" + (unitsLabel ? ` (${unitsLabel})` : '')}
         minimumValue={minimumValue}
@@ -85,10 +72,11 @@ const RangeSlider = forwardRef((props: any, ref) => {
         step={1}
         valueRewriter={valueRewriter}
         scale={scale}
-        style={topSliderStyle}
+        addPlusAtMax={false}
       />
       <LabelledSlider
-        value={upperValue}
+        ref={upperRef}
+        initialValue={initialUpperValue}
         onValueChange={_onUpperValueChange}
         label={"Max" + (unitsLabel ? ` (${unitsLabel})` : '')}
         minimumValue={minimumValue}
@@ -96,6 +84,7 @@ const RangeSlider = forwardRef((props: any, ref) => {
         step={1}
         valueRewriter={valueRewriter}
         scale={scale}
+        addPlusAtMax={false}
       />
     </View>
   );

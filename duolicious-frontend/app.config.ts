@@ -14,6 +14,7 @@ const config: ExpoConfig = {
     resizeMode: 'contain',
     backgroundColor: '#7700ff',
   },
+  newArchEnabled: true,
   updates: {
     fallbackToCacheTimeout: 0
   },

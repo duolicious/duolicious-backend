@@ -500,12 +500,15 @@ const BlockButton = ({navigation, name, personId, personUuid, isSkipped}) => {
 };
 
 const AllClubsItem = ({kind, kids, props, ...rest}) => {
+  const propsWithoutKey = { ...props };
+  delete propsWithoutKey['key'];
+
   if (kind === 'Title') {
-    return <Title {...props}>{kids}</Title>;
+    return <Title {...propsWithoutKey}>{kids}</Title>;
   }
 
   if (kind === 'Club') {
-    return <Club {...props}>{kids}</Club>;
+    return <Club {...propsWithoutKey}>{kids}</Club>;
   }
 
   throw Error('Unexpected club kind');

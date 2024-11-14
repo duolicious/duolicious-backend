@@ -626,7 +626,11 @@ const ConversationScreen = ({navigation, route}) => {
           {messages.length === 0 &&
             <>
               <ImageBackground
-                source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
+                source={imageUuid && {
+                  uri: `${IMAGES_URL}/450-${imageUuid}.jpg`,
+                  height: 450,
+                  width: 450,
+                }}
                 placeholder={imageBlurhash && { blurhash: imageBlurhash }}
                 transition={150}
                 style={{
@@ -810,7 +814,6 @@ const TextInputWithButton = ({
         placeholder="Type a message"
         placeholderTextColor="#888888"
         multiline={true}
-        numberOfLines={2}
       />
       <View
         style={{

@@ -306,6 +306,8 @@ const ClubSelector = (props: ClubSelectorProps) => {
   const scrollViewRef = useRef<ScrollView>(null);
   const scrollXRef = useRef(0);
 
+  const hasJumpedToClubRef = useRef(false);
+
   const [isTop, setIsTop] = useState(true);
   const [isBottom, setIsBottom] = useState(true);
   const [contentWidth, setContentWidth] = useState(0);
@@ -347,10 +349,16 @@ const ClubSelector = (props: ClubSelectorProps) => {
         return;
       }
 
+      if (hasJumpedToClubRef.current) {
+        return;
+      }
+
       scrollViewRef.current.scrollTo({
         x: nativeEvent.layout.x - scrollJumpSize,
         animated: false,
       });
+
+      hasJumpedToClubRef.current = true;
     })();
   }, []);
 
@@ -384,6 +392,8 @@ const ClubSelector = (props: ClubSelectorProps) => {
     return listen(
       'updated-clubs',
       (maybeCs: ClubItem[] | undefined) => {
+        hasJumpedToClubRef.current = false;
+
         const sortedCs = sortClubs(maybeCs);
         setClubs(sortedCs);
       }
@@ -392,6 +402,8 @@ const ClubSelector = (props: ClubSelectorProps) => {
 
   useEffect(() => {
     if (clubs && clubs.every((club) => club.name !== props.selectedClub)) {
+      hasJumpedToClubRef.current = false;
+
       props.onChangeSelectedClub(null);
     }
   }, [props.selectedClub, JSON.stringify(clubs)]);
@@ -437,7 +449,7 @@ const ClubSelector = (props: ClubSelectorProps) => {
               key={club.name}
               onPress={() => props.onChangeSelectedClub(club.name)}
               onLayout={
-                props.selectedClub === club.name ?
+                props.selectedClub === club.name && !hasJumpedToClubRef.current ?
                   onSelectedClubLayout :
                   undefined
               }

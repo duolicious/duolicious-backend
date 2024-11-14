@@ -316,8 +316,8 @@ const ImageCropper = () => {
             left: animatedCropArea.current.left,
             width: animatedCropArea.current.size,
             height: animatedCropArea.current.size,
-            borderWidth: 2,
-            borderColor: 'transparent',
+            borderWidth: 1,
+            borderColor: 'white',
             backgroundColor: 'transparent',
           }}
         />

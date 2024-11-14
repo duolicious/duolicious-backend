@@ -341,7 +341,11 @@ const UserImage = ({
         {!isLoading_ && imageUri !== null &&
           <>
             <Image
-              source={{uri: imageUri}}
+              source={{
+                uri: imageUri,
+                height: resolution,
+                width: resolution,
+              }}
               placeholder={imageBlurhash && { blurhash: imageBlurhash }}
               transition={150}
               style={{
@@ -409,7 +413,7 @@ const PrimaryImage = ({
       setIsInvalid,
       showProtip,
       setHasImage,
-      resolution: '900'
+      resolution: 900
     }}
   />
 };
@@ -450,7 +454,7 @@ const Row = ({
         setIsLoading={setIsLoading1}
         setIsInvalid={setIsInvalid}
         setHasImage={setHasImage}
-        resolution="450"
+        resolution={450}
       />
       <UserImageMemo
         input={input}
@@ -458,7 +462,7 @@ const Row = ({
         setIsLoading={setIsLoading2}
         setIsInvalid={setIsInvalid}
         setHasImage={setHasImage}
-        resolution="450"
+        resolution={450}
       />
       <UserImageMemo
         input={input}
@@ -466,7 +470,7 @@ const Row = ({
         setIsLoading={setIsLoading3}
         setIsInvalid={setIsInvalid}
         setHasImage={setHasImage}
-        resolution="450"
+        resolution={450}
       />
     </View>
   );

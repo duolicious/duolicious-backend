@@ -47,16 +47,30 @@ const ShareNotice = ({personId}) => {
         backgroundColor: 'rgba(119, 0, 255, 0.1)',
         padding: 5,
         borderRadius: 5,
+        width: '100%',
       }}
       onPress={onPressNotice}
     >
-      <DefaultText style={{color: '#70f', fontWeight: '600', marginRight: 5}}>
+      <DefaultText
+        style={{
+          width: '100%',
+          color: '#70f',
+          fontWeight: '600',
+          marginRight: 5,
+        }}
+      >
         {isCopied ? 'Copied!' : 'Share'}
       </DefaultText>
 
       <View style={{ flexDirection: 'row' }}>
         <TextInput
-          style={{color: '#70f', flexGrow: 1}}
+          style={{
+            color: '#70f',
+            padding: 0,
+            margin: 0,
+            flexGrow: 1,
+          }}
+          inputMode="none"
           value={url}
         />
 

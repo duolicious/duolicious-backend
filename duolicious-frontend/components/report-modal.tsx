@@ -117,8 +117,6 @@ const ReportModal = () => {
     }
   }, [isTooFewChars, isSomethingWrong]);
 
-  const defaultLongTextInputStyle = Platform.OS === 'ios' ? {style: {height: 200}} : null;
-
   return (
     <Modal
       animationType="fade"
@@ -186,7 +184,9 @@ const ReportModal = () => {
               value={reportText}
               onChangeText={onChangeReportText}
               numberOfLines={6}
-              {...defaultLongTextInputStyle}
+              style={{
+                height: 200,
+              }}
             />
             <View
               style={{
