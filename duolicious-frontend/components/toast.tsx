@@ -3,6 +3,7 @@ import { Animated, View, StyleSheet } from 'react-native';
 import { listen } from '../events/events';
 import { RenderedHoc } from './rendered-hoc';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { DefaultText } from './default-text';
 
 const Toast: React.FC = () => {
   const initialPosition = -500;
@@ -81,6 +82,50 @@ const Toast: React.FC = () => {
   }
 };
 
+const ToastContainer = ({children}) => {
+  return (
+    <View
+      style={{
+        marginTop: 70,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'white',
+        borderRadius: 999,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        shadowOffset: {
+          width: 0,
+          height: 4,
+        },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+        gap: 10,
+      }}
+    >
+      {children}
+    </View>
+  );
+};
+
+const SomethingWentWrongToast = () => {
+  return (
+    <ToastContainer>
+      <DefaultText
+        style={{
+          color: 'black',
+          fontWeight: '700',
+        }}
+      >
+        Something went wrong
+      </DefaultText>
+    </ToastContainer>
+  );
+};
+
 export {
   Toast,
+  ToastContainer,
+  SomethingWentWrongToast,
 };

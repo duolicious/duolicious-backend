@@ -58,7 +58,13 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { ClubItem, joinClub, leaveClub } from '../club/club';
 import _ from 'lodash';
-import { friendlyTimeAgo } from '../util/util';
+import { delay, friendlyTimeAgo, possessive, secToMinSec } from '../util/util';
+import { Audio, AVPlaybackStatus } from 'expo-av';
+import {
+  AUDIO_URL,
+} from '../env/env';
+
+// TODO: https://github.com/expo/expo/issues/31225
 
 const Stack = createNativeStackNavigator();
 
@@ -399,8 +405,6 @@ const SeeQAndAButton = ({navigation, personId, name}) => {
     navigation.navigate('In-Depth', { personId, name });
   }, [personId, name]);
 
-  const determiner = String(name).endsWith('s') ? "'" : "'s";
-
   return (
     <ButtonWithCenteredText
       containerStyle={containerStyle}
@@ -411,7 +415,7 @@ const SeeQAndAButton = ({navigation, personId, name}) => {
       borderColor="rgba(255, 255, 255, 0.2)"
       borderWidth={1}
     >
-      {name}{determiner} Q&A Answers
+      {possessive(String(name))} Q&A Answers
     </ButtonWithCenteredText>
   );
 };
@@ -449,7 +453,7 @@ const BlockButton = ({navigation, name, personId, personUuid, isSkipped}) => {
     `You have skipped ${name}. Press to unskip.` :
     `Report ${name}`;
 
-  const iconStroke = isLoading ? "transparent" : 'black';
+  const iconStroke = isLoading ? "transparent" : 'rgba(0, 0, 0, 0.5)';
 
   return (
     <Pressable
@@ -460,8 +464,7 @@ const BlockButton = ({navigation, name, personId, personUuid, isSkipped}) => {
         alignSelf: 'center',
         flexDirection: 'row',
         gap: 7,
-        backgroundColor: 'white',
-        opacity: 0.5,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
         padding: 8,
         borderRadius: 5,
       }}
@@ -490,6 +493,7 @@ const BlockButton = ({navigation, name, personId, personUuid, isSkipped}) => {
           style={{
             overflow: 'hidden',
             textAlign: 'center',
+            color: 'rgba(0, 0, 0, 0.5)',
           }}
         >
           {name === undefined ? '...' : text}
@@ -639,6 +643,7 @@ type UserData = {
   photo_extra_exts: string[][],
   photo_blurhashes: string[],
   photo_verifications: boolean[],
+  audio_bio_uuid: string | null,
   age: number | null,
   location: string | null
   drinking: string | null,
@@ -981,6 +986,141 @@ const ProspectUserDetails = ({
   );
 };
 
+const AudioPlayer = ({
+  name,
+  uuid,
+}: {
+  name: string | undefined
+  uuid: string
+}) => {
+  const sound = useRef<Audio.Sound>();
+
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const [secondsRemaining, setSecondsRemaining] = useState(0);
+
+  const [minutes, seconds] = secToMinSec(secondsRemaining);
+
+  const playIcon = isPlaying ? 'pause-circle' : 'play-circle';
+
+  const play = async () => {
+    if (!sound.current) {
+      return;
+    }
+
+    try {
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+      });
+
+      const response = await sound.current.playAsync();
+
+      setIsPlaying(response.isLoaded);
+    } catch (err) {
+      console.error('Failed to start recording', err);
+    }
+  };
+
+  const pause = async () => {
+    if (!sound.current) {
+      return;
+    }
+
+    setIsPlaying(true);
+
+    await sound.current.pauseAsync();
+  };
+
+  const togglePlayPlause = () => {
+    if (isPlaying) {
+      pause();
+    } else {
+      play();
+    }
+
+    setIsPlaying(!isPlaying);
+  };
+
+  useEffect(() => {
+    const onPlaybackStatusUpdate = async (status: AVPlaybackStatus) => {
+      if (!status.isLoaded) {
+        return;
+      }
+
+      if (status.durationMillis) {
+        const remainingMillis = status.durationMillis - status.positionMillis;
+        setSecondsRemaining(Math.floor(remainingMillis / 1000));
+      } else {
+        setSecondsRemaining(0);
+      }
+
+      if (status.didJustFinish) {
+        setIsPlaying(false);
+        if (sound.current) {
+          await sound.current.pauseAsync();
+          await sound.current.setPositionAsync(0);
+        }
+      }
+    };
+
+    const go = async () => {
+      if (!uuid) {
+        return;
+      }
+
+      sound.current = (await Audio.Sound.createAsync(
+        { uri: `${AUDIO_URL}/${uuid}.aac` },
+        {},
+        onPlaybackStatusUpdate,
+      )).sound;
+
+      await play();
+    };
+
+    go();
+
+    return () => {
+      if (sound.current) {
+        sound.current.unloadAsync();
+      }
+    };
+  }, [uuid]);
+
+  return (
+    <View
+      style={{
+        width: '100%',
+        marginTop: 20,
+        flexDirection: 'row',
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderColor: 'rgba(0, 0, 0, 0.1)',
+        borderWidth: 1,
+        borderRadius: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 10,
+        gap: 20,
+      }}
+    >
+      <Ionicons
+        onPress={togglePlayPlause}
+        style={{ fontSize: 42, flex: 1 }}
+        name={playIcon}
+      />
+
+      <DefaultText style={styles.audioPlayerMiddleText}>
+        {name ? `${possessive(name)} ` : ''}voice bio
+      </DefaultText>
+
+
+      <DefaultText style={{ flex: 1, textAlign: 'right', paddingRight: 5 }}>
+        -{minutes}:{seconds}
+      </DefaultText>
+    </View>
+  );
+};
+
 const Body = ({
   navigation,
   personId,
@@ -1056,6 +1196,9 @@ const Body = ({
           marginBottom: 20,
         }}
       >
+        {data?.audio_bio_uuid &&
+          <AudioPlayer name={data?.name} uuid={data?.audio_bio_uuid} />
+        }
         <Title style={{color: data?.theme?.title_color}}>Basics</Title>
         <Basics>
           {data?.gender &&
@@ -1137,8 +1280,7 @@ const Body = ({
           />
           <View
             style={{
-              backgroundColor: 'white',
-              opacity: 0.4,
+              backgroundColor: 'rgba(255, 255, 255, 0.3)',
               borderRadius: 3,
               overflow: 'hidden',
               marginBottom: 10,
@@ -1146,8 +1288,8 @@ const Body = ({
           >
             <DefaultText
               style={{
-                color: 'black',
-                padding: 1,
+                color: 'rgba(0, 0, 0, 0.5)',
+                padding: 2,
               }}
             >
               Verification is based on selfies analyzed by our AI. Verified
@@ -1339,6 +1481,12 @@ const styles = StyleSheet.create({
   },
   wFull: {
     width: '100%',
+  },
+  audioPlayerMiddleText: {
+    fontWeight: 700,
+    flex: 3,
+    wordBreak: 'break-all',
+    textAlign: 'center',
   },
 });
 

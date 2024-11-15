@@ -107,9 +107,36 @@ const japi = async (
   return await api(method, endpoint, init, timeout, maxRetries);
 };
 
+const uriToBase64 = async (uri: string): Promise<string> => {
+  const response = await fetch(uri);
+  const blob = await response.blob();
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        // Safely access the base64 content
+        const base64String = reader.result.split(',')[1];
+        resolve(base64String);
+      } else {
+        // Handle the case where reader.result is not a string
+        reject(new Error("Failed to read file as base64, result is not a string."));
+      }
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Error reading file as base64."));
+    };
+
+    reader.readAsDataURL(blob);
+  });
+}
+
 export {
   SUPPORTED_API_VERSIONS,
+  ApiResponse,
   api,
   japi,
-  ApiResponse,
+  uriToBase64,
 };

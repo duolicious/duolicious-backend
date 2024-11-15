@@ -65,7 +65,7 @@ import {
 } from '../verification/verification';
 import { InviteEntrypoint } from './invite';
 import { InvitePicker } from './invite';
-
+import { AudioBio } from './audio-bio';
 
 const formatHeight = (og: OptionGroup<OptionGroupInputs>): string | undefined => {
   if (!isOptionGroupSlider(og.input)) return '';
@@ -544,6 +544,12 @@ const Options = ({ navigation, data }) => {
       }
 
       <DisplayNameAndAboutPerson navigation={navigation} data={data}/>
+
+      <Title>Voice Bio</Title>
+      <AudioBio
+        initialSavedRecordingUuid={data.audio_bio ?? null}
+        maxDuration={data.audio_bio_max_seconds}
+      />
 
       <Title>Basics</Title>
       {

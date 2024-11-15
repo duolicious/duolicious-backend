@@ -32,6 +32,7 @@ const config: ExpoConfig = {
     apiUrl: process.env.DUO_API_URL,
     chatUrl: process.env.DUO_CHAT_URL,
     imagesUrl: process.env.DUO_IMAGES_URL,
+    audioUrl: process.env.DUO_AUDIO_URL,
     statusUrl: process.env.DUO_STATUS_URL,
   },
   web: {

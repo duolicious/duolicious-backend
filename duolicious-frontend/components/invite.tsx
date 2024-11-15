@@ -27,29 +27,11 @@ import { ButtonWithCenteredText } from './button/centered-text';
 import { notify } from '../events/events';
 import { faLink } from '@fortawesome/free-solid-svg-icons/faLink'
 import * as Clipboard from 'expo-clipboard';
+import { ToastContainer } from './toast';
 
 const LinkCopiedToast = () => {
   return (
-    <View
-      style={{
-        marginTop: 70,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'white',
-        borderRadius: 999,
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        flexDirection: 'row',
-        shadowOffset: {
-          width: 0,
-          height: 4,
-        },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
-        gap: 10,
-      }}
-    >
+    <ToastContainer>
       <FontAwesomeIcon
         icon={faLink}
         color="black"
@@ -63,7 +45,7 @@ const LinkCopiedToast = () => {
       >
         Invite Link Copied!
       </DefaultText>
-    </View>
+    </ToastContainer>
   );
 };
 

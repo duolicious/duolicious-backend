@@ -1,0 +1,22 @@
+diff --git a/node_modules/expo-av/android/src/main/java/expo/modules/av/player/.SimpleExoPlayerData.java.swp b/node_modules/expo-av/android/src/main/java/expo/modules/av/player/.SimpleExoPlayerData.java.swp
+new file mode 100644
+index 0000000..572d141
+Binary files /dev/null and b/node_modules/expo-av/android/src/main/java/expo/modules/av/player/.SimpleExoPlayerData.java.swp differ
+diff --git a/node_modules/expo-av/android/src/main/java/expo/modules/av/player/SimpleExoPlayerData.java b/node_modules/expo-av/android/src/main/java/expo/modules/av/player/SimpleExoPlayerData.java
+index 8835a39..b12efda 100644
+--- a/node_modules/expo-av/android/src/main/java/expo/modules/av/player/SimpleExoPlayerData.java
++++ b/node_modules/expo-av/android/src/main/java/expo/modules/av/player/SimpleExoPlayerData.java
+@@ -120,7 +120,12 @@ class SimpleExoPlayerData extends PlayerData
+   public synchronized void release() {
+     super.release();
+     stopUpdatingProgressIfNecessary();
+-    if (mSimpleExoPlayer != null) {
++    if (!UiThreadUtil.isOnUiThread() && mSimpleExoPlayer != null) {
++      UiThreadUtil.runOnUiThread(() -> {
++        mSimpleExoPlayer.release();
++        mSimpleExoPlayer = null;
++      });
++    } else if (mSimpleExoPlayer != null) {
+       mSimpleExoPlayer.release();
+       mSimpleExoPlayer = null;
+     }

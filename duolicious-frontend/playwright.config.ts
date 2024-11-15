@@ -86,6 +86,7 @@ export default defineConfig({
       DUO_API_URL: 'http://localhost:5000',
       DUO_CHAT_URL: 'ws://localhost:5443',
       DUO_IMAGES_URL: 'http://localhost:9090/s3-mock-bucket',
+      DUO_AUDIO_URL: 'http://localhost:9090/s3-mock-audio-bucket',
     }
   },
 });
