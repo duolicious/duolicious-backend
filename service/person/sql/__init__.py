@@ -2702,6 +2702,8 @@ SELECT json_build_object(
                 photo
             WHERE
                 person_id = %(person_id)s
+            ORDER BY
+                position
         ) AS t
     ),
 

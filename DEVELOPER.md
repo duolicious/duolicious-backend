@@ -8,6 +8,7 @@ Install these:
 * jq
 * curl
 * ImageMagick
+* ffmpeg
 
 Then run this:
 
