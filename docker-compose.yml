@@ -58,6 +58,7 @@ services:
       DUO_CORS_ORIGINS: '*'
 
       DUO_R2_BUCKET_NAME: s3-mock-bucket
+      DUO_R2_AUDIO_BUCKET_NAME: s3-mock-audio-bucket
       DUO_R2_ACCT_ID: unused-in-dev-env
       DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
       DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
@@ -136,6 +137,7 @@ services:
       DUO_DB_API_NAME: duo_api
 
       DUO_R2_BUCKET_NAME: s3-mock-bucket
+      DUO_R2_AUDIO_BUCKET_NAME: s3-mock-audio-bucket
       DUO_R2_ACCT_ID: unused-in-dev-env
       DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
       DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
@@ -152,6 +154,9 @@ services:
       DUO_CRON_PHOTO_CLEANER_DRY_RUN: ${DUO_CRON_PHOTO_CLEANER_DRY_RUN:-false}
       DUO_CRON_PHOTO_CLEANER_POLL_SECONDS: '1'
 
+      DUO_CRON_AUDIO_CLEANER_DRY_RUN: ${DUO_CRON_AUDIO_CLEANER_DRY_RUN:-false}
+      DUO_CRON_AUDIO_CLEANER_POLL_SECONDS: '1'
+
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       DUO_VERIFICATION_IMAGE_BASE_URL: http://s3mock:9090/s3-mock-bucket
       DUO_VERIFICATION_MOCK_RESPONSE_FILE: test/input/verification-mock-response-file
@@ -164,7 +169,7 @@ services:
     image: adobe/s3mock
 
     environment:
-      initialBuckets: s3-mock-bucket
+      initialBuckets: s3-mock-bucket, s3-mock-audio-bucket
       AWS_ACCESS_KEY_ID: s3-mock-access-key-id
       AWS_SECRET_ACCESS_KEY: s3-mock-secret-access-key-secret
 

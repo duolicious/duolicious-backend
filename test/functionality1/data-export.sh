@@ -13,6 +13,7 @@ quietly_assume_role () {
   sign_in_count=$(q "select sign_in_count from person where name = '$1'")
   sign_in_time=$(q "select sign_in_time from person where name = '$1'")
 
+  # Retry logic, while we wait for the DB to come back up
   while ! assume_role "$1"
   do
     sleep 0.1
@@ -44,7 +45,13 @@ update_snapshot_or_restore () {
   then
     update_snapshot
   else
-    qrestore data-export
+    q "delete from person"
+
+    # Retry logic in case the first restore attempt fails
+    while [[ "$(q "select count(*) from person")" = 0 ]]
+    do
+      qrestore data-export
+    done
   fi
 }
 

@@ -167,6 +167,10 @@ rand_image () {
       png:- | base64 -w 0
 }
 
+rand_sound () {
+  ./rand-sound.sh 3 | base64 -w 0
+}
+
 assume_role () {
   local username_or_email=$1
   local email
@@ -307,6 +311,48 @@ wait_for_creation_by_uuid () {
   while (( elapsed < 5 ))
   do
     if assert_photos_downloadable_by_uuid "$@"
+    then
+      return 0
+    fi
+
+    sleep 1
+
+    (( elapsed += 1 )) || true
+  done
+
+  return 1
+}
+
+assert_audios_downloadable_by_uuid () {
+  local uuid=$1
+
+  c GET "http://localhost:9090/s3-mock-audio-bucket/${uuid}.aac" > /dev/null || return 1
+}
+
+wait_for_audio_deletion_by_uuid () {
+  local elapsed=0
+
+  while (( elapsed < 5 ))
+  do
+    if ! assert_audios_downloadable_by_uuid "$@"
+    then
+      return 0
+    fi
+
+    sleep 1
+
+    (( elapsed += 1 )) || true
+  done
+
+  return 1
+}
+
+wait_for_audio_creation_by_uuid () {
+  local elapsed=0
+
+  while (( elapsed < 5 ))
+  do
+    if assert_audios_downloadable_by_uuid "$@"
     then
       return 0
     fi

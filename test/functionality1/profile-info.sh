@@ -16,6 +16,7 @@ q "delete from undeleted_photo"
 q "update question set count_yes = 0, count_no = 0"
 
 img1=$(rand_image)
+snd1=$(rand_sound)
 
 ../util/create-user.sh user1 0 0
 ../util/create-user.sh user2 0 0
@@ -110,9 +111,6 @@ test_club () {
 }
 
 test_photo () {
-  local field_name=$1
-  local field_value=$2
-
   jc PATCH /profile-info \
     -d "{
             \"base64_file\": {
@@ -130,6 +128,19 @@ test_photo () {
   jc DELETE /profile-info -d '{ "files": [1] }'
 
   [[ "$(q "select COUNT(*) from photo")" -eq 0 ]]
+}
+
+test_audio () {
+  jc PATCH /profile-info \
+    -d "{ \"base64_audio_file\": { \"base64\": \"${snd1}\" } }"
+
+  wait_for_audio_creation_by_uuid "$(q "select uuid from audio limit 1")"
+
+  [[ "$(q "select COUNT(*) from audio")" -eq 1 ]]
+
+  jc DELETE /profile-info -d '{ "audio_files": [-1] }'
+
+  [[ "$(q "select COUNT(*) from audio")" -eq 0 ]]
 }
 
 test_theme () {
@@ -279,6 +290,8 @@ test_set hide_me_from_strangers Yes
 test_club
 
 test_photo
+
+test_audio
 
 test_theme
 

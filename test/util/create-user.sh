@@ -45,6 +45,13 @@ EOF
   done
 }
 
+add_audio () {
+  local snd=$(rand_sound)
+
+  jc PATCH /profile-info \
+    -d "{ \"base64_audio_file\": { \"base64\": \"${snd}\" } }"
+}
+
 add_photos () {
   for i in $(seq 1 $1)
   do
@@ -66,6 +73,7 @@ main () {
   local username_or_email=$1
   local num_questions=${2:-100}
   local num_photos=${3:-0}
+  local do_add_audio=${4:-false}
 
   if [[ "$username_or_email" == *@* ]]; then
     # Input is an email
@@ -95,6 +103,11 @@ main () {
   c POST /finish-onboarding
 
   answer_questions "$num_questions"
+
+  if [[ "${do_add_audio}" = true ]]
+  then
+    add_audio
+  fi
 
   echo "Created $username_or_email"
 }
