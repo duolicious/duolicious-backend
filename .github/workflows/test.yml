@@ -44,6 +44,7 @@ jobs:
           DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
 
           DUO_CRON_PHOTO_CLEANER_DRY_RUN: 'true'
+          DUO_CRON_AUDIO_CLEANER_DRY_RUN: 'true'
 
   functionality-tests-3:
     runs-on: ubuntu-latest

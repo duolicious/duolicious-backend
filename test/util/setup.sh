@@ -323,11 +323,6 @@ wait_for_creation_by_uuid () {
   return 1
 }
 
-
-
-
-
-
 assert_audios_downloadable_by_uuid () {
   local uuid=$1
 

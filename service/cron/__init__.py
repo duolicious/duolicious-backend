@@ -4,6 +4,7 @@ from service.cron.garbagerecords import delete_garbage_records_forever
 from service.cron.notifications import send_notifications_forever
 from service.cron.nsfwphotorunner import predict_nsfw_photos_forever
 from service.cron.photocleaner import clean_photos_forever
+from service.cron.audiocleaner import clean_audio_forever
 from service.cron.verificationjobrunner import verify_forever
 import asyncio
 from http.server import SimpleHTTPRequestHandler
@@ -36,6 +37,8 @@ async def main():
 
         # Fetched: 0.1k, returned: 100k
         clean_photos_forever(),
+
+        clean_audio_forever(),
 
         predict_nsfw_photos_forever(),
 

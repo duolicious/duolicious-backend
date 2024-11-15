@@ -1423,6 +1423,13 @@ WITH deleted_photo AS (
         photo
     WHERE
         person_id = %(person_id)s
+), deleted_audio AS (
+    SELECT
+        uuid
+    FROM
+        audio
+    WHERE
+        person_id = %(person_id)s
 ), deleted_verification_photo AS (
     SELECT
         photo_uuid AS uuid
@@ -1434,6 +1441,8 @@ WITH deleted_photo AS (
     SELECT uuid FROM deleted_photo
     UNION
     SELECT uuid FROM deleted_verification_photo
+), every_deleted_audio_uuid AS (
+    SELECT uuid FROM deleted_audio
 ), deleted_person_club AS (
     SELECT
         club_name
@@ -1456,6 +1465,14 @@ WITH deleted_photo AS (
         uuid
     FROM
         every_deleted_photo_uuid
+), undeleted_audio_insertion AS (
+    INSERT INTO undeleted_audio (
+        uuid
+    )
+    SELECT
+        uuid
+    FROM
+        every_deleted_audio_uuid
 ), club_update AS (
     UPDATE
         club
