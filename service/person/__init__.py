@@ -28,8 +28,6 @@ import numpy
 import erlastic
 from datetime import datetime, timezone
 
-# TODO: cron job to delete audio files
-
 
 @dataclass
 class EmailEntry:
