@@ -127,8 +127,16 @@ const AudioBio = ({
         await recording.current.stopAndUnloadAsync();
       }
 
+      const recordingOptions: Audio.RecordingOptions = {
+        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        web: {
+          ...Audio.RecordingOptionsPresets.HIGH_QUALITY.web,
+          mimeType: undefined,
+        }
+      };
+
       recording.current = (await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        recordingOptions,
         onRecordingStatusUpdate,
       )).recording;
 
