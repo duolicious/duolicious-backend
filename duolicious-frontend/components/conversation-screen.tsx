@@ -536,6 +536,15 @@ const ConversationScreen = ({navigation, route}) => {
   }, []);
 
   useEffect(() => {
+    // If the user navigates to the conversation screen via a deep link, but the
+    // conversation screen was already open on a conversation with a different
+    // person, then the screen should be cleared.
+    setMessageFetchTimeout(false);
+    setMessages(null);
+    setLastMessageStatus(null);
+  }, [personUuid, personId]);
+
+  useEffect(() => {
     if (isActive && isOnline) {
       fetchFirstPage(personUuid, personId)
     }
