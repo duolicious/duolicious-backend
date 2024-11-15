@@ -57,8 +57,6 @@ const AudioBio = ({
 
   const sound = useRef<Audio.Sound>();
 
-  const [permissionResponse, requestPermission] = Audio.usePermissions();
-
   const [duration, setDuration] = useState<null | number>(); // seconds
 
   const [deleting, setDeleting] = useState(false);
@@ -104,8 +102,8 @@ const AudioBio = ({
 
   const startRecording = async () => {
     try {
-      if (permissionResponse?.status !== 'granted') {
-        await requestPermission();
+      if ((await Audio.getPermissionsAsync())?.status !== 'granted') {
+        await Audio.requestPermissionsAsync();
       }
 
       await Audio.setAudioModeAsync({
