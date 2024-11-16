@@ -8,14 +8,13 @@ def transcode_and_trim_audio(input_audio: io.BytesIO, duration: int) -> io.Bytes
     # FFmpeg command to transcode audio with settings optimized for voice data
     ffmpeg_cmd = [
         'ffmpeg',
-        '-i', 'pipe:0',              # Read from stdin
-        '-t', str(duration),         # Set duration
+        '-i',   'pipe:0',            # Read from stdin
+        '-t',   str(duration),       # Set duration
         '-c:a', 'aac',               # Use AAC codec
-        '-b:a', '32k',               # Lower bitrate for voice
-        '-ar', '16000',              # Set sample rate to 16 kHz
-        '-ac', '1',                  # Set audio to mono
-        '-af', 'highpass=f=100',     # Apply high-pass filter
-        '-f', 'adts',                # Set format to AAC
+        '-b:a', '128k',              # Bitrate
+        '-ar',  '44100',             # Sample rate
+        '-ac',  '1',                 # Set audio to mono
+        '-f',   'adts',              # Set format to AAC
         'pipe:1'                     # Output to stdout
     ]
 
