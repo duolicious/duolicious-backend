@@ -35,7 +35,7 @@
     "expo-notifications": "~0.29.8",
     "expo-screen-orientation": "~8.0.0",
     "expo-secure-store": "~14.0.0",
-    "expo-splash-screen": "~0.29.10",
+    "expo-splash-screen": "~0.29.11",
     "expo-status-bar": "~2.0.0",
     "expo-store-review": "~8.0.0",
     "lodash": "^4.17.21",
