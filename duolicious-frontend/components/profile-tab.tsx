@@ -132,7 +132,9 @@ const Images_ = ({data}) => {
               left: cropperOutput.left,
             },
           },
-          2 * 60 * 1000 // 2 minutes
+          2 * 60 * 1000, // 2 minutes
+          undefined,
+          true,
         )).ok,
         delete: async (filename) => (await japi(
           'delete',

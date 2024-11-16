@@ -5,6 +5,8 @@ import { RenderedHoc } from './rendered-hoc';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DefaultText } from './default-text';
 
+const SOMETHING_WENT_WRONG = "Something went wrong";
+
 const Toast: React.FC = () => {
   const initialPosition = -500;
   const insets = useSafeAreaInsets();
@@ -38,7 +40,7 @@ const Toast: React.FC = () => {
 
     const holdPosition = Animated.timing(animation, {
       toValue: 0,
-      duration: 2000,
+      duration: 4000,
       useNativeDriver: true,
     });
 
@@ -87,6 +89,7 @@ const ToastContainer = ({children}) => {
     <View
       style={{
         marginTop: 70,
+        marginHorizontal: 10,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'white',
@@ -116,16 +119,35 @@ const SomethingWentWrongToast = () => {
         style={{
           color: 'black',
           fontWeight: '700',
+          textAlign: 'center',
         }}
       >
-        Something went wrong
+        {SOMETHING_WENT_WRONG}
+      </DefaultText>
+    </ToastContainer>
+  );
+};
+
+const ValidationErrorToast = ({error}: {error: string}) => {
+  return (
+    <ToastContainer>
+      <DefaultText
+        style={{
+          color: 'red',
+          fontWeight: '700',
+          textAlign: 'center',
+        }}
+      >
+        {error}
       </DefaultText>
     </ToastContainer>
   );
 };
 
 export {
+  SOMETHING_WENT_WRONG,
+  SomethingWentWrongToast,
   Toast,
   ToastContainer,
-  SomethingWentWrongToast,
+  ValidationErrorToast,
 };

@@ -1893,7 +1893,9 @@ const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
               left: cropperOutput.left,
             },
           },
-          2 * 60 * 1000 // 2 minutes
+          2 * 60 * 1000, // 2 minutes
+          undefined,
+          true,
         )).ok,
         submitAll: async () => api('post', '/verify', undefined, undefined, 0),
         delete: async () => true,

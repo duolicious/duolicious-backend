@@ -9,6 +9,8 @@ import { sessionToken } from '../kv-storage/session-token';
 import { Buffer } from "buffer";
 import { NonNullImageCropperOutput } from '../components/image-cropper';
 import { delay } from '../util/util';
+import { notify } from '../events/events';
+import { ValidationErrorToast, SOMETHING_WENT_WRONG } from '../components/toast';
 
 const SUPPORTED_API_VERSIONS = [5, 500_000];
 
@@ -19,12 +21,23 @@ type ApiResponse = {
   status: number
 };
 
+const parseErrors = (errors: any) => {
+  try {
+    return errors.map(
+      (e) => (e?.msg ?? SOMETHING_WENT_WRONG).split(",").slice(1).join(",")
+    );
+  } catch {
+    return [SOMETHING_WENT_WRONG];
+  }
+};
+
 const api = async (
   method: string,
   endpoint: string,
   init?: RequestInit,
   timeout?: number,
   maxRetries?: number,
+  showValidationToast?: boolean,
 ): Promise<ApiResponse> => {
   let response, json;
   let numRetries = 0;
@@ -80,9 +93,19 @@ const api = async (
 
   try { json = await response.json(); } catch {}
 
+  const clientError = response && response.status >= 400 && response.status < 500;
+
+  if (clientError && showValidationToast) {
+    const parsedErrors = parseErrors(json);
+
+    for (const error of parsedErrors) {
+      notify<React.FC>('toast', () => <ValidationErrorToast error={error} />);
+    }
+  }
+
   return {
     ok: response?.ok ?? false,
-    clientError: response && response.status >= 400 && response.status < 500,
+    clientError: clientError,
     json: json,
     status: response?.status ?? 0
   }
@@ -95,6 +118,7 @@ const japi = async (
   body?: any,
   timeout?: number,
   maxRetries?: number,
+  showValidationToast?: boolean,
 ): Promise<ApiResponse> => {
   const init = body === undefined ? {} : {
     headers: {
@@ -104,7 +128,14 @@ const japi = async (
     body: JSON.stringify(body)
   }
 
-  return await api(method, endpoint, init, timeout, maxRetries);
+  return await api(
+    method,
+    endpoint,
+    init,
+    timeout,
+    maxRetries,
+    showValidationToast
+  );
 };
 
 const uriToBase64 = async (uri: string): Promise<string> => {
