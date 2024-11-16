@@ -35,16 +35,26 @@ MAX_GIF_DIM = 800
 MIN_GIF_DIM = 10
 
 
+def human_readable_size_metric(size_bytes):
+    # Define suffixes for metric prefixes
+    suffixes = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB']
+    i = 0
+    while size_bytes >= 1000 and i < len(suffixes) - 1:
+        size_bytes /= 1000.0
+        i += 1
+    return f"{size_bytes:.1f} {suffixes[i]}"
+
+
 def validate_gif_dimensions(larger_dim: int, smaller_dim: int):
     if larger_dim > MAX_GIF_DIM:
         raise ValueError(
-                f'image is greater than '
+                f'Image must be less than '
                 f'{MAX_GIF_DIM}x{MAX_GIF_DIM} '
                 'pixels')
 
     if smaller_dim < MIN_GIF_DIM:
         raise ValueError(
-                f'image is less than '
+                f'Image must be greater than '
                 f'{MIN_GIF_DIM}x{MIN_GIF_DIM} '
                 'pixels')
 
@@ -52,13 +62,13 @@ def validate_gif_dimensions(larger_dim: int, smaller_dim: int):
 def validate_image_dimensions(larger_dim: int, smaller_dim: int):
     if larger_dim > MAX_IMAGE_DIM:
         raise ValueError(
-                f'image is greater than '
+                f'Image must be less than '
                 f'{MAX_IMAGE_DIM}x{MAX_IMAGE_DIM} '
                 'pixels')
 
     if smaller_dim < MIN_IMAGE_DIM:
         raise ValueError(
-                f'image is less than '
+                f'Image must be greater than '
                 f'{MIN_IMAGE_DIM}x{MIN_IMAGE_DIM} '
                 'pixels')
 
@@ -92,7 +102,8 @@ class Base64AudioFile(BaseModel):
 
         if len(decoded_bytes) > constants.MAX_AUDIO_BYTES:
             raise ValueError(
-                f'Decoded file exceeds {constants.MAX_AUDIO_BYTES} bytes')
+                f'Decoded file must be smaller than '
+                f'{human_readable_size_metric(constants.MAX_AUDIO_BYTES)}')
 
         try:
             transcoded = duoaudio.transcode_and_trim_audio(
@@ -130,9 +141,10 @@ class Base64File(BaseModel):
         except base64.binascii.Error as e:
             raise ValueError(f'Field base64 must be a valid base64 string')
 
-        if len(decoded_bytes) > constants.MAX_IMAGE_SIZE:
+        if len(decoded_bytes) > constants.MAX_IMAGE_BYTES:
             raise ValueError(
-                f'Decoded file exceeds {constants.MAX_IMAGE_SIZE} bytes')
+                f'File must be smaller than '
+                f'{human_readable_size_metric(constants.MAX_IMAGE_BYTES)}')
 
         try:
             image = Image.open(io.BytesIO(decoded_bytes))
@@ -142,7 +154,7 @@ class Base64File(BaseModel):
         try:
             image.load()
         except:
-            raise ValueError(f'Image is not valid')
+            raise ValueError(f'Image invalid')
 
         width, height = image.size
 
@@ -234,7 +246,7 @@ class PatchOnboardeeInfo(BaseModel):
         today = date.today()
         age = relativedelta(today, date_of_birth_date).years
         if age < 18:
-            raise ValueError(f'Age must be 18 or up.')
+            raise ValueError(f'Age must be 18 or up')
         return date_of_birth
 
     @field_validator('about', mode='before')

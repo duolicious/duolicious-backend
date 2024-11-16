@@ -11,6 +11,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import ipaddress
 import traceback
 from antispam import normalize_email
+from pydantic import ValidationError
 
 disable_ip_rate_limit_file = (
     Path(__file__).parent.parent.parent /
@@ -151,9 +152,17 @@ def validate(RequestType):
                     req = RequestType(**{**j, **f})
                 else:
                     req = RequestType(j, **f)
+            except ValidationError as e:
+                json_err = e.json(
+                    include_url=False,
+                    include_context=False,
+                    include_input=False
+                )
+
+                return json_err, 400
             except Exception as e:
                 print(traceback.format_exc())
-                return str(e), 400
+                return str(e), 500
             return func(req, *args, **kwargs)
         go1.__name__ = func.__name__
         return go1
