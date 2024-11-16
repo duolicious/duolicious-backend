@@ -997,9 +997,9 @@ const AudioPlayer = ({
 
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const [secondsRemaining, setSecondsRemaining] = useState(0);
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
 
-  const [minutes, seconds] = secToMinSec(secondsRemaining);
+  const [minutes, seconds] = secToMinSec(secondsElapsed);
 
   const playIcon = isPlaying ? 'pause-circle' : 'play-circle';
 
@@ -1047,12 +1047,7 @@ const AudioPlayer = ({
         return;
       }
 
-      if (status.durationMillis) {
-        const remainingMillis = status.durationMillis - status.positionMillis;
-        setSecondsRemaining(Math.floor(remainingMillis / 1000));
-      } else {
-        setSecondsRemaining(0);
-      }
+      setSecondsElapsed(Math.floor(status.positionMillis / 1000));
 
       if (status.didJustFinish) {
         setIsPlaying(false);
@@ -1072,6 +1067,7 @@ const AudioPlayer = ({
         { uri: `${AUDIO_URL}/${uuid}.aac` },
         {},
         onPlaybackStatusUpdate,
+        false,
       )).sound;
 
       await play();
@@ -1115,7 +1111,7 @@ const AudioPlayer = ({
 
 
       <DefaultText style={{ flex: 1, textAlign: 'right', paddingRight: 5 }}>
-        -{minutes}:{seconds}
+        {minutes}:{seconds}
       </DefaultText>
     </View>
   );
