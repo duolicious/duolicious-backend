@@ -52,19 +52,31 @@ npx playwright test --update-snapshots playwright-tests/example.spec.ts
 
 ## Building the Android APK
 
-Add these to `~/.gradle/gradle.properties`:
+Add this to `.credentials.json`:
 
 ```
-DUOLICIOUS_UPLOAD_STORE_FILE=duolicious.keystore
-DUOLICIOUS_UPLOAD_KEY_ALIAS=duolicious
-DUOLICIOUS_UPLOAD_STORE_PASSWORD=*****
-DUOLICIOUS_UPLOAD_KEY_PASSWORD=*****
+{
+  "android": {
+    "keystore": {
+      "keystorePath": "/path/to/duolicious.keystore",
+      "keystorePassword": "REPLACE-WITH-KEYSTORE-PASSWORD",
+      "keyAlias": "duolicious",
+      "keyPassword": "REPLACE-WITH-KEY-PASSWORD"
+    }
+  }
+}
 ```
 
-Then:
+Then to build a production release:
 
 ```bash
 ./build-apk.sh
+```
+
+Or to build an APK for local development:
+
+```bash
+./build-apk.sh --profile preview
 ```
 
 If you want to install the APK:
@@ -81,18 +93,12 @@ Run:
 ./build-ipa.sh
 ```
 
-To generate an ad-hoc ipa file you can replace the last line of the script with:
+To generate an ad-hoc ipa file you can run this:
 
 ```bash
-EAS_LOCAL_BUILD_SKIP_CLEANUP=1 eas build --profile preview --platform ios --local
+./build-ipa.sh --profile preview
 ```
 
 ## Sending Duolicious to Tim Apple
 
 xcrun altool --upload-app -t ios -u "email@exmaple.com" -p "password" -f /path/to/duolicious-frontend/build-1720942386773.ipa
-
-### Making patch files
-
-```
-diff -u original modified > changes.patch
-```

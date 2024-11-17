@@ -13,15 +13,21 @@
     },
     "preview": {
       "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
       "ios": {
-        "resourceClass": "m-medium"
+        "resourceClass": "m1-medium"
       }
     },
     "production": {
       "ios": {
-        "resourceClass": "m-medium",
+        "resourceClass": "m1-medium",
         "autoIncrement": true
-      }
+      },
+      "android": {
+        "credentialsSource": "local"
+      },
     }
   },
   "submit": {

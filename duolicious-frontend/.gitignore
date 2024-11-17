@@ -9,6 +9,7 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 web-build/
+credentials.json
 
 # macOS
 .DS_Store
@@ -18,6 +19,10 @@ ios
 
 # iOS builds
 build-*.ipa
+
+# Android builds
+build-*.apk
+build-*.aab
 
 # Vim's temporary files
 *.swo

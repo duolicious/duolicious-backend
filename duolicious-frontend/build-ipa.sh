@@ -21,4 +21,4 @@ export DUO_AUDIO_URL=https://user-audio.duolicious.app
 EOF
 
 
-EAS_LOCAL_BUILD_SKIP_CLEANUP=1 eas build --platform ios --local
+EAS_LOCAL_BUILD_SKIP_CLEANUP=1 eas build --platform ios --local "$@"

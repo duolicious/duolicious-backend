@@ -6,14 +6,9 @@ import { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'Duolicious',
   slug: 'duolicious',
-  version: "24.0.0",
+  version: "25.0.0",
   orientation: "portrait",
   icon: './assets/icon.png',
-  splash: {
-    image: './assets/splash.png',
-    resizeMode: 'contain',
-    backgroundColor: '#7700ff',
-  },
   newArchEnabled: true,
   updates: {
     fallbackToCacheTimeout: 0
@@ -47,10 +42,10 @@ const config: ExpoConfig = {
   android: {
     googleServicesFile: "./google-services.json",
     package: "app.duolicious",
-    versionCode: 24000,
+    versionCode: 25000,
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
-      backgroundColor: "#ffffff"
+      backgroundColor: "#7700ff"
     },
     intentFilters: [
       {
@@ -82,6 +77,14 @@ const config: ExpoConfig = {
         "sounds": [
           "./assets/audio/notification.mp3"
         ]
+      }
+    ],
+    [
+      "expo-splash-screen",
+      {
+        backgroundColor: "#7700ff",
+        image: "./assets/splash.png",
+        imageWidth: 300,
       }
     ]
   ],
