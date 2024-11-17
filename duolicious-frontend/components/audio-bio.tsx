@@ -179,6 +179,10 @@ const AudioBio = ({
       return false;
     }
 
+    try {
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+    } catch { }
+
     await sound.current.playFromPositionAsync(0);
 
     setPlayingState('Playing');
