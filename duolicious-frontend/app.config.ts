@@ -38,6 +38,9 @@ const config: ExpoConfig = {
     supportsTablet: false,
     associatedDomains: ["applinks:get.duolicious.app"],
     appStoreUrl: "https://apps.apple.com/us/app/duolicious-dating-app/id6499066647",
+    infoPlist: {
+      NSMicrophoneUsageDescription: "This app uses the microphone to capture audio for updating and sharing on your profile."
+    },
   },
   android: {
     googleServicesFile: "./google-services.json",
