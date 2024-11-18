@@ -21,9 +21,9 @@
       }
     },
     "production": {
+      "autoIncrement": true,
       "ios": {
-        "resourceClass": "m1-medium",
-        "autoIncrement": true
+        "resourceClass": "m1-medium"
       },
       "android": {
         "credentialsSource": "local"
