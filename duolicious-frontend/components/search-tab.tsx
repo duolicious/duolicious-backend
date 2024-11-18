@@ -537,11 +537,6 @@ const SearchScreen_ = ({navigation}) => {
     refresh && refresh();
   }, [selectedClub]);
 
-  const renderItem = useCallback((x: any) => {
-    const item: PageItem = x.item;
-    return <ProfileCardMemo item={item} />
-  }, []);
-
   useEffect(() => {
     return listen(
       'updated-clubs',
@@ -608,7 +603,7 @@ const SearchScreen_ = ({navigation}) => {
             setSelectedClub={setSelectedClub}
           />
         }
-        renderItem={renderItem}
+        renderItem={({item}: any) => <ProfileCardMemo item={item} />}
         scrollIndicatorInsets={scrollIndicatorInsets}
         stickyHeaderHiddenOnScroll={hasClubs}
         stickyHeaderIndices={hasClubs ? [0] : []}

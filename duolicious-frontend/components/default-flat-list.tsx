@@ -399,6 +399,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
       onContentSizeChange={onContentSizeChange}
       keyExtractor={props.keyExtractor ?? keyExtractor}
       initialNumToRender={1}
+      windowSize={5}
       onLayout={onLayout}
     />
   );

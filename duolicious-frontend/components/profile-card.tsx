@@ -1,5 +1,7 @@
 import {
   Animated,
+  ImageBackground as RNImageBackground,
+  Platform,
   Pressable,
   View,
 } from 'react-native';
@@ -21,10 +23,53 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { listen } from '../events/events';
 import { X } from "react-native-feather";
 import { PageItem } from './search-tab';
-import { ImageBackground } from 'expo-image';
+import { ImageBackground as ExpoImageBackground } from 'expo-image';
 import { VerificationBadge } from './verification-badge';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
+
+// This component wouldn't need to exist if expo-image (and expo itself (and the
+// JS eco system generally)) wasn't buggy trash. This fixes an issue on
+// in expo on Android where the images flicker when being loaded in a flat list.
+// The React Native ImageBackground implementation doesn't have that issue, but
+// it also doesn't support blurhashes, so we need to combine them if we want to
+// have blurhashes and (the appearance of) bug-free operation
+const ImageBackground = (props) => {
+  if (Platform.OS !== 'android') {
+    return <ExpoImageBackground {...props} />;
+  }
+
+  const {
+    children,
+    placeholder,
+    source,
+    style,
+    transition,
+    contentFit,
+    ...rest
+  } = props;
+
+  return (
+    <ExpoImageBackground
+      placeholder={placeholder}
+      transition={transition}
+      style={style}
+      contentFit={contentFit}
+    >
+      <RNImageBackground
+        source={source}
+        style={{
+          width: '100%',
+          height: '100%',
+        }}
+        resizeMode={contentFit}
+        fadeDuration={transition?.duration ?? transition ?? undefined}
+      >
+        {children}
+      </RNImageBackground>
+    </ExpoImageBackground>
+  );
+};
 
 const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
   const {
@@ -49,21 +94,14 @@ const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
   return (
     <ImageBackground
       key={String(imageUuid) + ' ' + String(imageBlurhash)}
-      source={uri && {
-        uri: uri,
-        height: resolution,
-        width: resolution,
-      }}
+      source={uri && { uri: uri }}
       placeholder={imageBlurhash && { blurhash: imageBlurhash }}
       transition={transition}
-      style={[
-        {
+      style={{
           width: '100%',
           aspectRatio: 1,
           backgroundColor: imageUuid ? undefined : '#ccc',
-        },
-        rest.style,
-      ]}
+      }}
       contentFit="contain"
     >
       <LinearGradient
