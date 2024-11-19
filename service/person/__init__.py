@@ -735,10 +735,9 @@ def get_prospect_profile(s: t.SessionInfo, prospect_uuid):
     # case, we fall back to the less-accurate recording given by the API
     # database.
     profile['seconds_since_last_online'] = int(
-        chat_row.get(
-            'seconds_since_last_online',
-            profile['seconds_since_last_online']
-        )
+        chat_row.get('seconds_since_last_online')
+        or
+        profile['seconds_since_last_online']
     )
 
     profile.update(message_stats)
