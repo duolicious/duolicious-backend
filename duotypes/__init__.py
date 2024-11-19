@@ -108,13 +108,13 @@ class Base64AudioFile(BaseModel):
         try:
             transcoded = duoaudio.transcode_and_trim_audio(
                     io.BytesIO(decoded_bytes),
-                    constants.MAX_AUDIO_SECONDS)
+                    constants.MAX_AUDIO_SECONDS).getvalue()
         except:
             print(traceback.format_exc())
-            raise ValueError(f'Base64 string is valid but is not audio')
+            raise ValueError(f'Error while processing audio')
 
         values['bytes'] = decoded_bytes
-        values['transcoded'] = transcoded.getvalue()
+        values['transcoded'] = transcoded
 
         return values
 
