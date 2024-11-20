@@ -326,7 +326,13 @@ wait_for_creation_by_uuid () {
 assert_audios_downloadable_by_uuid () {
   local uuid=$1
 
-  c GET "http://localhost:9090/s3-mock-audio-bucket/${uuid}.aac" > /dev/null || return 1
+  download_length=$(
+    set -o pipefail
+    c GET "http://localhost:9090/s3-mock-audio-bucket/${uuid}.aac" | wc -c
+  )
+  rc=$?
+
+  [[ ${download_length} -ne 0 && ${rc} -eq 0 ]]
 }
 
 wait_for_audio_deletion_by_uuid () {

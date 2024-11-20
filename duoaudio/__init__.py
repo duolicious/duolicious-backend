@@ -2,6 +2,10 @@ import io
 import subprocess
 
 def transcode_and_trim_audio(input_audio: io.BytesIO, duration: int) -> io.BytesIO:
+    # Ensure input audio is not empty
+    if input_audio.getbuffer().nbytes == 0:
+        raise ValueError("Input audio buffer is empty.")
+
     # Prepare the output buffer for the transcoded and trimmed audio
     output_audio = io.BytesIO()
 
@@ -32,6 +36,10 @@ def transcode_and_trim_audio(input_audio: io.BytesIO, duration: int) -> io.Bytes
     # Check if the transcoding was successful
     if process.returncode != 0:
         raise RuntimeError(f"FFmpeg error: {stderr_data.decode()}")
+
+    # Check for empty output
+    if not stdout_data:
+        raise RuntimeError("FFmpeg produced an empty output file.")
 
     # Write the transcoded audio to the output buffer
     output_audio.write(stdout_data)
