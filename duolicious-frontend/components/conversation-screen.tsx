@@ -290,8 +290,15 @@ const ConversationScreenNavBar = ({
     setShowMenu(x => !x);
   }, []);
 
+  // There's a bug in React Native which causes `overflow: hidden` to be
+  // ignored when zIndex or elevation are set.
+  const menuWorkaround = showMenu && Platform.OS === 'android' ? {
+    elevation: undefined,
+    zIndex: undefined,
+  } : {};
+
   return (
-    <TopNavBar>
+    <TopNavBar containerStyle={menuWorkaround} >
       <TopNavBarButton
         onPress={() => navigation.goBack()}
         iconName="arrow-back"
@@ -304,6 +311,9 @@ const ConversationScreenNavBar = ({
           justifyContent: 'center',
           alignItems: 'center',
           maxWidth: 220,
+          overflow: 'visible',
+          flexDirection: 'row',
+          gap: 10,
         }}
       >
         <Image
@@ -315,9 +325,6 @@ const ConversationScreenNavBar = ({
             width: 30,
             height: 30,
             borderRadius: 9999,
-            position: 'absolute',
-            left: -40,
-            top: -3,
           }}
         />
         <DefaultText
@@ -329,17 +336,13 @@ const ConversationScreenNavBar = ({
         >
           {name ?? '...'}
         </DefaultText>
-        {!isOnline &&
-          <ActivityIndicator
-            size="small"
-            color="#70f"
-            style={{
-              position: 'absolute',
-              right: -40,
-              top: 3,
-            }}
-          />
-        }
+        <ActivityIndicator
+          size="small"
+          color="#70f"
+          style={{
+            opacity: isOnline ? 0 : 1,
+          }}
+        />
       </Pressable>
       {isAvailableUser &&
         <TopNavBarButton

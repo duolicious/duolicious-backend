@@ -25,6 +25,7 @@ const TopNavBar = (props) => {
         width: '100%',
         overflow: 'visible',
         ...(props.shadow === false ? {} : shadow),
+        ...props.containerStyle,
       }}
     >
       <StatusBarSpacer/>
