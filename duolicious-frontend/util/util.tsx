@@ -127,6 +127,11 @@ const secToMinSec = (sec: number): [string, string] => {
   return [minutes, seconds];
 };
 
+const getRandomElement = <T,>(list: T[]): T | undefined =>
+    list.length === 0 ?
+    undefined :
+    list[Math.floor(Math.random() * list.length)];
+
 export {
   compareArrays,
   delay,
@@ -139,4 +144,5 @@ export {
   possessive,
   secToMinSec,
   withTimeout,
+  getRandomElement,
 };
