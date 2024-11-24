@@ -39,7 +39,11 @@ def transcode_and_trim_audio(input_audio: io.BytesIO, duration: int) -> io.Bytes
 
     # Check for empty output
     if not stdout_data:
-        raise RuntimeError("FFmpeg produced an empty output file.")
+        raise RuntimeError(
+            "FFmpeg produced an empty output file.\n"
+            f"stdout was {stdout_data.decode()}\n"
+            f"stderr was {stderr_data.decode()}"
+        )
 
     # Write the transcoded audio to the output buffer
     output_audio.write(stdout_data)
