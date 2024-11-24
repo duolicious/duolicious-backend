@@ -111,7 +111,10 @@ class Base64AudioFile(BaseModel):
                     constants.MAX_AUDIO_SECONDS).getvalue()
         except:
             print(traceback.format_exc())
-            raise ValueError(f'Error while processing audio')
+            raise ValueError(
+                f'Error while processing audio:\n' +
+                base64
+            )
 
         values['bytes'] = decoded_bytes
         values['transcoded'] = transcoded
