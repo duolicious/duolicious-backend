@@ -113,7 +113,7 @@ class Base64AudioFile(BaseModel):
             print(traceback.format_exc())
             raise ValueError(
                 f'Error while processing audio:\n' +
-                base64
+                values['base64']
             )
 
         values['bytes'] = decoded_bytes
