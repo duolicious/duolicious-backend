@@ -2926,17 +2926,32 @@ WITH message_sent AS (
             AS num_intros_received
     FROM
         conversation
+), is_account_new AS (
+    SELECT
+        sign_up_time > now() - interval '1 day' AS value
+    FROM
+        person
+    WHERE
+        person.uuid = %(prospect_uuid)s
 )
 SELECT
     CASE
-        WHEN num_intros_sent < 1e-5
-        THEN 100
+        WHEN (SELECT value FROM is_account_new)
+        THEN NULL
+
+        WHEN num_intros_sent < 5
+        THEN NULL
+
         ELSE ROUND(num_intros_sent_with_reply / num_intros_sent * 100)
     END AS gets_reply_percentage,
 
     CASE
-        WHEN num_intros_received < 1e-5
-        THEN 100
+        WHEN (SELECT value FROM is_account_new)
+        THEN NULL
+
+        WHEN num_intros_received < 5
+        THEN NULL
+
         ELSE ROUND(num_intros_received_with_reply / num_intros_received * 100)
     END AS gives_reply_percentage
 FROM
