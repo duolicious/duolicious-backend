@@ -17,6 +17,7 @@ q "update question set count_yes = 0, count_no = 0"
 
 img1=$(rand_image)
 snd1=$(rand_sound)
+snd2=$(const_sound)
 
 ../util/create-user.sh user1 0 0
 ../util/create-user.sh user2 0 0
@@ -134,13 +135,24 @@ test_audio () {
   jc PATCH /profile-info \
     -d "{ \"base64_audio_file\": { \"base64\": \"${snd1}\" } }"
 
-  wait_for_audio_creation_by_uuid "$(q "select uuid from audio limit 1")"
+  local snd1_uuid=$(q "select uuid from audio limit 1")
+
+  wait_for_audio_creation_by_uuid "${snd1_uuid}"
 
   [[ "$(q "select COUNT(*) from audio")" -eq 1 ]]
 
   jc DELETE /profile-info -d '{ "audio_files": [-1] }'
 
   [[ "$(q "select COUNT(*) from audio")" -eq 0 ]]
+
+  wait_for_audio_deletion_by_uuid "${snd1_uuid}"
+
+  jc PATCH /profile-info \
+    -d "{ \"base64_audio_file\": { \"base64\": \"${snd2}\" } }"
+
+  local snd2_uuid=$(q "select uuid from audio limit 1")
+
+  wait_for_audio_creation_by_uuid "${snd2_uuid}"
 }
 
 test_theme () {

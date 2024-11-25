@@ -171,6 +171,10 @@ rand_sound () {
   ./rand-sound.sh 3 | base64 -w 0
 }
 
+const_sound () {
+  cat '../fixtures/audio-bio.mp4' | base64 -w 0
+}
+
 assume_role () {
   local username_or_email=$1
   local email
