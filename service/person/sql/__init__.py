@@ -1320,7 +1320,13 @@ WITH person_info AS (
 SELECT
     person_id,
     person_uuid,
-    verified,
+    CASE
+        WHEN is_prospect_activated AND NOT prospect_skipped_person
+        THEN
+            verified
+        ELSE
+            FALSE
+    END AS verified,
     CASE
         WHEN is_prospect_activated AND NOT prospect_skipped_person
         THEN
