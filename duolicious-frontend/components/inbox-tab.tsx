@@ -276,6 +276,7 @@ const InboxTab = ({navigation}) => {
         lastMessage={x.item.lastMessage}
         lastMessageTimestamp={x.item.lastMessageTimestamp}
         isAvailableUser={x.item.isAvailableUser}
+        isVerified={x.item.isVerified}
       />
     } else {
       return <ChatsItemMemo
@@ -289,6 +290,7 @@ const InboxTab = ({navigation}) => {
         lastMessage={x.item.lastMessage}
         lastMessageTimestamp={x.item.lastMessageTimestamp}
         isAvailableUser={x.item.isAvailableUser}
+        isVerified={x.item.isVerified}
       />
     }
   }, [sectionIndex, showArchive]);

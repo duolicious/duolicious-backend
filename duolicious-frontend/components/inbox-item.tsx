@@ -21,6 +21,7 @@ import { Flag, X } from "react-native-feather";
 import { listen } from '../events/events';
 import { signedInUser } from '../App';
 import { setConversationArchived } from '../xmpp/xmpp';
+import { VerificationBadge } from './verification-badge';
 
 const introVerb = (msg: string) => {
   return (
@@ -47,6 +48,7 @@ const IntrosItem = ({
   lastMessage,
   lastMessageTimestamp,
   isAvailableUser,
+  isVerified,
 }: {
   wasRead: boolean
   name: string
@@ -58,6 +60,7 @@ const IntrosItem = ({
   lastMessage: string
   lastMessageTimestamp: Date
   isAvailableUser: boolean
+  isVerified: boolean
 }) => {
   const navigation = useNavigation<any>();
 
@@ -136,18 +139,30 @@ const IntrosItem = ({
             flexGrow: 1,
           }}
         >
-          <DefaultText
+          <View
             style={{
-              fontSize: 16,
-              fontWeight: '700',
-              paddingBottom: 5,
-              overflow: 'hidden',
-              flexWrap: 'wrap',
+              flexDirection: 'row',
               flexShrink: 1,
+              gap: 5,
+              alignItems: 'center',
+              paddingBottom: 5,
             }}
           >
-            {name}
-          </DefaultText>
+            <DefaultText
+              style={{
+                fontSize: 16,
+                fontWeight: '700',
+                overflow: 'hidden',
+                flexWrap: 'wrap',
+                flexShrink: 1,
+              }}
+            >
+              {name}
+            </DefaultText>
+            {isVerified &&
+              <VerificationBadge size={18} />
+            }
+          </View>
           <DefaultText
             numberOfLines={1}
             style={{
@@ -174,6 +189,7 @@ const ChatsItem = ({
   lastMessage,
   lastMessageTimestamp,
   isAvailableUser,
+  isVerified,
 }: {
   wasRead: boolean
   name: string
@@ -185,6 +201,7 @@ const ChatsItem = ({
   lastMessage: string
   lastMessageTimestamp: Date
   isAvailableUser: boolean
+  isVerified: boolean
 }) => {
   const navigation = useNavigation<any>();
 
@@ -264,20 +281,33 @@ const ChatsItem = ({
             style={{
               flexDirection: 'row',
               justifyContent: 'space-between',
+              gap: 5,
             }}
           >
-            <DefaultText
+            <View
               style={{
-                fontSize: 16,
-                fontWeight: '700',
-                paddingBottom: 5,
-                overflow: 'hidden',
-                flexWrap: 'wrap',
+                flexDirection: 'row',
                 flexShrink: 1,
+                gap: 5,
+                alignItems: 'center',
+                paddingBottom: 5,
               }}
             >
-              {name}
-            </DefaultText>
+              <DefaultText
+                style={{
+                  fontSize: 16,
+                  fontWeight: '700',
+                  overflow: 'hidden',
+                  flexWrap: 'wrap',
+                  flexShrink: 1,
+                }}
+              >
+                {name}
+              </DefaultText>
+              {isVerified &&
+                <VerificationBadge size={18} />
+              }
+            </View>
             <DefaultText
               style={{
                 color: 'grey',

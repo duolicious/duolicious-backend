@@ -118,6 +118,7 @@ type Conversation = {
   lastMessageRead: boolean
   lastMessageTimestamp: Date
   isAvailableUser: boolean
+  isVerified: boolean
   location: 'chats' | 'intros' | 'archive' | 'nowhere'
 };
 
@@ -270,6 +271,7 @@ const populateConversationList = async (
     c.matchPercentage = personInfo?.match_percentage ?? 0;
     c.imageUuid = personInfo?.image_uuid ?? null;
     c.isAvailableUser = !!personInfo?.name;
+    c.isVerified = !!personInfo?.verified;
     c.location = personInfo?.conversation_location ?? 'archive';
     c.personId = personInfo?.person_id ?? c.personId ?? 0;
     c.personUuid = personInfo?.person_uuid ?? c.personUuid ?? '';
