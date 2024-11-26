@@ -1243,6 +1243,7 @@ WITH person_info AS (
         COALESCE(prospect.activated, FALSE) AS is_prospect_activated,
         prospect.name AS name,
         prospect.personality AS personality,
+        prospect.verification_level_id > 1 AS verified,
         EXISTS (
             SELECT
                 1
@@ -1319,6 +1320,7 @@ WITH person_info AS (
 SELECT
     person_id,
     person_uuid,
+    verified,
     CASE
         WHEN is_prospect_activated AND NOT prospect_skipped_person
         THEN
