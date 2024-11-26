@@ -1179,7 +1179,7 @@ const Body = ({
 
   const statsTheme = {
     textStyle: {
-      color: data?.theme?.title_color,
+      color: data?.theme?.body_color,
     },
   };
 
@@ -1387,7 +1387,7 @@ const Body = ({
             {data?.seconds_since_last_online !== null &&
               <Stat {...statsTheme}>
                 <DefaultText
-                  style={{ fontWeight: '700', color: data?.theme?.body_color }}
+                  style={{ fontWeight: '700' }}
                 >
                   Last Online: {}
                 </DefaultText>
@@ -1403,7 +1403,7 @@ const Body = ({
             {data?.count_answers !== null &&
               <Stat {...statsTheme}>
                 <DefaultText
-                  style={{ fontWeight: '700', color: data?.theme?.body_color }}
+                  style={{ fontWeight: '700' }}
                 >
                   Q&A Answers: {}
                 </DefaultText>
@@ -1413,7 +1413,7 @@ const Body = ({
             {data && !_.isNil(data.gives_reply_percentage) &&
               <Stat {...statsTheme}>
                 <DefaultText
-                  style={{ fontWeight: '700', color: data?.theme?.body_color }}
+                  style={{ fontWeight: '700' }}
                 >
                   Gives Replies To: {}
                 </DefaultText>
@@ -1423,7 +1423,7 @@ const Body = ({
             {data && !_.isNil(data.gets_reply_percentage) &&
               <Stat {...statsTheme}>
                 <DefaultText
-                  style={{ fontWeight: '700', color: data?.theme?.body_color }}
+                  style={{ fontWeight: '700' }}
                 >
                   Gets Replies To: {}
                 </DefaultText>
@@ -1433,7 +1433,7 @@ const Body = ({
             {data?.seconds_since_sign_up !== null &&
               <Stat {...statsTheme}>
                 <DefaultText
-                  style={{ fontWeight: '700', color: data?.theme?.body_color }}
+                  style={{ fontWeight: '700' }}
                 >
                   Account Age: {}
                 </DefaultText>
