@@ -57,7 +57,8 @@ expected=$(cat <<EOF
     "match_percentage": 50,
     "name": "user1",
     "person_id": ${user1_id},
-    "person_uuid": "${user1_uuid}"
+    "person_uuid": "${user1_uuid}",
+    "verified": false
   },
   {
     "conversation_location": "archive",
@@ -66,7 +67,8 @@ expected=$(cat <<EOF
     "match_percentage": null,
     "name": null,
     "person_id": ${user4_id},
-    "person_uuid": "${user4_uuid}"
+    "person_uuid": "${user4_uuid}",
+    "verified": false
   }
 ]
 EOF
@@ -91,7 +93,8 @@ expected=$(cat <<EOF
     "match_percentage": 50,
     "name": "user1",
     "person_id": ${user1_id},
-    "person_uuid": "${user1_uuid}"
+    "person_uuid": "${user1_uuid}",
+    "verified": false
   },
   {
     "conversation_location": "archive",
@@ -100,7 +103,8 @@ expected=$(cat <<EOF
     "match_percentage": null,
     "name": null,
     "person_id": ${user4_id},
-    "person_uuid": "${user4_uuid}"
+    "person_uuid": "${user4_uuid}",
+    "verified": false
   }
 ]
 EOF
@@ -124,7 +128,8 @@ expected=$(cat <<EOF
     "match_percentage": 50,
     "name": "user1",
     "person_id": ${user1_id},
-    "person_uuid": "${user1_uuid}"
+    "person_uuid": "${user1_uuid}",
+    "verified": false
   },
   {
     "conversation_location": "archive",
@@ -133,7 +138,8 @@ expected=$(cat <<EOF
     "match_percentage": null,
     "name": null,
     "person_id": ${user4_id},
-    "person_uuid": "${user4_uuid}"
+    "person_uuid": "${user4_uuid}",
+    "verified": false
   }
 ]
 EOF
@@ -159,7 +165,8 @@ expected=$(cat <<EOF
     "match_percentage": 50,
     "name": "user4",
     "person_id": ${user4_id},
-    "person_uuid": "${user4_uuid}"
+    "person_uuid": "${user4_uuid}",
+    "verified": false
   }
 ]
 EOF
@@ -181,7 +188,8 @@ expected=$(cat <<EOF
     "match_percentage": 50,
     "name": "user2",
     "person_id": ${user2_id},
-    "person_uuid": "${user2_uuid}"
+    "person_uuid": "${user2_uuid}",
+    "verified": false
   }
 ]
 EOF
@@ -209,7 +217,8 @@ expected=$(cat <<EOF
     "match_percentage": 50,
     "name": "user4",
     "person_id": ${user4_id},
-    "person_uuid": "${user4_uuid}"
+    "person_uuid": "${user4_uuid}",
+    "verified": false
   }
 ]
 EOF
@@ -232,7 +241,8 @@ expected=$(cat <<EOF
     "match_percentage": 50,
     "name": "user2",
     "person_id": ${user2_id},
-    "person_uuid": "${user2_uuid}"
+    "person_uuid": "${user2_uuid}",
+    "verified": false
   }
 ]
 EOF
@@ -259,7 +269,8 @@ expected=$(cat <<EOF
     "match_percentage": null,
     "name": null,
     "person_id": ${user4_id},
-    "person_uuid": "${user4_uuid}"
+    "person_uuid": "${user4_uuid}",
+    "verified": false
   }
 ]
 EOF
@@ -282,7 +293,8 @@ expected=$(cat <<EOF
     "match_percentage": 50,
     "name": "user2",
     "person_id": ${user2_id},
-    "person_uuid": "${user2_uuid}"
+    "person_uuid": "${user2_uuid}",
+    "verified": false
   }
 ]
 EOF
