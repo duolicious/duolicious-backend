@@ -1,5 +1,4 @@
 from database.asyncdatabase import api_tx, chat_tx, check_connections_forever
-from lxml import etree
 import asyncio
 import base64
 import duohash
@@ -12,7 +11,7 @@ import notify
 from sql import *
 from async_lru_cache import AsyncLruCache
 import random
-from typing import Any
+from typing import Any, Optional
 from datetime import datetime
 from service.chat.username import Username
 from service.chat.updatelast import update_last_forever
@@ -20,8 +19,15 @@ from service.chat.upsertlastnotification import upsert_last_notification
 from service.chat.mayberegister import maybe_register
 from service.chat.insertintrohash import insert_intro_hash
 from service.chat.setmessaged import set_messaged
+from service.chat.xmlparse import parse_xml_or_none
+from service.chat.inbox import (
+    maybe_get_inbox,
+    maybe_mark_displayed,
+    upsert_conversation,
+)
 from duohash import sha512
 from offensive import is_offensive
+from lxml import etree
 
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
@@ -176,16 +182,6 @@ async def send_notification(
 
     upsert_last_notification(username=to_username, is_intro=is_intro)
 
-def parse_xml(s):
-    parser = etree.XMLParser(resolve_entities=False, no_network=True)
-    return etree.fromstring(s, parser=parser)
-
-def parse_xml_or_none(s):
-    try:
-        return parse_xml(s)
-    except:
-        return None
-
 def get_message_attrs(parsed_xml):
     try:
         if parsed_xml.tag != '{jabber:client}message':
@@ -203,6 +199,7 @@ def get_message_attrs(parsed_xml):
 
         _id = parsed_xml.attrib.get('id')
         assert _id is not None
+        assert len(_id) <= 250
 
         to = parsed_xml.attrib.get('to')
         assert to is not None
@@ -224,8 +221,10 @@ def normalize_message(message_str):
 
     return message_str
 
+def is_xml_too_long(xml_str):
+    return len(xml_str) > MAX_MESSAGE_LEN + 1000
+
 def is_message_too_long(message_str):
-    # TODO: Enforce this limit on XMPP server
     return len(message_str) > MAX_MESSAGE_LEN
 
 def is_ping(parsed_xml):
@@ -324,7 +323,14 @@ async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
 
     return row if row else None
 
-async def process_duo_message(xml_str, parsed_xml, username: str | None):
+async def process_duo_message(
+    xml_str: str,
+    parsed_xml: etree._Element,
+    username: Optional[str],
+):
+    if is_xml_too_long(xml_str):
+        return [], []
+
     if is_ping(parsed_xml):
         return [
             '<duo_pong preferred_interval="10000" preferred_timeout="5000" />',
@@ -335,6 +341,13 @@ async def process_duo_message(xml_str, parsed_xml, username: str | None):
 
     if not username:
         return [], [xml_str]
+
+    maybe_inbox = await maybe_get_inbox(parsed_xml, username)
+    if maybe_inbox:
+        return maybe_inbox, []
+
+    if maybe_mark_displayed(parsed_xml, username):
+        return [], []
 
     is_message, id, to_jid, maybe_message_body = get_message_attrs(parsed_xml)
 
@@ -396,20 +409,14 @@ async def process_duo_message(xml_str, parsed_xml, username: str | None):
 
     set_messaged(from_id=from_id, to_id=to_id)
 
-    return  (
-        [f'<duo_message_delivered id="{id}"/>'],
-        [
-            xml_str,
-            f"<iq id='{duohash.duo_uuid()}' type='set'>"
-            f"  <query"
-            f"    xmlns='erlang-solutions.com:xmpp:inbox:0#conversation'"
-            f"    jid='{to_jid}'"
-            f"  >"
-            f"    <box>chats</box>"
-            f"  </query>"
-            f"</iq>"
-        ]
-    )
+    upsert_conversation(
+        from_username=from_username,
+        to_username=to_username,
+        msg_id=id,
+        content=xml_str)
+
+    return [f'<duo_message_delivered id="{id}"/>'], [xml_str]
+
 
 async def process(src, dst, username):
     # asyncio.create_task requires some manual memory management!
