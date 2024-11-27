@@ -20,6 +20,7 @@ from service.chat.upsertlastnotification import upsert_last_notification
 from service.chat.mayberegister import maybe_register
 from service.chat.insertintrohash import insert_intro_hash
 from service.chat.setmessaged import set_messaged
+from duohash import sha512
 
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
@@ -34,6 +35,15 @@ PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 #  public.intro_hash
 #  public.duo_last_notification
 #  public.duo_push_token
+
+Q_CHECK_AUTH = """
+SELECT
+    1
+FROM
+    duo_session
+WHERE
+    session_token_hash = %(session_token_hash)s
+"""
 
 Q_SELECT_INTRO_HASH = """
 SELECT
@@ -223,7 +233,7 @@ def is_ping(parsed_xml):
     except:
         return False
 
-def process_auth(parsed_xml, username):
+async def process_auth(parsed_xml, username):
     if username.username is not None:
         return False
 
@@ -236,9 +246,14 @@ def process_auth(parsed_xml, username):
         decodedBytes = base64.b64decode(base64encoded)
         decodedString = decodedBytes.decode('utf-8')
 
-        auth_parts = decodedString.split('\0')
+        _, auth_username, auth_token = decodedString.split('\0')
 
-        auth_username = auth_parts[1]
+        auth_token_hash = sha512(auth_token)
+
+        params = dict(session_token_hash=auth_token_hash)
+        async with api_tx('read committed') as tx:
+            await tx.execute(Q_CHECK_AUTH, params)
+            assert await tx.fetchone()
 
         username.username = auth_username
 
@@ -316,6 +331,9 @@ async def process_duo_message(xml_str, parsed_xml, username: str | None):
 
     if maybe_register(parsed_xml, username):
         return ['<duo_registration_successful />'], []
+
+    if not username:
+        return [], [xml_str]
 
     is_message, id, to_jid, maybe_message_body = get_message_attrs(parsed_xml)
 
@@ -395,7 +413,7 @@ async def process(src, dst, username):
         async for message in src:
             parsed_xml = parse_xml_or_none(message)
 
-            if process_auth(parsed_xml, username):
+            if await process_auth(parsed_xml, username):
                 update_last_task = asyncio.create_task(
                         update_last_forever(username))
 
