@@ -33,4 +33,8 @@ CREATE INDEX IF NOT EXISTS duo_idx__mam_message__remote_bare_jid__id
 ON mam_message(remote_bare_jid, id)
 WHERE direction = 'I';
 
+CREATE INDEX IF NOT EXISTS duo__idx__inbox__remote_bare_jid
+ON inbox
+USING BTREE(lserver, luser, remote_bare_jid);
+
 COMMIT;

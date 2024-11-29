@@ -8,7 +8,6 @@ import datetime
 
 # TODO: Disable inbox module in config
 # TODO: Augment messages with /inbox-info stuff
-# TODO: CREATE INDEX i_inbox_remote_bare_jid ON inbox USING BTREE(lserver, luser, remote_bare_jid);
 
 
 LSERVER = 'duolicious.app'
