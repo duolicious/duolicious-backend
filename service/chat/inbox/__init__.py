@@ -6,7 +6,6 @@ from typing import Optional, List
 import database
 import datetime
 
-# TODO: Disable inbox module in config
 # TODO: Augment messages with /inbox-info stuff
 
 
