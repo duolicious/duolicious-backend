@@ -102,7 +102,7 @@ UPDATE
 SET
     unread_count = 0
 WHERE
-    lserver = {LSERVER}
+    lserver = '{LSERVER}'
 AND
     luser = %(luser)s
 AND
@@ -284,7 +284,7 @@ def maybe_mark_displayed(
     if parsed_xml is None:
         return False
 
-    xpath_query = "/*[local-name()='message']/*[local-name()='displayed']"
+    xpath_query = "/*[local-name()='message'][*[local-name()='displayed']]"
     displayed_element = parsed_xml.xpath(xpath_query)
 
     if not displayed_element:
