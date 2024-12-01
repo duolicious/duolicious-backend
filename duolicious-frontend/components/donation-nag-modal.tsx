@@ -15,8 +15,9 @@ import { ButtonWithCenteredText } from './button/centered-text';
 import { signedInUser } from '../App';
 import { api } from '../api/api';
 import { getRandomElement } from '../util/util';
+import * as _ from "lodash";
 
-const gagLocations = [
+const gagLocations = _.shuffle([
   '/a/',
   '/adv/',
   '/r9k/',
@@ -32,9 +33,9 @@ const gagLocations = [
   'a televangelist hotline',
   'annual cheese rolling event-goers',
   'boomers on Facebook',
-  'cabal of BPD-having besties 😊',
   'chat',
   'goth girls at the local cemetery',
+  'grandma',
   'jehovah’s witnesses',
   'my Ao3 readers',
   'my Discord server',
@@ -50,6 +51,7 @@ const gagLocations = [
   'my YouTube subscribers',
   'my autism support group',
   'my body pillow',
+  'my cabal of BPD-having besties 😊',
   'my church',
   'my colleagues',
   'my cosplay convention',
@@ -58,7 +60,6 @@ const gagLocations = [
   'my femboy oomfies',
   'my flat earth society gathering',
   'my furry convention',
-  'my grandmother’s ghost',
   'my imaginary friend',
   'my local renaissance faire',
   'my mom',
@@ -89,7 +90,7 @@ const gagLocations = [
   'the homeless gentleman outside my apartment',
   'the voices in my head',
   'you want I want, what I really really want',
-];
+]);
 
 const DonationNagModal = () => {
   const name = signedInUser?.name;
@@ -256,9 +257,11 @@ const MarketingDonationNagModalWeb = ({
   name: string
   estimatedEndDate: Date
 }) => {
-  const [gagLocation, setGagLocation] = useState(getRandomElement(gagLocations));
+  const [gagLocationIndex, setGagLocationIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const opacity = useRef(new Animated.Value(1)).current;
+
+  const gagLocation = gagLocations[gagLocationIndex % gagLocations.length];
 
   useEffect(() => {
     // Function to pick a random location with cross-fade animation
@@ -270,8 +273,7 @@ const MarketingDonationNagModalWeb = ({
         useNativeDriver: true,
       }).start(() => {
         // After fade-out completes, update the location
-        const randomIndex = Math.floor(Math.random() * gagLocations.length);
-        setGagLocation(gagLocations[randomIndex]);
+        setGagLocationIndex((i) => i + 1);
 
         // Fade in the new text
         Animated.timing(opacity, {
@@ -351,7 +353,10 @@ const MarketingDonationNagModalWeb = ({
                   textAlign: 'center',
                 }}
               >
-                Want Duolicious to stay free? You’re gonna need to do some shilling...
+                <DefaultText style={{ fontWeight: '700' }}>
+                  Want Duolicious to stay free?
+                </DefaultText>
+                {} You’re gonna need to do some shilling...
               </DefaultText>
             </View>
           </View>
@@ -368,9 +373,8 @@ const MarketingDonationNagModalWeb = ({
                 textAlign: 'center',
               }}
             >
-              Shilling is what brought us all here. But Duolicious’ choice to
-              be 100% free and volunteer-run means we can’t afford paid shills
-              like big apps can. That means {}
+              Duolicious’ choice to be 100% free and volunteer-run means we
+              can’t afford paid shills like big apps can. That means {}
               <DefaultText style={{ fontWeight: '700' }} >
                 edgy shitposters like you
               </DefaultText>
