@@ -60,7 +60,7 @@ app.post('/config', async (req, res) => {
 
   try {
     await setupXMPPClient();
-    res.status(200).send('XMPP client configured');
+    res.status(200).send();
   } catch (error) {
     res.status(500).send('Error configuring XMPP client: ' + error.toString());
   }
@@ -72,7 +72,7 @@ app.post('/send', (req, res) => {
     const parsedStanza = ltx.parse(req.body);
     console.log('⮊', req.body);
     xmpp.send(parsedStanza).then(() => {
-      res.status(200).send('Raw stanza sent');
+      res.status(200).send();
     }).catch(err => {
       res.status(500).send('Error sending raw stanza: ' + err.toString());
     });

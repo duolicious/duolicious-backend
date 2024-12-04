@@ -6,8 +6,6 @@ from typing import Optional, List
 import database
 import datetime
 
-# TODO: Augment messages with /inbox-info stuff
-
 
 LSERVER = 'duolicious.app'
 
