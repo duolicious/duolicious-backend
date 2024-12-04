@@ -21,6 +21,7 @@ from service.chat.mayberegister import maybe_register
 from service.chat.insertintrohash import insert_intro_hash
 from service.chat.setmessaged import set_messaged
 from duohash import sha512
+from offensive import is_offensive
 
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
@@ -340,7 +341,10 @@ async def process_duo_message(xml_str, parsed_xml, username: str | None):
     from_username = username
     to_username = to_bare_jid(to_jid)
 
-    if not is_message or not maybe_message_body:
+    if not is_message:
+        return [], [xml_str]
+
+    if not maybe_message_body:
         return [], [xml_str]
 
     if is_message_too_long(maybe_message_body):
@@ -360,8 +364,12 @@ async def process_duo_message(xml_str, parsed_xml, username: str | None):
         return [f'<duo_message_blocked id="{id}"/>'], []
 
     is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
+
     if is_intro and not await is_message_unique(maybe_message_body):
         return [f'<duo_message_not_unique id="{id}"/>'], []
+
+    if is_intro and is_offensive(maybe_message_body):
+        return [f'<duo_message_blocked id="{id}"/>'], []
 
     immediate_data = await fetch_immediate_data(
             from_id=from_id,
