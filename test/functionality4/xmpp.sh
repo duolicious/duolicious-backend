@@ -48,6 +48,9 @@ ban_token=$(
 echo '`last` is updated upon logging in'
 q "delete from last" duo_chat
 
+
+sleep 3
+
 curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d '{
   "service": "ws://chat:5443",
   "domain": "duolicious.app",
