@@ -369,7 +369,7 @@ async def process_duo_message(xml_str, parsed_xml, username: str | None):
         return [f'<duo_message_not_unique id="{id}"/>'], []
 
     if is_intro and is_offensive(maybe_message_body):
-        return [f'<duo_message_blocked id="{id}"/>'], []
+        return [f'<duo_message_blocked id="{id}" reason="offensive"/>'], []
 
     immediate_data = await fetch_immediate_data(
             from_id=from_id,

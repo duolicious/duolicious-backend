@@ -70,7 +70,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
     object_person_id = $user2id")" = 0 ]]
 [[ "$(q "select count(*) from messaged")" = 0 ]]
 
-curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1"/>'
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1" reason="offensive"/>'
 
 [[ "$(q "select count(*) from mam_message" duo_chat)" = 0 ]]
 
@@ -98,7 +98,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
     object_person_id = $user2id")" = 0 ]]
 [[ "$(q "select count(*) from messaged")" = 0 ]]
 
-curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1"/>'
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1" reason="offensive"/>'
 
 [[ "$(q "select count(*) from mam_message" duo_chat)" = 0 ]]
 
