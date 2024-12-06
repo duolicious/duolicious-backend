@@ -33,7 +33,9 @@ user1id=$(get_id 'user1@example.com')
 user2id=$(get_id 'user2@example.com')
 
 
+
 sleep 3
+
 
 
 curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d '{
@@ -44,11 +46,13 @@ curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d
   "password": "'$user1token'"
 }'
 
+
+
 sleep 3
 
 
 
-echo An offensive message is blocked
+echo A potentially offensive message is blocked
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 <message
@@ -76,7 +80,7 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1"
 
 
 
-echo Another offensive message is blocked
+echo Another potentially offensive message is blocked
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 <message
@@ -86,7 +90,7 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
     id='id1'
     check_uniqueness='false'
     xmlns='jabber:client'>
-  <body>damn I want to rape you to death</body>
+  <body>We can only talk about porn in later messages</body>
   <request xmlns='urn:xmpp:receipts'/>
 </message>
 "
@@ -129,3 +133,45 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"/>'
 
 [[ "$(q "select count(*) from mam_message" duo_chat)" = 2 ]]
+
+
+
+echo 3
+
+
+
+echo Poentially offensive messages are allowed during established conversations
+
+curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d '{
+  "service": "ws://chat:5443",
+  "domain": "duolicious.app",
+  "resource": "testresource",
+  "username": "'$user2uuid'",
+  "password": "'$user2token'"
+}'
+
+echo 3
+
+curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
+<message
+    type='chat'
+    from='$user2uuid@duolicious.app'
+    to='$user1uuid@duolicious.app'
+    id='id1'
+    check_uniqueness='false'
+    xmlns='jabber:client'>
+  <body>We can only talk about porn in later messages</body>
+  <request xmlns='urn:xmpp:receipts'/>
+</message>
+"
+
+sleep 3 # MongooseIM takes some time to flush messages to the DB
+
+[[ "$(q "select count(*) from messaged where \
+    subject_person_id = $user2id and \
+    object_person_id = $user1id")" = 1 ]]
+[[ "$(q "select count(*) from messaged")" = 2 ]]
+
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"/>'
+
+[[ "$(q "select count(*) from mam_message" duo_chat)" = 4 ]]
