@@ -20,9 +20,7 @@ WHERE
 AND
     luser = %(username)s
 ORDER BY
-    luser,
-    lserver,
-    remote_bare_jid
+    timestamp
 """
 
 
