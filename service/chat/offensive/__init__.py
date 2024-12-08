@@ -10,6 +10,8 @@ import re
 
 
 _strings = [
+    "abuse me",
+    "abuse you",
     "anal",
     "anally",
     "anus",
@@ -83,6 +85,9 @@ _strings = [
     "cuntlicker",
     "cuntlicking",
     "cunts",
+    "cut me",
+    "cut you",
+    "dick",
     "dildo",
     "dildos",
     "dog-fucker",
@@ -92,6 +97,8 @@ _strings = [
     "dykes",
     "e sex",
     "e-sex",
+    "eat my ass",
+    "eat your ass",
     "edging",
     "ejaculate",
     "ejaculated",
@@ -128,6 +135,10 @@ _strings = [
     "footjob",
     "fuck you",
     "fuck yourself",
+    "fucking me",
+    "fucking you",
+    "gag me",
+    "gag you",
     "gang bang",
     "gangbang",
     "gangbanged",
@@ -143,6 +154,9 @@ _strings = [
     "hanged yourself",
     "hanging myself",
     "hanging yourself",
+    "heil",
+    "hoe",
+    "hoes",
     "horniest",
     "horny",
     "hotsex",
@@ -159,7 +173,9 @@ _strings = [
     "jizz",
     "kike",
     "kikes",
+    "kill my self",
     "kill myself",
+    "kill your self",
     "kill yourself",
     "killed myself",
     "killed yourself",
@@ -181,7 +197,10 @@ _strings = [
     "molestation",
     "molester",
     "molesting",
+    "my nuts",
     "necrophilia",
+    "nigga",
+    "niggas",
     "nigger",
     "niggers",
     "nigs",
@@ -217,6 +236,11 @@ _strings = [
     "raped",
     "rapes",
     "raping",
+    "rapist",
+    "retard",
+    "retardation",
+    "retarded",
+    "retards",
     "rimjob",
     "rimming",
     "scrote",
@@ -234,10 +258,16 @@ _strings = [
     "slut",
     "sluts",
     "smegma",
+    "sodomize",
+    "sodomy",
     "spic",
+    "stabbing me",
+    "stabbing you",
     "suicidal",
     "suicide",
     "testicle",
+    "tie me",
+    "tie you",
     "tit fuck",
     "tit fucked",
     "tit fucker",
@@ -264,6 +294,8 @@ _strings = [
     "tnd",
     "trannies",
     "tranny",
+    "use me",
+    "use you",
     "vagina",
     "viagra",
     "vulva",
@@ -278,15 +310,13 @@ _strings = [
     "zoophilia",
 ]
 
-for s in _strings:
-    if not re.match("""^[-a-z0-9' ]+$""", s):
-        raise AssertionError(s)
+_split_pattern = re.compile(r'[^\S\n\r]+')
 
-_pattern = '|'.join(f'(\\b{s}\\b)' for s in _strings)
+_offensive_pattern = '|'.join(f'(\\b{re.escape(s)}\\b)' for s in _strings)
 
-_matcher = re.compile(_pattern, re.IGNORECASE)
+_offensive_matcher = re.compile(_offensive_pattern, re.IGNORECASE)
 
 def is_offensive(s: str) -> bool:
-    normalized_input = ' '.join(s.split())
+    normalized_input = ' '.join(_split_pattern.split(s))
 
-    return bool(_matcher.search(normalized_input))
+    return bool(_offensive_matcher.search(normalized_input))
