@@ -1054,6 +1054,8 @@ const logout = async () => {
     return;
   }
 
+  await registerPushToken(null);
+
   _xmpp.current.client.reconnect.stop();
   await _xmpp.current.client.stop().catch(console.warn);
 
