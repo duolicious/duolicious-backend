@@ -10,7 +10,6 @@ set -xe
 bad_email_domains_table_is_respected () {
   q "delete from person"
   q "delete from duo_session"
-  q "delete from bad_email_domain"
 
   q "INSERT INTO bad_email_domain (domain) VALUES ('bad.example.com')";
 
@@ -37,38 +36,14 @@ bad_email_domains_table_is_respected () {
     jc POST /request-otp -d '{ "email": "good-user-2@example.com" }'
 }
 
-good_domains_are_inserted () {
-  echo 'good domains are inserted'
+unknown_domains_are_blocked () {
+  echo 'unknown domains are blocked'
 
   q "delete from person"
   q "delete from duo_session"
-  q "delete from good_email_domain"
-  q "delete from bad_email_domain"
 
-  printf 0  > ../../test/input/is-disposable-email
-
-  ../util/create-user.sh user@good.example.com 0 0
-
-  [[ "$(q "select count(*) from good_email_domain")" -eq 1 ]]
-  [[ "$(q "select count(*) from bad_email_domain")" -eq 0 ]]
-}
-
-bad_domains_are_inserted () {
-  echo 'bad domains are inserted'
-
-  q "delete from person"
-  q "delete from duo_session"
-  q "delete from good_email_domain"
-  q "delete from bad_email_domain"
-
-  printf 1  > ../../test/input/is-disposable-email
-
-  ! ../util/create-user.sh user@good.example.com 0 0
-
-  [[ "$(q "select count(*) from good_email_domain")" -eq 0 ]]
-  [[ "$(q "select count(*) from bad_email_domain")" -eq 1 ]]
+  ! ../util/create-user.sh user@unknown.example.com 0 0
 }
 
 bad_email_domains_table_is_respected
-good_domains_are_inserted
-bad_domains_are_inserted
+unknown_domains_are_blocked
