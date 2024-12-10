@@ -1,5 +1,23 @@
 # Developer instructions
 
+## Production deployments
+
+### Environment variables
+
+It's important to set `DUO_ENV=prod`.
+
+### Proxies
+
+Note also that `X-Forwarded-For` headers are treated as the user's real IP by
+Duolicious, which assumes that there's a proxy between it and users.
+
+If there's no proxy, `X-Forwarded-For` headers can be spoofed by users. This
+will allow malicious users to partially bypass rate limits and bans.
+
+Whether `X-Forwarded-For` is used or not should probably be configurable in
+Duolicious, but it's currently not. Although hardcoding the solution isn't too
+hard: Simply remove the use of `werkzeug.middleware.proxy_fix.ProxyFix`.
+
 ## Running the tests
 
 Install these:

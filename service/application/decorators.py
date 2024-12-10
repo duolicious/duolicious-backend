@@ -7,6 +7,7 @@ import constants
 import duotypes
 import os
 from pathlib import Path
+from werkzeug.middleware.proxy_fix import ProxyFix
 import ipaddress
 import traceback
 from antispam import normalize_email
@@ -65,6 +66,7 @@ def _get_remote_address() -> str:
 CORS_ORIGINS = os.environ.get('DUO_CORS_ORIGINS', '*')
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 app.config['MAX_CONTENT_LENGTH'] = constants.MAX_CONTENT_LENGTH;
 
 default_limits = "60 per minute; 12 per second"
