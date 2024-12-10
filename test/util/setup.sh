@@ -9,11 +9,6 @@ mkdir ../../test/input 2>/dev/null
 printf 1 > ../../test/input/disable-ip-rate-limit
 printf 1 > ../../test/input/disable-account-rate-limit
 
-if [[ "$1" != no-disposable-email-file ]]
-then
-  printf 0 > ../../test/input/is-disposable-email
-fi
-
 trim () {
   local trimmed=$(cat)
 
