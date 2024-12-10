@@ -13,15 +13,3 @@ SELECT
         ELSE 'unregistered-unknown'
     END AS domain_status
 """
-
-Q_INSERT_BAD_DOMAIN = """
-INSERT INTO bad_email_domain (domain) VALUES (
-    %(domain)s
-) ON CONFLICT (domain) DO NOTHING;
-"""
-
-Q_INSERT_GOOD_DOMAIN = """
-INSERT INTO good_email_domain (domain) VALUES (
-    %(domain)s
-) ON CONFLICT (domain) DO NOTHING;
-"""
