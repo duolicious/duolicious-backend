@@ -5,6 +5,8 @@ ENV DUO_API_HOST=http://localhost:5000
 ENV DUO_USE_VENV=false
 ENV PYTHONUNBUFFERED=true
 
+WORKDIR /app
+
 # MongooseIM config
 COPY service/chat/container/init-db.sh /init-db.sh
 COPY service/chat/container/init.sql /init.sql
