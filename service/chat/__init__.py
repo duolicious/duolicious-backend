@@ -17,6 +17,7 @@ from service.chat.insertintrohash import insert_intro_hash
 from service.chat.mayberegister import maybe_register
 from service.chat.offensive import is_offensive
 from service.chat.setmessaged import set_messaged
+from service.chat.spam import is_spam
 from service.chat.updatelast import update_last_forever
 from service.chat.upsertlastnotification import upsert_last_notification
 from service.chat.username import Username
@@ -383,6 +384,9 @@ async def process_duo_message(
 
     if is_intro and is_offensive(maybe_message_body):
         return [f'<duo_message_blocked id="{id}" reason="offensive"/>'], []
+
+    if is_intro and is_spam(maybe_message_body):
+        return [f'<duo_message_blocked id="{id}" reason="spam"/>'], []
 
     immediate_data = await fetch_immediate_data(
             from_id=from_id,
