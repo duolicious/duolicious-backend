@@ -13,12 +13,13 @@ from async_lru_cache import AsyncLruCache
 import random
 from typing import Any, Optional
 from datetime import datetime
-from service.chat.username import Username
+from service.chat.insertintrohash import insert_intro_hash
+from service.chat.mayberegister import maybe_register
+from service.chat.offensive import is_offensive
+from service.chat.setmessaged import set_messaged
 from service.chat.updatelast import update_last_forever
 from service.chat.upsertlastnotification import upsert_last_notification
-from service.chat.mayberegister import maybe_register
-from service.chat.insertintrohash import insert_intro_hash
-from service.chat.setmessaged import set_messaged
+from service.chat.username import Username
 from service.chat.xmlparse import parse_xml_or_none
 from service.chat.inbox import (
     maybe_get_inbox,
@@ -26,7 +27,6 @@ from service.chat.inbox import (
     upsert_conversation,
 )
 from duohash import sha512
-from offensive import is_offensive
 from lxml import etree
 
 
@@ -505,4 +505,5 @@ async def main():
         check_connections_forever(),
     )
 
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())

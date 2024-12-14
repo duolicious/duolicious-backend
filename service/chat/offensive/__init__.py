@@ -1,4 +1,5 @@
 import re
+import unicodedata
 
 # The idea of this list is to filter the most extreme and most common ways to
 # offend in intros. Because it only applies to intros, we've aimed for broad
@@ -7,6 +8,45 @@ import re
 #
 # Although the list is likely to change over time, it probably won't change
 # very frequently, so we'll just hardcode it rather than storing it in the DB.
+
+
+
+# Used to convert slang in an input string to a more standard form so that it's
+# easier to detect coarse language later on
+_normalization_map = {
+    "b": "be",
+    "btch": "bitch",
+    "c": "see",
+    "c0ck": "cock",
+    "c0cksucker": "cocksucker",
+    "c+u+m+": "cum",
+    "c+v+m+": "cum",
+    "cvmming": "cumming",
+    "cvms": "cums",
+    "cvmshot": "cumshot",
+    "fck": "fuck",
+    "fcked": "fucked",
+    "fcking": "fucking",
+    "fk": "fuck",
+    "fked": "fucked",
+    "fking": "fucking",
+    "fuk": "fuck",
+    "fuked": "fucked",
+    "fuking": "fucking",
+    "fvck": "fuck",
+    "fvcked": "fucked",
+    "fvcking": "fucking",
+    "nggr": "nigger",
+    "p0rn": "porn",
+    "pissin": "pissing",
+    "r": "are",
+    "u": "you",
+    "ur": "your",
+    "urself": "yourself",
+    "wh0re": "whore",
+    "wh0res": "whores",
+    "y": "why",
+}
 
 
 _strings = [
@@ -47,10 +87,9 @@ _strings = [
     "butt-fucked",
     "butt-fucker",
     "butt-fucking",
-    "c0ck",
-    "c0cksucker",
     "carpet muncher",
     "cawk",
+    "cervix",
     "chink",
     "chinks",
     "clit",
@@ -75,6 +114,8 @@ _strings = [
     "coprophilia",
     "cum",
     "cumming",
+    "cumms",
+    "cummshot",
     "cums",
     "cumshot",
     "cunilingus",
@@ -143,7 +184,10 @@ _strings = [
     "gangbang",
     "gangbanged",
     "gangbangs",
+    "gave me head",
     "gaysex",
+    "gimme head",
+    "give me head",
     "goatse",
     "golden shower",
     "gook",
@@ -210,7 +254,6 @@ _strings = [
     "orgasm",
     "orgasms",
     "orgy",
-    "p0rn",
     "paedo",
     "paedophile",
     "paraphilias",
@@ -232,7 +275,9 @@ _strings = [
     "pussies",
     "pussy",
     "pussys",
+    "rail you",
     "rape",
+    "rapebait"
     "raped",
     "rapes",
     "raping",
@@ -260,6 +305,7 @@ _strings = [
     "smegma",
     "sodomize",
     "sodomy",
+    "some head",
     "spic",
     "stabbing me",
     "stabbing you",
@@ -312,11 +358,50 @@ _strings = [
 
 _split_pattern = re.compile(r'[^\S\n\r]+')
 
+
 _offensive_pattern = '|'.join(f'(\\b{re.escape(s)}\\b)' for s in _strings)
+
+
+# Characters which were repeated more than once
+_repeated_characters_pattern = re.compile(r'(.)\1+')
+
 
 _offensive_matcher = re.compile(_offensive_pattern, re.IGNORECASE)
 
+
+def _apply_normalization_map(haystack: str):
+    for needle, replacement in _normalization_map.items():
+        # Apparently compiled regexes are cached between invocations of
+        # re.compile.
+        pattern = re.compile(f"\\b{needle}\\b")
+
+        haystack = pattern.sub(replacement, haystack)
+
+    return haystack
+
+
+def normalize_string(s: str):
+    # Normalize the string to NFD (Normalization Form Decomposition) and Filter
+    # out combining diacritical marks (e.g., accents)
+    normalized_input = unicodedata.normalize('NFD', s)
+    normalized_input = ''.join(
+        char for char in normalized_input if not unicodedata.combining(char)
+    )
+
+    # Normalize whitespace
+    normalized_input = ' '.join(_split_pattern.split(normalized_input))
+
+    # Remove repeated characters
+    normalized_input = _repeated_characters_pattern.sub(
+        r'\1\1', normalized_input)
+
+    # Replace slang
+    normalized_input = _apply_normalization_map(normalized_input)
+
+    return normalized_input
+
+
 def is_offensive(s: str) -> bool:
-    normalized_input = ' '.join(_split_pattern.split(s))
+    normalized_input = normalize_string(s)
 
     return bool(_offensive_matcher.search(normalized_input))

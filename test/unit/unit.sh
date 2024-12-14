@@ -10,6 +10,8 @@ else
   sudos+=(sudo)
 fi
 
+"${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep chat- | cut -d ' ' -f 1)" python3 -m unittest discover -s service/chat
+
 "${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep cron | cut -d ' ' -f 1)" \
   python3 -m unittest discover -s service/cron
 
