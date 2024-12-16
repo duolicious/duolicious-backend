@@ -88,6 +88,19 @@ WHERE
 LIMIT 1
 """
 
+# Accounts are trusted after they've been around for a day. Verified accounts
+# are trusted a bit sooner.
+Q_IS_TRUSTED_ACCOUNT = """
+SELECT
+    1
+FROM
+    person
+WHERE
+    id = %(from_id)s
+AND
+    sign_up_time < now() - (interval '1 day') / power(verification_level_id, 2)
+"""
+
 Q_IMMEDIATE_DATA = """
 WITH to_notification AS (
     SELECT
@@ -306,6 +319,16 @@ async def fetch_is_intro(from_id: int, to_id: int) -> bool:
 
     return not bool(row)
 
+@AsyncLruCache(maxsize=1024, cache_condition=lambda x: not x)
+async def fetch_is_trusted_account(from_id: int) -> bool:
+    async with api_tx('read committed') as tx:
+        await tx.execute(
+                Q_IS_TRUSTED_ACCOUNT,
+                dict(from_id=from_id))
+        row = await tx.fetchone()
+
+    return bool(row)
+
 @AsyncLruCache(ttl=2 * 60)  # 2 minutes
 async def fetch_push_token(username: str) -> str | None:
     async with chat_tx('read committed') as tx:
@@ -385,7 +408,10 @@ async def process_duo_message(
     if is_intro and is_offensive(maybe_message_body):
         return [f'<duo_message_blocked id="{id}" reason="offensive"/>'], []
 
-    if is_intro and is_spam(maybe_message_body):
+    if \
+            is_intro and \
+            is_spam(maybe_message_body) and \
+            not await fetch_is_trusted_account(from_id=from_id):
         return [f'<duo_message_blocked id="{id}" reason="spam"/>'], []
 
     immediate_data = await fetch_immediate_data(
