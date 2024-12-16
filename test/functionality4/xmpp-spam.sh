@@ -83,6 +83,34 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1"
 
 
 
+echo Another potential spam message is blocked
+
+curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
+<message
+    type='chat'
+    from='$user1uuid@duolicious.app'
+    to='$user2uuid@duolicious.app'
+    id='id1'
+    check_uniqueness='false'
+    xmlns='jabber:client'>
+  <body>1817481104444041323937</body>
+  <request xmlns='urn:xmpp:receipts'/>
+</message>
+"
+
+sleep 3 # MongooseIM takes some time to flush messages to the DB
+
+[[ "$(q "select count(*) from messaged where \
+    subject_person_id = $user1id and \
+    object_person_id = $user2id")" = 0 ]]
+[[ "$(q "select count(*) from messaged")" = 0 ]]
+
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1" reason="spam"/>'
+
+[[ "$(q "select count(*) from mam_message" duo_chat)" = 0 ]]
+
+
+
 
 
 echo A benign message is allowed

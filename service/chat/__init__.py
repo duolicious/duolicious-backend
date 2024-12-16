@@ -209,7 +209,7 @@ def get_message_attrs(parsed_xml):
         maybe_message_body = None
         body = parsed_xml.find('{jabber:client}body')
         if body is not None:
-            maybe_message_body = body.text
+            maybe_message_body = body.text.strip()
 
         _id = parsed_xml.attrib.get('id')
         assert _id is not None
