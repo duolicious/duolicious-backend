@@ -54,6 +54,10 @@ Takakura ken meow """))
 
 Morgan meow """))
 
+        self.assertTrue(
+                contains_gibberish(
+                    "Welcome to online dating 4328"))
+
 
     def test_non_gibberish_strings(self):
         self.assertFalse(
@@ -74,7 +78,11 @@ Morgan meow """))
 
         self.assertFalse(
                 contains_gibberish(
-                    "Online dating, but based and true love-pilled"))
+                    "Welcome to online dating 101"))
+
+        self.assertFalse(
+                contains_gibberish(
+                    "Online dating, but based and true love-pilled 💕"))
 
         self.assertFalse(
                 contains_gibberish(

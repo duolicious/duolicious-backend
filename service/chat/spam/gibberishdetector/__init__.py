@@ -36,13 +36,16 @@ def download_opus100(output_dir):
     else:
         print(f"File {src_file} already exists. Skipping download.")
 
-    print(f"Extracting {src_file}...")
-    with tarfile.open(compressed_file_path, "r:gz") as tar:
-        tar.extractall(path=output_dir)
+    if not os.path.exists(output_dir):
+        print(f"Extracting {src_file}...")
+        with tarfile.open(compressed_file_path, "r:gz") as tar:
+            tar.extractall(path=output_dir)
+        print(f"Data extracted to {output_dir}")
+    else:
+        print(f"File {output_dir} already exists. Skipping extraction.")
 
-    print(f"Data extracted to {output_dir}")
     extracted_dir = os.path.join(output_dir, "opus-100-corpus", "v1.0", "supervised")
-    print(extracted_dir)
+
     return extracted_dir
 
 
@@ -90,10 +93,16 @@ def get_corpus():
     before_length = len(text)
 
     print('Cleaning corpus: Pass 1...')
-    text = _pattern1.sub('', text)
+    text = _pattern1.sub(r'\1\1', text)
 
     print('Cleaning corpus: Pass 2...')
-    text = _pattern2.sub(' ', text)
+    text = _pattern2.sub(r'\1', text)
+
+    print('Cleaning corpus: Pass 3...')
+    text = _pattern3.sub(r'\1', text)
+
+    print('Cleaning corpus: Pass 4...')
+    text = _pattern4.sub(r'\1', text)
 
     after_length = len(text)
 
@@ -155,7 +164,7 @@ def string_probability(s, bigram_probs):
     # We need at least 2 chars for a bigram
     if len(s) < 2:
         # Handle short strings gracefully
-        return math.log(1e-20)
+        return math.log(1e-6)
 
     prob = 0.0
     for i in range(len(s) - 1):
@@ -163,7 +172,7 @@ def string_probability(s, bigram_probs):
         if bigram in bigram_probs:
             prob += math.log(bigram_probs[bigram])  # Log-probability
         else:
-            prob += math.log(1e-20)  # Assign small probability to unseen bigrams
+            prob += math.log(1e-6)  # Assign small probability to unseen bigrams
     return prob
 
 
@@ -190,11 +199,14 @@ def train_model():
     bigram_probs = compute_bigram_probs()
     save_bigram_probs(bigram_probs)
 
-# Repeated non-word, non-punctuation, non-whitespace characters
-_pattern1 = regex.compile(r'''([^\s\p{L}\p{P}]{2,})''')
+# Repeated word characters
+_pattern1 = regex.compile(r'(.)\1{2,}')
 
-# Repeated whitespace characters
-_pattern2 = regex.compile(r'''( {2,})''')
+_pattern2 = regex.compile(r'''( ) +''')
+
+_pattern3 = regex.compile(r'''([0-9])[0-9]+''')
+
+_pattern4 = regex.compile(r'''(\p{Emoji_Presentation})\p{Emoji_Presentation}+''')
 
 
 if __name__ == "__main__":
