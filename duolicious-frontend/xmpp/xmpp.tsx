@@ -88,6 +88,7 @@ const safeSend = async (element: Element) => {
 type MessageStatus =
   | 'sent'
   | 'offensive'
+  | 'rate-limited-1day'
   | 'spam'
   | 'blocked'
   | 'not unique'
@@ -578,6 +579,11 @@ const _sendMessage = (
       doc
     );
 
+    const rateLimitedNode = xpath.select1(
+      `/*[name()='duo_message_blocked'][@reason='rate-limited-1day'][@id='${id}']`,
+      doc
+    );
+
     const offensiveNode = xpath.select1(
       `/*[name()='duo_message_blocked'][@reason='offensive'][@id='${id}']`,
       doc
@@ -598,7 +604,9 @@ const _sendMessage = (
       doc
     );
 
-    if (spamNode) {
+    if (rateLimitedNode) {
+      callback('rate-limited-1day');
+    } else if (spamNode) {
       callback('spam');
     } else if (offensiveNode) {
       callback('offensive');
