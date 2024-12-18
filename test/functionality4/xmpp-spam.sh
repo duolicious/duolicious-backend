@@ -7,6 +7,8 @@ source ../util/setup.sh
 
 set -xe
 
+sleep 3 # MongooseIM takes some time to flush messages to the DB
+
 q "delete from person"
 q "delete from banned_person"
 q "delete from banned_person_admin_token"
@@ -37,9 +39,7 @@ user2id=$(get_id 'user2@example.com')
 user3id=$(get_id 'user3@example.com')
 
 
-
 sleep 3
-
 
 
 curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d '{

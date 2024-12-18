@@ -1,3 +1,5 @@
+export PS4='${BASH_SOURCE}:${LINENO}: '
+
 SESSION_TOKEN=""
 USER_UUID=""
 PERSON_ID=""
