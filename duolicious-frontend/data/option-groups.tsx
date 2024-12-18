@@ -27,6 +27,7 @@ import { ClubItem } from '../club/club';
 import { DefaultText } from '../components/default-text';
 import {
   Linking,
+  Platform,
   StyleSheet,
   View,
 } from 'react-native';
@@ -36,6 +37,16 @@ import { onboardingQueue } from '../api/queue';
 const noneFontSize = 16;
 
 const maxDailySelfies = 'eight';
+
+const descriptionStyle = StyleSheet.create({
+  style: {
+    color: '#777',
+    textAlign: 'center',
+    paddingLeft: 20,
+    paddingRight: 20,
+    paddingTop: 10,
+  }
+});
 
 type OptionGroupButtons = {
   buttons: {
@@ -182,7 +193,7 @@ type OptionGroupInputs
 type OptionGroup<T extends OptionGroupInputs> = {
   title: string,
   Icon?: any,
-  description: string,
+  description: string | FC,
   input: T,
   scrollView?: boolean,
   buttonLabel?: string,
@@ -492,6 +503,53 @@ const FinishOnboardingDescription = () => (
       date!
     </DefaultText>
   </View>
+);
+
+const DeletionDescription = () => (
+  <DefaultText style={descriptionStyle.style} >
+    Are you sure you want to delete your account? {}
+    <DefaultText style={{ fontWeight: '700' }}>
+      This will
+      permanently delete your account data and
+      immediately log you out.
+    </DefaultText> {}
+    If you’re sure, type “delete” to confirm.
+    {Platform.OS === 'web' &&
+      <DefaultText>
+        {'\n\n'}
+        Please consider donating before leaving by pressing {}
+        <DefaultText
+          onPress={() => Linking.openURL('https://ko-fi.com/duolicious')}
+          style={{ fontWeight: '700' }}
+        >
+          here{'\xa0'}💕
+        </DefaultText>
+      </DefaultText>
+    }
+  </DefaultText>
+);
+
+const DeactivationDescription = () => (
+  <DefaultText style={descriptionStyle.style} >
+    Are you sure you want to deactivate your account? {}
+    <DefaultText style={{ fontWeight: '700' }}>
+      This will hide you from other users and log you out.
+    </DefaultText> {}
+    The next time you sign in, your account will be reactivated. Press
+    “continue” to deactivate your account.
+    {Platform.OS === 'web' &&
+      <DefaultText>
+        {'\n\n'}
+        Please consider donating before leaving by pressing {}
+        <DefaultText
+          onPress={() => Linking.openURL('https://ko-fi.com/duolicious')}
+          style={{ fontWeight: '700' }}
+        >
+          here{'\xa0'}💕
+        </DefaultText>
+      </DefaultText>
+    }
+  </DefaultText>
 );
 
 const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
@@ -946,7 +1004,7 @@ const notificationSettingsOptionGroups: OptionGroup<OptionGroupButtons>[] = [
 const deletionOptionGroups: OptionGroup<OptionGroupTextShort>[] = [
   {
     title: 'Delete My Account',
-    description: `Are you sure you want to delete your account? This will immediately log you out and permanently delete your account data. If you’re sure, type “delete” to confirm.`,
+    description: DeletionDescription,
     input: {
       textShort: {
         submit: async (input: string) => {
@@ -975,7 +1033,7 @@ const deletionOptionGroups: OptionGroup<OptionGroupTextShort>[] = [
 const deactivationOptionGroups: OptionGroup<OptionGroupNone>[] = [
   {
     title: 'Deactivate My Account',
-    description: 'Are you sure you want to deactivate your account? This will hide you from other users and log you out. The next time you sign in, your account will be reactivated. Press “continue” to deactivate your account.',
+    description: DeactivationDescription,
     input: {
       none: {
         submit: async () => {
@@ -1936,6 +1994,7 @@ export {
   createAccountOptionGroups,
   deactivationOptionGroups,
   deletionOptionGroups,
+  descriptionStyle,
   generalSettingsOptionGroups,
   getCurrentValue,
   isOptionGroupButtons,
@@ -1952,8 +2011,8 @@ export {
   isOptionGroupTextShort,
   isOptionGroupThemePicker,
   isOptionGroupVerificationChecker,
-  noneFontSize,
   maxDailySelfies,
+  noneFontSize,
   notificationSettingsOptionGroups,
   privacySettingsOptionGroups,
   searchInteractionsOptionGroups,

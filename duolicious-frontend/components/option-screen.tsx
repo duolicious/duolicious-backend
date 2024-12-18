@@ -44,6 +44,7 @@ import {
   OptionGroupTextShort,
   OptionGroupThemePicker,
   OptionGroupVerificationChecker,
+  descriptionStyle,
   isOptionGroupButtons,
   isOptionGroupCheckChips,
   isOptionGroupDate,
@@ -58,8 +59,8 @@ import {
   isOptionGroupTextShort,
   isOptionGroupThemePicker,
   isOptionGroupVerificationChecker,
-  noneFontSize,
   maxDailySelfies,
+  noneFontSize,
 } from '../data/option-groups';
 import {
   PrimaryImage,
@@ -1316,7 +1317,7 @@ const OptionScreen = ({navigation, route}) => {
 
   const {
     title,
-    description,
+    description: Description,
     input,
     scrollView,
     buttonLabel,
@@ -1455,17 +1456,15 @@ const OptionScreen = ({navigation, route}) => {
           >
             {title}
           </DefaultText>
-          <DefaultText
+          {typeof Description === 'string' && <DefaultText
             style={{
-              color: color || '#777',
-              textAlign: 'center',
-              paddingLeft: 20,
-              paddingRight: 20,
-              paddingTop: 10,
+              ...descriptionStyle.style,
+              color: color || descriptionStyle.style.color
             }}
           >
-            {description}
-          </DefaultText>
+            {Description}
+          </DefaultText>}
+          {typeof Description !== 'string' && <Description/>}
         </View>
         <View
           style={{
