@@ -33,6 +33,8 @@ from lxml import etree
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 
+MAX_INTROS_PER_DAY = 50
+
 # TODO: Tables to migrate to monolithic DB:
 #
 #  public.last
@@ -99,6 +101,23 @@ WHERE
     id = %(from_id)s
 AND
     sign_up_time < now() - (interval '1 day') / power(verification_level_id, 2)
+"""
+
+Q_IS_RATE_LIMITED_TODAY = f"""
+SELECT
+    COUNT(*) >= {MAX_INTROS_PER_DAY} AS is_rate_limited
+FROM (
+    SELECT
+        1
+    FROM
+        messaged
+    WHERE
+        subject_person_id = %(from_id)s
+    AND
+        created_at > now() - interval '1 day'
+    LIMIT
+        {MAX_INTROS_PER_DAY}
+) AS truncated_results
 """
 
 Q_IMMEDIATE_DATA = """
@@ -319,7 +338,7 @@ async def fetch_is_intro(from_id: int, to_id: int) -> bool:
 
     return not bool(row)
 
-@AsyncLruCache(maxsize=1024, cache_condition=lambda x: not x)
+@AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
 async def fetch_is_trusted_account(from_id: int) -> bool:
     async with api_tx('read committed') as tx:
         await tx.execute(
@@ -328,6 +347,14 @@ async def fetch_is_trusted_account(from_id: int) -> bool:
         row = await tx.fetchone()
 
     return bool(row)
+
+@AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
+async def fetch_is_rate_limited_today(from_id: int) -> bool:
+    async with api_tx('read committed') as tx:
+        await tx.execute(Q_IS_RATE_LIMITED_TODAY, dict(from_id=from_id))
+        row = await tx.fetchone()
+
+    return row['is_rate_limited']
 
 @AsyncLruCache(ttl=2 * 60)  # 2 minutes
 async def fetch_push_token(username: str) -> str | None:
@@ -413,6 +440,9 @@ async def process_duo_message(
             is_spam(maybe_message_body) and \
             not await fetch_is_trusted_account(from_id=from_id):
         return [f'<duo_message_blocked id="{id}" reason="spam"/>'], []
+
+    if is_intro and await fetch_is_rate_limited_today(from_id=from_id):
+        return [f'<duo_message_blocked id="{id}" reason="rate-limited-1day"/>'], []
 
     immediate_data = await fetch_immediate_data(
             from_id=from_id,
