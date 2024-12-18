@@ -167,7 +167,7 @@ def string_probability(s, bigram_probs):
     return prob
 
 
-def contains_gibberish(text, window_size=10, prob_threshold=-200):
+def contains_gibberish(text, window_size=10, prob_threshold=-50):
     """Detect unlikely text based on bigram probabilities"""
     if len(text) == 0:
         return False
