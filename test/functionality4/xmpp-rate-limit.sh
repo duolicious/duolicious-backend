@@ -10,6 +10,8 @@ max_intros_per_day=50
 
 set -xe
 
+sleep 3 # MongooseIM takes some time to flush messages to the DB
+
 q "delete from person"
 q "delete from banned_person"
 q "delete from banned_person_admin_token"
