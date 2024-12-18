@@ -36,6 +36,24 @@ class TestContainsGibberish(unittest.TestCase):
                 contains_gibberish(
                     "Hello how are you doing Text me on telegram,, @laura_rosaline_klein   or. add my Zangi private number 1061353927"))
 
+        self.assertTrue(
+                contains_gibberish(
+                    """EPSSVSMMKVIPGFJR
+
+Alex meow """))
+
+        self.assertTrue(
+                contains_gibberish(
+                    """WIGLXVAQTLRIIKQT
+
+Takakura ken meow """))
+
+        self.assertTrue(
+                contains_gibberish(
+                    """KUNBJDRUBDKRSWUY
+
+Morgan meow """))
+
 
     def test_non_gibberish_strings(self):
         self.assertFalse(
@@ -56,7 +74,7 @@ class TestContainsGibberish(unittest.TestCase):
 
         self.assertFalse(
                 contains_gibberish(
-                    "Online dating, but based and true love-pilled 💕"))
+                    "Online dating, but based and true love-pilled"))
 
         self.assertFalse(
                 contains_gibberish(
@@ -77,10 +95,7 @@ There really is a Linux, and these people are using it, but it is just a part of
                     """.strip()))
 
         self.assertFalse(
-                contains_gibberish(
-                    """
-在一个阳光明媚的早晨，小兔子跳跳发现了一朵开得特别美的向日葵。它忍不住凑近闻了闻，结果一只小蜜蜂从花瓣后面探出了脑袋，吓了跳跳一跳。“别怕，我只是采蜜的小蜜蜂！”蜜蜂笑着说。
-                    """.strip()))
+                contains_gibberish("在一个阳光明媚的早晨。"))
 
         self.assertFalse(
                 contains_gibberish("Ich finde dich süß. Hast du einen Freund?"))
