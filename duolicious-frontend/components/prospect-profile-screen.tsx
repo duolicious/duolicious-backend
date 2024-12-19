@@ -2,13 +2,13 @@ import {
   ActivityIndicator,
   Animated,
   Pressable,
+  SafeAreaView,
   ScrollView,
   StyleProp,
   StyleSheet,
   TextStyle,
   View,
   ViewStyle,
-  SafeAreaView,
 } from 'react-native';
 import {
   useCallback,
@@ -64,13 +64,10 @@ import {
   AUDIO_URL,
 } from '../env/env';
 
-// TODO: https://github.com/expo/expo/issues/31225
-
 const Stack = createNativeStackNavigator();
 
 const ProspectProfileScreen = ({navigation, route}) => {
   const navigationRef = useRef(undefined);
-  const personId = route.params.personId;
 
   const ProspectProfileScreen_ = useMemo(() => {
     return Content(navigationRef);
@@ -729,8 +726,9 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
     (async () => {
       const response = await api('get', `/prospect-profile/${personUuid}`);
       setData(response?.json);
+      route.params.personId = response?.json?.person_id;
     })();
-  }, [personId]);
+  }, [personUuid]);
 
   useEffect(() =>
     listen(`skip-profile-${personId}`, () => navigation.popToTop()),

@@ -49,6 +49,7 @@ import {
   useNotificationObserver,
   getLastNotificationResponseAsync,
 } from './notifications/notifications';
+import { getCurrentScreen, getCurrentParams } from './navigation/navigation';
 import { navigationState } from './kv-storage/navigation-state';
 import { listen, notify } from './events/events';
 import { verificationWatcher } from './verification/verification';
@@ -275,7 +276,27 @@ const App = () => {
 
     notify<ClubItem[]>('updated-clubs', clubs);
 
-    if (parsedUrl) {
+    if (parsedUrl?.left === 'profile') {
+      setInitialState({
+        index: 1,
+        routes: [
+          { name: "Home" },
+          {
+            name: "Prospect Profile Screen",
+            state: {
+              routes: [
+                {
+                  name: "Prospect Profile",
+                  params: {
+                    personUuid: decodeURIComponent(parsedUrl.right)
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      });
+    } else if (parsedUrl) {
       // Navigation was already handled before logging in; Do nothing.
       ;
     } else if (notification) {
@@ -374,8 +395,14 @@ const App = () => {
   }, [fetchServerStatusState]);
 
   const onNavigationStateChange = useCallback(async (state) => {
-    if (Platform.OS === 'web') {
-      history.pushState((history?.state ?? 0) + 1, "", "#");
+    if (Platform.OS !== 'web') {
+      ; // Only update the URL bar on web
+    } else if (getCurrentScreen(state) === 'Prospect Profile Screen/Prospect Profile') {
+      const uri = `/profile/${getCurrentParams(state).personUuid}`;
+      history.pushState((history?.state ?? 0) + 1, "", uri);
+    } else {
+      const uri = "/#";
+      history.pushState((history?.state ?? 0) + 1, "", uri);
     }
 
     if (!state) return;
