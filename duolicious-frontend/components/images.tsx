@@ -163,6 +163,7 @@ const UserImage = ({
     if (Platform.OS !== 'web') {
       setIsLoading(true);
       setIsLoading_(true);
+      isImagePickerOpen.value = true;
     }
 
     // No permissions request is necessary for launching the image library
@@ -172,7 +173,6 @@ const UserImage = ({
       selectionLimit: 1,
       base64: true,
     });
-    isImagePickerOpen.value = true;
 
     if (result.canceled && Platform.OS !== 'web') {
       isImagePickerOpen.value = false;
