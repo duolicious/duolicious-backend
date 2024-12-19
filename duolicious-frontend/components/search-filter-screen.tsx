@@ -340,7 +340,7 @@ const SearchFilterScreen_ = ({navigation, route}) => {
             noSettingText="Any"
             onPress={onPressQAndAAnswers}
             icon={
-              () => <QAndADevice color="black" fontSize={14} />
+              () => <QAndADevice color="black" isBold={true} fontSize={16} />
             }
           />
           <DefaultText
