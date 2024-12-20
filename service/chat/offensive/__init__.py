@@ -1,3 +1,4 @@
+from confusable_homoglyphs import confusables
 import re
 import unicodedata
 
@@ -36,6 +37,8 @@ _normalization_map = {
     "fvck": "fuck",
     "fvcked": "fucked",
     "fvcking": "fucking",
+    "ngger": "nigger",
+    "nggr": "nigger",
     "nggr": "nigger",
     "p0rn": "porn",
     "pissin": "pissing",
@@ -54,6 +57,7 @@ _strings = [
     "anal",
     "anally",
     "anus",
+    "around your throat",
     "ass fuck",
     "ass fucked",
     "ass fucker",
@@ -66,7 +70,10 @@ _strings = [
     "assfucked",
     "assfucker",
     "assfucking",
+    "back shots",
+    "backshots",
     "ballsack",
+    "bash your",
     "beastial",
     "beastiality",
     "bellend",
@@ -91,6 +98,7 @@ _strings = [
     "butt-hole",
     "butthole",
     "buttstuff",
+    "bwc",
     "carpet muncher",
     "cawk",
     "cervix",
@@ -131,13 +139,27 @@ _strings = [
     "cuntlicking",
     "cunts",
     "cut me",
+    "cut my wrist",
+    "cut my wrists",
+    "cut myself",
     "cut you",
+    "cut your wrist",
+    "cut your wrists",
+    "cut yourself",
+    "cutting myself",
+    "cutting yourself",
+    "deep throat",
+    "deep throated",
+    "deepthroat",
     "dick",
     "dildo",
     "dildos",
+    "do it raw",
     "dog-fucker",
     "doggin",
     "dogging",
+    "down my throat",
+    "down your throat",
     "dyke",
     "dykes",
     "e sex",
@@ -154,6 +176,7 @@ _strings = [
     "ejaculatings",
     "ejaculation",
     "ejakulate",
+    "end your life",
     "esex",
     "faggitt",
     "faggot",
@@ -186,8 +209,10 @@ _strings = [
     "fuck your face",
     "fuck your mouth",
     "fuck your thighs",
+    "fuck your throat",
     "fuck your tits",
     "fuck yourself",
+    "fuckable",
     "fucking me",
     "fucking you",
     "gag me",
@@ -214,6 +239,7 @@ _strings = [
     "hanging myself",
     "hanging yourself",
     "heil",
+    "hit it raw",
     "hoe",
     "hoes",
     "horniest",
@@ -222,6 +248,8 @@ _strings = [
     "incest",
     "jack-off",
     "jackoff",
+    "jeet",
+    "jeets",
     "jerk off",
     "jerk-off",
     "jerked off",
@@ -245,6 +273,8 @@ _strings = [
     "labia",
     "lick my",
     "lick your",
+    "like it raw",
+    "likes it raw",
     "loli",
     "lolicon",
     "masterbate",
@@ -259,6 +289,7 @@ _strings = [
     "molester",
     "molesting",
     "my nuts",
+    "my throat",
     "necrophilia",
     "nigga",
     "niggas",
@@ -273,6 +304,12 @@ _strings = [
     "orgy",
     "paedo",
     "paedophile",
+    "pajeet",
+    "pajeeta",
+    "pajeetas",
+    "pajeets",
+    "paki",
+    "pakis",
     "paraphilias",
     "pedo",
     "pedophile",
@@ -281,9 +318,15 @@ _strings = [
     "penis",
     "penisfucker",
     "phonesex",
+    "pin you",
+    "piss",
     "pissflaps",
     "pissin",
     "pissing",
+    "poojeet",
+    "poojeeta",
+    "poojeetas",
+    "poojeets",
     "porn",
     "porno",
     "pornography",
@@ -294,11 +337,13 @@ _strings = [
     "pussys",
     "rail you",
     "rape",
+    "rapeable",
     "rapebait"
     "raped",
     "rapes",
     "raping",
     "rapist",
+    "raw dog you",
     "retard",
     "retardation",
     "retarded",
@@ -319,13 +364,28 @@ _strings = [
     "shota",
     "shotacon",
     "skank",
+    "slit my wrist",
+    "slit my wrists",
+    "slit your wrist",
+    "slit your wrists",
     "slut",
     "sluts",
+    "slutty",
     "smegma",
     "sodomize",
     "sodomy",
     "some head",
     "spic",
+    "spit in my face",
+    "spit in my mouth",
+    "spit in your face",
+    "spit in your mouth",
+    "spit on me",
+    "spit on my face",
+    "spit on my mouth",
+    "spit on you",
+    "spit on your face",
+    "spit on your mouth",
     "stabbing me",
     "stabbing you",
     "strangle me",
@@ -333,6 +393,11 @@ _strings = [
     "suicidal",
     "suicide",
     "testicle",
+    "throat fuck",
+    "throat fucking",
+    "throat pussy",
+    "throatfuck",
+    "throatfucking",
     "tie me",
     "tie you",
     "tit fuck",
@@ -376,8 +441,12 @@ _strings = [
     "whore",
     "whores",
     "wincest",
+    "you are retarded",
+    "you retard",
+    "you retarded",
     "you will never be a woman",
     "you'll never be a woman",
+    "your throat",
     "your throat",
     "ywnbaw",
     "zoophilia",
@@ -390,17 +459,47 @@ _offensive_pattern = '|'.join(f'(\\b{re.escape(s)}\\b)' for s in _strings)
 
 
 # Characters which were repeated more than once
-_repeated_characters_pattern = re.compile(r'(.)\1+')
+_repeated_characters_pattern = re.compile(r'(.)\1+', re.IGNORECASE)
 
 
 _offensive_matcher = re.compile(_offensive_pattern, re.IGNORECASE)
 
 
-def _apply_normalization_map(haystack: str):
+def _get_latin_homoglyph(char: str) -> str:
+    """
+    Returns a Latin homoglyph for the given character if available.
+    If no Latin homoglyph is found, returns the original character.
+    """
+    # confusables.is_confusable returns a list of dictionaries, one per confusable character
+    # Each dictionary can contain a 'homoglyphs' key, which is a list of homoglyph entries.
+    info_seq = confusables.is_confusable(char, preferred_aliases=['latin']) or []
+
+    for info in info_seq:
+        # Extract the first Latin homoglyph character if one exists
+        latin_homoglyphs = (
+                h['c']
+                for h in info.get('homoglyphs', [])
+                if info.get('alias') not in ['LATIN', 'COMMON']
+        )
+        latin_homoglyph = next(latin_homoglyphs, None)
+        if latin_homoglyph:
+            return latin_homoglyph
+
+    return char
+
+
+def _normalize_homoglyphs(s: str) -> str:
+    """
+    Normalizes an input string by replacing characters that are confusable with Latin homoglyphs.
+    """
+    return ''.join(_get_latin_homoglyph(char) for char in s)
+
+
+def _normalize_spelling(haystack: str):
     for needle, replacement in _normalization_map.items():
         # Apparently compiled regexes are cached between invocations of
         # re.compile.
-        pattern = re.compile(f"\\b{needle}\\b")
+        pattern = re.compile(f"\\b{needle}\\b", re.IGNORECASE)
 
         haystack = pattern.sub(replacement, haystack)
 
@@ -415,6 +514,9 @@ def normalize_string(s: str):
         char for char in normalized_input if not unicodedata.combining(char)
     )
 
+    # Mitigate homoglyph attacks
+    normalized_input = _normalize_homoglyphs(normalized_input)
+
     # Normalize whitespace
     normalized_input = ' '.join(_split_pattern.split(normalized_input))
 
@@ -423,7 +525,7 @@ def normalize_string(s: str):
         r'\1\1', normalized_input)
 
     # Replace slang
-    normalized_input = _apply_normalization_map(normalized_input)
+    normalized_input = _normalize_spelling(normalized_input)
 
     return normalized_input
 
