@@ -58,6 +58,10 @@ Morgan meow """))
                 contains_gibberish(
                     "Welcome to online dating 4328"))
 
+        self.assertTrue(
+                contains_gibberish(
+                    "Welcome to online dating 🤙🕼🨤😁🝬🚠🛔🛅🤆🦣🤂🍫🎀🥃🥮🌍🚋💡🜴"))
+
 
     def test_non_gibberish_strings(self):
         self.assertFalse(
@@ -71,6 +75,14 @@ Morgan meow """))
         self.assertFalse(
                 contains_gibberish(
                     "hi"))
+
+        self.assertFalse(
+                contains_gibberish(
+                    "i love ur pfp 😂😂😂"))
+
+        self.assertFalse(
+                contains_gibberish(
+                    "bruh 💀💀💀\n\nclowns freak me out too"))
 
         self.assertFalse(
                 contains_gibberish(

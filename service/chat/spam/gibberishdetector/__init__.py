@@ -7,6 +7,16 @@ import os
 import urllib.request
 import tarfile
 import glob
+import string
+
+def emojis():
+    # Emoticons range
+    emoji_list = [chr(code) for code in range(0x1F600, 0x1F64F)]
+
+    # Misc symbols and pictographs
+    emoji_list += [chr(code) for code in range(0x1F300, 0x1F5FF)]
+
+    return emoji_list
 
 
 def download_opus100(output_dir):
@@ -36,7 +46,7 @@ def download_opus100(output_dir):
     else:
         print(f"File {src_file} already exists. Skipping download.")
 
-    if not os.path.exists(output_dir):
+    if not os.path.exists(f'{output_dir}/opus-100-corpus'):
         print(f"Extracting {src_file}...")
         with tarfile.open(compressed_file_path, "r:gz") as tar:
             tar.extractall(path=output_dir)
@@ -92,6 +102,12 @@ def get_corpus():
 
     before_length = len(text)
 
+    # Repeated word characters
+    _pattern1 = regex.compile(r'(.)\1{2,}')
+    _pattern2 = regex.compile(r'''( ) +''')
+    _pattern3 = regex.compile(r'''([0-9])[0-9]+''')
+    _pattern4 = regex.compile(r'''(\p{Emoji_Presentation})\p{Emoji_Presentation}+''')
+
     print('Cleaning corpus: Pass 1...')
     text = _pattern1.sub(r'\1\1', text)
 
@@ -109,6 +125,18 @@ def get_corpus():
     print(
             'Corpus cleaning finished with percent of corpus left:',
             100.0 * after_length / before_length)
+
+    print('Augmenting corpus')
+    extra_text = []
+    extra_text += [
+            f' {emoji}\n'
+            for emoji in emojis()]
+    extra_text += [
+            f'{letter}{emoji}\n'
+            for letter in string.ascii_letters
+            for emoji in emojis()]
+
+    text = ''.join([text] + extra_text)
 
     return text
 
@@ -176,8 +204,28 @@ def string_probability(s, bigram_probs):
     return prob
 
 
+def _normalize_short_emoji_runs(text):
+    _pattern = regex.compile(
+            r'(?<=\s|^)(\p{Emoji_Presentation})\p{Emoji_Presentation}{0,2}(?=\s|$)')
+    return _pattern.sub(r'\1', text)
+
+
+def _normalize_short_newline_runs(text):
+    _pattern = regex.compile(r'([\n\r])[\n\r]{0,2}')
+    return _pattern.sub(r'\1', text)
+
+
 def contains_gibberish(text, window_size=10, prob_threshold=-50):
     """Detect unlikely text based on bigram probabilities"""
+
+    # The bigram model assigns low probabilities to emojis. This is good for
+    # filtering spam comprised of long emoji runs. But a few consecutive emojis
+    # are common in online speech. So we'll normalize strings to allow moderate
+    # emoji use. It'd be preferable to have this handled by the model, but
+    # bigram models don't take enough context into consideration.
+    text = _normalize_short_emoji_runs(text)
+    text = _normalize_short_newline_runs(text)
+
     if len(text) == 0:
         return False
 
@@ -198,15 +246,6 @@ def contains_gibberish(text, window_size=10, prob_threshold=-50):
 def train_model():
     bigram_probs = compute_bigram_probs()
     save_bigram_probs(bigram_probs)
-
-# Repeated word characters
-_pattern1 = regex.compile(r'(.)\1{2,}')
-
-_pattern2 = regex.compile(r'''( ) +''')
-
-_pattern3 = regex.compile(r'''([0-9])[0-9]+''')
-
-_pattern4 = regex.compile(r'''(\p{Emoji_Presentation})\p{Emoji_Presentation}+''')
 
 
 if __name__ == "__main__":

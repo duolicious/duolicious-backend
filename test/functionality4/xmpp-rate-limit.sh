@@ -6,7 +6,7 @@ cd "$script_dir"
 source ../util/setup.sh
 mapfile -t greetings < ../fixtures/greetings.txt
 
-max_intros_per_day=50
+max_intros_per_day=35
 
 set -xe
 
