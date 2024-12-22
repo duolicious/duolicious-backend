@@ -809,7 +809,10 @@ const TextInputWithButton = ({
       <DefaultLongTextInput
         style={{
           ...styles.textInput,
-          ...{ maxHeight: height * 0.4 },
+          ...{
+            minHeight: 50,
+            maxHeight: height * 0.4
+          },
         }}
         value={text}
         onChangeText={maybeSetText}
@@ -870,6 +873,7 @@ const styles = StyleSheet.create({
     maxWidth: 600,
     width: '100%',
     paddingHorizontal: 10,
+    marginTop: 10,
     marginBottom: 10,
     alignSelf: 'center',
     alignItems: 'flex-end',
