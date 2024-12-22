@@ -1067,8 +1067,6 @@ const AudioPlayer = ({
         onPlaybackStatusUpdate,
         false,
       )).sound;
-
-      await play();
     };
 
     go();
