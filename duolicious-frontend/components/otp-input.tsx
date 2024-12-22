@@ -166,6 +166,7 @@ const OtpInput = (props: Props) => {
         {
           state.map((digitState, i) =>
             <DefaultTextInput
+              placeholder=""
               key={i}
               autoFocus={i === 0}
               innerRef={e => inputRefs.current[i] = e}

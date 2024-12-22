@@ -87,8 +87,9 @@ const ButtonForOption = (props) => {
         style={{
           width: '100%',
           height: '100%',
-          borderColor: '#aaa',
+          borderColor: '#999',
           borderWidth: 1,
+          borderBottomWidth: 2,
           borderRadius: 999,
           paddingLeft: 10,
           paddingRight: 20,

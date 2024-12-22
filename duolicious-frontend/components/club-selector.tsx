@@ -47,6 +47,7 @@ const SelectedClub = ({
         style={{
           backgroundColor: 'rgba(119, 0, 255, 0.1)',
           flexShrink: 1,
+          borderBottomWidth: 3,
         }}
         textStyle={{
           color: '#70f',
@@ -110,8 +111,11 @@ const UnselectedClub = ({
             marginBottom: 5,
             flexWrap: 'wrap',
             flexShrink: 1,
+            borderBottomWidth: 3,
           }}
-        >{clubItem.name}</Basic>
+        >
+          {clubItem.name}
+        </Basic>
         <DefaultText style={{fontWeight: '700'}}>
           {clubItem.count_members}
           {' '}

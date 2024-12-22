@@ -1,5 +1,6 @@
 import {
   Animated,
+  DimensionValue,
   LayoutAnimation,
   Pressable,
   View,
@@ -83,7 +84,11 @@ const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
     const position_ = position && Math.round(position);
     const extraHeight_ = extraHeight || 0;
 
-    const labelPosition = position_ < 50 ?
+    const labelPosition: {
+      left: DimensionValue
+    } | {
+      right: DimensionValue
+    } = position_ < 50 ?
       {left: `${position_}%`} :
       {right: `${100 - position_}%`};
 
@@ -185,14 +190,17 @@ const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
         borderRadius: 5,
         marginTop: 10,
         marginBottom: 10,
-        shadowOffset: {
-          width: 0,
-          height: 2,
-        },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 8,
         overflow: 'visible',
+
+        borderTopWidth: 1,
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        borderBottomWidth: 3,
+
+        borderTopColor: '#eee',
+        borderLeftColor: '#eee',
+        borderRightColor: '#eee',
+        borderBottomColor: '#ddd',
       }}
     >
       <Pressable

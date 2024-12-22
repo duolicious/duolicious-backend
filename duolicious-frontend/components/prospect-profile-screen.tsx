@@ -22,7 +22,6 @@ import { StatusBarSpacer } from './status-bar-spacer';
 import { DefaultText } from './default-text';
 import { DonutChart } from './donut-chart';
 import { Title } from './title';
-import { Shadow } from './shadow';
 import { InDepthScreen } from './in-depth-screen';
 import { ButtonWithCenteredText } from './button/centered-text';
 import { api } from '../api/api';
@@ -197,13 +196,9 @@ const FloatingBackButton = (props) => {
           backgroundColor: 'white',
           alignItems: 'center',
           justifyContent: 'center',
-          shadowOffset: {
-            width: 0,
-            height: 4,
-          },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          elevation: 8,
+          borderWidth: 1,
+          borderBottomWidth: 2,
+          borderColor: 'black',
         }}
         onPress={onPress ?? (navigationRef?.current || navigation).goBack}
       >
@@ -265,13 +260,9 @@ const FloatingProfileInteractionButton = ({
           backgroundColor: backgroundColor,
           opacity: opacity,
           flexDirection: 'row',
-          shadowOffset: {
-            width: 0,
-            height: 4,
-          },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          elevation: 6,
+          borderWidth: 1,
+          borderBottomWidth: 3,
+          borderColor: 'black',
           height: 60,
           width: 60,
         }}
@@ -817,7 +808,6 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
           userLocation={data?.location}
           textColor={data?.theme?.title_color}
         />
-        <Shadow/>
         <Body
           navigation={navigation}
           personId={personId}

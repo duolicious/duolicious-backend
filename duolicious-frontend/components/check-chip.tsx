@@ -40,8 +40,10 @@ const CheckChip = ({label, ...props}) => {
     <Pressable
       style={{
         borderRadius: 999,
-        borderWidth: 3,
-        borderColor: 'white',
+        borderWidth: 1,
+        borderRightWidth: 2,
+        borderBottomWidth: 4,
+        borderColor: 'black',
         paddingLeft: 20,
         paddingRight: 20,
         paddingTop: 12,

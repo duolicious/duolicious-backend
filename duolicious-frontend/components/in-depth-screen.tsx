@@ -20,7 +20,7 @@ import { StatusBarSpacer } from './status-bar-spacer';
 import { FloatingBackButton } from './prospect-profile-screen';
 import { CardState } from './quiz-card';
 
-const sideMargins: StyleProp<ViewStyle> = {
+const sideMargins = {
   marginLeft: 10,
   marginRight: 10,
 };

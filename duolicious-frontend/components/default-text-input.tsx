@@ -9,6 +9,7 @@ const DefaultTextInput = (props) => {
   return (
     <TextInput
       ref={innerRef}
+      placeholder="Write here..."
       placeholderTextColor="#888"
       cursorColor="#70f"
       returnKeyType="done"
@@ -19,7 +20,7 @@ const DefaultTextInput = (props) => {
         marginLeft: 20,
         marginRight: 20,
         textAlignVertical: 'center',
-        borderColor: '#ccc',
+        borderColor: '#999',
         borderWidth: 1,
         borderRadius: 10,
         height: 50,

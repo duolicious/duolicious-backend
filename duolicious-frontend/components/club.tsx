@@ -16,7 +16,10 @@ const Club = ({
   return (
     <Basic
       onPress={onPress}
-      style={style}
+      style={{
+        borderBottomWidth: 3,
+        ...style
+      }}
       textStyle={{
         fontFamily: isMutual ? 'TruenoBold' : 'Trueno',
         fontWeight: isMutual ? '900' : '400',

@@ -49,7 +49,7 @@ const Basic = ({children, ...rest}) => {
     <Animated.View
       style={[
         {
-          borderColor: 'rgba(0, 0, 0, 0.1)',
+          borderColor: 'rgba(0, 0, 0, 0.4)',
           borderWidth: 1,
           borderRadius: 999,
           justifyContent: 'center',

@@ -301,6 +301,8 @@ const DisplayNameAndAboutPerson = ({navigation, data}) => {
         defaultValue={data?.name ?? ''}
         onChangeText={onChangeNameText}
         style={{
+          backgroundColor: '#eee',
+          borderWidth: 0,
           marginLeft: 0,
           marginRight: 0,
         }}
@@ -325,6 +327,8 @@ const DisplayNameAndAboutPerson = ({navigation, data}) => {
         onChangeText={onChangeAboutText}
         numberOfLines={8}
         style={{
+          backgroundColor: '#eee',
+          borderWidth: 0,
           height: 200,
         }}
       />

@@ -10,7 +10,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TextStyle,
   View,
   ViewStyle,
@@ -51,6 +50,7 @@ import { listen, notify, lastEvent } from '../events/events';
 import { Image, ImageBackground } from 'expo-image';
 import * as StoreReview from 'expo-store-review';
 import { askedForReviewBefore } from '../kv-storage/asked-for-review-before';
+import { DefaultLongTextInput } from './default-long-text-input';
 
 
 const propAt = (messages: Message[] | null | undefined, index: number, prop: string): string => {
@@ -172,13 +172,8 @@ const Menu = ({navigation, name, personId, personUuid, closeFn}) => {
         flexDirection: 'column',
         backgroundColor: 'white',
         borderRadius: borderRadius,
-        shadowOffset: {
-          width: 0,
-          height: 3,
-        },
-        shadowOpacity: 0.2,
-        shadowRadius: 10,
-        elevation: 8,
+        borderWidth: 1,
+        borderColor: '#999',
         zIndex: 999,
         overflow: 'visible',
         maxWidth: 350,
@@ -290,15 +285,8 @@ const ConversationScreenNavBar = ({
     setShowMenu(x => !x);
   }, []);
 
-  // There's a bug in React Native which causes `overflow: hidden` to be
-  // ignored when zIndex or elevation are set.
-  const menuWorkaround = showMenu && Platform.OS === 'android' ? {
-    elevation: undefined,
-    zIndex: undefined,
-  } : {};
-
   return (
-    <TopNavBar containerStyle={menuWorkaround} >
+    <TopNavBar>
       <TopNavBarButton
         onPress={() => navigation.goBack()}
         iconName="arrow-back"
@@ -818,73 +806,57 @@ const TextInputWithButton = ({
       style={styles.keyboardAvoidingView}
       enabled={Platform.OS === 'ios'}
     >
-      <TextInput
-        style={[
-          styles.textInput,
-          { maxHeight: height * 0.4 },
-        ]}
+      <DefaultLongTextInput
+        style={{
+          ...styles.textInput,
+          ...{ maxHeight: height * 0.4 },
+        }}
         value={text}
         onChangeText={maybeSetText}
         onKeyPress={onKeyPress}
-        placeholder="Type a message"
+        placeholder="Type a message..."
         placeholderTextColor="#888888"
         multiline={true}
       />
-      <View
+      <Pressable
         style={{
+          height: 50,
           width: 50,
-          marginLeft: 0,
-          margin: 10,
-          justifyContent: 'flex-end',
-          alignItems: 'flex-end',
         }}
+        onPressIn={fadeIn}
+        onPressOut={fadeOut}
+        onPress={sendMessage}
       >
-        <View
+        <Animated.View
           style={{
+            height: '100%',
             width: '100%',
-            aspectRatio: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgb(228, 204, 255)',
+            borderRadius: 999,
+            borderWidth: 1,
+            borderBottomWidth: 3,
+            borderColor: '#70f',
+            opacity: opacity,
           }}
         >
-          <Pressable
-            style={{
-              height: '100%',
-              width: '100%',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-            onPressIn={fadeIn}
-            onPressOut={fadeOut}
-            onPress={sendMessage}
-          >
-            <Animated.View
+          {isLoading &&
+            <ActivityIndicator size="small" color="#70f" />
+          }
+          {!isLoading &&
+            <FontAwesomeIcon
+              icon={faPaperPlane}
+              size={20}
+              color="#70f"
               style={{
-                height: '100%',
-                width: '100%',
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: 'rgb(228, 204, 255)',
-                borderRadius: 999,
-                opacity: opacity,
+                marginRight: 5,
+                marginBottom: 5,
               }}
-            >
-              {isLoading &&
-                <ActivityIndicator size="small" color="#70f" />
-              }
-              {!isLoading &&
-                <FontAwesomeIcon
-                  icon={faPaperPlane}
-                  size={20}
-                  color="#70f"
-                  style={{
-                    marginRight: 5,
-                    marginBottom: 5,
-                  }}
-                />
-              }
-            </Animated.View>
-          </Pressable>
-        </View>
-      </View>
+            />
+          }
+        </Animated.View>
+      </Pressable>
     </KeyboardAvoidingView>
   );
 };
@@ -897,18 +869,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     maxWidth: 600,
     width: '100%',
+    paddingHorizontal: 10,
+    marginBottom: 10,
     alignSelf: 'center',
+    alignItems: 'flex-end',
+    gap: 10,
   },
   textInput: {
-    textAlignVertical: 'top',
-    backgroundColor: '#eeeeee',
+    backgroundColor: '#eee',
     borderRadius: 10,
     padding: 10,
     fontSize: 16,
     flex: 1,
     flexGrow: 1,
-    margin: 10,
-    marginRight: 5,
   }
 });
 

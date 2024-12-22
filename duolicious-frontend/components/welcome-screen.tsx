@@ -575,7 +575,6 @@ const WelcomeScreen_ = ({navigation, route}) => {
         >
           <ButtonWithCenteredText
             onPress={() => submit()}
-            borderWidth={0}
             secondary={true}
             loading={isLoading}
             extraChildren={

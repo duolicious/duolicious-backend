@@ -95,7 +95,7 @@ const ButtonWithCenteredText = (props) => {
             containerStyle?.height === undefined
           ) ? undefined : '100%',
           borderRadius: 999,
-          borderColor: borderColor === undefined ? '#ccc' : borderColor,
+          borderColor: borderColor === undefined ? 'black' : borderColor,
           borderWidth: borderWidth === undefined ? (secondary ? 1 : 0) : borderWidth,
           backgroundColor: backgroundColor || (secondary ? 'white' : '#70f'),
           opacity: animatedOpacity,

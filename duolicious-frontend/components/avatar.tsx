@@ -30,16 +30,6 @@ const Avatar = ({percentage, ...props}) => {
     verificationRequired = null,
   } = props;
 
-  const shadowStyle = (shadow && !isSkipped && !verificationRequired) ? {
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
-  } : {};
-
   const Element = navigation ? Pressable : View;
   const elementStyle = useRef({
     height: 90,
@@ -70,44 +60,32 @@ const Avatar = ({percentage, ...props}) => {
       onPress={onPress}
       style={elementStyle}
     >
-      <View
+      <ImageBackground
+        source={imageUuid && {
+          uri: `${IMAGES_URL}/450-${imageUuid}.jpg`,
+          height: 450,
+          width: 450,
+        }}
+        placeholder={imageBlurhash && { blurhash: imageBlurhash }}
+        transition={150}
         style={{
+          flex: 1,
           aspectRatio: 1,
           borderRadius: 999,
-          margin: 2,
-          borderColor: 'white',
-          backgroundColor: imageUuid ? 'white' : '#f1e5ff',
-          borderWidth: 2,
-          overflow: 'visible',
-          ...shadowStyle,
-
+          overflow: 'hidden',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#f1e5ff',
+          margin: 4,
         }}
       >
-        <ImageBackground
-          source={imageUuid && {
-            uri: `${IMAGES_URL}/450-${imageUuid}.jpg`,
-            height: 450,
-            width: 450,
-          }}
-          placeholder={imageBlurhash && { blurhash: imageBlurhash }}
-          transition={150}
-          style={{
-            flex: 1,
-            aspectRatio: 1,
-            borderRadius: 999,
-            overflow: 'hidden',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          {!imageUuid &&
-            <Ionicons
-              style={{fontSize: 40, color: 'rgba(119, 0, 255, 0.2)'}}
-              name={'person'}
-            />
-          }
-        </ImageBackground>
-      </View>
+        {!imageUuid &&
+          <Ionicons
+            style={{fontSize: 40, color: 'rgba(119, 0, 255, 0.2)'}}
+            name={'person'}
+          />
+        }
+      </ImageBackground>
       <View
         style={{
           position: 'absolute',

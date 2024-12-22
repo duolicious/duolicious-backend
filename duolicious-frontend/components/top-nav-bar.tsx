@@ -6,16 +6,6 @@ import { StatusBarSpacer } from './status-bar-spacer';
 import { DefaultText } from './default-text';
 import { Logo16 } from './logo';
 
-const shadow = {
-  shadowOffset: {
-    width: 0,
-    height: 2,
-  },
-  shadowOpacity: 0.1,
-  shadowRadius: 3,
-  elevation: 8,
-};
-
 const TopNavBar = (props) => {
   return (
     <View
@@ -24,7 +14,6 @@ const TopNavBar = (props) => {
         zIndex: 999,
         width: '100%',
         overflow: 'visible',
-        ...(props.shadow === false ? {} : shadow),
         ...props.containerStyle,
       }}
     >

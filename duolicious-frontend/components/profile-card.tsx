@@ -14,7 +14,6 @@ import {
 } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DefaultText } from './default-text';
-import { Avatar } from './avatar';
 import {
   IMAGES_URL,
 } from '../env/env';

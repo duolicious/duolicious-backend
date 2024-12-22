@@ -33,6 +33,9 @@ const ButtonGroup = (props) => {
       selectedButtonStyle={{
         backgroundColor: 'rgb(228, 204, 255)', // = #70f, 0.2 opacity
         borderRadius: secondary === true ? secondaryBorderRadius : borderRadius,
+        borderWidth: 1,
+        borderBottomWidth: 3,
+        borderColor: '#70f',
       }}
       selectedTextStyle={{
         color: '#70f',
@@ -45,7 +48,6 @@ const ButtonGroup = (props) => {
         marginBottom: 10,
         borderWidth: 0,
         overflow: 'visible',
-        backgroundColor: 'rgb(245, 245, 245)',
         borderRadius: secondary === true ? secondaryBorderRadius : borderRadius,
         height: 48,
         ...(secondary === true ? secondaryContainerStyle : {}),

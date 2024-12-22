@@ -506,17 +506,13 @@ const AnswerIcon = ({
         alignItems: 'center',
         padding: 2,
         backgroundColor: backgroundColor,
-        borderColor: selected === false ? '#bbb' : 'transparent',
-        borderWidth: 1,
+        borderColor: selected === false ? '#bbb' : 'black',
+        borderWidth: onPress ? 1 : 0,
+        borderBottomWidth: onPress ? 2 : 0,
         borderRadius: 999,
         overflow: 'visible',
-        shadowOffset: {
-          width: 0,
-          height: 2,
-        },
-        shadowOpacity: 0.2,
-        shadowRadius: 5,
-        elevation: 3,
+        width: 26,
+        height: 26,
       },
       onPress,
     },
@@ -553,7 +549,7 @@ const AnswerIconGroup = ({
     <View
       style={{
         flexDirection: 'row',
-        gap: onPress ? 15 : 3,
+        gap: 15,
       }}
     >
       <AnswerIcon

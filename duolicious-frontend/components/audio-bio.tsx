@@ -315,7 +315,7 @@ const AudioBio = ({
         width: '100%',
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: '#999',
         padding: 10,
         gap: 15,
       }}
