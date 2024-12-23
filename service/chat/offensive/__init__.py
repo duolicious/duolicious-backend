@@ -21,6 +21,7 @@ _normalization_map = {
     "c+v+m+": "cum",
     "c0ck": "cock",
     "c0cksucker": "cocksucker",
+    "cok": "cock",
     "cvmming": "cumming",
     "cvms": "cums",
     "cvmshot": "cumshot",
@@ -43,11 +44,13 @@ _normalization_map = {
     "p0rn": "porn",
     "pissin": "pissing",
     "r": "are",
+    "sxy": "sexy",
     "u": "you",
     "ur": "your",
     "urself": "yourself",
     "wh0re": "whore",
     "wh0res": "whores",
+    "a[s5$]{2}": "ass",
 }
 
 
@@ -204,6 +207,7 @@ _strings = [
     "foot job",
     "footjob",
     "fuck you",
+    "fuck your ass",
     "fuck your asshole",
     "fuck your brains out",
     "fuck your face",
@@ -244,6 +248,7 @@ _strings = [
     "hit it raw",
     "hoe",
     "hoes",
+    "homo",
     "horniest",
     "horny",
     "hotsex",
@@ -376,8 +381,10 @@ _strings = [
     "shag",
     "shagging",
     "shemale",
+    "shit skin",
     "shitdick",
     "shitfuck",
+    "shitskin",
     "shota",
     "shotacon",
     "skank",
@@ -516,7 +523,7 @@ def _normalize_spelling(haystack: str):
     for needle, replacement in _normalization_map.items():
         # Apparently compiled regexes are cached between invocations of
         # re.compile.
-        pattern = re.compile(f"\\b{needle}\\b", re.IGNORECASE)
+        pattern = re.compile(f"(?:(?<=^)|(?<=\s)){needle}(?=\s|$)", re.IGNORECASE)
 
         haystack = pattern.sub(replacement, haystack)
 

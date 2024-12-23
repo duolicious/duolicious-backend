@@ -2514,6 +2514,8 @@ VALUES
     ('shedtwt'),
     ('she''s mine now bitch'),
     ('she took the fucking kids'),
+    ('shit skin'),
+    ('shitskin'),
     ('shooter'),
     ('shoot me'),
     ('shota'),

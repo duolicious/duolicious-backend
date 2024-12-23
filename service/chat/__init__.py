@@ -33,7 +33,7 @@ from lxml import etree
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 
-MAX_INTROS_PER_DAY = 35
+MAX_INTROS_PER_DAY = 50
 
 # TODO: Tables to migrate to monolithic DB:
 #

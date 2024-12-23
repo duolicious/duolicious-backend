@@ -5,6 +5,9 @@ class TestIsOffensive(unittest.TestCase):
 
     def test_offensive_strings(self):
         self.assertTrue(
+                is_offensive("fuk your as$"))
+
+        self.assertTrue(
                 is_offensive("go fk urself please"))
 
         self.assertTrue(
