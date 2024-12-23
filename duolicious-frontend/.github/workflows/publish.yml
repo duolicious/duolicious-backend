@@ -44,6 +44,7 @@ jobs:
           DUO_IMAGES_URL: https://user-images.duolicious.app
           DUO_AUDIO_URL:   https://user-audio.duolicious.app
           DUO_STATUS_URL:      https://status.duolicious.app
+          DUO_WEB_BASE_URL:       https://web.duolicious.app
       - uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

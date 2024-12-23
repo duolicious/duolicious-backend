@@ -23,6 +23,7 @@ import { DuoliciousTopNavBar } from './top-nav-bar';
 import { referrerId } from '../App';
 import { api } from '../api/api';
 import { useFocusEffect } from '@react-navigation/native';
+import { WEB_BASE_URL } from '../env/env';
 
 const sideMargins: StyleProp<ViewStyle> = {
   marginLeft: 10,
@@ -32,12 +33,12 @@ const sideMargins: StyleProp<ViewStyle> = {
 const ShareNotice = ({personId}) => {
   const [isCopied, setIsCopied] = useState(false);
 
-  const url = `https://web.duolicious.app/me/${personId}`;
+  const url = `${WEB_BASE_URL}/me/${personId}`;
 
   const onPressNotice = useCallback(async () => {
     await Clipboard.setStringAsync(url);
     setIsCopied(true);
-  }, []);
+  }, [url]);
 
   return (
     <Pressable

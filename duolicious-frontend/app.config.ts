@@ -29,6 +29,7 @@ const config: ExpoConfig = {
     imagesUrl: process.env.DUO_IMAGES_URL,
     audioUrl: process.env.DUO_AUDIO_URL,
     statusUrl: process.env.DUO_STATUS_URL,
+    webUrl: process.env.DUO_WEB_BASE_URL,
   },
   web: {
     favicon: "./assets/favicon.png"
