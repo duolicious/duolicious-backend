@@ -181,8 +181,6 @@ type DefaultFlatListProps<ItemT> =
     | "ListEmptyComponent"
     | "ListFooterComponent"
     | "data"
-    | "onContentSizeChange"
-    | "onLayout"
     | "onRefresh"
     | "refreshing"
   >;
@@ -343,10 +341,18 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
     if (contentHeight.current < viewportHeight.current) {
       fetchNextPage();
     }
+
+    if (props.onContentSizeChange) {
+      props.onContentSizeChange(width, height);
+    }
   };
 
-  const onLayout = useCallback(({ nativeEvent: { layout: { height } } }) => {
-    viewportHeight.current = height;
+  const onLayout = useCallback((params) => {
+    viewportHeight.current = params.nativeEvent.layout.height;
+
+    if (props.onLayout) {
+      props.onLayout(params);
+    }
   }, []);
 
   if (props.contentContainerStyle !== contentContainerStyle[1]) {
@@ -361,7 +367,17 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
 
   return (
     <FlatList
-      ref={flatList}
+      ref={(node) => {
+        flatList.current = node;
+
+        if (props.innerRef === undefined) {
+          ;
+        } else if (typeof props.innerRef === 'function') {
+          props.innerRef(node);
+        } else {
+          props.innerRef.current = node;
+        }
+      }}
       refreshing={false}
       onRefresh={props.disableRefresh ? undefined : onRefresh}
       onEndReachedThreshold={props.onEndReachedThreshold ?? 1}

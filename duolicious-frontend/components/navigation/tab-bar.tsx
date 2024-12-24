@@ -8,21 +8,17 @@ import {
   useEffect,
   useRef,
 } from 'react';
-import { DefaultText } from './default-text';
+import { DefaultText } from '../default-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StackActions } from '@react-navigation/native';
-import { QAndADevice } from './q-and-a-device';
-import { Inbox, inboxStats } from '../xmpp/xmpp';
+import { QAndADevice } from '../q-and-a-device';
+import { Inbox, inboxStats } from '../../xmpp/xmpp';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { listen } from '../events/events';
-
-const displayedTabs: Set<string> = new Set([
-  "Q&A",
-  "Search",
-  "Inbox",
-  "Traits",
-  "Profile",
-]);
+import { listen } from '../../events/events';
+import {
+  LabelToIcon,
+  displayedTabs
+} from './util';
 
 const TabBar = ({state, descriptors, navigation}) => {
   const insets = useSafeAreaInsets();
@@ -136,17 +132,6 @@ const TabBar = ({state, descriptors, navigation}) => {
 
           const inputRange = state.routes.map((_, i) => i);
 
-          const searchIcon =
-            isFocused ? 'search' : 'search-outline';
-          const inboxIcon =
-            isFocused ? 'chatbubbles' : 'chatbubbles-outline';
-          const profileIcon =
-            isFocused ? 'person' : 'person-outline';
-
-          const iconStyle = {
-            fontSize: 20,
-          };
-
           return [
             <Pressable
               key={route.key}
@@ -174,63 +159,11 @@ const TabBar = ({state, descriptors, navigation}) => {
                   overflow: 'visible',
                 }}
               >
-                {label === 'Q&A' &&
-                  <QAndADevice
-                    color="black"
-                    fontSize={iconStyle.fontSize}
-                    isBold={isFocused}
-                  />
-                }
-                <View>
-                  {label === 'Search' &&
-                    <Ionicons style={{...iconStyle}} name={searchIcon}/>
-                  }
-                  {label === 'Inbox' &&
-                    <Ionicons style={{...iconStyle}} name={inboxIcon}/>
-                  }
-                  {label === 'Inbox' &&
-                    <Animated.View
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        right: -13,
-                        height: 12,
-                        width: 12,
-                        backgroundColor: '#70f',
-                        borderRadius: 999,
-                        shadowOffset: {
-                          width: 0,
-                          height: 2,
-                        },
-                        shadowOpacity: 0.4,
-                        shadowRadius: 4,
-                        elevation: 4,
-                        opacity: unreadIndicatorOpacity,
-                      }}
-                    />
-                  }
-                  {label === 'Traits' &&
-                    <View
-                      style={{
-                        height: 20,
-                        overflow: 'visible',
-                      }}
-                    >
-                      <DefaultText
-                        style={{
-                          fontSize: 22,
-                          marginTop: -6,
-                          fontWeight: isFocused ? '700' : undefined,
-                        }}
-                      >
-                        Ψ
-                      </DefaultText>
-                    </View>
-                  }
-                  {label === 'Profile' &&
-                    <Ionicons style={{...iconStyle}} name={profileIcon}/>
-                  }
-                </View>
+                <LabelToIcon
+                  label={label}
+                  isFocused={isFocused}
+                  unreadIndicatorOpacity={unreadIndicatorOpacity}
+                />
                 <DefaultText
                   style={{
                     textAlign: 'center',

@@ -24,11 +24,12 @@ import { DefaultFlatList } from './default-flat-list';
 import { japi } from '../api/api';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { LinearGradient } from 'expo-linear-gradient';
-import { delay, isMobile } from '../util/util';
+import { isMobile } from '../util/util';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ClubItem, sortClubs } from '../club/club';
 import { listen, lastEvent } from '../events/events';
 import { searchQueue } from '../api/queue';
+import { useScrollbar } from './navigation/scroll-bar-hooks';
 
 const styles = StyleSheet.create({
   safeAreaView: {
@@ -510,6 +511,14 @@ const SearchScreen_ = ({navigation}) => {
 
   const listRef = useRef<any>(undefined);
 
+  const {
+    onLayout,
+    onContentSizeChange,
+    onScroll,
+    showsVerticalScrollIndicator,
+    observeListRef,
+  } = useScrollbar('search');
+
   const [
     hasClubs,
     setHasClubs,
@@ -563,6 +572,7 @@ const SearchScreen_ = ({navigation}) => {
             iconName="refresh"
             position="left"
             secondary={true}
+            label="Refresh"
           />
         }
         <TopNavBarButton
@@ -570,6 +580,7 @@ const SearchScreen_ = ({navigation}) => {
           iconName="options-outline"
           position="right"
           secondary={false}
+          label="Search Filters"
         />
       </DuoliciousTopNavBar>
       <DefaultFlatList
@@ -579,6 +590,7 @@ const SearchScreen_ = ({navigation}) => {
           String(hasClubs)
         }
         ref={listRef}
+        innerRef={observeListRef}
         emptyText={
           "No matches found. Try adjusting your search filters to include " +
           "more people."
@@ -605,6 +617,10 @@ const SearchScreen_ = ({navigation}) => {
         }
         renderItem={({item}: any) => <ProfileCardMemo item={item} />}
         scrollIndicatorInsets={scrollIndicatorInsets}
+        onLayout={onLayout}
+        onContentSizeChange={onContentSizeChange}
+        onScroll={onScroll}
+        showsVerticalScrollIndicator={showsVerticalScrollIndicator}
         stickyHeaderHiddenOnScroll={hasClubs}
         stickyHeaderIndices={hasClubs ? [0] : []}
         columnWrapperStyle={styles.listColumnWraperStyle}

@@ -197,7 +197,6 @@ const FloatingBackButton = (props) => {
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: 1,
-          borderBottomWidth: 2,
           borderColor: 'black',
         }}
         onPress={onPress ?? (navigationRef?.current || navigation).goBack}
@@ -261,7 +260,6 @@ const FloatingProfileInteractionButton = ({
           opacity: opacity,
           flexDirection: 'row',
           borderWidth: 1,
-          borderBottomWidth: 3,
           borderColor: 'black',
           height: 60,
           width: 60,

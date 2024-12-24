@@ -26,7 +26,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import * as SplashScreen from 'expo-splash-screen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import { TabBar } from './components/tab-bar';
+import { TabBar } from './components/navigation/tab-bar';
 import SearchTab from './components/search-tab';
 import { QuizTab } from './components/quiz-tab';
 import ProfileTab from './components/profile-tab';
@@ -58,6 +58,11 @@ import { ClubItem } from './club/club';
 import { Toast } from './components/toast';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DonationNagModal } from './components/donation-nag-modal';
+import { createWebNavigator } from './components/navigation/web-navigator';
+import { isMobile } from './util/util';
+
+
+// TODO: Onboarding works
 
 setNofications();
 verificationWatcher();
@@ -65,7 +70,7 @@ verificationWatcher();
 SplashScreen.preventAutoHideAsync();
 
 const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
+const Tab = isMobile() ? createBottomTabNavigator() : createWebNavigator();
 
 if (
   Platform.OS === 'android' &&

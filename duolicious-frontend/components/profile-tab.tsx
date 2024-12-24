@@ -66,6 +66,7 @@ import {
 import { InviteEntrypoint } from './invite';
 import { InvitePicker } from './invite';
 import { AudioBio } from './audio-bio';
+import { useScrollbar } from './navigation/scroll-bar-hooks';
 
 const formatHeight = (og: OptionGroup<OptionGroupInputs>): string | undefined => {
   if (!isOptionGroupSlider(og.input)) return '';
@@ -195,11 +196,20 @@ const ProfileTab_ = ({navigation}) => {
     })();
   }, []);
 
+  const {
+    onLayout,
+    onContentSizeChange,
+    onScroll,
+    showsVerticalScrollIndicator,
+    observeListRef,
+  } = useScrollbar('profile');
+
   return (
     <SafeAreaView style={styles.safeAreaView}>
       <DuoliciousTopNavBar/>
       {data &&
         <ScrollView
+          ref={observeListRef}
           contentContainerStyle={{
             paddingLeft: 10,
             paddingRight: 10,
@@ -208,6 +218,10 @@ const ProfileTab_ = ({navigation}) => {
             width: '100%',
             alignSelf: 'center',
           }}
+          onLayout={onLayout}
+          onContentSizeChange={onContentSizeChange}
+          onScroll={onScroll}
+          showsVerticalScrollIndicator={showsVerticalScrollIndicator}
         >
           <Title>Profile Pictures</Title>
           <Images_ data={data}/>

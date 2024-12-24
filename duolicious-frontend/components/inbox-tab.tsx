@@ -28,6 +28,8 @@ import { inboxOrder, inboxSection } from '../kv-storage/inbox';
 import { signedInUser } from '../App';
 import { Notice } from './notice';
 import { listen, lastEvent } from '../events/events';
+import { useScrollbar } from './navigation/scroll-bar-hooks';
+
 
 const Stack = createNativeStackNavigator();
 
@@ -297,6 +299,14 @@ const InboxTab = ({navigation}) => {
 
   const keyExtractor = useCallback((c: Conversation) => JSON.stringify(c), []);
 
+  const {
+    onLayout,
+    onContentSizeChange,
+    onScroll,
+    showsVerticalScrollIndicator,
+    observeListRef,
+  } = useScrollbar('inbox');
+
   return (
     <SafeAreaView style={styles.safeAreaView}>
       <InboxTabNavBar
@@ -311,6 +321,7 @@ const InboxTab = ({navigation}) => {
       {inbox !== null &&
         <DefaultFlatList
           ref={listRef}
+          innerRef={observeListRef}
           emptyText={emptyText}
           endText={endText}
           fetchPage={fetchPage}
@@ -320,6 +331,10 @@ const InboxTab = ({navigation}) => {
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           disableRefresh={true}
+          onLayout={onLayout}
+          onContentSizeChange={onContentSizeChange}
+          onScroll={onScroll}
+          showsVerticalScrollIndicator={showsVerticalScrollIndicator}
         />
       }
     </SafeAreaView>
@@ -364,6 +379,7 @@ const InboxTabNavBar = ({
           iconName={showArchive ? 'chatbubbles-outline' : 'file-tray-full-outline'}
           position="right"
           secondary={false}
+          label={showArchive ? "Inbox" : "Archive"}
         />
       </TopNavBar>
   );

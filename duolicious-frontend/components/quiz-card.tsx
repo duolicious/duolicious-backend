@@ -508,7 +508,6 @@ const AnswerIcon = ({
         backgroundColor: backgroundColor,
         borderColor: selected === false ? '#bbb' : 'black',
         borderWidth: onPress ? 1 : 0,
-        borderBottomWidth: onPress ? 2 : 0,
         borderRadius: 999,
         overflow: 'visible',
         width: 26,

@@ -9,6 +9,7 @@ const QAndADevice = ({
   fontSize = 20,
   isBold = false,
   spacing = -6,
+  backgroundColor = 'white',
 }) => {
   const noIcon = isBold ? 'close-circle' : 'close-circle-outline';
   const yesIcon = isBold ? 'checkmark-circle' : 'checkmark-circle-outline';
@@ -22,7 +23,7 @@ const QAndADevice = ({
     >
       <View
         style={{
-          backgroundColor: 'white',
+          backgroundColor: backgroundColor,
           borderRadius: 999,
           overflow: 'hidden',
           aspectRatio: Platform.OS === 'web' ? 1 : undefined,
@@ -35,7 +36,7 @@ const QAndADevice = ({
       </View>
       <View
         style={{
-          backgroundColor: 'white',
+          backgroundColor: backgroundColor,
           borderRadius: 999,
           overflow: 'hidden',
           aspectRatio: Platform.OS === 'web' ? 1 : undefined,

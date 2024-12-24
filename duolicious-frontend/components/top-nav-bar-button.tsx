@@ -8,17 +8,20 @@ import {
 } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { isMobile } from '../util/util';
+import { DefaultText } from '../components/default-text';
 
 const TopNavBarButton = ({
   onPress,
   iconName,
   secondary,
   position,
+  label
 }: {
   onPress: any
   iconName: any
   secondary: boolean
   position: 'left' | 'right'
+  label?: string,
 }) => {
   const opacity = useRef(new Animated.Value(1)).current;
 
@@ -50,13 +53,16 @@ const TopNavBarButton = ({
     >
       <Animated.View style={{
         opacity: opacity,
-        borderColor: secondary || isMobile() ? undefined : '#ccc',
+        borderColor: secondary || isMobile() ? undefined : 'black',
         borderWidth: secondary || isMobile() ? undefined : 1,
         borderRadius: 7,
         padding: secondary || isMobile() ? undefined : 4,
-        aspectRatio: 1,
+        paddingHorizontal: !isMobile() && label ? 10 : undefined,
+        aspectRatio: !isMobile() && label ? undefined : 1,
         alignItems: 'center',
         justifyContent: 'center',
+        flexDirection: 'row',
+        gap: 5,
       }}>
         <Ionicons
           style={{
@@ -65,6 +71,11 @@ const TopNavBarButton = ({
           }}
           name={iconName}
         />
+        {!isMobile() && label &&
+          <DefaultText style={{ fontWeight: '700' }}>
+            {label}
+          </DefaultText>
+        }
       </Animated.View>
     </Pressable>
   );
