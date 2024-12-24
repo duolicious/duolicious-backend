@@ -59,9 +59,11 @@ const Scrollbar = () => {
   const minThumbHeight = 30;
   const thumbHeight = contentHeight <= 0
     ? minThumbHeight
-    : Math.max(
-        (scrollViewHeight / contentHeight) * scrollViewHeight,
-        minThumbHeight);
+    : Math.min(
+        trackHeight,
+        Math.max(
+            (scrollViewHeight / contentHeight) * scrollViewHeight,
+            minThumbHeight));
 
   const maxThumbOffset = trackHeight - thumbHeight;
 
@@ -117,9 +119,8 @@ const Scrollbar = () => {
   };
 
   // Create the PanResponder once. All the dynamic data is read from refs.
-  const panResponderRef = useRef<ReturnType<typeof PanResponder.create>>(null);
-  if (!panResponderRef.current) {
-    panResponderRef.current = PanResponder.create({
+  const panResponderRef = useRef(
+    PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
 
@@ -165,8 +166,8 @@ const Scrollbar = () => {
       onPanResponderTerminate: () => {
         isDragging.current = false; // user stopped
       },
-    });
-  }
+    })
+  );
 
   // Keep thumbPositionValue in sync with the Animated.Value
   useEffect(() => {
@@ -223,6 +224,10 @@ const Scrollbar = () => {
     return listen<ScrollViewData>(
       'main-scroll-view',
       (data) => {
+        if (!data) {
+          return;
+        }
+
         if (!tryControl(data)) {
           return;
         }
@@ -247,12 +252,44 @@ const Scrollbar = () => {
     );
   }, []);
 
-  if (!controller) {
+  const handleWheel = (e: any) => {
+    if (Platform.OS !== 'web') {
+      return;
+    }
+    e.preventDefault?.();
+
+    // We'll treat deltaY as the scroll "step"
+    const delta = e.deltaY;
+    const maxScroll = contentHeightRef.current - scrollHeightRef.current;
+    const currentMaxThumbOffset = maxThumbOffsetRef.current;
+
+    // Convert the current thumb offset => current scroll offset
+    let currentScrollY = 0;
+    if (maxScroll > 0 && currentMaxThumbOffset > 0) {
+      currentScrollY =
+        (thumbPositionValue.current / currentMaxThumbOffset) * maxScroll;
+    }
+
+    // Apply the delta. You might want to tune this to a certain step factor.
+    const newScrollY = Math.min(
+      Math.max(currentScrollY + delta, 0),
+      maxScroll
+    );
+
+    // Notify parent and update thumb
+    if (scrollViewDataRef.current.onThumbDrag) {
+      scrollViewDataRef.current.onThumbDrag(newScrollY);
+    }
+    updateThumbPosition(newScrollY);
+  };
+
+  if (!controller || thumbHeight === trackHeight) {
     return null;
   }
 
   return (
     <View
+      {...(Platform.OS === 'web' ? { onWheel: handleWheel } : {})}
       style={[styles.scrollbar, { height: trackHeight }]}
     >
       <Animated.View
