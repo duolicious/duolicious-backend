@@ -97,7 +97,7 @@ function WebNavigator<Navigation>({
       >
         <View
           style={{
-            flex: 2,
+            flex: 5,
             minWidth: 280,
             backgroundColor: '#70f',
             alignItems: 'flex-end',
@@ -115,7 +115,7 @@ function WebNavigator<Navigation>({
         </View>
         <View
           style={{
-            flex: 5,
+            flex: 13,
           }}
         >
           <View style={[{
