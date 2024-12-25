@@ -167,7 +167,7 @@ const TraitsTab = () => {
         onLayout={onLayout}
         onContentSizeChange={onContentSizeChange}
         onScroll={onScroll}
-        showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+        showsVerticalScrollIndicator={showsVerticalScrollIndicator || Boolean(referrerId)}
       >
         <DefaultText
           style={{

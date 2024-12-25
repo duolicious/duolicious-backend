@@ -179,19 +179,31 @@ const WebBar = ({state, navigation, tabBarStyle, descriptors}) => {
   return (
     <View style={[
         {
-          flexDirection: 'column',
-          width: 260,
-          gap: 20,
+          width: '100%',
+          height: '100%',
+          backgroundColor: '#70f',
+          alignItems: 'flex-end',
+          borderRightWidth: 5,
+          borderColor: 'black',
+          paddingRight: 12,
         },
         tabBarStyle,
       ]}
     >
-      <Logo/>
-      <NavigationItems
-        state={state}
-        navigation={navigation}
-        descriptors={descriptors}
-      />
+      <View
+        style={{
+          flexDirection: 'column',
+          width: 260,
+          gap: 20,
+        }}
+      >
+        <Logo/>
+        <NavigationItems
+          state={state}
+          navigation={navigation}
+          descriptors={descriptors}
+        />
+      </View>
     </View>
   );
 };
