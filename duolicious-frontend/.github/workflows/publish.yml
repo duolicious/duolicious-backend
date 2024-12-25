@@ -15,7 +15,17 @@ jobs:
     name: Publish to Cloudflare Pages
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set DUO_WEB_VERSION
+        id: vars
+        run: |
+          calculated_sha=$(git rev-parse --short HEAD)
+          echo "DUO_WEB_VERSION=$calculated_sha" >> $GITHUB_ENV
+
       - uses: actions/setup-node@v4
+
       - run: |
           npm install
           npx patch-package

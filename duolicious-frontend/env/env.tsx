@@ -6,3 +6,4 @@ export const IMAGES_URL = Constants.expoConfig?.extra?.imagesUrl ?? 'http://loca
 export const AUDIO_URL = Constants.expoConfig?.extra?.audioUrl ?? 'http://localhost:9090/s3-mock-audio-bucket';
 export const STATUS_URL = Constants.expoConfig?.extra?.statusUrl ?? 'http://localhost:8080';
 export const WEB_BASE_URL = Constants.expoConfig?.extra?.webUrl ?? 'http://localhost:8081';
+export const WEB_VERSION = Constants.expoConfig?.extra?.webVersion ?? '000000';
