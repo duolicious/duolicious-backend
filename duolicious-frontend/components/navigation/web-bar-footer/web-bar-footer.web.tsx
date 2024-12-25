@@ -27,7 +27,7 @@ const WebBarFooter = () => {
           width: '100%',
           justifyContent: 'center',
           display: 'flex',
-          gap: '30px',
+          gap: '24px',
           border: 'none',
           padding: '0',
         }}
