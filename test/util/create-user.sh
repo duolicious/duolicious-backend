@@ -91,8 +91,10 @@ main () {
 
   SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
 
+  local display_name=$(printf "$username_or_email" | tr _ ' ')
+
   jc POST /check-otp -d '{ "otp": "000000" }' > /dev/null
-  jc PATCH /onboardee-info -d '{ "name": "'"$username_or_email"'" }'
+  jc PATCH /onboardee-info -d '{ "name": "'"$display_name"'" }'
   jc PATCH /onboardee-info -d '{ "date_of_birth": "'$( \
     date -d "-26 years -6 months" "+%Y-%m-%d")'" }'
   jc PATCH /onboardee-info -d '{ "location": "New York, New York, United States" }'
