@@ -16,32 +16,47 @@ import { listen } from '../../events/events';
 type ScrollViewData = {
   // The name of the Scrollview which is in control of the Scrollbar, or `null`
   // if no Scrollview is in control.
-  controller: string | null,
+  controller: string | null;
 
   // A callback to call when the Scrollbar's thumb is dragged
-  onThumbDrag?: (offset: number) => void,
+  onThumbDrag?: (offset: number) => void;
 
   // The height of the controlling Scrollview's content
-  contentHeight?: number,
+  contentHeight?: number;
 
   // The height of the controlling Scrollview's viewport
-  scrollViewHeight?: number,
+  scrollViewHeight?: number;
 
   // How far down the Scrollview has been scrolled
-  offset?: number,
+  offset?: number;
 };
 
 const Scrollbar = () => {
-  const [controller, setController] = useState<null | string>(null);
-  const [contentHeight, setContentHeight] = useState(0);
-  const [scrollViewHeight, setScrollViewHeight] = useState(0);
+  /**
+   * Single piece of state storing:
+   *  - which ScrollView is controlling the scrollbar
+   *  - the content/viewport heights
+   *  - the current offset
+   */
+  const [scrollViewValues, setScrollViewValues] = useState<{
+    controller: string | null;
+    contentHeight: number;
+    scrollViewHeight: number;
+    offset: number;
+  }>({
+    controller: null,
+    contentHeight: 0,
+    scrollViewHeight: 0,
+    offset: 0,
+  });
 
-  // We store the scrollView's info (including onThumbDrag) here
+  // We still keep a ref to the controlling ScrollView’s data,
+  // mostly so we can store the onThumbDrag callback.
   const scrollViewDataRef = useRef<ScrollViewData>({ controller: null });
 
   // The current Animated thumb position
   const thumbPosition = useRef(new Animated.Value(0)).current;
-  // The numeric value of the thumb position
+  // The numeric value of the thumb position (faster reads inside PanResponder)
   const thumbPositionValue = useRef(0);
 
   // Where the thumb was when the user first put their finger down
@@ -55,70 +70,82 @@ const Scrollbar = () => {
 
   const { height: trackHeight } = useWindowDimensions();
 
-  // Compute thumb size and max offset each render
+  /**
+   * Calculate the thumb height each render
+   */
   const minThumbHeight = 30;
-  const thumbHeight = contentHeight <= 0
-    ? minThumbHeight
-    : Math.min(
-        trackHeight,
-        Math.max(
-            (scrollViewHeight / contentHeight) * scrollViewHeight,
-            minThumbHeight));
+  const thumbHeight = (() => {
+    const { contentHeight, scrollViewHeight } = scrollViewValues;
+    if (contentHeight <= 0) {
+      return minThumbHeight;
+    }
+    return Math.min(
+      trackHeight,
+      Math.max(
+        (scrollViewHeight / contentHeight) * scrollViewHeight,
+        minThumbHeight
+      )
+    );
+  })();
 
-  const maxThumbOffset = trackHeight - thumbHeight;
+  // Just a helper to store these in refs so the PanResponder can use them
+  const contentHeightRef = useRef(scrollViewValues.contentHeight);
+  const scrollHeightRef = useRef(scrollViewValues.scrollViewHeight);
+  const maxThumbOffsetRef = useRef(trackHeight - thumbHeight);
 
-  // ---
-  // Store these values in refs so the PanResponder always has up-to-date data
-  // without being re-created. We’ll update them in an effect below.
-  // ---
-  const contentHeightRef = useRef(contentHeight);
-  const scrollHeightRef = useRef(scrollViewHeight);
-  const maxThumbOffsetRef = useRef(maxThumbOffset);
-
-  // The function that sets the thumb position immediately
+  /**
+   * Immediately sets the thumb position based on a given scrollY.
+   */
   const updateThumbPosition = (scrollY: number) => {
-    const maxScroll = contentHeightRef.current - scrollHeightRef.current;
-    const ratio = maxScroll <= 0 ? 0 : scrollY / maxScroll;
+    const maxScroll =
+      contentHeightRef.current - scrollHeightRef.current;
+    if (maxScroll <= 0) {
+      // No scrolling possible => put thumb at top
+      thumbPosition.setValue(0);
+      return;
+    }
+    const ratio = scrollY / maxScroll;
     const newThumbOffset = ratio * maxThumbOffsetRef.current;
     thumbPosition.setValue(newThumbOffset);
   };
 
-  // We track the ScrollView which is currently in control. There should only be
-  // one ScrollView in charge of the Scrollbar at a time. This function checks
-  // if the event emitter has permission to control the Scrollbar.
-  //
-  // It's effectively a semaphore that prevents race conditions around the times
-  // when one ScrollView goes off-screen and appears on-screen in short
-  // succession. Events could be received out-of-order in this case.
-  //
-  // `tryControl` checks if the `controller` can control the scrollbar and
-  // returns true if so.
+  /**
+   * Attempt to acquire or release control of the scrollbar.
+   * A ScrollView has to have `onThumbDrag` to take control.
+   * A ScrollView with `onThumbDrag===null` releases control
+   * (but only if it owns the lock).
+   */
   const tryControl = (data: ScrollViewData): boolean => {
-    // Attempt to acquire lock. Control can be "stolen" from another ScrollView.
+    // Attempt to acquire lock
     if (data.onThumbDrag) {
-      setController(data.controller);
+      setScrollViewValues(prev => ({
+        ...prev,
+        controller: data.controller,
+      }));
       scrollViewDataRef.current.controller = data.controller;
       return true;
     }
 
-    // Attempt to release lock. The ScrollView which emitted the event needs to
-    // be in control of the scrollbar in order to release it. Otherwise it might
-    // actually be releasing another ScrollView's control.
+    // Attempt to release lock
     if (
       data.onThumbDrag === null &&
       data.controller === scrollViewDataRef.current.controller
     ) {
-      setController(null);
+      setScrollViewValues(prev => ({
+        ...prev,
+        controller: null,
+      }));
       scrollViewDataRef.current.controller = null;
       return false;
     }
-
 
     // Do we already have the lock?
     return scrollViewDataRef.current.controller === data.controller;
   };
 
-  // Create the PanResponder once. All the dynamic data is read from refs.
+  /**
+   * PanResponder to handle drag events on the thumb.
+   */
   const panResponderRef = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -137,12 +164,10 @@ const Scrollbar = () => {
           evt.preventDefault?.();
         }
         const { dy } = gestureState;
-
-        // read the current max offset from ref
         const currentMaxThumbOffset = maxThumbOffsetRef.current;
 
+        // Proposed new thumb offset (clamp top/bottom)
         let newOffset = gestureStartY.current + dy;
-        // clamp top/bottom
         newOffset = Math.max(0, Math.min(newOffset, currentMaxThumbOffset));
 
         // Convert thumb offset -> content scroll offset
@@ -152,9 +177,7 @@ const Scrollbar = () => {
           maxScroll <= 0 ? 0 : (newOffset / currentMaxThumbOffset) * maxScroll;
 
         // Notify parent to scroll
-        if (scrollViewDataRef.current.onThumbDrag) {
-          scrollViewDataRef.current.onThumbDrag(newScrollY);
-        }
+        scrollViewDataRef.current.onThumbDrag?.(newScrollY);
 
         // Update the thumb immediately
         thumbPosition.setValue(newOffset);
@@ -169,7 +192,9 @@ const Scrollbar = () => {
     })
   );
 
-  // Keep thumbPositionValue in sync with the Animated.Value
+  /**
+   * Keep thumbPositionValue in sync with the Animated.Value.
+   */
   useEffect(() => {
     const listenerId = thumbPosition.addListener(({ value }) => {
       thumbPositionValue.current = value;
@@ -179,21 +204,38 @@ const Scrollbar = () => {
     };
   }, [thumbPosition]);
 
-  // Whenever contentHeight or scrollHeight changes, store them in refs.
+  /**
+   * 1) Whenever scrollViewValues (contentHeight, scrollViewHeight, offset) changes,
+   *    store them in refs so PanResponder can read updated data.
+   * 2) If we’re not dragging, move the thumb to match the new offset.
+   */
   useEffect(() => {
-    contentHeightRef.current = contentHeight;
-    scrollHeightRef.current = scrollViewHeight;
-    maxThumbOffsetRef.current = maxThumbOffset;
-  }, [contentHeight, scrollViewHeight, maxThumbOffset]);
+    contentHeightRef.current = scrollViewValues.contentHeight;
+    scrollHeightRef.current = scrollViewValues.scrollViewHeight;
+    maxThumbOffsetRef.current = trackHeight - thumbHeight;
 
-  // Preserve the user’s scroll offset when new content arrives (like infinite scroll).
-  // We'll do that only if we're NOT currently dragging. (Your choice.)
+    if (!isDragging.current) {
+      updateThumbPosition(scrollViewValues.offset);
+    }
+  }, [
+    scrollViewValues.contentHeight,
+    scrollViewValues.scrollViewHeight,
+    scrollViewValues.offset,
+    thumbHeight,
+    trackHeight,
+  ]);
+
+  /**
+   * Preserve the user’s scroll offset when new content arrives (e.g., infinite scroll).
+   * If the content changes while the user is not actively dragging, we keep the same
+   * “absolute” offset in terms of pixels scrolled. If user is dragging, skip or handle differently.
+   */
   useEffect(() => {
     const oldContentHeight = oldContentHeightRef.current;
-    oldContentHeightRef.current = contentHeight;
+    oldContentHeightRef.current = scrollViewValues.contentHeight;
 
     // If there's no old content height or it hasn't changed, do nothing
-    if (!oldContentHeight || oldContentHeight === contentHeight) {
+    if (!oldContentHeight || oldContentHeight === scrollViewValues.contentHeight) {
       return;
     }
     if (isDragging.current) {
@@ -203,23 +245,31 @@ const Scrollbar = () => {
     }
 
     // The current thumb offset => oldScrollY in px
-    const oldMaxScroll = oldContentHeight - scrollViewHeight;
-    const newMaxScroll = contentHeight - scrollViewHeight;
+    const oldMaxScroll = oldContentHeight - scrollViewValues.scrollViewHeight;
+    const newMaxScroll =
+      scrollViewValues.contentHeight - scrollViewValues.scrollViewHeight;
 
     let oldScrollY = 0;
     if (oldMaxScroll > 0 && maxThumbOffsetRef.current > 0) {
       oldScrollY =
-        (thumbPositionValue.current / maxThumbOffsetRef.current) *
-        oldMaxScroll;
+        (thumbPositionValue.current / maxThumbOffsetRef.current) * oldMaxScroll;
     }
 
     // Keep same absolute offset, but clamp if new content is smaller
     const newScrollY = Math.max(0, Math.min(newMaxScroll, oldScrollY));
-
     updateThumbPosition(newScrollY);
-  }, [contentHeight, scrollViewHeight]);
 
-  // Listen for the scrollview to mount
+    // Potentially notify the controlling ScrollView that the offset changed
+    // if you want two-way sync. For example:
+    // scrollViewDataRef.current.onThumbDrag?.(newScrollY);
+  }, [scrollViewValues.contentHeight, scrollViewValues.scrollViewHeight]);
+
+  /**
+   * Listen for the scrollview to mount or update. Instead of immediately calling
+   * updateThumbPosition(data.offset), we just set our state. Then the effect above
+   * will handle repositioning the thumb once contentHeight/scrollViewHeight/offset
+   * have all updated in React.
+   */
   useEffect(() => {
     return listen<ScrollViewData>(
       'main-scroll-view',
@@ -227,7 +277,6 @@ const Scrollbar = () => {
         if (!data) {
           return;
         }
-
         if (!tryControl(data)) {
           return;
         }
@@ -236,31 +285,32 @@ const Scrollbar = () => {
           scrollViewDataRef.current.onThumbDrag = data.onThumbDrag;
         }
 
-        if (data.contentHeight !== undefined) {
-          setContentHeight(data.contentHeight);
-        }
-
-        if (data.scrollViewHeight !== undefined) {
-          setScrollViewHeight(data.scrollViewHeight);
-        }
-
-        if (data.offset !== undefined && !isDragging.current) {
-          updateThumbPosition(data.offset);
-        }
+        // Update state in one go. If data.contentHeight or data.scrollViewHeight are null,
+        // we preserve the existing values.
+        setScrollViewValues((prev) => ({
+          controller: data.controller ?? prev.controller,
+          contentHeight: data.contentHeight ?? prev.contentHeight,
+          scrollViewHeight: data.scrollViewHeight ?? prev.scrollViewHeight,
+          offset: data.offset ?? prev.offset,
+        }));
       },
       true
     );
   }, []);
 
+  /**
+   * Handle mouse wheel scrolling on web. We again read the “current” offsets
+   * from refs, and if we can scroll, we convert deltaY to a newScrollY.
+   */
   const handleWheel = (e: any) => {
     if (Platform.OS !== 'web') {
       return;
     }
     e.preventDefault?.();
 
-    // We'll treat deltaY as the scroll "step"
-    const delta = e.deltaY;
-    const maxScroll = contentHeightRef.current - scrollHeightRef.current;
+    const delta = e.deltaY; // how much the wheel scrolled
+    const maxScroll =
+      contentHeightRef.current - scrollHeightRef.current;
     const currentMaxThumbOffset = maxThumbOffsetRef.current;
 
     // Convert the current thumb offset => current scroll offset
@@ -270,20 +320,19 @@ const Scrollbar = () => {
         (thumbPositionValue.current / currentMaxThumbOffset) * maxScroll;
     }
 
-    // Apply the delta. You might want to tune this to a certain step factor.
+    // Apply the delta. Might need to tune this factor for a better feel
     const newScrollY = Math.min(
       Math.max(currentScrollY + delta, 0),
       maxScroll
     );
 
-    // Notify parent and update thumb
-    if (scrollViewDataRef.current.onThumbDrag) {
-      scrollViewDataRef.current.onThumbDrag(newScrollY);
-    }
+    // Notify parent, update thumb
+    scrollViewDataRef.current.onThumbDrag?.(newScrollY);
     updateThumbPosition(newScrollY);
   };
 
-  if (!controller || thumbHeight === trackHeight) {
+  // If no controller or if the thumb is the full height => hide
+  if (!scrollViewValues.controller || thumbHeight === trackHeight) {
     return null;
   }
 
@@ -315,6 +364,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     top: 0,
+
     userSelect: 'none',          // prevent selection on web
     WebkitUserSelect: 'none',
     WebkitTouchCallout: 'none',
@@ -326,6 +376,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'white',
     borderRadius: 99,
+
     touchAction: 'none',         // prevent selection on web
   },
 });
