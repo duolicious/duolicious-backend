@@ -457,7 +457,10 @@ CREATE TABLE IF NOT EXISTS banned_person (
 
 CREATE TABLE IF NOT EXISTS funding (
     id SMALLINT PRIMARY KEY,
+
     estimated_end_date TIMESTAMP NOT NULL,
+    token_hash TEXT NOT NULL DEFAULT '',
+    cost_per_month_usd FLOAT NOT NULL,
 
     CONSTRAINT id CHECK (id = 1)
 );
@@ -1236,8 +1239,8 @@ WHERE
     )
 ON CONFLICT DO NOTHING;
 
-INSERT INTO funding (id, estimated_end_date)
-VALUES (1, '2024-09-17 15:02:10.866000+00')
+INSERT INTO funding (id, estimated_end_date, cost_per_month_usd)
+VALUES (1, '2024-09-17 15:02:10.866000+00', 360.0)
 ON CONFLICT (id) DO NOTHING;
 
 --------------------------------------------------------------------------------

@@ -2965,3 +2965,14 @@ SELECT
 FROM
     absolute_numbers
 """
+
+Q_KOFI_DONATION = """
+UPDATE
+    funding
+SET
+    estimated_end_date
+        = estimated_end_date
+        + interval '28 days' * %(amount)s / cost_per_month_usd
+WHERE
+    token_hash = %(token_hash)s
+"""
