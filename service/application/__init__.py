@@ -483,6 +483,11 @@ def get_export_data(token: str):
     return person.get_export_data(token=token)
 
 @post('/kofi-donation')
-@validate(t.PostKofiData)
-def post_kofi_donation(req: t.PostKofiData):
+def post_kofi_donation():
+    try:
+        data = request.form.get('data')
+        j = json.loads(data)
+        req = t.PostKofiData(**j)
+    except:
+        return '', 401
     return person.post_kofi_donation(req=req)

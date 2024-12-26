@@ -24,26 +24,11 @@ set
 
 echo 'Invalid tokens are ignored'
 
-jc POST /kofi-donation -d '{
-  "verification_token": "invalid-token",
-
-  "message_id": "4859ebc6-6721-4e93-9f8e-12dc08d1cda4",
-  "timestamp": "2024-12-26T10:52:52Z",
-  "type": "Donation",
-  "is_public": true,
-  "from_name": "Jo Example",
-  "message": "Good luck with the integration!",
-  "amount": "3.00",
-  "url": "https://ko-fi.com/Home/CoffeeShop?txid=00000000-1111-2222-3333-444444444444",
-  "email": "jo.example@example.com",
-  "currency": "USD",
-  "is_subscription_payment": false,
-  "is_first_subscription_payment": false,
-  "kofi_transaction_id": "00000000-1111-2222-3333-444444444444",
-  "shop_items": null,
-  "tier_name": null,
-  "shipping": null
-}'
+SESSION_TOKEN="" c \
+  POST \
+  /kofi-donation \
+  --header "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode 'data={"verification_token":"invalid-token","message_id":"8d737342-2311-429f-b920-f6e98cde402e","timestamp":"2024-12-26T12:32:57Z","type":"Donation","is_public":true,"from_name":"Jo Example","message":"Good luck with the integration!","amount":"3.00","url":"https://ko-fi.com/Home/CoffeeShop?txid=00000000-1111-2222-3333-444444444444","email":"jo.example@example.com","currency":"USD","is_subscription_payment":false,"is_first_subscription_payment":false,"kofi_transaction_id":"00000000-1111-2222-3333-444444444444","shop_items":null,"tier_name":null,"shipping":null}'
 
 actual=$(q "select estimated_end_date from funding")
 expected='2024-09-17 15:02:10.866'
@@ -56,25 +41,11 @@ echo 'The estimated end date increases when adding 50.0 dollars'
 
 test_token_hash=$(sha512sum <<< "test-token")
 
-jc POST /kofi-donation -d '{
-  "verification_token": "valid-token",
-  "message_id": "4859ebc6-6721-4e93-9f8e-12dc08d1cda4",
-  "timestamp": "2024-12-26T10:52:52Z",
-  "type": "Donation",
-  "is_public": true,
-  "from_name": "Jo Example",
-  "message": "Good luck with the integration!",
-  "amount": "50.00",
-  "url": "https://ko-fi.com/Home/CoffeeShop?txid=00000000-1111-2222-3333-444444444444",
-  "email": "jo.example@example.com",
-  "currency": "USD",
-  "is_subscription_payment": false,
-  "is_first_subscription_payment": false,
-  "kofi_transaction_id": "00000000-1111-2222-3333-444444444444",
-  "shop_items": null,
-  "tier_name": null,
-  "shipping": null
-}'
+SESSION_TOKEN="" c \
+  POST \
+  /kofi-donation \
+  --header "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode 'data={"verification_token":"valid-token","message_id":"8d737342-2311-429f-b920-f6e98cde402e","timestamp":"2024-12-26T12:32:57Z","type":"Donation","is_public":true,"from_name":"Jo Example","message":"Good luck with the integration!","amount":"50.00","url":"https://ko-fi.com/Home/CoffeeShop?txid=00000000-1111-2222-3333-444444444444","email":"jo.example@example.com","currency":"USD","is_subscription_payment":false,"is_first_subscription_payment":false,"kofi_transaction_id":"00000000-1111-2222-3333-444444444444","shop_items":null,"tier_name":null,"shipping":null}'
 
 actual=$(q "select estimated_end_date from funding")
 expected='2024-10-01 15:02:10.866'
