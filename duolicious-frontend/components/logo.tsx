@@ -1,218 +1,109 @@
 import * as React from 'react';
-import Svg, { G, Rect } from "react-native-svg"
+import { Animated, Easing } from 'react-native';
+import Svg, { G, Rect } from 'react-native-svg';
+
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
+
+const logo16RectCoordinates = [
+  { x: 2.6458333,  y: 1.0583333 },
+  { x: 2.3812499,  y: 1.0583333 },
+  { x: 2.1166666,  y: 1.3229166 },
+  { x: 2.1166666,  y: 1.5875    },
+  { x: 2.3812499,  y: 1.8520833 },
+  { x: 2.6458333,  y: 2.1166666 },
+  { x: 2.9104166,  y: 2.3812499 },
+  { x: 3.175,      y: 2.1166666 },
+  { x: 3.4395833,  y: 1.8520833 },
+  { x: 3.7041664,  y: 1.5875    },
+  { x: 3.7041664,  y: 1.3229166 },
+  { x: 3.4395833,  y: 1.0583333 },
+  { x: 3.175,      y: 1.0583333 },
+  { x: 2.9104166,  y: 1.3229166 },
+  { x: 0.79375011, y: 1.5875    },
+  { x: 0.52916676, y: 1.5875    },
+  { x: 0.26458347, y: 1.8520836 },
+  { x: 0.26458347, y: 2.1166666 },
+  { x: 0.52916676, y: 2.3812499 },
+  { x: 0.79375011, y: 2.6458333 },
+  { x: 1.0583335,  y: 2.9104166 },
+  { x: 1.3229166,  y: 2.6458333 },
+  { x: 1.5875,     y: 2.3812499 },
+  { x: 1.8520833,  y: 2.1166666 },
+  { x: 1.8520833,  y: 1.8520836 },
+  { x: 1.5875,     y: 1.5875    },
+  { x: 1.3229166,  y: 1.5875    },
+  { x: 1.0583335,  y: 1.8520836 },
+];
 
 const Logo16 = ({
   size = 48,
   color = 'white',
-  rectSize = 0.26458332
+  rectSize = 0.26458332,
+  fadeOutDelay = 5000,
+  fadeInDelay = 500,
+  doAnimate = false,
 }: {
   size?: number,
   color?: string,
   rectSize?: number,
+  fadeOutDelay?: number,
+  fadeInDelay?: number,
+  doAnimate?: boolean,
 }) => {
+  // Create an array of Animated.Values, one per Rect.
+  const animatedValues = React.useRef(
+    logo16RectCoordinates.map(() => new Animated.Value(doAnimate ? 0 : 1))
+  ).current;
+
+  React.useEffect(() => {
+    if (!doAnimate) {
+      return;
+    }
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.stagger(
+          50,
+          animatedValues.map(animVal =>
+            Animated.timing(animVal, {
+              toValue: 1,
+              duration: 400,
+              easing: Easing.poly(5),
+              useNativeDriver: true,
+            })
+          )
+        ),
+        Animated.delay(fadeOutDelay),
+        Animated.stagger(
+          50,
+          animatedValues.map(animVal =>
+            Animated.timing(animVal, {
+              toValue: 0,
+              duration: 400,
+              easing: Easing.poly(5),
+              useNativeDriver: true,
+            })
+          )
+        ),
+        Animated.delay(fadeInDelay),
+      ])
+    ).start();
+  }, [animatedValues]);
+
   return (
-    <Svg
-       width={size}
-       height={size}
-       viewBox="0 0 4.2333331 4.2333332"
-     >
+    <Svg width={size} height={size} viewBox="0 0 4.2333331 4.2333332">
       <G>
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect499"
-           width={rectSize}
-           height={rectSize}
-           x="2.3812499"
-           y="1.0583333" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect501"
-           width={rectSize}
-           height={rectSize}
-           x="2.6458333"
-           y="1.0583333" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect503"
-           width={rectSize}
-           height={rectSize}
-           x="2.1166666"
-           y="1.3229166" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect505"
-           width={rectSize}
-           height={rectSize}
-           x="2.1166666"
-           y="1.5875" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect507"
-           width={rectSize}
-           height={rectSize}
-           x="2.3812499"
-           y="1.8520833" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect509"
-           width={rectSize}
-           height={rectSize}
-           x="2.6458333"
-           y="2.1166666" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect511"
-           width={rectSize}
-           height={rectSize}
-           x="2.9104166"
-           y="2.3812499" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect513"
-           width={rectSize}
-           height={rectSize}
-           x="3.175"
-           y="2.1166666" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect515"
-           width={rectSize}
-           height={rectSize}
-           x="3.4395833"
-           y="1.8520833" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect517"
-           width={rectSize}
-           height={rectSize}
-           x="3.7041664"
-           y="1.5875" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect519"
-           width={rectSize}
-           height={rectSize}
-           x="3.7041664"
-           y="1.3229166" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect521"
-           width={rectSize}
-           height={rectSize}
-           x="2.9104166"
-           y="1.3229166" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect523"
-           width={rectSize}
-           height={rectSize}
-           x="3.175"
-           y="1.0583333" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect525"
-           width={rectSize}
-           height={rectSize}
-           x="3.4395833"
-           y="1.0583333" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect499-7"
-           width={rectSize}
-           height={rectSize}
-           x="0.52916676"
-           y="1.5875" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect501-5"
-           width={rectSize}
-           height={rectSize}
-           x="0.79375011"
-           y="1.5875" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect503-3"
-           width={rectSize}
-           height={rectSize}
-           x="0.26458347"
-           y="1.8520836" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect505-5"
-           width={rectSize}
-           height={rectSize}
-           x="0.26458347"
-           y="2.1166666" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect507-6"
-           width={rectSize}
-           height={rectSize}
-           x="0.52916676"
-           y="2.3812499" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect509-2"
-           width={rectSize}
-           height={rectSize}
-           x="0.79375011"
-           y="2.6458333" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect511-9"
-           width={rectSize}
-           height={rectSize}
-           x="1.0583335"
-           y="2.9104166" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect513-1"
-           width={rectSize}
-           height={rectSize}
-           x="1.3229166"
-           y="2.6458333" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect515-2"
-           width={rectSize}
-           height={rectSize}
-           x="1.5875"
-           y="2.3812499" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect517-7"
-           width={rectSize}
-           height={rectSize}
-           x="1.8520833"
-           y="2.1166666" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect519-0"
-           width={rectSize}
-           height={rectSize}
-           x="1.8520833"
-           y="1.8520836" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect521-9"
-           width={rectSize}
-           height={rectSize}
-           x="1.0583335"
-           y="1.8520836" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect523-3"
-           width={rectSize}
-           height={rectSize}
-           x="1.3229166"
-           y="1.5875" />
-        <Rect
-           fill={color} strokeWidth="1" strokeLinecap="round" strokeDashoffset="6.8276"
-           id="rect525-6"
-           width={rectSize}
-           height={rectSize}
-           x="1.5875"
-           y="1.5875" />
+        {logo16RectCoordinates.map((coord, index) => (
+          <AnimatedRect
+            key={index}
+            width={rectSize}
+            height={rectSize}
+            x={coord.x}
+            y={coord.y}
+            fill={color}
+            opacity={animatedValues[index]}
+          />
+        ))}
       </G>
     </Svg>
   );

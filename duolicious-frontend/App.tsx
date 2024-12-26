@@ -1,5 +1,4 @@
 import {
-  ActivityIndicator,
   Animated,
   Platform,
   StatusBar,
@@ -60,6 +59,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DonationNagModal } from './components/donation-nag-modal';
 import { createWebNavigator } from './components/navigation/web-navigator';
 import { isMobile } from './util/util';
+import { Logo16 } from './components/logo';
 
 
 // TODO: Onboarding works
@@ -128,7 +128,7 @@ const WebSplashScreen = ({loading}) => {
           zIndex: 999,
         }}
       >
-        <ActivityIndicator size={60} color="white"/>
+        <Logo16 size={100} fadeOutDelay={0} fadeInDelay={0} doAnimate={true} />
       </Animated.View>
     );
   }

@@ -473,7 +473,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
             gap: 1,
           }}
         >
-          <Logo16 size={32} rectSize={0.3} />
+          <Logo16 size={32} rectSize={0.3} doAnimate={true} />
           <Text
             style={{
               color: 'white',
