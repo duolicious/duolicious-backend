@@ -125,6 +125,7 @@ _strings = [
     "cocksucked",
     "cocksucker",
     "cocksucking",
+    "condom",
     "coon",
     "coprophilia",
     "cum",
