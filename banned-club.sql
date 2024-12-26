@@ -2613,7 +2613,7 @@ VALUES
     ('spouse beater'),
     ('stalk me'),
     ('stalk me plz'),
-    ('stab me')
+    ('stab me'),
     ('starvemaxxing'),
     ('straight sex'),
     ('straight shota'),
