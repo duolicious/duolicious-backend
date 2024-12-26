@@ -810,7 +810,7 @@ const TextInputWithButton = ({
         style={{
           ...styles.textInput,
           ...{
-            minHeight: 50,
+            height: isMobile() ? 50 : Math.max(80, Math.round(text.length / 40) * 15),
             maxHeight: height * 0.4
           },
         }}
