@@ -7,6 +7,7 @@ from pydantic import (
     constr,
     field_validator,
     model_validator,
+    Extra,
 )
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
@@ -440,3 +441,12 @@ class PostSkip(BaseModel):
 
 class PostVerificationSelfie(BaseModel):
     base64_file: Optional[Base64File] = None
+
+
+class PostKofiData(BaseModel):
+    verification_token: str
+    amount: int
+    currency: str
+
+    class Config:
+        extra = Extra.allow

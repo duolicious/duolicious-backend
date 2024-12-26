@@ -481,3 +481,8 @@ def get_export_data_token(s: t.SessionInfo):
 @get('/export-data/<token>')
 def get_export_data(token: str):
     return person.get_export_data(token=token)
+
+@post('/kofi-donation')
+@validate(t.PostKofiData)
+def post_kofi_donation(req: t.PostKofiData):
+    return person.post_kofi_donation(req=req)

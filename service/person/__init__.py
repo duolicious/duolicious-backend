@@ -1898,3 +1898,15 @@ def get_export_data(token: str):
         as_attachment=True,
         download_name='export.json',
     )
+
+def post_kofi_donation(req: t.PostKofiData):
+    if req.currency.lower() != 'usd':
+        return
+
+    params = dict(
+        token_hash=sha512(req.verification_token),
+        amount=req.amount,
+    )
+
+    with api_tx() as tx:
+        tx.execute(Q_KOFI_DONATION, params)
