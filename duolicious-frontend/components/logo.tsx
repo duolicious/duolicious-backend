@@ -55,12 +55,16 @@ const Logo16 = ({
     logo16RectCoordinates.map(() => new Animated.Value(doAnimate ? 0 : 1))
   ).current;
 
+  // Ref to store the animation instance
+  const animationRef = React.useRef<Animated.CompositeAnimation | null>(null);
+
   React.useEffect(() => {
     if (!doAnimate) {
       return;
     }
 
-    Animated.loop(
+    // Create the animation sequence
+    const animation = Animated.loop(
       Animated.sequence([
         Animated.stagger(
           50,
@@ -87,8 +91,19 @@ const Logo16 = ({
         ),
         Animated.delay(fadeInDelay),
       ])
-    ).start();
-  }, [animatedValues]);
+    );
+
+    // Store the animation reference and start it
+    animationRef.current = animation;
+    animation.start();
+
+    // Cleanup function to stop the animation
+    return () => {
+      if (animationRef.current) {
+        animationRef.current.stop();
+      }
+    };
+  }, [animatedValues, doAnimate, fadeOutDelay, fadeInDelay]);
 
   return (
     <Svg width={size} height={size} viewBox="0 0 4.2333331 4.2333332">
