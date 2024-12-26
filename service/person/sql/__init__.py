@@ -27,7 +27,7 @@ _Q_ESTIMATED_END_DATE = """
 (SELECT estimated_end_date::timestamptz::text FROM funding) AS estimated_end_date
 """
 
-_Q_IS_ALLOWED_CLUB_NAME = """
+Q_IS_ALLOWED_CLUB_NAME = """
 WITH similar_banned_club AS (
     SELECT
         name
@@ -2169,7 +2169,7 @@ WITH currently_joined_club AS (
     WHERE
         person_id = %(person_id)s
 ), is_allowed_club_name AS (
-    {_Q_IS_ALLOWED_CLUB_NAME.replace('%()s', '%(search_string)s')}
+    {Q_IS_ALLOWED_CLUB_NAME.replace('%()s', '%(search_string)s')}
 ), maybe_stuff_the_user_typed AS (
     SELECT
         %(search_string)s AS name,
@@ -2218,7 +2218,7 @@ ORDER BY
 
 Q_JOIN_CLUB = f"""
 WITH is_allowed_club_name AS (
-    {_Q_IS_ALLOWED_CLUB_NAME.replace('%()s', '%(club_name)s')}
+    {Q_IS_ALLOWED_CLUB_NAME.replace('%()s', '%(club_name)s')}
 ), will_be_within_club_quota AS (
     SELECT
         COUNT(*) < 100 AS x
