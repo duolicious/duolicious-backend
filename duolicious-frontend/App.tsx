@@ -128,7 +128,7 @@ const WebSplashScreen = ({loading}) => {
           zIndex: 999,
         }}
       >
-        <Logo16 size={100} fadeOutDelay={0} fadeInDelay={0} doAnimate={true} />
+        <Logo16 size={96} fadeOutDelay={0} fadeInDelay={0} doAnimate={true} />
       </Animated.View>
     );
   }

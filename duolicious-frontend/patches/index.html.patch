@@ -1,0 +1,152 @@
+--- dist/index.html	2024-12-28 01:00:48.305593141 +1100
++++ patches/index.html	2024-12-28 00:31:59.160107095 +1100
+@@ -4,0 +5 @@
++    <meta name="description" content="Free dating online. Zero ads. Unlimited messages. Over 2000 match questions from anime to life goals. Fall in love and find a relationship at Duolicious." />
+@@ -6 +7 @@
+-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
++    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, maximum-scale=1, user-scalable=no" />
+@@ -17,0 +19 @@
++        margin: 0;
+@@ -24,0 +27,18 @@
++      #splash-root {
++        z-index: 9999;
++        position: absolute;
++        left: 0;
++        right: 0;
++        top: 0;
++        bottom: 0;
++        display: flex;
++        height: 100%;
++        flex: 1;
++        background-color: #70f;
++        align-items: center;
++        justify-content: center;
++        transition: opacity 0.8s ease; /* Smooth fade-out animation */
++      }
++      #splash-root.fade-out {
++        opacity: 0; /* Start fading out */
++      }
+@@ -34,0 +55,123 @@
++    <div id="splash-root">
++      <svg id="mySvg" width="96" height="96" viewBox="0 0 4.2333331 4.2333332">
++        <g id="myGroup"></g>
++      </svg>
++
++      <script>
++        // Existing SVG animation logic remains unchanged
++
++        const logo16RectCoordinates = [
++          { x: 2.6458333,  y: 1.0583333 },
++          { x: 2.3812499,  y: 1.0583333 },
++          { x: 2.1166666,  y: 1.3229166 },
++          { x: 2.1166666,  y: 1.5875    },
++          { x: 2.3812499,  y: 1.8520833 },
++          { x: 2.6458333,  y: 2.1166666 },
++          { x: 2.9104166,  y: 2.3812499 },
++          { x: 3.175,      y: 2.1166666 },
++          { x: 3.4395833,  y: 1.8520833 },
++          { x: 3.7041664,  y: 1.5875    },
++          { x: 3.7041664,  y: 1.3229166 },
++          { x: 3.4395833,  y: 1.0583333 },
++          { x: 3.175,      y: 1.0583333 },
++          { x: 2.9104166,  y: 1.3229166 },
++          { x: 0.79375011, y: 1.5875    },
++          { x: 0.52916676, y: 1.5875    },
++          { x: 0.26458347, y: 1.8520836 },
++          { x: 0.26458347, y: 2.1166666 },
++          { x: 0.52916676, y: 2.3812499 },
++          { x: 0.79375011, y: 2.6458333 },
++          { x: 1.0583335,  y: 2.9104166 },
++          { x: 1.3229166,  y: 2.6458333 },
++          { x: 1.5875,     y: 2.3812499 },
++          { x: 1.8520833,  y: 2.1166666 },
++          { x: 1.8520833,  y: 1.8520836 },
++          { x: 1.5875,     y: 1.5875    },
++          { x: 1.3229166,  y: 1.5875    },
++          { x: 1.0583335,  y: 1.8520836 },
++        ];
++
++        const color = 'white';
++        const rectSize = 0.26458332;
++        const duration = 400;
++        const stagger = 50;
++
++        const svgGroup = document.getElementById('myGroup');
++        const svgNS = 'http://www.w3.org/2000/svg';
++
++        const rects = logo16RectCoordinates.map((coord) => {
++          const rect = document.createElementNS(svgNS, 'rect');
++          rect.setAttribute('width', rectSize);
++          rect.setAttribute('height', rectSize);
++          rect.setAttribute('x', coord.x);
++          rect.setAttribute('y', coord.y);
++          rect.setAttribute('fill', color);
++          rect.setAttribute('opacity', 0);
++          svgGroup.appendChild(rect);
++          return rect;
++        });
++
++        function delay(ms) {
++          return new Promise((resolve) => setTimeout(resolve, ms));
++        }
++
++        function fadeStagger(rectEls, targetOpacity, fadeDuration, fadeStagger) {
++          return new Promise((resolve) => {
++            const startTime = performance.now();
++
++            function frame(now) {
++              let allDone = true;
++
++              rectEls.forEach((rect, i) => {
++                const localDelay = i * fadeStagger;
++                const localElapsed = now - startTime - localDelay;
++
++                if (localElapsed < 0) {
++                  allDone = false;
++                } else if (localElapsed < fadeDuration) {
++                  allDone = false;
++                  const progress = localElapsed / fadeDuration;
++                  const currentOpacity = parseFloat(rect.getAttribute('opacity'));
++                  const newOpacity =
++                    currentOpacity + (targetOpacity - currentOpacity) * progress;
++                  rect.setAttribute('opacity', newOpacity);
++                } else {
++                  rect.setAttribute('opacity', targetOpacity);
++                }
++              });
++
++              if (!allDone) {
++                requestAnimationFrame(frame);
++              } else {
++                resolve();
++              }
++            }
++            requestAnimationFrame(frame);
++          });
++        }
++
++        async function animateLoop() {
++          while (true) {
++            await fadeStagger(rects, 1, duration, stagger);
++            await fadeStagger(rects, 0, duration, stagger);
++          }
++        }
++
++        animateLoop();
++
++        const splashRoot = document.getElementById('splash-root');
++        const root = document.getElementById('root');
++
++        const observer = new MutationObserver(() => {
++          if (root.childNodes.length > 0) {
++            splashRoot.classList.add('fade-out'); // Add the fade-out class
++            setTimeout(() => {
++              splashRoot.remove(); // Remove splash-root from DOM after fade-out
++            }, 1000);
++            observer.disconnect(); // Stop observing after splash is removed
++          }
++        });
++
++        observer.observe(root, { childList: true });
++      </script>
++    </div>
