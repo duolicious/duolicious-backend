@@ -211,8 +211,6 @@ def process_response(
         print('JSON was:', response_str)
         return failure("Something went wrong.", response_str)
 
-    general_truthiness_threshold = 0.7
-
     # These settings are tuned to gpt-4-turbo. gpt-4o worked better with higher
     # numbers.
     #
@@ -224,12 +222,29 @@ def process_response(
     # photo_truthiness_threshold = 0.9
 
     # These settings are tuned to gpt-4o-2024-08-06
-    edit_truthiness_threshold = 0.9
+    photo_truthiness_threshold = 0.9
+
+    is_uuid_verified_seq = [
+        (image_1_has_person_from_image_2 or 0.0) >= photo_truthiness_threshold,
+        (image_1_has_person_from_image_3 or 0.0) >= photo_truthiness_threshold,
+        (image_1_has_person_from_image_4 or 0.0) >= photo_truthiness_threshold,
+        (image_1_has_person_from_image_5 or 0.0) >= photo_truthiness_threshold,
+        (image_1_has_person_from_image_6 or 0.0) >= photo_truthiness_threshold,
+        (image_1_has_person_from_image_7 or 0.0) >= photo_truthiness_threshold,
+        (image_1_has_person_from_image_8 or 0.0) >= photo_truthiness_threshold,
+    ]
+    verified_uuids = [
+        uuid
+        for uuid, is_uuid_verified in zip(claimed_uuids, is_uuid_verified_seq)
+        if is_uuid_verified]
+
+    general_truthiness_threshold = 0.7
+
+    edit_truthiness_threshold = 0.9 if verified_uuids else 0.8
     gender_truthiness_threshold = 0.5
     age_truthiness_threshold = 0.5
     minimum_age_truthiness_threshold = 0.8
     ethnicity_truthiness_threshold = 0.4
-    photo_truthiness_threshold = 0.9
 
     if image_1_is_photograph < general_truthiness_threshold:
         return failure("Our AI thinks your image isn’t a real photo.", response_str)
@@ -265,20 +280,6 @@ def process_response(
 
     if image_1_has_downward_thumb < general_truthiness_threshold:
         return failure("Our AI thinks you’re not giving the thumbs down.", response_str)
-
-    is_uuid_verified_seq = [
-        (image_1_has_person_from_image_2 or 0.0) >= photo_truthiness_threshold,
-        (image_1_has_person_from_image_3 or 0.0) >= photo_truthiness_threshold,
-        (image_1_has_person_from_image_4 or 0.0) >= photo_truthiness_threshold,
-        (image_1_has_person_from_image_5 or 0.0) >= photo_truthiness_threshold,
-        (image_1_has_person_from_image_6 or 0.0) >= photo_truthiness_threshold,
-        (image_1_has_person_from_image_7 or 0.0) >= photo_truthiness_threshold,
-        (image_1_has_person_from_image_8 or 0.0) >= photo_truthiness_threshold,
-    ]
-    verified_uuids = [
-        uuid
-        for uuid, is_uuid_verified in zip(claimed_uuids, is_uuid_verified_seq)
-        if is_uuid_verified]
 
     return success(
         verified_uuids=verified_uuids,
