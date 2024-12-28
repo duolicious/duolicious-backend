@@ -1,4 +1,4 @@
-from service.chat.spam.urldetector.tld import tlds
+from antispam.urldetector.tld import tlds
 import re
 import unicodedata
 

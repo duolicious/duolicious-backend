@@ -1,5 +1,5 @@
-from service.chat.spam.urldetector import contains_url
-from service.chat.spam.gibberishdetector import contains_gibberish
+from antispam.urldetector import contains_url
+from antispam.gibberishdetector import contains_gibberish
 
 
 def is_spam(text: str):

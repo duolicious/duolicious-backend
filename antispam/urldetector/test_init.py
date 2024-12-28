@@ -1,5 +1,5 @@
 import unittest
-from service.chat.spam.urldetector import contains_url
+from antispam.urldetector import contains_url
 
 class TestContainsUrl(unittest.TestCase):
 
