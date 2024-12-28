@@ -43,6 +43,9 @@ class TestContainsUrl(unittest.TestCase):
         self.assertTrue(
             contains_url("example. com has all your exemplar needs"))
 
+        self.assertTrue(
+            contains_url("mail me at 31c49caa5@gmail.com"))
+
 
     def test_non_url_strings(self):
         self.assertFalse(contains_url("I like your bio."))
