@@ -1,4 +1,5 @@
 import constants
+from sql import Q_IS_ALLOWED_CLUB_NAME
 
 MAX_CLUB_SEARCH_RESULTS = 20
 
@@ -25,36 +26,6 @@ _Q_DO_SHOW_DONATION_NAG = f"""
 
 _Q_ESTIMATED_END_DATE = """
 (SELECT estimated_end_date::timestamptz::text FROM funding) AS estimated_end_date
-"""
-
-Q_IS_ALLOWED_CLUB_NAME = """
-WITH similar_banned_club AS (
-    SELECT
-        name
-    FROM
-        banned_club
-    ORDER BY
-        name <-> %()s
-    LIMIT
-        10
-)
-SELECT
-    NOT EXISTS (
-        SELECT
-            1
-        FROM
-            similar_banned_club
-        WHERE
-            -- The exact club name is banned
-            name = LOWER(%()s)
-        OR
-            -- The club name contains a banned word/phrase
-            word_similarity(name, %()s) > 0.999
-        AND
-            -- The banned club name is distinctive enough not to trigger too
-            -- many false positives when used as a word match
-            (name ~ '[A-Za-z]{3}' OR name ~ '[^ ] [^ ]')
-    ) AS is_allowed_club_name
 """
 
 Q_UPDATE_ANSWER = """

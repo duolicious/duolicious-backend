@@ -17,6 +17,7 @@ import io
 import base64
 import duoaudio
 import traceback
+from antioffensive import is_allowed_display_name
 
 CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42
@@ -247,6 +248,14 @@ class PatchOnboardeeInfo(BaseModel):
             raise ValueError('Age must be 18 or up')
         return date_of_birth
 
+    @field_validator('name')
+    def name_must_be_inoffensive(cls, name):
+        if name is None:
+            return name
+        if not is_allowed_display_name(name):
+            raise ValueError('Too rude')
+        return name
+
     @model_validator(mode='after')
     def check_exactly_one(self):
         if len(self.__pydantic_fields_set__) != 1:
@@ -332,6 +341,14 @@ class PatchProfileInfo(BaseModel):
             values[key] = val.strip() if type(val) is str else val
 
         return values
+
+    @field_validator('name')
+    def name_must_be_inoffensive(cls, name):
+        if name is None:
+            return name
+        if not is_allowed_display_name(name):
+            raise ValueError('Too rude')
+        return name
 
     class Config:
         arbitrary_types_allowed = True

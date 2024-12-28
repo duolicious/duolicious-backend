@@ -1,0 +1,14 @@
+from sql import Q_IS_ALLOWED_CLUB_NAME
+from database import api_tx
+
+def is_allowed_club_name(club_name: str) -> bool:
+    q = Q_IS_ALLOWED_CLUB_NAME.replace('%()s', '%(club_name)s')
+
+    params = dict(club_name=club_name)
+
+    with api_tx() as tx:
+        row = tx.execute(q, params).fetchone()
+        return bool(row['is_allowed_club_name'])
+
+def is_allowed_display_name(name: str) -> bool:
+    return is_allowed_club_name(name)

@@ -289,18 +289,6 @@ def put_audio_in_object_store(
         for future in as_completed(futures):
             future.result()
 
-def is_allowed_club_name(club_name: str) -> bool:
-    q = Q_IS_ALLOWED_CLUB_NAME.replace('%()s', '%(club_name)s')
-
-    params = dict(club_name=club_name)
-
-    with api_tx() as tx:
-        row = tx.execute(q, params).fetchone()
-        return bool(row['is_allowed_club_name'])
-
-def is_allowed_display_name(name: str) -> bool:
-    return is_allowed_club_name(name)
-
 def post_answer(req: t.PostAnswer, s: t.SessionInfo):
     params_add_yes_no_count = dict(
         question_id=req.question_id,
@@ -471,9 +459,6 @@ def post_check_session_token(s: t.SessionInfo):
 def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
     [field_name] = req.__pydantic_fields_set__
     field_value = req.dict()[field_name]
-
-    if field_name == 'name' and not is_allowed_display_name(field_value):
-        return '', 403
 
     if field_name in ['name', 'date_of_birth']:
         params = dict(
@@ -941,9 +926,6 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
     crop_size = None
 
     base64_audio_file = None
-
-    if field_name == 'name' and not is_allowed_display_name(field_value):
-        return '', 403
 
     if field_name == 'base64_file':
         base64_file = t.Base64File(**field_value)

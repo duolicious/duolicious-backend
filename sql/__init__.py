@@ -62,3 +62,33 @@ VALUES (%(username)s, extract(epoch from now() + INTERVAL '5 seconds')::int)
 ON CONFLICT (username) DO UPDATE SET
     chat_seconds = EXCLUDED.chat_seconds
 """
+
+Q_IS_ALLOWED_CLUB_NAME = """
+WITH similar_banned_club AS (
+    SELECT
+        name
+    FROM
+        banned_club
+    ORDER BY
+        name <-> %()s
+    LIMIT
+        10
+)
+SELECT
+    NOT EXISTS (
+        SELECT
+            1
+        FROM
+            similar_banned_club
+        WHERE
+            -- The exact club name is banned
+            name = LOWER(%()s)
+        OR
+            -- The club name contains a banned word/phrase
+            word_similarity(name, %()s) > 0.999
+        AND
+            -- The banned club name is distinctive enough not to trigger too
+            -- many false positives when used as a word match
+            (name ~ '[A-Za-z]{3}' OR name ~ '[^ ] [^ ]')
+    ) AS is_allowed_club_name
+"""
