@@ -358,9 +358,7 @@ const Scrollbar = () => {
 const styles = StyleSheet.create({
   scrollbar: {
     width: 14,
-    backgroundColor: 'white',
-    borderColor: 'black',
-    borderLeftWidth: 1,
+    backgroundColor: '#ddd',
     position: 'absolute',
     right: 0,
     top: 0,
@@ -373,8 +371,6 @@ const styles = StyleSheet.create({
   thumb: {
     width: '100%',
     backgroundColor: '#70f',
-    borderWidth: 1,
-    borderColor: 'white',
     borderRadius: 99,
 
     touchAction: 'none',         // prevent selection on web
