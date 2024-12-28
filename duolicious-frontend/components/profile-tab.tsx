@@ -67,6 +67,7 @@ import { InviteEntrypoint } from './invite';
 import { InvitePicker } from './invite';
 import { AudioBio } from './audio-bio';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
+import { WEB_VERSION } from '../env/env';
 
 const formatHeight = (og: OptionGroup<OptionGroupInputs>): string | undefined => {
   if (!isOptionGroupSlider(og.input)) return '';
@@ -819,6 +820,18 @@ const AboutDuolicious = () => {
         {} to provide feedback, report abuse, or submit any other concerns or
         queries you have.
       </DefaultText>
+
+      {Platform.OS === 'web' &&
+        <DefaultText
+          style={{
+            marginTop: 25,
+            textAlign: 'center',
+            color: '#999',
+          }}
+        >
+          Duolicious Web Version {WEB_VERSION}
+        </DefaultText>
+      }
     </View>
   );
 };
