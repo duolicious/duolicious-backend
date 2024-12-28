@@ -91,6 +91,7 @@ services:
       - ./chat.auth.main.sh:/app/chat.auth.main.sh:ro
       - ./notify:/app/notify:ro
       - ./batcher:/app/batcher:ro
+      - ./antispam:/app/antispam:ro
       - ./async_lru_cache:/app/async_lru_cache:ro
       - ./sql:/app/sql:ro
     environment:
