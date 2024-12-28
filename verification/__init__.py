@@ -240,7 +240,7 @@ def process_response(
 
     general_truthiness_threshold = 0.7
 
-    edit_truthiness_threshold = 0.9 if verified_uuids else 0.8
+    edit_truthiness_threshold = 0.8 if verified_uuids else 0.9
     gender_truthiness_threshold = 0.5
     age_truthiness_threshold = 0.5
     minimum_age_truthiness_threshold = 0.8
