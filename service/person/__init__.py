@@ -475,7 +475,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
     if field_name == 'name' and not is_allowed_display_name(field_value):
         return '', 403
 
-    if field_name in ['name', 'date_of_birth', 'about']:
+    if field_name in ['name', 'date_of_birth']:
         params = dict(
             email=s.email,
             field_value=field_value

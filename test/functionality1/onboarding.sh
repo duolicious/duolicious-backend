@@ -91,8 +91,6 @@ jc DELETE /onboardee-info -d '{ "files": [1, 3] }'
 
 [[ "$(q "select COUNT(*) from onboardee_photo")" -eq 0 ]]
 
-jc PATCH /onboardee-info -d '{ "about": "Im a reasonable person" }'
-
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 1 ]]
 
 ! c GET /next-questions

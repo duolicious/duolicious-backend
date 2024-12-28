@@ -36,7 +36,7 @@ response=$(
 
 expected=$(jq -r . << EOF
 {
-  "about": "Im a reasonable person",
+  "about": "",
   "age": 26,
   "audio_bio_uuid": null,
   "count_answers": 0,
@@ -107,7 +107,7 @@ response=$(
 
 expected=$(jq -r . << EOF
 {
-  "about": "Im a reasonable person",
+  "about": "",
   "age": 26,
   "audio_bio_uuid": null,
   "count_answers": 0,

@@ -235,10 +235,6 @@ class PatchOnboardeeInfo(BaseModel):
     gender: Optional[constr(min_length=1)] = None
     other_peoples_genders: Optional[conlist(constr(min_length=1), min_length=1)] = None
     base64_file: Optional[Base64File] = None
-    about: Optional[constr(
-        min_length=MIN_ABOUT_LEN,
-        max_length=MAX_ABOUT_LEN,
-        strip_whitespace=True)] = None
 
     @field_validator('date_of_birth')
     def age_must_be_18_or_up(cls, date_of_birth):
@@ -248,12 +244,8 @@ class PatchOnboardeeInfo(BaseModel):
         today = date.today()
         age = relativedelta(today, date_of_birth_date).years
         if age < 18:
-            raise ValueError(f'Age must be 18 or up')
+            raise ValueError('Age must be 18 or up')
         return date_of_birth
-
-    @field_validator('about', mode='before')
-    def strip_about(cls, about):
-        return about if about is None else about.strip()
 
     @model_validator(mode='after')
     def check_exactly_one(self):
