@@ -406,7 +406,18 @@ echo user1\'s records are no longer on the server
 
 
 
-echo 'Banning user2 deletes them from the XMPP server'
+echo 'Banning user2 deletes them from the XMPP server (but not accessing the ban link)'
+
+c GET "/admin/ban-link/${ban_token}"
+
+[[ "$(q "select count(*) from mam_message where user_id in ( \
+  select user_id \
+  from mam_server_user \
+  where user_name = '$user2uuid')" duo_chat)" = 4 ]]
+[[ "$(q "select count(*) from inbox where luser = '$user2uuid'" duo_chat)" = 1 ]]
+[[ "$(q "select count(*) from mam_server_user where user_name = '$user2uuid'" duo_chat)" = 1 ]]
+[[ "$(q "select count(*) from duo_last_notification where username = '$user2uuid'" duo_chat)" = 0 ]]
+[[ "$(q "select count(*) from duo_push_token where username = '$user2uuid'" duo_chat)" = 1 ]]
 
 c GET "/admin/ban/${ban_token}"
 
