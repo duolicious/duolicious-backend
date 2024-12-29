@@ -19,7 +19,7 @@ type ScrollViewData = {
   controller: string | null;
 
   // A callback to call when the Scrollbar's thumb is dragged
-  onThumbDrag?: (offset: number) => void;
+  onThumbDrag?: null | ((offset: number) => void);
 
   // The height of the controlling Scrollview's content
   contentHeight?: number;

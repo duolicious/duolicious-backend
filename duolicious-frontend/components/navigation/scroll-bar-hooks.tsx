@@ -135,6 +135,42 @@ const useScrollbar = (controller: string) => {
   }).current;
 };
 
+const useScrollbarStyle = () => {
+  const desktopScrollbarCSS = `
+  ::-webkit-scrollbar {
+    width: 14px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #ddd;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: #70f;
+    border-radius: 99px;
+  }
+
+  @-moz-document url-prefix() {
+    * {
+      scrollbar-color: #70f #ddd;
+    }
+
+    *::-moz-scrollbar-thumb {
+      border-radius: 99px;
+    }
+  }
+  `;
+
+  useEffect(() => {
+    if (!isMobile()) {
+      const styleEl = document.createElement('style');
+      styleEl.textContent = desktopScrollbarCSS;
+      document.head.appendChild(styleEl);
+    }
+  }, []);
+};
+
 export {
   useScrollbar,
+  useScrollbarStyle,
 };

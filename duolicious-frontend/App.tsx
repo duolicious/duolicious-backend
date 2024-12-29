@@ -60,7 +60,7 @@ import { DonationNagModal } from './components/donation-nag-modal';
 import { createWebNavigator } from './components/navigation/web-navigator';
 import { isMobile } from './util/util';
 import { Logo16 } from './components/logo';
-import './global.css';
+import { useScrollbarStyle } from './components/navigation/scroll-bar-hooks';
 
 
 // TODO: Onboarding works
@@ -463,6 +463,8 @@ const App = () => {
       }
     })();
   }, [isLoading]);
+
+  useScrollbarStyle();
 
   if (serverStatus !== "ok") {
     return <UtilityScreen serverStatus={serverStatus}/>
