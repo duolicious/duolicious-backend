@@ -215,7 +215,7 @@ def _normalize_short_newline_runs(text):
     return _pattern.sub(r'\1', text)
 
 
-def contains_gibberish(text, window_size=10, prob_threshold=-50):
+def has_gibberish(text, window_size=10, prob_threshold=-50):
     """Detect unlikely text based on bigram probabilities"""
 
     # The bigram model assigns low probabilities to emojis. This is good for

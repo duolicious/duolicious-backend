@@ -17,7 +17,10 @@ import io
 import base64
 import duoaudio
 import traceback
-from antirude import is_allowed_display_name
+from antirude import displayname, profile
+from antispam.urldetector import has_url
+from antispam.phonenumberdetector import detect_phone_numbers
+from antispam.solicitation import has_solicitation
 
 CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42
@@ -249,12 +252,12 @@ class PatchOnboardeeInfo(BaseModel):
         return date_of_birth
 
     @field_validator('name')
-    def name_must_be_inoffensive(cls, name):
-        if name is None:
-            return name
-        if not is_allowed_display_name(name):
+    def name_must_not_be_rude(cls, value):
+        if value is None:
+            return value
+        if displayname.is_rude(value):
             raise ValueError('Too rude')
-        return name
+        return value
 
     @model_validator(mode='after')
     def check_exactly_one(self):
@@ -343,12 +346,31 @@ class PatchProfileInfo(BaseModel):
         return values
 
     @field_validator('name')
-    def name_must_be_inoffensive(cls, name):
-        if name is None:
-            return name
-        if not is_allowed_display_name(name):
+    def name_must_not_be_rude(cls, value):
+        if value is None:
+            return value
+        if displayname.is_rude(value):
             raise ValueError('Too rude')
-        return name
+        return value
+
+    @field_validator('about')
+    def about_must_not_be_rude(cls, value):
+        if value is None:
+            return value
+        if profile.is_rude(value):
+            raise ValueError('Too rude')
+        return value
+
+    @field_validator('about')
+    def about_must_not_have_spam(cls, value):
+        if value is None:
+            return value
+        if \
+                has_url(value) or \
+                detect_phone_numbers(text) or \
+                has_solicitation(text):
+            raise ValueError('Spam')
+        return value
 
     class Config:
         arbitrary_types_allowed = True

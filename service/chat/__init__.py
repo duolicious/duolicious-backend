@@ -15,7 +15,7 @@ from typing import Any, Optional
 from datetime import datetime
 from service.chat.insertintrohash import insert_intro_hash
 from service.chat.mayberegister import maybe_register
-from service.chat.offensive import is_offensive
+from service.chat.rude import is_rude
 from service.chat.setmessaged import set_messaged
 from service.chat.spam import is_spam
 from service.chat.updatelast import update_last_forever
@@ -432,8 +432,8 @@ async def process_duo_message(
     if is_intro and not await is_message_unique(maybe_message_body):
         return [f'<duo_message_not_unique id="{id}"/>'], []
 
-    if is_intro and is_offensive(maybe_message_body):
-        return [f'<duo_message_blocked id="{id}" reason="offensive"/>'], []
+    if is_intro and is_rude(maybe_message_body):
+        return [f'<duo_message_blocked id="{id}" reason="rude"/>'], []
 
     if \
             is_intro and \

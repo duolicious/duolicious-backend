@@ -1,6 +1,6 @@
-from antispam.urldetector import contains_url
-from antispam.gibberishdetector import contains_gibberish
+from antispam.urldetector import has_url
+from antispam.gibberishdetector import has_gibberish
 
 
 def is_spam(text: str):
-    return contains_url(text) or contains_gibberish(text)
+    return has_url(text) or has_gibberish(text)

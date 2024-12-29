@@ -56,13 +56,13 @@ _strings = [
 ]
 
 
-_offensive_pattern = '|'.join(f'(\\b{re.escape(s)}\\b)' for s in _strings)
+_rude_pattern = '|'.join(f'(\\b{re.escape(s)}\\b)' for s in _strings)
 
 
-_offensive_matcher = re.compile(_offensive_pattern, re.IGNORECASE)
+_rude_matcher = re.compile(_rude_pattern, re.IGNORECASE)
 
 
-def is_offensive(s: str) -> bool:
+def is_rude(s: str) -> bool:
     normalized_input = normalize_string(s)
 
-    return bool(_offensive_matcher.search(normalized_input))
+    return bool(_rude_matcher.search(normalized_input))
