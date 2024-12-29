@@ -16,6 +16,7 @@ _normalization_map = {
     "cvmming": "cumming",
     "cvms": "cums",
     "cvmshot": "cumshot",
+    "ejakulate": "ejaculate",
     "fck": "fuck",
     "fcked": "fucked",
     "fcking": "fucking",
