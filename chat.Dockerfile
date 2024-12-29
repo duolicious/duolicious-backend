@@ -14,6 +14,7 @@ COPY service/chat/container/jq /bin/jq
 COPY service/chat/container/mongooseim.toml /mongooseim.template.toml
 
 # Proxy
+COPY antirude /app/antirude
 COPY antispam /app/antispam
 COPY database /app/database
 COPY duohash /app/duohash

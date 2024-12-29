@@ -4,6 +4,7 @@ Pillow
 PyYAML
 blurhash
 boto3
+confusable-homoglyphs
 erlastic
 flask-cors
 gunicorn

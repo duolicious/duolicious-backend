@@ -17,7 +17,7 @@ import io
 import base64
 import duoaudio
 import traceback
-from antioffensive import is_allowed_display_name
+from antirude import is_allowed_display_name
 
 CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42

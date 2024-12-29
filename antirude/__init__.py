@@ -1,5 +1,6 @@
-from sql import Q_IS_ALLOWED_CLUB_NAME
+from antirude.normalize import normalize_string
 from database import api_tx
+from sql import Q_IS_ALLOWED_CLUB_NAME
 
 def is_allowed_club_name(club_name: str) -> bool:
     q = Q_IS_ALLOWED_CLUB_NAME.replace('%()s', '%(club_name)s')
@@ -11,4 +12,6 @@ def is_allowed_club_name(club_name: str) -> bool:
         return bool(row['is_allowed_club_name'])
 
 def is_allowed_display_name(name: str) -> bool:
-    return is_allowed_club_name(name)
+    normalized_name = normalize_string(name)
+
+    return is_allowed_club_name(normalized_name)
