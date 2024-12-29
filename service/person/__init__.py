@@ -1801,9 +1801,6 @@ def get_admin_ban_link(token: str):
         return err_invalid_token
 
     try:
-        with chat_tx() as tx:
-            tx.execute(Q_DELETE_XMPP, params=dict(person_uuid=person_uuid))
-
         with api_tx('READ COMMITTED') as tx:
             rows = tx.execute(Q_CHECK_ADMIN_BAN_TOKEN, params).fetchall()
     except psycopg.errors.InvalidTextRepresentation:
@@ -1811,7 +1808,7 @@ def get_admin_ban_link(token: str):
 
     if rows:
         link = f'https://api.duolicious.app/admin/ban/{token}'
-        return f'<a href="{link}">{link}</a>'
+        return f'<a href="{link}">Click to confirm. Token: {token}</a>'
     else:
         return err_invalid_token
 
@@ -1837,7 +1834,7 @@ def get_admin_delete_photo_link(token: str):
 
     if rows:
         link = f'https://api.duolicious.app/admin/delete-photo/{token}'
-        return f'<a href="{link}">{link}</a>'
+        return f'<a href="{link}">Click to confirm. Token {token}</a>'
     else:
         return 'Invalid token', 401
 
