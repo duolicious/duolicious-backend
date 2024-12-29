@@ -485,7 +485,7 @@ WITH onboardee_country AS (
                 FROM onboardee_country
             )
         ) AS unit_id,
-        3 AS intros_notification,
+        2 AS intros_notification,
         CASE
             WHEN RANDOM() < 0.8 THEN 1
             ELSE 3
