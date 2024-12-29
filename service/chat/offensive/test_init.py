@@ -47,6 +47,9 @@ class TestIsOffensive(unittest.TestCase):
         self.assertTrue(
                 is_offensive("I am the rapist"))
 
+        self.assertTrue(
+                is_offensive("I am a p3d0"))
+
     def test_inoffensive_strings(self):
         self.assertFalse(
                 is_offensive("go hug urself please"))
