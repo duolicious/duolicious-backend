@@ -155,7 +155,13 @@ mark_displayed () {
 
 echo "The inbox is as expected after users message each other"
 
-
+# Who messaged who:
+# ┌───┐            ┌───┐
+# │ 1 │◄───────────│ 2 │
+# └───┘     ┌─────►└─┬─┘
+#    ▲    ┌─┴─┐      │
+#    └────┤ 3 │◄─────┘
+#         └───┘
 send_message "$user2uuid" "$user2token" "$user1uuid" "from user 2 to user 1"
 send_message "$user2uuid" "$user2token" "$user3uuid" "from user 2 to user 3"
 
@@ -189,7 +195,7 @@ expected_inbox_2=$(cat << EOF
 <message xmlns="jabber:client" from="$user2uuid@duolicious.app" to="$user2uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="1" queryid="$query_id_2"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" type="chat" from="$user3uuid@duolicious.app" to="$user2uuid@duolicious.app" id="id1">
     <body>from user 3 to user 2</body>
     <request xmlns="urn:xmpp:receipts"/>
-  </message></forwarded><read>false</read><box>inbox</box><archive>false</archive><mute>0</mute></result></message>
+  </message></forwarded><read>false</read><box>chats</box><archive>false</archive><mute>0</mute></result></message>
 <iq id='$query_id_2' type='result'><fin/></iq>
 EOF
 )
