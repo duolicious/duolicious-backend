@@ -15,6 +15,7 @@ import unicodedata
 # Used to convert slang in an input string to a more standard form so that it's
 # easier to detect coarse language later on
 _normalization_map = {
+    "a[s5$]{2}": "ass",
     "b": "be",
     "btch": "bitch",
     "c+u+m+": "cum",
@@ -38,6 +39,7 @@ _normalization_map = {
     "fvck": "fuck",
     "fvcked": "fucked",
     "fvcking": "fucking",
+    "l0li": "loli",
     "ngger": "nigger",
     "nggr": "nigger",
     "nggr": "nigger",
@@ -50,7 +52,6 @@ _normalization_map = {
     "urself": "yourself",
     "wh0re": "whore",
     "wh0res": "whores",
-    "a[s5$]{2}": "ass",
 }
 
 
