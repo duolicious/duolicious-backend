@@ -82,7 +82,7 @@ WITH upsert_sender AS (
     ON CONFLICT (lserver, luser, remote_bare_jid)
     DO UPDATE SET
         msg_id = EXCLUDED.msg_id,
-        box = 'inbox',
+        box = 'chats',
         content = EXCLUDED.content,
         timestamp = EXCLUDED.timestamp,
         muted_until = EXCLUDED.muted_until,
