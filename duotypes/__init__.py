@@ -367,8 +367,8 @@ class PatchProfileInfo(BaseModel):
             return value
         if \
                 has_url(value) or \
-                detect_phone_numbers(text) or \
-                has_solicitation(text):
+                detect_phone_numbers(value) or \
+                has_solicitation(value):
             raise ValueError('Spam')
         return value
 

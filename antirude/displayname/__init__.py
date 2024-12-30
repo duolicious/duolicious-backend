@@ -9,7 +9,7 @@ def _is_allowed_club_name(club_name: str) -> bool:
 
     with api_tx() as tx:
         row = tx.execute(q, params).fetchone()
-        return bool(row['is_rude_club_name'])
+        return bool(row['is_allowed_club_name'])
 
 def is_rude(name: str) -> bool:
     normalized_name = normalize_string(name)

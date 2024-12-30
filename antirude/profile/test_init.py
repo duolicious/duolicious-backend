@@ -1,33 +1,33 @@
 import unittest
-from antirude.profile import is_offensive
+from antirude.profile import is_rude
 
-class TestIsOffensive(unittest.TestCase):
+class TestIsRude(unittest.TestCase):
 
-    def test_offensive_strings(self):
+    def test_rude_strings(self):
         self.assertTrue(
-                is_offensive("You're a nigg"))
+                is_rude("You're a nigg"))
 
         self.assertTrue(
-                is_offensive("ywnbaw is an acronym"))
+                is_rude("ywnbaw is an acronym"))
 
-    def test_inoffensive_strings(self):
+    def test_inrude_strings(self):
         self.assertFalse(
-                is_offensive("go hug urself please"))
-
-        self.assertFalse(
-                is_offensive("I respect you"))
+                is_rude("go hug urself please"))
 
         self.assertFalse(
-                is_offensive("What you're referring to as Linux is GNU/Linux"))
+                is_rude("I respect you"))
 
         self.assertFalse(
-                is_offensive("Who're you listening to?"))
+                is_rude("What you're referring to as Linux is GNU/Linux"))
 
         self.assertFalse(
-                is_offensive("Can u c my pfp?"))
+                is_rude("Who're you listening to?"))
 
         self.assertFalse(
-                is_offensive("I am therapist"))
+                is_rude("Can u c my pfp?"))
+
+        self.assertFalse(
+                is_rude("I am therapist"))
 
 
 if __name__ == '__main__':
