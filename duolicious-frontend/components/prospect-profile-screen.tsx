@@ -1012,7 +1012,7 @@ const AudioPlayer = ({
       return;
     }
 
-    setIsPlaying(true);
+    setIsPlaying(false);
 
     await sound.current.pauseAsync();
   };
@@ -1023,8 +1023,6 @@ const AudioPlayer = ({
     } else {
       play();
     }
-
-    setIsPlaying(!isPlaying);
   };
 
   useEffect(() => {

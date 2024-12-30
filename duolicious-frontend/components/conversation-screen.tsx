@@ -812,7 +812,7 @@ const TextInputWithButton = ({
         style={{
           ...styles.textInput,
           ...{
-            height: isMobile() ? 50 : Math.max(80, Math.round(text.length / 40) * 15),
+            minHeight: isMobile() ? 50 : Math.max(80, Math.round(text.length / 40) * 15),
             maxHeight: height * 0.4
           },
         }}
@@ -824,10 +824,7 @@ const TextInputWithButton = ({
         multiline={true}
       />
       <Pressable
-        style={{
-          height: 50,
-          width: 50,
-        }}
+        style={styles.sendButton}
         onPressIn={fadeIn}
         onPressOut={fadeOut}
         onPress={sendMessage}
@@ -875,7 +872,6 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: 10,
     marginTop: 10,
-    marginBottom: 10,
     alignSelf: 'center',
     alignItems: 'flex-end',
     gap: 10,
@@ -885,9 +881,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 0,
     padding: 10,
+    marginBottom: 10,
     fontSize: 16,
     flex: 1,
     flexGrow: 1,
+  },
+  sendButton: {
+    height: 50,
+    width: 50,
+    marginBottom: 10,
   }
 });
 
