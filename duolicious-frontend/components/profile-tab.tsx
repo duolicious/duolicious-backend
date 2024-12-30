@@ -44,7 +44,7 @@ import {
 import { Images } from './images';
 import { DefaultText } from './default-text';
 import { sessionToken, sessionPersonUuid } from '../kv-storage/session-token';
-import { api, japi } from '../api/api';
+import { api, japi, ApiResponse } from '../api/api';
 import { signedInUser, setSignedInUser } from '../App';
 import { cmToFeetInchesStr } from '../units/units';
 import {
@@ -81,21 +81,15 @@ const formatHeight = (og: OptionGroup<OptionGroupInputs>): string | undefined =>
   }
 };
 
-const enqueueAbout = async (about: string, cb: (ok: boolean) => void) => {
+const enqueueAbout = async (about: string, cb: (response: ApiResponse) => void) => {
   aboutQueue.addTask(
-    async () => {
-      const response = await japi('patch', '/profile-info', { about });
-      cb(response.ok);
-    }
+    async () => cb(await japi('patch', '/profile-info', { about }))
   );
 };
 
-const enqueueName = async (name: string, cb: (ok: boolean) => void) => {
+const enqueueName = async (name: string, cb: (response: ApiResponse) => void) => {
   nameQueue.addTask(
-    async () => {
-      const response = await japi('patch', '/profile-info', { name });
-      cb(response.ok);
-    }
+    async () => cb(await japi('patch', '/profile-info', { name }))
   );
 };
 
@@ -253,6 +247,8 @@ const DisplayNameAndAboutPerson = ({navigation, data}) => {
     | 'saving...'
     | 'saved'
     | 'error'
+    | 'too rude'
+    | 'spam'
     | 'too short'
     | 'too long';
 
@@ -260,7 +256,31 @@ const DisplayNameAndAboutPerson = ({navigation, data}) => {
 
   const [aboutState, setAboutState] = useState<State>('unchanged');
 
-  const errorStates: State[] = ['error', 'too short', 'too long'];
+  const errorStates: State[] = [
+    'error',
+    'too short',
+    'too long',
+    'too rude',
+    'spam',
+  ];
+
+  const responseHandler =
+    (stateSetter: (state: State) => void) =>
+    (r: ApiResponse): boolean =>
+  {
+      if (r.ok && r.validationErrors === null) {
+        stateSetter('saved');
+        return true;
+      } else if (r.validationErrors[0] === 'Too rude') {
+        stateSetter('too rude');
+      } else if (r.validationErrors[0] === 'Spam') {
+        stateSetter('spam');
+      } else {
+        stateSetter('error');
+      }
+
+      return false;
+    };
 
   const debouncedOnChangeNameText = useCallback(
     debounce(enqueueName, 1000),
@@ -274,24 +294,25 @@ const DisplayNameAndAboutPerson = ({navigation, data}) => {
 
   const onChangeNameText = useCallback(async (name: string) => {
     setNameState('saving...');
-    await debouncedOnChangeNameText(
-      name,
-      (ok) => {
-        if (name.length <  1) { setNameState('too short'); return; }
-        if (name.length > 64) { setNameState('too long'); return; }
 
-        setNameState(ok ? 'saved' : 'error');
+    const handleResponse = (r: ApiResponse) => {
+      if (name.length <  1) { setNameState('too short'); return; }
+      if (name.length > 64) { setNameState('too long'); return; }
+
+      if (responseHandler(setNameState)(r)) {
         setName(name);
-      },
-    );
+      }
+    };
+
+    await debouncedOnChangeNameText(name, handleResponse);
   }, []);
 
   const onChangeAboutText = useCallback(async (about: string) => {
     setAboutState('saving...');
-    await debouncedOnChangeAboutText(
-      about,
-      (ok) => setAboutState(ok ? 'saved' : 'error'),
-    );
+
+    const handleResponse = responseHandler(setAboutState);
+
+    await debouncedOnChangeAboutText(about, handleResponse);
   }, []);
 
   return (
@@ -329,8 +350,10 @@ const DisplayNameAndAboutPerson = ({navigation, data}) => {
           <DefaultText
             style={{
               fontSize: 14,
-              fontWeight: '400',
-              color: '#777',
+              fontWeight: (
+                errorStates.includes(aboutState) ? '700' : '400'),
+              color: (
+                errorStates.includes(aboutState) ? 'red' : '#777'),
             }}
           >
             ({aboutState})

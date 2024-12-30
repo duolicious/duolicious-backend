@@ -19,12 +19,13 @@ type ApiResponse = {
   clientError: boolean
   json: any,
   status: number
+  validationErrors: string[] | null
 };
 
-const parseErrors = (errors: any) => {
+const parseErrors = (errors: any): string[] => {
   try {
     return errors.map(
-      (e) => (e?.msg ?? SOMETHING_WENT_WRONG).split(",").slice(1).join(",")
+      (e) => (e?.msg ?? SOMETHING_WENT_WRONG).split(",").slice(1).join(",").trim()
     );
   } catch {
     return [SOMETHING_WENT_WRONG];
@@ -95,10 +96,10 @@ const api = async (
 
   const clientError = response && response.status >= 400 && response.status < 500;
 
-  if (clientError && showValidationToast) {
-    const parsedErrors = parseErrors(json);
+  const validationErrors = clientError ? parseErrors(json) : null;
 
-    for (const error of parsedErrors) {
+  if (validationErrors && showValidationToast) {
+    for (const error of validationErrors) {
       notify<React.FC>('toast', () => <ValidationErrorToast error={error} />);
     }
   }
@@ -107,7 +108,8 @@ const api = async (
     ok: response?.ok ?? false,
     clientError: clientError,
     json: json,
-    status: response?.status ?? 0
+    status: response?.status ?? 0,
+    validationErrors: validationErrors,
   }
 };
 

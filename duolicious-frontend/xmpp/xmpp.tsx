@@ -89,6 +89,8 @@ type MessageStatus =
   | 'sent'
   | 'offensive'
   | 'rate-limited-1day'
+  | 'rate-limited-1day-unverified-basics'
+  | 'rate-limited-1day-unverified-photos'
   | 'spam'
   | 'blocked'
   | 'not unique'
@@ -579,8 +581,26 @@ const _sendMessage = (
       doc
     );
 
+    const rateLimitedUnverifiedBasicsNode = xpath.select1(
+      "/*[name()='duo_message_blocked']" +
+      "[@reason='rate-limited-1day']" +
+      "[@subreason='unverified-basics']" +
+      `[@id='${id}']`,
+      doc
+    );
+
+    const rateLimitedUnverifiedPhotosNode = xpath.select1(
+      "/*[name()='duo_message_blocked']" +
+      "[@reason='rate-limited-1day']" +
+      "[@subreason='unverified-photos']" +
+      `[@id='${id}']`,
+      doc
+    );
+
     const rateLimitedNode = xpath.select1(
-      `/*[name()='duo_message_blocked'][@reason='rate-limited-1day'][@id='${id}']`,
+      "/*[name()='duo_message_blocked']" +
+      "[@reason='rate-limited-1day']" +
+      `[@id='${id}']`,
       doc
     );
 
@@ -604,7 +624,11 @@ const _sendMessage = (
       doc
     );
 
-    if (rateLimitedNode) {
+    if (rateLimitedUnverifiedBasicsNode) {
+      callback('rate-limited-1day-unverified-basics');
+    } else if (rateLimitedUnverifiedPhotosNode) {
+      callback('rate-limited-1day-unverified-photos');
+    } else if (rateLimitedNode) {
       callback('rate-limited-1day');
     } else if (spamNode) {
       callback('spam');

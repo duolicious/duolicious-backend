@@ -701,11 +701,13 @@ const ConversationScreen = ({navigation, route}) => {
           ...(lastMessageStatus === 'timeout' ? {} : { fontFamily: 'Trueno' }),
         }}
       >
-        {lastMessageStatus === 'timeout' ?  "Message not delivered. Are you online?" : '' }
-        {lastMessageStatus === 'rate-limited-1day' ?  `You’ve reached your daily intro limit. Try messaging ${name} tomorrow...` : '' }
-        {lastMessageStatus === 'spam' ?  `We think that might be spam. Try sending ${name} a different message...` : '' }
-        {lastMessageStatus === 'offensive' ?  `Intros can’t be too rude. Try sending ${name} a different message...` : '' }
-        {lastMessageStatus === 'blocked' ?  name + ' is unavailable right now. Try messaging someone else!' : '' }
+        {lastMessageStatus === 'timeout' ? "Message not delivered. Are you online?" : '' }
+        {lastMessageStatus === 'rate-limited-1day-unverified-basics' ? `You’ve used today’s daily intro limit! Message ${name} tomorrow or unlock extra daily intros by getting verified...` : '' }
+        {lastMessageStatus === 'rate-limited-1day-unverified-photos' ? `You’ve used today’s daily intro limit! Message ${name} tomorrow or unlock extra daily intros by verifying your photos...` : '' }
+        {lastMessageStatus === 'rate-limited-1day' ? `You’ve used today’s daily intro limit! Try messaging ${name} tomorrow...` : '' }
+        {lastMessageStatus === 'spam' ? `We think that might be spam. Try sending ${name} a different message...` : '' }
+        {lastMessageStatus === 'offensive' ? `Intros can’t be too rude. Try sending ${name} a different message...` : '' }
+        {lastMessageStatus === 'blocked' ? name + ' is unavailable right now. Try messaging someone else!' : '' }
         {lastMessageStatus === 'not unique' ? `Someone already sent that intro! Try sending ${name} a different message...` : '' }
         {lastMessageStatus === 'too long' ? 'That message is too big! 😩' : '' }
       </DefaultText>
