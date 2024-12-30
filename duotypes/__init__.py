@@ -17,6 +17,10 @@ import io
 import base64
 import duoaudio
 import traceback
+from antirude import displayname, profile
+from antispam.urldetector import has_url
+from antispam.phonenumberdetector import detect_phone_numbers
+from antispam.solicitation import has_solicitation
 
 CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42
@@ -235,10 +239,6 @@ class PatchOnboardeeInfo(BaseModel):
     gender: Optional[constr(min_length=1)] = None
     other_peoples_genders: Optional[conlist(constr(min_length=1), min_length=1)] = None
     base64_file: Optional[Base64File] = None
-    about: Optional[constr(
-        min_length=MIN_ABOUT_LEN,
-        max_length=MAX_ABOUT_LEN,
-        strip_whitespace=True)] = None
 
     @field_validator('date_of_birth')
     def age_must_be_18_or_up(cls, date_of_birth):
@@ -248,12 +248,16 @@ class PatchOnboardeeInfo(BaseModel):
         today = date.today()
         age = relativedelta(today, date_of_birth_date).years
         if age < 18:
-            raise ValueError(f'Age must be 18 or up')
+            raise ValueError('Age must be 18 or up')
         return date_of_birth
 
-    @field_validator('about', mode='before')
-    def strip_about(cls, about):
-        return about if about is None else about.strip()
+    @field_validator('name')
+    def name_must_not_be_rude(cls, value):
+        if value is None:
+            return value
+        if displayname.is_rude(value):
+            raise ValueError('Too rude')
+        return value
 
     @model_validator(mode='after')
     def check_exactly_one(self):
@@ -340,6 +344,33 @@ class PatchProfileInfo(BaseModel):
             values[key] = val.strip() if type(val) is str else val
 
         return values
+
+    @field_validator('name')
+    def name_must_not_be_rude(cls, value):
+        if value is None:
+            return value
+        if displayname.is_rude(value):
+            raise ValueError('Too rude')
+        return value
+
+    @field_validator('about')
+    def about_must_not_be_rude(cls, value):
+        if value is None:
+            return value
+        if profile.is_rude(value):
+            raise ValueError('Too rude')
+        return value
+
+    @field_validator('about')
+    def about_must_not_have_spam(cls, value):
+        if value is None:
+            return value
+        if \
+                has_url(value) or \
+                detect_phone_numbers(value) or \
+                has_solicitation(value):
+            raise ValueError('Spam')
+        return value
 
     class Config:
         arbitrary_types_allowed = True

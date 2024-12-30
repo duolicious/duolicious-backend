@@ -596,6 +596,7 @@ VALUES
     ('cuny'),
     ('cute and funny'),
     ('cuteandfunny'),
+    ('cutmaxxer'),
     ('cutmaxxing'),
     ('cut me'),
     ('cutslut'),

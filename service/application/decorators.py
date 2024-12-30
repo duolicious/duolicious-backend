@@ -10,7 +10,7 @@ from pathlib import Path
 from werkzeug.middleware.proxy_fix import ProxyFix
 import ipaddress
 import traceback
-from antispam import normalize_email
+from antispam.signupemail import normalize_email
 from pydantic import ValidationError
 
 disable_ip_rate_limit_file = (

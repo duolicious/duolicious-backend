@@ -1,4 +1,4 @@
-from service.chat.spam.urldetector.tld import tlds
+from antispam.urldetector.tld import tlds
 import re
 import unicodedata
 
@@ -74,6 +74,6 @@ def create_url_pattern(tld_list):
 
 url_pattern = create_url_pattern(tlds)
 
-def contains_url(text: str):
+def has_url(text: str):
     normalized_text = normalize_text(text)
     return bool(url_pattern.search(normalized_text))
