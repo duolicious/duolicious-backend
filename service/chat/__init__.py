@@ -29,11 +29,16 @@ from service.chat.inbox import (
 )
 from duohash import sha512
 from lxml import etree
+from enum import Enum
 
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 
-MAX_INTROS_PER_DAY = 50
+class IntroRateLimit(Enum):
+    NONE = 0
+    UNVERIFIED = 30
+    BASICS = 40
+    PHOTOS = 50
 
 # TODO: Tables to migrate to monolithic DB:
 #
@@ -103,21 +108,43 @@ AND
     sign_up_time < now() - (interval '1 day') / power(verification_level_id, 2)
 """
 
-Q_IS_RATE_LIMITED_TODAY = f"""
-SELECT
-    COUNT(*) >= {MAX_INTROS_PER_DAY} AS is_rate_limited
-FROM (
+Q_RATE_LIMIT_REASON = f"""
+WITH truncated_daily_message_count AS (
     SELECT
-        1
-    FROM
-        messaged
-    WHERE
-        subject_person_id = %(from_id)s
-    AND
-        created_at > now() - interval '1 day'
-    LIMIT
-        {MAX_INTROS_PER_DAY}
-) AS truncated_results
+        COUNT(*) AS x
+    FROM (
+        SELECT
+            1
+        FROM
+            messaged
+        WHERE
+            subject_person_id = %(from_id)s
+        AND
+            created_at > now() - interval '1 day'
+        LIMIT
+            {max(x.value for x in IntroRateLimit)}
+    )
+)
+SELECT
+    CASE
+
+    WHEN verification_level_id = 3 AND x >= {IntroRateLimit.PHOTOS.value}
+    THEN                                    {IntroRateLimit.PHOTOS.value}
+
+    WHEN verification_level_id = 2 AND x >= {IntroRateLimit.BASICS.value}
+    THEN                                    {IntroRateLimit.BASICS.value}
+
+    WHEN verification_level_id = 1 AND x >= {IntroRateLimit.UNVERIFIED.value}
+    THEN                                    {IntroRateLimit.UNVERIFIED.value}
+
+    ELSE                                    {IntroRateLimit.NONE.value}
+
+    END AS rate_limit_reason
+FROM
+    person,
+    truncated_daily_message_count
+WHERE
+    id = %(from_id)s
 """
 
 Q_IMMEDIATE_DATA = """
@@ -349,12 +376,12 @@ async def fetch_is_trusted_account(from_id: int) -> bool:
     return bool(row)
 
 @AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
-async def fetch_is_rate_limited_today(from_id: int) -> bool:
+async def fetch_rate_limit_reason(from_id: int) -> IntroRateLimit:
     async with api_tx('read committed') as tx:
-        await tx.execute(Q_IS_RATE_LIMITED_TODAY, dict(from_id=from_id))
+        await tx.execute(Q_RATE_LIMIT_REASON, dict(from_id=from_id))
         row = await tx.fetchone()
 
-    return row['is_rate_limited']
+    return IntroRateLimit(row['rate_limit_reason'])
 
 @AsyncLruCache(ttl=2 * 60)  # 2 minutes
 async def fetch_push_token(username: str) -> str | None:
@@ -441,8 +468,27 @@ async def process_duo_message(
             not await fetch_is_trusted_account(from_id=from_id):
         return [f'<duo_message_blocked id="{id}" reason="spam"/>'], []
 
-    if is_intro and await fetch_is_rate_limited_today(from_id=from_id):
-        return [f'<duo_message_blocked id="{id}" reason="rate-limited-1day"/>'], []
+    if is_intro:
+        rate_limit_reason = await fetch_rate_limit_reason(from_id=from_id)
+
+        if rate_limit_reason == IntroRateLimit.NONE:
+            pass
+        elif rate_limit_reason == IntroRateLimit.UNVERIFIED:
+            return [
+                    f'<duo_message_blocked id="{id}" '
+                    f'reason="rate-limited-1day" '
+                    f'subreason="unverified-basics"/>'], []
+        elif rate_limit_reason == IntroRateLimit.BASICS:
+            return [
+                    f'<duo_message_blocked id="{id}" '
+                    f'reason="rate-limited-1day" '
+                    f'subreason="unverified-photos"/>'], []
+        elif rate_limit_reason == IntroRateLimit.PHOTOS:
+            return [
+                    f'<duo_message_blocked id="{id}" '
+                    f'reason="rate-limited-1day"/>'], []
+        else:
+            raise Exception(f'Unhandled rate limit reason {rate_limit_reason}')
 
     immediate_data = await fetch_immediate_data(
             from_id=from_id,
