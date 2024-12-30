@@ -14,6 +14,7 @@ _strings = [
     "cunny",
     "cunny-pilled",
     "cunnypilled",
+    "cutmaxxer",
     "edtwt",
     "kike",
     "kill my self",
