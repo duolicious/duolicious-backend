@@ -7,7 +7,9 @@ class TestDetectPhoneNumbers(unittest.TestCase):
     def test_detect_phone_numbers(self):
         sample_text = """
             I'm 21 years old
-            I was born on 2021-12-01
+            I was born on 1999
+            I was born on December 12 1999
+            I was born on 2001-12-01
             There's about 8 billion people in the world right now
             call me on (02) 9070 0718
             My number is 9070 0718
