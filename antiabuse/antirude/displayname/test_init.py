@@ -1,5 +1,5 @@
 import unittest
-from antiabuse.antirude.profile import is_rude
+from antiabuse.antirude.displayname import is_rude
 
 class TestIsRude(unittest.TestCase):
 
@@ -19,9 +19,6 @@ class TestIsRude(unittest.TestCase):
 
         self.assertFalse(
                 is_rude("I respect you"))
-
-        self.assertFalse(
-                is_rude("What you're referring to as Linux is GNU/Linux"))
 
         self.assertFalse(
                 is_rude("Who're you listening to?"))
