@@ -11,10 +11,10 @@ else
 fi
 
 "${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep chat- | cut -d ' ' -f 1)" \
-  python3 -m unittest discover -s antirude
+  python3 -m unittest discover -s antiabuse/antirude
 
 "${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep chat- | cut -d ' ' -f 1)" \
-  python3 -m unittest discover -s antispam
+  python3 -m unittest discover -s antiabuse/antispam
 
 "${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep chat- | cut -d ' ' -f 1)" \
   python3 -m unittest discover -s service/chat

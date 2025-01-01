@@ -1,4 +1,4 @@
-from antirude.normalize import normalize_string
+from antiabuse.normalize import normalize_string
 from database import api_tx
 from sql import Q_IS_ALLOWED_CLUB_NAME
 

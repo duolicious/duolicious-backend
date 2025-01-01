@@ -1,4 +1,4 @@
-from antirude.normalize import normalize_string
+from antiabuse.normalize import normalize_string
 import re
 
 # The idea of this list is to filter the most extreme and most common ways to

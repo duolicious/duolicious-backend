@@ -1,5 +1,5 @@
 import unittest
-from antirude.profile import is_rude
+from antiabuse.antirude.profile import is_rude
 
 class TestIsRude(unittest.TestCase):
 

@@ -1,5 +1,5 @@
 import unittest
-from antispam.gibberishdetector import has_gibberish
+from antiabuse.antispam.gibberishdetector import has_gibberish
 
 class TestContainsGibberish(unittest.TestCase):
 

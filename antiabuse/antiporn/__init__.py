@@ -7,7 +7,7 @@ from pathlib import Path
 from io import BytesIO
 from pathlib import Path
 
-_MODEL_PATH_BASE = Path(__file__).parent.parent / 'antiporn'
+_MODEL_PATH_BASE = Path(__file__).parent.parent.parent / 'antiporn'
 
 _MODEL = bytearray()
 for file_path in sorted(_MODEL_PATH_BASE.glob('model.onnx.part*')):

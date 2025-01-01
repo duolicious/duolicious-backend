@@ -1,5 +1,5 @@
 import unittest
-from antispam.phonenumberdetector import detect_phone_numbers
+from antiabuse.antispam.phonenumberdetector import detect_phone_numbers
 
 
 class TestDetectPhoneNumbers(unittest.TestCase):

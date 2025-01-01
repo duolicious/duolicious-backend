@@ -1,4 +1,4 @@
-from antispam.signupemail.sql import *
+from antiabuse.antispam.signupemail.sql import *
 from database import api_tx
 from pathlib import Path
 

@@ -1,4 +1,5 @@
-from antirude.normalize import normalize_string
+from antiabuse.normalize import normalize_string
+
 import re
 
 _strings = [
