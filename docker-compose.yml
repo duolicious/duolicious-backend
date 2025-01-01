@@ -80,20 +80,6 @@ services:
     ports:
       - "5442:5442"
       - "5443:5443"
-    volumes:
-      - ./database/__init__.py:/app/database/__init__.py:ro
-      - ./database/asyncdatabase/__init__.py:/app/database/asyncdatabase/__init__.py:ro
-      - ./service/chat:/app/service/chat:ro
-      - ./service/chat/container/mongooseim.toml:/mongooseim.template.toml:ro
-      - ./service/chat/container/init.sql:/init.sql:ro
-      - ./service/chat/container/init-db.sh:/init-db.sh:ro
-      - ./chat.main.sh:/app/chat.main.sh:ro
-      - ./chat.auth.main.sh:/app/chat.auth.main.sh:ro
-      - ./notify:/app/notify:ro
-      - ./batcher:/app/batcher:ro
-      - ./antiabuse:/app/antiabuse:ro
-      - ./async_lru_cache:/app/async_lru_cache:ro
-      - ./sql:/app/sql:ro
     environment:
       DUO_API_HOST: http://api:5000
       DUO_DB_HOST: postgres

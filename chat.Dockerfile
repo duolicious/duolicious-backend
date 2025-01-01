@@ -14,8 +14,10 @@ COPY service/chat/container/jq /bin/jq
 COPY service/chat/container/mongooseim.toml /mongooseim.template.toml
 
 # Proxy
+COPY antiabuse/__init__.py /app/antiabuse/__init__.py
 COPY antiabuse/antirude /app/antiabuse/antirude
 COPY antiabuse/antispam /app/antiabuse/antispam
+COPY antiabuse/normalize /app/antiabuse/normalize
 COPY database /app/database
 COPY duohash /app/duohash
 COPY batcher /app/batcher

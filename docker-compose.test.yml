@@ -1,12 +1,194 @@
 services:
   status:
-    volumes: []
+    build:
+      context: .
+      dockerfile: status.Dockerfile
+    ports:
+      - "8080:8080"
+
+  postgres:
+    build:
+      context: .
+      dockerfile: postgres.Dockerfile
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 1s
+      timeout: 1s
+      retries: 60
 
   api:
-    volumes: []
+    build:
+      context: .
+      dockerfile: api.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./test:/app/test:ro
+    environment:
+      DUO_ENV: dev
+
+      DUO_SMTP_HOST: smtp
+      DUO_SMTP_PORT: 1025
+      DUO_SMTP_USER: unused-in-dev-env
+      DUO_SMTP_PASS: unused-in-dev-env
+
+      DUO_REPORT_EMAIL: duolicious@example.com 20 a@example.com 10
+
+      DUO_DB_HOST: postgres
+      DUO_DB_PORT: 5432
+      DUO_DB_USER: postgres
+      DUO_DB_PASS: password
+
+      DUO_CORS_ORIGINS: '*'
+
+      DUO_R2_BUCKET_NAME: s3-mock-bucket
+      DUO_R2_AUDIO_BUCKET_NAME: s3-mock-audio-bucket
+      DUO_R2_ACCT_ID: unused-in-dev-env
+      DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
+      DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
+
+      DUO_BOTO_ENDPOINT_URL: http://s3mock:9090
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   chat:
-    volumes: []
+    build:
+      context: .
+      dockerfile: chat.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5442:5442"
+      - "5443:5443"
+    environment:
+      DUO_API_HOST: http://api:5000
+      DUO_DB_HOST: postgres
+      DUO_DB_PORT: 5432
+      DUO_DB_USER: postgres
+      DUO_DB_PASS: password
+      DUO_CHAT_PORTS: '5443'
+    healthcheck:
+      test: ["CMD", "bash", "-c", "[[ -e /db-initialized ]]"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   cron:
-    volumes: []
+    build:
+      context: .
+      dockerfile: cron.Dockerfile
+    ports:
+      - "8082:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chat:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    volumes:
+      - ./test:/app/test
+    environment:
+      DUO_SMTP_HOST: smtp
+      DUO_SMTP_PORT: 1025
+      DUO_SMTP_USER: unused-in-dev-env
+      DUO_SMTP_PASS: unused-in-dev-env
+
+      DUO_DB_HOST: postgres
+      DUO_DB_PORT: 5432
+      DUO_DB_USER: postgres
+      DUO_DB_PASS: password
+      DUO_DB_CHAT_NAME: duo_chat
+      DUO_DB_API_NAME: duo_api
+
+      DUO_R2_BUCKET_NAME: s3-mock-bucket
+      DUO_R2_AUDIO_BUCKET_NAME: s3-mock-audio-bucket
+      DUO_R2_ACCT_ID: unused-in-dev-env
+      DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
+      DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
+
+      DUO_BOTO_ENDPOINT_URL: http://s3mock:9090
+
+      DUO_CRON_EMAIL_POLL_SECONDS: '1'
+
+      DUO_CRON_AUTODEACTIVATE2_DRY_RUN: 'false'
+      DUO_CRON_AUTODEACTIVATE2_POLL_SECONDS: '1'
+
+      DUO_CRON_INSERT_LAST_POLL_SECONDS: '1'
+
+      DUO_CRON_PHOTO_CLEANER_DRY_RUN: ${DUO_CRON_PHOTO_CLEANER_DRY_RUN:-false}
+      DUO_CRON_PHOTO_CLEANER_POLL_SECONDS: '1'
+
+      DUO_CRON_AUDIO_CLEANER_DRY_RUN: ${DUO_CRON_AUDIO_CLEANER_DRY_RUN:-false}
+      DUO_CRON_AUDIO_CLEANER_POLL_SECONDS: '1'
+
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DUO_VERIFICATION_IMAGE_BASE_URL: http://s3mock:9090/s3-mock-bucket
+      DUO_VERIFICATION_MOCK_RESPONSE_FILE: test/input/verification-mock-response-file
+
+      DUO_CRON_GARBAGE_RECORDS_POLL_SECONDS: '1'
+
+      DUO_CRON_MAX_RANDOM_START_DELAY: '0'
+
+  s3mock:
+    image: adobe/s3mock
+
+    environment:
+      initialBuckets: s3-mock-bucket, s3-mock-audio-bucket
+      AWS_ACCESS_KEY_ID: s3-mock-access-key-id
+      AWS_SECRET_ACCESS_KEY: s3-mock-secret-access-key-secret
+
+    ports:
+      - 9090:9090
+
+  smtp:
+    image: mailhog/mailhog
+
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  pgadmin:
+    image: dpage/pgadmin4:7.3
+
+    ports:
+      - "8090:80"
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: user@example.com
+      PGADMIN_DEFAULT_PASSWORD: password
+
+  chattest:
+    build:
+      context: .
+      dockerfile: chattest.Dockerfile
+
+    ports:
+      - "3000:3000"
+
+  redis:
+    image: "redis:alpine"
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+networks:
+  default:
+    driver: bridge
