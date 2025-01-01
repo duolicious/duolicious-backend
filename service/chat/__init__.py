@@ -109,9 +109,9 @@ AND
 """
 
 Q_RATE_LIMIT_REASON = f"""
-WITH truncated_daily_message_count AS (
+WITH truncated_daily_message AS (
     SELECT
-        COUNT(*) AS x
+        1
     FROM
         messaged AS m1
     WHERE
@@ -133,6 +133,8 @@ WITH truncated_daily_message_count AS (
         )
     LIMIT
         {max(x.value for x in IntroRateLimit)}
+), truncated_daily_message_count AS (
+    SELECT COUNT(*) AS x FROM truncated_daily_message
 )
 SELECT
     CASE
