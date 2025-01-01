@@ -253,7 +253,4 @@ if __name__ == "__main__":
     train_model()
 else:
     # Load bigram probabilities for use
-
-    # TODO
-    # bigram_probs = load_bigram_probs()
-    bigram_probs = None
+    bigram_probs = load_bigram_probs()
