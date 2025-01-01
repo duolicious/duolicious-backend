@@ -29,18 +29,53 @@ test_rate_limit () {
   q "delete from intro_hash" duo_chat
 
   ../util/create-user.sh sender1 0 0
+  ../util/create-user.sh sender2 0 0
+
   q "
   update person
   set verification_level_id = $verification_level_id
   where name = 'sender1'"
 
+
   seq $((max_intros_per_day + 1)) | xargs -I'{}' ../util/create-user.sh "recipient{}" 0 0
 
   assume_role sender1
   sender1token=$SESSION_TOKEN
-
   sender1uuid=$(get_uuid 'sender1@example.com')
 
+  assume_role sender2
+  sender2token=$SESSION_TOKEN
+  sender2uuid=$(get_uuid 'sender2@example.com')
+
+
+
+  echo 'Send one message to sender1, a reply to which should not count towards the limit'
+
+  curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d '{
+    "service": "ws://chat:5443",
+    "domain": "duolicious.app",
+    "resource": "testresource",
+    "username": "'$sender2uuid'",
+    "password": "'$sender2token'"
+  }'
+
+
+
+  sleep 3
+
+
+
+  curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
+  <message
+      type='chat'
+      from='$sender2uuid@duolicious.app'
+      to='$sender1uuid@duolicious.app'
+      id='id'
+      xmlns='jabber:client'>
+    <body>from sender 2 to sender 1</body>
+    <request xmlns='urn:xmpp:receipts'/>
+  </message>
+  "
 
 
 
@@ -59,6 +94,19 @@ test_rate_limit () {
 
 
   sleep 3
+
+
+  curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
+  <message
+      type='chat'
+      from='$sender1uuid@duolicious.app'
+      to='$sender2uuid@duolicious.app'
+      id='id'
+      xmlns='jabber:client'>
+    <body>from sender 1 to sender 2</body>
+    <request xmlns='urn:xmpp:receipts'/>
+  </message>
+  "
 
 
 
@@ -169,6 +217,6 @@ test_rate_limit \
   '<duo_message_blocked id="id999" reason="rate-limited-1day" subreason="unverified-photos"/>'
 
 test_rate_limit \
-  50 \
+  100 \
   3 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day"/>'
