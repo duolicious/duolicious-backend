@@ -3,6 +3,7 @@ import {
   Pressable,
   Text,
   View,
+  ScrollView,
 } from 'react-native';
 import {
   useCallback,
@@ -178,28 +179,34 @@ const NavigationItems = ({state, navigation, descriptors}) => {
 
 const WebBar = ({state, navigation, tabBarStyle, descriptors}) => {
   return (
-    <View style={[
+    <ScrollView
+      style={{
+        height: '100%',
+        backgroundColor: '#70f',
+        borderRightWidth: 5,
+        borderColor: 'black',
+      }}
+      contentContainerStyle={[
         {
           width: '100%',
-          height: '100%',
-          backgroundColor: '#70f',
+          flex: 1,
           alignItems: 'flex-end',
-          borderRightWidth: 5,
-          borderColor: 'black',
           paddingHorizontal: 12,
         },
         tabBarStyle,
       ]}
+      showsVerticalScrollIndicator={false}
     >
       <View
         style={{
           flex: 1,
           justifyContent: 'space-between',
+          width: 260,
         }}
       >
         <View
           style={{
-            width: 260,
+            width: '100%',
             gap: 20,
           }}
         >
@@ -212,6 +219,8 @@ const WebBar = ({state, navigation, tabBarStyle, descriptors}) => {
         </View>
         <View
           style={{
+            width: '100%',
+            paddingTop: 40,
             paddingBottom: 10,
             alignItems: 'center',
           }}
@@ -219,7 +228,7 @@ const WebBar = ({state, navigation, tabBarStyle, descriptors}) => {
           <WebBarFooter/>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
