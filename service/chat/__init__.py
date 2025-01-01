@@ -56,8 +56,14 @@ SELECT
     1
 FROM
     duo_session
+JOIN
+    person
+ON
+    person.id = duo_session.person_id
 WHERE
-    session_token_hash = %(session_token_hash)s
+    duo_session.session_token_hash = %(session_token_hash)s
+AND
+    person.uuid = %(auth_username)s
 """
 
 Q_SELECT_INTRO_HASH = """
@@ -321,7 +327,11 @@ async def process_auth(parsed_xml, username):
 
         auth_token_hash = sha512(auth_token)
 
-        params = dict(session_token_hash=auth_token_hash)
+        params = dict(
+            auth_username=auth_username,
+            session_token_hash=auth_token_hash,
+        )
+
         async with api_tx('read committed') as tx:
             await tx.execute(Q_CHECK_AUTH, params)
             assert await tx.fetchone()
