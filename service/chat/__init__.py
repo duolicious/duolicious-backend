@@ -38,7 +38,7 @@ class IntroRateLimit(Enum):
     NONE = 0
     UNVERIFIED = 30
     BASICS = 40
-    PHOTOS = 50
+    PHOTOS = 100
 
 # TODO: Tables to migrate to monolithic DB:
 #
@@ -109,21 +109,32 @@ AND
 """
 
 Q_RATE_LIMIT_REASON = f"""
-WITH truncated_daily_message_count AS (
+WITH truncated_daily_message AS (
     SELECT
-        COUNT(*) AS x
-    FROM (
-        SELECT
-            1
-        FROM
-            messaged
-        WHERE
-            subject_person_id = %(from_id)s
-        AND
-            created_at > now() - interval '1 day'
-        LIMIT
-            {max(x.value for x in IntroRateLimit)}
-    )
+        1
+    FROM
+        messaged AS m1
+    WHERE
+        m1.subject_person_id = %(from_id)s
+    AND
+        m1.created_at >= NOW() - INTERVAL '24 HOURS'
+    AND
+        NOT EXISTS (
+            SELECT
+                1
+            FROM
+                messaged AS m2
+            WHERE
+                m2.subject_person_id = m1.object_person_id
+            AND
+                m2.object_person_id = m1.subject_person_id
+            AND
+                m2.created_at < m1.created_at
+        )
+    LIMIT
+        {max(x.value for x in IntroRateLimit)}
+), truncated_daily_message_count AS (
+    SELECT COUNT(*) AS x FROM truncated_daily_message
 )
 SELECT
     CASE
