@@ -17,10 +17,10 @@ import io
 import base64
 import duoaudio
 import traceback
-from antirude import displayname, profile
-from antispam.urldetector import has_url
-from antispam.phonenumberdetector import detect_phone_numbers
-from antispam.solicitation import has_solicitation
+from antiabuse.antirude import displayname, profile
+from antiabuse.antispam.urldetector import has_url
+from antiabuse.antispam.phonenumberdetector import detect_phone_numbers
+from antiabuse.antispam.solicitation import has_solicitation
 
 CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42

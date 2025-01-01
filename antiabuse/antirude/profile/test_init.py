@@ -1,11 +1,14 @@
 import unittest
-from antirude.profile import is_rude
+from antiabuse.antirude.profile import is_rude
 
 class TestIsRude(unittest.TestCase):
 
     def test_rude_strings(self):
         self.assertTrue(
                 is_rude("You're a nigg"))
+
+        self.assertTrue(
+                is_rude("You're a 𝖓𝖎𝖌𝖌𝖊𝖗"))
 
         self.assertTrue(
                 is_rude("ywnbaw is an acronym"))

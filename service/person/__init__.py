@@ -22,7 +22,8 @@ from dataclasses import dataclass
 import psycopg
 from functools import lru_cache
 import random
-from antispam.signupemail import check_and_update_bad_domains, normalize_email
+from antiabuse.antispam.signupemail import (
+        check_and_update_bad_domains, normalize_email)
 import blurhash
 import numpy
 import erlastic

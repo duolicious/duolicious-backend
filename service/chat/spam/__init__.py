@@ -1,5 +1,5 @@
-from antispam.urldetector import has_url
-from antispam.gibberishdetector import has_gibberish
+from antiabuse.antispam.urldetector import has_url
+from antiabuse.antispam.gibberishdetector import has_gibberish
 
 
 def is_spam(text: str):

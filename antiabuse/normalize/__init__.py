@@ -52,6 +52,8 @@ _split_pattern = re.compile(r'[^\S\n\r]+')
 # Characters which were repeated more than once
 _repeated_characters_pattern = re.compile(r'(.)\1+', re.IGNORECASE)
 
+_zero_width_chars = re.compile(r'[\u200B\u200C\u200D\uFEFF]')
+
 
 def _get_latin_homoglyph(char: str) -> str:
     """
@@ -94,10 +96,14 @@ def _normalize_spelling(haystack: str):
     return haystack
 
 
+def _remove_zero_width_characters(s: str):
+    return _zero_width_chars.sub('', s)
+
+
 def normalize_string(s: str):
     # Normalize the string to NFD (Normalization Form Decomposition) and Filter
     # out combining diacritical marks (e.g., accents)
-    normalized_input = unicodedata.normalize('NFD', s)
+    normalized_input = unicodedata.normalize('NFKC', s)
     normalized_input = ''.join(
         char for char in normalized_input if not unicodedata.combining(char)
     )
@@ -111,6 +117,9 @@ def normalize_string(s: str):
     # Remove repeated characters
     normalized_input = _repeated_characters_pattern.sub(
         r'\1\1', normalized_input)
+
+    # Remove zero width characters
+    normalized_input = _remove_zero_width_characters(normalized_input)
 
     # Replace slang
     normalized_input = _normalize_spelling(normalized_input)

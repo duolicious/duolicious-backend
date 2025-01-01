@@ -29,7 +29,7 @@ from service.application.decorators import (
     limiter_account,
 )
 import time
-from antispam.signupemail import normalize_email
+from antiabuse.antispam.signupemail import normalize_email
 import json
 
 _init_sql_file = (
