@@ -17,6 +17,7 @@ _strings = [
     "cunnypilled",
     "cutmaxxer",
     "edtwt",
+    "heil",
     "kike",
     "kill my self",
     "kill myself",
@@ -32,8 +33,10 @@ _strings = [
     "loli",
     "lolicon",
     "nigg",
+    "nigga",
     "nigge",
     "nigger",
+    "niggers",
     "rape",
     "rapeable",
     "rapebait"
