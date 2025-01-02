@@ -1,4 +1,14 @@
-export PS4='${BASH_SOURCE}:${LINENO}: '
+say () {
+  local text="$1"
+  echo -e "\033[1;30;47m${text}\033[0m"
+}
+
+highlight() {
+  local text="$1"
+  echo -e "\[\033[1;30;47m\]${text}\[\033[0m\]"
+}
+
+export PS4="$(highlight '${BASH_SOURCE}'):$(highlight '${LINENO}'): "
 
 SESSION_TOKEN=""
 USER_UUID=""
