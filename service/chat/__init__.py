@@ -27,9 +27,15 @@ from service.chat.inbox import (
     maybe_mark_displayed,
     upsert_conversation,
 )
+from service.chat.mam import (
+    maybe_get_conversation,
+)
 from duohash import sha512
 from lxml import etree
 from enum import Enum
+from service.chat.util import (
+    to_bare_jid,
+)
 
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
@@ -214,12 +220,6 @@ MAX_MESSAGE_LEN = 5000
 
 NON_ALPHANUMERIC_RE = regex.compile(r'[^\p{L}\p{N}]')
 REPEATED_CHARACTERS_RE = regex.compile(r'(.)\1{1,}')
-
-def to_bare_jid(jid: str | None):
-    try:
-        return jid.split('@')[0]
-    except:
-        return None
 
 async def send_notification(
     from_name: str | None,
@@ -440,6 +440,10 @@ async def process_duo_message(
 
     if not username:
         return [], [xml_str]
+
+    maybe_conversation = await maybe_get_conversation(parsed_xml, username)
+    if maybe_conversation:
+        return maybe_conversation, []
 
     maybe_inbox = await maybe_get_inbox(parsed_xml, username)
     if maybe_inbox:

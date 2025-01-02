@@ -1,4 +1,5 @@
 confusable-homoglyphs
+erlastic
 lxml
 nltk
 psycopg[binary]

@@ -43,18 +43,18 @@ user3id=$(get_id 'user3@example.com')
 user4id=$(get_id 'user4@example.com')
 
 query_id () {
-  cat /tmp/duo_query_id 2> /dev/null
-}
-
-next_query_id () {
-  local _query_id=$(query_id)
+  local _query_id=$(cat /tmp/duo_query_id 2> /dev/null)
 
   if [[ -z "$_query_id" ]]
   then
-    _query_id=0
+    echo 0
+  else
+    echo "$_query_id"
   fi
+}
 
-  local _next_query_id=$(( "$_query_id" + 1 ))
+next_query_id () {
+  local _next_query_id=$(( "$(query_id)" + 1 ))
 
   printf "%s" "$_next_query_id" > /tmp/duo_query_id
   printf "%s" "$_next_query_id"
