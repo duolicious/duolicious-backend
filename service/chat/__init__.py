@@ -27,6 +27,9 @@ from service.chat.inbox import (
     maybe_mark_displayed,
     upsert_conversation,
 )
+from service.chat.mam import (
+    maybe_get_conversation,
+)
 from duohash import sha512
 from lxml import etree
 from enum import Enum
@@ -430,6 +433,10 @@ async def process_duo_message(
 
     if not username:
         return [], [xml_str]
+
+    maybe_conversation = await maybe_get_conversation(parsed_xml, username)
+    if maybe_conversation:
+        return maybe_conversation, []
 
     maybe_inbox = await maybe_get_inbox(parsed_xml, username)
     if maybe_inbox:
