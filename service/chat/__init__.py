@@ -36,7 +36,7 @@ PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 
 class IntroRateLimit(Enum):
     NONE = 0
-    UNVERIFIED = 30
+    UNVERIFIED = 20
     BASICS = 40
     PHOTOS = 100
 
