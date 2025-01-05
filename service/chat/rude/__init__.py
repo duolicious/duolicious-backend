@@ -142,6 +142,7 @@ _strings = [
     "ejakulate",
     "end your life",
     "esex",
+    "fag",
     "faggitt",
     "faggot",
     "faggots",
