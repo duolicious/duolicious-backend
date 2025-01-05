@@ -143,25 +143,7 @@ j_assert_length () {
 }
 
 rand_image () {
-  local characters=({a..z} {A..Z} {0..9})
-
-  # Generate a random index for letter
-  local index=$(($RANDOM % ${#characters[@]}))
-
-  # Generate a random color for the background
-  local rand_color=$(
-    printf "%02x%02x%02x\n" \
-      $(($RANDOM % 256)) \
-      $(($RANDOM % 256)) \
-      $(($RANDOM % 256))
-  )
-
-  # Create an image with a random letter, a random background color, and a shadow,
-  # then output it to stdout and pipe through base64
-  convert -size 400x400 xc:"#${rand_color}" -gravity center -pointsize 320 \
-      -fill black -annotate +10+10 "${characters[$index]}" \
-      -fill white -annotate +0+0 "${characters[$index]}" \
-      png:- | base64 -w 0
+  ./rand-image.sh 100 100 | base64 -w 0
 }
 
 rand_sound () {

@@ -37,7 +37,11 @@ test_rate_limit () {
   where name = 'sender1'"
 
 
-  seq $((max_intros_per_day + 1)) | xargs -I'{}' ../util/create-user.sh "recipient{}" 0 0
+  seq $((max_intros_per_day + 1)) \
+    | xargs \
+      -P8 \
+      -I'{}' \
+      sh -c 'sleep 0.1 ; ../util/create-user.sh "recipient{}" 0 0'
 
   assume_role sender1
   sender1token=$SESSION_TOKEN

@@ -324,6 +324,95 @@ test_photos_promoted () {
   [[ "$response2" = "user4 user3 user2 user1" ]]
 }
 
+test_verified_promoted () {
+  setup
+
+  seq 250 \
+    | xargs \
+      -P8 \
+      -I {} \
+      sh -c 'sleep 0.1 ; ../util/create-user.sh "extrauser{}" 0 1'
+
+  q "update person set verification_level_id = 1"
+
+  assume_role searcher
+
+  q "
+  update person
+  set personality = array_full(47, 0)"
+  q "
+  update person
+  set personality = array_full(47, 9e-2)
+  where email IN ('searcher@example.com', 'user1@example.com')"
+  q "
+  update person
+  set personality = array_full(47, 8e-2)
+  where email IN ('user2@example.com')"
+  q "
+  update person
+  set personality = array_full(47, 7e-2)
+  where email IN ('extrauser1@example.com')"
+  q "
+  update person
+  set personality = array_full(47, 6e-2)
+  where email IN ('extrauser2@example.com')"
+  q "
+  update person
+  set personality = array_full(47, 5e-2)
+  where email IN ('extrauser3@example.com')"
+  q "
+  update person
+  set personality = array_full(47, 4e-2)
+  where email IN ('extrauser4@example.com')"
+  q "
+  update person
+  set personality = array_full(47, 3e-2)
+  where email IN ('extrauser5@example.com')"
+
+  local response=$(c GET '/search?n=5&o=0' | jq -r '[.[].name] | join(" ")')
+  [[ "$response" = 'user1 user2 extrauser1 extrauser2 extrauser3' ]]
+
+  q "
+  update
+    person
+  set
+    verification_level_id = 2
+  where
+    name = 'extrauser1'
+  "
+
+  local response=$(c GET '/search?n=5&o=0' | jq -r '[.[].name] | join(" ")')
+  [[ "$response" = 'user1 user2 extrauser1 extrauser2 extrauser3' ]]
+
+  q "
+  update
+    person
+  set
+    verification_level_id = 2
+  where
+    name <> 'user1'
+  and
+    name <> 'extrauser3'
+  "
+
+  local response=$(c GET '/search?n=5&o=0' | jq -r '[.[].name] | join(" ")')
+  [[ "$response" = 'user2 extrauser1 extrauser2 extrauser4 extrauser5' ]]
+
+  # If the searcher isn't verified, they don't necessarily see verified members
+  # first
+  q "
+  update
+    person
+  set
+    verification_level_id = 1
+  where
+    name = 'searcher'
+  "
+
+  local response=$(c GET '/search?n=5&o=0' | jq -r '[.[].name] | join(" ")')
+  [[ "$response" = 'user1 user2 extrauser1 extrauser2 extrauser3' ]]
+}
+
 test_quiz_filters () {
   setup
   ../util/create-user.sh user3 2
@@ -797,8 +886,6 @@ test_pending_club_cleared () {
   [[ "$num_matches" = 0 ]]
 }
 
-
-
 test_pending_club_cleared
 
 test_clubs
@@ -814,6 +901,8 @@ test_interaction_in_standard_search_skipped_symmetry
 test_quiz_filters
 
 test_photos_promoted
+
+test_verified_promoted
 
 test_deactivated
 

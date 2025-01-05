@@ -183,7 +183,7 @@ gives_reply_percentage=$(
   c GET /prospect-profile/$user2_uuid \
     | jq '.gives_reply_percentage')
 
-[[ "$gets_reply_percentage" = '20' ]]
+[[ "$gets_reply_percentage" = '20.0' ]]
 
 [[ "$gives_reply_percentage" = 'null' ]]
 
@@ -213,4 +213,4 @@ gives_reply_percentage=$(
 
 [[ "$gets_reply_percentage" = 'null' ]]
 
-[[ "$gives_reply_percentage" = '20' ]]
+[[ "$gives_reply_percentage" = '20.0' ]]

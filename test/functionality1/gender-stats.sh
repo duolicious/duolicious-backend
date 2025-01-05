@@ -21,4 +21,4 @@ set -xe
 response=$(c GET /gender-stats)
 
 [[ $(jq -r '.gender_ratio' <<< "$response") = '0.5' ]]
-[[ $(jq -r '.non_binary_percentage' <<< "$response") = '25' ]]
+[[ $(jq -r '.non_binary_percentage' <<< "$response") = '25.0' ]]

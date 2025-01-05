@@ -232,7 +232,7 @@ test_verification_loss_ethnicity () {
     where uuid = '$USER_UUID' and not verified_ethnicity")" -eq 1 ]]
 }
 
-test_verification_loss_photo () {
+test_verification_loss_photo_changed () {
   jc PATCH /profile-info \
     -d "{
             \"base64_file\": {
@@ -264,6 +264,37 @@ test_verification_loss_photo () {
                 \"left\": 0
             }
         }"
+
+  [[ "$(q "select COUNT(*) from photo where verified")" -eq 0 ]]
+  [[ "$(q "
+    select COUNT(*) from person \
+    where uuid = '$USER_UUID' and verification_level_id = 2")" -eq 1 ]]
+}
+
+test_verification_loss_photo_removed () {
+  jc PATCH /profile-info \
+    -d "{
+            \"base64_file\": {
+                \"position\": 1,
+                \"base64\": \"${img1}\",
+                \"top\": 0,
+                \"left\": 0
+            }
+        }"
+
+  q "update photo set verified = TRUE"
+  q "
+    update person
+    set verified_age = true,
+        verified_gender = true,
+        verification_level_id = 3"
+
+  [[ "$(q "select COUNT(*) from photo where verified")" -eq 1 ]]
+  [[ "$(q "
+    select COUNT(*) from person \
+    where uuid = '$USER_UUID' and verification_level_id = 3")" -eq 1 ]]
+
+  jc DELETE /profile-info -d '{ "files": [1] }'
 
   [[ "$(q "select COUNT(*) from photo where verified")" -eq 0 ]]
   [[ "$(q "
@@ -309,4 +340,5 @@ test_theme
 
 test_verification_loss_gender
 test_verification_loss_ethnicity
-test_verification_loss_photo
+test_verification_loss_photo_changed
+test_verification_loss_photo_removed

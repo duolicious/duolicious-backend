@@ -905,6 +905,7 @@ def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
     if files_params:
         with api_tx() as tx:
             tx.executemany(Q_DELETE_PROFILE_INFO_PHOTO, files_params)
+            tx.execute(Q_UPDATE_VERIFICATION_LEVEL, files_params[0])
 
     if audio_files_params:
         with api_tx() as tx:
@@ -1808,10 +1809,8 @@ def get_admin_delete_photo_link(token: str):
 
     try:
         with api_tx('READ COMMITTED') as tx:
-            rows = tx.execute(
-                Q_CHECK_ADMIN_DELETE_PHOTO_TOKEN,
-                params
-            ).fetchall()
+            tx.execute(Q_CHECK_ADMIN_DELETE_PHOTO_TOKEN, params)
+            rows = tx.fetchall()
     except psycopg.errors.InvalidTextRepresentation:
         return 'Invalid token', 401
 
@@ -1826,6 +1825,10 @@ def get_admin_delete_photo(token: str):
 
     with api_tx('READ COMMITTED') as tx:
         rows = tx.execute(Q_ADMIN_DELETE_PHOTO, params).fetchall()
+
+        if rows:
+            params = dict(person_id=rows[0]['person_id'])
+            tx.execute(Q_UPDATE_VERIFICATION_LEVEL, params)
 
     if rows:
         return f'Deleted photo {rows}'
