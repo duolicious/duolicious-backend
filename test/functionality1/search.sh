@@ -324,6 +324,9 @@ test_photos_promoted () {
   [[ "$response2" = "user4 user3 user2 user1" ]]
 }
 
+test_verified_promoted () {
+}
+
 test_quiz_filters () {
   setup
   ../util/create-user.sh user3 2
@@ -798,6 +801,8 @@ test_pending_club_cleared () {
 }
 
 
+test_verified_promoted
+exit 42
 
 test_pending_club_cleared
 
@@ -814,6 +819,8 @@ test_interaction_in_standard_search_skipped_symmetry
 test_quiz_filters
 
 test_photos_promoted
+
+test_verified_promoted
 
 test_deactivated
 

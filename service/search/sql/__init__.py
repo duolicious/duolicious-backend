@@ -55,6 +55,7 @@ WITH searcher AS (
         coordinates,
         personality,
         gender_id,
+        verification_level_id,
         COALESCE(
             (
                 SELECT
@@ -523,11 +524,26 @@ WITH searcher AS (
 
     ORDER BY
         -- If this is changed, other subqueries will need changing too
-        (has_profile_picture_id = 1) DESC,
+        verified DESC,
         match_percentage DESC
 
     LIMIT
         500
+), do_promote_verified AS (
+    SELECT
+        has_minimum_count.x
+    AND
+        searcher.verification_level_id > 1 AS x
+    FROM
+        searcher,
+        (
+            SELECT
+                count(*) >= 250 AS x
+            FROM
+                prospects_fourth_pass
+            WHERE
+                verified
+        ) AS has_minimum_count
 )
 INSERT INTO search_cache (
     searcher_person_id,
@@ -546,7 +562,14 @@ SELECT
     ROW_NUMBER() OVER (
         ORDER BY
             -- If this is changed, other subqueries will need changing too
-            (profile_photo_uuid IS NOT NULL) DESC,
+            CASE
+                WHEN (SELECT x FROM do_promote_verified)
+                THEN
+                    verified
+                ELSE
+                    profile_photo_uuid IS NOT NULL
+            END DESC,
+
             match_percentage DESC
     ) AS position,
     prospect_person_id,
@@ -681,12 +704,30 @@ ON
 Q_QUIZ_SEARCH = """
 WITH searcher AS (
     SELECT
-        personality
+        personality,
+        verification_level_id
     FROM
         person
     WHERE
         person.id = %(searcher_person_id)s
     LIMIT 1
+), do_promote_verified AS (
+    SELECT
+        has_minimum_count.x
+    AND
+        searcher.verification_level_id > 1 AS x
+    FROM
+        searcher,
+        (
+            SELECT
+                count(*) >= 250 AS x
+            FROM
+                search_cache
+            WHERE
+                searcher_person_id = %(searcher_person_id)s
+            AND
+                verified
+        ) AS has_minimum_count
 ), page AS (
     SELECT
         prospect_person_id,
@@ -724,7 +765,14 @@ WITH searcher AS (
         searcher_person_id = %(searcher_person_id)s
     ORDER BY
         -- If this is changed, other subqueries will need changing too
-        (profile_photo_uuid IS NOT NULL) DESC,
+        CASE
+            WHEN (SELECT x FROM do_promote_verified)
+            THEN
+                verified
+            ELSE
+                profile_photo_uuid IS NOT NULL
+        END DESC,
+
         match_percentage DESC
     LIMIT
         1
