@@ -149,6 +149,8 @@ uuid=$(q "select gen_random_uuid()")
 user1id=$(q "select id from person where name = 'user1'")
 photo_uuid=$(q "select uuid from photo where position = 1 and person_id = $user1id")
 
+q "update person verification_level_id = 3 where name = 'user1'"
+
 q "insert into deleted_photo_admin_token values (
   '${uuid}', '${photo_uuid}', now(), now() + interval '1 year')"
 
@@ -156,6 +158,7 @@ c GET "/admin/delete-photo/${uuid}"
 
 [[ "$(q "select count(*) from photo")" == "3" ]]
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "2" ]]
+[[ "$(q "select count(*) from person where verification_level_id = 3")" == "0" ]]
 [[ "$(q "select count(*) from onboardee_photo")" == "0" ]]
 [[ "$(q "select count(*) from undeleted_photo")" == "1" ]]
 

@@ -2407,17 +2407,28 @@ WITH deleted_token AS (
     WHERE
         photo.uuid = deleted_token.photo_uuid
     RETURNING
-        photo.uuid
-)
-INSERT INTO undeleted_photo (
-    uuid
+        photo.uuid,
+        photo.person_id
+), inserted_undeleted_photo AS (
+    INSERT INTO undeleted_photo (
+        uuid
+    )
+    SELECT
+        uuid
+    FROM
+        deleted_photo
+    RETURNING
+        uuid
 )
 SELECT
-    uuid
+    inserted_undeleted_photo.uuid,
+    deleted_photo.person_id
 FROM
+    inserted_undeleted_photo
+JOIN
     deleted_photo
-RETURNING
-    uuid
+ON
+    inserted_undeleted_photo.uuid = deleted_photo.uuid
 """
 
 Q_STATS = """
