@@ -326,7 +326,12 @@ test_photos_promoted () {
 
 test_verified_promoted () {
   setup
-  seq 250 | xargs -I'{}' ../util/create-user.sh "extrauser{}" 0 1
+
+  seq 250 \
+    | xargs \
+      -P8 \
+      -I {} \
+      sh -c 'sleep 0.1 ; ../util/create-user.sh "extrauser{}" 0 1'
 
   q "update person set verification_level_id = 1"
 
