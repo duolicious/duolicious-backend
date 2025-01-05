@@ -542,6 +542,8 @@ WITH searcher AS (
             FROM
                 prospects_fourth_pass
             WHERE
+                profile_photo_uuid IS NOT NULL
+            AND
                 verified
         ) AS has_minimum_count
 )
@@ -565,7 +567,7 @@ SELECT
             CASE
                 WHEN (SELECT x FROM do_promote_verified)
                 THEN
-                    verified
+                    profile_photo_uuid IS NOT NULL AND verified
                 ELSE
                     profile_photo_uuid IS NOT NULL
             END DESC,
@@ -726,6 +728,8 @@ WITH searcher AS (
             WHERE
                 searcher_person_id = %(searcher_person_id)s
             AND
+                profile_photo_uuid IS NOT NULL
+            AND
                 verified
         ) AS has_minimum_count
 ), page AS (
@@ -768,7 +772,7 @@ WITH searcher AS (
         CASE
             WHEN (SELECT x FROM do_promote_verified)
             THEN
-                verified
+                profile_photo_uuid IS NOT NULL AND verified
             ELSE
                 profile_photo_uuid IS NOT NULL
         END DESC,

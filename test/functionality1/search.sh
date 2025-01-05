@@ -326,11 +326,11 @@ test_photos_promoted () {
 
 test_verified_promoted () {
   setup
-  seq 250 | xargs -I'{}' ../util/create-user.sh "extrauser{}" 0 0
+  seq 250 | xargs -I'{}' ../util/create-user.sh "extrauser{}" 0 1
 
-  q "delete from photo"
-  q "update person set has_profile_picture_id = 1"
   q "update person set verification_level_id = 1"
+
+  assume_role searcher
 
   q "
   update person
@@ -880,7 +880,6 @@ test_pending_club_cleared () {
 
   [[ "$num_matches" = 0 ]]
 }
-
 
 test_pending_club_cleared
 
