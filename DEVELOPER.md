@@ -25,7 +25,6 @@ Install these:
 * Docker Compose
 * jq
 * curl
-* ImageMagick
 * ffmpeg
 
 Then run this:
