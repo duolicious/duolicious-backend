@@ -905,6 +905,7 @@ def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
     if files_params:
         with api_tx() as tx:
             tx.executemany(Q_DELETE_PROFILE_INFO_PHOTO, files_params)
+            tx.executemany(Q_UPDATE_VERIFICATION_LEVEL, files_params)
 
     if audio_files_params:
         with api_tx() as tx:

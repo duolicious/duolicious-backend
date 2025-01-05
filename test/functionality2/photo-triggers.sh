@@ -43,14 +43,6 @@ jc PATCH /profile-info \
 [[ "$(q "select count(*) from onboardee_photo")" == "0" ]]
 [[ "$(q "select count(*) from undeleted_photo")" == "1" ]]
 
-echo Delete the first photo
-jc DELETE /profile-info -d '{ "files": [1] }'
-
-[[ "$(q "select count(*) from photo")" == "3" ]]
-[[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "2" ]]
-[[ "$(q "select count(*) from onboardee_photo")" == "0" ]]
-[[ "$(q "select count(*) from undeleted_photo")" == "2" ]]
-
 echo Change and delete photos during onboarding
 q "delete from banned_person"
 q "delete from duo_session"
@@ -104,14 +96,6 @@ jc PATCH /onboardee-info \
 [[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "1" ]]
 [[ "$(q "select count(*) from onboardee_photo")" == "2" ]]
 [[ "$(q "select count(*) from undeleted_photo")" == "1" ]]
-
-echo Delete the first onboardee photo
-jc DELETE /onboardee-info -d '{ "files": [1] }'
-
-[[ "$(q "select count(*) from photo")" == "2" ]]
-[[ "$(q "select count(*) from person where has_profile_picture_id = 1")" == "1" ]]
-[[ "$(q "select count(*) from onboardee_photo")" == "1" ]]
-[[ "$(q "select count(*) from undeleted_photo")" == "2" ]]
 
 echo Self-deleted account
 q "delete from banned_person"

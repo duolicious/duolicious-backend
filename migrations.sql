@@ -1,5 +1,25 @@
 -- TODO: Delete
-CREATE INDEX IF NOT EXISTS idx__messaged__object_person_id__subject_person_id__created_at
-    ON messaged(object_person_id, subject_person_id, created_at);
+UPDATE
+    person
+SET
+    verification_level_id =
+        CASE
+            WHEN
+                EXISTS (
+                    SELECT
+                        1
+                    FROM
+                        photo
+                    WHERE
+                        person_id = person.id
+                    AND
+                        verified
+                )
+            THEN
+                3
 
-DROP INDEX IF EXISTS idx__messaged__object_person_id__subject_person_id;
+            ELSE
+                2
+        END
+WHERE
+    verification_level_id <> 1
