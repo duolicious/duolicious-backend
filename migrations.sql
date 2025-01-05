@@ -1,4 +1,5 @@
--- TODO: Delete
+-- TODO: Delete this and its associated test
+
 UPDATE
     person
 SET
