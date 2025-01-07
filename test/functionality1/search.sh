@@ -397,20 +397,6 @@ test_verified_promoted () {
 
   local response=$(c GET '/search?n=5&o=0' | jq -r '[.[].name] | join(" ")')
   [[ "$response" = 'user2 extrauser1 extrauser2 extrauser4 extrauser5' ]]
-
-  # If the searcher isn't verified, they don't necessarily see verified members
-  # first
-  q "
-  update
-    person
-  set
-    verification_level_id = 1
-  where
-    name = 'searcher'
-  "
-
-  local response=$(c GET '/search?n=5&o=0' | jq -r '[.[].name] | join(" ")')
-  [[ "$response" = 'user1 user2 extrauser1 extrauser2 extrauser3' ]]
 }
 
 test_quiz_filters () {

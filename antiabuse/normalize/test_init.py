@@ -10,6 +10,8 @@ class TestNormalizeString(unittest.TestCase):
 
         self.assertEqual(normalize_string("r4p3"), "rape")
 
+        self.assertEqual(normalize_string("raype"), "rape")
+
         self.assertEqual(normalize_string("a55"), "ass")
 
         self.assertEqual(normalize_string("𝖓𝖎𝖌𝖌𝖊𝖗"), "nigger")
@@ -17,6 +19,12 @@ class TestNormalizeString(unittest.TestCase):
         self.assertEqual(normalize_string("𝖓𝖎𝖌𝖌𝖊"), "nigger")
 
         self.assertEqual(normalize_string("unr4pe-able"), "unrapeable")
+
+        self.assertEqual(normalize_string("s3lf h4rm"), "self harm")
+
+        self.assertEqual(normalize_string("tr@nnies"), "trannies")
+
+        self.assertEqual(normalize_string("tr@nny"), "tranny")
 
 
 if __name__ == '__main__':

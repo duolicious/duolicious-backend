@@ -55,7 +55,6 @@ WITH searcher AS (
         coordinates,
         personality,
         gender_id,
-        verification_level_id,
         COALESCE(
             (
                 SELECT
@@ -531,21 +530,13 @@ WITH searcher AS (
         500
 ), do_promote_verified AS (
     SELECT
-        has_minimum_count.x
-    AND
-        searcher.verification_level_id > 1 AS x
+        count(*) >= 250 AS x
     FROM
-        searcher,
-        (
-            SELECT
-                count(*) >= 250 AS x
-            FROM
-                prospects_fourth_pass
-            WHERE
-                profile_photo_uuid IS NOT NULL
-            AND
-                verified
-        ) AS has_minimum_count
+        prospects_fourth_pass
+    WHERE
+        profile_photo_uuid IS NOT NULL
+    AND
+        verified
 )
 INSERT INTO search_cache (
     searcher_person_id,
@@ -706,8 +697,7 @@ ON
 Q_QUIZ_SEARCH = """
 WITH searcher AS (
     SELECT
-        personality,
-        verification_level_id
+        personality
     FROM
         person
     WHERE
@@ -715,23 +705,15 @@ WITH searcher AS (
     LIMIT 1
 ), do_promote_verified AS (
     SELECT
-        has_minimum_count.x
-    AND
-        searcher.verification_level_id > 1 AS x
+        count(*) >= 250 AS x
     FROM
-        searcher,
-        (
-            SELECT
-                count(*) >= 250 AS x
-            FROM
-                search_cache
-            WHERE
-                searcher_person_id = %(searcher_person_id)s
-            AND
-                profile_photo_uuid IS NOT NULL
-            AND
-                verified
-        ) AS has_minimum_count
+        search_cache
+    WHERE
+        searcher_person_id = %(searcher_person_id)s
+    AND
+        profile_photo_uuid IS NOT NULL
+    AND
+        verified
 ), page AS (
     SELECT
         prospect_person_id,
