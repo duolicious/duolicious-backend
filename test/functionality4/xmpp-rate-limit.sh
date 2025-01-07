@@ -211,7 +211,7 @@ test_rate_limit () {
 }
 
 test_rate_limit \
-  20 \
+  15 \
   1 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day" subreason="unverified-basics"/>'
 

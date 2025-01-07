@@ -46,6 +46,8 @@ UNSAFE_DOMAINS = {
     'discordapp.com',
     'instagram.com',
     'onlyfans.com',
+    'paypal.com',
+    'paypal.me',
     'throne.com',
     'twitch.tv',
 }
