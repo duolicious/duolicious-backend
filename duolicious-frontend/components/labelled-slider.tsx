@@ -32,10 +32,10 @@ type Props = {
   label: string
   minimumValue: number
   maximumValue: number
-  initialValue: number
+  initialValue: number | null
   onValueChange: (n: number) => void
   style?: any,
-  addPlusAtMax: boolean
+  addPlusAtMax: boolean | undefined
   valueRewriter?: (x: any) => any
   onSlidingComplete?: any
   scale: any

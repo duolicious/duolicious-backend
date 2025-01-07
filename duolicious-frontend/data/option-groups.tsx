@@ -83,7 +83,6 @@ type OptionGroupPhotos = {
     delete: (filename: string) => Promise<boolean>
     getUri?: (position: string, resolution: string) => string | null
     getBlurhash?: (position: string) => string | null
-    singlePhoto?: boolean,
     showProtip?: boolean,
     validateAtLeastOne?: boolean,
     firstFileNumber?: number,
@@ -1937,7 +1936,7 @@ const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
   {
     title: 'Get Verified',
-    description: `Press ‘Continue’ to submit your selfie. You can submit ${maxDailySelfies} selfies per day.`,
+    description: `Press ‘Continue’ to submit your selfie.`,
     input: {
       photos: {
         submit: async (position, cropperOutput) => (await japi(
@@ -1957,7 +1956,6 @@ const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         )).ok,
         submitAll: async () => api('post', '/verify', undefined, undefined, 0),
         delete: async () => true,
-        singlePhoto: true,
         showProtip: false,
         validateAtLeastOne: true,
         firstFileNumber: -1,

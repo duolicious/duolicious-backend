@@ -188,6 +188,8 @@ const ProfileTab_ = ({navigation}) => {
         'updated-verification',
         { photos: response.json.photo_verification }
       );
+
+      notify<string>('updated-name', response.json.name);
     })();
   }, []);
 
@@ -218,7 +220,6 @@ const ProfileTab_ = ({navigation}) => {
           onScroll={onScroll}
           showsVerticalScrollIndicator={showsVerticalScrollIndicator}
         >
-          <Title>Profile Pictures</Title>
           <Images_ data={data}/>
           <Options navigation={navigation} data={data}/>
           <AboutDuolicious/>
@@ -271,6 +272,8 @@ const DisplayNameAndAboutPerson = ({navigation, data}) => {
       if (r.ok && r.validationErrors === null) {
         stateSetter('saved');
         return true;
+      } else if (r.validationErrors === null) {
+        stateSetter('error');
       } else if (r.validationErrors[0] === 'Too rude') {
         stateSetter('too rude');
       } else if (r.validationErrors[0] === 'Spam') {
@@ -301,6 +304,8 @@ const DisplayNameAndAboutPerson = ({navigation, data}) => {
 
       if (responseHandler(setNameState)(r)) {
         setName(name);
+
+        notify<string>('updated-name', name);
       }
     };
 
@@ -578,13 +583,25 @@ const Options = ({ navigation, data }) => {
         ethnicity={data?.verified_ethnicity ?? false}
         style={{ marginBottom: 10 }}
       />
-      {!isCompletelyVerified &&
-        <Button_
-          setting=""
-          optionGroups={verificationOptionGroups}
-          showSkipButton={false}
-          theme="light"
-        />
+      {!isCompletelyVerified && <>
+          <Button_
+            setting=""
+            optionGroups={verificationOptionGroups}
+            showSkipButton={false}
+            theme="light"
+          />
+          <DefaultText
+            style={{
+              color: '#999',
+              textAlign: 'center',
+              marginRight: 10,
+              marginLeft: 10,
+            }}
+          >
+            Pro tip: If you want to verify your photos, make sure they show your
+            face before starting
+          </DefaultText>
+        </>
       }
 
       <DisplayNameAndAboutPerson navigation={navigation} data={data}/>

@@ -64,7 +64,6 @@ import {
 } from '../data/option-groups';
 import {
   PrimaryImage,
-  SecondaryImages,
 } from './images';
 import { DefaultLongTextInput } from './default-long-text-input';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -433,7 +432,6 @@ const Photos = forwardRef((props: InputProps<OptionGroupPhotos>, ref) => {
   const [lastInvalidReason, setLastInvalidReason] = useState(errFileSize);
   const [numImages, setNumImages] = useState(0);
 
-  const singlePhoto = props.input.photos.singlePhoto ?? false;
   const showProtip = props.input.photos.showProtip ?? true;
   const validateAtLeastOne = props.input.photos.validateAtLeastOne ?? false;
   const firstFileNumber = props.input.photos.firstFileNumber ?? 1;
@@ -498,29 +496,18 @@ const Photos = forwardRef((props: InputProps<OptionGroupPhotos>, ref) => {
       <View
         style={{
           width: '100%',
-          maxWidth: singlePhoto ? '50%' : undefined,
+          maxWidth: '50%',
           alignSelf: 'center',
         }}
       >
-        {singlePhoto &&
-          <PrimaryImage
-            input={props.input}
-            fileNumber={firstFileNumber}
-            setIsLoading={props.setIsLoading}
-            setIsInvalid={setChildInvalid}
-            showProtip={showProtip}
-            setHasImage={setHasImage}
-          />
-        }
-        {!singlePhoto &&
-          <SecondaryImages
-            input={props.input}
-            firstFileNumber={firstFileNumber}
-            setIsLoading={props.setIsLoading}
-            setIsInvalid={setChildInvalid}
-            setHasImage={setHasImage}
-          />
-        }
+        <PrimaryImage
+          input={props.input}
+          fileNumber={firstFileNumber}
+          setIsLoading={props.setIsLoading}
+          setIsInvalid={setChildInvalid}
+          showProtip={showProtip}
+          setHasImage={setHasImage}
+        />
       </View>
       <DefaultText
         style={{

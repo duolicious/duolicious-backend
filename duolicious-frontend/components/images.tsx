@@ -16,13 +16,14 @@ import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faCircleXmark } from '@fortawesome/free-solid-svg-icons/faCircleXmark'
-import { notify, listen } from '../events/events';
+import { notify, listen, lastEvent } from '../events/events';
 import { ImageCropperInput, ImageCropperOutput } from './image-cropper';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { isImagePickerOpen } from '../App';
 import { Image } from 'expo-image';
 import { VerificationEvent } from '../verification/verification';
 import { VerificationBadge } from './verification-badge';
+import { DefaultText } from './default-text';
 
 // TODO: Image picker is shit and lets you upload any file type on web
 
@@ -66,58 +67,6 @@ const cropImage = async (
   return `data:image/jpeg;base64,${result.base64}`;
 };
 
-const Images = ({
-  input,
-  setIsLoading,
-  setIsInvalid,
-  setHasImage = (x: boolean) => {},
-}) => {
-  const isLoading1 = useRef(false);
-  const isLoading2 = useRef(false);
-
-  const isInvalid1 = useRef(false);
-  const isInvalid2 = useRef(false);
-
-  const setIsLoading_ = useCallback(() => setIsLoading(
-    isLoading1.current ||
-    isLoading2.current
-  ), []);
-
-  const setIsInvalid_ = useCallback(() => setIsInvalid(
-    isInvalid1.current ||
-    isInvalid2.current
-  ), []);
-
-  const setIsLoading1 = useCallback(
-    x => { isLoading1.current = x; setIsLoading_() }, []);
-  const setIsLoading2 = useCallback(
-    x => { isLoading2.current = x; setIsLoading_() }, []);
-
-  const setIsInvalid1 = useCallback(
-    x => { isInvalid1.current = x; setIsInvalid_() }, []);
-  const setIsInvalid2 = useCallback(
-    x => { isInvalid2.current = x; setIsInvalid_() }, []);
-
-  return (
-    <View>
-      <PrimaryImage
-        input={input}
-        fileNumber={1}
-        setIsLoading={setIsLoading1}
-        setIsInvalid={setIsInvalid1}
-        setHasImage={setHasImage}
-      />
-      <SecondaryImages
-        input={input}
-        firstFileNumber={2}
-        setIsLoading={setIsLoading2}
-        setIsInvalid={setIsInvalid2}
-        setHasImage={setHasImage}
-      />
-    </View>
-  );
-};
-
 const UserImage = ({
   input,
   fileNumber,
@@ -126,6 +75,7 @@ const UserImage = ({
   resolution,
   setHasImage = (x: boolean) => {},
   showProtip = true,
+  round = false,
 }) => {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBlurhash, setImageBlurhash] = useState<string | null>(null);
@@ -318,80 +268,90 @@ const UserImage = ({
   }, []);
 
   return (
-    <View
+    <Pressable
+      onPress={addImage}
       style={{
+        borderRadius: round ? 999 : 5,
+        backgroundColor: '#eee',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'visible',
         flex: 1,
-        padding: 5,
+        aspectRatio: 1,
       }}
     >
-      <Pressable
-        onPress={addImage}
-        style={{
-          borderRadius: 5,
-          backgroundColor: '#eee',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'visible',
-          width: '100%',
-          aspectRatio: 1,
-        }}
-      >
-        { isLoading_ && <Loading/>}
-        {!isLoading_ && imageUri === null && <AddIcon/>}
-        {!isLoading_ && imageUri !== null &&
-          <>
-            <Image
-              source={{
-                uri: imageUri,
-                height: resolution,
-                width: resolution,
-              }}
-              placeholder={imageBlurhash && { blurhash: imageBlurhash }}
-              transition={150}
-              style={{
-                height: '100%',
-                width: '100%',
-                borderRadius: 5,
-                borderColor: '#eee',
-                borderWidth: 1,
-              }}
-              contentFit="contain"
+      { isLoading_ && <Loading/>}
+      {!isLoading_ && imageUri === null && <AddIcon/>}
+      {!isLoading_ && imageUri !== null &&
+        <>
+          <Image
+            source={{
+              uri: imageUri,
+              height: resolution,
+              width: resolution,
+            }}
+            placeholder={imageBlurhash && { blurhash: imageBlurhash }}
+            transition={150}
+            style={{
+              height: '100%',
+              width: '100%',
+              borderRadius: round ? 999 : 5,
+              borderColor: '#eee',
+            }}
+            contentFit="contain"
+          />
+          <Pressable
+            style={{
+              position: 'absolute',
+              top: -10,
+              left: -10,
+              padding: 2,
+              borderRadius: 999,
+              backgroundColor: 'white',
+            }}
+            onPress={
+              (imageUri === null || isLoading_) ?
+              undefined :
+              removeImage
+            }
+          >
+            <FontAwesomeIcon
+              icon={faCircleXmark}
+              size={26}
+              color="#000"
             />
-            <Pressable
+          </Pressable>
+          {isVerified &&
+            <VerificationBadge
               style={{
                 position: 'absolute',
-                top: -10,
-                left: -10,
-                padding: 2,
-                borderRadius: 999,
-                backgroundColor: 'white',
+                top: 8,
+                right: 8,
               }}
-              onPress={
-                (imageUri === null || isLoading_) ?
-                undefined :
-                removeImage
-              }
-            >
-              <FontAwesomeIcon
-                icon={faCircleXmark}
-                size={26}
-                color="#000"
-              />
-            </Pressable>
-            {isVerified &&
-              <VerificationBadge
-                style={{
-                  position: 'absolute',
-                  top: 8,
-                  right: 8,
-                }}
-                size={20}
-              />
-            }
-          </>
-        }
-      </Pressable>
-    </View>
+              size={20}
+            />
+          }
+        </>
+      }
+      {fileNumber >= 1 &&
+        <DefaultText
+          style={{
+            position: 'absolute',
+            bottom: 2,
+            left: 2,
+            backgroundColor: 'white',
+            borderWidth: 1,
+            borderColor: 'black',
+            paddingHorizontal: 8,
+            paddingVertical: 1,
+            borderRadius: 999,
+            fontSize: 12,
+          }}
+        >
+          {fileNumber === 1 ? 'Main' : fileNumber}
+        </DefaultText>
+      }
+    </Pressable>
   );
 };
 
@@ -416,6 +376,66 @@ const PrimaryImage = ({
       resolution: 900
     }}
   />
+};
+
+const FirstRow = ({
+  input,
+  firstFileNumber,
+  setIsLoading,
+  setIsInvalid,
+  setHasImage = (x: boolean) => {},
+}) => {
+  const [name, setName] = useState(lastEvent<string>('updated-name'));
+
+  const isLoading1 = useRef(false);
+
+  const setIsLoading_ = useCallback(() => setIsLoading(
+    isLoading1.current
+  ), []);
+
+  const setIsLoading1 = useCallback(
+    x => { isLoading1.current = x; setIsLoading_() }, []);
+
+  useEffect(() => {
+    return listen<string>('updated-name', setName);
+  }, []);
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        gap: 20,
+        width: '100%',
+        paddingBottom: 20,
+      }}
+    >
+      <UserImageMemo
+        input={input}
+        fileNumber={firstFileNumber + 0}
+        setIsLoading={setIsLoading1}
+        setIsInvalid={setIsInvalid}
+        setHasImage={setHasImage}
+        resolution={450}
+        round={true}
+      />
+      <View
+        style={{
+          flex: 2,
+          justifyContent: 'center',
+        }}
+      >
+        <DefaultText
+          style={{
+            fontSize: 28,
+            fontWeight: '700',
+            borderRadius: 10,
+          }}
+        >
+          {name}
+        </DefaultText>
+      </View>
+    </View>
+  );
 };
 
 const Row = ({
@@ -446,6 +466,8 @@ const Row = ({
     <View
       style={{
         flexDirection: 'row',
+        gap: 10,
+        width: '100%',
       }}
     >
       <UserImageMemo
@@ -476,39 +498,54 @@ const Row = ({
   );
 };
 
-const SecondaryImages = ({
+const Images = ({
   input,
-  firstFileNumber,
   setIsLoading,
   setIsInvalid,
   setHasImage = (x: boolean) => {},
 }) => {
   const isLoading1 = useRef(false);
   const isLoading2 = useRef(false);
+  const isLoading3 = useRef(false);
 
   const setIsLoading_ = useCallback(() => setIsLoading(
     isLoading1.current ||
-    isLoading2.current
+    isLoading2.current ||
+    isLoading3.current
   ), []);
 
   const setIsLoading1 = useCallback(
     x => { isLoading1.current = x; setIsLoading_() }, []);
   const setIsLoading2 = useCallback(
     x => { isLoading2.current = x; setIsLoading_() }, []);
+  const setIsLoading3 = useCallback(
+    x => { isLoading3.current = x; setIsLoading_() }, []);
 
   return (
-    <View>
-      <Row
+    <View
+      style={{
+        padding: 10,
+        gap: 10,
+      }}
+    >
+      <FirstRow
         input={input}
-        firstFileNumber={firstFileNumber + 0}
+        firstFileNumber={1}
         setIsLoading={setIsLoading1}
         setIsInvalid={setIsInvalid}
         setHasImage={setHasImage}
       />
       <Row
         input={input}
-        firstFileNumber={firstFileNumber + 3}
+        firstFileNumber={2}
         setIsLoading={setIsLoading2}
+        setIsInvalid={setIsInvalid}
+        setHasImage={setHasImage}
+      />
+      <Row
+        input={input}
+        firstFileNumber={5}
+        setIsLoading={setIsLoading3}
         setIsInvalid={setIsInvalid}
         setHasImage={setHasImage}
       />
@@ -520,8 +557,8 @@ const AddIcon = () => {
   return (
     <Ionicons
       style={{
-        color: '#666',
-        fontSize: 42,
+        color: 'black',
+        fontSize: 36,
       }}
       name="add"/>
   );
@@ -536,5 +573,4 @@ const Loading = () => {
 export {
   Images,
   PrimaryImage,
-  SecondaryImages,
 };
