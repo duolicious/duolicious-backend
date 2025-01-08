@@ -41,8 +41,12 @@ const _xmpp: {
 notify('inbox', null);
 
 const parseIntOrZero = (input: string) => {
-  const parsed = parseInt(input, 10);
-  return isNaN(parsed) ? 0 : parsed;
+  if (/^\d+$/.test(input)) {
+    const parsed = parseInt(input, 10);
+    return isNaN(parsed) ? 0 : parsed;
+  } else {
+    return 0;
+  }
 }
 
 const findEarliestDate = (dates: Date[]): Date | null => {
