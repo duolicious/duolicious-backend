@@ -498,7 +498,10 @@ const ListHeaderComponent = ({
       <DefaultText style={{color: '#70f'}} >
         Get better matches by playing Q&A{' '}
       </DefaultText>
-      <QAndADevice color="#70f"/>
+      <QAndADevice
+        color="#70f"
+        backgroundColor="#f1e5ff"
+      />
     </Notice>
   );
 };

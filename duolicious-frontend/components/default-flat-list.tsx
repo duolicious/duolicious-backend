@@ -285,11 +285,6 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
 
   const [books, setBooks] = useState<Books<ItemT>>({});
 
-  const contentContainerStyle = useRef([
-    styles.flatList,
-    props.contentContainerStyle,
-  ]);
-
   const dataKey = props.dataKey ?? 'default-key';
 
   const keyExtractor = useCallback((item: ItemT, index: number) => {
@@ -350,17 +345,14 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
   const onLayout = useCallback((params) => {
     viewportHeight.current = params.nativeEvent.layout.height;
 
+    if (contentHeight.current < viewportHeight.current) {
+      fetchNextPage();
+    }
+
     if (props.onLayout) {
       props.onLayout(params);
     }
   }, []);
-
-  if (props.contentContainerStyle !== contentContainerStyle[1]) {
-    contentContainerStyle.current = [
-      styles.flatList,
-      props.contentContainerStyle,
-    ];
-  }
 
   const book = getBookOrDefault(books, dataKey);
   const items = bookToItems(book);
@@ -398,7 +390,10 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
         />
       }
       {...props}
-      contentContainerStyle={contentContainerStyle.current}
+      contentContainerStyle={[
+        styles.flatList,
+        props.contentContainerStyle,
+      ]}
       ListHeaderComponent={
         <ListHeaderComponent
             isEmpty={isBookEmpty(book)}

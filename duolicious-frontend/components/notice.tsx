@@ -26,7 +26,7 @@ const Notice = ({children, ...rest}) => {
       <View
         style={[
           {
-            backgroundColor: 'rgba(119, 0, 255, 0.1)',
+            backgroundColor: '#f1e5ff',
             padding: 15,
             borderRadius: 10,
             flexDirection: 'row',
