@@ -14,6 +14,7 @@ import {
 import {
   Dimensions,
   PanResponder,
+  Platform,
   RegisteredStyle,
   StyleProp,
   View,
@@ -161,9 +162,15 @@ const animateOut = async (gesture, setSpringTarget, dir?: Direction) => {
 }
 
 const animateBack = (setSpringTarget) => {
-  // translate back to the initial position
+  // translate/rotate back to the initial position
   return new Promise((resolve) => {
-    setSpringTarget.current[0].start({ x: 0, y: 0, rot: 0, config: physics.animateBack, onRest: resolve })
+    setSpringTarget.current[0].start({
+      x: 0,
+      y: 0,
+      rot: 0,
+      config: physics.animateBack,
+      onResolve: resolve,
+    })
   })
 }
 
@@ -294,8 +301,11 @@ const BaseQuizCard = forwardRef(
           (evt, gestureState) => !isAnimating.current,
         onMoveShouldSetPanResponderCapture:
           (evt, gestureState) => !isAnimating.current,
-
         onPanResponderGrant: (evt, gestureState) => {
+          if (Platform.OS === 'web') {
+            evt.preventDefault?.();
+          }
+
           // The gesture has started.
           // Probably wont need this anymore as position relative to swipe!
           setSpringTarget.current[0].start({
@@ -306,6 +316,10 @@ const BaseQuizCard = forwardRef(
           })
         },
         onPanResponderMove: (evt, gestureState) => {
+          if (Platform.OS === 'web') {
+            evt.preventDefault?.();
+          }
+
           // use guestureState.vx / guestureState.vy for velocity calculations
           // translate element
           setSpringTarget.current[0].start({

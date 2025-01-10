@@ -4,6 +4,7 @@ import {
 } from 'react';
 import {
   Pressable,
+  StyleSheet,
   View,
 } from 'react-native';
 import { DefaultText } from './default-text';
@@ -61,13 +62,13 @@ const Avatar = ({percentage, ...props}) => {
       style={elementStyle}
     >
       <ImageBackground
-        source={imageUuid && {
+        source={imageUuid ? {
           uri: `${IMAGES_URL}/450-${imageUuid}.jpg`,
           height: 450,
           width: 450,
-        }}
+        } : undefined}
         placeholder={imageBlurhash && { blurhash: imageBlurhash }}
-        transition={150}
+        transition={!imageUuid ? { duration: 0, effect: null } : 150}
         style={{
           flex: 1,
           aspectRatio: 1,
@@ -75,14 +76,23 @@ const Avatar = ({percentage, ...props}) => {
           overflow: 'hidden',
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#f1e5ff',
+          backgroundColor: imageBlurhash ? undefined : '#f1e5ff',
           margin: 4,
         }}
       >
-        {!imageUuid &&
+        {!imageUuid && !imageBlurhash &&
           <Ionicons
             style={{fontSize: 40, color: 'rgba(119, 0, 255, 0.2)'}}
             name={'person'}
+          />
+        }
+        {verificationRequired &&
+          <View
+            style={{
+              ...StyleSheet.absoluteFillObject,
+              zIndex: 999,
+              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+            }}
           />
         }
       </ImageBackground>
@@ -99,6 +109,7 @@ const Avatar = ({percentage, ...props}) => {
           backgroundColor: '#70f',
           alignItems: 'center',
           justifyContent: 'center',
+          overflow: 'hidden',
         }}
       >
         <DefaultText
@@ -111,6 +122,16 @@ const Avatar = ({percentage, ...props}) => {
         >
           {percentage}%
         </DefaultText>
+        {verificationRequired &&
+          <View
+            style={{
+              ...StyleSheet.absoluteFillObject,
+              zIndex: 999,
+              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+            }}
+          >
+          </View>
+        }
       </View>
       {isSkipped &&
         <View
@@ -136,15 +157,11 @@ const Avatar = ({percentage, ...props}) => {
       {verificationRequired &&
         <View
           style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            ...StyleSheet.absoluteFillObject,
             justifyContent: 'center',
             alignItems: 'center',
             gap: 5,
+            borderRadius: 999,
           }}
         >
           <FontAwesomeIcon
