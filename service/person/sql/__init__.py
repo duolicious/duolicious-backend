@@ -458,7 +458,7 @@ WITH onboardee_country AS (
         ) AS unit_id,
         2 AS intros_notification,
         CASE
-            WHEN RANDOM() < 0.8 THEN 1
+            WHEN RANDOM() < 0.666 THEN 1
             ELSE 3
         END AS privacy_verification_level_id
     FROM onboardee

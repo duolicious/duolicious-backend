@@ -26,6 +26,8 @@ class TestNormalizeString(unittest.TestCase):
 
         self.assertEqual(normalize_string("tr@nny"), "tranny")
 
+        self.assertEqual(normalize_string("niggreess"), "negress")
+
 
 if __name__ == '__main__':
     unittest.main()
