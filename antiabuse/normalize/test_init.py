@@ -28,6 +28,12 @@ class TestNormalizeString(unittest.TestCase):
 
         self.assertEqual(normalize_string("niggreess"), "negress")
 
+        self.assertEqual(normalize_string("slūt"), "slut")
+
+        self.assertEqual(normalize_string("dyck"), "dick")
+
+        self.assertEqual(normalize_string("niga"), "nigga")
+
 
 if __name__ == '__main__':
     unittest.main()
