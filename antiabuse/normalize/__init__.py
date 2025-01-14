@@ -16,6 +16,7 @@ _normalization_map = {
     "c+[uv]+m+s+": "cums",
     "cvmming": "cumming",
     "cvmshot": "cumshot",
+    "dyck": "dick",
     "ejakulate": "ejaculate",
     "fcked": "fucked",
     "fck": "fuck",
@@ -36,6 +37,7 @@ _normalization_map = {
     "ngger": "nigger",
     "nggr": "nigger",
     "n[ie]g{1,2}re{1,2}s+": "negress",
+    "niga": "nigga",
     "nigge": "nigger",
     "nigg": "nigger",
     "p0rn": "porn",
@@ -116,9 +118,7 @@ def _remove_zero_width_characters(s: str):
 
 
 def normalize_string(s: str):
-    # Normalize the string to NFD (Normalization Form Decomposition) and Filter
-    # out combining diacritical marks (e.g., accents)
-    normalized_input = unicodedata.normalize('NFKC', s)
+    normalized_input = unicodedata.normalize('NFKD', s)
     normalized_input = ''.join(
         char for char in normalized_input if not unicodedata.combining(char)
     )
