@@ -1030,6 +1030,32 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         )
         SELECT 1
         """
+    elif field_name == 'photo_assignments':
+        # TODO: Tests
+        case_sql = '\n'.join(
+            f'WHEN position = {int(k)} THEN {int(v)}'
+            for k, v in field_value.items()
+        )
+
+        # We set the positions to negative indexes first, to avoid violating
+        # uniqueness constraints
+        q1 = f"""
+        UPDATE
+            photo
+        SET
+            position = - (CASE {case_sql} ELSE position END)
+        WHERE
+            person_id = %(person_id)s
+        """
+
+        q2 = """
+        UPDATE
+            photo
+        SET
+            position = ABS(position)
+        WHERE
+            person_id = %(person_id)s
+        """
     elif field_name == 'name':
         q1 = """
         UPDATE person
