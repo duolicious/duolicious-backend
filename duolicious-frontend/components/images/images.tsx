@@ -2,7 +2,6 @@ import {
   ActivityIndicator,
   Platform,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import {
   memo,
@@ -849,13 +848,23 @@ const Slot = ({
   round?: boolean
 }) => {
   const viewRef = useRef<View>(null);
-  const { width, height } = useWindowDimensions();
+  const [layoutChanged, setLayoutChanged] = useState({});
+  const widthRef = useRef(0);
+  const heightRef = useRef(0);
 
   useEffect(() => {
     viewRef.current?.measureInWindow((x, y, width, height) => {
       if (width === 0 && height === 0) {
         // Measurement is inaccurate because the element is occluded
         return;
+      }
+
+      if (widthRef.current === width && heightRef.current === height) {
+        // The measurement hasn't changed
+        return;
+      } else {
+        widthRef.current = width;
+        heightRef.current = height;
       }
 
       if (fileNumber === undefined) {
@@ -881,11 +890,12 @@ const Slot = ({
 
       notify<Slots>('slots', { [fileNumber]: slot });
     });
-  }, [width, height, fileNumber]);
+  }, [layoutChanged, fileNumber]);
 
   return (
     <View
       ref={viewRef}
+      onLayout={() => setLayoutChanged({})}
       style={{
         borderRadius: round ? 999 : 5,
         backgroundColor: '#eee',
@@ -980,7 +990,9 @@ const Images = ({
     lastEvent<Images>(EV_IMAGES) ?? {});
   const [slots, setSlots] = useState(
     lastEvent<Slots>(EV_SLOTS) ?? {});
-  const { width, height } = useWindowDimensions();
+  const [layoutChanged, setLayoutChanged] = useState({});
+  const widthRef = useRef(0);
+  const heightRef = useRef(0);
 
   const relativeSlots = getRelativeSlots(slots, pageX, pageY);
 
@@ -1045,6 +1057,14 @@ const Images = ({
         return;
       }
 
+      if (widthRef.current === width && heightRef.current === height) {
+        // The measurement hasn't changed
+        return;
+      } else {
+        widthRef.current = width;
+        heightRef.current = height;
+      }
+
       setPageX(x);
       setPageY(y);
     });
@@ -1058,11 +1078,12 @@ const Images = ({
     }
 
     notify(EV_SLOT_ASSIGNMENT_FINISH);
-  }, [width, height]);
+  }, [layoutChanged]);
 
   return (
     <View
       ref={viewRef}
+      onLayout={() => setLayoutChanged({})}
       style={{
         padding: 10,
         gap: 10,
