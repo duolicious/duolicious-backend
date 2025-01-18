@@ -2,6 +2,7 @@ import {
   ActivityIndicator,
   Platform,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import {
   memo,
@@ -848,9 +849,9 @@ const Slot = ({
   round?: boolean
 }) => {
   const viewRef = useRef<View>(null);
-  const [layoutChanged, setLayoutChanged] = useState({});
+  const { width, height } = useWindowDimensions();
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     viewRef.current?.measureInWindow((x, y, width, height) => {
       if (width === 0 && height === 0) {
         // Measurement is inaccurate because the element is occluded
@@ -880,12 +881,11 @@ const Slot = ({
 
       notify<Slots>('slots', { [fileNumber]: slot });
     });
-  }, [layoutChanged, fileNumber]);
+  }, [width, height, fileNumber]);
 
   return (
     <View
       ref={viewRef}
-      onLayout={() => setLayoutChanged({})}
       style={{
         borderRadius: round ? 999 : 5,
         backgroundColor: '#eee',
@@ -974,13 +974,13 @@ const Images = ({
   input: OptionGroupPhotos
 }) => {
   const viewRef = useRef<View>(null);
-  const [layoutChanged, setLayoutChanged] = useState({});
   const [pageX, setPageX] = useState(0);
   const [pageY, setPageY] = useState(0);
   const [images, setImages] = useState(
     lastEvent<Images>(EV_IMAGES) ?? {});
   const [slots, setSlots] = useState(
     lastEvent<Slots>(EV_SLOTS) ?? {});
+  const { width, height } = useWindowDimensions();
 
   const relativeSlots = getRelativeSlots(slots, pageX, pageY);
 
@@ -1038,9 +1038,9 @@ const Images = ({
     () => listen<Images>(EV_IMAGES, onImages),
     [onImages]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     viewRef.current?.measureInWindow((x, y, width, height) => {
-      if (height === 0 && width === 0) {
+      if (width === 0 && height === 0) {
         // Measurement is inaccurate because the element is occluded
         return;
       }
@@ -1058,7 +1058,7 @@ const Images = ({
     }
 
     notify(EV_SLOT_ASSIGNMENT_FINISH);
-  }, [layoutChanged]);
+  }, [width, height]);
 
   return (
     <View
@@ -1067,7 +1067,6 @@ const Images = ({
         padding: 10,
         gap: 10,
       }}
-      onLayout={() => setLayoutChanged({})}
     >
       <FirstSlotRow input={input} firstFileNumber={1} />
       <SlotRow      input={input} firstFileNumber={2} />
