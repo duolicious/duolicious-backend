@@ -63,8 +63,11 @@ import {
   noneFontSize,
 } from '../data/option-groups';
 import {
-  PrimaryImage,
-} from './images';
+  MoveableImage,
+  SlotMemo,
+  useIsImageLoading,
+  useUri,
+} from './images/images';
 import { DefaultLongTextInput } from './default-long-text-input';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CheckChip as CheckChip_, CheckChips as CheckChips_ } from './check-chip';
@@ -428,19 +431,16 @@ const Photos = forwardRef((props: InputProps<OptionGroupPhotos>, ref) => {
     'Something went wrong'
   );
 
-  const [isInvalid, setIsInvalid] = useState(false);
-  const [lastInvalidReason, setLastInvalidReason] = useState(errFileSize);
-  const [numImages, setNumImages] = useState(0);
-
   const showProtip = props.input.photos.showProtip ?? true;
   const validateAtLeastOne = props.input.photos.validateAtLeastOne ?? false;
   const firstFileNumber = props.input.photos.firstFileNumber ?? 1;
 
-  const setHasImage = useCallback((hasImage: boolean) => {
-    setNumImages((n: number) => hasImage ? n + 1 : n - 1);
-  }, []);
+  const [isInvalid, setIsInvalid] = useState(false);
+  const [lastInvalidReason, setLastInvalidReason] = useState(errFileSize);
+  const isLoading = useIsImageLoading(firstFileNumber);
+  const uri = useUri(firstFileNumber, null);
 
-  const isNumberInvalid = validateAtLeastOne && numImages === 0;
+  const isNumberInvalid = validateAtLeastOne && uri === null;
 
   const submit = useCallback(async () => {
     if (props.isLoading) {
@@ -482,6 +482,14 @@ const Photos = forwardRef((props: InputProps<OptionGroupPhotos>, ref) => {
     setIsInvalid(x);
   }, []);
 
+  useEffect(() => {
+    props.setIsLoading(isLoading);
+  }, [isLoading]);
+
+  useEffect(() => {
+    setIsInvalid(false);
+  }, [uri]);
+
   const errMessage = isNumberInvalid ? errNumber : errFileSize;
 
   return (
@@ -491,23 +499,34 @@ const Photos = forwardRef((props: InputProps<OptionGroupPhotos>, ref) => {
         paddingRight: 20,
         width: '100%',
         alignSelf: 'center',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
       <View
         style={{
-          width: '100%',
-          maxWidth: '50%',
+          width: '50%',
+          aspectRatio: 1,
           alignSelf: 'center',
         }}
       >
-        <PrimaryImage
-          input={props.input}
-          fileNumber={firstFileNumber}
-          setIsLoading={props.setIsLoading}
-          setIsInvalid={setChildInvalid}
-          showProtip={showProtip}
-          setHasImage={setHasImage}
-        />
+        <SlotMemo />
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+          }}
+        >
+          <MoveableImage
+            input={props.input}
+            initialFileNumber={firstFileNumber}
+            showProtip={showProtip}
+            moveable={false}
+          />
+        </View>
       </View>
       <DefaultText
         style={{

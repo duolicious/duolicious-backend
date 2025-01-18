@@ -25,18 +25,21 @@ type ImageCropperInput = {
   base64: string
   height: number
   width: number
-  callback: string
+  outputEventName: string
+  fileNumber: number
   showProtip?: boolean
 };
 
 type ImageCropperOutput = {
-  originalBase64: string
-  top: number
-  left: number
-  size: number
-} | null;
+  [fileNumber: number]: {
+    originalBase64: string
+    top: number
+    left: number
+    size: number
+  } | null
+};
 
-type NonNullImageCropperOutput = Exclude<ImageCropperOutput, null>;
+type NonNullImageCropperOutput = Exclude<ImageCropperOutput[number], null>;
 
 const ImageCropper = () => {
   const [data, setData] = useState<ImageCropperInput>();
@@ -169,7 +172,12 @@ const ImageCropper = () => {
       return;
     }
 
-    notify<ImageCropperOutput>(data.callback, null);
+    notify<ImageCropperOutput>(
+      data.outputEventName,
+      {
+        [data.fileNumber]: null
+      }
+    );
 
     setData(undefined);
   };
@@ -190,12 +198,14 @@ const ImageCropper = () => {
     };
 
     notify<ImageCropperOutput>(
-      data.callback,
+      data.outputEventName,
       {
-        originalBase64: data.base64,
-        top:  Math.round(realCropArea.top),
-        left: Math.round(realCropArea.left),
-        size: realCropArea.size,
+        [data.fileNumber]: {
+          originalBase64: data.base64,
+          top:  Math.round(realCropArea.top),
+          left: Math.round(realCropArea.left),
+          size: realCropArea.size,
+        }
       }
     );
 

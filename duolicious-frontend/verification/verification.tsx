@@ -19,7 +19,7 @@ type VerificationEvent = {
 };
 
 const verificationWatcher = async () => {
-  var checkUntil = new Date(Date.now() - 1);
+  var checkUntil: null | Date = null;
   var lastStatus = '';
 
   listen(
@@ -32,6 +32,10 @@ const verificationWatcher = async () => {
 
   while (true) {
     await delay(1000);
+
+    if (checkUntil === null) {
+      continue;
+    }
 
     const isTimeReached = new Date() > checkUntil;
     const isDone = ['success', 'failure'].includes(lastStatus);

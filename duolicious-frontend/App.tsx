@@ -61,7 +61,7 @@ import { createWebNavigator } from './components/navigation/web-navigator';
 import { isMobile } from './util/util';
 import { Logo16 } from './components/logo';
 import { useScrollbarStyle } from './components/navigation/scroll-bar-hooks';
-
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // TODO: Onboarding works
 
@@ -473,7 +473,7 @@ const App = () => {
   return (
     <SafeAreaProvider>
       {!isLoading &&
-        <>
+        <GestureHandlerRootView>
           <NavigationContainer
             ref={navigationContainerRef}
             initialState={
@@ -531,7 +531,7 @@ const App = () => {
           <ColorPickerModal/>
           <Toast/>
           <StreamErrorModal/>
-        </>
+        </GestureHandlerRootView>
       }
       <WebSplashScreen loading={isLoading}/>
     </SafeAreaProvider>

@@ -1,0 +1,1145 @@
+import {
+  ActivityIndicator,
+  Platform,
+  View,
+} from 'react-native';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
+import { faCircleXmark } from '@fortawesome/free-solid-svg-icons/faCircleXmark'
+import { notify, listen, lastEvent } from '../../events/events';
+import {
+  ImageCropperInput,
+  ImageCropperOutput,
+} from '../image-cropper';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { isImagePickerOpen } from '../../App';
+import { Image as ExpoImage } from 'expo-image';
+import { VerificationEvent } from '../../verification/verification';
+import { VerificationBadge } from '../verification-badge';
+import { DefaultText } from '../default-text';
+import * as Haptics from 'expo-haptics';
+import
+  Animated,
+  {
+    Easing,
+    runOnJS,
+    SharedValue,
+    useSharedValue,
+    withTiming,
+  } from 'react-native-reanimated';
+import {
+  Gesture,
+  GestureDetector,
+} from 'react-native-gesture-handler';
+import {
+  OptionGroupPhotos,
+} from '../../data/option-groups';
+import debounce from 'lodash/debounce';
+import { remap } from './logic';
+import { photoQueue } from '../../api/queue';
+import { japi } from '../../api/api';
+import * as _ from "lodash";
+
+// TODO: Image picker is shit and lets you upload any file type on web
+
+const EV_IMAGES = 'images';
+const EV_IMAGE_CROPPER_OUTPUT = 'image-cropper-output';
+const EV_IMAGE_LOADING = 'image-loading';
+const EV_IMAGE_URI = 'image-uri';
+const EV_SLOTS = 'slots';
+const EV_SLOT_ASSIGNMENT_FINISH = 'slot-assignment-finish';
+const EV_SLOT_ASSIGNMENT_START = 'slot-assignment-start';
+const EV_SLOT_REQUEST = 'slot-request';
+const EV_UPDATED_NAME = 'updated-name';
+const EV_UPDATED_VERIFICATION = 'updated-verification';
+
+type Point2D = {
+  x: number
+  y: number
+};
+
+type ImageLayout = {
+  image: {
+    fileNumber: number
+    input: OptionGroupPhotos,
+    uri: string | null | undefined
+    resolution: number | null | undefined
+    blurhash: string | null | undefined
+    isVerified: boolean
+  }
+
+  center: Point2D
+  origin: Point2D
+
+  height: number
+  width: number
+};
+
+type Image = {
+  exists: boolean
+};
+
+type Images = {
+  [k: number]: Image
+};
+
+type Slot = {
+  center: Point2D
+  origin: Point2D
+
+  height: number
+  width: number
+};
+
+type Slots = {
+  [k: number]: Slot
+};
+
+type SlotRequest = {
+  from: number
+  to: number
+  pressed: number | null
+};
+
+type SlotAssignmentStart = {
+  from: number
+  to: number
+  pressed: number | null
+};
+
+type ImageLoading = {
+  [k: number]: boolean
+};
+
+type ImageUri = {
+  [k: number]: string | null
+};
+
+type HttpPostAssignments = {
+  [k: number]: number
+};
+
+const getOccupancyMap = (images: Images): { [k: number]: boolean } => {
+  return Object
+    .entries(images)
+    .reduce(
+      (acc, [fileNumber, slot]) => {
+        acc[Number(fileNumber)] = slot.exists;
+        return acc;
+      },
+      {} as { [k: number]: boolean }
+    );
+};
+
+const getNearestSlot = (slots: Slots, p: Point2D): number => {
+  let nearestSlot = -1;
+  let nearestDistance = -1;
+
+  Object.entries(slots).map(([fileNumber, slot]) => {
+    const distance = euclideanDistance(slot.center, p);
+
+    if (nearestDistance === -1 || distance < nearestDistance) {
+      nearestSlot = Number(fileNumber);
+      nearestDistance = distance;
+    }
+  });
+
+  return nearestSlot;
+};
+
+const getRelativeSlot = (slot: Slot, pageX: number, pageY: number): Slot => {
+  return {
+    center: {
+      x: slot.center.x - pageX,
+      y: slot.center.y - pageY,
+    },
+    origin: {
+      x: slot.origin.x - pageX,
+      y: slot.origin.y - pageY,
+    },
+    height: slot.height,
+    width: slot.width,
+  };
+};
+
+const getRelativeSlots = (slots: Slots, pageX: number, pageY: number): Slots => {
+  return Object
+    .entries(slots)
+    .reduce(
+      (acc, [fileNumber, slot]) => {
+        acc[Number(fileNumber)] = getRelativeSlot(slot, pageX, pageY);
+
+        return acc
+      },
+      {} as Slots
+    )
+};
+
+const setIsImageLoading = (
+  fileNumber: SharedValue<number>,
+  isLoading: boolean,
+) => {
+  const isImageLoading = lastEvent<ImageLoading>(EV_IMAGE_LOADING) ?? {};
+
+  const updatedIsImageLoading: ImageLoading = {
+    ...isImageLoading,
+    [fileNumber.value]: isLoading,
+  };
+
+  notify<ImageLoading>(EV_IMAGE_LOADING, updatedIsImageLoading);
+};
+
+const getIsImageLoading = (fileNumber: SharedValue<number>): boolean => {
+  const isImageLoading = lastEvent<ImageLoading>(EV_IMAGE_LOADING) ?? {};
+
+  return isImageLoading[fileNumber.value] ?? false;
+};
+
+const useIsImageLoading = (fileNumber: SharedValue<number> | number): boolean => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    return listen<ImageLoading>(
+      EV_IMAGE_LOADING,
+      (data) => {
+        if (!data) {
+          return;
+        }
+
+        const unpackedFileNumber =
+          typeof fileNumber === 'number' ?
+          fileNumber :
+          fileNumber.value;
+
+        const isLoading = data[unpackedFileNumber];
+
+        if (isLoading === undefined) {
+          return;
+        }
+
+        setIsLoading(isLoading);
+      }
+    );
+  }, []);
+
+  return isLoading;
+};
+
+const useUri = (
+  fileNumber: SharedValue<number> | number,
+  initialUri: string | null
+) => {
+  const [uri, setUri] = useState<string | null>(initialUri);
+
+  useEffect(() => {
+    return listen<ImageUri>(
+      EV_IMAGE_URI,
+      (data) => {
+        if (!data) {
+          return;
+        }
+
+        const unpackedFileNumber =
+          typeof fileNumber === 'number' ?
+          fileNumber :
+          fileNumber.value;
+
+        const uri = data[unpackedFileNumber];
+
+        if (uri === undefined) {
+          return;
+        }
+
+        setUri(uri);
+      }
+    );
+  }, []);
+
+  return uri;
+};
+
+const useIsVerified = (fileNumber: SharedValue<number>) => {
+  const [isVerified, setIsVerified] = useState(false);
+
+  useEffect(() => {
+    return listen<VerificationEvent>(
+      EV_UPDATED_VERIFICATION,
+      (data) => {
+        if (!data) {
+          return;
+        }
+
+        if (!data.photos) {
+          return;
+        }
+
+        const photoData: boolean | undefined = data.photos[fileNumber.value];
+
+        if (photoData === undefined) {
+          return;
+        }
+
+        setIsVerified(photoData);
+      },
+      true
+    );
+  }, []);
+
+  return isVerified;
+};
+
+const euclideanDistance = (p1: Point2D, p2: Point2D) => {
+  return ((p1.x - p2.x) ** 2.0 + (p1.y - p2.y) ** 2.0) ** 0.5;
+};
+
+const isSquareish = (width: number, height: number) => {
+  if (width === 0) return true;
+  if (height === 0) return true;
+
+  const biggerDim = Math.max(width, height);
+  const smallerDim = Math.min(width, height);
+
+  return biggerDim / smallerDim < 1.1;
+};
+
+const isGif = (mimeType: string) => mimeType === 'image/gif';
+
+const cropImage = async (
+  base64: string,
+  height: number,
+  originX: number,
+  originY: number,
+  width: number,
+): Promise<string> => {
+  if (base64.startsWith('data:image/gif;')) {
+    return base64;
+  }
+
+  const result = await manipulateAsync(
+    base64,
+    [{ crop: { height, originX, originY, width }}],
+    {
+      base64: true,
+      compress: 1,
+      format: SaveFormat.JPEG
+    }
+  );
+
+  if (!result.base64) {
+    throw Error('Unexpected output from manipulateAsync');
+  }
+
+  return `data:image/jpeg;base64,${result.base64}`;
+};
+
+const postAssignments = (photoAssignments: HttpPostAssignments) => {
+  photoQueue.addTask(async () => {
+    await japi(
+      'PATCH',
+      '/profile-info',
+      { photo_assignments: photoAssignments }
+    );
+  });
+};
+
+const addImage = async (
+  fileNumber: SharedValue<number>,
+  showProtip: boolean,
+) => {
+  if (getIsImageLoading(fileNumber)) {
+    return;
+  }
+  if (isImagePickerOpen.value) {
+    return;
+  }
+
+  if (Platform.OS !== 'web') {
+    setIsImageLoading(fileNumber, true);
+    isImagePickerOpen.value = true;
+  }
+
+  // No permissions request is necessary for launching the image library
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: 'images',
+    quality: 1,
+    selectionLimit: 1,
+    base64: true,
+  });
+
+  if (result.canceled && Platform.OS !== 'web') {
+    isImagePickerOpen.value = false;
+    setIsImageLoading(fileNumber, false);
+  }
+  if (result.canceled) {
+    return;
+  }
+
+  const width = result.assets[0].width;
+  const height = result.assets[0].height;
+  const mimeType = result.assets[0].mimeType;
+  const base64 = result.assets[0].base64;
+  if (!width) return;
+  if (!height) return;
+  if (!mimeType) return;
+  if (!base64) {
+    console.warn('Unexpected output from launchImageLibraryAsync');
+    return;
+  }
+
+  const base64Uri = `data:${mimeType};base64,${base64}`;
+
+  setIsImageLoading(fileNumber, true);
+
+  if (isGif(mimeType) || isSquareish(width, height)) {
+    const size = Math.min(width, height);
+
+    notify<ImageCropperOutput>(
+      EV_IMAGE_CROPPER_OUTPUT,
+      {
+        [fileNumber.value]: {
+          originalBase64: base64Uri,
+          top:  Math.round((height - size) / 2),
+          left: Math.round((width  - size) / 2),
+          size,
+        }
+      }
+    );
+  } else {
+    notify<ImageCropperInput>(
+      'image-cropper-open',
+      {
+        base64: base64Uri,
+        height,
+        width,
+        outputEventName: EV_IMAGE_CROPPER_OUTPUT,
+        fileNumber: fileNumber.value,
+        showProtip: showProtip,
+      }
+    );
+  }
+};
+
+const useImagePickerResult = (
+  input: OptionGroupPhotos,
+  fileNumber: SharedValue<number>
+): void => {
+  useEffect(() => {
+    return listen<ImageCropperOutput>(
+      EV_IMAGE_CROPPER_OUTPUT,
+      async (data) => {
+        isImagePickerOpen.value = false;
+
+        if (data === undefined) {
+          return;
+        }
+
+        const singleData: ImageCropperOutput[number] | undefined =
+          data[fileNumber.value];
+
+        if (singleData === undefined) {
+          return;
+        }
+
+        if (singleData === null) {
+          ;
+        } else if (await input.photos.submit(fileNumber.value, singleData)) {
+          const base64 = await cropImage(
+            singleData.originalBase64,
+            singleData.size,
+            singleData.left,
+            singleData.top,
+            singleData.size,
+          );
+
+          notify<ImageUri>(EV_IMAGE_URI, { [fileNumber.value]: base64 });
+
+          notify<VerificationEvent>(
+            EV_UPDATED_VERIFICATION,
+            { photos: { [`${fileNumber.value}`]: false } }
+          );
+        }
+
+        setIsImageLoading(fileNumber, false);
+      }
+    );
+  }, []);
+};
+
+const removeImage = async (
+  input: OptionGroupPhotos,
+  fileNumber: SharedValue<number>,
+) => {
+  setIsImageLoading(fileNumber, true);
+
+  if (await input.photos.delete(String(fileNumber.value))) {
+    notify<ImageUri>(EV_IMAGE_URI, { [fileNumber.value]: null });
+
+    notify<VerificationEvent>(
+      EV_UPDATED_VERIFICATION,
+      { photos: { [`${fileNumber.value}`]: false } }
+    );
+  }
+
+  setIsImageLoading(fileNumber, false);
+};
+
+const hapticsSelection = () => {
+  if (Platform.OS !== 'web') {
+    Haptics.impactAsync();
+  }
+};
+
+const FileNumber = ({
+  fileNumber,
+  left,
+  top
+}: {
+  fileNumber: number
+  left: number
+  top: number
+}) => {
+  if (fileNumber < 1) {
+    return null;
+  }
+
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        left: left,
+        top: top,
+        overflow: 'visible',
+      }}
+    >
+      <DefaultText
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          backgroundColor: 'white',
+          borderWidth: 1,
+          borderColor: 'black',
+          paddingHorizontal: 8,
+          paddingVertical: 1,
+          borderRadius: 999,
+          fontSize: 12,
+        }}
+      >
+        {fileNumber === 1 ? 'Main' : fileNumber}
+      </DefaultText>
+    </View>
+  );
+};
+
+const MoveableImage = ({
+  input,
+  initialFileNumber,
+  absolutePosition,
+  slots = [],
+  moveable = true,
+  showProtip = true,
+}: {
+  input: OptionGroupPhotos
+  slots?: Slots,
+  initialFileNumber: number
+  absolutePosition?: {
+    height: number,
+    width: number,
+    left: number,
+    top: number,
+  },
+  moveable?: boolean,
+  showProtip?: boolean,
+}) => {
+  const initialUri =
+    input.photos.getUri ?
+    input.photos.getUri(String(initialFileNumber), '450') :
+    null;
+
+  const initialBlurhash =
+    input.photos.getBlurhash ?
+    input.photos.getBlurhash(String(initialFileNumber)) :
+    null;
+
+  const fileNumber = useSharedValue(initialFileNumber);
+  const _slots = useSharedValue(slots);
+  const isSlotAssignmentUnfinished = useSharedValue(false);
+  const isLoading = useIsImageLoading(fileNumber);
+  const uri = useUri(fileNumber, initialUri);
+  const isVerified = useIsVerified(fileNumber);
+
+  const getBorderRadius = useCallback((fileNumber: number) => {
+    const {
+      height = 0,
+      width = 0,
+    } = absolutePosition ?? {};
+
+    return fileNumber === 1 ? Math.max(height ?? 0, width ?? 0) / 2 : 5;
+  }, [absolutePosition?.height, absolutePosition?.width]);
+
+  const [zIndex, setZIndex] = useState<number>(0);
+  const resetZIndex = () => runOnJS(setZIndex)(0);
+
+  const initialBorderRadius = getBorderRadius(initialFileNumber);
+
+  const translateX = useSharedValue<number>(absolutePosition?.left ?? 0);
+  const translateY = useSharedValue<number>(absolutePosition?.top ?? 0);
+  const scale = useSharedValue<number>(1);
+  const borderRadius = useSharedValue<number>(initialBorderRadius);
+
+  const requestNearestSlot = (pressed: number | null) => {
+    const p: Point2D = {
+      x:
+        _slots.value[fileNumber.value].center.x -
+        _slots.value[fileNumber.value].origin.x +
+        translateX.value,
+      y:
+        _slots.value[fileNumber.value].center.y -
+        _slots.value[fileNumber.value].origin.y +
+        translateY.value,
+    };
+
+    const nearestSlot = getNearestSlot(_slots.value, p);
+
+    const from = fileNumber.value;
+    const to = nearestSlot;
+
+    notify<SlotRequest>(EV_SLOT_REQUEST, { from, to, pressed });
+  };
+
+  const requestNearestSlotOnChange =
+    debounce(
+      () => requestNearestSlot(fileNumber.value),
+      500,
+      { maxWait: 500 },
+    );
+
+  const requestNearestSlotOnFinalize =
+    () => requestNearestSlot(null);
+
+  const addImageOnStart =
+    () => addImage(fileNumber, showProtip);
+
+  const removeImageOnTap =
+    () => removeImage(input, fileNumber);
+
+  const pan =
+    Gesture
+    .Pan()
+    .activateAfterLongPress(200)
+    .onStart((event) => {
+      scale.value = withTiming(1.1, { duration: 50 });
+      runOnJS(setZIndex)(1);
+      runOnJS(hapticsSelection)();
+    })
+    .onChange((event) => {
+      translateX.value += event.changeX;
+      translateY.value += event.changeY;
+
+      runOnJS(requestNearestSlotOnChange)();
+    })
+    .onFinalize(() => {
+      runOnJS(requestNearestSlotOnFinalize)();
+    })
+
+  const tap =
+    Gesture
+    .Tap()
+    .requireExternalGestureToFail(pan)
+    .onStart(() => {
+      runOnJS(addImageOnStart)();
+    })
+
+  const composedGesture = uri && moveable ? Gesture.Exclusive(pan, tap) : tap;
+
+  const removeGesture =
+    Gesture
+    .Tap()
+    .onStart(() => {
+      if (uri === null || isLoading) {
+        return;
+      }
+
+      runOnJS(removeImageOnTap)();
+    });
+
+  const onSlotAssignmentStart = useCallback(
+    (data: SlotAssignmentStart | undefined) => {
+      if (!data) {
+        return;
+      }
+      if (fileNumber.value !== data.from) {
+        return;
+      }
+      if (isSlotAssignmentUnfinished.value) {
+        return;
+      }
+
+      if (fileNumber.value !== data.pressed) {
+        translateX.value = withTiming(_slots.value[data.to].origin.x);
+        translateY.value = withTiming(_slots.value[data.to].origin.y);
+        scale.value = withTiming(
+          1,
+          undefined,
+          resetZIndex,
+        );
+      }
+      borderRadius.value = withTiming(getBorderRadius(data.to));
+
+      if (data.pressed === null) {
+        isSlotAssignmentUnfinished.value = true;
+        fileNumber.value = data.to;
+      }
+    },
+    [getBorderRadius]
+  );
+
+  const onSlotAssignmentFinish = useCallback(() => {
+    notify<Images>(
+      EV_IMAGES,
+      { [fileNumber.value]: { exists: Boolean(uri) } });
+
+    notify<VerificationEvent>(
+      EV_UPDATED_VERIFICATION,
+      { photos: { [`${fileNumber.value}`]: isVerified } });
+
+    isSlotAssignmentUnfinished.value = false;
+  }, [uri, isVerified]);
+
+  useEffect(
+    () => { translateX.value = absolutePosition?.left ?? 0; },
+    [absolutePosition?.left]);
+
+  useEffect(
+    () => { translateY.value = absolutePosition?.top ?? 0; },
+    [absolutePosition?.top]);
+
+  useEffect(
+    () => { _slots.value = slots; },
+    [slots]);
+
+  useImagePickerResult(input, fileNumber);
+
+  useEffect(() => {
+    return listen<SlotAssignmentStart>(
+      EV_SLOT_ASSIGNMENT_START,
+      onSlotAssignmentStart
+    );
+  }, [onSlotAssignmentStart]);
+
+  useEffect(() => {
+    return listen(
+      EV_SLOT_ASSIGNMENT_FINISH,
+      onSlotAssignmentFinish
+    );
+  }, [onSlotAssignmentFinish]);
+
+  useEffect(() => {
+    notify<Images>(EV_IMAGES, { [fileNumber.value]: { exists: Boolean(uri) } });
+  }, [uri]);
+
+  useLayoutEffect(() => {
+    borderRadius.value = getBorderRadius(fileNumber.value);
+  }, [getBorderRadius]);
+
+  return (
+    <GestureDetector gesture={composedGesture}>
+      <Animated.View
+        style={{
+          cursor: 'pointer',
+          zIndex: zIndex,
+          position: absolutePosition ? 'absolute' : undefined,
+          height: absolutePosition?.height ?? '100%',
+          width: absolutePosition?.width ?? '100%',
+          left: absolutePosition ? 0 : undefined,
+          top: absolutePosition? 0 : undefined,
+          transform: [
+            { translateX },
+            { translateY },
+            { scale },
+          ],
+        }}
+      >
+        <Animated.View
+          style={[
+            {
+              height: '100%',
+              width: '100%',
+              overflow: 'hidden',
+              borderRadius: borderRadius.value,
+            },
+            { borderRadius },
+          ]}
+        >
+          {uri &&
+            <ExpoImage
+              pointerEvents="none"
+              source={{
+                uri: uri,
+                height: 450,
+                width: 450,
+              }}
+              placeholder={initialBlurhash && { blurhash: initialBlurhash }}
+              transition={150}
+              style={{
+                height: '100%',
+                width: '100%',
+                borderColor: '#eee',
+              }}
+              contentFit="contain"
+            />
+          }
+          {isLoading &&
+            <Loading/>
+          }
+        </Animated.View>
+        {uri &&
+          <GestureDetector gesture={removeGesture}>
+            <View
+              style={{
+                position: 'absolute',
+                top: -10,
+                left: -10,
+                padding: 2,
+                borderRadius: 999,
+                backgroundColor: 'white',
+              }}
+            >
+              <FontAwesomeIcon
+                icon={faCircleXmark}
+                size={26}
+                color="#000"
+                style={{
+                  outline: 'none'
+                }}
+              />
+            </View>
+          </GestureDetector>
+        }
+        {isVerified && (
+          <VerificationBadge
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+            }}
+            size={20}
+          />
+        )}
+      </Animated.View>
+    </GestureDetector>
+  );
+};
+
+const Slot = ({
+  fileNumber,
+  round = false,
+}: {
+  fileNumber?: number
+  round?: boolean
+}) => {
+  const viewRef = useRef<View>(null);
+  const [layoutChanged, setLayoutChanged] = useState({});
+
+  useLayoutEffect(() => {
+    viewRef.current?.measureInWindow((x, y, width, height) => {
+      if (width === 0 && height === 0) {
+        // Measurement is inaccurate because the element is occluded
+        return;
+      }
+
+      if (fileNumber === undefined) {
+        return;
+      }
+
+      const center: Point2D = {
+        x: x + width / 2,
+        y: y + height / 2,
+      };
+
+      const origin: Point2D = {
+        x: x,
+        y: y,
+      };
+
+      const slot: Slot = {
+        center,
+        origin,
+        height,
+        width,
+      };
+
+      notify<Slots>('slots', { [fileNumber]: slot });
+    });
+  }, [layoutChanged, fileNumber]);
+
+  return (
+    <View
+      ref={viewRef}
+      onLayout={() => setLayoutChanged({})}
+      style={{
+        borderRadius: round ? 999 : 5,
+        backgroundColor: '#eee',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'visible',
+        flex: 1,
+        aspectRatio: 1,
+      }}
+    >
+      <AddIcon/>
+    </View>
+  );
+};
+
+const SlotMemo = memo(Slot);
+
+const FirstSlotRow = ({
+  input,
+  firstFileNumber,
+}: {
+  input: OptionGroupPhotos
+  firstFileNumber: number
+}) => {
+  const [name, setName] = useState(lastEvent<string>('updated-name'));
+
+  useEffect(() => {
+    return listen<string>(EV_UPDATED_NAME, setName);
+  }, []);
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        gap: 20,
+        width: '100%',
+        paddingBottom: 20,
+      }}
+    >
+      <SlotMemo fileNumber={firstFileNumber + 0} round={true} />
+      <View
+        style={{
+          flex: 2,
+          justifyContent: 'center',
+        }}
+      >
+        <DefaultText
+          style={{
+            fontSize: 28,
+            fontWeight: '700',
+            borderRadius: 10,
+          }}
+        >
+          {name}
+        </DefaultText>
+      </View>
+    </View>
+  );
+};
+
+const SlotRow = ({
+  input,
+  firstFileNumber,
+}: {
+  input: OptionGroupPhotos
+  firstFileNumber: number
+}) => {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        gap: 10,
+        width: '100%',
+      }}
+    >
+      <SlotMemo fileNumber={firstFileNumber + 0} />
+      <SlotMemo fileNumber={firstFileNumber + 1} />
+      <SlotMemo fileNumber={firstFileNumber + 2} />
+    </View>
+  );
+};
+
+const Images = ({
+  input
+}: {
+  input: OptionGroupPhotos
+}) => {
+  const viewRef = useRef<View>(null);
+  const [layoutChanged, setLayoutChanged] = useState({});
+  const [pageX, setPageX] = useState(0);
+  const [pageY, setPageY] = useState(0);
+  const [images, setImages] = useState(
+    lastEvent<Images>(EV_IMAGES) ?? {});
+  const [slots, setSlots] = useState(
+    lastEvent<Slots>(EV_SLOTS) ?? {});
+
+  const relativeSlots = getRelativeSlots(slots, pageX, pageY);
+
+  const onSlotRequest = useCallback((data: SlotRequest | undefined) => {
+    if (!data) {
+      return;
+    }
+
+    const occupancyMap = getOccupancyMap(images);
+
+    const remappedSlots = remap(occupancyMap, data.from, data.to);
+
+    const pressed = data.pressed;
+
+    const httpPostAssignments: HttpPostAssignments = {};
+
+    Object
+      .entries(remappedSlots)
+      .map(([from, to]) => ([Number(from), Number(to)]))
+      .forEach(([from, to]) => {
+        notify<SlotAssignmentStart>(
+          EV_SLOT_ASSIGNMENT_START,
+          { from, to, pressed }
+        );
+
+        if (from !== to) {
+          httpPostAssignments[from] = to;
+        }
+      });
+
+    notify(EV_SLOT_ASSIGNMENT_FINISH);
+
+    if (!_.isEmpty(httpPostAssignments) && pressed === null) {
+      postAssignments(httpPostAssignments);
+    }
+  }, [images]);
+
+  const onSlots = useCallback((data: Slots | undefined) => {
+    setSlots((old) => ({ ...old, ...data }))
+  }, []);
+
+  const onImages = useCallback((data: Images | undefined) => {
+    setImages((old) => ({ ...old, ...data }))
+  }, []);
+
+  useEffect(
+    () => listen<SlotRequest>(EV_SLOT_REQUEST, onSlotRequest),
+    [onSlotRequest]);
+
+  useLayoutEffect(
+    () => listen<Slots>(EV_SLOTS, onSlots),
+    [onSlots]);
+
+  useLayoutEffect(
+    () => listen<Images>(EV_IMAGES, onImages),
+    [onImages]);
+
+  useLayoutEffect(() => {
+    viewRef.current?.measureInWindow((x, y, width, height) => {
+      if (height === 0 && width === 0) {
+        // Measurement is inaccurate because the element is occluded
+        return;
+      }
+
+      setPageX(x);
+      setPageY(y);
+    });
+
+
+    for (let i = 1; i <= 7; i++) {
+      notify<SlotAssignmentStart>(
+        EV_SLOT_ASSIGNMENT_START,
+        { from: i, to: i, pressed: null }
+      );
+    }
+
+    notify(EV_SLOT_ASSIGNMENT_FINISH);
+  }, [layoutChanged]);
+
+  return (
+    <View
+      ref={viewRef}
+      style={{
+        padding: 10,
+        gap: 10,
+      }}
+      onLayout={() => setLayoutChanged({})}
+    >
+      <FirstSlotRow input={input} firstFileNumber={1} />
+      <SlotRow      input={input} firstFileNumber={2} />
+      <SlotRow      input={input} firstFileNumber={5} />
+
+      {Object
+        .entries(relativeSlots)
+        .map(([fileNumber, slot]) =>
+          <MoveableImage
+            key={fileNumber}
+            input={input}
+            initialFileNumber={Number(fileNumber)}
+            absolutePosition={{
+              height: slot.height,
+              width: slot.width,
+              left: slot.origin.x,
+              top: slot.origin.y,
+            }}
+            slots={relativeSlots}
+          />
+        )
+      }
+
+      {Object
+        .entries(relativeSlots)
+        .map(([fileNumber, slot]) =>
+          <FileNumber
+            key={fileNumber}
+            fileNumber={Number(fileNumber)}
+            left={slot.origin.x + 2}
+            top={slot.origin.y + slot.height - 2}
+          />
+        )
+      }
+    </View>
+  );
+};
+
+const AddIcon = () => {
+  return (
+    <Ionicons
+      style={{
+        color: 'black',
+        fontSize: 36,
+      }}
+      name="add"/>
+  );
+};
+
+const Loading = () => {
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      }}
+    >
+      <ActivityIndicator size="large" color="white"/>
+    </View>
+  );
+}
+
+export {
+  Images,
+  MoveableImage,
+  SlotMemo,
+  useIsImageLoading,
+  useUri,
+};

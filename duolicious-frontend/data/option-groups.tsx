@@ -1939,21 +1939,25 @@ const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: `Press ‘Continue’ to submit your selfie.`,
     input: {
       photos: {
-        submit: async (position, cropperOutput) => (await japi(
-          'post',
-          '/verification-selfie',
-          {
-            base64_file: {
-              position: 1,
-              base64: cropperOutput.originalBase64,
-              top: cropperOutput.top,
-              left: cropperOutput.left,
+        submit: async (position, cropperOutput) => {
+          const response = await japi(
+            'post',
+            '/verification-selfie',
+            {
+              base64_file: {
+                position: 1,
+                base64: cropperOutput.originalBase64,
+                top: cropperOutput.top,
+                left: cropperOutput.left,
+              },
             },
-          },
-          2 * 60 * 1000, // 2 minutes
-          undefined,
-          true,
-        )).ok,
+            2 * 60 * 1000, // 2 minutes
+            undefined,
+            true,
+          );
+
+          return response.ok;
+        },
         submitAll: async () => api('post', '/verify', undefined, undefined, 0),
         delete: async () => true,
         showProtip: false,

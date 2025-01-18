@@ -60,10 +60,13 @@ const onboardingQueue = new PromiseQueue();
 // cause one query in a pair of queries to overwrite the other's results.
 const searchQueue = new PromiseQueue();
 
+const photoQueue = new PromiseQueue();
+
 export {
   aboutQueue,
   nameQueue,
   onboardingQueue,
+  photoQueue,
   quizQueue,
   searchQueue,
 };
