@@ -8,6 +8,7 @@ from duohash import sha512
 from PIL import Image
 import io
 import boto3
+from botocore.config import Config
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from service.person.sql import *
 from service.search.sql import *
@@ -85,6 +86,10 @@ s3 = boto3.resource(
     endpoint_url=BOTO_ENDPOINT_URL,
     aws_access_key_id=R2_ACCESS_KEY_ID,
     aws_secret_access_key=R2_ACCESS_KEY_SECRET,
+    config=Config(
+        request_checksum_calculation='WHEN_REQUIRED',
+        response_checksum_validation='WHEN_REQUIRED',
+    ),
 )
 
 bucket = s3.Bucket(R2_BUCKET_NAME)
