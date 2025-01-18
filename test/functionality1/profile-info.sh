@@ -131,6 +131,62 @@ test_photo () {
   [[ "$(q "select COUNT(*) from photo")" -eq 0 ]]
 }
 
+test_photo_assignments () {
+  jc DELETE /profile-info -d '{ "files": [1, 2, 3, 4, 5, 6, 7] }'
+
+  jc PATCH /profile-info \
+    -d "{
+            \"base64_file\": {
+                \"position\": 1,
+                \"base64\": \"${img1}\",
+                \"top\": 0,
+                \"left\": 0
+            }
+        }"
+
+  jc PATCH /profile-info \
+    -d "{
+            \"base64_file\": {
+                \"position\": 2,
+                \"base64\": \"${img1}\",
+                \"top\": 0,
+                \"left\": 0
+            }
+        }"
+
+  wait_for_creation_by_uuid "$(q "select uuid from photo where position = 1")"
+
+  wait_for_creation_by_uuid "$(q "select uuid from photo where position = 2")"
+
+  # Overwriting an occupied position isn't allowed
+  ! jc PATCH /profile-info \
+    -d "{ \"photo_assignments\": { \"1\": 2 } }"
+
+  [[ "$(q "select COUNT(DISTINCT uuid) from photo")" -eq 2 ]]
+
+  # Moving many photos to one position isn't allowed
+  ! jc PATCH /profile-info \
+    -d "{ \"photo_assignments\": { \"1\": 3, \"2\": 3 } }"
+
+  [[ "$(q "select COUNT(DISTINCT uuid) from photo")" -eq 2 ]]
+
+  # Moving an unoccupied position to an occupied one isn't allowed
+  ! jc PATCH /profile-info \
+    -d "{ \"photo_assignments\": { \"3\": 1 } }"
+
+  [[ "$(q "select COUNT(DISTINCT uuid) from photo")" -eq 2 ]]
+
+  # Files can be swapped
+  jc PATCH /profile-info \
+    -d "{ \"photo_assignments\": { \"1\": 2, \"2\": 1 } }"
+
+  # Files can be moved to unoccupied positions
+  jc PATCH /profile-info \
+    -d "{ \"photo_assignments\": { \"1\": 3, \"2\": 4 } }"
+
+  [[ "$(q "select COUNT(DISTINCT uuid) from photo")" -eq 2 ]]
+}
+
 test_audio () {
   jc PATCH /profile-info \
     -d "{ \"base64_audio_file\": { \"base64\": \"${snd1}\" } }"
@@ -233,6 +289,8 @@ test_verification_loss_ethnicity () {
 }
 
 test_verification_loss_photo_changed () {
+  jc DELETE /profile-info -d '{ "files": [1, 2, 3, 4, 5, 6, 7] }'
+
   jc PATCH /profile-info \
     -d "{
             \"base64_file\": {
@@ -272,6 +330,8 @@ test_verification_loss_photo_changed () {
 }
 
 test_verification_loss_photo_removed () {
+  jc DELETE /profile-info -d '{ "files": [1, 2, 3, 4, 5, 6, 7] }'
+
   jc PATCH /profile-info \
     -d "{
             \"base64_file\": {
@@ -333,6 +393,8 @@ test_set hide_me_from_strangers Yes
 test_club
 
 test_photo
+
+test_photo_assignments
 
 test_audio
 

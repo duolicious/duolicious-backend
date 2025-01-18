@@ -2,12 +2,13 @@ from typing import Any, DefaultDict, Dict, List, Optional
 from pydantic import (
     BaseModel,
     EmailStr,
+    Extra,
+    RootModel,
     conint,
     conlist,
     constr,
     field_validator,
     model_validator,
-    Extra,
 )
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
@@ -38,6 +39,9 @@ MIN_IMAGE_DIM = 50
 
 MAX_GIF_DIM = 800
 MIN_GIF_DIM = 10
+
+MIN_PHOTO_POSITION = 1
+MAX_PHOTO_POSITION = 7
 
 
 def human_readable_size_metric(size_bytes):
@@ -128,7 +132,7 @@ class Base64AudioFile(BaseModel):
         arbitrary_types_allowed = True
 
 class Base64File(BaseModel):
-    position: conint(ge=1, le=7)
+    position: conint(ge=MIN_PHOTO_POSITION, le=MAX_PHOTO_POSITION)
     base64: str
     bytes: bytes
     image: Image.Image
@@ -179,6 +183,31 @@ class Base64File(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+
+
+class PhotoAssignments(RootModel[Dict[
+    conint(ge=MIN_PHOTO_POSITION, le=MAX_PHOTO_POSITION),
+    conint(ge=MIN_PHOTO_POSITION, le=MAX_PHOTO_POSITION),
+]]):
+    @field_validator('root')
+    def validate(cls, root):
+        values = list(root.values())
+
+        if len(values) != len(set(values)):
+            raise ValueError('Many photos were assigned to one position')
+
+        for k, v in root.items():
+            if k == v:
+                raise ValueError("Item can't be assigned to itself")
+
+        if not root:
+            raise ValueError('Must have at least one assignment')
+
+        return root
+
+    def dict(self, *args, **kwargs):
+        """Override to return the dictionary directly."""
+        return super().dict(*args, **kwargs)['__root__']
 
 
 class Theme(BaseModel):
@@ -277,19 +306,29 @@ class PatchOnboardeeInfo(BaseModel):
 
 
 class DeleteOnboardeeInfo(BaseModel):
-    files: List[conint(ge=1, le=7)]
+    files: List[conint(ge=MIN_PHOTO_POSITION, le=MAX_PHOTO_POSITION)]
 
 
 class DeleteProfileInfo(BaseModel):
     files: Optional[
-            conlist(conint(ge=1, le=7), min_length=1, max_length=7)] = None
+        conlist(
+            conint(
+                ge=MIN_PHOTO_POSITION,
+                le=MAX_PHOTO_POSITION
+            ),
+            min_length=1,
+            max_length=MAX_PHOTO_POSITION,
+        )
+    ] = None
+
     audio_files: Optional[
-            conlist(conint(ge=-1, le=-1), min_length=1, max_length=1)] = None
+        conlist(conint(ge=-1, le=-1), min_length=1, max_length=1)] = None
 
 
 class PatchProfileInfo(BaseModel):
     base64_file: Optional[Base64File] = None
     base64_audio_file: Optional[Base64AudioFile] = None
+    photo_assignments: Optional[PhotoAssignments] = None
     name: Optional[constr(
         min_length=MIN_NAME_LEN,
         max_length=MAX_NAME_LEN,
