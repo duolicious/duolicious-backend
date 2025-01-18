@@ -8,6 +8,7 @@ from service.cron.util import (
 )
 import asyncio
 import boto3
+from botocore.config import Config
 import os
 import random
 import io
@@ -42,6 +43,10 @@ s3_client = boto3.client(
     endpoint_url=BOTO_ENDPOINT_URL,
     aws_access_key_id=R2_ACCESS_KEY_ID,
     aws_secret_access_key=R2_ACCESS_KEY_SECRET,
+    config=Config(
+        request_checksum_calculation='WHEN_REQUIRED',
+        response_checksum_validation='WHEN_REQUIRED',
+    ),
 )
 
 async def update_blurhashes(uuids: list[str]):

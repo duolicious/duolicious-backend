@@ -4,6 +4,7 @@ from botocore.exceptions import ClientError
 from service.cron.util.sql import *
 import asyncio
 import boto3
+from botocore.config import Config
 import io
 import os
 import traceback
@@ -53,6 +54,10 @@ async def delete_images_from_object_store(
         endpoint_url=BOTO_ENDPOINT_URL,
         aws_access_key_id=R2_ACCESS_KEY_ID,
         aws_secret_access_key=R2_ACCESS_KEY_SECRET,
+        config=Config(
+            request_checksum_calculation='WHEN_REQUIRED',
+            response_checksum_validation='WHEN_REQUIRED',
+        ),
     )
 
     for chunk in chunks:
