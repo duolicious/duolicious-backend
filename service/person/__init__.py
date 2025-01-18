@@ -1031,7 +1031,6 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         SELECT 1
         """
     elif field_name == 'photo_assignments':
-        # TODO: Tests
         case_sql = '\n'.join(
             f'WHEN position = {int(k)} THEN {int(v)}'
             for k, v in field_value.items()
