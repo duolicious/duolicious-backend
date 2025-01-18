@@ -116,6 +116,10 @@ async def delete_audio_from_object_store(
         endpoint_url=BOTO_ENDPOINT_URL,
         aws_access_key_id=R2_ACCESS_KEY_ID,
         aws_secret_access_key=R2_ACCESS_KEY_SECRET,
+        config=Config(
+            request_checksum_calculation='WHEN_REQUIRED',
+            response_checksum_validation='WHEN_REQUIRED',
+        ),
     )
 
     for chunk in chunks:
@@ -168,6 +172,10 @@ async def download_450_images(
         endpoint_url=BOTO_ENDPOINT_URL,
         aws_access_key_id=R2_ACCESS_KEY_ID,
         aws_secret_access_key=R2_ACCESS_KEY_SECRET,
+        config=Config(
+            request_checksum_calculation='WHEN_REQUIRED',
+            response_checksum_validation='WHEN_REQUIRED',
+        ),
     )
 
     def download_one(uuid):
