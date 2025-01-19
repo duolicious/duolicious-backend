@@ -9,6 +9,7 @@ import {
   isThisYear,
   isToday,
   subSeconds,
+  isYesterday,
 } from 'date-fns'
 import _ from 'lodash';
 
@@ -63,6 +64,18 @@ const longFriendlyTimestamp = (date: Date): string => {
   } else {
     return friendlyTimestamp(date) + ', ' + timeOfDay
   }
+};
+
+const friendlyDate = (date: Date): string => {
+  if (isToday(date)) {
+    return 'Today';
+  }
+  
+  if (isYesterday(date)) {
+    return 'Yesterday';
+  }
+  
+  return format(date, 'PPP'); // Makes it use the default locale
 };
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -137,6 +150,7 @@ export {
   delay,
   deleteFromArray,
   friendlyTimeAgo,
+  friendlyDate,
   friendlyTimestamp,
   isMobile,
   longFriendlyTimestamp,
