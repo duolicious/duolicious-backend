@@ -480,7 +480,11 @@ const removeImage = async (
 ) => {
   setIsImageLoading(fileNumber, true);
 
-  if (await input.photos.delete(String(fileNumber.value))) {
+  const result = await photoQueue.addTask(
+    async () => await input.photos.delete(String(fileNumber.value))
+  );
+
+  if (result) {
     notify<ImageUri>(EV_IMAGE_URI, { [fileNumber.value]: null });
 
     notify<VerificationEvent>(
@@ -996,6 +1000,24 @@ const Images = ({
 
   const relativeSlots = getRelativeSlots(slots, pageX, pageY);
 
+  const identityAssignment = useCallback(
+    debounce(
+      () => {
+        for (let i = 1; i <= 7; i++) {
+          notify<SlotAssignmentStart>(
+            EV_SLOT_ASSIGNMENT_START,
+            { from: i, to: i, pressed: null }
+          );
+        }
+
+        notify(EV_SLOT_ASSIGNMENT_FINISH);
+      },
+      500,
+      { maxWait: 500 },
+    ),
+    []
+  );
+
   const onSlotRequest = useCallback((data: SlotRequest | undefined) => {
     if (!data) {
       return;
@@ -1069,16 +1091,8 @@ const Images = ({
       setPageY(y);
     });
 
-
-    for (let i = 1; i <= 7; i++) {
-      notify<SlotAssignmentStart>(
-        EV_SLOT_ASSIGNMENT_START,
-        { from: i, to: i, pressed: null }
-      );
-    }
-
-    notify(EV_SLOT_ASSIGNMENT_FINISH);
-  }, [layoutChanged]);
+    identityAssignment();
+  }, [layoutChanged, identityAssignment]);
 
   return (
     <View
