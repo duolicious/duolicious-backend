@@ -447,15 +447,15 @@ const FinishOnboardingDescription = () => (
   <View style={{ gap: 15 }}>
     <DefaultText style={{ color: 'white' }}>
       You’re ready to go! But before we unleash you on the other members, let’s
-      recap our Guidelines. Do:
+      recap our <DefaultText
+        onPress={() => Linking.openURL('https://duolicious.app/guidelines/')}
+        style={{ fontWeight: '700' }}
+      >
+        Community Guidelines
+      </DefaultText>. Do:
     </DefaultText>
 
     <View style={styles.list}>
-      <View style={styles.row}>
-        <DefaultText style={styles.bullet}>✅</DefaultText>
-        <DefaultText style={styles.bulletText}>Respect others</DefaultText>
-      </View>
-
       <View style={styles.row}>
         <DefaultText style={styles.bullet}>✅</DefaultText>
         <DefaultText style={styles.bulletText}>Be 18 or older</DefaultText>
@@ -463,17 +463,17 @@ const FinishOnboardingDescription = () => (
 
       <View style={styles.row}>
         <DefaultText style={styles.bullet}>✅</DefaultText>
-        <DefaultText style={styles.bulletText}>
-          Frame our {}
+        <DefaultText style={styles.bulletText}>Respect others</DefaultText>
+      </View>
 
-          <DefaultText
-            onPress={() => Linking.openURL('https://duolicious.app/guidelines/')}
-            style={{ fontWeight: '700' }}
-          >
-            Community Guidelines
-          </DefaultText>
-          {} and hang them on your wall
-        </DefaultText>
+      <View style={styles.row}>
+        <DefaultText style={styles.bullet}>✅</DefaultText>
+        <DefaultText style={styles.bulletText}>Keep your profile safe for work</DefaultText>
+      </View>
+
+      <View style={styles.row}>
+        <DefaultText style={styles.bullet}>✅</DefaultText>
+        <DefaultText style={styles.bulletText}>Report anyone requesting money or gifts, or selling things</DefaultText>
       </View>
     </View>
 
@@ -485,21 +485,21 @@ const FinishOnboardingDescription = () => (
       <View style={styles.row}>
         <DefaultText style={styles.bullet}>❌</DefaultText>
         <DefaultText style={styles.bulletText}>
-          Be racist, sexist, or any -ist that makes people sad
+          Be racist, sexist, etc
         </DefaultText>
       </View>
 
       <View style={styles.row}>
         <DefaultText style={styles.bullet}>❌</DefaultText>
         <DefaultText style={styles.bulletText}>
-          Promote self-harm, or harm of others
+          Promote harm or self-harm
         </DefaultText>
       </View>
     </View>
 
     <DefaultText style={{ color: 'white' }}>
-      tl;dr – We want everyone to have fun. Now get in there and find a cute
-      date!
+      tl;dr – We want everyone to have a good time! Now get in there and find a
+      cute date!
     </DefaultText>
   </View>
 );
