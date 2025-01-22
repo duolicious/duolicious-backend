@@ -852,23 +852,22 @@ const Slot = ({
   round?: boolean
 }) => {
   const viewRef = useRef<View>(null);
-  const [layoutChanged, setLayoutChanged] = useState({});
-  const widthRef = useRef(0);
-  const heightRef = useRef(0);
+  const measurementRef = useRef([0, 0, 0, 0]);
 
   useEffect(() => {
     viewRef.current?.measureInWindow((x, y, width, height) => {
+      const newMeasurement = [x, y, width, height];
+
       if (width === 0 && height === 0) {
         // Measurement is inaccurate because the element is occluded
         return;
       }
 
-      if (widthRef.current === width && heightRef.current === height) {
+      if (_.isEqual(newMeasurement, measurementRef.current)) {
         // The measurement hasn't changed
         return;
       } else {
-        widthRef.current = width;
-        heightRef.current = height;
+        measurementRef.current = newMeasurement;
       }
 
       if (fileNumber === undefined) {
@@ -894,19 +893,18 @@ const Slot = ({
 
       notify<Slots>('slots', { [fileNumber]: slot });
     });
-  }, [layoutChanged, fileNumber]);
+  });
 
   return (
     <View
       ref={viewRef}
-      onLayout={() => setLayoutChanged({})}
       style={{
         borderRadius: round ? 999 : 5,
         backgroundColor: '#eee',
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'visible',
-        flex: 1,
+        width: '100%',
         aspectRatio: 1,
       }}
     >
@@ -914,8 +912,6 @@ const Slot = ({
     </View>
   );
 };
-
-const SlotMemo = memo(Slot);
 
 const FirstSlotRow = ({
   input,
@@ -939,7 +935,9 @@ const FirstSlotRow = ({
         paddingBottom: 20,
       }}
     >
-      <SlotMemo fileNumber={firstFileNumber + 0} round={true} />
+      <View style={{ flex: 1 }}>
+        <Slot fileNumber={firstFileNumber + 0} round={true} />
+      </View>
       <View
         style={{
           flex: 2,
@@ -975,9 +973,15 @@ const SlotRow = ({
         width: '100%',
       }}
     >
-      <SlotMemo fileNumber={firstFileNumber + 0} />
-      <SlotMemo fileNumber={firstFileNumber + 1} />
-      <SlotMemo fileNumber={firstFileNumber + 2} />
+      <View style={{ flex: 1 }}>
+        <Slot fileNumber={firstFileNumber + 0} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Slot fileNumber={firstFileNumber + 1} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Slot fileNumber={firstFileNumber + 2} />
+      </View>
     </View>
   );
 };
@@ -988,17 +992,18 @@ const Images = ({
   input: OptionGroupPhotos
 }) => {
   const viewRef = useRef<View>(null);
-  const [pageX, setPageX] = useState(0);
-  const [pageY, setPageY] = useState(0);
+  const [layoutChanged, setLayoutChanged] = useState({});
+  const [measurement, setMeasurement] = useState([0, 0, 0, 0]);
   const [images, setImages] = useState(
     lastEvent<Images>(EV_IMAGES) ?? {});
   const [slots, setSlots] = useState(
     lastEvent<Slots>(EV_SLOTS) ?? {});
-  const [layoutChanged, setLayoutChanged] = useState({});
   const widthRef = useRef(0);
   const heightRef = useRef(0);
 
-  const relativeSlots = getRelativeSlots(slots, pageX, pageY);
+  const [x, y] = measurement;
+
+  const relativeSlots = getRelativeSlots(slots, x, y);
 
   const identityAssignment = useCallback(
     debounce(
@@ -1074,25 +1079,25 @@ const Images = ({
 
   useEffect(() => {
     viewRef.current?.measureInWindow((x, y, width, height) => {
+      const newMeasurement = [x, y, width, height];
+
       if (width === 0 && height === 0) {
         // Measurement is inaccurate because the element is occluded
         return;
       }
 
-      if (widthRef.current === width && heightRef.current === height) {
-        // The measurement hasn't changed
+      if (_.isEqual(measurement, newMeasurement)) {
         return;
       } else {
-        widthRef.current = width;
-        heightRef.current = height;
+        setMeasurement(newMeasurement);
       }
 
-      setPageX(x);
-      setPageY(y);
     });
+  });
 
+  useEffect(() => {
     identityAssignment();
-  }, [layoutChanged, identityAssignment]);
+  }, [measurement, slots]);
 
   return (
     <View
@@ -1173,7 +1178,7 @@ const Loading = () => {
 export {
   Images,
   MoveableImage,
-  SlotMemo,
+  Slot,
   useIsImageLoading,
   useUri,
 };

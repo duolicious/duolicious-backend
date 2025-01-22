@@ -64,7 +64,7 @@ import {
 } from '../data/option-groups';
 import {
   MoveableImage,
-  SlotMemo,
+  Slot,
   useIsImageLoading,
   useUri,
 } from './images/images';
@@ -510,7 +510,7 @@ const Photos = forwardRef((props: InputProps<OptionGroupPhotos>, ref) => {
           alignSelf: 'center',
         }}
       >
-        <SlotMemo />
+        <Slot />
         <View
           style={{
             position: 'absolute',
