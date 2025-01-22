@@ -31,9 +31,8 @@ import
   Animated,
   {
     Easing,
-    SharedValue,
     runOnJS,
-    useAnimatedStyle,
+    SharedValue,
     useSharedValue,
     withTiming,
   } from 'react-native-reanimated';
@@ -59,7 +58,6 @@ const EV_IMAGE_URI = 'image-uri';
 const EV_SLOTS = 'slots';
 const EV_SLOT_ASSIGNMENT_FINISH = 'slot-assignment-finish';
 const EV_SLOT_ASSIGNMENT_START = 'slot-assignment-start';
-const EV_SLOT_IDENTITY_ASSIGNMENT = 'slot-identity-assignment';
 const EV_SLOT_REQUEST = 'slot-request';
 const EV_UPDATED_NAME = 'updated-name';
 const EV_UPDATED_VERIFICATION = 'updated-verification';
@@ -130,15 +128,6 @@ type HttpPostAssignments = {
   [k: number]: number
 };
 
-const merge = (old, extra) => {
-  const updated = { ...old, ...extra };
-  if (_.isEqual(old, updated)) {
-    return old;
-  } else {
-    return updated;
-  }
-};
-
 const getOccupancyMap = (images: Images): { [k: number]: boolean } => {
   return Object
     .entries(images)
@@ -183,13 +172,16 @@ const getRelativeSlot = (slot: Slot, pageX: number, pageY: number): Slot => {
 };
 
 const getRelativeSlots = (slots: Slots, pageX: number, pageY: number): Slots => {
-  const relativeSlots: Slots = {};
+  return Object
+    .entries(slots)
+    .reduce(
+      (acc, [fileNumber, slot]) => {
+        acc[Number(fileNumber)] = getRelativeSlot(slot, pageX, pageY);
 
-  for (const [fileNumber, slot] of Object.entries(slots)) {
-    relativeSlots[Number(fileNumber)] = getRelativeSlot(slot, pageX, pageY);
-  }
-
-  return relativeSlots;
+        return acc
+      },
+      {} as Slots
+    )
 };
 
 const setIsImageLoading = (
@@ -684,17 +676,6 @@ const MoveableImage = ({
       runOnJS(removeImageOnTap)();
     });
 
-  const onSlotIdentityAssignment = useCallback(
-    () => {
-      translateX.value = _slots.value[fileNumber.value].origin.x;
-      translateY.value = _slots.value[fileNumber.value].origin.y;
-      scale.value = 1;
-      resetZIndex();
-      borderRadius.value = getBorderRadius(fileNumber.value);
-    },
-    [getBorderRadius]
-  );
-
   const onSlotAssignmentStart = useCallback(
     (data: SlotAssignmentStart | undefined) => {
       if (!data) {
@@ -753,13 +734,6 @@ const MoveableImage = ({
   useImagePickerResult(input, fileNumber);
 
   useEffect(() => {
-    return listen(
-      EV_SLOT_IDENTITY_ASSIGNMENT,
-      onSlotIdentityAssignment
-    );
-  }, [onSlotIdentityAssignment]);
-
-  useEffect(() => {
     return listen<SlotAssignmentStart>(
       EV_SLOT_ASSIGNMENT_START,
       onSlotAssignmentStart
@@ -777,13 +751,9 @@ const MoveableImage = ({
     notify<Images>(EV_IMAGES, { [fileNumber.value]: { exists: Boolean(uri) } });
   }, [uri]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     borderRadius.value = getBorderRadius(fileNumber.value);
   }, [getBorderRadius]);
-
-  const borderRadiusStyle = useAnimatedStyle(() => ({
-    borderRadius: borderRadius.value,
-  }));
 
   return (
     <GestureDetector gesture={composedGesture}>
@@ -809,8 +779,9 @@ const MoveableImage = ({
               height: '100%',
               width: '100%',
               overflow: 'hidden',
+              borderRadius: borderRadius.value,
             },
-            borderRadiusStyle,
+            { borderRadius },
           ]}
         >
           {uri &&
@@ -881,23 +852,23 @@ const Slot = ({
   round?: boolean
 }) => {
   const viewRef = useRef<View>(null);
-  const measurementRef = useRef([0, 0, 0, 0]);
+  const [layoutChanged, setLayoutChanged] = useState({});
+  const widthRef = useRef(0);
+  const heightRef = useRef(0);
 
-  useLayoutEffect(() => {
-    viewRef.current?.measureInWindow((...measurement) => {
-      const [x, y, width, height] = measurement;
-      const [oldX, oldY, oldWidth, oldHeight] = measurementRef.current;
-
+  useEffect(() => {
+    viewRef.current?.measureInWindow((x, y, width, height) => {
       if (width === 0 && height === 0) {
         // Measurement is inaccurate because the element is occluded
         return;
       }
 
-      if (_.isEqual(measurement, measurementRef.current)) {
+      if (widthRef.current === width && heightRef.current === height) {
         // The measurement hasn't changed
         return;
       } else {
-        measurementRef.current = measurement;
+        widthRef.current = width;
+        heightRef.current = height;
       }
 
       if (fileNumber === undefined) {
@@ -923,18 +894,19 @@ const Slot = ({
 
       notify<Slots>('slots', { [fileNumber]: slot });
     });
-  });
+  }, [layoutChanged, fileNumber]);
 
   return (
     <View
       ref={viewRef}
+      onLayout={() => setLayoutChanged({})}
       style={{
         borderRadius: round ? 999 : 5,
         backgroundColor: '#eee',
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'visible',
-        width: '100%',
+        flex: 1,
         aspectRatio: 1,
       }}
     >
@@ -942,6 +914,8 @@ const Slot = ({
     </View>
   );
 };
+
+const SlotMemo = memo(Slot);
 
 const FirstSlotRow = ({
   input,
@@ -965,9 +939,7 @@ const FirstSlotRow = ({
         paddingBottom: 20,
       }}
     >
-      <View style={{ flex: 1 }}>
-        <Slot fileNumber={firstFileNumber + 0} round={true} />
-      </View>
+      <SlotMemo fileNumber={firstFileNumber + 0} round={true} />
       <View
         style={{
           flex: 2,
@@ -1003,15 +975,9 @@ const SlotRow = ({
         width: '100%',
       }}
     >
-      <View style={{ flex: 1 }}>
-        <Slot fileNumber={firstFileNumber + 0} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Slot fileNumber={firstFileNumber + 1} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Slot fileNumber={firstFileNumber + 2} />
-      </View>
+      <SlotMemo fileNumber={firstFileNumber + 0} />
+      <SlotMemo fileNumber={firstFileNumber + 1} />
+      <SlotMemo fileNumber={firstFileNumber + 2} />
     </View>
   );
 };
@@ -1022,20 +988,30 @@ const Images = ({
   input: OptionGroupPhotos
 }) => {
   const viewRef = useRef<View>(null);
-  const [measurement, setMeasurement] = useState([0, 0, 0, 0]);
+  const [pageX, setPageX] = useState(0);
+  const [pageY, setPageY] = useState(0);
   const [images, setImages] = useState(
     lastEvent<Images>(EV_IMAGES) ?? {});
   const [slots, setSlots] = useState(
     lastEvent<Slots>(EV_SLOTS) ?? {});
   const [layoutChanged, setLayoutChanged] = useState({});
+  const widthRef = useRef(0);
+  const heightRef = useRef(0);
 
-  const [x, y, width, height] = measurement;
-
-  const relativeSlots = getRelativeSlots(slots, x, y);
+  const relativeSlots = getRelativeSlots(slots, pageX, pageY);
 
   const identityAssignment = useCallback(
     debounce(
-      () => notify(EV_SLOT_IDENTITY_ASSIGNMENT),
+      () => {
+        for (let i = 1; i <= 7; i++) {
+          notify<SlotAssignmentStart>(
+            EV_SLOT_ASSIGNMENT_START,
+            { from: i, to: i, pressed: null }
+          );
+        }
+
+        notify(EV_SLOT_ASSIGNMENT_FINISH);
+      },
       500,
       { maxWait: 500 },
     ),
@@ -1077,11 +1053,11 @@ const Images = ({
   }, [images]);
 
   const onSlots = useCallback((data: Slots | undefined) => {
-    setSlots((old) => merge(old, data));
+    setSlots((old) => ({ ...old, ...data }))
   }, []);
 
   const onImages = useCallback((data: Images | undefined) => {
-    setImages((old) => merge(old, data));
+    setImages((old) => ({ ...old, ...data }))
   }, []);
 
   useEffect(
@@ -1097,21 +1073,22 @@ const Images = ({
     [onImages]);
 
   useEffect(() => {
-    viewRef.current?.measureInWindow((...newMeasurement) => {
-      const [oldX, oldY, oldWidth, oldHeight] = measurement;
-      const [x, y, width, height] = newMeasurement;
+    viewRef.current?.measureInWindow((x, y, width, height) => {
       if (width === 0 && height === 0) {
         // Measurement is inaccurate because the element is occluded
         return;
       }
 
-      if (_.isEqual(measurement, newMeasurement)) {
+      if (widthRef.current === width && heightRef.current === height) {
         // The measurement hasn't changed
         return;
       } else {
-        setMeasurement(newMeasurement);
+        widthRef.current = width;
+        heightRef.current = height;
       }
 
+      setPageX(x);
+      setPageY(y);
     });
 
     identityAssignment();
@@ -1196,7 +1173,7 @@ const Loading = () => {
 export {
   Images,
   MoveableImage,
-  Slot,
+  SlotMemo,
   useIsImageLoading,
   useUri,
 };
