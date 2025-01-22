@@ -128,6 +128,15 @@ type HttpPostAssignments = {
   [k: number]: number
 };
 
+const merge = (old, extra) => {
+  const updated = { ...old, ...extra };
+  if (_.isEqual(old, updated)) {
+    return old;
+  } else {
+    return updated;
+  }
+};
+
 const getOccupancyMap = (images: Images): { [k: number]: boolean } => {
   return Object
     .entries(images)
@@ -1061,11 +1070,11 @@ const Images = ({
   }, [images]);
 
   const onSlots = useCallback((data: Slots | undefined) => {
-    setSlots((old) => ({ ...old, ...data }))
+    setSlots((old) => merge(old, data));
   }, []);
 
   const onImages = useCallback((data: Images | undefined) => {
-    setImages((old) => ({ ...old, ...data }))
+    setImages((old) => merge(old, data));
   }, []);
 
   useEffect(
