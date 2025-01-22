@@ -31,8 +31,9 @@ import
   Animated,
   {
     Easing,
-    runOnJS,
     SharedValue,
+    runOnJS,
+    useAnimatedStyle,
     useSharedValue,
     withTiming,
   } from 'react-native-reanimated';
@@ -755,6 +756,10 @@ const MoveableImage = ({
     borderRadius.value = getBorderRadius(fileNumber.value);
   }, [getBorderRadius]);
 
+  const borderRadiusStyle = useAnimatedStyle(() => ({
+    borderRadius: borderRadius.value,
+  }));
+
   return (
     <GestureDetector gesture={composedGesture}>
       <Animated.View
@@ -779,9 +784,8 @@ const MoveableImage = ({
               height: '100%',
               width: '100%',
               overflow: 'hidden',
-              borderRadius: borderRadius.value,
             },
-            { borderRadius },
+            borderRadiusStyle,
           ]}
         >
           {uri &&
