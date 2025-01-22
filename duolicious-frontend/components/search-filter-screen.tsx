@@ -40,7 +40,6 @@ import { api, japi } from '../api/api';
 import * as _ from "lodash";
 import { signedInUser } from '../App';
 import { cmToFeetInchesStr, kmToMilesStr } from '../units/units';
-import debounce from 'lodash/debounce';
 import { Notice } from './notice';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { QAndADevice } from './q-and-a-device';
@@ -425,7 +424,7 @@ const QandQFilterScreen = ({navigation, route}) => {
 
   const clearSearchText = useCallback(() => setSearchText(""), []);
 
-  const _fetchQuestionSearch = useCallback(debounce(async (q: string) => {
+  const _fetchQuestionSearch = useCallback(_.debounce(async (q: string) => {
     const results = await fetchQuestionSearch(q);
 
     setSearchResults(results);

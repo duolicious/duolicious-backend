@@ -21,7 +21,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultTextInput } from './default-text-input';
 import { api, japi } from '../api/api';
 import * as _ from "lodash";
-import debounce from 'lodash/debounce';
 import { Basic } from './basic';
 import { listen, lastEvent  } from '../events/events';
 import { ClubItem, joinClub, leaveClub, CLUB_QUOTA } from '../club/club';
@@ -155,7 +154,7 @@ const ClubSelector = ({navigation}) => {
 
   const clearSearchText = useCallback(() => setSearchText(""), []);
 
-  const _fetchClubItems = useCallback(debounce(async (q: string) => {
+  const _fetchClubItems = useCallback(_.debounce(async (q: string) => {
     const results = await fetchClubItems(q);
 
     setSearchResults(results);

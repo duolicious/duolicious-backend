@@ -51,7 +51,6 @@ import {
   IMAGES_URL,
 } from '../env/env';
 import * as _ from "lodash";
-import debounce from 'lodash/debounce';
 import { aboutQueue, nameQueue } from '../api/queue';
 import { ClubSelector } from './club-selector';
 import { ClubItem } from '../club/club';
@@ -302,12 +301,12 @@ const DisplayNameAndAboutPerson = ({navigation, data}) => {
     };
 
   const debouncedOnChangeNameText = useCallback(
-    debounce(enqueueName, 1000),
+    _.debounce(enqueueName, 1000),
     []
   );
 
   const debouncedOnChangeAboutText = useCallback(
-    debounce(enqueueAbout, 1000),
+    _.debounce(enqueueAbout, 1000),
     []
   );
 

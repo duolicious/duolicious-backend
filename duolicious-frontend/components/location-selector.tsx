@@ -10,10 +10,10 @@ import {
   ScrollView,
   View,
 } from 'react-native';
-import debounce from 'lodash/debounce';
 import { DefaultText } from './default-text';
 import { DefaultTextInput } from './default-text-input';
 import { japi } from '../api/api';
+import * as _ from "lodash";
 
 const LocationSelector = ({onChangeText, ...rest}) => {
   const [loading, setLoading] = useState(false);
@@ -21,7 +21,7 @@ const LocationSelector = ({onChangeText, ...rest}) => {
   const [text, setText] = useState(rest.currentValue ?? "");
   const [displayResults, setDisplayResults] = useState(false);
 
-  const getSuggestions = useCallback(debounce(async (q: string) => {
+  const getSuggestions = useCallback(_.debounce(async (q: string) => {
     let json;
     try {
       const response = await japi(

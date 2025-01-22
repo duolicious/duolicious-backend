@@ -44,7 +44,6 @@ import {
 import {
   OptionGroupPhotos,
 } from '../../data/option-groups';
-import debounce from 'lodash/debounce';
 import { remap } from './logic';
 import { photoQueue } from '../../api/queue';
 import { japi } from '../../api/api';
@@ -622,7 +621,7 @@ const MoveableImage = ({
   };
 
   const requestNearestSlotOnChange =
-    debounce(
+    _.debounce(
       () => requestNearestSlot(fileNumber.value),
       500,
       { maxWait: 500 },
@@ -1010,7 +1009,7 @@ const Images = ({
   const relativeSlots = getRelativeSlots(slots, x, y);
 
   const identityAssignment = useCallback(
-    debounce(
+    _.debounce(
       () => {
         for (let i = 1; i <= 7; i++) {
           notify<SlotAssignmentStart>(
