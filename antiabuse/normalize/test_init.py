@@ -34,6 +34,18 @@ class TestNormalizeString(unittest.TestCase):
 
         self.assertEqual(normalize_string("niga"), "nigga")
 
+        self.assertEqual(normalize_string("wh0r3$"), "whores")
+
+        self.assertEqual(normalize_string("fo0tj0b$"), "footjobs")
+
+        self.assertEqual(normalize_string("fo0tj0b"), "footjob")
+
+        self.assertEqual(normalize_string("tr00nz"), "troons")
+
+        self.assertEqual(normalize_string("r4p3d"), "raped")
+
+        self.assertEqual(normalize_string("b4ck sh0tz"), "backshots")
+
 
 if __name__ == '__main__':
     unittest.main()

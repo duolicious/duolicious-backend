@@ -4,6 +4,7 @@ import re
 
 _strings = [
     "1488",
+    "beaner",
     "cervix",
     "chink",
     "chinks",
@@ -44,6 +45,8 @@ _strings = [
     "nigger",
     "niggerlicious",
     "niggers",
+    "niglet",
+    "pajeet",
     "rape",
     "rapeable",
     "rapebait"
