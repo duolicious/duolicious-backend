@@ -7,13 +7,13 @@ The backend of the world's most popular open-source dating app.</p>
 
 <p align="center">
 <a href="https://github.com/duolicious/duolicious-backend/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/duolicious/duolicious-backend/.github%2Fworkflows%2Ftest.yml?label=Tests" alt="Build status"/></a>
-<a href="https://discord.gg/cxrgbPT5Ua"><img src="https://img.shields.io/discord/1199343412609040384?logo=discord&logoColor=white&label=Discord" alt="Number of users active in our Discord server"/></a>
 <a href="https://duolicious.app/"><img src="https://img.shields.io/badge/Based-True--love_pilled-7700ff" alt="Based and true-love pilled"/></a>
 </p>
 
 <p align="center">
 <a href="https://x.com/duoliciousapp"><img src="https://img.shields.io/twitter/follow/duoliciousapp" alt="Duolicious Twitter"/></a>
 <a href="https://www.reddit.com/r/duolicious/"><img src="https://img.shields.io/reddit/subreddit-subscribers/duolicious" alt="Duolicious Reddit"/></a>
+<a href="https://discord.gg/cxrgbPT5Ua"><img src="https://img.shields.io/discord/1199343412609040384?logo=discord&logoColor=white&label=Discord" alt="Number of users active in our Discord server"/></a>
 </p>
 
 ## Screenshots
