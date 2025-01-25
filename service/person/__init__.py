@@ -781,6 +781,15 @@ def post_unskip(s: t.SessionInfo, prospect_person_id: int):
     with api_tx() as tx:
         tx.execute(Q_DELETE_SKIPPED, params)
 
+def post_unskip_by_uuid(s: t.SessionInfo, prospect_uuid: str):
+    params = dict(
+        subject_person_id=s.person_id,
+        prospect_uuid=prospect_uuid,
+    )
+
+    with api_tx() as tx:
+        tx.execute(Q_DELETE_SKIPPED_BY_UUID, params)
+
 def get_compare_personalities(
     s: t.SessionInfo,
     prospect_person_id: int,

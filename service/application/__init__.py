@@ -280,7 +280,7 @@ def get_prospect_profile(s: t.SessionInfo, prospect_uuid: int):
 @apost('/skip/by-uuid/<prospect_uuid>')
 @validate(t.PostSkip)
 def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: int):
-    limit = "1 per 30 seconds"
+    limit = "1 per 5 seconds; 30 per day"
     scope = "report"
 
     if req.report_reason:
@@ -299,9 +299,14 @@ def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: int):
     else:
         return person.post_skip_by_uuid(req, s, prospect_uuid)
 
+# TODO: Delete
 @apost('/unskip/<int:prospect_person_id>')
 def post_unskip(s: t.SessionInfo, prospect_person_id: int):
     return person.post_unskip(s, prospect_person_id)
+
+@apost('/unskip/by-uuid/<prospect_uuid>')
+def post_unskip_by_uuid(s: t.SessionInfo, prospect_uuid: str):
+    return person.post_unskip_by_uuid(s, prospect_uuid)
 
 @aget(
     '/compare-personalities'
