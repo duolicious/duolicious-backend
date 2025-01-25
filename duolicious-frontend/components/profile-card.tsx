@@ -147,7 +147,6 @@ const ProfileCard = ({
     match_percentage: matchPercentage,
     profile_photo_uuid: imageUuid,
     profile_photo_blurhash: imageBlurhash,
-    prospect_person_id: personId,
     prospect_uuid: personUuid,
     person_messaged_prospect: personMessagedProspect,
     prospect_messaged_person: prospectMessagedPerson,
@@ -180,7 +179,7 @@ const ProfileCard = ({
         'Prospect Profile Screen',
         {
           screen: 'Prospect Profile',
-          params: { personId, personUuid, imageBlurhash },
+          params: { personUuid, imageBlurhash },
         }
       );
     }
@@ -206,23 +205,23 @@ const ProfileCard = ({
   );
 
   useEffect(
-    () => listen(`skip-profile-${personId}`, onHide),
-    [personId, onHide]
+    () => listen(`skip-profile-${personUuid}`, onHide),
+    [personUuid, onHide]
   );
 
   useEffect(
-    () => listen(`unskip-profile-${personId}`, onUnhide),
-    [personId, onUnhide]
+    () => listen(`unskip-profile-${personUuid}`, onUnhide),
+    [personUuid, onUnhide]
   );
 
   useEffect(
-    () => listen(`message-from-${personId}`, onMessageFrom),
-    [personId, onMessageFrom]
+    () => listen(`message-from-${personUuid}`, onMessageFrom),
+    [personUuid, onMessageFrom]
   );
 
   useEffect(
-    () => listen(`message-to-${personId}`, onMessageTo),
-    [personId, onMessageTo]
+    () => listen(`message-to-${personUuid}`, onMessageTo),
+    [personUuid, onMessageTo]
   );
 
   return (

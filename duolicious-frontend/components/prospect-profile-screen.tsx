@@ -117,7 +117,7 @@ const EnlargeableImage = ({
   style,
   innerStyle,
   isPrimary,
-  verified = false,
+  isVerified = false,
 }: {
   imageUuid: string | undefined | null,
   imageExtraExts?: string[] | undefined | null,
@@ -126,7 +126,7 @@ const EnlargeableImage = ({
   style?: any,
   innerStyle?: any,
   isPrimary: boolean,
-  verified?: boolean,
+  isVerified?: boolean,
 }) => {
   if (imageUuid === undefined && !isPrimary) {
     return <></>;
@@ -152,7 +152,7 @@ const EnlargeableImage = ({
         showGradient={false}
         style={innerStyle}
       />
-      {verified &&
+      {isVerified &&
         <VerificationBadge
           style={{
             position: 'absolute',
@@ -288,23 +288,23 @@ const FloatingSkipButton = ({navigation, personId, personUuid, isSkipped}) => {
   }, [isSkipped]);
 
   useEffect(() => {
-    return listen(`unskip-profile-${personId}`, () => setIsSkippedState(false));
-  }, [personId]);
+    return listen(`unskip-profile-${personUuid}`, () => setIsSkippedState(false));
+  }, [personUuid]);
 
   useEffect(() => {
-    return listen(`skip-profile-${personId}`, () => setIsSkippedState(true));
-  }, [personId]);
+    return listen(`skip-profile-${personUuid}`, () => setIsSkippedState(true));
+  }, [personUuid]);
 
   const onPress = useCallback(async () => {
-    if (personId === undefined) return;
+    if (personUuid === undefined) return;
 
     const nextIsSkippedState = !isSkippedState;
 
     setIsLoading(true);
-    if (await setSkipped(personId, personUuid, nextIsSkippedState)) {
+    if (await setSkipped(personUuid, nextIsSkippedState)) {
       setIsLoading(false);
     }
-  }, [isLoading, isSkippedState, personId, personUuid]);
+  }, [isLoading, isSkippedState, personUuid]);
 
   return (
     <FloatingProfileInteractionButton
@@ -415,7 +415,7 @@ const SeeQAndAButton = ({navigation, personId, name}) => {
   );
 };
 
-const BlockButton = ({navigation, name, personId, personUuid, isSkipped}) => {
+const BlockButton = ({navigation, name, personUuid, isSkipped}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSkippedState, setIsSkippedState] = useState(false);
 
@@ -424,25 +424,24 @@ const BlockButton = ({navigation, name, personId, personUuid, isSkipped}) => {
   }, [isSkipped]);
 
   useEffect(() => {
-    return listen(`unskip-profile-${personId}`, () => setIsSkippedState(false));
-  }, []);
+    return listen(`unskip-profile-${personUuid}`, () => setIsSkippedState(false));
+  }, [personUuid]);
 
   const onPress = useCallback(async () => {
     if (isSkippedState) {
       setIsLoading(true);
-      if (await setSkipped(personId, personUuid, false)) {
+      if (await setSkipped(personUuid, false)) {
         setIsLoading(false);
       }
     } else {
       const data: ReportModalInitialData = {
         name,
-        personId,
         personUuid,
         context: 'Prospect Profile Screen',
       };
       notify('open-report-modal', data);
     }
-  }, [notify, name, personId, isSkippedState]);
+  }, [notify, name, personUuid, isSkippedState]);
 
   const text = isSkippedState ?
     `You have skipped ${name}. Press to unskip.` :
@@ -678,6 +677,27 @@ type UserData = {
   gives_reply_percentage: number | null,
 };
 
+const verificationLevelId = (data: UserData | null | undefined): 1 | 2 | 3 => {
+  // This should be provided by the backend instead
+
+  if (!data) {
+    return 1;
+  }
+
+  const hasVerifiedBasics = data.verified_gender && data.verified_age;
+  const hasVerififiedPhotos = data.photo_verifications.some(Boolean);
+
+  if (hasVerifiedBasics && hasVerififiedPhotos) {
+    return 3;
+  }
+
+  if (hasVerifiedBasics) {
+    return 2;
+  }
+
+  return 1;
+};
+
 const verifiedAnything = (data: UserData | null | undefined): boolean => {
   if (!data) {
     return false;
@@ -729,8 +749,8 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
   }, [personUuid]);
 
   useEffect(() =>
-    listen(`skip-profile-${personId}`, () => navigation.popToTop()),
-    [personId, navigation]
+    listen(`skip-profile-${personUuid}`, () => navigation.popToTop()),
+    [personUuid, navigation]
   );
 
   const imageUuid = data === undefined ?
@@ -806,14 +826,14 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
               imageBlurhash={imageBlurhash0}
               onChangeEmbiggened={goToGallery(navigation, imageUuid0)}
               isPrimary={true}
-              verified={imageVerification0}
+              isVerified={imageVerification0}
             />
             <ProspectUserDetails
               navigation={navigation}
               personId={personId}
               name={data?.name}
               age={data?.age}
-              verified={verifiedAnything(data)}
+              verified={verificationLevelId(data) > 1}
               matchPercentage={data?.match_percentage}
               userLocation={data?.location}
               textColor={data?.theme?.title_color}
@@ -1299,7 +1319,7 @@ const Body = ({
           style={styles.secondaryEnlargeableImage}
           innerStyle={styles.secondaryEnlargeableImageInner}
           isPrimary={false}
-          verified={imageVerification1}
+          isVerified={imageVerification1}
         />
 
         {!data?.name &&
@@ -1322,7 +1342,7 @@ const Body = ({
           style={styles.secondaryEnlargeableImage}
           innerStyle={styles.secondaryEnlargeableImageInner}
           isPrimary={false}
-          verified={imageVerification2}
+          isVerified={imageVerification2}
         />
 
         <EnlargeableImage
@@ -1333,7 +1353,7 @@ const Body = ({
           style={styles.secondaryEnlargeableImage}
           innerStyle={styles.secondaryEnlargeableImageInner}
           isPrimary={false}
-          verified={imageVerification3}
+          isVerified={imageVerification3}
         />
 
         <AllClubs
@@ -1352,7 +1372,7 @@ const Body = ({
           style={styles.secondaryEnlargeableImage}
           innerStyle={styles.secondaryEnlargeableImageInner}
           isPrimary={false}
-          verified={imageVerification4}
+          isVerified={imageVerification4}
         />
 
         <EnlargeableImage
@@ -1363,7 +1383,7 @@ const Body = ({
           style={styles.secondaryEnlargeableImage}
           innerStyle={styles.secondaryEnlargeableImageInner}
           isPrimary={false}
-          verified={imageVerification5}
+          isVerified={imageVerification5}
         />
 
         <EnlargeableImage
@@ -1374,7 +1394,7 @@ const Body = ({
           style={styles.secondaryEnlargeableImage}
           innerStyle={styles.secondaryEnlargeableImageInner}
           isPrimary={false}
-          verified={imageVerification6}
+          isVerified={imageVerification6}
         />
 
         {hasAnyStats(data) && <>
@@ -1453,7 +1473,6 @@ const Body = ({
           <BlockButton
             navigation={navigation}
             name={data?.name}
-            personId={personId}
             personUuid={personUuid}
             isSkipped={data?.is_skipped}
           />}

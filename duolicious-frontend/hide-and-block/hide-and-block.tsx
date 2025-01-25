@@ -3,7 +3,6 @@ import { notify } from '../events/events';
 import { setConversationArchived } from '../xmpp/xmpp';
 
 const setSkipped = async (
-  personId: number,
   personUuid: string,
   isSkipped: boolean,
   reportReason?: string,
@@ -11,7 +10,7 @@ const setSkipped = async (
   const endpoint = (
     isSkipped ?
     `/skip/by-uuid/${personUuid}` :
-    `/unskip/${personId}`);
+    `/unskip/by-uuid/${personUuid}`);
 
   const payload =
     (isSkipped && reportReason) ?
@@ -20,19 +19,19 @@ const setSkipped = async (
 
   const response = await japi('post', endpoint, payload);
 
-  if (response.ok) {
-    notify(
-      isSkipped ?
-      `skip-profile-${personId}` :
-      `unskip-profile-${personId}`
-    );
-
-    setConversationArchived(personUuid, isSkipped);
-
-    return true;
+  if (!response.ok) {
+    return false;
   }
 
-  return false;
+  notify(
+    isSkipped ?
+    `skip-profile-${personUuid}` :
+    `unskip-profile-${personUuid}`
+  );
+
+  setConversationArchived(personUuid, isSkipped);
+
+  return true;
 };
 
 export {

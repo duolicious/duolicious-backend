@@ -373,16 +373,13 @@ const Prospect = ({
 }) => {
   const [isSkipped, setIsSkipped] = useState(false);
 
-  const onHide = useCallback(() => setIsSkipped(true), [setIsSkipped]);
-  const onUnhide = useCallback(() => setIsSkipped(false), [setIsSkipped]);
+  useEffect(() =>
+    listen(`skip-profile-${personUuid}`, () => setIsSkipped(true)),
+    [personUuid]);
 
   useEffect(() =>
-    listen(`skip-profile-${personId}`, onHide),
-    [personId, onHide]);
-
-  useEffect(() =>
-    listen(`unskip-profile-${personId}`, onUnhide),
-    [personId, onUnhide]);
+    listen(`unskip-profile-${personUuid}`, () => setIsSkipped(false)),
+    [personUuid]);
 
   return <Animated.View
     style={{

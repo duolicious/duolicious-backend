@@ -99,12 +99,12 @@ const IntrosItem = ({
   // TODO: If the conversation is archived but there's no mounted component,
   // this won't trigger
   useEffect(() => {
-    return listen(`unskip-profile-${personId}`, () => setConversationArchived(personUuid, false));
-  }, [personId]);
+    return listen(`unskip-profile-${personUuid}`, () => setConversationArchived(personUuid, false));
+  }, [personUuid]);
 
   useEffect(() => {
-    return listen(`skip-profile-${personId}`, () => setConversationArchived(personUuid, true));
-  }, [personId]);
+    return listen(`skip-profile-${personUuid}`, () => setConversationArchived(personUuid, true));
+  }, [personUuid]);
 
   return (
     <Pressable
@@ -233,16 +233,6 @@ const ChatsItem = ({
     'Conversation Screen',
     { personId, personUuid, name, imageUuid, imageBlurhash, isAvailableUser }
   ), [personId, personUuid, name, imageUuid, imageBlurhash, isAvailableUser]);
-
-  // TODO: If the conversation is archived but there's no mounted component,
-  // this won't trigger
-  useEffect(() => {
-    return listen(`unskip-profile-${personId}`, () => setConversationArchived(personUuid, false));
-  }, [personId]);
-
-  useEffect(() => {
-    return listen(`skip-profile-${personId}`, () => setConversationArchived(personUuid, true));
-  }, [personId]);
 
   return (
     <Pressable

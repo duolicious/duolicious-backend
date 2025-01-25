@@ -401,8 +401,6 @@ const setInboxRecieved = async (
     Object.assign(introsConversation, updatedConversation);
   }
 
-  notify(`message-to-${fromPersonUuid}`);
-
   notify<Inbox>('inbox', {...inbox});
 };
 
@@ -699,7 +697,7 @@ const conversationsToInbox = (conversations: Conversation[]): Inbox => {
   return inbox;
 };
 
-const setConversationArchived = (personUuid: string, isArchived: boolean) => {
+const setConversationArchived = (personUuid: string, isSkipped: boolean) => {
   const inbox = getInbox();
 
   if (!inbox) {
@@ -708,11 +706,20 @@ const setConversationArchived = (personUuid: string, isArchived: boolean) => {
 
   const conversationToUpdate = (
     inbox.chats .conversationsMap[personUuid] ??
-    inbox.intros.conversationsMap[personUuid]) as Conversation | undefined;
+    inbox.intros.conversationsMap[personUuid] ??
+    inbox.archive.conversationsMap[personUuid]
+  ) as Conversation | undefined;
 
-  if (conversationToUpdate) {
-    conversationToUpdate.location = 'archive';
+  if (!conversationToUpdate) {
+    return;
   }
+
+  if (!isSkipped) {
+    refreshInbox();
+    return;
+  }
+
+  conversationToUpdate.location = 'archive';
 
   const inbox_ = conversationsToInbox([
     ...inbox.chats.conversations,
@@ -753,9 +760,11 @@ const onReceiveMessage = (
     if (stamp === null) return;
     if (bodyText === null) return;
 
+    const bareFrom = jidToBareJid(from.toString())
+
     if (
       otherPersonUuid !== undefined &&
-      otherPersonUuid !== jidToBareJid(from.toString())
+      otherPersonUuid !== bareFrom
     ) return;
 
     const message: Message = {
@@ -764,13 +773,18 @@ const onReceiveMessage = (
       to: to.toString(),
       id: id.toString(),
       timestamp: stamp.toString() ? new Date(stamp.toString()) : new Date(),
-      fromCurrentUser: jidToBareJid(from.toString()) == signedInUser?.personUuid,
+      fromCurrentUser: bareFrom == signedInUser?.personUuid,
     };
 
     await setInboxRecieved(
-      jidToBareJid(from.toString()),
+      bareFrom,
       bodyText.toString(),
     );
+
+    if (otherPersonUuid === undefined) {
+      notify(`message-from-${bareFrom}`);
+    }
+
     if (otherPersonUuid !== undefined && doMarkDisplayed !== false) {
       await markDisplayed(message);
     }

@@ -34,7 +34,6 @@ import {
   fetchConversation,
   markDisplayed,
   onReceiveMessage,
-  refreshInbox,
   sendMessage,
 } from '../xmpp/xmpp';
 import {
@@ -91,14 +90,12 @@ const Menu = ({navigation, name, personId, personUuid, closeFn}) => {
 
     setIsUpdating(true);
     const nextHiddenState = !isSkipped;
-    if (await setSkipped(personId, personUuid, nextHiddenState)) {
+    if (await setSkipped(personUuid, nextHiddenState)) {
       setIsSkipped(nextHiddenState);
       setIsUpdating(false);
       closeFn();
       if (nextHiddenState) {
         navigation.popToTop();
-      } else {
-        refreshInbox();
       }
     }
   }, [navigation, personId, isSkipped, closeFn]);
@@ -108,7 +105,6 @@ const Menu = ({navigation, name, personId, personUuid, closeFn}) => {
 
     const data: ReportModalInitialData = {
       name,
-      personId,
       personUuid,
       context: 'Conversation Screen'
     };
@@ -478,10 +474,10 @@ const ConversationScreen = ({navigation, route}) => {
   }, [lastMessage]);
 
   useEffect(() => {
-    return listen(`skip-profile-${personId}`, () => {
+    return listen(`skip-profile-${personUuid}`, () => {
       navigation.popToTop();
     });
-  }, [navigation, personId]);
+  }, [navigation, personUuid]);
 
   // Fetch the first page of messages when the conversation is first opened
   // while online

@@ -21,14 +21,12 @@ import { KeyboardDismissingView } from './keyboard-dismissing-view';
 
 type ReportModalInitialData = {
   name: string
-  personId: number
   personUuid: string
   context: string
 };
 
 const ReportModal = () => {
   const [name, setName] = useState("");
-  const [personId, setPersonId] = useState(-1);
   const [personUuid, setPersonUuid] = useState('');
   const [context, setContext] = useState("");
   const [reportText, setReportText] = useState("");
@@ -62,7 +60,7 @@ const ReportModal = () => {
 
     setIsLoading(true);
     const completeReportText = `${context.slice(0, 7999)}\n${reportText}`;
-    if (await setSkipped(personId, personUuid, true, completeReportText)) {
+    if (await setSkipped(personUuid, true, completeReportText)) {
       setIsVisible(false);
     } else {
       setIsSomethingWrong(true);
@@ -71,7 +69,6 @@ const ReportModal = () => {
   }, [
     context,
     numChars,
-    personId,
     reportText,
     setIsLoading,
     setIsTooFewChars,
@@ -81,11 +78,9 @@ const ReportModal = () => {
 
   const openReportModal = useCallback((data: ReportModalInitialData) => {
     if (!data.name) return;
-    if (!data.personId) return;
     if (!data.context) return;
 
     setName(data.name);
-    setPersonId(data.personId);
     setPersonUuid(data.personUuid);
     setContext(data.context);
     setReportText("");
@@ -185,6 +180,8 @@ const ReportModal = () => {
               onChangeText={onChangeReportText}
               numberOfLines={6}
               style={{
+                backgroundColor: '#eee',
+                borderWidth: 0,
                 height: 200,
               }}
             />
