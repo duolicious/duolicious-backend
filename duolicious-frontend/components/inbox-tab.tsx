@@ -29,6 +29,7 @@ import { signedInUser } from '../App';
 import { Notice } from './notice';
 import { listen, lastEvent } from '../events/events';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
+import * as _ from "lodash";
 
 
 const Stack = createNativeStackNavigator();
@@ -104,7 +105,15 @@ const InboxTab = ({navigation}) => {
   useEffect(() => {
     return listen<Inbox | null>(
       'inbox',
-      (inbox) => setInbox(inbox ?? null),
+      (inbox) => {
+        setInbox((oldInbox) => {
+          if (_.isEqual(oldInbox, inbox)) {
+            return oldInbox ?? null
+          } else {
+            return inbox ?? null
+          }
+        });
+      },
       true
     );
   }, []);
