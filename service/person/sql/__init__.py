@@ -1145,6 +1145,19 @@ WHERE
     object_person_id = %(object_person_id)s
 """
 
+Q_DELETE_SKIPPED_BY_UUID = """
+DELETE FROM
+    skipped
+USING
+    person
+WHERE
+    person.id = skipped.object_person_id
+AND
+    person.uuid = uuid_or_null(%(prospect_uuid)s)
+AND
+    subject_person_id = %(subject_person_id)s
+"""
+
 Q_ANSWER_COMPARISON = """
 WITH prospect_name AS(
     SELECT name FROM person WHERE id = %(prospect_person_id)s

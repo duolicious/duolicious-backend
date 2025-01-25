@@ -28,12 +28,12 @@ printf 1 > ../../test/input/disable-account-rate-limit
 
 echo Only the global rate limit should apply for regular skips
 c POST "/skip/by-uuid/${user2uuid}"
-c POST "/unskip/${user2id}"
+c POST "/unskip/by-uuid/${user2uuid}"
 c POST "/skip/by-uuid/${user2uuid}"
 
 echo The stricter rate limit should apply for reports
   jc POST "/skip/by-uuid/${user2uuid}" -d '{ "report_reason": "smells bad" }'
-   c POST "/unskip/${user2id}"
+   c POST "/unskip/by-uuid/${user2uuid}"
 ! jc POST "/skip/by-uuid/${user2uuid}" -d '{ "report_reason": "bad hair" }'
 
 echo Uncached search should be heavily rate-limited

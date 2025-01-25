@@ -240,7 +240,7 @@ test_quiz_search () {
   [[ "$response3" != "${user2_id}" ]]
 
   echo "Reset searcher's search cache"
-  c POST "/unskip/${user2_id}"
+  c POST "/unskip/by-uuid/${user2_uuid}"
   c GET '/search?n=1&o=0'
 
   echo user2 has the highest match percentage but searcher is skipped by user2
@@ -253,7 +253,7 @@ test_quiz_search () {
 
   echo "Reset searcher's search cache"
   assume_role user2
-  c POST "/unskip/${searcher_id}"
+  c POST "/unskip/by-uuid/${searcher_uuid}"
   assume_role searcher
   c GET '/search?n=1&o=0'
 
@@ -471,7 +471,7 @@ test_interaction_in_standard_search_skipped () {
 
   assert_search_names 'user2'
 
-  c POST "/unskip/${user1_id}"
+  c POST "/unskip/by-uuid/${user1_uuid}"
 
   assert_search_names 'user1 user2'
 }
@@ -881,7 +881,7 @@ test_quiz_search
 test_hide_me_from_strangers
 test_verified_privacy
 
-test_interaction_in_standard_search_skipped /skip/by-uuid /unskip
+test_interaction_in_standard_search_skipped
 test_interaction_in_standard_search_skipped_symmetry
 
 test_quiz_filters
