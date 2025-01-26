@@ -331,11 +331,6 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
   useImperativeHandle(ref, () => ({ refresh: onRefresh }), [onRefresh]);
 
   const onContentSizeChange = (width: number, height: number) => {
-    if (width === 0 && height === 0) {
-      // Measurement is inaccurate because the element is occluded
-      return;
-    }
-
     contentHeight.current = height;
 
     if (contentHeight.current < viewportHeight.current) {
@@ -348,14 +343,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
   };
 
   const onLayout = useCallback((params) => {
-    const { height, width } = params.nativeEvent.layout;
-
-    if (width === 0 && height === 0) {
-      // Measurement is inaccurate because the element is occluded
-      return;
-    }
-
-    viewportHeight.current = height;
+    viewportHeight.current = params.nativeEvent.layout.height;
 
     if (contentHeight.current < viewportHeight.current) {
       fetchNextPage();
