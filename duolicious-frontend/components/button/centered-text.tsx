@@ -87,7 +87,7 @@ const ButtonWithCenteredText = (props) => {
           fade();
         }
       }}
-      onPressOut={() => {
+      onPress={() => {
         if (isEnabledRef.current) {
           unfade();
         }
