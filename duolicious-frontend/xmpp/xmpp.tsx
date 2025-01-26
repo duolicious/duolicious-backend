@@ -21,6 +21,8 @@ import { registerForPushNotificationsAsync } from '../notifications/notification
 
 import { AppState, AppStateStatus } from 'react-native';
 
+import * as _ from 'lodash';
+
 const messageTimeout = 10000;
 const fetchConversationTimeout = 15000;
 const fetchInboxTimeout = 30000;
@@ -304,7 +306,7 @@ const personUuidToJid = (personUuid: string): string =>
   `${personUuid}@duolicious.app`;
 
 const setInboxSent = (recipientPersonUuid: string, message: string) => {
-  const i = getInbox() ?? emptyInbox();
+  const i = _.cloneDeep(getInbox() ?? emptyInbox());
 
   const chatsConversation =
     i.chats.conversationsMap[recipientPersonUuid] as Conversation | undefined;
@@ -357,7 +359,7 @@ const setInboxRecieved = async (
   fromPersonUuid: string,
   message: string,
 ) => {
-  const inbox = getInbox();
+  const inbox = _.cloneDeep(getInbox() ?? emptyInbox());
 
   if (!inbox) {
     return;
@@ -387,6 +389,7 @@ const setInboxRecieved = async (
 
   if (!chatsConversation && !introsConversation) {
     await populateConversation(updatedConversation);
+
     if (updatedConversation.location === 'chats') {
       inbox.chats.conversationsMap[fromPersonUuid] = updatedConversation;
       inbox.chats.conversations = Object.values(inbox.chats.conversationsMap);
@@ -405,7 +408,7 @@ const setInboxRecieved = async (
 };
 
 const setInboxDisplayed = (fromPersonUuid: string) => {
-  const inbox = getInbox();
+  const inbox = _.cloneDeep(getInbox() ?? emptyInbox());
 
   if (!inbox) {
     return;
@@ -698,7 +701,7 @@ const conversationsToInbox = (conversations: Conversation[]): Inbox => {
 };
 
 const setConversationArchived = (personUuid: string, isSkipped: boolean) => {
-  const inbox = getInbox();
+  const inbox = _.cloneDeep(getInbox() ?? emptyInbox());
 
   if (!inbox) {
     return inbox;

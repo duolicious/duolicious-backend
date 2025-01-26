@@ -329,6 +329,7 @@ const InboxTab = ({navigation}) => {
       }
       {inbox !== null &&
         <DefaultFlatList
+          key={JSON.stringify(inbox)}
           ref={listRef}
           innerRef={observeListRef}
           emptyText={emptyText}
