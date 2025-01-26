@@ -1,7 +1,6 @@
 import {
   Animated,
   Linking,
-  Modal,
   Platform,
   View,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { signedInUser } from '../App';
 import { api } from '../api/api';
 import { getRandomElement } from '../util/util';
 import * as _ from "lodash";
+import { DefaultModal } from './deafult-modal';
 
 const gagLocations = _.shuffle([
   '/a/',
@@ -167,12 +167,7 @@ const MarketingDonationNagModalWeb = ({
   };
 
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={isVisible}
-      statusBarTranslucent={true}
-    >
+    <DefaultModal visible={isVisible} transparent={true}>
       <View
         style={{
           width: '100%',
@@ -298,7 +293,7 @@ const MarketingDonationNagModalWeb = ({
           </View>
         </View>
       </View>
-    </Modal>
+    </DefaultModal>
   );
 };
 

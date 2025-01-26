@@ -1,5 +1,4 @@
 import {
-  Modal,
   Pressable,
   View,
   Platform,
@@ -18,6 +17,7 @@ import { X } from "react-native-feather";
 import { listen } from '../events/events';
 import { setSkipped } from '../hide-and-block/hide-and-block';
 import { KeyboardDismissingView } from './keyboard-dismissing-view';
+import { DefaultModal } from './deafult-modal';
 
 type ReportModalInitialData = {
   name: string
@@ -113,13 +113,7 @@ const ReportModal = () => {
   }, [isTooFewChars, isSomethingWrong]);
 
   return (
-    <Modal
-      animationType="fade"
-      transparent={false}
-      visible={isVisible}
-      onRequestClose={close}
-      statusBarTranslucent={true}
-    >
+    <DefaultModal visible={isVisible} transparent={false} onRequestClose={close}>
       <KeyboardDismissingView
         style={{
           width: '100%',
@@ -229,7 +223,7 @@ const ReportModal = () => {
           </View>
         </View>
       </KeyboardDismissingView>
-    </Modal>
+    </DefaultModal>
   );
 }
 
