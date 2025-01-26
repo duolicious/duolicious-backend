@@ -186,8 +186,8 @@ const animateBack = (
 }
 
 const getSwipeDirection = (
-  property,
-  swipeThreshold = settings.swipeThreshold
+  property: { x: number, y: number },
+  swipeThreshold: number,
 ): Direction => {
   'worklet';
 
@@ -293,7 +293,7 @@ const BaseQuizCard = forwardRef(
     }: Props,
     ref: React.Ref<API>
   ) => {
-    const isAnimating = useRef(false);
+    const isAtStartPosition = useRef(true);
 
     // Compute initial x, y, rot
     const startPosition = (() => {
@@ -311,12 +311,10 @@ const BaseQuizCard = forwardRef(
     // We'll store an array with a single object that has .start(...) to match your usage
     const setSpringTarget = useRef({ start: createSpringStarter(x, y, rot) });
 
-    settings.swipeThreshold = swipeThreshold;
-
     useImperativeHandle(ref, () => ({
       async swipe (dir: Direction = 'right') {
-        if (isAnimating.current) return;
-        isAnimating.current = true;
+        if (!isAtStartPosition.current) return;
+        isAtStartPosition.current = false;
 
         if (onSwipe) onSwipe(dir)
         const power = 2.0
@@ -331,16 +329,10 @@ const BaseQuizCard = forwardRef(
           await animateOut({ x: disturbance, y:  power }, setSpringTarget)
         }
         if (onCardLeftScreen) onCardLeftScreen(dir)
-
-        isAnimating.current = false;
       },
       async restoreCard () {
-        if (isAnimating.current) return;
-        isAnimating.current = true;
-
         await animateBack(setSpringTarget)
-
-        isAnimating.current = false;
+        isAtStartPosition.current = true;
       }
     }));
 
@@ -351,18 +343,16 @@ const BaseQuizCard = forwardRef(
         >,
         gesture
       ) => {
-        if (isAnimating.current) return;
-        isAnimating.current = true;
-
         // Check if this is a swipe
-        const dir = getSwipeDirection({
-          x: gesture.dx,
-          y: gesture.dy,
-        });
+        const dir = getSwipeDirection(
+          { x: gesture.dx, y: gesture.dy },
+          swipeThreshold
+        );
 
         if (dir === 'none' || preventSwipe.includes(dir)) {
           // Card was not flicked away, animate back to start
           await animateBack(setSpringTarget)
+          isAtStartPosition.current = true;
         } else {
           if (onSwipe) onSwipe(dir)
 
@@ -374,8 +364,6 @@ const BaseQuizCard = forwardRef(
 
           if (onCardLeftScreen) onCardLeftScreen(dir)
         }
-
-        isAnimating.current = false;
       },
       [onSwipe, onCardLeftScreen, preventSwipe]
     );
@@ -388,22 +376,25 @@ const BaseQuizCard = forwardRef(
         onStartShouldSetPanResponderCapture:
           (evt, gestureState) => false,
         onMoveShouldSetPanResponder:
-          (evt, gestureState) => !isAnimating.current,
+          (evt, gestureState) => {
+            if (!isAtStartPosition.current) {
+              return false;
+            }
+            isAtStartPosition.current = false;
+            return true;
+          },
         onMoveShouldSetPanResponderCapture:
-          (evt, gestureState) => !isAnimating.current,
+          (evt, gestureState) => {
+            if (!isAtStartPosition.current) {
+              return false;
+            }
+            isAtStartPosition.current = false;
+            return true;
+          },
         onPanResponderGrant: (evt, gestureState) => {
           if (Platform.OS === 'web') {
             evt.preventDefault?.();
           }
-
-          // The gesture has started.
-          // Probably wont need this anymore as position relative to swipe!
-          setSpringTarget.current.start({
-            x: gestureState.dx,
-            y: gestureState.dy,
-            rot: 0,
-            immediate: true,
-          })
         },
         onPanResponderMove: (evt, gestureState) => {
           if (Platform.OS === 'web') {

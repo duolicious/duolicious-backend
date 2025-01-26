@@ -34,18 +34,20 @@ const ButtonWithCenteredText = (props) => {
   const animatedOpacity = useRef(new Animated.Value(1)).current;
 
   const fade = (callback?: () => void) => {
-    animatedOpacity.stopAnimation();
-    animatedOpacity.setValue(opacityLo);
+    animatedOpacity.stopAnimation(() =>
+      animatedOpacity.setValue(opacityLo)
+    );
     callback && callback();
   };
 
   const unfade = (callback?: () => void) => {
-    animatedOpacity.stopAnimation();
-    Animated.timing(animatedOpacity, {
-      toValue: opacityHi,
-      duration: 1000,
-      useNativeDriver: true,
-    }).start((result) => result.finished && callback && callback());
+    animatedOpacity.stopAnimation(() =>
+      Animated.timing(animatedOpacity, {
+        toValue: opacityHi,
+        duration: 1000,
+        useNativeDriver: true,
+      }).start((result) => result.finished && callback && callback())
+    );
   };
 
   class Api {
@@ -80,12 +82,19 @@ const ButtonWithCenteredText = (props) => {
         height: 50,
         ...containerStyle,
       }}
-      onPressIn={
-        () => isEnabledRef.current && fade()}
-      onPressOut={
-        () => isEnabledRef.current && unfade()}
-      onPress={
-        () => isEnabledRef.current && !loading && onPress && onPress()}
+      onPressIn={() => {
+        if (isEnabledRef.current) {
+          fade();
+        }
+      }}
+      onPressOut={() => {
+        if (isEnabledRef.current) {
+          unfade();
+        }
+        if (isEnabledRef.current && !loading && onPress) {
+          onPress();
+        }
+      }}
     >
       <Animated.View
         style={{
