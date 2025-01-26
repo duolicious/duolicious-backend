@@ -16,11 +16,16 @@ import {
   PanResponder,
   Platform,
   RegisteredStyle,
-  StyleProp,
   View,
   ViewStyle,
 } from 'react-native';
-import { useSpring, animated } from '@react-spring/native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
 
 type Direction = 'left' | 'right' | 'up' | 'down' | 'none'
 type SwipeHandler = (direction: Direction) => void
@@ -39,7 +44,7 @@ interface API {
   /**
    * Restore swiped-card state. Use this function if you want to undo a swiped-card (e.g. you have a back button that shows last swiped card or you have a reset button. The promise is resolved once the card is returned
    */
-   restoreCard (): Promise<void>
+  restoreCard (): Promise<void>
 }
 
 interface Props {
@@ -131,7 +136,11 @@ const finalXyrot = (gesture) => {
 
 const diagonal = () => pythagoras(height, width)
 
-const animateOut = async (gesture, setSpringTarget, dir?: Direction) => {
+const animateOut = async (
+  gesture: { x: number; y: number },
+  setSpringTarget: React.MutableRefObject<{ start: (args: any) => void }>,
+  dir?: Direction
+) => {
   const normalizedGesture = (() => {
     if (dir === 'right')
       return { x: Math.max( 2, gesture.x), y: gesture.y }
@@ -148,36 +157,40 @@ const animateOut = async (gesture, setSpringTarget, dir?: Direction) => {
   const velocity = pythagoras(normalizedGesture.x, normalizedGesture.y)
   const duration = diagonal() / velocity
 
-  setSpringTarget.current[0].start({
-    ...finalXyrot(normalizedGesture),
-    config: { duration: duration }
-  })
-
-  // for now animate back
-  return await new Promise((resolve) =>
-    setTimeout(() => {
-      resolve(undefined);
-    }, duration)
-  )
+  // We use timing for "animateOut" with a computed duration
+  return new Promise((resolve) => {
+    setSpringTarget.current.start({
+      ...finalXyrot(normalizedGesture),
+      config: { duration },
+      onResolve: () => {
+        resolve(undefined);
+      },
+    });
+  });
 }
 
-const animateBack = (setSpringTarget) => {
-  // translate/rotate back to the initial position
+const animateBack = (
+  setSpringTarget: React.MutableRefObject<
+    { start: (args: any) => void }
+  >
+) => {
   return new Promise((resolve) => {
-    setSpringTarget.current[0].start({
+    setSpringTarget.current.start({
       x: 0,
       y: 0,
       rot: 0,
       config: physics.animateBack,
       onResolve: resolve,
-    })
-  })
+    });
+  });
 }
 
 const getSwipeDirection = (
   property,
   swipeThreshold = settings.swipeThreshold
 ): Direction => {
+  'worklet';
+
   if (Math.abs(property.x) > Math.abs(property.y)) {
     if (property.x > swipeThreshold) {
       return 'right'
@@ -194,8 +207,75 @@ const getSwipeDirection = (
   return 'none'
 }
 
-// must be created outside of the BaseQuizCard forwardRef
-const AnimatedView = animated(View)
+/**
+ * Reanimated-based "start" function that mimics react-spring's .start() API.
+ * - If `config.duration` is specified, we use `withTiming`.
+ * - Otherwise we use `withSpring`.
+ * - `immediate` updates the shared values instantly, no animation.
+ * - `onResolve` is called at the end of the animation.
+ */
+function createSpringStarter(
+  xSV: Animated.SharedValue<number>,
+  ySV: Animated.SharedValue<number>,
+  rotSV: Animated.SharedValue<number>
+) {
+  return (params: {
+    x?: number;
+    y?: number;
+    rot?: number;
+    config?: any;
+    immediate?: boolean;
+    onResolve?: () => void;
+  }) => {
+    'worklet';
+
+    const { x, y, rot, config, immediate, onResolve } = params;
+
+    const runAnimation = (
+      val: number | undefined,
+      sharedVal: Animated.SharedValue<number>
+    ) => {
+      if (val === undefined) return;
+      if (immediate) {
+        // update instantly
+        sharedVal.value = val;
+        if (onResolve) {
+          runOnJS(onResolve)();
+        }
+        return;
+      }
+      // If there's a duration, use timing; otherwise spring
+      if (config?.duration !== undefined) {
+        sharedVal.value = withTiming(
+          val,
+          { duration: config.duration },
+          (isFinished) => {
+            if (isFinished && onResolve) {
+              runOnJS(onResolve)();
+            }
+          }
+        );
+      } else {
+        // approximate friction/tension with reanimated's damping/stiffness
+        const damping = config?.friction ?? 20;
+        const stiffness = config?.tension ?? 200;
+        sharedVal.value = withSpring(
+          val,
+          { damping, stiffness },
+          (isFinished) => {
+            if (isFinished && onResolve) {
+              runOnJS(onResolve)();
+            }
+          }
+        );
+      }
+    };
+
+    runAnimation(x, xSV);
+    runAnimation(y, ySV);
+    runAnimation(rot, rotSV);
+  };
+}
 
 const BaseQuizCard = forwardRef(
   (
@@ -211,22 +291,27 @@ const BaseQuizCard = forwardRef(
       rightComponent,
       downComponent
     }: Props,
-    ref
+    ref: React.Ref<API>
   ) => {
     const isAnimating = useRef(false);
 
+    // Compute initial x, y, rot
     const startPosition = (() => {
       if (initialPosition === 'left')  return finalXyrot({x: -1, y:  0})
       if (initialPosition === 'right') return finalXyrot({x:  1, y:  0})
       if (initialPosition === 'up')    return finalXyrot({x:  0, y: -1})
       if (initialPosition === 'down')  return finalXyrot({x:  0, y:  1})
       return {x: 0, y: 0, rot: 0};
-    })()
+    })();
 
-    const [{ x, y, rot }, setSpringTarget] = useSpring(() => ({
-      ...startPosition,
-    }))
-    settings.swipeThreshold = swipeThreshold
+    const x = useSharedValue(startPosition.x);
+    const y = useSharedValue(startPosition.y);
+    const rot = useSharedValue(startPosition.rot);
+
+    // We'll store an array with a single object that has .start(...) to match your usage
+    const setSpringTarget = useRef({ start: createSpringStarter(x, y, rot) });
+
+    settings.swipeThreshold = swipeThreshold;
 
     useImperativeHandle(ref, () => ({
       async swipe (dir: Direction = 'right') {
@@ -260,7 +345,12 @@ const BaseQuizCard = forwardRef(
     }));
 
     const handleSwipeReleased = useCallback(
-      async (setSpringTarget, gesture) => {
+      async (
+        setSpringTarget: React.MutableRefObject<
+          { start: (args: any) => void }
+        >,
+        gesture
+      ) => {
         if (isAnimating.current) return;
         isAnimating.current = true;
 
@@ -308,7 +398,7 @@ const BaseQuizCard = forwardRef(
 
           // The gesture has started.
           // Probably wont need this anymore as position relative to swipe!
-          setSpringTarget.current[0].start({
+          setSpringTarget.current.start({
             x: gestureState.dx,
             y: gestureState.dy,
             rot: 0,
@@ -322,7 +412,7 @@ const BaseQuizCard = forwardRef(
 
           // use guestureState.vx / guestureState.vy for velocity calculations
           // translate element
-          setSpringTarget.current[0].start({
+          setSpringTarget.current.start({
             x: gestureState.dx,
             y: gestureState.dy,
             rot: rotateByDx(gestureState.dx),
@@ -341,76 +431,85 @@ const BaseQuizCard = forwardRef(
       })
     ).current;
 
+    // Main card style
+    const cardStyle = useAnimatedStyle(() => {
+      return {
+        transform: [
+          { translateX: x.value },
+          { translateY: y.value },
+          { rotate: `${rot.value}deg` },
+        ],
+      };
+    });
+
+    // Left indicator style
+    const leftComponentStyle = useAnimatedStyle(() => {
+      const dir = getSwipeDirection({ x: x.value, y: y.value }, 0);
+      return {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        opacity:
+          dir === 'left'
+            ? Math.max(0.0, -x.value * 0.01 - 0.5)
+            : 0.0,
+        transform: [{ rotate: `${-rot.value}deg` }],
+      };
+    });
+
+    // Right indicator style
+    const rightComponentStyle = useAnimatedStyle(() => {
+      const dir = getSwipeDirection({ x: x.value, y: y.value }, 0);
+      return {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        opacity:
+          dir === 'right'
+            ? Math.max(0.0, x.value * 0.01 - 0.5)
+            : 0.0,
+        transform: [{ rotate: `${-rot.value}deg` }],
+      };
+    });
+
+    // Down indicator style
+    const downComponentStyle = useAnimatedStyle(() => {
+      const dir = getSwipeDirection({ x: x.value, y: y.value }, 0);
+      return {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        opacity:
+          dir === 'down'
+            ? Math.max(0.0, y.value * 0.01 - 0.5)
+            : 0.0,
+        transform: [{ rotate: `${-rot.value}deg` }],
+      };
+    });
+
     return (
-      <AnimatedView
+      <Animated.View
         {...panResponder.panHandlers}
-        style={[
-          {
-            transform: [
-              { translateX: x },
-              { translateY: y },
-              { rotate: rot.to((rot) => `${rot}deg`) }
-            ],
-          },
-          containerStyle
-        ]}
+        style={[cardStyle, containerStyle]}
       >
-        <AnimatedView
-          style={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-            zIndex: x.to((x) => Math.round(Math.abs(x))),
-            opacity: x.to((x) =>
-              getSwipeDirection({x, y: y.get()}, 0) === 'left' ?
-                Math.max(0.0, - x * 0.01 - 0.5) :
-                0.0
-            ),
-            transform: [
-              { rotate: rot.to((rot) => `${-rot}deg`) }
-            ],
-          }}
-        >
-          {leftComponent}
-        </AnimatedView>
-        <AnimatedView
-          style={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-            zIndex: x.to((x) => Math.round(Math.abs(x))),
-            opacity: x.to((x) =>
-              getSwipeDirection({x, y: y.get()}, 0) === 'right' ?
-                Math.max(0.0, x * 0.01 - 0.5) :
-                0.0
-            ),
-            transform: [
-              { rotate: rot.to((rot) => `${-rot}deg`) }
-            ],
-          }}
-        >
-          {rightComponent}
-        </AnimatedView>
-        <AnimatedView
-          style={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-            zIndex: y.to((y) => Math.round(Math.abs(y))),
-            opacity: y.to((y) =>
-              getSwipeDirection({x: x.get(), y}, 0) === 'down' ?
-                Math.max(0.0, y * 0.01 - 0.5) :
-                0.0
-            ),
-            transform: [
-              { rotate: rot.to((rot) => `${-rot}deg`) }
-            ],
-          }}
-        >
-          {downComponent}
-        </AnimatedView>
+        {/* Actual card content */}
         {children}
-      </AnimatedView>
+
+        {/* Left indicator */}
+        <Animated.View pointerEvents="none" style={leftComponentStyle}>
+          {leftComponent}
+        </Animated.View>
+
+        {/* Right indicator */}
+        <Animated.View pointerEvents="none" style={rightComponentStyle}>
+          {rightComponent}
+        </Animated.View>
+
+        {/* Down indicator */}
+        <Animated.View pointerEvents="none" style={downComponentStyle}>
+          {downComponent}
+        </Animated.View>
+      </Animated.View>
     )
   }
 )

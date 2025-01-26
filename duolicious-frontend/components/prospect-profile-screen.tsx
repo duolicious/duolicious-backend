@@ -55,11 +55,10 @@ import Reanimated, {
   FadeOut,
   LinearTransition,
   useAnimatedStyle,
-  useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 import { ClubItem, joinClub, leaveClub } from '../club/club';
-import _ from 'lodash';
+import * as _ from 'lodash';
 import { delay, friendlyTimeAgo, possessive, secToMinSec } from '../util/util';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import {
