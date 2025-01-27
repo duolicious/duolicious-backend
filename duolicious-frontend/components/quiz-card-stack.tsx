@@ -427,12 +427,12 @@ const Prospects = ({
     extrapolate: 'clamp',
   });
 
-  const lgColors = useRef([
+  const lgColors = useRef<readonly [string, string, string]>([
     'rgb(255, 255, 255)',
     'rgba(255, 255, 255, 0.75)',
     'rgba(255, 255, 255, 0)',
   ]).current;
-  const lgLocations = useRef([
+  const lgLocations = useRef<readonly [number, number, number]>([
     0.0,
     0.75,
     1.0,
@@ -568,22 +568,35 @@ const QuizCardStack_ = ({
   triggerRender,
   onSwipe,
   onCardLeftScreen,
+}: {
+  card1: CardState,
+  card2: CardState,
+  card3: CardState,
+  triggerRender: () => void,
+  onSwipe: (direction: Direction) => Promise<void>,
+  onCardLeftScreen: () => void,
 }) => {
   const cards: CardState[] = [card1, card2, card3].filter(Boolean);
 
   const onScreenCards = cards.filter(c => c.isFetched && !c.swipeDirection);
+
+  useEffect(() => {
+    Animated.parallel(
+      cards.map((card) =>
+        Animated.timing(card.scale, {
+          toValue: 1.0,
+          duration: 500,
+          useNativeDriver: false,
+        })
+      )
+    ).start();
+  }, [JSON.stringify(cards.map((card) => card.questionNumber))]);
 
   return (
     <View style={styles.stackContainerStyle}>
       {!onScreenCards.length && <NoMoreCards/>}
       {
         cards.map((card, i) => {
-          Animated.timing(card.scale, {
-            toValue: 1.0,
-            duration: 500,
-            useNativeDriver: false,
-          }).start();
-
           card.onChangeAnswerPublicly = card.onChangeAnswerPublicly ?? (
             (answerPublicly: boolean) => {
               card.answerPublicly = answerPublicly;
