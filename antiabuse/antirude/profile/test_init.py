@@ -13,6 +13,9 @@ class TestIsRude(unittest.TestCase):
         self.assertTrue(
                 is_rude("ywnbaw is an acronym"))
 
+        self.assertTrue(
+                is_rude("kill urself"))
+
     def test_inrude_strings(self):
         self.assertFalse(
                 is_rude("go hug urself please"))

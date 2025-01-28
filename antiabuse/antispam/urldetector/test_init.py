@@ -81,6 +81,9 @@ Also some clubs are just there to find people who might like me; I’m hetero un
         self.assertFalse(has_url(
             """I'm on discord, like all the time"""))
 
+        self.assertFalse(has_url(
+            """Check out my stats.fm @example"""))
+
 
 
 if __name__ == '__main__':

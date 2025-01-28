@@ -29,6 +29,7 @@ SAFE_DOMAINS = {
     'rateyourmusic.com',
     'reddit.com',
     'spotify.com',
+    'stats.fm',
     'steamcommunity.com',
     'substack.com',
     'tenor.com',
