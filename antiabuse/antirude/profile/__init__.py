@@ -28,7 +28,6 @@ _strings = [
     "kill my self",
     "kill myself",
     "kill your self",
-    "kill yourself"
     "kill yourself",
     "killed myself",
     "killed yourself",
@@ -67,6 +66,7 @@ _strings = [
     "throat pussy",
     "throatfuck",
     "throatfucking",
+    "tkd",
     "tnd",
     "tranny",
     "troon",
