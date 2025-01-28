@@ -37,7 +37,7 @@ PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
 class IntroRateLimit(Enum):
     NONE = 0
     UNVERIFIED = 10
-    BASICS = 40
+    BASICS = 20
     PHOTOS = 100
 
 # TODO: Tables to migrate to monolithic DB:
