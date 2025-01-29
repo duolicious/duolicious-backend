@@ -8,6 +8,7 @@ The frontend of the world's most popular open-source dating app.</p>
 <p align="center">
 <a href="https://github.com/duolicious/duolicious-frontend/actions/workflows/jest.yml"><img src="https://img.shields.io/github/actions/workflow/status/duolicious/duolicious-frontend/.github%2Fworkflows%2Fjest.yml?label=Jest" alt="Build status"/></a>
 <a href="https://github.com/duolicious/duolicious-frontend/actions/workflows/playwright.yml"><img src="https://img.shields.io/github/actions/workflow/status/duolicious/duolicious-frontend/.github%2Fworkflows%2Fplaywright.yml?label=Playwright" alt="Build status"/></a>
+<a href="https://github.com/duolicious/duolicious-frontend/actions/workflows/type-checks.yml"><img src="https://img.shields.io/github/actions/workflow/status/duolicious/duolicious-frontend/.github%2Fworkflows%2Ftype-checks.yml?label=Type Checks" alt="Build status"/></a>
 <a href="https://github.com/duolicious/duolicious-frontend/actions/workflows/publish.yml"><img src="https://img.shields.io/github/actions/workflow/status/duolicious/duolicious-frontend/.github%2Fworkflows%2Fpublish.yml?label=Publish" alt="Build status"/></a>
 <a href="https://duolicious.app/"><img src="https://img.shields.io/badge/Based-True--love_pilled-7700ff" alt="Based and true-love pilled"/></a>
 </p>

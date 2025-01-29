@@ -364,9 +364,11 @@ const styles = StyleSheet.create({
     top: 0,
 
     userSelect: 'none',          // prevent selection on web
-    WebkitUserSelect: 'none',
-    WebkitTouchCallout: 'none',
-    WebkitUserDrag: 'none',
+    ...(Platform.OS === 'web' ? {
+      WebkitUserSelect: 'none',
+      WebkitTouchCallout: 'none',
+      WebkitUserDrag: 'none',
+    } : {}),
   },
   thumb: {
     width: '100%',

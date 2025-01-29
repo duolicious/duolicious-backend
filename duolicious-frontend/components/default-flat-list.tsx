@@ -281,7 +281,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
   const contentHeight = useRef(0);
   const viewportHeight = useRef(0);
 
-  const flatList = useRef<FlatList>(null);
+  const flatList = useRef<FlatList | null>(null);
 
   const [books, setBooks] = useState<Books<ItemT>>({});
 

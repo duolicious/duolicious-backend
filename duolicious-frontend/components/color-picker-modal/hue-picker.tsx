@@ -49,7 +49,7 @@ const HuePicker = forwardRef<
     containerStyle = {}
   } = props;
 
-  const hueColors = [
+  const hueColors: readonly [string, string, ...string[]] = [
     '#ff0000',
     '#ffff00',
     '#00ff00',
@@ -67,7 +67,7 @@ const HuePicker = forwardRef<
 
   const backgroundColor = animatedSliderY.current.interpolate({
     inputRange: hueColors.map((_, i) => i * barHeight / (hueColors.length - 1)),
-    outputRange: hueColors,
+    outputRange: Array.from(hueColors),
   });
 
   const panResponder = useRef(PanResponder.create({

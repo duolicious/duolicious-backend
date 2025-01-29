@@ -26,10 +26,10 @@ const LabelToIcon = ({
   label: string
   isFocused: boolean
   unreadIndicatorOpacity: any,
-  color: string
-  backgroundColor: string | undefined
-  fontSize: number
-  unreadIndicatorColor: string
+  color?: string
+  backgroundColor?: string | undefined
+  fontSize?: number
+  unreadIndicatorColor?: string
 }) => {
   const searchIcon =
     isFocused ? 'search' : 'search-outline';

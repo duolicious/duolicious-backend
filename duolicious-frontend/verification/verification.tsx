@@ -19,7 +19,7 @@ type VerificationEvent = {
 };
 
 const verificationWatcher = async () => {
-  var checkUntil: null | Date = null;
+  var checkUntil = null as null | Date;
   var lastStatus = '';
 
   listen(

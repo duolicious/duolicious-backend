@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   Animated,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -1495,7 +1496,9 @@ const styles = StyleSheet.create({
   audioPlayerMiddleText: {
     fontWeight: 700,
     flex: 3,
-    wordBreak: 'break-all',
+    ...(Platform.OS === 'web' ? {
+      wordBreak: 'break-all',
+    } : {}),
     textAlign: 'center',
   },
 });
