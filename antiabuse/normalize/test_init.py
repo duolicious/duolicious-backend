@@ -76,6 +76,10 @@ class TestNormalizeString(unittest.TestCase):
 
         self.assertEqual(normalize_string("nigg"), "nigger")
 
+        self.assertEqual(normalize_string("fag0t"), "faggot")
+
+        self.assertEqual(normalize_string("r@ping"), "raping")
+
 
 if __name__ == '__main__':
     unittest.main()
