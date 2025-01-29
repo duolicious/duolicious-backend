@@ -3,13 +3,14 @@ import {
   Platform,
 } from 'react-native';
 import {
+  differenceInCalendarDays,
   format,
   formatDistanceToNow,
   isThisWeek,
   isThisYear,
   isToday,
-  subSeconds,
   isYesterday,
+  subSeconds,
 } from 'date-fns'
 import _ from 'lodash';
 
@@ -70,12 +71,23 @@ const friendlyDate = (date: Date): string => {
   if (isToday(date)) {
     return 'Today';
   }
-  
+
   if (isYesterday(date)) {
     return 'Yesterday';
   }
-  
-  return format(date, 'PPP'); // Makes it use the default locale
+
+  // Check if the date is within the last 7 days
+  if (differenceInCalendarDays(new Date(), date) < 7) {
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: 'long'
+    }).format(date);
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    ...(isThisYear(date) ? {} : { year: 'numeric' }),
+  }).format(date);
 };
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
