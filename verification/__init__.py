@@ -214,8 +214,8 @@ def process_response(
     # These settings are tuned to gpt-4-turbo. gpt-4o worked better with higher
     # numbers.
     #
-    # edit_truthiness_threshold = 0.9
-    # gender_truthiness_threshold = 0.6
+    # edit_truthiness_threshold = 0.8
+    # gender_truthiness_threshold = 0.5
     # age_truthiness_threshold = 0.5
     # minimum_age_truthiness_threshold = 0.8
     # ethnicity_truthiness_threshold = 0.4
@@ -240,8 +240,8 @@ def process_response(
 
     general_truthiness_threshold = 0.7
 
-    edit_truthiness_threshold = 0.9
-    gender_truthiness_threshold = 0.6
+    edit_truthiness_threshold = 0.8
+    gender_truthiness_threshold = 0.5
     age_truthiness_threshold = 0.5
     minimum_age_truthiness_threshold = 0.8
     ethnicity_truthiness_threshold = 0.4
