@@ -35,7 +35,6 @@ import {
   isOptionGroupSlider,
   isOptionGroupTextShort,
   isOptionGroupThemePicker,
-  isOptionGroupVerificationChecker,
   notificationSettingsOptionGroups,
   privacySettingsOptionGroups,
   themePickerOptionGroups,
@@ -95,7 +94,7 @@ const enqueueName = async (name: string, cb: (response: ApiResponse) => void) =>
 
 const Stack = createNativeStackNavigator();
 
-const ProfileTab = ({navigation}) => {
+const ProfileTab = () => {
   return (
     <Stack.Navigator
       screenOptions={{
@@ -255,7 +254,7 @@ const ProfileTab_ = ({navigation}) => {
   );
 };
 
-const DisplayNameAndAboutPerson = ({navigation, data}) => {
+const DisplayNameAndAboutPerson = ({data}) => {
   const [name, setName] = useState<string>(data.name ?? '');
 
   type State
@@ -575,12 +574,6 @@ const Options = ({ navigation, data }) => {
     return data.clubs.map((clubItem: ClubItem) => clubItem.name).join(', ')
   })();
 
-  const goToThemePicker = useCallback(() => {
-    navigation.navigate(
-      "Profile Option Screen",
-    );
-  }, [navigation]);
-
   const isCompletelyVerified = (
     Object.values(data?.photo_verification ?? {}).every(Boolean) &&
     (data?.verified_gender ?? false) &&
@@ -619,7 +612,7 @@ const Options = ({ navigation, data }) => {
         </>
       }
 
-      <DisplayNameAndAboutPerson navigation={navigation} data={data}/>
+      <DisplayNameAndAboutPerson data={data} />
 
       <Title>Voice Bio</Title>
       <AudioBio

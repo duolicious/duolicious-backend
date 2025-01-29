@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test('has correct onboarding flow', async ({ page }) => {
   await page.route('**', async (route, request) => {

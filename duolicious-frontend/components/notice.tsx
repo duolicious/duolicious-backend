@@ -5,12 +5,10 @@ import {
 import {
   createElement
 } from 'react';
-import { DefaultText } from './default-text';
 
 const Notice = ({children, ...rest}) => {
   const {
     onPress,
-    navigation,
     style,
   } = rest;
 

@@ -116,7 +116,7 @@ const getStateFromClubItems = (cs: ClubItem[] | undefined) => {
 
 const Stack = createNativeStackNavigator();
 
-const SearchScreen = ({navigation}) => {
+const SearchScreen = () => {
   return (
     <Stack.Navigator
       screenOptions={{
@@ -338,7 +338,7 @@ const ClubSelector = (props: ClubSelectorProps) => {
     checkIsBottom(nativeEvent);
   }, [checkIsTop, checkIsBottom]);
 
-  const onContentSizeChange = useCallback((width, height) =>
+  const onContentSizeChange = useCallback((width) =>
     setContentWidth(width), []);
 
   const onScrollViewLayout = useCallback(({ nativeEvent }) =>

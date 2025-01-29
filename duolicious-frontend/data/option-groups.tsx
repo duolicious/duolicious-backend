@@ -15,7 +15,6 @@ import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
 import { faImage } from '@fortawesome/free-solid-svg-icons/faImage'
 import { faCalendar } from '@fortawesome/free-solid-svg-icons/faCalendar'
-import { faPeopleGroup } from '@fortawesome/free-solid-svg-icons/faPeopleGroup'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { NonNullImageCropperOutput } from '../components/image-cropper';
 import { login, logout } from '../xmpp/xmpp';
@@ -586,7 +585,7 @@ const yourPartnersGenderOptionGroup: OptionGroup<OptionGroupCheckChips> = {
   input: {
     checkChips: {
       values: genders.map((x) => ({checked: false, label: x})),
-      submit: async (inputs: string[]) => true
+      submit: async (_: string[]) => true
     }
   }
 };
@@ -1096,7 +1095,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
 
           login(personUuid, existingSessionToken);
 
-          setSignedInUser((signedInUser) => ({
+          setSignedInUser({
             personId: response?.json?.person_id,
             personUuid: personUuid,
             units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
@@ -1105,7 +1104,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
             doShowDonationNag: response?.json?.do_show_donation_nag,
             estimatedEndDate: new Date(response?.json?.estimated_end_date),
             name: response?.json?.name,
-          }));
+          });
 
           await sessionPersonUuid(personUuid);
 

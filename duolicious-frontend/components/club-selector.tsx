@@ -1,7 +1,6 @@
 import {
   ActivityIndicator,
   Animated,
-  Easing,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -19,7 +18,7 @@ import { TopNavBar } from './top-nav-bar';
 import { Title } from './title';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultTextInput } from './default-text-input';
-import { api, japi } from '../api/api';
+import { api } from '../api/api';
 import * as _ from "lodash";
 import { Basic } from './basic';
 import { listen, lastEvent  } from '../events/events';

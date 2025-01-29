@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import { DefaultTextInput } from './default-text-input';
 
 const DefaultLongTextInput = (props) => {

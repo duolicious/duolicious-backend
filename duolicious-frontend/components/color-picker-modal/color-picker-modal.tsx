@@ -22,9 +22,6 @@ import {
   HsvColorPickerRef,
 } from './hsv-color-picker';
 import {
-  hsvToHex,
-} from './util';
-import {
   DefaultText,
 } from './../default-text';
 

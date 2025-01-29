@@ -1,5 +1,4 @@
 import { AppState, Platform } from 'react-native';
-import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { registerPushToken } from '../xmpp/xmpp';
@@ -72,6 +71,7 @@ const useNotificationObserver = (
     return;
   }
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     const subscription = Notifications
       .addNotificationResponseReceivedListener(response => {

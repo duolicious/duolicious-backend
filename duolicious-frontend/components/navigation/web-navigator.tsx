@@ -1,7 +1,5 @@
 import {
-  Pressable,
   StyleSheet,
-  Text,
   View,
   type StyleProp,
   type ViewStyle,
@@ -10,14 +8,11 @@ import {
 import {
   createNavigatorFactory,
   type DefaultNavigatorOptions,
-  type NavigatorTypeBagBase,
   type ParamListBase,
-  type StaticConfig,
   type TabActionHelpers,
   type TabNavigationState,
   TabRouter,
   type TabRouterOptions,
-  type TypedNavigator,
   useNavigationBuilder,
 } from '@react-navigation/native';
 import { WebBar } from './web-bar';
@@ -68,7 +63,6 @@ function WebNavigator<Navigation>({
   screenLayout,
   backBehavior,
   tabBarStyle,
-  contentStyle,
 }: Props<Navigation>) {
   const { state, navigation, descriptors, NavigationContent } =
     useNavigationBuilder<

@@ -7,7 +7,6 @@ import {
 } from 'react-native';
 import {
   useCallback,
-  useEffect,
   useRef,
   useState,
 } from 'react';
@@ -26,8 +25,8 @@ const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
 
   const [expanded, setExpanded] = useState(false);
 
-  const { opacity, scaleXY } = LayoutAnimation.Properties;
-  const { easeInEaseOut, linear } = LayoutAnimation.Types;
+  const { scaleXY } = LayoutAnimation.Properties;
+  const { easeInEaseOut } = LayoutAnimation.Types;
 
   const animatedBackgroundColor = useRef(new Animated.Value(1)).current;
 

@@ -1,8 +1,6 @@
 import {
   Pressable,
   View,
-  Platform,
-  Keyboard,
 } from 'react-native';
 import {
   useCallback,

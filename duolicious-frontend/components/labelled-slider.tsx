@@ -14,7 +14,7 @@ import { LINEAR_SCALE } from '../scales/scales';
 
 // TODO: Range slider doesn't adjust thumb
 
-const Label = forwardRef(({}, ref) => {
+const Label = forwardRef((_, ref) => {
   const [label, setLabel] = useState('');
 
   useImperativeHandle(ref, () => ({ setLabel }), []);

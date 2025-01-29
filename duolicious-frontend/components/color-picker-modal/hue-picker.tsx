@@ -1,10 +1,8 @@
 import React, {
   forwardRef,
   useCallback,
-  useEffect,
   useImperativeHandle,
   useRef,
-  useState,
 } from 'react';
 import {
   Animated,

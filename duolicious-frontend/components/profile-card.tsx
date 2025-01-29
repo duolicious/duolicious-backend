@@ -1,5 +1,4 @@
 import {
-  Animated,
   ImageBackground as RNImageBackground,
   Platform,
   Pressable,
@@ -8,7 +7,6 @@ import {
 import {
   useEffect,
   useCallback,
-  useRef,
   useState,
   memo,
 } from 'react';
@@ -45,7 +43,6 @@ const ImageBackground = (props) => {
     style,
     transition,
     contentFit,
-    ...rest
   } = props;
 
   return (

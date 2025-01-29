@@ -5,7 +5,6 @@ import {
   forwardRef,
   useImperativeHandle,
   useRef,
-  useState,
 } from 'react';
 
 import { LabelledSlider } from './labelled-slider';

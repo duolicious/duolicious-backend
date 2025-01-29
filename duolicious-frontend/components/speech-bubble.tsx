@@ -11,8 +11,6 @@ import { longFriendlyTimestamp } from '../util/util';
 import { Image } from 'expo-image';
 import { IMAGES_URL } from '../env/env';
 
-type State = 'Read' | 'Delivered';
-
 type Props = {
   fromCurrentUser: boolean,
   timestamp: Date,

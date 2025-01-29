@@ -16,7 +16,6 @@ import { X } from "react-native-feather";
 import { ImageBackground } from "expo-image";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
-import { verificationOptionGroups } from '../data/option-groups';
 
 const Avatar = ({percentage, ...props}) => {
   const {
@@ -25,8 +24,6 @@ const Avatar = ({percentage, ...props}) => {
     imageUuid,
     imageBlurhash,
     navigation,
-    size,
-    shadow = false,
     isSkipped = false,
     verificationRequired = null,
   } = props;

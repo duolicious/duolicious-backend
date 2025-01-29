@@ -2,7 +2,6 @@ import {
   ActivityIndicator,
   Animated,
   Pressable,
-  View,
 } from 'react-native';
 import {
   useCallback,

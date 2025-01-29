@@ -3,7 +3,6 @@ import {
   Animated,
   BackHandler,
   Easing,
-  Platform,
   StatusBar,
   StyleSheet,
   View,

@@ -2,8 +2,6 @@ import React, {useState, useRef} from 'react';
 import {
   Keyboard,
   Platform,
-  Pressable,
-  StyleSheet,
   View,
 } from 'react-native';
 import {
@@ -64,12 +62,6 @@ const OtpInput = (props: Props) => {
 
   const moveFocusToIndex = (i: number) => {
     inputRefs.current[clampedInputRefsIndex(i)].focus()
-  };
-
-  const ensureFocusWithinDigits = (i: number) => {
-    if (state[i].digit === '') {
-      moveFocusToIndex(state.findIndex(digitState => digitState.digit === ''));
-    }
   };
 
   const onKeyPress = (i: number) => ({nativeEvent: {key: keyValue}}) => {

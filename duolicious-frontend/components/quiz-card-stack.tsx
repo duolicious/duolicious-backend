@@ -264,8 +264,6 @@ const addNextCardsInPlace = async (
   const targetStackSizeSlack = 5;
 
   const numRemainingCards_ = numRemainingCards(state);
-  const bottomCardIndex = state.cards.length - 1;
-  const bottomCard = state.cards[bottomCardIndex];
 
   if (numRemainingCards_ + targetStackSizeSlack > targetStackSize) {
     return;
@@ -495,7 +493,6 @@ const Prospects = ({
     </Animated.View>
   ), []);
 
-  const bestMatchPercentage = prospect1?.matchPercentage;
   const bestProspects = [
     prospect1,
     prospect2,
@@ -709,10 +706,18 @@ const QuizCardStack = (props) => {
       onTopCardChanged && onTopCardChanged();
     }
 
+    // eslint-disable-next-line react/no-this-in-sfc
     async yes () { await this.swipe('right') }
+
+    // eslint-disable-next-line react/no-this-in-sfc
     async no  () { await this.swipe('left') }
+
+    // eslint-disable-next-line react/no-this-in-sfc
     async skip() { await this.swipe('down') }
+
+    // eslint-disable-next-line react/no-this-in-sfc
     async undo() { await this.restoreCard() }
+
     canUndo() {
       return stateRef.topCardIndex > 0;
     }

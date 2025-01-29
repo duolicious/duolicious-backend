@@ -16,7 +16,6 @@ import {
   PanResponder,
   Platform,
   RegisteredStyle,
-  View,
   ViewStyle,
 } from 'react-native';
 import Animated, {
@@ -30,8 +29,6 @@ import Animated, {
 type Direction = 'left' | 'right' | 'up' | 'down' | 'none'
 type SwipeHandler = (direction: Direction) => void
 type CardLeftScreenHandler = (direction: Direction) => void
-type SwipeRequirementFufillUpdate = (direction: Direction) => void
-type SwipeRequirementUnfufillUpdate = () => void
 
 interface API {
   /**
@@ -372,11 +369,11 @@ const BaseQuizCard = forwardRef(
       PanResponder.create({
         // Ask to be the responder:
         onStartShouldSetPanResponder:
-          (evt, gestureState) => false,
+          () => false,
         onStartShouldSetPanResponderCapture:
-          (evt, gestureState) => false,
+          () => false,
         onMoveShouldSetPanResponder:
-          (evt, gestureState) => {
+          () => {
             if (!isAtStartPosition.current) {
               return false;
             }
@@ -384,14 +381,14 @@ const BaseQuizCard = forwardRef(
             return true;
           },
         onMoveShouldSetPanResponderCapture:
-          (evt, gestureState) => {
+          () => {
             if (!isAtStartPosition.current) {
               return false;
             }
             isAtStartPosition.current = false;
             return true;
           },
-        onPanResponderGrant: (evt, gestureState) => {
+        onPanResponderGrant: (evt) => {
           if (Platform.OS === 'web') {
             evt.preventDefault?.();
           }
@@ -410,7 +407,7 @@ const BaseQuizCard = forwardRef(
             immediate: true,
           })
         },
-        onPanResponderTerminationRequest: (evt, gestureState) => {
+        onPanResponderTerminationRequest: () => {
           return true;
         },
         onPanResponderRelease: (evt, gestureState) => {

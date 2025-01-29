@@ -1,10 +1,7 @@
 import {
   ActivityIndicator,
-  ListRenderItemInfo,
-  Platform,
   Pressable,
   ScrollView,
-  StatusBar,
   View,
   StyleSheet,
   SafeAreaView,
@@ -36,11 +33,10 @@ import { OptionScreen } from './option-screen';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultTextInput } from './default-text-input';
 import { SearchQuizCard } from './quiz-card';
-import { api, japi } from '../api/api';
+import { api } from '../api/api';
 import * as _ from "lodash";
 import { signedInUser } from '../App';
 import { cmToFeetInchesStr, kmToMilesStr } from '../units/units';
-import { Notice } from './notice';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { QAndADevice } from './q-and-a-device';
 
@@ -131,7 +127,7 @@ const fetchQuestionSearch = async (q: string): Promise<AnswerItem[]> => {
 
 const Stack = createNativeStackNavigator();
 
-const SearchFilterScreen = ({navigation}) => {
+const SearchFilterScreen = () => {
   return (
     <Stack.Navigator
       screenOptions={{
@@ -180,7 +176,6 @@ const SearchFilterScreen_ = ({navigation, route}) => {
     optionGroups.map(
       (
         og: OptionGroup<OptionGroupInputs>,
-        i: number
       ): OptionGroup<OptionGroupInputs> =>
         _.merge(
           {},
@@ -415,8 +410,6 @@ const SearchFilterScreen_ = ({navigation, route}) => {
 const QandQFilterScreen = ({navigation, route}) => {
   const answers: AnswerItem[] = route?.params?.answers;
   const triggerRender = route?.params?.triggerRender;
-
-  const numAnswersStr = _.isNil(answers) ? '' : ` (${answers.length})`;
 
   const [searchText, setSearchText] = useState("");
   const [searchResults, setSearchResults] = useState<AnswerItem[] | null>();

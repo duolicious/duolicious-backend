@@ -1,16 +1,3 @@
-import {
-  Animated,
-  Pressable,
-  View,
-} from 'react-native';
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  memo,
-} from 'react';
-import { DefaultText } from './default-text';
-
 import { ButtonGroup as ButtonGroup_ } from '@rneui/themed';
 
 const ButtonGroup = (props) => {

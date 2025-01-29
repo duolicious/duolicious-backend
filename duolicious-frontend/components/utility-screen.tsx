@@ -4,17 +4,9 @@ import {
   View,
 } from 'react-native';
 import {
-  useCallback,
   useMemo,
-  useState,
 } from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DefaultText } from './default-text';
-import { DefaultTextInput } from './default-text-input';
-import { OtpInput } from './otp-input';
-import { createAccountOptionGroups } from '../data/option-groups';
-import { OptionScreen } from './option-screen';
-import { japi } from '../api/api';
 import {
   randomGagMaintenanceNotice,
   randomGagUpdateNotice,

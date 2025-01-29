@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Animated, View, StyleSheet } from 'react-native';
+import { Animated, View } from 'react-native';
 import { listen } from '../events/events';
 import { RenderedHoc } from './rendered-hoc';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

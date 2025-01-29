@@ -12,7 +12,6 @@ import {
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -28,8 +27,7 @@ import { Logo16 } from './logo';
 import { KeyboardDismissingView } from './keyboard-dismissing-view';
 import { otpDestination } from '../App';
 import { signedInUser } from '../App';
-import { notify, lastEvent } from '../events/events';
-import { ClubItem, joinClub } from '../club/club';
+import { joinClub } from '../club/club';
 import { isMobile } from '../util/util';
 
 const activeMembersText = (

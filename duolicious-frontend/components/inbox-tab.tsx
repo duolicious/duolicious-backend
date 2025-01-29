@@ -2,7 +2,6 @@ import {
   ListRenderItemInfo,
   ActivityIndicator,
   Animated,
-  Pressable,
   StyleSheet,
   SafeAreaView,
   View,
@@ -14,30 +13,24 @@ import {
   useRef,
   useState,
 } from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TopNavBar } from './top-nav-bar';
 import { IntrosItem, ChatsItem } from './inbox-item';
 import { DefaultText } from './default-text';
 import { ButtonGroup } from './button-group';
-import { OptionScreen } from './option-screen';
 import { DefaultFlatList } from './default-flat-list';
 import { Inbox, Conversation, inboxStats } from '../xmpp/xmpp';
 import { compareArrays } from '../util/util';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { inboxOrder, inboxSection } from '../kv-storage/inbox';
-import { signedInUser } from '../App';
-import { Notice } from './notice';
 import { listen, lastEvent } from '../events/events';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
 import * as _ from "lodash";
 
 
-const Stack = createNativeStackNavigator();
-
 const IntrosItemMemo = memo(IntrosItem);
 const ChatsItemMemo = memo(ChatsItem);
 
-const InboxTab = ({navigation}) => {
+const InboxTab = () => {
   const maxIntros = 1000;
 
   const [sectionIndex, setSectionIndex] = useState(0);

@@ -3,19 +3,16 @@ import {
   Platform,
   StatusBar,
   UIManager,
-  View,
 } from 'react-native';
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
 import {
   DefaultTheme,
   NavigationContainer,
-  NavigationContainerRef,
   createNavigationContainerRef,
 } from '@react-navigation/native';
 
@@ -338,7 +335,7 @@ const App = () => {
     let response: Response | null = null
     try {
       response = await fetch(STATUS_URL, {cache: 'no-cache'});
-    } catch (e) {};
+    } catch (_) {};
 
     if (response === null || !response.ok) {
       // If even the status server is down, things are *very* not-okay. But odds
@@ -428,6 +425,7 @@ const App = () => {
   }, [inboxStats, setNumUnreadTitle]);
 
   if (Platform.OS === 'web') {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       const handlePopstate = (ev) => {
         ev.preventDefault();
@@ -442,6 +440,7 @@ const App = () => {
       window.addEventListener('popstate', handlePopstate);
     }, []);
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       return listen<Inbox | null>('inbox', onChangeInbox, true);
     }, [onChangeInbox]);

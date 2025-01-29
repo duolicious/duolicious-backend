@@ -9,10 +9,8 @@ import {
 } from 'react-native';
 import {
   forwardRef,
-  isValidElement,
   memo,
   useCallback,
-  useEffect,
   useImperativeHandle,
   useRef,
   useState,

@@ -5,7 +5,6 @@ import {
   forwardRef,
   useCallback,
   useImperativeHandle,
-  useRef,
   useState
 } from 'react';
 import DropDownPicker from 'react-native-dropdown-picker';

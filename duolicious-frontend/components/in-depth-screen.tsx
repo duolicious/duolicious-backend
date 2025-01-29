@@ -1,7 +1,5 @@
 import {
-  StyleProp,
   View,
-  ViewStyle,
 } from 'react-native';
 import {
   useCallback,
@@ -81,8 +79,6 @@ const Header = ({
   };
 
   const subtitle = idx1 === 0 ? answersSubtitle() : analysisSubtitle();
-
-  const determiner = name.endsWith('s') ? "'" : "'s";
 
   return (
     <>
@@ -201,7 +197,14 @@ const fetchPersonalityPage = (personId: number, m: number) => async (n: number):
   return [];
 };
 
-const InDepthScreen = (navigationRef) => ({navigation, route}) => {
+const InDepthScreen = (navigationRef) => {
+  return (props) => <CurredInDepthScreen
+     navigationRef={navigationRef}
+     {...props}
+  />;
+}
+
+const CurredInDepthScreen = ({navigationRef, navigation, route}) => {
   if (navigationRef)
     navigationRef.current = navigation;
 

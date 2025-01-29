@@ -60,7 +60,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { ClubItem, joinClub, leaveClub } from '../club/club';
 import * as _ from 'lodash';
-import { delay, friendlyTimeAgo, possessive, secToMinSec } from '../util/util';
+import { friendlyTimeAgo, possessive, secToMinSec } from '../util/util';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import {
   AUDIO_URL,
@@ -68,7 +68,7 @@ import {
 
 const Stack = createNativeStackNavigator();
 
-const ProspectProfileScreen = ({navigation, route}) => {
+const ProspectProfileScreen = () => {
   const navigationRef = useRef(undefined);
 
   const ProspectProfileScreen_ = useMemo(() => {
@@ -277,7 +277,7 @@ const FloatingProfileInteractionButton = ({
   );
 };
 
-const FloatingSkipButton = ({navigation, personId, personUuid, isSkipped}) => {
+const FloatingSkipButton = ({personUuid, isSkipped}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSkippedState, setIsSkippedState] = useState<
     boolean | undefined
@@ -415,7 +415,7 @@ const SeeQAndAButton = ({navigation, personId, name}) => {
   );
 };
 
-const BlockButton = ({navigation, name, personUuid, isSkipped}) => {
+const BlockButton = ({name, personUuid, isSkipped}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSkippedState, setIsSkippedState] = useState(false);
 
@@ -497,7 +497,7 @@ const BlockButton = ({navigation, name, personUuid, isSkipped}) => {
   );
 };
 
-const AllClubsItem = ({kind, kids, props, ...rest}) => {
+const AllClubsItem = ({kind, kids, props}) => {
   const propsWithoutKey = { ...props };
   delete propsWithoutKey['key'];
 
@@ -565,7 +565,7 @@ const AllClubs = ({
       props: { style: {color: titleColor, width: '100%'}},
       kids: 'Mutual clubs' } : null,
 
-    ...state.mutualClubs.map((clubName, i) => ({
+    ...state.mutualClubs.map((clubName) => ({
         kind: 'Club',
         props: {
           onPress: () => leaveClub(clubName),
@@ -587,7 +587,7 @@ const AllClubs = ({
         props: { style: {color: titleColor, width: '100%'}},
         kids: 'Clubs' } : null,
 
-      ...state.otherClubs.map((clubName, i) => ({
+      ...state.otherClubs.map((clubName) => ({
         kind: 'Club',
         props: {
           onPress: () => joinClub(clubName, -1, false),
@@ -729,7 +729,14 @@ const hasAnyStats = (data: UserData | null | undefined): boolean => {
   );
 };
 
-const Content = (navigationRef) => ({navigation, route, ...props}) => {
+const Content = (navigationRef) =>  {
+  return (props) => <CurriedContent
+    navigationRef={navigationRef}
+    {...props}
+  />;
+};
+
+const CurriedContent = ({navigationRef, navigation, route}) => {
   navigationRef.current = navigation;
 
   const personId = route.params.personId;
@@ -802,8 +809,6 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
 
   const imageVerification0 = imageVerifications && imageVerifications[0];
 
-  const numMorePics = Math.max(0, (imageUuids ?? []).length - 1);
-
   const animatedStyle = useAnimatedStyle(() => ({
     backgroundColor: withTiming(data?.theme?.background_color ?? '#ffffff'),
   }));
@@ -868,8 +873,6 @@ const Content = (navigationRef) => ({navigation, route, ...props}) => {
             }}
           >
             <FloatingSkipButton
-              navigation={navigation}
-              personId={data?.person_id}
               personUuid={personUuid}
               isSkipped={data?.is_skipped}
             />
@@ -1471,7 +1474,6 @@ const Body = ({
           />}
         {!isViewingSelf &&
           <BlockButton
-            navigation={navigation}
             name={data?.name}
             personUuid={personUuid}
             isSkipped={data?.is_skipped}

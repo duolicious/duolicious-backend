@@ -138,7 +138,7 @@ const ImageCropper = () => {
     })
   ).current;
 
-  const initCropArea = useCallback((width: number, height: number) => {
+  const initCropArea = useCallback(() => {
     if (!renderedImageSize.current) {
       return;
     }
@@ -157,7 +157,7 @@ const ImageCropper = () => {
   useEffect(() => {
     if (!data) return;
 
-    initCropArea(data.width, data.height);
+    initCropArea();
   }, [data, initCropArea]);
 
   useEffect(() => {

@@ -4,7 +4,6 @@ import {
   View,
 } from 'react-native';
 import {
-  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -30,7 +29,6 @@ import * as Haptics from 'expo-haptics';
 import
   Animated,
   {
-    Easing,
     SharedValue,
     runOnJS,
     runOnUI,
@@ -66,23 +64,6 @@ const EV_UPDATED_VERIFICATION = 'updated-verification';
 type Point2D = {
   x: number
   y: number
-};
-
-type ImageLayout = {
-  image: {
-    fileNumber: number
-    input: OptionGroupPhotos,
-    uri: string | null | undefined
-    resolution: number | null | undefined
-    blurhash: string | null | undefined
-    isVerified: boolean
-  }
-
-  center: Point2D
-  origin: Point2D
-
-  height: number
-  width: number
 };
 
 type Image = {
@@ -655,7 +636,7 @@ const MoveableImage = ({
     Gesture
     .Pan()
     .activateAfterLongPress(200)
-    .onStart((event) => {
+    .onStart(() => {
       scale.value = withTiming(1.1, { duration: 50 });
       runOnJS(setZIndex)(1);
       runOnJS(hapticsSelection)();
@@ -934,10 +915,8 @@ const Slot = ({
 };
 
 const FirstSlotRow = ({
-  input,
   firstFileNumber,
 }: {
-  input: OptionGroupPhotos
   firstFileNumber: number
 }) => {
   const [name, setName] = useState(lastEvent<string>('updated-name'));
@@ -979,10 +958,8 @@ const FirstSlotRow = ({
 };
 
 const SlotRow = ({
-  input,
   firstFileNumber,
 }: {
-  input: OptionGroupPhotos
   firstFileNumber: number
 }) => {
   return (
@@ -1012,14 +989,12 @@ const Images = ({
   input: OptionGroupPhotos
 }) => {
   const viewRef = useRef<View>(null);
-  const [layoutChanged, setLayoutChanged] = useState({});
+  const [, setLayoutChanged] = useState({});
   const [measurement, setMeasurement] = useState([0, 0, 0, 0]);
   const [images, setImages] = useState(
     lastEvent<Images>(EV_IMAGES) ?? {});
   const [slots, setSlots] = useState(
     lastEvent<Slots>(EV_SLOTS) ?? {});
-  const widthRef = useRef(0);
-  const heightRef = useRef(0);
 
   const [x, y] = measurement;
 
@@ -1128,9 +1103,9 @@ const Images = ({
         gap: 10,
       }}
     >
-      <FirstSlotRow input={input} firstFileNumber={1} />
-      <SlotRow      input={input} firstFileNumber={2} />
-      <SlotRow      input={input} firstFileNumber={5} />
+      <FirstSlotRow firstFileNumber={1} />
+      <SlotRow      firstFileNumber={2} />
+      <SlotRow      firstFileNumber={5} />
 
       {Object
         .entries(relativeSlots)

@@ -35,21 +35,27 @@ const hsvToRgb = (h: number, s: number, v: number) => {
 
   switch (i % 6) {
     case 0:
+      // eslint-disable-next-line no-unused-expressions
       r = v, g = t, b = p;
       break;
     case 1:
+      // eslint-disable-next-line no-unused-expressions
       r = q, g = v, b = p;
       break;
     case 2:
+      // eslint-disable-next-line no-unused-expressions
       r = p, g = v, b = t;
       break;
     case 3:
+      // eslint-disable-next-line no-unused-expressions
       r = p, g = q, b = v;
       break;
     case 4:
+      // eslint-disable-next-line no-unused-expressions
       r = t, g = p, b = v;
       break;
     case 5:
+      // eslint-disable-next-line no-unused-expressions
       r = v, g = p, b = q;
       break;
   }

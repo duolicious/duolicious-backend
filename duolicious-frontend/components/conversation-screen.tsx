@@ -354,7 +354,6 @@ const ConversationScreen = ({navigation, route}) => {
   const [isActive, setIsActive] = useState(AppState.currentState === 'active');
   const [isOnline, setIsOnline] = useState(lastEvent('xmpp-is-online') ?? false);
 
-  const [messageFetchTimeout, setMessageFetchTimeout] = useState(false);
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [lastMessageStatus, setLastMessageStatus] = useState<
     MessageStatus | null
@@ -427,7 +426,6 @@ const ConversationScreen = ({navigation, route}) => {
 
     isFetchingNextPage.current = false;
 
-    setMessageFetchTimeout(fetchedMessages === 'timeout');
     if (fetchedMessages !== 'timeout') {
       // Prevents the list from moving up to the newly added speech bubbles and
       // triggering another fetch
@@ -486,8 +484,6 @@ const ConversationScreen = ({navigation, route}) => {
       personUuid || String(personId)
     );
 
-    setMessageFetchTimeout(fetchedMessages === 'timeout');
-
     if (fetchedMessages === 'timeout') {
       return;
     }
@@ -527,7 +523,6 @@ const ConversationScreen = ({navigation, route}) => {
     // If the user navigates to the conversation screen via a deep link, but the
     // conversation screen was already open on a conversation with a different
     // person, then the screen should be cleared.
-    setMessageFetchTimeout(false);
     setMessages(null);
     setLastMessageStatus(null);
   }, [personUuid, personId]);
@@ -560,6 +555,7 @@ const ConversationScreen = ({navigation, route}) => {
   ]);
 
   if (Platform.OS === 'web') {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       const handleFocus = () => {
         markLastMessageRead();

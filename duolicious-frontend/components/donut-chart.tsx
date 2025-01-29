@@ -9,7 +9,7 @@ import {
   useRef,
 } from 'react';
 import { DefaultText } from './default-text';
-import Svg, { G, Circle } from "react-native-svg";
+import Svg, { Circle } from "react-native-svg";
 
 const DonutChart = ({percentage, ...rest}) => {
   const {

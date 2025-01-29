@@ -1,6 +1,5 @@
 import {
   Animated,
-  Linking,
   Platform,
   View,
 } from 'react-native';
@@ -13,7 +12,6 @@ import { DefaultText } from './default-text';
 import { ButtonWithCenteredText } from './button/centered-text';
 import { signedInUser } from '../App';
 import { api } from '../api/api';
-import { getRandomElement } from '../util/util';
 import * as _ from "lodash";
 import { DefaultModal } from './deafult-modal';
 
@@ -101,33 +99,22 @@ const DonationNagModal = () => {
   if (!estimatedEndDate) return null;
   if (!doShowDonationNag) return null;
 
-  const props = { name, estimatedEndDate };
-
   if (Platform.OS === 'web') {
-    return <DonationNagModalWeb { ...props } />;
+    return <DonationNagModalWeb />;
   } else {
-    return <DonationNagModalMobile { ...props } />;
+    return <DonationNagModalMobile />;
   }
 };
 
-const DonationNagModalWeb = (props: {
-  name: string
-  estimatedEndDate: Date
-}) => {
+const DonationNagModalWeb = () => {
   if (Math.random() > 0.5) {
     return null;
   } else {
-    return <MarketingDonationNagModalWeb {...props} />
+    return <MarketingDonationNagModalWeb />
   }
 };
 
-const MarketingDonationNagModalWeb = ({
-  name,
-  estimatedEndDate,
-}: {
-  name: string
-  estimatedEndDate: Date
-}) => {
+const MarketingDonationNagModalWeb = () => {
   const [gagLocationIndex, setGagLocationIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const opacity = useRef(new Animated.Value(1)).current;
@@ -297,91 +284,8 @@ const MarketingDonationNagModalWeb = ({
   );
 };
 
-const DonationNagModalMobile = ({
-  name,
-  estimatedEndDate,
-}: {
-  name: string
-  estimatedEndDate: Date
-}) => {
+const DonationNagModalMobile: React.FC = () => {
   return null;
-};
-
-const CountdownTimer = ({ targetDate }: { targetDate: Date }) => {
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-
-  const doUpdate = () => {
-    const currentTime = new Date().getTime();
-    const targetTime = targetDate.getTime();
-    const difference = targetTime - currentTime;
-
-    if (difference <= 0) {
-      setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-    } else {
-      let days = Math.floor(difference / (1000 * 60 * 60 * 24));
-      let hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      let minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-      let seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
-      // Stop at 1 day
-      if (days === 0) {
-        days = 1;
-        hours = 0;
-        minutes = 0;
-        seconds = 0;
-      }
-
-      setTimeLeft({ days, hours, minutes, seconds });
-    }
-  };
-
-  useEffect(() => {
-    doUpdate();
-
-    const intervalId = setInterval(doUpdate, 1000);
-
-    return () => clearInterval(intervalId);
-  }, [targetDate]);
-
-  // Helper function to format singular/plural
-  const formatTime = (value, unit) => {
-    return `${value} ${unit}${value !== 1 ? 's' : ''}`;
-  };
-
-  return (
-    <View
-      style={{
-        opacity: 0.9,
-        gap: 10,
-      }}
-    >
-      <DefaultText
-        style={{
-          color: 'white',
-          textAlign: 'center',
-        }}
-      >
-        Duolicious will shut down in
-      </DefaultText>
-      <DefaultText
-        style={{
-          fontWeight: 700,
-          textAlign: 'center',
-          color: 'white',
-        }}
-      >
-        {formatTime(timeLeft.days, 'day')}, {formatTime(timeLeft.hours, 'hr')}, {formatTime(timeLeft.minutes, 'min')}, {formatTime(timeLeft.seconds, 'sec')}
-      </DefaultText>
-      <DefaultText
-        style={{
-          color: 'white',
-          textAlign: 'center',
-        }}
-      >
-        without enough donations
-      </DefaultText>
-    </View>
-  );
 };
 
 export {

@@ -477,11 +477,6 @@ const Photos = forwardRef((props: InputProps<OptionGroupPhotos>, ref) => {
 
   useImperativeHandle(ref, () => ({ submit }), [submit]);
 
-  const setChildInvalid = useCallback((x: boolean) => {
-    setLastInvalidReason(errFileSize);
-    setIsInvalid(x);
-  }, []);
-
   useEffect(() => {
     props.setIsLoading(isLoading);
   }, [isLoading]);
@@ -489,8 +484,6 @@ const Photos = forwardRef((props: InputProps<OptionGroupPhotos>, ref) => {
   useEffect(() => {
     setIsInvalid(false);
   }, [uri]);
-
-  const errMessage = isNumberInvalid ? errNumber : errFileSize;
 
   return (
     <View
@@ -660,7 +653,7 @@ const CheckChips = forwardRef((props: InputProps<OptionGroupCheckChips>, ref) =>
   const [isInvalid, setIsInvalid] = useState(false);
   const inputValueRef = useRef(new Set<string>(
     props.input.checkChips.values.flatMap(
-      (checkChip, i) => checkChip.checked ? [checkChip.label] : []
+      (checkChip) => checkChip.checked ? [checkChip.label] : []
     )
   ));
 
@@ -1063,6 +1056,85 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
   );
 });
 
+const ColorPickerButton = ({
+  lastSetter,
+  currentColor,
+  setColor,
+  style = {},
+}: {
+  lastSetter: React.MutableRefObject<React.Dispatch<React.SetStateAction<string>>>,
+  currentColor: string
+  setColor: (c: string) => void,
+  style?: any,
+}) => {
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  const fadeIn = useCallback(() => {
+    Animated.timing(opacity, {
+      toValue: 0.5,
+      duration: 0,
+      useNativeDriver: false,
+    }).start();
+  }, []);
+
+  const fadeOut = useCallback(() => {
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: 150,
+      useNativeDriver: false,
+    }).start();
+  }, []);
+
+  const onPress = useCallback(() => {
+    lastSetter.current = setColor;
+    notify<ShowColorPickerEvent>('show-color-picker', currentColor);
+  }, [setColor, currentColor]);
+
+  return (
+    <Pressable
+      style={{
+        backgroundColor: 'white',
+        width: 55,
+        height: 30,
+        borderRadius: 3,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 5,
+        shadowOffset: {
+          width: 0,
+          height: 2,
+        },
+        shadowOpacity: 0.4,
+        shadowRadius: 4,
+        elevation: 4,
+        ...style,
+      }}
+      onPress={onPress}
+      onPressIn={fadeIn}
+      onPressOut={fadeOut}
+    >
+      <Animated.View
+        style={{
+          backgroundColor: currentColor,
+          width: 20,
+          height: 20,
+          borderRadius: 3,
+          borderColor: 'black',
+          borderWidth: 1,
+          opacity: opacity,
+        }}
+      />
+      <FontAwesomeIcon
+        style={{ width: 20 }}
+        icon={faCaretDown}
+        size={20}
+        color="black"
+      />
+    </Pressable>
+  );
+};
+
 const ThemePicker = forwardRef((props: InputProps<OptionGroupThemePicker>, ref) => {
   const [titleColor, setTitleColor] = useState(
     props.input.themePicker.currentTitleColor ?? '#000000');
@@ -1089,83 +1161,6 @@ const ThemePicker = forwardRef((props: InputProps<OptionGroupThemePicker>, ref) 
   useEffect(() => {
     return listen('color-picked', (c: string) => lastSetter.current(c));
   }, [lastSetter]);
-
-  const ColorPickerButton = useCallback(({
-    currentColor,
-    setColor,
-    style = {},
-  }: {
-    currentColor: string
-    setColor: (c: string) => void,
-    style?: any,
-  }) => {
-    const opacity = useRef(new Animated.Value(1)).current;
-
-    const fadeIn = useCallback(() => {
-      Animated.timing(opacity, {
-        toValue: 0.5,
-        duration: 0,
-        useNativeDriver: false,
-      }).start();
-    }, []);
-
-    const fadeOut = useCallback(() => {
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: false,
-      }).start();
-    }, []);
-
-    const onPress = useCallback(() => {
-      lastSetter.current = setColor;
-      notify<ShowColorPickerEvent>('show-color-picker', currentColor);
-    }, [setColor, currentColor]);
-
-    return (
-      <Pressable
-        style={{
-          backgroundColor: 'white',
-          width: 55,
-          height: 30,
-          borderRadius: 3,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 5,
-          shadowOffset: {
-            width: 0,
-            height: 2,
-          },
-          shadowOpacity: 0.4,
-          shadowRadius: 4,
-          elevation: 4,
-          ...style,
-        }}
-        onPress={onPress}
-        onPressIn={fadeIn}
-        onPressOut={fadeOut}
-      >
-        <Animated.View
-          style={{
-            backgroundColor: currentColor,
-            width: 20,
-            height: 20,
-            borderRadius: 3,
-            borderColor: 'black',
-            borderWidth: 1,
-            opacity: opacity,
-          }}
-        />
-        <FontAwesomeIcon
-          style={{ width: 20 }}
-          icon={faCaretDown}
-          size={20}
-          color="black"
-        />
-      </Pressable>
-    );
-  }, []);
 
   return (
     <View
@@ -1195,7 +1190,11 @@ const ThemePicker = forwardRef((props: InputProps<OptionGroupThemePicker>, ref) 
         <Title style={{ color: titleColor, marginTop: 0, marginBottom: 0 }} >
           Example Heading
         </Title>
-        <ColorPickerButton currentColor={titleColor} setColor={setTitleColor} />
+        <ColorPickerButton
+          lastSetter={lastSetter}
+          currentColor={titleColor}
+          setColor={setTitleColor}
+        />
       </View>
       <View
         style={{
@@ -1212,9 +1211,14 @@ const ThemePicker = forwardRef((props: InputProps<OptionGroupThemePicker>, ref) 
         >
           Your profile will look like this.
         </DefaultText>
-        <ColorPickerButton currentColor={bodyColor} setColor={setBodyColor} />
+        <ColorPickerButton
+          lastSetter={lastSetter}
+          currentColor={bodyColor}
+          setColor={setBodyColor}
+        />
       </View>
       <ColorPickerButton
+        lastSetter={lastSetter}
         currentColor={backgroundColor}
         setColor={setBackgroundColor}
         style={{
@@ -1300,7 +1304,6 @@ const InputElement = forwardRef((props: InputProps<OptionGroupInputs>, ref) => {
 
 const OptionScreen = ({navigation, route}) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [isValid, setIsValid] = useState(true);
 
   const [isBottom, setIsBottom] = useState(true);
   const [contentHeight, setContentHeight] = useState(0);

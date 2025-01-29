@@ -19,7 +19,6 @@ type FinalMap = {
 
 const makeWorkingMap = (
   occupancyMap: OccupancyMap,
-  fromKey: number
 ): WorkingMap => {
   const workingMap =
     Object
@@ -42,7 +41,7 @@ const workingMapToFinalMap = (
     Object
       .entries(workingMap)
       .reduce(
-        (acc, [finalKey, { startingKey, occupied }]) => {
+        (acc, [finalKey, { startingKey }]) => {
           acc[Number(startingKey)] = Number(finalKey);
           return acc;
         },
@@ -65,7 +64,7 @@ const remap = (
   fromKey: number,
   toKey: number
 ): FinalMap => {
-  const workingMap = makeWorkingMap(occupancyMap, fromKey);
+  const workingMap = makeWorkingMap(occupancyMap);
 
   if (!occupancyMap[fromKey]) {
     return workingMapToFinalMap(workingMap);

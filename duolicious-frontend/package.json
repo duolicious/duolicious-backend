@@ -7,7 +7,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --runInBand --detectOpenHandles --forceExit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
   },
   "jest": {
     "preset": "jest-expo",
@@ -75,7 +76,9 @@
     "jest-expo": "^52.0.3",
     "patch-package": "^6.5.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "eslint": "^8.57.0",
+    "eslint-config-expo": "~8.0.1"
   },
   "private": true
 }

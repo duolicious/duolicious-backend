@@ -255,10 +255,6 @@ const populateConversationList = async (
   conversationList: Conversation[],
   apiData: any,
 ): Promise<void> => {
-  const personUuids: string[] = conversationList
-    .map(c => c.personUuid)
-    .filter(isValidUuid);
-
   const personIdToInfo = apiData.reduce((obj, item) => {
     obj[item.person_id] = item;
     return obj;
@@ -441,12 +437,6 @@ const setInboxDisplayed = (fromPersonUuid: string) => {
   // We could've returned `inbox` instead of a shallow copy. But then it
   // wouldn't trigger re-renders when passed to a useState setter.
   notify<Inbox>('inbox', {...inbox});
-};
-
-const select1 = (query: string, stanza: Element): xpath.SelectedValue => {
-  const stanzaString = stanza.toString();
-  const doc = new DOMParser().parseFromString(stanzaString, 'text/xml');
-  return xpath.select1(query, doc);
 };
 
 const login = async (
@@ -776,7 +766,7 @@ const onReceiveMessage = (
       to: to.toString(),
       id: id.toString(),
       timestamp: stamp.toString() ? new Date(stamp.toString()) : new Date(),
-      fromCurrentUser: bareFrom == signedInUser?.personUuid,
+      fromCurrentUser: bareFrom === signedInUser?.personUuid,
     };
 
     await setInboxRecieved(
@@ -1156,23 +1146,23 @@ const _pingServer = (resolve: (result: Pong | null | 'timeout') => void) => {
 
   const listenerRemovers: (() => void)[] = [];
 
-  const removeListners = () => listenerRemovers.forEach(lr => lr());
+  const removeListeners = () => listenerRemovers.forEach(lr => lr());
 
   const stanza = parse('<duo_ping />');
 
   const resolveTimeout = () => {
     resolve('timeout');
-    removeListners();
+    removeListeners();
   };
 
-  const timeout = setTimeout(() => resolve('timeout'), pingTimeout);
+  const timeout = setTimeout(resolveTimeout, pingTimeout);
 
   const maybeClearPingTimeout = (input: string) => {
     let stanza: Element | null = null;
 
     try {
       stanza = parse(input);
-    } catch (e) {
+    } catch (_) {
       return;
     }
 
@@ -1187,7 +1177,7 @@ const _pingServer = (resolve: (result: Pong | null | 'timeout') => void) => {
 
     clearTimeout(timeout);
     resolve(duo_pong);
-    removeListners();
+    removeListeners();
   };
 
   listenerRemovers.push(listen<string>('xmpp-input', maybeClearPingTimeout));

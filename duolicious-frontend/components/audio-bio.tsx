@@ -1,12 +1,8 @@
 import {
   View,
-  StyleSheet,
-  SafeAreaView,
 } from 'react-native';
 import {
-  useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';

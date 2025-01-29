@@ -1,15 +1,12 @@
 import React, {
   forwardRef,
   useCallback,
-  useEffect,
   useImperativeHandle,
   useRef,
-  useState,
 } from 'react';
 import {
   Animated,
   View,
-  TouchableWithoutFeedback,
   PanResponder,
   StyleSheet,
   ViewStyle,
@@ -19,7 +16,6 @@ import {
 } from 'expo-linear-gradient';
 import {
   clamp,
-  hsvToHex,
 } from './util';
 
 type SaturationValuePickerRef = {
@@ -93,16 +89,6 @@ const SaturationValuePicker = forwardRef<
     inputRange: [0, size],
     outputRange: ['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 1)'],
   });
-
-  const computeSatVal = (locationX: number, locationY: number) => ({
-    saturation: clamp(locationX / size),
-    value: 1 - clamp(locationY / size),
-  });
-
-  const getCurrentColor = useCallback(
-    () => hsvToHex(hue.current, baseSliderXY.current.x, baseSliderXY.current.y),
-    [hue, baseSliderXY]
-  );
 
   const getHue = useCallback(
     () => hue.current, [hue]);

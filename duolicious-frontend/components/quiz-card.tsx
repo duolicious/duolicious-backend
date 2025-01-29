@@ -13,7 +13,7 @@ import {
   useCallback,
   useState,
 } from 'react';
-import CheckBox, { StatelessCheckBox } from './check-box';
+import { StatelessCheckBox } from './check-box';
 import { BaseQuizCard } from './base-quiz-card';
 import { DefaultText } from './default-text';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -232,7 +232,6 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
     fontSize,
     maxFontSize,
     answerPubliclyValue,
-    answerPubliclyInitialValue,
     onChangeAnswerPublicly,
     questionNumber,
     topic,
@@ -896,7 +895,6 @@ const SearchQuizCard = ({
 
   return (
     <NonInteractiveQuizCard
-      answerPubliclyInitialValue={true}
       questionNumber={questionNumber}
       topic={topic}
       containerStyle={{
@@ -918,10 +916,6 @@ const SearchQuizCard = ({
     </NonInteractiveQuizCard>
   );
 };
-
-type BottomQuizCardProps = {
-  status: "loading" | "no-more-cards"
-}
 
 const SkeletonQuizCard = (props) => {
   return (

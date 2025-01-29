@@ -1,13 +1,8 @@
 import {
-  Platform,
-} from 'react-native';
-import {
   API_URL,
 } from '../env/env';
 import * as _ from "lodash";
 import { sessionToken } from '../kv-storage/session-token';
-import { Buffer } from "buffer";
-import { NonNullImageCropperOutput } from '../components/image-cropper';
 import { delay } from '../util/util';
 import { notify } from '../events/events';
 import { ValidationErrorToast, SOMETHING_WENT_WRONG } from '../components/toast';

@@ -1,41 +1,20 @@
 import {
-  ActivityIndicator,
   Animated,
-  Image,
   Pressable,
   View,
 } from 'react-native';
 import {
   useCallback,
   useEffect,
-  useState,
   useRef,
 } from 'react';
 import { DefaultText } from './default-text';
 import { Avatar } from './avatar';
 import { useNavigation } from '@react-navigation/native';
 import { friendlyTimestamp } from '../util/util';
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
-import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
-import { Flag, X } from "react-native-feather";
 import { listen } from '../events/events';
-import { signedInUser } from '../App';
 import { setConversationArchived } from '../xmpp/xmpp';
 import { VerificationBadge } from './verification-badge';
-
-const introVerb = (msg: string) => {
-  return (
-    msg.includes('?') ||
-    msg.toLowerCase().startsWith('who ') ||
-    msg.toLowerCase().startsWith('where ') ||
-    msg.toLowerCase().startsWith('when ') ||
-    msg.toLowerCase().startsWith('why ') ||
-    msg.toLowerCase().startsWith('what ') ||
-    msg.toLowerCase().startsWith('how ')
-  )
-  ? 'asks'
-  : 'says';
-};
 
 const IntrosItem = ({
   wasRead,
@@ -45,9 +24,6 @@ const IntrosItem = ({
   imageUuid,
   imageBlurhash,
   matchPercentage,
-  lastMessage,
-  lastMessageTimestamp,
-  isAvailableUser,
   isVerified,
 }: {
   wasRead: boolean

@@ -1,7 +1,6 @@
 import {
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBarSpacer } from './status-bar-spacer';
 import { DefaultText } from './default-text';
 import { Logo16 } from './logo';

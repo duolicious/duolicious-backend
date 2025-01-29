@@ -2,16 +2,13 @@ import {
   ActivityIndicator,
   Pressable,
   ScrollView,
-  StyleProp,
   TextInput,
   View,
-  ViewStyle,
   StyleSheet,
   SafeAreaView,
 } from 'react-native';
 import {
   useCallback,
-  useEffect,
   useState,
 } from 'react';
 import { DefaultText } from './default-text';
@@ -25,11 +22,6 @@ import { api } from '../api/api';
 import { useFocusEffect } from '@react-navigation/native';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
 import { WEB_BASE_URL } from '../env/env';
-
-const sideMargins: StyleProp<ViewStyle> = {
-  marginLeft: 10,
-  marginRight: 10,
-};
 
 const ShareNotice = ({personId}) => {
   const [isCopied, setIsCopied] = useState(false);
