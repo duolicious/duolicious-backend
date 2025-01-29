@@ -3003,7 +3003,6 @@ VALUES
     ('xenophobic'),
     ('yappie litle fuck'),
     ('yappie little fuck'),
-    ('yordle fucker'),
     ('you hate me because i was raped'),
     ('youhatemebecauseiwasraped'),
     ('you should hang myself'),
