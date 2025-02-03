@@ -656,42 +656,6 @@ WITH onboardee_country AS (
     FROM onboardee_photo
     JOIN new_person
     ON onboardee_photo.email = new_person.email
-), new_question_order_map AS (
-    WITH
-    row_to_shuffle AS (
-      SELECT id
-      FROM question
-      WHERE id > 100
-      ORDER BY RANDOM()
-      LIMIT (SELECT ROUND(0.2 * COUNT(*)) FROM question)
-    ), shuffled_src_to_dst_position AS (
-      SELECT
-        a.id AS src_position,
-        b.id AS dst_position
-      FROM (SELECT *, ROW_NUMBER() OVER(ORDER BY RANDOM()) FROM row_to_shuffle) AS a
-      JOIN (SELECT *, ROW_NUMBER() OVER(ORDER BY RANDOM()) FROM row_to_shuffle) AS b
-      ON a.row_number = b.row_number
-    ), identity_src_to_dst_position AS (
-      SELECT
-        id AS src_position,
-        id AS dst_position
-      FROM question
-      WHERE id NOT IN (SELECT src_position FROM shuffled_src_to_dst_position)
-    )
-    (SELECT * FROM identity_src_to_dst_position)
-    UNION
-    (SELECT * FROM shuffled_src_to_dst_position)
-), new_question_order AS (
-    INSERT INTO question_order (
-        person_id,
-        question_id,
-        position
-    ) SELECT
-        new_person.id,
-        new_question_order_map.src_position,
-        new_question_order_map.dst_position
-    FROM new_person
-    CROSS JOIN new_question_order_map
 ), updated_session AS (
     UPDATE duo_session
     SET person_id = new_person.id
