@@ -18,33 +18,32 @@ _questions_text_file = os.path.join(
         'questions', 'questions.txt')
 
 Q_GET_NEXT_QUESTIONS = """
-WITH
-personal_question_order AS (
-    SELECT
-        question_id,
-        position
-    FROM question_order
-    WHERE person_id = %(person_id)s
-),
-answered_questions AS (
-    SELECT question_id
-    FROM answer
-    WHERE person_id = %(person_id)s
-)
 SELECT
-    id,
-    question,
-    topic,
-    count_yes,
-    count_no
-FROM question
-JOIN personal_question_order
-ON question.id = personal_question_order.question_id
+    question.id,
+    question.question,
+    question.topic,
+    question.count_yes,
+    question.count_no
+FROM
+    question
+LEFT JOIN
+    answer
+ON
+    answer.question_id = question.id
+AND
+    answer.person_id = %(person_id)s
 WHERE
-    question_id NOT IN (SELECT question_id FROM answered_questions)
-ORDER BY personal_question_order.position
-LIMIT %(n)s
-OFFSET %(o)s
+    answer.question_id IS NULL
+ORDER BY
+    CASE
+        WHEN question.id <= 10
+        THEN LPAD(question.id::text, 5, '0')
+        ELSE MD5 (question.id::text || ' ' || %(person_id)s::text)
+    END
+LIMIT
+    %(n)s
+OFFSET
+    %(o)s;
 """
 
 Q_GET_SEARCH_FILTER_QUESTIONS = """
