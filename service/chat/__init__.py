@@ -38,7 +38,7 @@ class IntroRateLimit(Enum):
     NONE = 0
     UNVERIFIED = 10
     BASICS = 20
-    PHOTOS = 100
+    PHOTOS = 50
 
 # TODO: Tables to migrate to monolithic DB:
 #
