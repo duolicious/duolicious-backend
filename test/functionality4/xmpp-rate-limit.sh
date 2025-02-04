@@ -221,6 +221,6 @@ test_rate_limit \
   '<duo_message_blocked id="id999" reason="rate-limited-1day" subreason="unverified-photos"/>'
 
 test_rate_limit \
-  100 \
+  50 \
   3 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day"/>'

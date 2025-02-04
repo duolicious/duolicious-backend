@@ -80,6 +80,16 @@ class TestNormalizeString(unittest.TestCase):
 
         self.assertEqual(normalize_string("r@ping"), "raping")
 
+        self.assertEqual(normalize_string("rapng"), "raping")
+
+        self.assertEqual(normalize_string("an4l"), "anal")
+
+        self.assertEqual(normalize_string("nggrs"), "niggers")
+
+        self.assertEqual(normalize_string("fаббoтs"), "faggots")
+
+        self.assertEqual(normalize_string("ahole"), "asshole")
+
 
 if __name__ == '__main__':
     unittest.main()
