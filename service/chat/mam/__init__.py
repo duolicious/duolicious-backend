@@ -28,7 +28,9 @@ INSERT INTO
     mam_server_user (server, user_name)
 VALUES
     ('duolicious.app', %(user_name)s)
+ON CONFLICT (server, user_name) DO NOTHING
 """
+
 
 # TODO: How to handle `id` collisions if two messages arrived in the same millisecond?
 Q_INSERT_MESSAGE = """
@@ -70,6 +72,7 @@ VALUES
     ),
 )
 """
+
 
 Q_SELECT_MESSAGE = """
 WITH page AS (
@@ -268,6 +271,11 @@ async def _get_conversation(
                 iq_element, encoding='unicode', pretty_print=False))
 
     return messages
+
+
+async def insert_server_user(username: str):
+    async with asyncdatabase.chat_tx() as tx:
+        await tx.execute(Q_INSERT_SERVER_USER, dict(user_name=username))
 
 
 """

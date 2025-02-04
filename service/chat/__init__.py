@@ -28,6 +28,7 @@ from service.chat.inbox import (
     upsert_conversation,
 )
 from service.chat.mam import (
+    insert_server_user,
     maybe_get_conversation,
 )
 from duohash import sha512
@@ -559,9 +560,13 @@ async def process(src, dst, username):
         async for message in src:
             parsed_xml = parse_xml_or_none(message)
 
-            if await process_auth(parsed_xml, username):
+            if not await process_auth(parsed_xml, username):
+                pass
+            elif username.username:
                 update_last_task = asyncio.create_task(
                         update_last_forever(username))
+
+                await insert_server_user(username.username)
 
             to_src, to_dst = await process_duo_message(
                     message,
