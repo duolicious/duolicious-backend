@@ -4,7 +4,10 @@ from dataclasses import dataclass
 from lxml import etree
 from typing import Optional, List
 import database
-import datetime
+from service.chat.util import (
+    build_element,
+    format_timestamp,
+)
 
 
 LSERVER = 'duolicious.app'
@@ -151,31 +154,11 @@ async def _get_inbox(query_id: str, username: str) -> List[str]:
     :param username: The username of the user.
     :return: A list of XML strings representing each message.
     """
-
-    def build_element(tag: str, text: str = None, attrib: dict = None, ns: str = None) -> etree.Element:
-        """
-        Helper function to create an XML element.
-        """
-        element = etree.Element(tag, nsmap={None: ns} if ns else None)
-        if attrib:
-            element.attrib.update(attrib)
-        if text is not None:
-            element.text = text
-        return element
-
-    def format_timestamp(microseconds: int) -> str:
-        """
-        Converts a timestamp in microseconds to an ISO 8601 string.
-        """
-        timestamp_sec = microseconds / 1e6  # Convert microseconds to seconds
-        dt = datetime.datetime.utcfromtimestamp(timestamp_sec)
-        return dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-
     async with asyncdatabase.chat_tx('read committed') as tx:
         await tx.execute(Q_GET_INBOX, dict(username=username))
         rows = await tx.fetchall()
 
-    messages = []
+    messages: list[str] = []
     for row in rows:
         try:
             # Parse the content
@@ -228,7 +211,12 @@ async def _get_inbox(query_id: str, username: str) -> List[str]:
             print(f"Error processing row: {e}")
             continue
 
-    messages.append(f"<iq id='{query_id}' type='result'><fin/></iq>")
+    iq_element = build_element('iq', attrib=dict(id=query_id, type='result'))
+    iq_element.append(build_element('fin'))
+
+    messages.append(
+            etree.tostring(
+                iq_element, encoding='unicode', pretty_print=False))
 
     return messages
 

@@ -33,6 +33,3 @@ PGPASSWORD=$DUO_DB_PASS psql \
   -f /init.sql
 
 touch /db-initialized
-
-envsubst < /mongooseim.template.toml > /tmp/out.toml
-mv /tmp/out.toml /usr/lib/mongooseim/etc/mongooseim.toml

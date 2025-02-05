@@ -27,9 +27,16 @@ from service.chat.inbox import (
     maybe_mark_displayed,
     upsert_conversation,
 )
+from service.chat.mam import (
+    insert_server_user,
+    maybe_get_conversation,
+)
 from duohash import sha512
 from lxml import etree
 from enum import Enum
+from service.chat.util import (
+    to_bare_jid,
+)
 
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
@@ -214,12 +221,6 @@ MAX_MESSAGE_LEN = 5000
 
 NON_ALPHANUMERIC_RE = regex.compile(r'[^\p{L}\p{N}]')
 REPEATED_CHARACTERS_RE = regex.compile(r'(.)\1{1,}')
-
-def to_bare_jid(jid: str | None):
-    try:
-        return jid.split('@')[0]
-    except:
-        return None
 
 async def send_notification(
     from_name: str | None,
@@ -441,6 +442,10 @@ async def process_duo_message(
     if not username:
         return [], [xml_str]
 
+    maybe_conversation = await maybe_get_conversation(parsed_xml, username)
+    if maybe_conversation:
+        return maybe_conversation, []
+
     maybe_inbox = await maybe_get_inbox(parsed_xml, username)
     if maybe_inbox:
         return maybe_inbox, []
@@ -534,6 +539,12 @@ async def process_duo_message(
             },
         )
 
+    store_message(
+        maybe_message_body,
+        from_username=from_username,
+        to_username=to_username,
+        msg_id=id)
+
     set_messaged(from_id=from_id, to_id=to_id)
 
     upsert_conversation(
@@ -555,9 +566,13 @@ async def process(src, dst, username):
         async for message in src:
             parsed_xml = parse_xml_or_none(message)
 
-            if await process_auth(parsed_xml, username):
+            if not await process_auth(parsed_xml, username):
+                pass
+            elif username.username:
                 update_last_task = asyncio.create_task(
                         update_last_forever(username))
+
+                await insert_server_user(username.username)
 
             to_src, to_dst = await process_duo_message(
                     message,
