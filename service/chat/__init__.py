@@ -30,6 +30,7 @@ from service.chat.inbox import (
 from service.chat.mam import (
     insert_server_user,
     maybe_get_conversation,
+    store_message,
 )
 from duohash import sha512
 from lxml import etree
@@ -37,6 +38,7 @@ from enum import Enum
 from service.chat.util import (
     to_bare_jid,
 )
+import uuid
 
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
@@ -279,10 +281,13 @@ def get_message_attrs(parsed_xml):
         assert _id is not None
         assert len(_id) <= 250
 
-        to = parsed_xml.attrib.get('to')
-        assert to is not None
+        to_jid = parsed_xml.attrib.get('to')
 
-        return True, _id, to, maybe_message_body
+        to_bare_jid_ = to_bare_jid(parsed_xml.attrib.get('to'))
+
+        to_username = str(uuid.UUID(to_bare_jid_))
+
+        return True, _id, to_username, maybe_message_body
     except Exception as e:
         pass
 
@@ -325,6 +330,9 @@ async def process_auth(parsed_xml, username):
         decodedString = decodedBytes.decode('utf-8')
 
         _, auth_username, auth_token = decodedString.split('\0')
+
+        # Validates that `auth_username` is a valid UUID
+        uuid.UUID(auth_username)
 
         auth_token_hash = sha512(auth_token)
 
@@ -453,10 +461,9 @@ async def process_duo_message(
     if maybe_mark_displayed(parsed_xml, username):
         return [], []
 
-    is_message, id, to_jid, maybe_message_body = get_message_attrs(parsed_xml)
+    is_message, id, to_username, maybe_message_body = get_message_attrs(parsed_xml)
 
     from_username = username
-    to_username = to_bare_jid(to_jid)
 
     if not is_message:
         return [], [xml_str]
@@ -538,6 +545,12 @@ async def process_duo_message(
                 },
             },
         )
+
+    store_message(
+        maybe_message_body,
+        from_username=from_username,
+        to_username=to_username,
+        msg_id=id)
 
     set_messaged(from_id=from_id, to_id=to_id)
 

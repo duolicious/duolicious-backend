@@ -1,6 +1,10 @@
 from lxml import etree
 import datetime
 
+
+LSERVER = 'duolicious.app'
+
+
 def build_element(tag: str, text: str = None, attrib: dict = None, ns: str = None) -> etree.Element:
     """
     Helper function to create an XML element.

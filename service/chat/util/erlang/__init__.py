@@ -1,9 +1,11 @@
 from lxml import etree
 from erlastic import Atom
 
+
 def decode(value):
     """Decode bytes to a UTF-8 string, if necessary."""
     return value.decode('utf8') if isinstance(value, bytes) else value
+
 
 def process_attributes(attrs):
     """
@@ -21,6 +23,7 @@ def process_attributes(attrs):
         else:
             attrib[key] = value
     return nsmap, attrib
+
 
 def add_child_to_element(element, child, last_child):
     """
@@ -41,6 +44,7 @@ def add_child_to_element(element, child, last_child):
         element.append(child_elem)
         return child_elem
     return last_child
+
 
 def term_to_etree(node):
     """
@@ -68,9 +72,46 @@ def term_to_etree(node):
         last_child = add_child_to_element(element, child, last_child)
     return element
 
-def term_to_xml_string(structure):
+
+def etree_to_term(element):
     """
-    Convert the tuple-based structure into an lxml element and return its XML string.
+    Convert an lxml.etree.Element into an erlastic/Erlang term.
+
+    The term is structured as:
+      (Atom('xmlel'), tag, attributes, children)
+
+    Where:
+      - tag is a string,
+      - attributes is a list of (key, value) tuples. 
+        If a default namespace is present, an attribute ('xmlns', value)
+        is added.
+      - children is a list of nodes; each node is either an element term 
+        (as above) or a text node represented as (Atom('xmlcdata'), text).
+
+    The children list is built by interleaving the element’s .text,
+    each child element (converted recursively), and each child’s .tail.
     """
-    root = term_to_etree(structure)
-    return etree.tostring(root, encoding='unicode', pretty_print=False)
+    # Build the attributes list.
+    attrs = []
+    # If a default namespace is defined in nsmap, include it as 'xmlns'
+    if element.nsmap and None in element.nsmap:
+        attrs.append(('xmlns', element.nsmap[None]))
+    # Add all regular attributes.
+    for key, value in element.attrib.items():
+        attrs.append((key, value))
+
+    # Build the children list.
+    children = []
+    # Add the element's text (if any) as a CDATA node.
+    if element.text:
+        children.append((Atom('xmlcdata'), element.text))
+
+    # Process each child element.
+    for child in element:
+        # Add the child element (recursively converted).
+        children.append(etree_to_term(child))
+        # If the child element has a tail text, add that as a CDATA node.
+        if child.tail:
+            children.append((Atom('xmlcdata'), child.tail))
+
+    return (Atom('xmlel'), element.tag, attrs, children)

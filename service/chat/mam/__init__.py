@@ -7,10 +7,12 @@ from database import asyncdatabase
 import database
 import erlastic
 from service.chat.util import (
+    LSERVER,
     build_element,
     to_bare_jid,
 )
 from service.chat.util.erlang import (
+    etree_to_term,
     term_to_etree,
 )
 import datetime
@@ -23,16 +25,19 @@ import uuid
 
 # TODO: When fetching conversations, be careful about JIDs and bare JIDs
 
-Q_INSERT_SERVER_USER = """
+# TODO: Do I need to deal with message read indicators?
+
+Q_INSERT_SERVER_USER = f"""
 INSERT INTO
     mam_server_user (server, user_name)
 VALUES
-    ('duolicious.app', %(user_name)s)
+    ('{LSERVER}', %(user_name)s)
 ON CONFLICT (server, user_name) DO NOTHING
 """
 
 
-# TODO: How to handle `id` collisions if two messages arrived in the same millisecond?
+# TODO: How to handle `id` collisions if two messages arrived in the same
+# millisecond? Maybe add `ON CONFLICT` with a new random ID
 Q_INSERT_MESSAGE = """
 INSERT INTO
     mam_message (
@@ -69,8 +74,7 @@ VALUES
         %(message)s,
         %(search_body)s,
         NULL
-    ),
-)
+    )
 """
 
 
@@ -116,7 +120,16 @@ class Query:
     before: str | None
 
 
-def process_query(
+@dataclass(frozen=True)
+class Message:
+    message_body: str
+    timestamp_microseconds: int
+    from_username: str
+    to_username: str
+    id: str
+
+
+def _process_query(
     parsed_xml: Optional[etree._Element],
     from_username: str
 ) -> Optional[Query]:
@@ -140,13 +153,13 @@ def process_query(
 
     return Query(
         query_id=query_id,
-        from_username=from_username,
-        to_username=to_username,
+        from_username=to_bare_jid(from_username),
+        to_username=to_bare_jid(to_username),
         before=before_value
     )
 
 
-def forwarded_element(
+def _forwarded_element(
     message: etree.Element,
     query: Query,
     row_id: int,
@@ -156,7 +169,7 @@ def forwarded_element(
         'delay',
         attrib={
             'stamp': mam_message_id_to_timestamp(row_id),
-            'from': query.from_username,
+            'from': f'{query.from_username}@{LSERVER}',
         },
         ns='urn:xmpp:delay',
     )
@@ -182,8 +195,8 @@ def forwarded_element(
     forwarded_message = build_element(
         'message',
         attrib={
-            'from': query.from_username,
-            'to': query.to_username,
+            'from': f'{query.from_username}@{LSERVER}',
+            'to': f'{query.to_username}@{LSERVER}',
             'id': forwarded_id,
         },
         ns='jabber:client',
@@ -201,7 +214,7 @@ async def maybe_get_conversation(
     if parsed_xml is None:
         return []
 
-    query = process_query(parsed_xml, from_username=from_username)
+    query = _process_query(parsed_xml, from_username=from_username)
 
     if not query:
         return None
@@ -211,6 +224,52 @@ async def maybe_get_conversation(
         from_username=from_username,
         to_username=to_bare_jid(query.to_username)
     )
+
+
+def store_message(
+    message_body: str,
+    from_username: str,
+    to_username: str,
+    msg_id: str
+):
+    timestamp = datetime.datetime.now().timestamp()
+
+    message = Message(
+        message_body=message_body,
+        timestamp_microseconds=int(timestamp * 1_000_000),
+        from_username=from_username,
+        to_username=to_username,
+        id=msg_id,
+    )
+
+    print('enqueuing message', message)
+
+    _store_message_batcher.enqueue(message)
+
+
+def _process_store_message_batch(batch: List[Message]):
+    params_seq = [
+        dict(
+            id=microseconds_to_mam_message_id(message.timestamp_microseconds),
+            to_username=message.to_username,
+            from_username=message.from_username,
+            message=erlastic.encode(
+                etree_to_term(
+                    message_to_etree(
+                        message_body=message.message_body,
+                        to_username=message.to_username,
+                        from_username=message.from_username,
+                        id=message.id,
+                    )
+                )
+            ),
+            search_body=normalize_search_text(message.message_body),
+        )
+        for message in batch
+    ]
+
+    with database.chat_tx('read committed') as tx:
+        tx.executemany(Q_INSERT_MESSAGE, params_seq)
 
 
 async def _get_conversation(
@@ -244,7 +303,7 @@ async def _get_conversation(
         except:
             continue
 
-        forwarded_etree = forwarded_element(
+        forwarded_etree = _forwarded_element(
             message=message_etree,
             query=query,
             row_id=row_id,
@@ -278,73 +337,6 @@ async def insert_server_user(username: str):
         await tx.execute(Q_INSERT_SERVER_USER, dict(user_name=username))
 
 
-"""
-    <iq type='set' id='${queryId}'>
-      <query xmlns='urn:xmpp:mam:2' queryid='${queryId}'>
-        <x xmlns='jabber:x:data' type='submit'>
-          <field var='FORM_TYPE'>
-            <value>urn:xmpp:mam:2</value>
-          </field>
-          <field var='with'>
-            <value>${personUuidToJid(withPersonUuid)}</value>
-          </field>
-        </x>
-        <set xmlns='http://jabber.org/protocol/rsm'>
-          <max>50</max>
-          <before>${beforeId}</before>
-        </set>
-      </query>
-    </iq>
-"""
-
-"""
-<message
-    type='chat'
-    from='$user3uuid@duolicious.app'
-    to='$user1uuid@duolicious.app'
-    id='id3'
-    check_uniqueness='false'
-    xmlns='jabber:client'>
-  <body>message will be sent with no notification</body>
-  <request xmlns='urn:xmpp:receipts'/>
-</message>
-"""
-
-"""
-CREATE TABLE mam_message(
-  -- Message UID (64 bits)
-  -- A server-assigned UID that MUST be unique within the archive.
-  id BIGINT NOT NULL,
-
-  user_id INT NOT NULL,
-
-  -- FromJID used to form a message without looking into stanza.
-  -- This value will be send to the client "as is".
-  from_jid varchar(250) NOT NULL,
-
-  -- The remote JID that the stanza is to (for an outgoing message) or from (for an incoming message).
-  -- This field is for sorting and filtering.
-  remote_bare_jid varchar(250) NOT NULL,
-
-  remote_resource varchar(250) NOT NULL,
-
-  -- I - incoming, remote_jid is a value from From.
-  -- O - outgoing, remote_jid is a value from To.
-  -- Has no meaning for MUC-rooms.
-  direction mam_direction NOT NULL,
-
-  -- Term-encoded message packet
-  message bytea NOT NULL,
-
-  search_body text,
-
-  origin_id varchar,
-
-  PRIMARY KEY(user_id, id)
-);
-"""
-
-
 def microseconds_to_mam_message_id(microseconds: int):
     return microseconds << 8
 
@@ -358,7 +350,8 @@ def microseconds_to_timestamp(microseconds):
     seconds = microseconds / 1_000_000
     # Create a UTC datetime object.
     dt = datetime.datetime.utcfromtimestamp(seconds)
-    # Format the datetime to the desired ISO 8601 format with microseconds and a trailing 'Z'.
+    # Format the datetime to the desired ISO 8601 format with microseconds and a
+    # trailing 'Z'.
     return dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
 
@@ -406,10 +399,47 @@ def normalize_search_text(text: str | None) -> str | None:
     # Step 1: Replace certain punctuations with a single space
     re0 = re.sub(r"[, .:;\-?!]+", " ", lower_body, flags=re.UNICODE)
 
-    # Step 2: Remove non-word characters at the start and end of the string, or entirely non-word characters
+    # Step 2: Remove non-word characters at the start and end of the string, or
+    # entirely non-word characters
     re1 = re.sub(r"([^\w ]+)|(^\s+)|(\s+$)", "", re0, flags=re.UNICODE)
 
     # Step 3: Replace multiple spaces with the word separator
     re2 = re.sub(r"\s+", ' ', re1, flags=re.UNICODE)
 
     return re2
+
+
+def message_to_etree(
+    message_body: str,
+    to_username: str,
+    from_username: str,
+    id: str,
+) -> str:
+    message_etree = build_element(
+        'message',
+        attrib={
+            'from': f'{from_username}@{LSERVER}',
+            'to': f'{to_username}@{LSERVER}',
+            'type': 'chat',
+            'id': id,
+        },
+        ns='jabber:client',
+    )
+
+    body = build_element('body', text=message_body)
+
+    message_etree.extend([body])
+
+    return message_etree
+
+
+_store_message_batcher = Batcher[Message](
+    process_fn=_process_store_message_batch,
+    flush_interval=1.0,
+    min_batch_size=1,
+    max_batch_size=1000,
+    retry=False,
+)
+
+
+_store_message_batcher.start()

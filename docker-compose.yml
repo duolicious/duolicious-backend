@@ -84,7 +84,7 @@ services:
       - ./database/__init__.py:/app/database/__init__.py:ro
       - ./database/asyncdatabase/__init__.py:/app/database/asyncdatabase/__init__.py:ro
       - ./service/chat:/app/service/chat:ro
-      - ./service/chat/container/mongooseim.toml:/mongooseim.template.toml:ro
+      - ./service/chat/container/mongooseim.toml:/usr/lib/mongooseim/etc/mongooseim.toml:ro
       - ./service/chat/container/init.sql:/init.sql:ro
       - ./service/chat/container/init-db.sh:/init-db.sh:ro
       - ./chat.main.sh:/app/chat.main.sh:ro
