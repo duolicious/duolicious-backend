@@ -539,6 +539,12 @@ async def process_duo_message(
             },
         )
 
+    store_message(
+        maybe_message_body,
+        from_username=from_username,
+        to_username=to_username,
+        msg_id=id)
+
     set_messaged(from_id=from_id, to_id=to_id)
 
     upsert_conversation(

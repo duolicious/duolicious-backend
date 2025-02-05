@@ -23,6 +23,8 @@ import uuid
 
 # TODO: When fetching conversations, be careful about JIDs and bare JIDs
 
+# TODO: Do I need to deal with message read indicators?
+
 Q_INSERT_SERVER_USER = """
 INSERT INTO
     mam_server_user (server, user_name)
@@ -32,7 +34,8 @@ ON CONFLICT (server, user_name) DO NOTHING
 """
 
 
-# TODO: How to handle `id` collisions if two messages arrived in the same millisecond?
+# TODO: How to handle `id` collisions if two messages arrived in the same
+# millisecond? Maybe add `ON CONFLICT` with a new random ID
 Q_INSERT_MESSAGE = """
 INSERT INTO
     mam_message (
@@ -116,7 +119,16 @@ class Query:
     before: str | None
 
 
-def process_query(
+@dataclass(frozen=True)
+class Message:
+    message_body: str
+    timestamp: datetime.datetime
+    from_username: str
+    to_username: str
+    id: str
+
+
+def _process_query(
     parsed_xml: Optional[etree._Element],
     from_username: str
 ) -> Optional[Query]:
@@ -146,7 +158,7 @@ def process_query(
     )
 
 
-def forwarded_element(
+def _forwarded_element(
     message: etree.Element,
     query: Query,
     row_id: int,
@@ -201,7 +213,7 @@ async def maybe_get_conversation(
     if parsed_xml is None:
         return []
 
-    query = process_query(parsed_xml, from_username=from_username)
+    query = _process_query(parsed_xml, from_username=from_username)
 
     if not query:
         return None
@@ -211,6 +223,44 @@ async def maybe_get_conversation(
         from_username=from_username,
         to_username=to_bare_jid(query.to_username)
     )
+
+
+def store_message(
+    message_body: str,
+    from_username: str,
+    to_username: str,
+    msg_id: str
+):
+    message = Message(
+        message_body=message_body,
+        timestamp=datetime.datetime(),
+        from_username=from_username,
+        to_username=to_username,
+        id=msg_id,
+    )
+
+    _store_message_batcher.enqueue(message)
+
+
+def _process_store_message_batch(batch: List[Message]):
+    params_seq = [
+        dict(
+            id=microseconds_to_mam_message_id(message.timestamp * 1_000_000),  # TODO
+            to_username=message.to_username,
+            from_username=message.from_username,
+            message=message_to_xml(
+                message_body=message.message_body,
+                to_username=message.to_username,
+                from_username=message.from_username,
+                id=message.id,
+            ),
+            search_body=normalize_search_text(message.message_body),
+        )
+        for message in batch
+    ]
+
+    with database.chat_tx('read committed') as tx:
+        tx.executemany(Q_INSERT_MESSAGE, params_seq)
 
 
 async def _get_conversation(
@@ -244,7 +294,7 @@ async def _get_conversation(
         except:
             continue
 
-        forwarded_etree = forwarded_element(
+        forwarded_etree = _forwarded_element(
             message=message_etree,
             query=query,
             row_id=row_id,
@@ -413,3 +463,39 @@ def normalize_search_text(text: str | None) -> str | None:
     re2 = re.sub(r"\s+", ' ', re1, flags=re.UNICODE)
 
     return re2
+
+
+# TODO
+def message_to_xml(
+    message_body: str,
+    to_username: str,
+    from_username: str,
+    id: str,
+) -> str:
+    message_etree = build_element(
+        'message',
+        attrib={
+            'from': from_username,  # TODO: Add @duolicious.app
+            'to': to_username,
+            'type': 'chat',
+            'id': id,
+        },
+        ns='jabber:client',
+    )
+
+    body = build_element('body', text=message_body)
+
+    message_etree.extend([body])
+
+    return messages.append(
+            etree.tostring(
+                message_etree, encoding='unicode', pretty_print=False))
+
+
+_store_message_batcher = Batcher[Message](
+    process_fn=_process_store_message_batch,
+    flush_interval=1.0,
+    min_batch_size=1,
+    max_batch_size=1000,
+    retry=False,
+)
