@@ -193,7 +193,7 @@ async def _get_inbox(query_id: str, username: str) -> List[str]:
                 attrib={
                     'from': user_jid,
                     'to': user_jid,
-                    'id': f"{row['msg_id']}"
+                    'id': f"{row['msg_id']}",
                 },
                 ns='jabber:client'
             )

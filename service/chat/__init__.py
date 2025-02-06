@@ -434,7 +434,7 @@ async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
 async def process_duo_message(
     xml_str: str,
     parsed_xml: etree._Element,
-    username: Optional[str],
+    from_username: Optional[str],
 ):
     if is_xml_too_long(xml_str):
         return [], []
@@ -444,26 +444,24 @@ async def process_duo_message(
             '<duo_pong preferred_interval="10000" preferred_timeout="5000" />',
         ], []
 
-    if maybe_register(parsed_xml, username):
+    if maybe_register(parsed_xml, from_username):
         return ['<duo_registration_successful />'], []
 
-    if not username:
+    if not from_username:
         return [], [xml_str]
 
-    maybe_conversation = await maybe_get_conversation(parsed_xml, username)
+    maybe_conversation = await maybe_get_conversation(parsed_xml, from_username)
     if maybe_conversation:
         return maybe_conversation, []
 
-    maybe_inbox = await maybe_get_inbox(parsed_xml, username)
+    maybe_inbox = await maybe_get_inbox(parsed_xml, from_username)
     if maybe_inbox:
         return maybe_inbox, []
 
-    if maybe_mark_displayed(parsed_xml, username):
+    if maybe_mark_displayed(parsed_xml, from_username):
         return [], []
 
     is_message, id, to_username, maybe_message_body = get_message_attrs(parsed_xml)
-
-    from_username = username
 
     if not is_message:
         return [], [xml_str]
@@ -478,11 +476,15 @@ async def process_duo_message(
 
     if not from_id:
         return [], [xml_str]
+    else:
+        await insert_server_user(from_username)
 
     to_id = await fetch_id_from_username(to_username)
 
     if not to_id:
         return [], [xml_str]
+    else:
+        await insert_server_user(to_username)
 
     if await fetch_is_skipped(from_id=from_id, to_id=to_id):
         return [f'<duo_message_blocked id="{id}"/>'], []
@@ -578,8 +580,6 @@ async def process(src, dst, username):
             elif username.username:
                 update_last_task = asyncio.create_task(
                         update_last_forever(username))
-
-                await insert_server_user(username.username)
 
             to_src, to_dst = await process_duo_message(
                     message,

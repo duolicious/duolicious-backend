@@ -17,6 +17,7 @@ from service.chat.util.erlang import (
 )
 import datetime
 import uuid
+from async_lru_cache import AsyncLruCache
 
 # TODO: Test pagination
 
@@ -101,7 +102,7 @@ WITH page AS (
     ORDER BY
         mam_message.id DESC
     LIMIT
-        50
+        LEAST(50, COALESCE(%(max)s, 50))
 )
 SELECT
     *
@@ -118,6 +119,7 @@ class Query:
     from_username: str
     to_username: str
     before: str | None
+    max: str | None
 
 
 @dataclass(frozen=True)
@@ -148,6 +150,10 @@ def _process_query(
         "string(.//*[local-name()='before'])"
     )
 
+    max_value = parsed_xml.xpath(
+        "string(.//*[local-name()='max'])"
+    )
+
     if not query_id or not to_username:
         return None
 
@@ -155,7 +161,8 @@ def _process_query(
         query_id=query_id,
         from_username=to_bare_jid(from_username),
         to_username=to_bare_jid(to_username),
-        before=before_value
+        before=before_value,
+        max=max_value,
     )
 
 
@@ -169,7 +176,6 @@ def _forwarded_element(
         'delay',
         attrib={
             'stamp': mam_message_id_to_timestamp(row_id),
-            'from': f'{query.from_username}@{LSERVER}',
         },
         ns='urn:xmpp:delay',
     )
@@ -195,8 +201,10 @@ def _forwarded_element(
     forwarded_message = build_element(
         'message',
         attrib={
+            # From and to are the same because the iq query was made by
+            # `from_username`, and the result is being sent back to them
             'from': f'{query.from_username}@{LSERVER}',
-            'to': f'{query.to_username}@{LSERVER}',
+            'to': f'{query.from_username}@{LSERVER}',
             'id': forwarded_id,
         },
         ns='jabber:client',
@@ -242,8 +250,6 @@ def store_message(
         id=msg_id,
     )
 
-    print('enqueuing message', message)
-
     _store_message_batcher.enqueue(message)
 
 
@@ -286,6 +292,7 @@ async def _get_conversation(
         from_username=from_username,
         to_username=to_username,
         before_id=before_id,
+        max=query.max,
     )
 
     async with asyncdatabase.chat_tx('read committed') as tx:
@@ -317,7 +324,14 @@ async def _get_conversation(
 
     iq_element = build_element(
             'iq',
-            attrib=dict(id=query.query_id, type='result'),
+            attrib={
+                # From and to are the same because the iq query was made by
+                # `from_username`, and the result is being sent back to them
+                'from': f'{query.from_username}@{LSERVER}',
+                'to': f'{query.from_username}@{LSERVER}',
+                'id': query.query_id,
+                'type': 'result'
+            },
             ns='jabber:client')
 
     iq_element.append(
@@ -332,6 +346,7 @@ async def _get_conversation(
     return messages
 
 
+@AsyncLruCache(maxsize=1024)
 async def insert_server_user(username: str):
     async with asyncdatabase.chat_tx() as tx:
         await tx.execute(Q_INSERT_SERVER_USER, dict(user_name=username))
@@ -420,15 +435,20 @@ def message_to_etree(
         attrib={
             'from': f'{from_username}@{LSERVER}',
             'to': f'{to_username}@{LSERVER}',
-            'type': 'chat',
             'id': id,
+            'type': 'chat',
         },
         ns='jabber:client',
     )
 
     body = build_element('body', text=message_body)
 
-    message_etree.extend([body])
+    request = build_element(
+        'request',
+        ns='urn:xmpp:receipts'
+    )
+
+    message_etree.extend([body, request])
 
     return message_etree
 

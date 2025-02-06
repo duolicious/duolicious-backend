@@ -16,7 +16,7 @@ def process_attributes(attrs):
     """
     nsmap = None
     attrib = {}
-    for key, value in attrs:
+    for key, value in sorted(attrs):
         key, value = decode(key), decode(value)
         if key == 'xmlns':
             nsmap = {None: value}  # default namespace mapping
@@ -65,7 +65,13 @@ def term_to_etree(node):
 
     tag = decode(node[1])
     nsmap, attrib = process_attributes(node[2])
-    element = etree.Element(tag, attrib=attrib, nsmap=nsmap)
+    element = etree.Element(tag)
+
+    if nsmap is not None and None in nsmap:
+        element.set('xmlns', nsmap[None])
+
+    for key, value in (attrib or {}).items():
+        element.set(key, value)
 
     last_child = None
     for child in node[3]:
@@ -93,12 +99,16 @@ def etree_to_term(element):
     """
     # Build the attributes list.
     attrs = []
+
     # If a default namespace is defined in nsmap, include it as 'xmlns'
     if element.nsmap and None in element.nsmap:
         attrs.append(('xmlns', element.nsmap[None]))
+
     # Add all regular attributes.
     for key, value in element.attrib.items():
         attrs.append((key, value))
+
+    attrs.sort()
 
     # Build the children list.
     children = []

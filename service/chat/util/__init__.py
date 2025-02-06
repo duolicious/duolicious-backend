@@ -9,11 +9,17 @@ def build_element(tag: str, text: str = None, attrib: dict = None, ns: str = Non
     """
     Helper function to create an XML element.
     """
-    element = etree.Element(tag, nsmap={None: ns} if ns else None)
-    if attrib:
-        element.attrib.update(attrib)
+    element = etree.Element(tag)
+
+    if ns is not None:
+        element.set('xmlns', ns)
+
+    for key, value in (attrib or {}).items():
+        element.set(key, value)
+
     if text is not None:
         element.text = text
+
     return element
 
 
