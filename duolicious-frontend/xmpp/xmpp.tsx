@@ -277,6 +277,7 @@ const populateConversationList = async (
     c.name = personInfo?.name ?? 'Unavailable Person';
     c.matchPercentage = personInfo?.match_percentage ?? 0;
     c.imageUuid = personInfo?.image_uuid ?? null;
+    c.imageBlurhash = personInfo?.image_blurhash ?? null;
     c.isAvailableUser = !!personInfo?.name;
     c.isVerified = !!personInfo?.verified;
     c.location = personInfo?.conversation_location ?? 'archive';

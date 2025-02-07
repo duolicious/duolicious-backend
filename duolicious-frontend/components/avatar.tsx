@@ -1,6 +1,5 @@
 import {
   useCallback,
-  useRef,
 } from 'react';
 import {
   Pressable,
@@ -29,11 +28,6 @@ const Avatar = ({percentage, ...props}) => {
   } = props;
 
   const Element = navigation ? Pressable : View;
-  const elementStyle = useRef({
-    height: 90,
-    width: 90,
-    ...props.style,
-  }).current;
 
   const onPress = useCallback(() => {
     if (!navigation) {
@@ -56,43 +50,38 @@ const Avatar = ({percentage, ...props}) => {
   return (
     <Element
       onPress={onPress}
-      style={elementStyle}
+      style={styles.elementStyle}
     >
-      <ImageBackground
-        source={imageUuid ? {
-          uri: `${IMAGES_URL}/450-${imageUuid}.jpg`,
-          height: 450,
-          width: 450,
-        } : undefined}
-        placeholder={imageBlurhash && { blurhash: imageBlurhash }}
-        transition={!imageUuid ? { duration: 0, effect: null } : 150}
-        style={{
-          flex: 1,
-          aspectRatio: 1,
-          borderRadius: 999,
-          overflow: 'hidden',
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: imageBlurhash ? undefined : '#f1e5ff',
-          margin: 4,
-        }}
-      >
-        {!imageUuid && !imageBlurhash &&
+      {!Boolean(imageUuid || imageBlurhash) &&
+        <View style={styles.imageStyle}>
           <Ionicons
             style={{fontSize: 40, color: 'rgba(119, 0, 255, 0.2)'}}
             name={'person'}
           />
-        }
-        {verificationRequired &&
-          <View
-            style={{
-              ...StyleSheet.absoluteFillObject,
-              zIndex: 999,
-              backgroundColor: 'rgba(255, 255, 255, 0.7)',
-            }}
-          />
-        }
-      </ImageBackground>
+        </View>
+      }
+      {Boolean(imageUuid || imageBlurhash) &&
+        <ImageBackground
+          source={imageUuid ? {
+            uri: `${IMAGES_URL}/450-${imageUuid}.jpg`,
+            height: 450,
+            width: 450,
+          } : undefined}
+          placeholder={imageBlurhash && { blurhash: imageBlurhash }}
+          transition={!imageUuid ? { duration: 0, effect: null } : 150}
+          style={styles.imageStyle}
+        >
+          {verificationRequired &&
+            <View
+              style={{
+                ...StyleSheet.absoluteFillObject,
+                zIndex: 999,
+                backgroundColor: 'rgba(255, 255, 255, 0.7)',
+              }}
+            />
+          }
+        </ImageBackground>
+      }
       <View
         style={{
           position: 'absolute',
@@ -180,6 +169,23 @@ const Avatar = ({percentage, ...props}) => {
     </Element>
   )
 };
+
+const styles = StyleSheet.create({
+  elementStyle: {
+    height: 90,
+    width: 90,
+  },
+  imageStyle: {
+    flex: 1,
+    aspectRatio: 1,
+    borderRadius: 999,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    margin: 4,
+    backgroundColor: '#f1e5ff',
+  },
+});
 
 export {
   Avatar,
