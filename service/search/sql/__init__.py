@@ -273,10 +273,6 @@ WITH searcher AS (
             LIMIT 1
         )
 
-    -- The users have at least a 50%% match
-    AND
-        (personality <#> (SELECT personality FROM searcher)) < 1e-5
-
     -- One-way filters
     AND
         prospect.orientation_id IN (
