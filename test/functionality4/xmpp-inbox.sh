@@ -183,7 +183,7 @@ expected_inbox_1=$(cat << EOF
     <body>from user 3 to user 1</body>
     <request xmlns="urn:xmpp:receipts"/>
   </message></forwarded><read>false</read><box>inbox</box><archive>false</archive><mute>0</mute></result></message>
-<iq id='$query_id_1' type='result'><fin/></iq>
+<iq id="$query_id_1" type="result"><fin/></iq>
 EOF
 )
 
@@ -196,7 +196,7 @@ expected_inbox_2=$(cat << EOF
     <body>from user 3 to user 2</body>
     <request xmlns="urn:xmpp:receipts"/>
   </message></forwarded><read>false</read><box>chats</box><archive>false</archive><mute>0</mute></result></message>
-<iq id='$query_id_2' type='result'><fin/></iq>
+<iq id="$query_id_2" type="result"><fin/></iq>
 EOF
 )
 
@@ -209,7 +209,7 @@ expected_inbox_3=$(cat << EOF
     <body>from user 3 to user 2</body>
     <request xmlns="urn:xmpp:receipts"/>
   </message></forwarded><read>true</read><box>chats</box><archive>false</archive><mute>0</mute></result></message>
-<iq id='$query_id_3' type='result'><fin/></iq>
+<iq id="$query_id_3" type="result"><fin/></iq>
 EOF
 )
 
@@ -233,7 +233,7 @@ expected_inbox_1=$(cat << EOF
     <body>from user 3 to user 1</body>
     <request xmlns="urn:xmpp:receipts"/>
   </message></forwarded><read>false</read><box>inbox</box><archive>false</archive><mute>0</mute></result></message>
-<iq id='$query_id_1' type='result'><fin/></iq>
+<iq id="$query_id_1" type="result"><fin/></iq>
 EOF
 )
 

@@ -27,9 +27,18 @@ from service.chat.inbox import (
     maybe_mark_displayed,
     upsert_conversation,
 )
+from service.chat.mam import (
+    insert_server_user,
+    maybe_get_conversation,
+    store_message,
+)
 from duohash import sha512
 from lxml import etree
 from enum import Enum
+from service.chat.util import (
+    to_bare_jid,
+)
+import uuid
 
 
 PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
@@ -215,12 +224,6 @@ MAX_MESSAGE_LEN = 5000
 NON_ALPHANUMERIC_RE = regex.compile(r'[^\p{L}\p{N}]')
 REPEATED_CHARACTERS_RE = regex.compile(r'(.)\1{1,}')
 
-def to_bare_jid(jid: str | None):
-    try:
-        return jid.split('@')[0]
-    except:
-        return None
-
 async def send_notification(
     from_name: str | None,
     to_username: str | None,
@@ -278,10 +281,13 @@ def get_message_attrs(parsed_xml):
         assert _id is not None
         assert len(_id) <= 250
 
-        to = parsed_xml.attrib.get('to')
-        assert to is not None
+        to_jid = parsed_xml.attrib.get('to')
 
-        return True, _id, to, maybe_message_body
+        to_bare_jid_ = to_bare_jid(parsed_xml.attrib.get('to'))
+
+        to_username = str(uuid.UUID(to_bare_jid_))
+
+        return True, _id, to_username, maybe_message_body
     except Exception as e:
         pass
 
@@ -324,6 +330,9 @@ async def process_auth(parsed_xml, username):
         decodedString = decodedBytes.decode('utf-8')
 
         _, auth_username, auth_token = decodedString.split('\0')
+
+        # Validates that `auth_username` is a valid UUID
+        uuid.UUID(auth_username)
 
         auth_token_hash = sha512(auth_token)
 
@@ -425,7 +434,7 @@ async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
 async def process_duo_message(
     xml_str: str,
     parsed_xml: etree._Element,
-    username: Optional[str],
+    from_username: Optional[str],
 ):
     if is_xml_too_long(xml_str):
         return [], []
@@ -435,23 +444,24 @@ async def process_duo_message(
             '<duo_pong preferred_interval="10000" preferred_timeout="5000" />',
         ], []
 
-    if maybe_register(parsed_xml, username):
+    if maybe_register(parsed_xml, from_username):
         return ['<duo_registration_successful />'], []
 
-    if not username:
+    if not from_username:
         return [], [xml_str]
 
-    maybe_inbox = await maybe_get_inbox(parsed_xml, username)
+    maybe_conversation = await maybe_get_conversation(parsed_xml, from_username)
+    if maybe_conversation:
+        return maybe_conversation, []
+
+    maybe_inbox = await maybe_get_inbox(parsed_xml, from_username)
     if maybe_inbox:
         return maybe_inbox, []
 
-    if maybe_mark_displayed(parsed_xml, username):
+    if maybe_mark_displayed(parsed_xml, from_username):
         return [], []
 
-    is_message, id, to_jid, maybe_message_body = get_message_attrs(parsed_xml)
-
-    from_username = username
-    to_username = to_bare_jid(to_jid)
+    is_message, id, to_username, maybe_message_body = get_message_attrs(parsed_xml)
 
     if not is_message:
         return [], [xml_str]
@@ -466,11 +476,15 @@ async def process_duo_message(
 
     if not from_id:
         return [], [xml_str]
+    else:
+        await insert_server_user(from_username)
 
     to_id = await fetch_id_from_username(to_username)
 
     if not to_id:
         return [], [xml_str]
+    else:
+        await insert_server_user(to_username)
 
     if await fetch_is_skipped(from_id=from_id, to_id=to_id):
         return [f'<duo_message_blocked id="{id}"/>'], []
@@ -534,6 +548,12 @@ async def process_duo_message(
             },
         )
 
+    store_message(
+        maybe_message_body,
+        from_username=from_username,
+        to_username=to_username,
+        msg_id=id)
+
     set_messaged(from_id=from_id, to_id=to_id)
 
     upsert_conversation(
@@ -555,7 +575,9 @@ async def process(src, dst, username):
         async for message in src:
             parsed_xml = parse_xml_or_none(message)
 
-            if await process_auth(parsed_xml, username):
+            if not await process_auth(parsed_xml, username):
+                pass
+            elif username.username:
                 update_last_task = asyncio.create_task(
                         update_last_forever(username))
 
