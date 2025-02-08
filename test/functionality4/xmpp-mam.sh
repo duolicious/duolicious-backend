@@ -3,8 +3,6 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 
-# TODO: Test microsecond-based IDs instead of redacting them
-
 source ../util/setup.sh
 
 set -xe
@@ -175,9 +173,7 @@ get_conversation () {
     echo "$response" \
       | sed -E 's/stamp="[0-9TZ:\.-]+"/stamp="redacted"/g' \
       | sed -E 's/(<message [^>]+id=)"[0-9a-z-]+"/\1"redacted"/g' \
-      | sed -E 's/(<result [^>]+id=)"[0-9A-Z]+"/\1"redacted"/g' \
-      | sed -E 's/(<first [^>]+>)[0-9A-Z]+(<\/first>)/\1redacted\2/g' \
-      | sed -E 's/(<last>)[0-9A-Z]+(<\/last>)/\1redacted\2/g'
+      | sed -E 's/(<result [^>]+id=)"[0-9A-Z]+"/\1"redacted"/g'
 
     if [[ -z "$beforeId" ]]
     then
@@ -228,7 +224,6 @@ send_messages "$user3uuid" "$user3token" "$user2uuid" \
   "3st from user 3 to user 2"
 
 
-# TODO
 query_id_1=$(query_id)
 actual_conversation_2_1=$(get_conversation "$user2uuid" "$user2token" "$user1uuid")
 

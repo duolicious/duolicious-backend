@@ -19,14 +19,6 @@ import datetime
 import uuid
 from async_lru_cache import AsyncLruCache
 
-# TODO: Test pagination
-
-# TODO: Batch insertions
-# TODO: Insert `mam_server_user`s
-
-# TODO: When fetching conversations, be careful about JIDs and bare JIDs
-
-# TODO: Do I need to deal with message read indicators?
 
 Q_INSERT_SERVER_USER = f"""
 INSERT INTO
@@ -37,8 +29,6 @@ ON CONFLICT (server, user_name) DO NOTHING
 """
 
 
-# TODO: How to handle `id` collisions if two messages arrived in the same
-# millisecond? Maybe add `ON CONFLICT` with a new random ID
 Q_INSERT_MESSAGE = """
 INSERT INTO
     mam_message (
@@ -79,7 +69,7 @@ VALUES
 """
 
 
-Q_SELECT_MESSAGE = """
+Q_SELECT_MESSAGE = f"""
 WITH page AS (
     SELECT
         mam_message.id,
@@ -91,7 +81,7 @@ WITH page AS (
     ON
         mam_server_user.id = mam_message.user_id
     WHERE
-        mam_server_user.server = 'duolicious.app'
+        mam_server_user.server = '{LSERVER}'
     AND
         mam_server_user.user_name = %(from_username)s
     AND
