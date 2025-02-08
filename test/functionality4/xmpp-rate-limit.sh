@@ -211,16 +211,16 @@ test_rate_limit () {
 }
 
 test_rate_limit \
-  10 \
+  5 \
   1 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day" subreason="unverified-basics"/>'
 
 test_rate_limit \
-  20 \
+  10 \
   2 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day" subreason="unverified-photos"/>'
 
 test_rate_limit \
-  50 \
+  20 \
   3 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day"/>'
