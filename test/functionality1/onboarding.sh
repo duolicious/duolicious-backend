@@ -34,7 +34,7 @@ otp_expiry2=$(q "SELECT otp_expiry FROM duo_session order by otp_expiry desc lim
 
 [[ "$otp_expiry1" != "$otp_expiry2" ]]
 
-! jc POST /check-otp -d '{ "otp": "000001" }'
+! jc POST /check-otp -d '{ "otp": "000001" }' || exit 1
 
 [[ "$(q "select COUNT(*) from onboardee")" -eq 0 ]]
 
@@ -93,7 +93,7 @@ jc DELETE /onboardee-info -d '{ "files": [1, 3] }'
 
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 1 ]]
 
-! c GET /next-questions
+! c GET /next-questions || exit 1
 response=$(c POST /finish-onboarding)
 [[ "$(jq -r .units <<< "$response")" = Metric ]]
 [[ "$(jq -r .do_show_donation_nag <<< "$response")" = false ]]
@@ -103,20 +103,20 @@ response=$(c POST /finish-onboarding)
 [[ "$(q "select count(*) from duo_session where person_id is null")" -eq 0 ]]
 
 c GET /next-questions > /dev/null
-! c POST /finish-onboarding
+! c POST /finish-onboarding || exit 1
 
 # Test signing out works
 c POST /sign-out
-! c POST /check-session-token
+! c POST /check-session-token || exit 1
 
 # Can we sign back in?
 
 response=$(jc POST /request-otp -d '{ "email": "mail@example.com" }')
 SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
 
-! c POST /check-session-token
+! c POST /check-session-token || exit 1
 
-! jc POST /check-otp -d '{ "otp": "000001" }'
+! jc POST /check-otp -d '{ "otp": "000001" }' || exit 1
 
 response=$(
   jc POST /check-otp -d '{ "otp": "000000" }'

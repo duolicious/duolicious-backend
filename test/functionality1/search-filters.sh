@@ -35,7 +35,7 @@ test_set () {
 
   if "$check_empty"
   then
-    ! jc POST /search-filter -d '{ "'"$field_name"'": [] }'
+    ! jc POST /search-filter -d '{ "'"$field_name"'": [] }' || exit 1
   fi
 }
 

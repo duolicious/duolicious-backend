@@ -12,6 +12,14 @@ import ipaddress
 import traceback
 from antiabuse.antispam.signupemail import normalize_email
 from pydantic import ValidationError
+from functools import lru_cache
+import time
+
+enable_mocking_file = (
+    Path(__file__).parent.parent.parent /
+    'test' /
+    'input' /
+    'enable-mocking')
 
 disable_ip_rate_limit_file = (
     Path(__file__).parent.parent.parent /
@@ -25,19 +33,62 @@ disable_account_rate_limit_file = (
     'input' /
     'disable-account-rate-limit')
 
-def disable_ip_rate_limit():
-    if disable_ip_rate_limit_file.is_file():
-        with disable_ip_rate_limit_file.open() as file:
+mock_ip_address_file = (
+    Path(__file__).parent.parent.parent /
+    'test' /
+    'input' /
+    'mock-ip-address')
+
+@lru_cache()
+def _enable_mocking(ttl_hash=None):
+    if enable_mocking_file.is_file():
+        with enable_mocking_file.open() as file:
             if file.read().strip() == '1':
                 return True
     return False
 
-def disable_account_rate_limit():
-    if disable_account_rate_limit_file.is_file():
-        with disable_account_rate_limit_file.open() as file:
-            if file.read().strip() == '1':
-                return True
+def enable_mocking():
+    return _enable_mocking(ttl_hash=round(time.time()))
+
+def disable_ip_rate_limit():
+    if not enable_mocking():
+        return False
+
+    if not disable_ip_rate_limit_file.is_file():
+        return False
+
+    with disable_ip_rate_limit_file.open() as file:
+        if file.read().strip() == '1':
+            return True
+
     return False
+
+def disable_account_rate_limit():
+    if not enable_mocking():
+        return False
+
+    if not disable_account_rate_limit_file.is_file():
+        return False
+
+    with disable_account_rate_limit_file.open() as file:
+        if file.read().strip() == '1':
+            return True
+
+    return False
+
+def mock_ip_address():
+    if not enable_mocking():
+        return None
+
+    if not mock_ip_address_file.is_file():
+        return None
+
+    with mock_ip_address_file.open() as file:
+        ip_address = file.read().strip()
+        if ip_address:
+            return ip_address
+
+    return None
 
 def _is_private_ip() -> bool:
     """
@@ -48,7 +99,7 @@ def _is_private_ip() -> bool:
     if disable_ip_rate_limit():
         return True
 
-    _remote_addr = request.remote_addr or "127.0.0.1"
+    _remote_addr = mock_ip_address() or request.remote_addr or "127.0.0.1"
 
     try:
         return ipaddress.ip_address(_remote_addr).is_private
@@ -59,9 +110,8 @@ def _get_remote_address() -> str:
     """
     :return: the ip address for the current request
      (or 127.0.0.1 if none found)
-
     """
-    return request.remote_addr or "127.0.0.1"
+    return mock_ip_address() or request.remote_addr or "127.0.0.1"
 
 CORS_ORIGINS = os.environ.get('DUO_CORS_ORIGINS', '*')
 

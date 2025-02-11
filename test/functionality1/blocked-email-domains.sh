@@ -30,7 +30,7 @@ bad_email_domains_table_is_respected () {
   assume_role 'good-user-1@example.com'
 
   echo "New users can't sign up with a blocked domain"
-  ! jc POST /request-otp -d '{ "email": "bad-user-2@bad.example.com" }'
+  ! jc POST /request-otp -d '{ "email": "bad-user-2@bad.example.com" }' || exit 1
 
   echo "New users can sign up with a non-blocked domain"
     jc POST /request-otp -d '{ "email": "good-user-2@example.com" }'

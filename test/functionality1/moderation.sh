@@ -112,7 +112,7 @@ ban_expiry () {
   c GET "/admin/ban/$(ban_token)"
 
   q "update banned_person set expires_at = NOW() + interval '1 day'"
-  ! ../util/create-user.sh 'accused@gmail.com' 0 0
+  ! ../util/create-user.sh 'accused@gmail.com' 0 0 || exit 1
 
   q "update banned_person set expires_at = NOW() - interval '1 day'"
   ../util/create-user.sh 'accused@gmail.com' 0 0

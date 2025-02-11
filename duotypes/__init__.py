@@ -18,7 +18,10 @@ import io
 import base64
 import duoaudio
 import traceback
-from antiabuse.antirude import displayname, profile
+import antiabuse.antirude.displayname
+import antiabuse.antirude.education
+import antiabuse.antirude.occupation
+import antiabuse.antirude.profile
 from antiabuse.antispam.urldetector import has_url
 from antiabuse.antispam.phonenumberdetector import detect_phone_numbers
 from antiabuse.antispam.solicitation import has_solicitation
@@ -284,7 +287,7 @@ class PatchOnboardeeInfo(BaseModel):
     def name_must_not_be_rude(cls, value):
         if value is None:
             return value
-        if displayname.is_rude(value):
+        if antiabuse.antirude.displayname.is_rude(value):
             raise ValueError('Too rude')
         return value
 
@@ -388,7 +391,7 @@ class PatchProfileInfo(BaseModel):
     def name_must_not_be_rude(cls, value):
         if value is None:
             return value
-        if displayname.is_rude(value):
+        if antiabuse.antirude.displayname.is_rude(value):
             raise ValueError('Too rude')
         return value
 
@@ -396,7 +399,7 @@ class PatchProfileInfo(BaseModel):
     def about_must_not_be_rude(cls, value):
         if value is None:
             return value
-        if profile.is_rude(value):
+        if antiabuse.antirude.profile.is_rude(value):
             raise ValueError('Too rude')
         return value
 
@@ -409,6 +412,22 @@ class PatchProfileInfo(BaseModel):
                 detect_phone_numbers(value) or \
                 has_solicitation(value):
             raise ValueError('Spam')
+        return value
+
+    @field_validator('occupation')
+    def occupation_must_not_be_rude(cls, value):
+        if value is None:
+            return value
+        if antiabuse.antirude.occupation.is_rude(value):
+            raise ValueError('Too rude')
+        return value
+
+    @field_validator('education')
+    def education_must_not_be_rude(cls, value):
+        if value is None:
+            return value
+        if antiabuse.antirude.education.is_rude(value):
+            raise ValueError('Too rude')
         return value
 
     class Config:

@@ -52,6 +52,8 @@ class TestNormalizeString(unittest.TestCase):
 
         self.assertEqual(normalize_string("bytch"), "bitch")
 
+        self.assertEqual(normalize_string("btch"), "bitch")
+
         self.assertEqual(normalize_string("su1cide"), "suicide")
 
         self.assertEqual(normalize_string("pyss"), "piss")
