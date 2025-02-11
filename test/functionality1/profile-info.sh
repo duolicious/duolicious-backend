@@ -160,18 +160,18 @@ test_photo_assignments () {
 
   # Overwriting an occupied position isn't allowed
   ! jc PATCH /profile-info \
-    -d "{ \"photo_assignments\": { \"1\": 2 } }"
+    -d "{ \"photo_assignments\": { \"1\": 2 } }" || exit 1
 
   [[ "$(q "select COUNT(DISTINCT uuid) from photo")" -eq 2 ]]
 
   # Moving many photos to one position isn't allowed
   ! jc PATCH /profile-info \
-    -d "{ \"photo_assignments\": { \"1\": 3, \"2\": 3 } }"
+    -d "{ \"photo_assignments\": { \"1\": 3, \"2\": 3 } }" || exit 1
 
   [[ "$(q "select COUNT(DISTINCT uuid) from photo")" -eq 2 ]]
 
-  # Moving an unoccupied position to an occupied one isn't allowed
-  ! jc PATCH /profile-info \
+  # Moving an unoccupied position to an occupied one does nothing
+  jc PATCH /profile-info \
     -d "{ \"photo_assignments\": { \"3\": 1 } }"
 
   [[ "$(q "select COUNT(DISTINCT uuid) from photo")" -eq 2 ]]

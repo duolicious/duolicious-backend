@@ -806,7 +806,7 @@ test_bidirectional_age_filter () {
 test_search_page_size_limit () {
   setup
 
-  ! search_names 11
+  ! search_names 11 || exit 1
   search_names 10
 }
 

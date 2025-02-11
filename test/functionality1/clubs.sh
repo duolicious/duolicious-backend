@@ -47,7 +47,7 @@ club_quota () {
   do
     jc POST /join-club -d '{ "name": "my-club-'$i'" }'
   done
-  ! jc POST /join-club -d '{ "name": "my-club-101" }'
+  ! jc POST /join-club -d '{ "name": "my-club-101" }' || exit 1
 
   assume_role user2
   jc POST /join-club -d '{ "name": "my-club-1" }'
@@ -201,8 +201,8 @@ banned_clubs () {
   expected='[]'
   [[ "$results" == "$expected" ]]
 
-  ! jc POST /join-club -d '{ "name": "I HATE MINORITIES" }'
-  ! jc POST /join-club -d '{ "name": "did you know I HATE MINORITIES" }'
+  ! jc POST /join-club -d '{ "name": "I HATE MINORITIES" }' || exit 1
+  ! jc POST /join-club -d '{ "name": "did you know I HATE MINORITIES" }' || exit 1
 }
 
 empty_club_search_string () {

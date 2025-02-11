@@ -63,7 +63,7 @@ verified_privacy () {
 
   echo "User 1 can no longer get user 2's profile"
   assume_role user1
-  ! c GET "/prospect-profile/${user2uuid}"
+  ! c GET "/prospect-profile/${user2uuid}" || exit 1
 
   echo "User 1 gets verified basics"
   q "update person set verification_level_id = 2 where uuid = '${user1uuid}'"
@@ -78,7 +78,7 @@ verified_privacy () {
 
   echo "User 1 can no longer get user 2's profile"
   assume_role user1
-  ! c GET "/prospect-profile/${user2uuid}"
+  ! c GET "/prospect-profile/${user2uuid}" || exit 1
 
   echo "User 1 gets verified basics"
   q "update person set verification_level_id = 3 where uuid = '${user1uuid}'"
@@ -89,7 +89,7 @@ verified_privacy () {
 
   echo "User 1 gets unverified"
   q "update person set verification_level_id = 1 where uuid = '${user1uuid}'"
-  ! c GET "/prospect-profile/${user2uuid}"
+  ! c GET "/prospect-profile/${user2uuid}" || exit 1
 
   echo "User 1 gets messaged by user 2"
   q "
@@ -107,7 +107,7 @@ hide_me_from_strangers () {
 
   # User 1 can no longer get user 2's profile
   assume_role user1
-  ! c GET "/prospect-profile/${user2uuid}"
+  ! c GET "/prospect-profile/${user2uuid}" || exit 1
 
   # User 2 messages user 1
   q "
