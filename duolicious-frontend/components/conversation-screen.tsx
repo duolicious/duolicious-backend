@@ -754,6 +754,12 @@ const TextInputWithButton = ({
   onPress: (text: string) => Promise<MessageStatus>,
 }) => {
   const { height } = useWindowDimensions();
+  const [text, setText] = useState("");
+
+  const maxHeight = height * 0.4;
+  const minHeight = Platform.OS !== 'web' ?
+      50 :
+      Math.min(maxHeight, Math.max(80, Math.round(text.length / 40) * 15));
 
   const opacity = useRef(new Animated.Value(1)).current;
   const [isLoading, setIsLoading] = useState(false);
@@ -773,8 +779,6 @@ const TextInputWithButton = ({
       useNativeDriver: false,
     }).start();
   }, []);
-
-  const [text, setText] = useState("");
 
   const maybeSetText = useCallback((t: string) => {
     if (!isLoading) {
@@ -824,8 +828,8 @@ const TextInputWithButton = ({
         style={{
           ...styles.textInput,
           ...{
-            minHeight: isMobile() ? 50 : Math.max(80, Math.round(text.length / 40) * 15),
-            maxHeight: height * 0.4
+            minHeight: minHeight,
+            maxHeight: maxHeight,
           },
         }}
         value={text}
