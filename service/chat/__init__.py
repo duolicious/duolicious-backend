@@ -491,9 +491,6 @@ async def process_duo_message(
 
     is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
 
-    if is_intro and not await is_message_unique(maybe_message_body):
-        return [f'<duo_message_not_unique id="{id}"/>'], []
-
     if is_intro and is_rude(maybe_message_body):
         return [f'<duo_message_blocked id="{id}" reason="offensive"/>'], []
 
@@ -524,6 +521,9 @@ async def process_duo_message(
                     f'reason="rate-limited-1day"/>'], []
         else:
             raise Exception(f'Unhandled rate limit reason {rate_limit_reason}')
+
+    if is_intro and not await is_message_unique(maybe_message_body):
+        return [f'<duo_message_not_unique id="{id}"/>'], []
 
     immediate_data = await fetch_immediate_data(
             from_id=from_id,
