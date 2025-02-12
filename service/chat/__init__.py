@@ -1,6 +1,5 @@
 from database.asyncdatabase import api_tx, chat_tx, check_connections_forever
 import asyncio
-import base64
 import duohash
 import regex
 import traceback
@@ -32,7 +31,9 @@ from service.chat.mam import (
     maybe_get_conversation,
     store_message,
 )
-from duohash import sha512
+from service.chat.session import (
+    maybe_get_session_response,
+)
 from lxml import etree
 from enum import Enum
 from service.chat.util import (
@@ -59,21 +60,6 @@ class IntroRateLimit(Enum):
 #  public.intro_hash
 #  public.duo_last_notification
 #  public.duo_push_token
-
-Q_CHECK_AUTH = """
-SELECT
-    1
-FROM
-    duo_session
-JOIN
-    person
-ON
-    person.id = duo_session.person_id
-WHERE
-    duo_session.session_token_hash = %(session_token_hash)s
-AND
-    person.uuid = %(auth_username)s
-"""
 
 Q_SELECT_INTRO_HASH = """
 SELECT
@@ -316,43 +302,6 @@ def is_ping(parsed_xml):
     except:
         return False
 
-async def process_auth(parsed_xml, username):
-    if username.username is not None:
-        return False
-
-    try:
-        # Create a safe XML parser
-        if parsed_xml.tag != '{urn:ietf:params:xml:ns:xmpp-sasl}auth':
-            return False
-
-        base64encoded = parsed_xml.text
-        decodedBytes = base64.b64decode(base64encoded)
-        decodedString = decodedBytes.decode('utf-8')
-
-        _, auth_username, auth_token = decodedString.split('\0')
-
-        # Validates that `auth_username` is a valid UUID
-        uuid.UUID(auth_username)
-
-        auth_token_hash = sha512(auth_token)
-
-        params = dict(
-            auth_username=auth_username,
-            session_token_hash=auth_token_hash,
-        )
-
-        async with api_tx('read committed') as tx:
-            await tx.execute(Q_CHECK_AUTH, params)
-            assert await tx.fetchone()
-
-        username.username = auth_username
-
-        return True
-    except Exception as e:
-        pass
-
-    return False
-
 @AsyncLruCache(maxsize=1024, cache_condition=lambda x: not x)
 async def is_message_unique(message_str):
     normalized = normalize_message(message_str)
@@ -434,10 +383,18 @@ async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
 async def process_duo_message(
     xml_str: str,
     parsed_xml: etree._Element,
-    from_username: Optional[str],
+    username: Username,
 ):
+    from_username = username.username
+
     if is_xml_too_long(xml_str):
         return [], []
+
+    maybe_session_response = await maybe_get_session_response(
+            parsed_xml, username)
+
+    if maybe_session_response:
+        return maybe_session_response, []
 
     if is_ping(parsed_xml):
         return [
@@ -575,16 +532,14 @@ async def process(src, dst, username):
         async for message in src:
             parsed_xml = parse_xml_or_none(message)
 
-            if not await process_auth(parsed_xml, username):
-                pass
-            elif username.username:
-                update_last_task = asyncio.create_task(
-                        update_last_forever(username))
-
             to_src, to_dst = await process_duo_message(
                     message,
                     parsed_xml,
-                    username.username)
+                    username)
+
+            if not update_last_task and username.username:
+                update_last_task = asyncio.create_task(
+                        update_last_forever(username))
 
             for m in to_dst:
                 await dst.send(m)
