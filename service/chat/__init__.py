@@ -46,7 +46,6 @@ from pathlib import Path
 import redis.asyncio as redis
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
-import json # TODO: Should probably delete
 
 app = FastAPI()
 
@@ -404,11 +403,11 @@ async def process_duo_message(
 
     maybe_conversation = await maybe_get_conversation(parsed_xml, from_username)
     if maybe_conversation:
-        return maybe_conversation
+        return await redis_publish_many(connection_uuid, maybe_conversation)
 
     maybe_inbox = await maybe_get_inbox(parsed_xml, from_username)
     if maybe_inbox:
-        return maybe_inbox
+        return await redis_publish_many(connection_uuid, maybe_inbox)
 
     if maybe_mark_displayed(parsed_xml, from_username):
         return
@@ -464,7 +463,7 @@ async def process_duo_message(
         maybe_rate_limit = await fetch_maybe_rate_limit(from_id=from_id)
 
         if maybe_rate_limit:
-            return maybe_rate_limit
+            return await redis_publish_many(connection_uuid, maybe_rate_limit)
 
     if is_intro and not await is_message_unique(maybe_message_body):
         return await redis_publish_many(from_username, [

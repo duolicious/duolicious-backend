@@ -2,6 +2,7 @@ from lxml import etree
 import uuid
 from typing import List
 from service.chat.util import (
+    LSERVER,
     build_element,
 )
 from database.asyncdatabase import api_tx
@@ -67,7 +68,7 @@ async def is_authorized(parsed_xml: etree.Element, session: Session) -> bool:
         session.username = auth_username
 
         return True
-    except Exception as e:
+    except:
         pass
 
     return False
@@ -175,19 +176,51 @@ async def handle_auth(parsed_xml: etree.Element, session: Session) -> List[str]:
             "</stream:stream>"]
 
 
+def handle_bind(parsed_xml: etree.Element, session: Session) -> List[str]:
+    """
+    Handles a <bind> stanza inside an <iq> request.
+
+    Since resources are ignored, the server will respond with a <jid>
+    containing only the bare JID (without a resource).
+    """
+    if session.username is None:
+        return []  # Ignore requests from unauthenticated clients
+
+    # Extract <iq> ID to echo it back in the response
+    iq_id = parsed_xml.attrib.get("id", "default")
+
+    # Construct the <iq> response with <bind> and <jid>
+    iq_elem = build_element("iq", attrib={"type": "result", "id": iq_id})
+    bind_elem = build_element("bind", ns="urn:ietf:params:xml:ns:xmpp-bind")
+
+    # Construct the <jid> response (ignoring the requested resource)
+    jid = f"{session.username}@{LSERVER}"  # Replace with actual domain
+    jid_elem = build_element("jid", text=jid)
+    bind_elem.append(jid_elem)
+    iq_elem.append(bind_elem)
+
+    return [
+        etree.tostring(iq_elem, encoding="unicode", pretty_print=False)
+    ]
+
+
+async def handle_iq(parsed_xml: etree.Element, session: Session) -> List[str]:
+    """
+    Handles an <iq> stanza, determining if it contains a <bind> request.
+    """
+    # Check if the <iq> stanza contains a <bind> element
+    bind_elem = parsed_xml.find("{urn:ietf:params:xml:ns:xmpp-bind}bind")
+
+    if bind_elem is not None:
+        return handle_bind(parsed_xml, session)
+
+    return []  # If not a bind request, ignore the IQ
+
+
 async def maybe_get_session_response(parsed_xml: etree.Element, session: Session) -> List[str]:
     """
     Determines the appropriate response stanzas for a given input XML element.
-
-    The input is an lxml.etree.Element representing either:
-      - An <open> element in the XMPP framing namespace, or
-      - An <auth> element in the SASL namespace.
-
-    The session parameter indicates whether the session is already authenticated:
-      - If session.username is None, then pre-authentication features are offered.
-      - If session.username is set, then post-authentication features (session and bind) are offered.
-
-    If the input does not match any expected element, returns an empty list.
+    Now includes support for <iq> stanzas containing <bind>.
     """
     qname = etree.QName(parsed_xml.tag)
     tag = qname.localname
@@ -197,5 +230,7 @@ async def maybe_get_session_response(parsed_xml: etree.Element, session: Session
         return handle_open(parsed_xml, session)
     elif tag == "auth" and ns == "urn:ietf:params:xml:ns:xmpp-sasl":
         return await handle_auth(parsed_xml, session)
+    elif tag == "iq" and ns == "jabber:client":
+        return await handle_iq(parsed_xml, session)
     else:
         return []
