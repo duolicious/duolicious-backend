@@ -9,7 +9,7 @@ from service import (
 )
 from database import api_tx
 import psycopg
-from service.application.decorators import (
+from service.api.decorators import (
     app,
     adelete,
     aget,
@@ -33,7 +33,7 @@ from antiabuse.antispam.signupemail import normalize_email
 import json
 
 _init_sql_file = (
-    Path(__file__).parent.parent.parent / 'init.sql')
+    Path(__file__).parent.parent.parent / 'init-api.sql')
 
 _migrations_sql_file = (
     Path(__file__).parent.parent.parent / 'migrations.sql')

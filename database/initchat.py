@@ -38,29 +38,22 @@ def create_dbs():
                 time.sleep(1)
 
     create_db('duo_chat')
-    create_db('duo_api')
 
 def init_db():
     # Now DB_NAME exists, we do do the rest of the init.
     from service import (
-        application,
-        location,
-        person,
-        question,
+        chat,
     )
 
     init_funcs = [
-        application.init_db,
-        location.init_db,
-        question.init_db,
-        person.init_db,
+        chat.init_db,
     ]
 
-    print('Initializing DB...')
+    print('Initializing chat DB...')
     for i, init_func in enumerate(init_funcs, start=1):
         print(f'  * {i} of {len(init_funcs)}')
         init_func()
-    print('Finished initializing DB')
+    print('Finished initializing chat DB')
 
 create_dbs()
 init_db()

@@ -1,7 +1,10 @@
 confusable-homoglyphs
 erlastic
+fastapi
 lxml
 nltk
 psycopg[binary]
+redis
 regex
+uvicorn
 websockets

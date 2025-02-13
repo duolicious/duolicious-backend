@@ -4,7 +4,6 @@ from typing import List
 from service.chat.util import (
     build_element,
 )
-from service.chat.username import Username
 from database.asyncdatabase import api_tx
 import base64
 from duohash import sha512
@@ -30,8 +29,14 @@ AND
 """
 
 
-async def is_authorized(parsed_xml: etree.Element, username: Username) -> bool:
-    if username.username is not None:
+class Session:
+    def __init__(self):
+        self.connection_uuid = str(uuid.uuid4())
+        self.username = None
+
+
+async def is_authorized(parsed_xml: etree.Element, session: Session) -> bool:
+    if session.username is not None:
         return False
 
     try:
@@ -59,7 +64,7 @@ async def is_authorized(parsed_xml: etree.Element, username: Username) -> bool:
             await tx.execute(Q_CHECK_AUTH, params)
             assert await tx.fetchone()
 
-        username.username = auth_username
+        session.username = auth_username
 
         return True
     except Exception as e:
@@ -68,7 +73,7 @@ async def is_authorized(parsed_xml: etree.Element, username: Username) -> bool:
     return False
 
 
-def handle_open(parsed_xml: etree.Element, username: Username) -> List[str]:
+def handle_open(parsed_xml: etree.Element, session: Session) -> List[str]:
     """
     Handles an <open> stanza in the XMPP framing namespace.
 
@@ -85,7 +90,6 @@ def handle_open(parsed_xml: etree.Element, username: Username) -> List[str]:
 
     # Build the server's <open> element.
     open_attrs = {
-        "xml:lang": "en",
         "version": parsed_xml.attrib["version"],
         "id": str(uuid.uuid4()),
         "from": parsed_xml.attrib["to"]
@@ -99,7 +103,7 @@ def handle_open(parsed_xml: etree.Element, username: Username) -> List[str]:
     # Build the <features> element.
     features_elem = build_element(
             "features", ns="http://etherx.jabber.org/streams")
-    if not username.username:
+    if not session.username:
         # Pre‑authentication features: offer STARTTLS and SASL
         starttls_elem = build_element(
                 "starttls", ns="urn:ietf:params:xml:ns:xmpp-tls")
@@ -136,14 +140,14 @@ def handle_open(parsed_xml: etree.Element, username: Username) -> List[str]:
                 pretty_print=False)]
 
 
-async def handle_auth(parsed_xml: etree.Element, username: Username) -> List[str]:
+async def handle_auth(parsed_xml: etree.Element, session: Session) -> List[str]:
     """
     Handles an <auth> stanza in the SASL namespace.
 
     If the mechanism is "PLAIN", returns a <success> element.
     Otherwise, returns a <failure> element (and a closing stream tag).
     """
-    if await is_authorized(parsed_xml, username):
+    if await is_authorized(parsed_xml, session):
         success_elem = build_element(
                 "success",
                 ns="urn:ietf:params:xml:ns:xmpp-sasl")
@@ -171,7 +175,7 @@ async def handle_auth(parsed_xml: etree.Element, username: Username) -> List[str
             "</stream:stream>"]
 
 
-async def maybe_get_session_response(parsed_xml: etree.Element, username: Username) -> List[str]:
+async def maybe_get_session_response(parsed_xml: etree.Element, session: Session) -> List[str]:
     """
     Determines the appropriate response stanzas for a given input XML element.
 
@@ -179,9 +183,9 @@ async def maybe_get_session_response(parsed_xml: etree.Element, username: Userna
       - An <open> element in the XMPP framing namespace, or
       - An <auth> element in the SASL namespace.
 
-    The username parameter indicates whether the session is already authenticated:
-      - If username.username is None, then pre-authentication features are offered.
-      - If username.username is set, then post-authentication features (session and bind) are offered.
+    The session parameter indicates whether the session is already authenticated:
+      - If session.username is None, then pre-authentication features are offered.
+      - If session.username is set, then post-authentication features (session and bind) are offered.
 
     If the input does not match any expected element, returns an empty list.
     """
@@ -190,8 +194,8 @@ async def maybe_get_session_response(parsed_xml: etree.Element, username: Userna
     ns = qname.namespace
 
     if tag == "open" and ns == "urn:ietf:params:xml:ns:xmpp-framing":
-        return handle_open(parsed_xml, username)
+        return handle_open(parsed_xml, session)
     elif tag == "auth" and ns == "urn:ietf:params:xml:ns:xmpp-sasl":
-        return await handle_auth(parsed_xml, username)
+        return await handle_auth(parsed_xml, session)
     else:
         return []

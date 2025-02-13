@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# TODO: Remove useless dependencies from api and chat containers
+# TODO: Check that running in prod works
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 
@@ -21,45 +24,33 @@ then
   python3 -m pip install -r chat.requirements.txt
 fi
 
-if [ -z "$DUO_CHAT_PORTS" ]
+if [ -z "$PORT" ]
 then
-  DUO_CHAT_PORTS='5443'
+  PORT=5443
 fi
 
-# Array to hold the PIDs of the child processes
-child_pids=()
+if [ "$DUO_ENV" = "prod" ]
+then
+  python3 database/initchat.py
 
-# Function to kill all child processes
-cleanup() {
-    echo "Cleaning up child processes..."
-    for pid in "${child_pids[@]}"; do
-        kill -TERM "$pid" 2>/dev/null
-    done
-}
+  touch /tmp/chat-db-initialized
 
-# Set trap to call cleanup when the script exits
-trap cleanup EXIT
+  exec uvicorn \
+    --host 0.0.0.0 \
+    --port "$PORT" \
+    --workers "${DUO_WORKERS:-4}" \
+    service.chat:app
+elif [ "$DUO_ENV" = "dev" ]
+then
+  python3 database/initchat.py
 
-# Helper function to handle port ranges
-expand_ports() {
-    if [[ $1 =~ ^([0-9]+)-([0-9]+)$ ]]; then
-        local lower=${BASH_REMATCH[1]}
-        local upper=${BASH_REMATCH[2]}
-        seq $lower $upper
-    else
-        echo $1
-    fi
-}
+  touch /tmp/chat-db-initialized
 
-# Iterate over all command-line arguments
-for port_entry in $DUO_CHAT_PORTS
-do
-    for duo_chat_port in $(expand_ports $port_entry)
-    do
-        python3 service/chat/__init__.py "$duo_chat_port" &
-        child_pids+=($!)
-    done
-done
-
-# Wait for all background jobs to complete
-wait
+  exec uvicorn \
+    --host 0.0.0.0 \
+    --port "$PORT" \
+    --reload \
+    service.chat:app
+else
+  echo "The environment variable DUO_ENV must be set and have the value 'dev' or 'prod'"
+fi
