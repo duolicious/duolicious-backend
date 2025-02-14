@@ -176,7 +176,7 @@ async def handle_auth(parsed_xml: etree.Element, session: Session) -> List[str]:
             "</stream:stream>"]
 
 
-def handle_bind(parsed_xml: etree.Element, session: Session) -> List[str]:
+def handle_iq_bind(iq_id: str, session: Session) -> List[str]:
     """
     Handles a <bind> stanza inside an <iq> request.
 
@@ -185,9 +185,6 @@ def handle_bind(parsed_xml: etree.Element, session: Session) -> List[str]:
     """
     if session.username is None:
         return []  # Ignore requests from unauthenticated clients
-
-    # Extract <iq> ID to echo it back in the response
-    iq_id = parsed_xml.attrib.get("id", "default")
 
     # Construct the <iq> response with <bind> and <jid>
     iq_elem = build_element("iq", attrib={"type": "result", "id": iq_id})
@@ -204,17 +201,36 @@ def handle_bind(parsed_xml: etree.Element, session: Session) -> List[str]:
     ]
 
 
-async def handle_iq(parsed_xml: etree.Element, session: Session) -> List[str]:
+def handle_iq_session(iq_id: str, session: Session) -> List[str]:
+    if session.username is None:
+        return []
+
+    # Construct the <iq> response with <bind> and <jid>
+    iq_elem = build_element("iq", attrib={"type": "result", "id": iq_id})
+
+    return [
+        etree.tostring(iq_elem, encoding="unicode", pretty_print=False)
+    ]
+
+
+def handle_iq(parsed_xml: etree.Element, session: Session) -> List[str]:
     """
     Handles an <iq> stanza, determining if it contains a <bind> request.
     """
     # Check if the <iq> stanza contains a <bind> element
     bind_elem = parsed_xml.find("{urn:ietf:params:xml:ns:xmpp-bind}bind")
 
-    if bind_elem is not None:
-        return handle_bind(parsed_xml, session)
+    session_elem = parsed_xml.find("{urn:ietf:params:xml:ns:xmpp-session}session")
 
-    return []  # If not a bind request, ignore the IQ
+    # Extract <iq> ID to echo it back in the response
+    iq_id = parsed_xml.attrib.get("id", "default")
+
+    if bind_elem is not None:
+        return handle_iq_bind(iq_id, session)
+    elif session_elem is not None:
+        return handle_iq_session(iq_id, session)
+    else:
+        return []
 
 
 async def maybe_get_session_response(parsed_xml: etree.Element, session: Session) -> List[str]:
@@ -226,11 +242,13 @@ async def maybe_get_session_response(parsed_xml: etree.Element, session: Session
     tag = qname.localname
     ns = qname.namespace
 
+    print('session response', qname, tag, ns) # TODO
+
     if tag == "open" and ns == "urn:ietf:params:xml:ns:xmpp-framing":
         return handle_open(parsed_xml, session)
     elif tag == "auth" and ns == "urn:ietf:params:xml:ns:xmpp-sasl":
         return await handle_auth(parsed_xml, session)
     elif tag == "iq" and ns == "jabber:client":
-        return await handle_iq(parsed_xml, session)
+        return handle_iq(parsed_xml, session)
     else:
         return []

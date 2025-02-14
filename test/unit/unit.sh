@@ -20,7 +20,7 @@ fi
   python3 -m unittest discover -s service/cron
 
 "${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep api | cut -d ' ' -f 1)" \
-  python3 -m unittest discover -s service/application
+  python3 -m unittest discover -s service/api
 
 "${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep api | cut -d ' ' -f 1)" \
   python3 -m unittest discover -s verification

@@ -413,7 +413,7 @@ async def process_duo_message(
         return
 
     if maybe_register(parsed_xml, from_username):
-        return await redis_publish_many(from_username, [
+        return await redis_publish_many(connection_uuid, [
             '<duo_registration_successful />'
         ])
 
@@ -437,7 +437,7 @@ async def process_duo_message(
         return
 
     if is_message_too_long(maybe_message_body):
-        return await redis_publish_many(from_username, [
+        return await redis_publish_many(connection_uuid, [
             f'<duo_message_too_long id="{id}"/>'
         ])
 
@@ -456,14 +456,14 @@ async def process_duo_message(
         await insert_server_user(to_username)
 
     if await fetch_is_skipped(from_id=from_id, to_id=to_id):
-        return await redis_publish_many(from_username, [
+        return await redis_publish_many(connection_uuid, [
             f'<duo_message_blocked id="{id}"/>'
         ])
 
     is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
 
     if is_intro and is_rude(maybe_message_body):
-        return await redis_publish_many(from_username, [
+        return await redis_publish_many(connection_uuid, [
             f'<duo_message_blocked id="{id}" reason="offensive"/>'
         ])
 
@@ -471,7 +471,7 @@ async def process_duo_message(
             is_intro and \
             is_spam(maybe_message_body) and \
             not await fetch_is_trusted_account(from_id=from_id):
-        return await redis_publish_many(from_username, [
+        return await redis_publish_many(connection_uuid, [
             f'<duo_message_blocked id="{id}" reason="spam"/>'
         ])
 
@@ -482,7 +482,7 @@ async def process_duo_message(
             return await redis_publish_many(connection_uuid, maybe_rate_limit)
 
     if is_intro and not await is_message_unique(maybe_message_body):
-        return await redis_publish_many(from_username, [
+        return await redis_publish_many(connection_uuid, [
             f'<duo_message_not_unique id="{id}"/>'
         ])
 
@@ -532,7 +532,7 @@ async def process_duo_message(
             },
         )
 
-    return await redis_publish_many(from_username, [
+    return await redis_publish_many(connection_uuid, [
         f'<duo_message_delivered id="{id}"/>'
     ])
 
@@ -554,6 +554,8 @@ async def forward_redis_to_websocket(pubsub: redis.client.PubSub, websocket: Web
             print('forwarding2', data) # TODO
 
             await websocket.send_text(data)
+    except asyncio.CancelledError:
+        raise
     except:
         print(traceback.format_exc())
 
@@ -590,7 +592,8 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
 
             parsed_xml = parse_xml_or_none(incoming_message)
 
-            await process_duo_message(incoming_message, parsed_xml, session)
+            await asyncio.shield(
+                    process_duo_message(incoming_message, parsed_xml, session))
 
             if not update_last_task and session.username:
                 update_last_task = asyncio.create_task(
@@ -599,6 +602,10 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
             if not is_subscribed_by_username and session.username:
                 await pubsub.subscribe(session.username)
                 is_subscribed_by_username = True
+    except WebSocketDisconnect:
+        pass
+    except asyncio.CancelledError:
+        raise
     except:
         print(
             datetime.utcnow(),
@@ -608,9 +615,18 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
     finally:
         if update_last_task:
             update_last_task.cancel()
+            try:
+                await update_last_task
+            except asyncio.CancelledError:
+                pass
+
 
         if forward_redis_to_websocket_task:
             forward_redis_to_websocket_task.cancel()
+            try:
+                await forward_redis_to_websocket_task
+            except asyncio.CancelledError:
+                pass
 
         if session.connection_uuid:
             await pubsub.unsubscribe(session.connection_uuid)

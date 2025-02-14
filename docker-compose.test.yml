@@ -87,7 +87,7 @@ services:
 
       DUO_CHAT_PORTS: '5443'
     healthcheck:
-      test: ["CMD", "bash", "-c", "[[ -e /db-initialized ]]"]
+      test: ["CMD", "bash", "-c", "[[ -e /tmp/chat-db-initialized ]]"]
       interval: 30s
       timeout: 10s
       retries: 3
