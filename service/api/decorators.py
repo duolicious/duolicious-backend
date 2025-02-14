@@ -114,6 +114,8 @@ def _get_remote_address() -> str:
     return mock_ip_address() or request.remote_addr or "127.0.0.1"
 
 CORS_ORIGINS = os.environ.get('DUO_CORS_ORIGINS', '*')
+REDIS_HOST: str = os.environ.get("DUO_REDIS_HOST", "redis")
+REDIS_PORT: int = int(os.environ.get("DUO_REDIS_PORT", 6379))
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
@@ -125,7 +127,7 @@ limiter = Limiter(
     _get_remote_address,
     app=app,
     default_limits=[default_limits],
-    storage_uri="redis://redis:6379",
+    storage_uri=f"redis://{REDIS_HOST}:{REDIS_PORT}",
     strategy="fixed-window",
     default_limits_exempt_when=_is_private_ip,
 )
