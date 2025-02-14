@@ -428,7 +428,7 @@ async def process_duo_message(
     if maybe_mark_displayed(parsed_xml, from_username):
         return
 
-    is_message, id, to_username, maybe_message_body = get_message_attrs(parsed_xml)
+    is_message, stanza_id, to_username, maybe_message_body = get_message_attrs(parsed_xml)
 
     if not is_message:
         return
@@ -438,7 +438,7 @@ async def process_duo_message(
 
     if is_message_too_long(maybe_message_body):
         return await redis_publish_many(connection_uuid, [
-            f'<duo_message_too_long id="{id}"/>'
+            f'<duo_message_too_long id="{stanza_id}"/>'
         ])
 
     from_id = await fetch_id_from_username(from_username)
@@ -457,14 +457,14 @@ async def process_duo_message(
 
     if await fetch_is_skipped(from_id=from_id, to_id=to_id):
         return await redis_publish_many(connection_uuid, [
-            f'<duo_message_blocked id="{id}"/>'
+            f'<duo_message_blocked id="{stanza_id}"/>'
         ])
 
     is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
 
     if is_intro and is_rude(maybe_message_body):
         return await redis_publish_many(connection_uuid, [
-            f'<duo_message_blocked id="{id}" reason="offensive"/>'
+            f'<duo_message_blocked id="{stanza_id}" reason="offensive"/>'
         ])
 
     if \
@@ -472,18 +472,20 @@ async def process_duo_message(
             is_spam(maybe_message_body) and \
             not await fetch_is_trusted_account(from_id=from_id):
         return await redis_publish_many(connection_uuid, [
-            f'<duo_message_blocked id="{id}" reason="spam"/>'
+            f'<duo_message_blocked id="{stanza_id}" reason="spam"/>'
         ])
 
     if is_intro:
-        maybe_rate_limit = await maybe_fetch_rate_limit(from_id=from_id)
+        maybe_rate_limit = await maybe_fetch_rate_limit(
+                from_id=from_id,
+                stanza_id=stanza_id)
 
         if maybe_rate_limit:
             return await redis_publish_many(connection_uuid, maybe_rate_limit)
 
     if is_intro and not await is_message_unique(maybe_message_body):
         return await redis_publish_many(connection_uuid, [
-            f'<duo_message_not_unique id="{id}"/>'
+            f'<duo_message_not_unique id="{stanza_id}"/>'
         ])
 
     # TODO: Updates to `mam_message` and `inbox` tables should happen in one tx
@@ -491,14 +493,14 @@ async def process_duo_message(
         maybe_message_body,
         from_username=from_username,
         to_username=to_username,
-        msg_id=id)
+        msg_id=stanza_id)
 
     set_messaged(from_id=from_id, to_id=to_id)
 
     upsert_conversation(
         from_username=from_username,
         to_username=to_username,
-        msg_id=id,
+        msg_id=stanza_id,
         content=xml_str)
 
     # TODO: Validate message format more thoroughly
@@ -533,7 +535,7 @@ async def process_duo_message(
         )
 
     return await redis_publish_many(connection_uuid, [
-        f'<duo_message_delivered id="{id}"/>'
+        f'<duo_message_delivered id="{stanza_id}"/>'
     ])
 
 

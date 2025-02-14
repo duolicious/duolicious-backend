@@ -69,24 +69,24 @@ async def fetch_rate_limit_reason(from_id: int) -> IntroRateLimit:
     return IntroRateLimit(row['rate_limit_reason'])
 
 
-async def maybe_fetch_rate_limit(from_id: int) -> tuple[list[str], list[str]]:
+async def maybe_fetch_rate_limit(from_id: int, stanza_id: str) -> list[str]:
     rate_limit_reason = await fetch_rate_limit_reason(from_id=from_id)
 
     if rate_limit_reason == IntroRateLimit.NONE:
-        return None
+        return []
     elif rate_limit_reason == IntroRateLimit.UNVERIFIED:
         return [
-                f'<duo_message_blocked id="{id}" '
+                f'<duo_message_blocked id="{stanza_id}" '
                 f'reason="rate-limited-1day" '
-                f'subreason="unverified-basics"/>'], []
+                f'subreason="unverified-basics"/>']
     elif rate_limit_reason == IntroRateLimit.BASICS:
         return [
-                f'<duo_message_blocked id="{id}" '
+                f'<duo_message_blocked id="{stanza_id}" '
                 f'reason="rate-limited-1day" '
-                f'subreason="unverified-photos"/>'], []
+                f'subreason="unverified-photos"/>']
     elif rate_limit_reason == IntroRateLimit.PHOTOS:
         return [
-                f'<duo_message_blocked id="{id}" '
-                f'reason="rate-limited-1day"/>'], []
+                f'<duo_message_blocked id="{stanza_id}" '
+                f'reason="rate-limited-1day"/>']
     else:
         raise Exception(f'Unhandled rate limit reason {rate_limit_reason}')
