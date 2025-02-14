@@ -363,7 +363,7 @@ curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d
 
 sleep 0.5
 
-curl -sX GET http://localhost:3000/pop | grep -qF "<failure xmlns='urn:ietf:params:xml:ns:xmpp-sasl'><not-authorized/></failure>"
+curl -sX GET http://localhost:3000/pop | grep -qF '<failure xmlns="urn:ietf:params:xml:ns:xmpp-sasl"><not-authorized/></failure>'
 
 curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d '{
   "service": "ws://chat:5443",
