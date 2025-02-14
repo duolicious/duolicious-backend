@@ -42,6 +42,13 @@ const _xmpp: {
 
 notify('inbox', null);
 
+const jidMatchesSignedInUser = (jid: string) => {
+  const fromCurrentUserByUuid = jidToBareJid(jid) === signedInUser?.personUuid;
+  const fromCurrentUserById = jidToBareJid(jid) === String(signedInUser?.personId);
+
+  return fromCurrentUserByUuid || fromCurrentUserById;
+}
+
 const parseIntOrZero = (input: string) => {
   if (/^\d+$/.test(input)) {
     const parsed = parseInt(input, 10);
@@ -767,7 +774,7 @@ const onReceiveMessage = (
       to: to.toString(),
       id: id.toString(),
       timestamp: stamp.toString() ? new Date(stamp.toString()) : new Date(),
-      fromCurrentUser: bareFrom === signedInUser?.personUuid,
+      fromCurrentUser: jidMatchesSignedInUser(from.toString())
     };
 
     await setInboxRecieved(
@@ -857,9 +864,6 @@ const _fetchConversation = async (
     if (stamp === null) return;
     if (bodyText === null) return;
 
-    const fromCurrentUser = from.toString().startsWith(
-        `${signedInUser?.personUuid}@`);
-
     collected.push({
       text: bodyText.toString(),
       from: from.toString(),
@@ -867,7 +871,7 @@ const _fetchConversation = async (
       id: id.toString(),
       mamId: mamId ? mamId.toString() : undefined,
       timestamp: new Date(stamp.toString()),
-      fromCurrentUser: fromCurrentUser,
+      fromCurrentUser: jidMatchesSignedInUser(from.toString()),
     });
   };
 
@@ -978,14 +982,9 @@ const _fetchInboxPage = async (
     if (numUnread === null) return;
     if (timestamp === null) return;
 
-    const bareFrom = jidToBareJid(from.toString());
+    const fromCurrentUser = jidMatchesSignedInUser(from.toString());
     const bareTo = jidToBareJid(to.toString());
-
-    const fromCurrentUserByUuid = bareFrom === signedInUser?.personUuid;
-    const fromCurrentUserById = bareFrom === String(signedInUser?.personId);
-
-    const fromCurrentUser = fromCurrentUserByUuid || fromCurrentUserById;
-
+    const bareFrom = jidToBareJid(from.toString());
     const bareJid = fromCurrentUser ? bareTo : bareFrom;
 
     // Some of these need to be fetched from the REST API instead of the XMPP
