@@ -71,16 +71,6 @@ REDIS_PUB: Optional[redis.Redis] = redis.Redis(
 #  public.duo_last_notification
 #  public.duo_push_token
 
-# TODO: Close websocket if authentication fails
-# if not username:
-#     await websocket.close()
-#     return
-
-# TODO: Redis is being used as a message bus. You must ensure unauthenticated
-#       users can't send messages to arbitrary users
-
-# TODO: I think redis messages are in a json format and need to be unpacked before forwarding
-
 Q_SELECT_INTRO_HASH = """
 SELECT
     1
@@ -396,8 +386,6 @@ async def process_duo_message(
     maybe_session_response = await maybe_get_session_response(
             parsed_xml, session)
 
-    print('maybe_session_response', maybe_session_response) # TODO
-
     if maybe_session_response:
         return await redis_publish_many(
             connection_uuid,
@@ -503,8 +491,6 @@ async def process_duo_message(
         msg_id=stanza_id,
         content=xml_str)
 
-    # TODO: Validate message format more thoroughly
-    # TODO: We're probably sending the wrong message
     await publish_message(
         message_body=maybe_message_body,
         to_username=to_username,
@@ -549,11 +535,7 @@ async def forward_redis_to_websocket(pubsub: redis.client.PubSub, websocket: Web
             if message is None or message.get("type") != "message":
                 continue
 
-            print('forwarding1', message) # TODO
-
             data = message.get("data")
-
-            print('forwarding2', data) # TODO
 
             await websocket.send_text(data)
     except asyncio.CancelledError:
@@ -590,7 +572,6 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
     try:
         while True:
             incoming_message = await websocket.receive_text()
-            print('loop', incoming_message) # TODO
 
             parsed_xml = parse_xml_or_none(incoming_message)
 
@@ -638,5 +619,3 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
 
         await pubsub.close()
         await redis_sub.close()
-
-        print("Connections closed in process()")

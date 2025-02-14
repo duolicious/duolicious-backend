@@ -8,13 +8,8 @@ confusable-homoglyphs
 erlastic
 flask-cors
 gunicorn
-lxml
-nltk
 numpy
 openai
 psycopg[binary]
 pydantic[email]
 redis
-regex
-uvicorn
-websockets

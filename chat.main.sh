@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# TODO: Remove useless dependencies from api and chat containers
-# TODO: Check that running in prod works
-
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 

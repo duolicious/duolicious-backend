@@ -9,10 +9,6 @@ from database.asyncdatabase import api_tx
 import base64
 from duohash import sha512
 
-# TODO: Delete auth.py
-# TODO: Use python as the base docker container instead of Mongoose
-# TODO: Broadcast messages
-
 
 Q_CHECK_AUTH = """
 SELECT
@@ -241,8 +237,6 @@ async def maybe_get_session_response(parsed_xml: etree.Element, session: Session
     qname = etree.QName(parsed_xml.tag)
     tag = qname.localname
     ns = qname.namespace
-
-    print('session response', qname, tag, ns) # TODO
 
     if tag == "open" and ns == "urn:ietf:params:xml:ns:xmpp-framing":
         return handle_open(parsed_xml, session)
