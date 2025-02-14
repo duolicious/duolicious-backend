@@ -1,4 +1,13 @@
+from async_lru_cache import AsyncLruCache
 from database.asyncdatabase import api_tx
+from enum import Enum
+
+class IntroRateLimit(Enum):
+    NONE = 0
+    UNVERIFIED = 10
+    BASICS = 20
+    PHOTOS = 50
+
 
 Q_RATE_LIMIT_REASON = f"""
 WITH truncated_daily_message AS (
@@ -51,13 +60,6 @@ WHERE
 """
 
 
-class IntroRateLimit(Enum):
-    NONE = 0
-    UNVERIFIED = 10
-    BASICS = 20
-    PHOTOS = 50
-
-
 @AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
 async def fetch_rate_limit_reason(from_id: int) -> IntroRateLimit:
     async with api_tx('read committed') as tx:
@@ -67,7 +69,7 @@ async def fetch_rate_limit_reason(from_id: int) -> IntroRateLimit:
     return IntroRateLimit(row['rate_limit_reason'])
 
 
-async fetch_maybe_rate_limit(from_id: int) -> tuple[list[str], list[str]]:
+async def maybe_fetch_rate_limit(from_id: int) -> tuple[list[str], list[str]]:
     rate_limit_reason = await fetch_rate_limit_reason(from_id=from_id)
 
     if rate_limit_reason == IntroRateLimit.NONE:

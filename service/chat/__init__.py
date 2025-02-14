@@ -36,9 +36,12 @@ from service.chat.session import (
     Session,
     maybe_get_session_response,
 )
+from service.chat.ratelimit import (
+    maybe_fetch_rate_limit,
+)
 from lxml import etree
-from enum import Enum
 from service.chat.util import (
+    message_string_to_etree,
     to_bare_jid,
 )
 import uuid
@@ -202,6 +205,19 @@ async def redis_publish(username_or_connection_uuid: str, message: str):
 async def redis_publish_many(username_or_connection_uuid: str, messages: list[str]):
     for message in messages:
         await redis_publish(username_or_connection_uuid, message)
+
+
+async def publish_message(message_body: str, to_username: str, from_username: str):
+    root = message_string_to_etree(
+        message_body=message_body,
+        to_username=to_username,
+        from_username=from_username,
+        id=str(uuid.uuid4()),
+    )
+
+    xml_str = etree.tostring(root, encoding='unicode', pretty_print=False)
+
+    await redis_publish(to_username, xml_str)
 
 
 async def send_notification(
@@ -460,7 +476,7 @@ async def process_duo_message(
         ])
 
     if is_intro:
-        maybe_rate_limit = await fetch_maybe_rate_limit(from_id=from_id)
+        maybe_rate_limit = await maybe_fetch_rate_limit(from_id=from_id)
 
         if maybe_rate_limit:
             return await redis_publish_many(connection_uuid, maybe_rate_limit)
@@ -487,7 +503,11 @@ async def process_duo_message(
 
     # TODO: Validate message format more thoroughly
     # TODO: We're probably sending the wrong message
-    await redis_publish_many(to_username, [xml_str])
+    await publish_message(
+        message_body=maybe_message_body,
+        to_username=to_username,
+        from_username=from_username
+    )
 
     immediate_data = await fetch_immediate_data(
             from_id=from_id,
