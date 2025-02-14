@@ -374,7 +374,7 @@ async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
 
 async def process_duo_message(
     xml_str: str,
-    parsed_xml: etree._Element,
+    parsed_xml: etree.Element,
     session: Session,
 ):
     from_username = session.username
@@ -574,6 +574,9 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
             incoming_message = await websocket.receive_text()
 
             parsed_xml = parse_xml_or_none(incoming_message)
+
+            if parsed_xml is None:
+                continue
 
             await asyncio.shield(
                     process_duo_message(incoming_message, parsed_xml, session))
