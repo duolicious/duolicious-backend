@@ -1,6 +1,7 @@
+import os
 from database.asyncdatabase import api_tx, chat_tx, check_connections_forever
+from database import chat_tx as sync_chat_tx
 import asyncio
-import base64
 import duohash
 import regex
 import traceback
@@ -11,7 +12,7 @@ import notify
 from sql import *
 from async_lru_cache import AsyncLruCache
 import random
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 from datetime import datetime
 from service.chat.insertintrohash import insert_intro_hash
 from service.chat.mayberegister import maybe_register
@@ -20,7 +21,6 @@ from service.chat.setmessaged import set_messaged
 from service.chat.spam import is_spam
 from service.chat.updatelast import update_last_forever
 from service.chat.upsertlastnotification import upsert_last_notification
-from service.chat.username import Username
 from service.chat.xmlparse import parse_xml_or_none
 from service.chat.inbox import (
     maybe_get_inbox,
@@ -32,22 +32,33 @@ from service.chat.mam import (
     maybe_get_conversation,
     store_message,
 )
-from duohash import sha512
+from service.chat.session import (
+    Session,
+    maybe_get_session_response,
+)
+from service.chat.ratelimit import (
+    maybe_fetch_rate_limit,
+)
 from lxml import etree
-from enum import Enum
 from service.chat.util import (
+    message_string_to_etree,
     to_bare_jid,
 )
 import uuid
+from pathlib import Path
+import redis.asyncio as redis
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import HTMLResponse
 
+app = FastAPI()
 
-PORT = sys.argv[1] if len(sys.argv) >= 2 else 5443
-
-class IntroRateLimit(Enum):
-    NONE = 0
-    UNVERIFIED = 10
-    BASICS = 20
-    PHOTOS = 50
+# Global publisher connection, created once per worker.
+REDIS_HOST: str = os.environ.get("DUO_REDIS_HOST", "redis")
+REDIS_PORT: int = int(os.environ.get("DUO_REDIS_PORT", 6379))
+REDIS_PUB: Optional[redis.Redis] = redis.Redis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        decode_responses=True)
 
 # TODO: Tables to migrate to monolithic DB:
 #
@@ -59,21 +70,6 @@ class IntroRateLimit(Enum):
 #  public.intro_hash
 #  public.duo_last_notification
 #  public.duo_push_token
-
-Q_CHECK_AUTH = """
-SELECT
-    1
-FROM
-    duo_session
-JOIN
-    person
-ON
-    person.id = duo_session.person_id
-WHERE
-    duo_session.session_token_hash = %(session_token_hash)s
-AND
-    person.uuid = %(auth_username)s
-"""
 
 Q_SELECT_INTRO_HASH = """
 SELECT
@@ -121,56 +117,6 @@ WHERE
     id = %(from_id)s
 AND
     sign_up_time < now() - (interval '1 day') / power(verification_level_id, 2)
-"""
-
-Q_RATE_LIMIT_REASON = f"""
-WITH truncated_daily_message AS (
-    SELECT
-        1
-    FROM
-        messaged AS m1
-    WHERE
-        m1.subject_person_id = %(from_id)s
-    AND
-        m1.created_at >= NOW() - INTERVAL '24 HOURS'
-    AND
-        NOT EXISTS (
-            SELECT
-                1
-            FROM
-                messaged AS m2
-            WHERE
-                m2.subject_person_id = m1.object_person_id
-            AND
-                m2.object_person_id = m1.subject_person_id
-            AND
-                m2.created_at < m1.created_at
-        )
-    LIMIT
-        {max(x.value for x in IntroRateLimit)}
-), truncated_daily_message_count AS (
-    SELECT COUNT(*) AS x FROM truncated_daily_message
-)
-SELECT
-    CASE
-
-    WHEN verification_level_id = 3 AND x >= {IntroRateLimit.PHOTOS.value}
-    THEN                                    {IntroRateLimit.PHOTOS.value}
-
-    WHEN verification_level_id = 2 AND x >= {IntroRateLimit.BASICS.value}
-    THEN                                    {IntroRateLimit.BASICS.value}
-
-    WHEN verification_level_id = 1 AND x >= {IntroRateLimit.UNVERIFIED.value}
-    THEN                                    {IntroRateLimit.UNVERIFIED.value}
-
-    ELSE                                    {IntroRateLimit.NONE.value}
-
-    END AS rate_limit_reason
-FROM
-    person,
-    truncated_daily_message_count
-WHERE
-    id = %(from_id)s
 """
 
 Q_IMMEDIATE_DATA = """
@@ -223,6 +169,46 @@ MAX_MESSAGE_LEN = 5000
 
 NON_ALPHANUMERIC_RE = regex.compile(r'[^\p{L}\p{N}]')
 REPEATED_CHARACTERS_RE = regex.compile(r'(.)\1{1,}')
+
+_init_sql_file = (
+    Path(__file__).parent.parent.parent / 'init-chat.sql')
+
+def init_db():
+    with sync_chat_tx() as tx:
+        row = tx.execute("SELECT to_regclass('mam_message')").fetchone()
+
+    if row ['to_regclass'] is not None:
+        print('Database already initialized')
+        return
+
+    with open(_init_sql_file, 'r') as f:
+        init_sql_file = f.read()
+
+    with sync_chat_tx() as tx:
+        tx.execute(init_sql_file)
+
+
+async def redis_publish(username_or_connection_uuid: str, message: str):
+    await REDIS_PUB.publish(username_or_connection_uuid, message)
+
+
+async def redis_publish_many(username_or_connection_uuid: str, messages: list[str]):
+    for message in messages:
+        await redis_publish(username_or_connection_uuid, message)
+
+
+async def publish_message(message_body: str, to_username: str, from_username: str):
+    root = message_string_to_etree(
+        message_body=message_body,
+        to_username=to_username,
+        from_username=from_username,
+        id=str(uuid.uuid4()),
+    )
+
+    xml_str = etree.tostring(root, encoding='unicode', pretty_print=False)
+
+    await redis_publish(to_username, xml_str)
+
 
 async def send_notification(
     from_name: str | None,
@@ -316,43 +302,6 @@ def is_ping(parsed_xml):
     except:
         return False
 
-async def process_auth(parsed_xml, username):
-    if username.username is not None:
-        return False
-
-    try:
-        # Create a safe XML parser
-        if parsed_xml.tag != '{urn:ietf:params:xml:ns:xmpp-sasl}auth':
-            return False
-
-        base64encoded = parsed_xml.text
-        decodedBytes = base64.b64decode(base64encoded)
-        decodedString = decodedBytes.decode('utf-8')
-
-        _, auth_username, auth_token = decodedString.split('\0')
-
-        # Validates that `auth_username` is a valid UUID
-        uuid.UUID(auth_username)
-
-        auth_token_hash = sha512(auth_token)
-
-        params = dict(
-            auth_username=auth_username,
-            session_token_hash=auth_token_hash,
-        )
-
-        async with api_tx('read committed') as tx:
-            await tx.execute(Q_CHECK_AUTH, params)
-            assert await tx.fetchone()
-
-        username.username = auth_username
-
-        return True
-    except Exception as e:
-        pass
-
-    return False
-
 @AsyncLruCache(maxsize=1024, cache_condition=lambda x: not x)
 async def is_message_unique(message_str):
     normalized = normalize_message(message_str)
@@ -405,14 +354,6 @@ async def fetch_is_trusted_account(from_id: int) -> bool:
 
     return bool(row)
 
-@AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
-async def fetch_rate_limit_reason(from_id: int) -> IntroRateLimit:
-    async with api_tx('read committed') as tx:
-        await tx.execute(Q_RATE_LIMIT_REASON, dict(from_id=from_id))
-        row = await tx.fetchone()
-
-    return IntroRateLimit(row['rate_limit_reason'])
-
 @AsyncLruCache(ttl=2 * 60)  # 2 minutes
 async def fetch_push_token(username: str) -> str | None:
     async with chat_tx('read committed') as tx:
@@ -434,96 +375,127 @@ async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
 async def process_duo_message(
     xml_str: str,
     parsed_xml: etree._Element,
-    from_username: Optional[str],
+    session: Session,
 ):
+    from_username = session.username
+    connection_uuid = session.connection_uuid
+
     if is_xml_too_long(xml_str):
-        return [], []
+        return
+
+    maybe_session_response = await maybe_get_session_response(
+            parsed_xml, session)
+
+    if maybe_session_response:
+        return await redis_publish_many(
+            connection_uuid,
+            maybe_session_response
+        )
 
     if is_ping(parsed_xml):
-        return [
+        return await redis_publish_many(connection_uuid, [
             '<duo_pong preferred_interval="10000" preferred_timeout="5000" />',
-        ], []
-
-    if maybe_register(parsed_xml, from_username):
-        return ['<duo_registration_successful />'], []
+        ])
 
     if not from_username:
-        return [], [xml_str]
+        return
+
+    if maybe_register(parsed_xml, from_username):
+        return await redis_publish_many(connection_uuid, [
+            '<duo_registration_successful />'
+        ])
 
     maybe_conversation = await maybe_get_conversation(parsed_xml, from_username)
     if maybe_conversation:
-        return maybe_conversation, []
+        return await redis_publish_many(connection_uuid, maybe_conversation)
 
     maybe_inbox = await maybe_get_inbox(parsed_xml, from_username)
     if maybe_inbox:
-        return maybe_inbox, []
+        return await redis_publish_many(connection_uuid, maybe_inbox)
 
     if maybe_mark_displayed(parsed_xml, from_username):
-        return [], []
+        return
 
-    is_message, id, to_username, maybe_message_body = get_message_attrs(parsed_xml)
+    is_message, stanza_id, to_username, maybe_message_body = get_message_attrs(parsed_xml)
 
     if not is_message:
-        return [], [xml_str]
+        return
 
     if not maybe_message_body:
-        return [], [xml_str]
+        return
 
     if is_message_too_long(maybe_message_body):
-        return [f'<duo_message_too_long id="{id}"/>'], []
+        return await redis_publish_many(connection_uuid, [
+            f'<duo_message_too_long id="{stanza_id}"/>'
+        ])
 
     from_id = await fetch_id_from_username(from_username)
 
     if not from_id:
-        return [], [xml_str]
+        return
     else:
         await insert_server_user(from_username)
 
     to_id = await fetch_id_from_username(to_username)
 
     if not to_id:
-        return [], [xml_str]
+        return
     else:
         await insert_server_user(to_username)
 
     if await fetch_is_skipped(from_id=from_id, to_id=to_id):
-        return [f'<duo_message_blocked id="{id}"/>'], []
+        return await redis_publish_many(connection_uuid, [
+            f'<duo_message_blocked id="{stanza_id}"/>'
+        ])
 
     is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
 
     if is_intro and is_rude(maybe_message_body):
-        return [f'<duo_message_blocked id="{id}" reason="offensive"/>'], []
+        return await redis_publish_many(connection_uuid, [
+            f'<duo_message_blocked id="{stanza_id}" reason="offensive"/>'
+        ])
 
     if \
             is_intro and \
             is_spam(maybe_message_body) and \
             not await fetch_is_trusted_account(from_id=from_id):
-        return [f'<duo_message_blocked id="{id}" reason="spam"/>'], []
+        return await redis_publish_many(connection_uuid, [
+            f'<duo_message_blocked id="{stanza_id}" reason="spam"/>'
+        ])
 
     if is_intro:
-        rate_limit_reason = await fetch_rate_limit_reason(from_id=from_id)
+        maybe_rate_limit = await maybe_fetch_rate_limit(
+                from_id=from_id,
+                stanza_id=stanza_id)
 
-        if rate_limit_reason == IntroRateLimit.NONE:
-            pass
-        elif rate_limit_reason == IntroRateLimit.UNVERIFIED:
-            return [
-                    f'<duo_message_blocked id="{id}" '
-                    f'reason="rate-limited-1day" '
-                    f'subreason="unverified-basics"/>'], []
-        elif rate_limit_reason == IntroRateLimit.BASICS:
-            return [
-                    f'<duo_message_blocked id="{id}" '
-                    f'reason="rate-limited-1day" '
-                    f'subreason="unverified-photos"/>'], []
-        elif rate_limit_reason == IntroRateLimit.PHOTOS:
-            return [
-                    f'<duo_message_blocked id="{id}" '
-                    f'reason="rate-limited-1day"/>'], []
-        else:
-            raise Exception(f'Unhandled rate limit reason {rate_limit_reason}')
+        if maybe_rate_limit:
+            return await redis_publish_many(connection_uuid, maybe_rate_limit)
 
     if is_intro and not await is_message_unique(maybe_message_body):
-        return [f'<duo_message_not_unique id="{id}"/>'], []
+        return await redis_publish_many(connection_uuid, [
+            f'<duo_message_not_unique id="{stanza_id}"/>'
+        ])
+
+    # TODO: Updates to `mam_message` and `inbox` tables should happen in one tx
+    store_message(
+        maybe_message_body,
+        from_username=from_username,
+        to_username=to_username,
+        msg_id=stanza_id)
+
+    set_messaged(from_id=from_id, to_id=to_id)
+
+    upsert_conversation(
+        from_username=from_username,
+        to_username=to_username,
+        msg_id=stanza_id,
+        content=xml_str)
+
+    await publish_message(
+        message_body=maybe_message_body,
+        to_username=to_username,
+        from_username=from_username
+    )
 
     immediate_data = await fetch_immediate_data(
             from_id=from_id,
@@ -548,111 +520,102 @@ async def process_duo_message(
             },
         )
 
-    store_message(
-        maybe_message_body,
-        from_username=from_username,
-        to_username=to_username,
-        msg_id=id)
-
-    set_messaged(from_id=from_id, to_id=to_id)
-
-    upsert_conversation(
-        from_username=from_username,
-        to_username=to_username,
-        msg_id=id,
-        content=xml_str)
-
-    return [f'<duo_message_delivered id="{id}"/>'], [xml_str]
+    return await redis_publish_many(connection_uuid, [
+        f'<duo_message_delivered id="{stanza_id}"/>'
+    ])
 
 
-async def process(src, dst, username):
+async def forward_redis_to_websocket(pubsub: redis.client.PubSub, websocket: WebSocket) -> None:
+    """
+    Listens on the Redis subscription channel and forwards any messages
+    to the connected websocket client.
+    """
+    try:
+        async for message in pubsub.listen():
+            if message is None or message.get("type") != "message":
+                continue
+
+            data = message.get("data")
+
+            await websocket.send_text(data)
+    except asyncio.CancelledError:
+        raise
+    except:
+        print(traceback.format_exc())
+
+
+@app.websocket("/")
+async def process_websocket_messages(websocket: WebSocket) -> None:
+    await websocket.accept(subprotocol='xmpp')
+
+    session = Session()
+
+    redis_sub: redis.Redis = redis.Redis(
+            host=REDIS_HOST,
+            port=REDIS_PORT,
+            decode_responses=True)
+
+    pubsub = redis_sub.pubsub()
+
+    await pubsub.subscribe(session.connection_uuid)
+
     # asyncio.create_task requires some manual memory management!
     # https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
     # https://github.com/python/cpython/issues/91887
     update_last_task = None
 
+    forward_redis_to_websocket_task = asyncio.create_task(
+            forward_redis_to_websocket(pubsub, websocket))
+
+    is_subscribed_by_username = False
+
     try:
-        async for message in src:
-            parsed_xml = parse_xml_or_none(message)
+        while True:
+            incoming_message = await websocket.receive_text()
 
-            if not await process_auth(parsed_xml, username):
-                pass
-            elif username.username:
+            parsed_xml = parse_xml_or_none(incoming_message)
+
+            await asyncio.shield(
+                    process_duo_message(incoming_message, parsed_xml, session))
+
+            if not update_last_task and session.username:
                 update_last_task = asyncio.create_task(
-                        update_last_forever(username))
+                        update_last_forever(session))
 
-            to_src, to_dst = await process_duo_message(
-                    message,
-                    parsed_xml,
-                    username.username)
-
-            for m in to_dst:
-                await dst.send(m)
-            for m in to_src:
-                await src.send(m)
+            if not is_subscribed_by_username and session.username:
+                await pubsub.subscribe(session.username)
+                is_subscribed_by_username = True
+    except WebSocketDisconnect:
+        pass
+    except asyncio.CancelledError:
+        raise
     except:
         print(
             datetime.utcnow(),
-            f"Exception while processing for username: {username.username}"
+            f"Exception while processing for username: {session.username}"
         )
         print(traceback.format_exc())
     finally:
-        await src.close()
-        await dst.close()
         if update_last_task:
             update_last_task.cancel()
-        print("Connections closed in process()")
+            try:
+                await update_last_task
+            except asyncio.CancelledError:
+                pass
 
 
-async def forward(src, dst, username):
-    try:
-        async for message in src:
-            await dst.send(message)
-    except:
-        print(
-            datetime.utcnow(),
-            f"Exception while forwarding for user {username.username}:"
-        )
-        print(traceback.format_exc())
-    finally:
-        await src.close()
-        await dst.close()
-        print("Connections closed in forward()")
+        if forward_redis_to_websocket_task:
+            forward_redis_to_websocket_task.cancel()
+            try:
+                await forward_redis_to_websocket_task
+            except asyncio.CancelledError:
+                pass
 
-async def proxy(local_ws):
-    username = Username()
+        if session.connection_uuid:
+            await pubsub.unsubscribe(session.connection_uuid)
 
-    async with websockets.connect(
-            'ws://127.0.0.1:5442',
-            ping_timeout=60 * 3, # 3 minutes
-            ) as remote_ws:
-        l2r_task = asyncio.create_task(process(local_ws, remote_ws, username))
-        r2l_task = asyncio.create_task(forward(remote_ws, local_ws, username))
+        if session.username:
+            await pubsub.unsubscribe(session.username)
 
-        done, pending = await asyncio.wait(
-            [l2r_task, r2l_task],
-            return_when=asyncio.FIRST_COMPLETED,
-        )
-
-        for task in pending:
-            task.cancel()
-
-async def serve():
-    async with websockets.serve(
-            proxy,
-            '0.0.0.0',
-            PORT,
-            subprotocols=['xmpp'],
-            ping_timeout=60 * 3, # 3 minutes
-            ):
-        await asyncio.Future()
-
-
-async def main():
-    await asyncio.gather(
-        serve(),
-        check_connections_forever(),
-    )
-
-if __name__ == '__main__':
-    asyncio.run(main())
+        await pubsub.close()
+        await redis_sub.close()

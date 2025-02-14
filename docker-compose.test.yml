@@ -78,14 +78,16 @@ services:
       - "5442:5442"
       - "5443:5443"
     environment:
-      DUO_API_HOST: http://api:5000
+      DUO_ENV: dev
+
       DUO_DB_HOST: postgres
       DUO_DB_PORT: 5432
       DUO_DB_USER: postgres
       DUO_DB_PASS: password
+
       DUO_CHAT_PORTS: '5443'
     healthcheck:
-      test: ["CMD", "bash", "-c", "[[ -e /db-initialized ]]"]
+      test: ["CMD", "bash", "-c", "[[ -e /tmp/chat-db-initialized ]]"]
       interval: 30s
       timeout: 10s
       retries: 3

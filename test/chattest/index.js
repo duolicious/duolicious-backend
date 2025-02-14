@@ -16,6 +16,10 @@ let xmppConfig = {
 let receivedMessages = [];
 let xmpp;
 
+process.on('uncaughtException', (err) => {
+  console.error('Caught unhandled exception:', err);
+});
+
 const setupXMPPClient = async () => {
   if (xmpp) {
     await xmpp.stop().catch(console.error);

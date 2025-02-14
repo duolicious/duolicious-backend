@@ -1,6 +1,6 @@
 from sql import Q_UPSERT_LAST
 from batcher import Batcher
-from service.chat.username import Username
+from service.chat.session import Session
 from typing import List
 from database import chat_tx
 import asyncio
@@ -23,19 +23,19 @@ _batcher = Batcher[str](
 
 _batcher.start()
 
-def update_last(username: Username):
-    if username is None:
+def update_last(session: Session):
+    if session is None:
         return
 
-    if username.username is None:
+    if session.username is None:
         return
 
-    _batcher.enqueue(username.username)
+    _batcher.enqueue(session.username)
 
-async def update_last_forever(username: Username):
+async def update_last_forever(session: Session):
     try:
         while True:
-            update_last(username)
+            update_last(session)
             await asyncio.sleep(LAST_UPDATE_INTERVAL_SECONDS)
     except asyncio.exceptions.CancelledError:
         pass

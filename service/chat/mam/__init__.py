@@ -9,6 +9,7 @@ import erlastic
 from service.chat.util import (
     LSERVER,
     build_element,
+    message_string_to_etree,
     to_bare_jid,
 )
 from service.chat.util.erlang import (
@@ -251,7 +252,7 @@ def _process_store_message_batch(batch: List[Message]):
             from_username=message.from_username,
             message=erlastic.encode(
                 etree_to_term(
-                    message_to_etree(
+                    message_string_to_etree(
                         message_body=message.message_body,
                         to_username=message.to_username,
                         from_username=message.from_username,
@@ -412,35 +413,6 @@ def normalize_search_text(text: str | None) -> str | None:
     re2 = re.sub(r"\s+", ' ', re1, flags=re.UNICODE)
 
     return re2
-
-
-def message_to_etree(
-    message_body: str,
-    to_username: str,
-    from_username: str,
-    id: str,
-) -> str:
-    message_etree = build_element(
-        'message',
-        attrib={
-            'from': f'{from_username}@{LSERVER}',
-            'to': f'{to_username}@{LSERVER}',
-            'id': id,
-            'type': 'chat',
-        },
-        ns='jabber:client',
-    )
-
-    body = build_element('body', text=message_body)
-
-    request = build_element(
-        'request',
-        ns='urn:xmpp:receipts'
-    )
-
-    message_etree.extend([body, request])
-
-    return message_etree
 
 
 _store_message_batcher = Batcher[Message](

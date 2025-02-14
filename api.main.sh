@@ -28,17 +28,17 @@ fi
 
 if [ "$DUO_ENV" = "prod" ]
 then
-  python3 database/init.py
+  python3 database/initapi.py
   exec gunicorn \
     --workers "${DUO_WORKERS:-4}" \
     --bind "0.0.0.0:$PORT" \
     --timeout 0 \
-    service.application:app
+    service.api:app
 elif [ "$DUO_ENV" = "dev" ]
 then
-  python3 database/init.py
+  python3 database/initapi.py
   exec flask \
-    --app service.application:app \
+    --app service.api:app \
     --debug run \
     --host 0.0.0.0 \
     --port "$PORT"

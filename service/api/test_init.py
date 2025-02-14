@@ -1,5 +1,5 @@
 import unittest
-from service.application import migrate_unnormalized_emails
+from service.api import migrate_unnormalized_emails
 from database import api_tx
 
 Q_DELETE_PERSONS = """
