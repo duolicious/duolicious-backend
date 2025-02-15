@@ -9,7 +9,6 @@ import websockets
 import sys
 from websockets.exceptions import ConnectionClosedError
 import notify
-from sql import *
 from async_lru_cache import AsyncLruCache
 import random
 from typing import Any, Optional, Tuple
@@ -256,12 +255,9 @@ def get_message_attrs(parsed_xml):
         if parsed_xml.attrib.get('type') != 'chat':
             raise Exception('type != chat')
 
-        maybe_message_body = parsed_xml.find('{jabber:client}body')
-
-        maybe_message_body = None
         body = parsed_xml.find('{jabber:client}body')
-        if body is not None:
-            maybe_message_body = body.text.strip()
+
+        maybe_message_body = None if body is None else body.text.strip()
 
         _id = parsed_xml.attrib.get('id')
         assert _id is not None
@@ -374,7 +370,7 @@ async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
 
 async def process_duo_message(
     xml_str: str,
-    parsed_xml: etree._Element,
+    parsed_xml: etree.Element,
     session: Session,
 ):
     from_username = session.username
@@ -574,6 +570,9 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
             incoming_message = await websocket.receive_text()
 
             parsed_xml = parse_xml_or_none(incoming_message)
+
+            if parsed_xml is None:
+                continue
 
             await asyncio.shield(
                     process_duo_message(incoming_message, parsed_xml, session))
