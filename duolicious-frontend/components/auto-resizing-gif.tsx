@@ -1,26 +1,42 @@
 import {
   ActivityIndicator,
   ImageStyle,
+  Pressable,
   StyleProp,
   View,
 } from 'react-native';
+import {
+  useState,
+} from 'react';
 import { DefaultText } from './default-text';
 import { useImage, Image } from 'expo-image';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const AutoResizingGif = ({
   uri,
   onError,
   style,
+  requirePress = false,
 }: {
   uri: string
   onError?: () => void
   style?: StyleProp<ImageStyle>,
+  requirePress?: boolean
 }) => {
-  const image = useImage(uri, { onError });
+  const [shouldLoad, setShouldLoad] = useState(!requirePress);
+
+  const image = useImage(
+    shouldLoad ? uri : '',
+    {
+      onError: shouldLoad ? onError : () => {},
+    }
+  );
 
   if (!image) {
     return (
-      <View
+      <Pressable
+        disabled={!requirePress}
+        onPress={() => setShouldLoad(true)}
         style={{
           // The dimensions are chosen so the height of the placeholder will be
           // less than or equal to the rendered image. Otherwise
@@ -36,7 +52,33 @@ const AutoResizingGif = ({
           gap: 12,
         }}
       >
-        <ActivityIndicator size="large" color="white" />
+        {requirePress &&
+          <View
+            style={{
+              height: 70,
+              width: 70,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            {shouldLoad &&
+              <ActivityIndicator size="large" color="white" />
+            }
+            {!shouldLoad &&
+              <Ionicons
+                style={{
+                  flexShrink: 1,
+                  fontSize: 60,
+                  color: 'white',
+                }}
+                name="play-circle"
+              />
+            }
+          </View>
+        }
+        {!requirePress &&
+          <ActivityIndicator size="large" color="white" />
+        }
         <DefaultText
           style={{
             fontSize: 22,
@@ -46,7 +88,12 @@ const AutoResizingGif = ({
         >
           GIF
         </DefaultText>
-      </View>
+        {requirePress &&
+          <DefaultText style={{ color: 'white' }}>
+            Press to reveal
+          </DefaultText>
+        }
+      </Pressable>
     );
   }
 

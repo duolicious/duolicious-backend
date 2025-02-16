@@ -11,6 +11,7 @@ import { longFriendlyTimestamp } from '../util/util';
 import { Image } from 'expo-image';
 import { IMAGES_URL } from '../env/env';
 import { AutoResizingGif } from './auto-resizing-gif';
+import { isMobile } from '../util/util';
 
 type Props = {
   fromCurrentUser: boolean,
@@ -105,6 +106,7 @@ const SpeechBubble = (props: Props) => {
             <AutoResizingGif
               uri={props.text}
               onError={() => setSpeechBubbleImageError(true)}
+              requirePress={isMobile()}
             />
           }
           {!doRenderUrlAsImage &&
