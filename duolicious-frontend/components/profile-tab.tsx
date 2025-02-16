@@ -171,7 +171,7 @@ const Images_ = ({data}) => {
 
   return (
     <>
-      <Images input={input} />
+      <Images input={input} style={{zIndex: 999}}/> {/* Give high zIndex since images can be dragged over other elements */}
       <DefaultText
         style={{
           color: '#999',

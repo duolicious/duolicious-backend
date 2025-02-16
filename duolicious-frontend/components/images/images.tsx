@@ -984,9 +984,11 @@ const SlotRow = ({
 };
 
 const Images = ({
-  input
+  input,
+  style,
 }: {
-  input: OptionGroupPhotos
+  input: OptionGroupPhotos,
+  style: object,
 }) => {
   const viewRef = useRef<View>(null);
   const [, setLayoutChanged] = useState({});
@@ -1101,6 +1103,7 @@ const Images = ({
       style={{
         padding: 10,
         gap: 10,
+        ...style
       }}
     >
       <FirstSlotRow firstFileNumber={1} />
