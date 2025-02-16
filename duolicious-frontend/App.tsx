@@ -37,9 +37,12 @@ import { japi, SUPPORTED_API_VERSIONS } from './api/api';
 import { login, logout, Inbox, inboxStats } from './xmpp/xmpp';
 import { STATUS_URL } from './env/env';
 import { delay, parseUrl } from './util/util';
-import { ReportModal } from './components/report-modal';
+import { ColorPickerModal } from './components/modal/color-picker-modal/color-picker-modal';
+import { DonationNagModal } from './components/modal/donation-nag-modal';
+import { GifPickerModal } from './components/modal/gif-picker-modal';
+import { ReportModal } from './components/modal/report-modal';
+import { StreamErrorModal } from './components/modal/stream-error-modal';
 import { ImageCropper } from './components/image-cropper';
-import { StreamErrorModal } from './components/stream-error-modal';
 import {
   setNofications,
   useNotificationObserver,
@@ -49,11 +52,9 @@ import { getCurrentScreen, getCurrentParams } from './navigation/navigation';
 import { navigationState } from './kv-storage/navigation-state';
 import { listen, notify } from './events/events';
 import { verificationWatcher } from './verification/verification';
-import { ColorPickerModal } from './components/color-picker-modal/color-picker-modal';
 import { ClubItem } from './club/club';
 import { Toast } from './components/toast';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { DonationNagModal } from './components/donation-nag-modal';
 import { createWebNavigator } from './components/navigation/web-navigator';
 import { isMobile } from './util/util';
 import { Logo16 } from './components/logo';
@@ -528,6 +529,7 @@ const App = () => {
           <ReportModal/>
           <ImageCropper/>
           <ColorPickerModal/>
+          <GifPickerModal/>
           <Toast/>
           <StreamErrorModal/>
         </GestureHandlerRootView>

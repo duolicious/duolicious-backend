@@ -1,4 +1,4 @@
-import React, {
+import {
   useCallback,
   useEffect,
   useRef,
@@ -13,17 +13,20 @@ import {
 import {
   listen,
   notify,
-} from '../../events/events';
+} from '../../../events/events';
 import {
   Title,
-} from '../../components/title';
+} from '../../../components/title';
 import {
   HsvColorPicker,
   HsvColorPickerRef,
 } from './hsv-color-picker';
 import {
   DefaultText,
-} from './../default-text';
+} from '../../default-text';
+import {
+  backgroundColors,
+} from '../background-colors';
 
 type ColorPickedEvent = string;
 type ShowColorPickerEvent = string;
@@ -35,9 +38,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
+    ...backgroundColors.dark,
   },
   container: {
     borderColor: '#555',

@@ -3,14 +3,14 @@ import {
   useState,
 } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   View,
 } from 'react-native';
 import { DefaultText } from './default-text';
 import { longFriendlyTimestamp } from '../util/util';
-import { useImage, Image } from 'expo-image';
+import { Image } from 'expo-image';
 import { IMAGES_URL } from '../env/env';
+import { AutoResizingGif } from './auto-resizing-gif';
 
 type Props = {
   fromCurrentUser: boolean,
@@ -102,7 +102,7 @@ const SpeechBubble = (props: Props) => {
           }}
         >
           {doRenderUrlAsImage &&
-            <SpeechBubbleImage
+            <AutoResizingGif
               uri={props.text}
               onError={() => setSpeechBubbleImageError(true)}
             />
@@ -134,63 +134,6 @@ const SpeechBubble = (props: Props) => {
         </DefaultText>
       }
     </View>
-  );
-};
-
-const SpeechBubbleImage = ({
-  uri,
-  onError,
-}: {
-  uri: string
-  onError: () => void
-}) => {
-  const image = useImage(uri, { onError });
-
-  if (!image) {
-    return (
-      <View
-        style={{
-          // The dimensions are chosen so the height of the placeholder will be
-          // less than or equal to the rendered image. Otherwise
-          // scroll-to-bottom will be broken in the case that the image loads
-          // after the conversation screen already scrolled to the bottom.
-          width: '100%',
-          aspectRatio: 1,
-
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          borderRadius: 10,
-          gap: 12,
-        }}
-      >
-        <ActivityIndicator size="large" color="white" />
-        <DefaultText
-          style={{
-            fontSize: 22,
-            fontWeight: 900,
-            color: 'white',
-          }}
-        >
-          GIF
-        </DefaultText>
-      </View>
-    );
-  }
-
-  return (
-    <Image
-      source={image}
-      transition={150}
-      style={{
-        width: '100%',
-        aspectRatio: image.width / image.height,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 10,
-        overflow: 'hidden',
-      }}
-    />
   );
 };
 

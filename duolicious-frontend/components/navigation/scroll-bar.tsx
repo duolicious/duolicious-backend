@@ -375,7 +375,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#70f',
     borderRadius: 99,
 
-    touchAction: 'none',         // prevent selection on web
+    ...(Platform.OS === 'web' ? {
+      touchAction: 'none',         // prevent selection on web
+    } : {}),
   },
 });
 

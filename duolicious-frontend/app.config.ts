@@ -31,6 +31,7 @@ const config: ExpoConfig = {
     statusUrl: process.env.DUO_STATUS_URL,
     webUrl: process.env.DUO_WEB_BASE_URL,
     webVersion: process.env.DUO_WEB_VERSION,
+    tenorApiKey: process.env.DUO_TENOR_API_KEY,
   },
   web: {
     favicon: "./assets/favicon.png"

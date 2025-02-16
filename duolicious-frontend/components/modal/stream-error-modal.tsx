@@ -7,8 +7,8 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { DefaultText } from './default-text';
-import { listen } from '../events/events';
+import { DefaultText } from '../default-text';
+import { listen } from '../../events/events';
 
 const StreamErrorModal = () => {
   const [showError, setShowError] = useState(false);

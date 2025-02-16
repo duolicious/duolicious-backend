@@ -35,7 +35,7 @@ import { Basic, Basics } from './basic';
 import { Club, Clubs } from './club';
 import { Stat, Stats } from './stat';
 import { listen, notify } from '../events/events';
-import { ReportModalInitialData } from './report-modal';
+import { ReportModalInitialData } from './modal/report-modal';
 import {
   VerificationBadge,
   DetailedVerificationBadges,

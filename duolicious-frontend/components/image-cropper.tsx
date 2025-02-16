@@ -3,7 +3,6 @@ import {
   Image,
   PanResponder,
   Platform,
-  Pressable,
   StatusBar,
   StyleSheet,
   View,
@@ -18,6 +17,7 @@ import {
 } from 'react'
 import { DefaultText } from './default-text';
 import { listen, notify } from '../events/events';
+import { ModalButton } from './button/modal';
 
 const buttonHeight = 110; // Define the height for the button
 
@@ -212,53 +212,6 @@ const ImageCropper = () => {
     setData(undefined);
   };
 
-  const Button = ({onPress, title, color}) => {
-    const animatedOpacity = useRef(new Animated.Value(1)).current;
-
-    const opacityLo = 0.7;
-    const opacityHi = 1.0;
-
-    const fade = (callback?: () => void) => {
-      animatedOpacity.stopAnimation();
-      animatedOpacity.setValue(opacityLo);
-      callback && callback();
-    };
-
-    const unfade = (callback?: () => void) => {
-      animatedOpacity.stopAnimation();
-      Animated.timing(animatedOpacity, {
-        toValue: opacityHi,
-        duration: 200,
-        useNativeDriver: true,
-      }).start((result) => result.finished && callback && callback());
-    };
-
-    return <Pressable
-      style={styles.pressable}
-      onPressIn={() => fade()}
-      onPressOut={() => unfade()}
-      onPress={onPress}
-    >
-      <Animated.View
-        style={{
-          borderRadius: 5,
-          backgroundColor: color,
-          flexGrow: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          opacity: animatedOpacity,
-        }}
-      >
-        <DefaultText
-          selectable={false}
-          style={styles.defaultText}
-        >
-          {title}
-        </DefaultText>
-      </Animated.View>
-    </Pressable>
-  };
-
   if (!data) {
     return null;
   }
@@ -334,8 +287,8 @@ const ImageCropper = () => {
       </View>
       <View style={styles.bottomContainer}>
         <View style={styles.buttonContainer}>
-          <Button color="#999" onPress={onCancelPress} title="Cancel" />
-          <Button color="#70f" onPress={onCropPress} title="Crop" />
+          <ModalButton color="#999" onPress={onCancelPress} title="Cancel" />
+          <ModalButton color="#70f" onPress={onCropPress} title="Crop" />
         </View>
         {(data?.showProtip ?? true) &&
           <DefaultText style={styles.protip}>
@@ -352,7 +305,10 @@ const ImageCropper = () => {
 
 const styles = StyleSheet.create({
   container: {
-    touchAction: 'none',
+    ...(Platform.OS === 'web' ? {
+      touchAction: 'none',         // prevent selection on web
+    } : {}),
+
     position: 'absolute',
     top: 0,
     bottom: 0,

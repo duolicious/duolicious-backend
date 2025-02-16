@@ -79,7 +79,7 @@ import { delay } from '../util/util';
 import { KeyboardDismissingView } from './keyboard-dismissing-view';
 import { listen, notify } from '../events/events';
 import { Title } from './title';
-import { ShowColorPickerEvent } from './color-picker-modal/color-picker-modal';
+import { ShowColorPickerEvent } from './modal/color-picker-modal/color-picker-modal';
 import { isMobile } from '../util/util';
 
 type InputProps<T extends OptionGroupInputs> = {
