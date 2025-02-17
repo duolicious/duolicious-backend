@@ -142,7 +142,10 @@ const GifPickerModal: React.FC = () => {
               style={styles.loadingIndicator}
             />
           ) : (
-            <ScrollView contentContainerStyle={styles.masonryContainer}>
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollViewContainer}
+            >
               <View style={styles.column}>
                 {columns[0].map((item, index) =>
                   <RenderGifItem
@@ -230,7 +233,10 @@ const styles = StyleSheet.create({
     marginLeft: 0,
     marginRight: 0,
   },
-  masonryContainer: {
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 10,
