@@ -844,80 +844,94 @@ const TextInputWithButton = ({
       />
       {text !== "" &&
         <Reanimated.View
-          style={[
-            styles.sendButton,
-            { opacity }
-          ]}
-          entering={FadeIn.duration(200)}
-          exiting={FadeOut.duration(200)}
+          style={styles.sendButton}
+          entering={FadeIn}
+          exiting={FadeOut}
         >
-          <Pressable
+          <Reanimated.View
             style={{
+              opacity,
               height: '100%',
               width: '100%',
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: 'rgb(228, 204, 255)',
-              borderRadius: 999,
-              borderWidth: 1,
-              borderColor: '#70f',
             }}
-            onPressIn={fadeIn}
-            onPressOut={fadeOut}
-            onPress={() => sendMessage()}
+          >
+            <Pressable
+              style={{
+                height: '100%',
+                width: '100%',
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: 'rgb(228, 204, 255)',
+                borderRadius: 999,
+                borderWidth: 1,
+                borderColor: '#70f',
+              }}
+              onPressIn={fadeIn}
+              onPressOut={fadeOut}
+              onPress={() => sendMessage()}
+            >
+              {isLoading &&
+                <ActivityIndicator size="small" color="#70f" />
+              }
+              {!isLoading &&
+                <FontAwesomeIcon
+                  icon={faPaperPlane}
+                  size={20}
+                  color="#70f"
+                  style={{
+                    marginRight: 5,
+                    marginBottom: 5,
+                    outline: 'none',
+                  }}
+                />
+              }
+            </Pressable>
+          </Reanimated.View>
+        </Reanimated.View>
+      }
+      {text === "" &&
+        <Reanimated.View
+          style={styles.gifButton}
+          entering={FadeIn}
+          exiting={FadeOut}
+        >
+          <Reanimated.View
+            style={{
+              opacity,
+              height: '100%',
+              width: '100%',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
           >
             {isLoading &&
               <ActivityIndicator size="small" color="#70f" />
             }
             {!isLoading &&
-              <FontAwesomeIcon
-                icon={faPaperPlane}
-                size={20}
-                color="#70f"
+              <Pressable
                 style={{
-                  marginRight: 5,
-                  marginBottom: 5,
-                  outline: 'none',
+                  aspectRatio: 16/9,
+                  width: '100%',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: 'white',
+                  borderRadius: 5,
+                  borderWidth: 3,
+                  borderColor: 'black',
                 }}
-              />
+                hitSlop={10}
+                onPressIn={fadeIn}
+                onPressOut={fadeOut}
+                onPress={showGifPicker}
+              >
+                  <DefaultText style={{ fontWeight: 900 }} >
+                    GIF
+                  </DefaultText>
+              </Pressable>
             }
-          </Pressable>
-        </Reanimated.View>
-      }
-      {text === "" &&
-        <Reanimated.View
-          style={[
-            styles.gifButton,
-            { opacity },
-          ]}
-          entering={FadeIn.duration(200)}
-          exiting={FadeOut.duration(200)}
-        >
-          {isLoading &&
-            <ActivityIndicator size="small" color="#70f" />
-          }
-          {!isLoading &&
-            <Pressable
-              style={{
-                aspectRatio: 16/9,
-                width: '100%',
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: 'white',
-                borderRadius: 5,
-                borderWidth: 3,
-                borderColor: 'black',
-              }}
-              hitSlop={10}
-              onPressIn={fadeIn}
-              onPressOut={fadeOut}
-              onPress={showGifPicker}
-            >
-                <DefaultText style={{ fontWeight: 900 }} >
-                  GIF
-                </DefaultText>
-            </Pressable>
-          }
+          </Reanimated.View>
         </Reanimated.View>
       }
     </KeyboardAvoidingView>
