@@ -16,10 +16,14 @@ import { AutoResizingGif } from '../auto-resizing-gif';
 import {
   TENOR_API_KEY,
 } from '../../env/env';
+import {
+  isMobile,
+} from '../../util/util';
 
 type GifPickedEvent = string;
 
 const TENOR_SEARCH_URL = 'https://g.tenor.com/v1/search';
+const NUM_COLS = 3;
 
 const fadeIn = FadeIn.duration(200);
 const fadeOut = FadeOut.duration(200);
@@ -77,8 +81,8 @@ const GifPickerModal: React.FC = () => {
         `${TENOR_SEARCH_URL}` +
           `?q=${encodeURIComponent(query)}` +
           `&key=${TENOR_API_KEY}` +
-          `&media_filter=gif,nanogif` +
-          `&limit=50`
+          `&media_filter=gif,${isMobile() ? 'nanogif' : 'tinygif'}` +
+          `&limit=${NUM_COLS * 16}`
       );
       const json = await response.json();
       // The Tenor API returns an array of results – adjust according to your needs
@@ -116,9 +120,9 @@ const GifPickerModal: React.FC = () => {
   }
 
   // Divide gifResults equally between three columns
-  const columns = [[], [], []] as any[][];
+  const columns = _.times(NUM_COLS, () => []) as any[][];
   gifResults.forEach((item, index) => {
-    columns[index % 3].push(item);
+    columns[index % NUM_COLS].push(item);
   });
 
   return (
@@ -146,39 +150,23 @@ const GifPickerModal: React.FC = () => {
               style={styles.scrollView}
               contentContainerStyle={styles.scrollViewContainer}
             >
-              <View style={styles.column}>
-                {columns[0].map((item, index) =>
-                  <RenderGifItem
-                    key={index}
-                    gifUrl={item.media[0]?.gif?.url}
-                    previewUrl={item.media[0]?.nanogif?.url}
-                    isSelected={item.media[0]?.gif?.url === selectedGif}
-                    onPress={setSelectedGif}
-                  />
-                )}
-              </View>
-              <View style={styles.column}>
-                {columns[1].map((item, index) =>
-                  <RenderGifItem
-                    key={index}
-                    gifUrl={item.media[0]?.gif?.url}
-                    previewUrl={item.media[0]?.nanogif?.url}
-                    isSelected={item.media[0]?.gif?.url === selectedGif}
-                    onPress={setSelectedGif}
-                  />
-                )}
-              </View>
-              <View style={styles.column}>
-                {columns[2].map((item, index) =>
-                  <RenderGifItem
-                    key={index}
-                    gifUrl={item.media[0]?.gif?.url}
-                    previewUrl={item.media[0]?.nanogif?.url}
-                    isSelected={item.media[0]?.gif?.url === selectedGif}
-                    onPress={setSelectedGif}
-                  />
-                )}
-              </View>
+              {columns.map((column, i) =>
+                <View key={i} style={styles.column}>
+                  {column.map((item, j) =>
+                    <RenderGifItem
+                      key={j}
+                      gifUrl={item.media[0]?.gif?.url}
+                      previewUrl={
+                        isMobile() ?
+                          item.media[0]?.nanogif?.url :
+                          item.media[0]?.tinygif?.url
+                      }
+                      isSelected={item.media[0]?.gif?.url === selectedGif}
+                      onPress={setSelectedGif}
+                    />
+                  )}
+                </View>
+              )}
             </ScrollView>
           )}
         </View>
