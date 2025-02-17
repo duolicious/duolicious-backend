@@ -6,6 +6,8 @@ import Checkbox from 'expo-checkbox';
 import { useCallback, useState } from 'react';
 import { DefaultText } from './default-text';
 
+const hitSlop = 10;
+
 const CheckBox = ({children, ...rest}) => {
   const {
     initialValue,
@@ -40,7 +42,7 @@ const CheckBox = ({children, ...rest}) => {
       }}
     >
       {labelPosition !== 'right' &&
-        <Pressable onPress={onValueChange_}>
+        <Pressable onPress={onValueChange_} hitSlop={hitSlop}>
           <DefaultText>{children}</DefaultText>
         </Pressable>
       }
@@ -55,7 +57,7 @@ const CheckBox = ({children, ...rest}) => {
         color="#70f"
       />
       {labelPosition === 'right' &&
-        <Pressable onPress={onValueChange_}>
+        <Pressable onPress={onValueChange_} hitSlop={hitSlop}>
           <DefaultText>{children}</DefaultText>
         </Pressable>
       }
@@ -87,7 +89,7 @@ const StatelessCheckBox = ({children, ...rest}) => {
       }}
     >
       {labelPosition !== 'right' &&
-        <Pressable onPress={onValueChange_}>
+        <Pressable onPress={onValueChange_} hitSlop={hitSlop}>
           <DefaultText>{children}</DefaultText>
         </Pressable>
       }
@@ -102,7 +104,7 @@ const StatelessCheckBox = ({children, ...rest}) => {
         color="#70f"
       />
       {labelPosition === 'right' &&
-        <Pressable onPress={onValueChange_}>
+        <Pressable onPress={onValueChange_} hitSlop={hitSlop}>
           <DefaultText>{children}</DefaultText>
         </Pressable>
       }
