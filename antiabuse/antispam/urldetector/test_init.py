@@ -1,5 +1,5 @@
 import unittest
-from antiabuse.antispam.urldetector import has_url
+from antiabuse.antispam.urldetector import has_url, UrlType
 
 class TestContainsUrl(unittest.TestCase):
 
@@ -83,6 +83,26 @@ Also some clubs are just there to find people who might like me; I’m hetero un
 
         self.assertFalse(has_url(
             """Check out my stats.fm @example"""))
+
+    def test_tenor_match_1(self):
+        haystack = "https://media.tenor.com/dxsHgu0_-QAAAAAMx/meganleigh-megaxn.gif"
+
+        actual = has_url(haystack, include_safe=True, do_normalize=False)
+
+        expected = [(UrlType.VERY_SAFE, haystack)]
+
+        self.assertEquals(actual, expected)
+
+    def test_tenor_match_2(self):
+        needle = "https://media.tenor.com/dxsHgu0_-QAAAAAMx/meganleigh-megaxn.gif"
+
+        haystack = "look at this https://media.tenor.com/dxsHgu0_-QAAAAAMx/meganleigh-megaxn.gif url"
+
+        actual = has_url(haystack, include_safe=True, do_normalize=False)
+
+        expected = [(UrlType.VERY_SAFE, needle)]
+
+        self.assertEquals(actual, expected)
 
 
 
