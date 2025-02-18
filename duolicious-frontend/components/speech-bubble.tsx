@@ -20,6 +20,82 @@ type Props = {
   imageUuid: string | null | undefined,
 };
 
+type MarkdownBlock = QuoteBlock | TextBlock;
+
+type QuoteBlock = {
+  type: 'quote';
+  text: string;
+  attribution?: string;
+};
+
+type TextBlock = {
+  type: 'text';
+  text: string;
+};
+
+const parseMarkdown = (markdown: string): MarkdownBlock[] => {
+  const lines = markdown.split(/\r?\n/);
+  const blocks: MarkdownBlock[] = [];
+  let currentBlockType: 'quote' | 'text' | null = null;
+  let currentBlockLines: string[] = [];
+
+  const parseQuoteBlock = (lines: string[]): QuoteBlock => {
+    const trimmedLines = lines.map(line => line.trim());
+    let attribution: string | undefined;
+    let endIndex = lines.length;
+
+    for (let i = trimmedLines.length - 1; i >= 0; i--) {
+      if (trimmedLines[i] === '') continue;
+      if (/^-\s+/.test(trimmedLines[i])) {
+        attribution = trimmedLines[i].replace(/^-\s+/, '');
+        endIndex = i;
+      }
+      break;
+    }
+
+    return {
+      type: 'quote',
+      text: lines.slice(0, endIndex).join('\n').trim(),
+      attribution,
+    };
+  };
+
+  const flushBlock = (): void => {
+    if (currentBlockLines.length === 0 || currentBlockType === null) return;
+
+    if (currentBlockType === 'quote') {
+      blocks.push(parseQuoteBlock(currentBlockLines));
+    } else {
+      blocks.push({
+        type: 'text',
+        text: currentBlockLines.join('\n').trim(),
+      });
+    }
+
+    currentBlockLines = [];
+  };
+
+  for (const line of lines) {
+    if (line.trim().startsWith('>')) {
+      if (currentBlockType !== 'quote') {
+        flushBlock();
+        currentBlockType = 'quote';
+      }
+      // Remove the leading ">" and an optional space.
+      currentBlockLines.push(line.replace(/^>\s?/, ''));
+    } else {
+      if (currentBlockType !== 'text') {
+        flushBlock();
+        currentBlockType = 'text';
+      }
+      currentBlockLines.push(line);
+    }
+  }
+
+  flushBlock();
+  return blocks;
+};
+
 const isSafeImageUrl = (str: string): boolean => {
   const urlRegex = /^https:\/\/media\.tenor\.com\/\S+\.(gif|webp)$/i;
   return urlRegex.test(str);
@@ -94,6 +170,7 @@ const SpeechBubble = (props: Props) => {
           style={{
             borderRadius: 10,
             backgroundColor: backgroundColor,
+            gap: 10,
             ...(doRenderUrlAsImage ? {
               width: '100%',
             }: {
@@ -110,15 +187,11 @@ const SpeechBubble = (props: Props) => {
             />
           }
           {!doRenderUrlAsImage &&
-            <DefaultText
-              selectable={true}
-              style={{
-                color: props.fromCurrentUser ? 'white' : 'black',
-                fontSize: isEmojiOnly(props.text) ? 50 : 15,
-              }}
-            >
-              {props.text}
-            </DefaultText>
+            <FormattedText
+              text={props.text}
+              color={props.fromCurrentUser ? 'white' : 'black'}
+              fontSize={isEmojiOnly(props.text) ? 50 : 15}
+            />
           }
         </Pressable>
       </View>
@@ -139,6 +212,55 @@ const SpeechBubble = (props: Props) => {
   );
 };
 
+const FormattedText = ({
+  text,
+  color,
+  fontSize,
+}: {
+  text: string
+  color: string,
+  fontSize: number,
+}) => {
+  const blocks = parseMarkdown(text);
+
+  return (
+    <>
+      {blocks.map((block, i) =>
+        <DefaultText
+          key={i}
+          selectable={true}
+          style={{
+            color,
+            fontSize,
+            ...(block.type === "quote" ? {
+              paddingLeft: 7,
+              paddingRight: 10,
+              paddingVertical: 8,
+              borderLeftWidth: 6,
+              borderColor: 'black',
+              backgroundColor: 'rgba(255, 255, 255, 0.8)',
+              color: 'black',
+              borderRadius: 4,
+            }: {})
+          }}
+        >
+          {block.type === "quote" && block?.attribution &&
+            <DefaultText
+              style={{
+                fontWeight: '700',
+              }}
+            >
+              {block.attribution}{'\n'}
+            </DefaultText>
+          }
+          {block.text}
+        </DefaultText>
+      )}
+    </>
+  );
+};
+
 export {
   SpeechBubble,
+  parseMarkdown,
 };
