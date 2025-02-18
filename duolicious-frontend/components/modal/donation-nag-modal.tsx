@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { DefaultText } from '../default-text';
 import { ButtonWithCenteredText } from '../button/centered-text';
-import { signedInUser } from '../../App';
+import { signedInUser, setSignedInUser } from '../../App';
 import { api } from '../../api/api';
 import * as _ from "lodash";
 import { DefaultModal } from './deafult-modal';
@@ -97,16 +97,15 @@ const gagLocations = _.shuffle([
 const DonationNagModal = () => {
   const name = signedInUser?.name;
   const estimatedEndDate = signedInUser?.estimatedEndDate;
-  const doShowDonationNag = signedInUser?.doShowDonationNag;
 
   if (!name) return null;
   if (!estimatedEndDate) return null;
-  if (!doShowDonationNag) return null;
 
   if (Platform.OS === 'web') {
     return <DonationNagModalWeb
       name={name}
       estimatedEndDate={estimatedEndDate}
+      visible={signedInUser?.doShowDonationNag ?? false}
     />;
   } else {
     return <DonationNagModalMobile />;
@@ -116,31 +115,43 @@ const DonationNagModal = () => {
 const DonationNagModalWeb = ({
   name,
   estimatedEndDate,
+  visible,
 }: {
   name: string
   estimatedEndDate: Date
+  visible: boolean,
 }) => {
   if (Math.random() > 0.5) {
     return <MonetaryDonationNagModalWeb
       name={name}
       estimatedEndDate={estimatedEndDate}
+      visible={visible}
     />
   } else {
-    return <MarketingDonationNagModalWeb />
+    return <MarketingDonationNagModalWeb visible={visible} />
   }
 };
 
 const MonetaryDonationNagModalWeb = ({
   name,
   estimatedEndDate,
+  visible,
 }: {
   name: string
   estimatedEndDate: Date
+  visible: boolean
 }) => {
   const [isVisible, setIsVisible] = useState(true);
 
+  useEffect(() => setIsVisible(visible), []);
+
   const onPressDismiss = () => {
     setIsVisible(false);
+
+    setSignedInUser((value) =>
+      value ? { ...value, doShowDonationNag: false } : value
+    );
+
     api('post', '/dismiss-donation');
   };
 
@@ -257,10 +268,16 @@ const MonetaryDonationNagModalWeb = ({
   );
 };
 
-const MarketingDonationNagModalWeb = () => {
+const MarketingDonationNagModalWeb = ({
+  visible,
+}: {
+  visible: boolean
+}) => {
   const [gagLocationIndex, setGagLocationIndex] = useState(0);
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(visible);
   const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => setIsVisible(visible), []);
 
   const gagLocation = gagLocations[gagLocationIndex % gagLocations.length];
 

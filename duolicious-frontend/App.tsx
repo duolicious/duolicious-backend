@@ -472,8 +472,8 @@ const App = () => {
 
   return (
     <SafeAreaProvider>
-      {!isLoading &&
-        <GestureHandlerRootView>
+      <GestureHandlerRootView>
+        {!isLoading &&
           <NavigationContainer
             ref={navigationContainerRef}
             initialState={
@@ -525,15 +525,15 @@ const App = () => {
                 component={TraitsTab} />
             </Stack.Navigator>
           </NavigationContainer>
-          <DonationNagModal/>
-          <ReportModal/>
-          <ImageCropper/>
-          <ColorPickerModal/>
-          <GifPickerModal/>
-          <Toast/>
-          <StreamErrorModal/>
-        </GestureHandlerRootView>
-      }
+        }
+        <DonationNagModal/>
+        <ReportModal/>
+        <ImageCropper/>
+        <ColorPickerModal/>
+        <GifPickerModal/>
+        <Toast/>
+        <StreamErrorModal/>
+      </GestureHandlerRootView>
       <WebSplashScreen loading={isLoading}/>
     </SafeAreaProvider>
   );
