@@ -135,7 +135,7 @@ const GifPickerModal: React.FC = () => {
         <View style={styles.gifGalleryContainer}>
           <DefaultTextInput
             style={styles.searchInput}
-            placeholder="Search for gifs..."
+            placeholder="Search Tenor"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
