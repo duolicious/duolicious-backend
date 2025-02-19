@@ -33,7 +33,7 @@ class TestIsOffensive(unittest.TestCase):
 
         # whore is rude even if followed by an emoji without space between
         self.assertTrue(
-                is_rude("you are a whore🙂"))
+                is_rude("you are a wh0re🙂"))
 
         self.assertTrue(
                 is_rude("you are a whore!"))
@@ -52,6 +52,24 @@ class TestIsOffensive(unittest.TestCase):
 
         self.assertTrue(
                 is_rude("Wanna get piped down?"))
+
+        self.assertTrue(
+                is_rude("are you a tro0n?"))
+
+        self.assertTrue(
+                is_rude("I'm strokin it rn"))
+
+        self.assertTrue(
+                is_rude("uhhh let me grank in your a$$?"))
+
+        self.assertTrue(
+                is_rude("you ever seen a white boy stroke it insanely?"))
+
+        self.assertTrue(
+                is_rude("in gonna fly a drone into your cooter"))
+
+        self.assertTrue(
+                is_rude("be my big tiddy gf"))
 
     def test_non_rude_strings(self):
         self.assertFalse(

@@ -7,7 +7,7 @@ import unicodedata
 _normalization_map = {
     "[a4]+n[a4]+[l1]+": "anal",
     "[a4][s$]*h[o0][l1][e3]": "asshole",
-    "a[s5$]{2}": "ass",
+    "[a4][s5$]{2}": "ass",
     "b[a4]ck ?sh[o0][tт][s$z]": "backshots",
     "b": "be",
     "b[i1y]?tch": "bitch",
@@ -71,8 +71,11 @@ _normalization_map = {
     "s[e3][l1]f": "self",
     "seg+[zs]+": "sex",
     "sht": "shit",
+    "strokin": "stroking",
     "s[uv][i1]c[i1]d[e3]": "suicide",
     "sxy": "sexy",
+    "tiddies": "titties",
+    "tiddy": "titty",
     "tr[@a4]nnie[s$z]": "trannies",
     "tr[@a4]nny": "tranny",
     "tr[o0]{2}n[s$z]": "troons",
@@ -130,7 +133,11 @@ def _normalize_spelling(haystack: str):
     for needle, replacement in _normalization_map.items():
         # Apparently compiled regexes are cached between invocations of
         # re.compile.
-        pattern = re.compile(f"(?:(?<=^)|(?<=\s)){needle}(?=\s|$)", re.IGNORECASE)
+        pattern = re.compile(
+                r'((?<=[^a-z0-9])|^)'
+                f'{needle}'
+                r'((?=[^a-z0-9])|$)',
+                re.IGNORECASE)
 
         haystack = pattern.sub(replacement, haystack)
 
