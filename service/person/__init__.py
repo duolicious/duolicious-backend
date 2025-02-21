@@ -883,7 +883,6 @@ def delete_or_ban_account(
 
         tx.executemany(Q_DELETE_ACCOUNT, params_seq=rows)
 
-    with api_tx() as tx:
         tx.executemany(Q_DELETE_XMPP, params_seq=rows)
 
     return rows
