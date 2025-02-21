@@ -13,14 +13,14 @@ q "delete from person"
 q "delete from banned_person"
 q "delete from banned_person_admin_token"
 q "delete from duo_session"
-q "delete from mam_message" duo_chat
-q "delete from mam_server_user" duo_chat
-q "delete from last" duo_chat
-q "delete from inbox" duo_chat
-q "delete from mam_server_user" duo_chat
-q "delete from duo_last_notification" duo_chat
-q "delete from duo_push_token" duo_chat
-q "delete from intro_hash" duo_chat
+q "delete from mam_message"
+q "delete from mam_server_user"
+q "delete from last"
+q "delete from inbox"
+q "delete from mam_server_user"
+q "delete from duo_last_notification"
+q "delete from duo_push_token"
+q "delete from intro_hash"
 
 ../util/create-user.sh user1 0 0
 ../util/create-user.sh user2 0 0
@@ -78,7 +78,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1" reason="offensive"/>'
 
-[[ "$(q "select count(*) from mam_message" duo_chat)" = 0 ]]
+[[ "$(q "select count(*) from mam_message")" = 0 ]]
 
 
 
@@ -106,7 +106,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1" reason="offensive"/>'
 
-[[ "$(q "select count(*) from mam_message" duo_chat)" = 0 ]]
+[[ "$(q "select count(*) from mam_message")" = 0 ]]
 
 
 
@@ -134,7 +134,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"/>'
 
-[[ "$(q "select count(*) from mam_message" duo_chat)" = 2 ]]
+[[ "$(q "select count(*) from mam_message")" = 2 ]]
 
 
 
@@ -176,4 +176,4 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"/>'
 
-[[ "$(q "select count(*) from mam_message" duo_chat)" = 4 ]]
+[[ "$(q "select count(*) from mam_message")" = 4 ]]

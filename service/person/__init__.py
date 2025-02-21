@@ -1,5 +1,5 @@
 import os
-from database import api_tx, chat_tx, fetchall_sets
+from database import api_tx, fetchall_sets
 from typing import Any, Optional, Iterable, Tuple, Literal
 import duotypes as t
 import json
@@ -415,7 +415,7 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
 
     params = dict(person_uuid=row['person_uuid'])
 
-    with chat_tx('read committed') as tx:
+    with api_tx('read committed') as tx:
         tx.execute(Q_UPSERT_LAST, params)
 
     return dict(
@@ -662,7 +662,7 @@ def post_finish_onboarding(s: t.SessionInfo):
         person_uuid=row['person_uuid'],
     )
 
-    with chat_tx('read committed') as tx:
+    with api_tx('read committed') as tx:
         tx.execute(Q_UPSERT_LAST, params=chat_params)
 
     return dict(**row, **clubs)
@@ -729,7 +729,7 @@ def get_prospect_profile(s: t.SessionInfo, prospect_uuid):
             gives_reply_percentage=None,
         )
 
-    with chat_tx('READ COMMITTED') as tx:
+    with api_tx('READ COMMITTED') as tx:
         chat_row = tx.execute(Q_LAST_ONLINE, params).fetchone()
 
     # Sometimes the chat service might not register a last online time. In that
@@ -758,7 +758,7 @@ def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
         tx.execute(Q_INSERT_SKIPPED, params=params)
 
     if req.report_reason:
-        with chat_tx() as tx:
+        with api_tx() as tx:
             last_messages = tx.execute(Q_LAST_MESSAGES, params=params).fetchall()
 
         with api_tx() as tx:
@@ -883,7 +883,6 @@ def delete_or_ban_account(
 
         tx.executemany(Q_DELETE_ACCOUNT, params_seq=rows)
 
-    with chat_tx() as tx:
         tx.executemany(Q_DELETE_XMPP, params_seq=rows)
 
     return rows
@@ -1888,7 +1887,7 @@ def get_export_data(token: str):
     with api_tx('read committed') as tx:
         raw_api_data = tx.execute(Q_EXPORT_API_DATA, params).fetchone()['j']
 
-    with chat_tx('read committed') as tx:
+    with api_tx('read committed') as tx:
         raw_chat_data = tx.execute(Q_EXPORT_CHAT_DATA, params).fetchall()
 
     person_id = params['person_id']

@@ -38,7 +38,6 @@ def create_dbs():
                 time.sleep(1)
 
     create_db('duo_api')
-    create_db('duo_chat')
 
 def init_db():
     # Now DB_NAME exists, we do do the rest of the init.

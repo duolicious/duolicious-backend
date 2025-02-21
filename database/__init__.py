@@ -36,15 +36,9 @@ _api_conninfo = psycopg.conninfo.make_conninfo(
     **(_coninfo_args | dict(dbname='duo_api'))
 )
 
-_chat_conninfo = psycopg.conninfo.make_conninfo(
-    **(_coninfo_args | dict(dbname='duo_chat'))
-)
-
 _api_conn  = None
-_chat_conn = None
 
 _api_conn_lock  = threading.Lock()
-_chat_conn_lock = threading.Lock()
 
 class api_tx:
     def __init__(self, isolation_level=_default_transaction_isolation):
@@ -101,61 +95,6 @@ class api_tx:
 
         _api_conn_lock.release()
 
-class chat_tx:
-    def __init__(self, isolation_level=_default_transaction_isolation):
-        normalized_isolation_level = isolation_level.upper()
-
-        if normalized_isolation_level not in _valid_isolation_levels:
-            raise ValueError(isolation_level)
-
-        self.isolation_level = normalized_isolation_level
-
-        self.cur = None
-
-    def __enter__(self):
-        _chat_conn_lock.acquire()
-
-        global _chat_conn
-        if not _chat_conn or _chat_conn.closed:
-            try:
-                _chat_conn = psycopg.Connection.connect(
-                    conninfo=_chat_conninfo,
-                    row_factory=psycopg.rows.dict_row,
-                )
-            except:
-                _chat_conn_lock.release()
-                print(traceback.format_exc())
-                raise
-
-        self.cur = _chat_conn.cursor()
-
-        if self.isolation_level != _default_transaction_isolation:
-            try:
-                self.cur.execute(
-                    f'SET TRANSACTION ISOLATION LEVEL {self.isolation_level}'
-                )
-            except:
-                _chat_conn_lock.release()
-                print(traceback.format_exc())
-                raise
-        return self.cur
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        try:
-            if exc_type is None:
-                _chat_conn.commit()
-            else:
-                _chat_conn.rollback()
-        except:
-                traceback.print_exception(exc_type, exc_val, exc_tb)
-        finally:
-            try:
-                self.cur.close()
-            except:
-                print(traceback.format_exc())
-
-        _chat_conn_lock.release()
-
 def fetchall_sets(tx: psycopg.Cursor[Any]):
     result = []
     while True:
@@ -174,14 +113,4 @@ def _check_api_connection_forever():
             print(traceback.format_exc())
         time.sleep(random.randint(30, 90))
 
-def _check_chat_connection_forever():
-    while True:
-        try:
-            with chat_tx() as tx:
-                tx.execute('SELECT 1')
-        except:
-            print(traceback.format_exc())
-        time.sleep(random.randint(30, 90))
-
 threading.Thread(target=_check_api_connection_forever,  daemon=True).start()
-threading.Thread(target=_check_chat_connection_forever, daemon=True).start()

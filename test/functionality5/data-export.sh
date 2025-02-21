@@ -29,7 +29,7 @@ update_snapshot () {
   ../util/create-user.sh user1 2 2
 
   # Wait for images to be given nsfw scores
-  sleep 5
+  sleep 10
 
   qdump data-export
 

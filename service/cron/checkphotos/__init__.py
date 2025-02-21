@@ -1,5 +1,5 @@
 # Remove unused imports
-from database.asyncdatabase import api_tx, chat_tx
+from database.asyncdatabase import api_tx
 from service.cron.util import (
     MAX_RANDOM_START_DELAY,
     delete_images_from_object_store,

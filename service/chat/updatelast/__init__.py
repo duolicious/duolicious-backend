@@ -2,7 +2,7 @@ from sql import Q_UPSERT_LAST
 from batcher import Batcher
 from service.chat.session import Session
 from typing import List
-from database import chat_tx
+from database import api_tx
 import asyncio
 
 LAST_UPDATE_INTERVAL_SECONDS = 4 * 60
@@ -10,7 +10,7 @@ LAST_UPDATE_INTERVAL_SECONDS = 4 * 60
 def process_batch(usernames: List[str]):
     params_seq = [dict(person_uuid=username) for username in usernames]
 
-    with chat_tx('read committed') as tx:
+    with api_tx('read committed') as tx:
         tx.executemany(Q_UPSERT_LAST, params_seq)
 
 _batcher = Batcher[str](

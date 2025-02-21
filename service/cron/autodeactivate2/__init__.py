@@ -1,4 +1,4 @@
-from database.asyncdatabase import api_tx, chat_tx
+from database.asyncdatabase import api_tx
 from service.cron.autodeactivate2.sql import *
 from service.cron.autodeactivate2.template import emailtemplate
 from service.cron.util import print_stacktrace, MAX_RANDOM_START_DELAY
@@ -35,7 +35,7 @@ def maybe_send_email(email: str):
 async def autodeactivate2_once():
     params = dict(polling_interval_seconds=AUTODEACTIVATE2_POLL_SECONDS)
 
-    async with chat_tx() as tx:
+    async with api_tx() as tx:
         cur_inactive = await tx.execute(Q_INACTIVE, params)
         rows_inactive = await cur_inactive.fetchall()
 

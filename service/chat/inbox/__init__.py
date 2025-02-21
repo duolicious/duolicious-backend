@@ -151,7 +151,7 @@ async def _get_inbox(query_id: str, username: str) -> List[str]:
     :param username: The username of the user.
     :return: A list of XML strings representing each message.
     """
-    async with asyncdatabase.chat_tx('read committed') as tx:
+    async with asyncdatabase.api_tx('read committed') as tx:
         await tx.execute(Q_GET_INBOX, dict(username=username))
         rows = await tx.fetchall()
 
@@ -255,7 +255,7 @@ def _process_upsert_conversation_batch(batch: List[UpsertConversationJob]):
         for job in batch
     ]
 
-    with database.chat_tx('read committed') as tx:
+    with database.api_tx('read committed') as tx:
         tx.executemany(Q_UPSERT_CONVERSATION, params_seq)
 
 def maybe_mark_displayed(
@@ -296,7 +296,7 @@ def _process_mark_displayed_batch(batch: List[MarkDisplayedJob]):
         for job in batch
     ]
 
-    with database.chat_tx('read committed') as tx:
+    with database.api_tx('read committed') as tx:
         tx.executemany(Q_MARK_DISPLAYED, params_seq)
 
 
