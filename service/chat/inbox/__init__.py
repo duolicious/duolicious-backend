@@ -16,8 +16,6 @@ SELECT
 FROM
     inbox
 WHERE
-    lserver = '{LSERVER}'
-AND
     luser = %(username)s
 ORDER BY
     timestamp
@@ -28,64 +26,54 @@ Q_UPSERT_CONVERSATION = f"""
 WITH upsert_sender AS (
     INSERT INTO inbox (
         luser,
-        lserver,
         remote_bare_jid,
         msg_id,
         box,
         content,
         timestamp,
-        muted_until,
         unread_count
     )
     VALUES (
         %(from_username)s,
-        '{LSERVER}',
         %(recipient_jid)s,
         %(msg_id)s,
         'chats',
         %(content)s,
         EXTRACT(EPOCH FROM NOW()) * 1e6,
-        0,
         0
     )
-    ON CONFLICT (lserver, luser, remote_bare_jid)
+    ON CONFLICT (luser, remote_bare_jid)
     DO UPDATE SET
         msg_id = EXCLUDED.msg_id,
         box = 'chats',
         content = EXCLUDED.content,
         timestamp = EXCLUDED.timestamp,
-        muted_until = EXCLUDED.muted_until,
         unread_count = 0
 ), upsert_recipient AS (
     INSERT INTO inbox (
         luser,
-        lserver,
         remote_bare_jid,
         msg_id,
         box,
         content,
         timestamp,
-        muted_until,
         unread_count
     )
     VALUES (
         %(to_username)s,
-        '{LSERVER}',
         %(sender_jid)s,
         %(msg_id)s,
         'inbox',
         %(content)s,
         EXTRACT(EPOCH FROM NOW()) * 1e6,
-        0,
         1
     )
-    ON CONFLICT (lserver, luser, remote_bare_jid)
+    ON CONFLICT (luser, remote_bare_jid)
     DO UPDATE SET
         msg_id = EXCLUDED.msg_id,
         box = 'chats',
         content = EXCLUDED.content,
         timestamp = EXCLUDED.timestamp,
-        muted_until = EXCLUDED.muted_until,
         unread_count = COALESCE(inbox.unread_count, 0) + 1
 )
 SELECT 1
@@ -98,8 +86,6 @@ UPDATE
 SET
     unread_count = 0
 WHERE
-    lserver = '{LSERVER}'
-AND
     luser = %(luser)s
 AND
     remote_bare_jid = %(remote_bare_jid)s

@@ -104,14 +104,7 @@ qdump () {
 }
 
 qrestore () {
-  q "
-  SELECT pg_terminate_backend(pg_stat_activity.pid)
-  FROM pg_stat_activity
-  WHERE pg_stat_activity.datname = 'duo_api'
-    AND pid <> pg_backend_pid()
-  " postgres
-
-  q 'drop database duo_api' postgres
+  q 'drop database duo_api with (force)' postgres
 
   q 'create database duo_api' postgres
 
