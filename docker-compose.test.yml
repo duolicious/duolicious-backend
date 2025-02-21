@@ -86,11 +86,6 @@ services:
       DUO_DB_PASS: password
 
       DUO_CHAT_PORTS: '5443'
-    healthcheck:
-      test: ["CMD", "bash", "-c", "[[ -e /tmp/chat-db-initialized ]]"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   cron:
     build:
@@ -100,8 +95,6 @@ services:
       - "8082:8080"
     depends_on:
       postgres:
-        condition: service_healthy
-      chat:
         condition: service_healthy
       api:
         condition: service_healthy
@@ -117,7 +110,6 @@ services:
       DUO_DB_PORT: 5432
       DUO_DB_USER: postgres
       DUO_DB_PASS: password
-      DUO_DB_CHAT_NAME: duo_chat
       DUO_DB_API_NAME: duo_api
 
       DUO_R2_BUCKET_NAME: s3-mock-bucket

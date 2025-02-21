@@ -1,4 +1,4 @@
-from database.asyncdatabase import api_tx, chat_tx
+from database.asyncdatabase import api_tx
 from service.cron.garbagerecords.sql import *
 from service.cron.util import print_stacktrace, MAX_RANDOM_START_DELAY
 import asyncio

@@ -1,6 +1,6 @@
 from typing import Iterable
 from dataclasses import dataclass
-from database import chat_tx
+from database import api_tx
 from sql import (
     Q_UPSERT_LAST_INTRO_NOTIFICATION_TIME,
     Q_UPSERT_LAST_CHAT_NOTIFICATION_TIME,
@@ -25,7 +25,7 @@ def execute_query(usernames: Iterable[str], is_intro: bool):
 
     params_seq = [dict(username=username) for username in usernames]
 
-    with chat_tx('read committed') as tx:
+    with api_tx('read committed') as tx:
         tx.executemany(q, params_seq)
 
 

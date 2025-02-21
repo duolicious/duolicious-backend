@@ -101,10 +101,6 @@ Whether `X-Forwarded-For` is used or not should probably be configurable in
 Duolicious, but it's currently not. Although hardcoding the solution isn't too
 hard: Simply remove the use of `werkzeug.middleware.proxy_fix.ProxyFix`.
 
-### Databases
-
-The `chat` and `api` service use different databases whose names are hardcoded. They're `duo_chat` and `duo_api`, respectively. They might be combined into a single database in future releases of Duolicious. See [#446](https://github.com/duolicious/duolicious-backend/issues/446) and [#445](https://github.com/duolicious/duolicious-backend/issues/445) for more information.
-
 ## Running the tests
 
 Install these:

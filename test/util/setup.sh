@@ -101,14 +101,6 @@ qdump () {
     --compress=zstd:3 \
     -d duo_api \
     > "../fixtures/duo_api-$1.zstd"
-
-  PGPASSWORD="${DUO_DB_PASS:-password}" pg_dump \
-    -U "${DUO_DB_USER:-postgres}" \
-    -h "${DUO_DB_HOST:-localhost}" \
-    -p "${DUO_DB_PORT:-5432}" \
-    --compress=zstd:3 \
-    -d duo_chat \
-    > "../fixtures/duo_chat-$1.zstd"
 }
 
 qrestore () {
@@ -121,30 +113,12 @@ qrestore () {
 
   q 'drop database duo_api' postgres
 
-  q "
-  SELECT pg_terminate_backend(pg_stat_activity.pid)
-  FROM pg_stat_activity
-  WHERE pg_stat_activity.datname = 'duo_chat'
-    AND pid <> pg_backend_pid()
-  " postgres
-
-  q 'drop database duo_chat' postgres
-
   q 'create database duo_api' postgres
-
-  q 'create database duo_chat' postgres
 
   zstd -d "../fixtures/duo_api-$1.zstd" -c | \
     PGPASSWORD="${DUO_DB_PASS:-password}" psql \
       -U "${DUO_DB_USER:-postgres}" \
       -d duo_api \
-      -h "${DUO_DB_HOST:-localhost}" \
-      -p "${DUO_DB_PORT:-5432}"
-
-  zstd -d "../fixtures/duo_chat-$1.zstd" -c | \
-    PGPASSWORD="${DUO_DB_PASS:-password}" psql \
-      -U "${DUO_DB_USER:-postgres}" \
-      -d duo_chat \
       -h "${DUO_DB_HOST:-localhost}" \
       -p "${DUO_DB_PORT:-5432}"
 }

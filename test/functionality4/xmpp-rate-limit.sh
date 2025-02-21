@@ -19,14 +19,14 @@ test_rate_limit () {
   q "delete from banned_person"
   q "delete from banned_person_admin_token"
   q "delete from duo_session"
-  q "delete from mam_message" duo_chat
-  q "delete from mam_server_user" duo_chat
-  q "delete from last" duo_chat
-  q "delete from inbox" duo_chat
-  q "delete from mam_server_user" duo_chat
-  q "delete from duo_last_notification" duo_chat
-  q "delete from duo_push_token" duo_chat
-  q "delete from intro_hash" duo_chat
+  q "delete from mam_message"
+  q "delete from mam_server_user"
+  q "delete from last"
+  q "delete from inbox"
+  q "delete from mam_server_user"
+  q "delete from duo_last_notification"
+  q "delete from duo_push_token"
+  q "delete from intro_hash"
 
   ../util/create-user.sh sender1 0 0
   ../util/create-user.sh sender2 0 0

@@ -9,7 +9,7 @@ set -ex
 
 ################################################################################
 #
-# duo_chat=# select * from last;
+# duo_api=# select * from last;
 #      server     | username |  seconds   | state
 # ----------------+----------+------------+-------
 #  duolicious.app | 2        | 1693678400 |
@@ -17,7 +17,7 @@ set -ex
 #
 ################################################################################
 #
-# duo_chat=# select * from limit;
+# duo_api=# select * from limit;
 # luser |    lserver     | remote_bare_jid  | ... |    timestamp     | muted_until | unread_count 
 # ------+----------------+------------------+-----+------------------+-------------+--------------
 # 10    | duolicious.app | 2@duolicious.app | ... | 1693028207630107 |           0 |            0
@@ -45,8 +45,8 @@ db_now () {
 do_test () {
   q "delete from person"
   q "delete from duo_session"
-  q "delete from last" duo_chat
-  q "delete from inbox" duo_chat
+  q "delete from last"
+  q "delete from inbox"
   q "delete from club"
 
   ../util/create-user.sh will-be-deactivated 0 0
@@ -116,7 +116,7 @@ do_test () {
     sign_in_time = now() - interval '20 minutes'
   "
 
-  q "delete from last" duo_chat
+  q "delete from last"
   q "
   insert into last (server, username, seconds, state)
   values
@@ -129,7 +129,7 @@ do_test () {
     username = EXCLUDED.username,
     seconds  = EXCLUDED.seconds,
     state    = EXCLUDED.state
-  " duo_chat
+  "
 
   sleep 2
 

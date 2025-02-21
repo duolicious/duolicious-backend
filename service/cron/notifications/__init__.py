@@ -1,4 +1,4 @@
-from database.asyncdatabase import api_tx, chat_tx
+from database.asyncdatabase import api_tx
 from dataclasses import dataclass
 from service.cron.notifications.sql import (
     Q_NOTIFICATION_SETTINGS,
@@ -135,7 +135,7 @@ async def send_notification(row: PersonNotification):
 async def update_last_notification_time(row: PersonNotification):
     params = dict(username=row.person_uuid)
 
-    async with chat_tx('read committed') as tx:
+    async with api_tx('read committed') as tx:
         if row.has_intro:
             await tx.execute(Q_UPSERT_LAST_INTRO_NOTIFICATION_TIME, params)
         if row.has_chat:
@@ -149,7 +149,7 @@ async def maybe_send_notification(row: PersonNotification):
     await update_last_notification_time(row)
 
 async def send_notifications_once():
-    async with chat_tx('read committed') as tx:
+    async with api_tx('read committed') as tx:
         await tx.execute('SET LOCAL statement_timeout = 15000') # 15 seconds
         cur_unread_inbox = await tx.execute(Q_UNREAD_INBOX)
         rows_unread_inbox = await cur_unread_inbox.fetchall()

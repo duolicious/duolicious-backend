@@ -1,4 +1,4 @@
-from database import chat_tx
+from database import api_tx
 from typing import List
 from batcher import Batcher
 
@@ -16,7 +16,7 @@ def process_batch(batch: List[str]):
 
     params_seq = [dict(hash=hash) for hash in distinct_hashes]
 
-    with chat_tx('read committed') as tx:
+    with api_tx('read committed') as tx:
         tx.executemany(Q_INSERT_INTRO_HASH, params_seq)
 
 

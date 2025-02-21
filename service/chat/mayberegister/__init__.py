@@ -1,4 +1,4 @@
-from database import chat_tx
+from database import api_tx
 from dataclasses import dataclass
 from typing import Optional, Iterable
 from batcher import Batcher
@@ -40,7 +40,7 @@ def execute_query(usernames: Iterable[DuoPushToken], has_token: bool):
 
     q = Q_SET_TOKEN if has_token else Q_DELETE_TOKEN
 
-    with chat_tx('read committed') as tx:
+    with api_tx('read committed') as tx:
         tx.executemany(q, params_seq)
 
 

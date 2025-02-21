@@ -28,10 +28,6 @@ fi
 
 if [ "$DUO_ENV" = "prod" ]
 then
-  python3 database/initchat.py
-
-  touch /tmp/chat-db-initialized
-
   exec uvicorn \
     --host 0.0.0.0 \
     --port "$PORT" \
@@ -39,10 +35,6 @@ then
     service.chat:app
 elif [ "$DUO_ENV" = "dev" ]
 then
-  python3 database/initchat.py
-
-  touch /tmp/chat-db-initialized
-
   exec uvicorn \
     --host 0.0.0.0 \
     --port "$PORT" \

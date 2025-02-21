@@ -265,7 +265,7 @@ def _process_store_message_batch(batch: List[Message]):
         for message in batch
     ]
 
-    with database.chat_tx('read committed') as tx:
+    with database.api_tx('read committed') as tx:
         tx.executemany(Q_INSERT_MESSAGE, params_seq)
 
 
@@ -286,7 +286,7 @@ async def _get_conversation(
         max=query.max,
     )
 
-    async with asyncdatabase.chat_tx('read committed') as tx:
+    async with asyncdatabase.api_tx('read committed') as tx:
         await tx.execute(Q_SELECT_MESSAGE, params)
         rows = await tx.fetchall()
 
@@ -339,7 +339,7 @@ async def _get_conversation(
 
 @AsyncLruCache(maxsize=1024)
 async def insert_server_user(username: str):
-    async with asyncdatabase.chat_tx() as tx:
+    async with asyncdatabase.api_tx() as tx:
         await tx.execute(Q_INSERT_SERVER_USER, dict(user_name=username))
 
 

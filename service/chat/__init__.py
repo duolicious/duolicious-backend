@@ -1,6 +1,5 @@
 import os
-from database.asyncdatabase import api_tx, chat_tx, check_connections_forever
-from database import chat_tx as sync_chat_tx
+from database.asyncdatabase import api_tx, check_connections_forever
 import asyncio
 import duohash
 import regex
@@ -44,7 +43,6 @@ from service.chat.util import (
     to_bare_jid,
 )
 import uuid
-from pathlib import Path
 import redis.asyncio as redis
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
@@ -169,23 +167,6 @@ MAX_MESSAGE_LEN = 5000
 NON_ALPHANUMERIC_RE = regex.compile(r'[^\p{L}\p{N}]')
 REPEATED_CHARACTERS_RE = regex.compile(r'(.)\1{1,}')
 
-_init_sql_file = (
-    Path(__file__).parent.parent.parent / 'init-chat.sql')
-
-def init_db():
-    with sync_chat_tx() as tx:
-        row = tx.execute("SELECT to_regclass('mam_message')").fetchone()
-
-    if row ['to_regclass'] is not None:
-        print('Database already initialized')
-        return
-
-    with open(_init_sql_file, 'r') as f:
-        init_sql_file = f.read()
-
-    with sync_chat_tx() as tx:
-        tx.execute(init_sql_file)
-
 
 async def redis_publish(username_or_connection_uuid: str, message: str):
     await REDIS_PUB.publish(username_or_connection_uuid, message)
@@ -305,7 +286,7 @@ async def is_message_unique(message_str):
 
     params = dict(hash=hashed)
 
-    async with chat_tx('read committed') as tx:
+    async with api_tx('read committed') as tx:
         cursor = await tx.execute(Q_SELECT_INTRO_HASH, params)
         rows = await cursor.fetchall()
 
@@ -352,7 +333,7 @@ async def fetch_is_trusted_account(from_id: int) -> bool:
 
 @AsyncLruCache(ttl=2 * 60)  # 2 minutes
 async def fetch_push_token(username: str) -> str | None:
-    async with chat_tx('read committed') as tx:
+    async with api_tx('read committed') as tx:
         await tx.execute(Q_SELECT_PUSH_TOKEN, dict(username=username))
         row = await tx.fetchone()
 
