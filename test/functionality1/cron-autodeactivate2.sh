@@ -118,17 +118,15 @@ do_test () {
 
   q "delete from last"
   q "
-  insert into last (server, username, seconds, state)
+  insert into last (username, seconds)
   values
-    ('duolicious.app', '$user4uuid', $days_ago_0, ''),
-    ('duolicious.app', '$user3uuid', $days_ago_1, ''),
-    ('duolicious.app', '$user2uuid', $days_ago_2, ''),
-    ('duolicious.app', '$user1uuid', $days_ago_3, '')
-  ON CONFLICT (server, username) DO UPDATE SET
-    server   = EXCLUDED.server,
+    ('$user4uuid', $days_ago_0),
+    ('$user3uuid', $days_ago_1),
+    ('$user2uuid', $days_ago_2),
+    ('$user1uuid', $days_ago_3)
+  ON CONFLICT (username) DO UPDATE SET
     username = EXCLUDED.username,
-    seconds  = EXCLUDED.seconds,
-    state    = EXCLUDED.state
+    seconds  = EXCLUDED.seconds
   "
 
   sleep 2

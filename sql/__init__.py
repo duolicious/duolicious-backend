@@ -37,16 +37,14 @@ WHERE
 
 Q_UPSERT_LAST = """
 INSERT INTO
-    last (server, username, seconds, state)
+    last (username, seconds)
 SELECT
-    'duolicious.app',
     %(person_uuid)s::text,
-    EXTRACT(EPOCH FROM NOW())::BIGINT,
-    ''
+    EXTRACT(EPOCH FROM NOW())::BIGINT
 WHERE
     %(person_uuid)s IS NOT NULL
-ON CONFLICT (server, username) DO UPDATE SET
-    seconds  = EXCLUDED.seconds
+ON CONFLICT (username) DO UPDATE SET
+    seconds = EXCLUDED.seconds
 """
 
 Q_UPSERT_LAST_INTRO_NOTIFICATION_TIME = """

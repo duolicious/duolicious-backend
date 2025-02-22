@@ -23,10 +23,10 @@ from async_lru_cache import AsyncLruCache
 
 Q_INSERT_SERVER_USER = f"""
 INSERT INTO
-    mam_server_user (server, user_name)
+    mam_server_user (user_name)
 VALUES
-    ('{LSERVER}', %(user_name)s)
-ON CONFLICT (server, user_name) DO NOTHING
+    (%(user_name)s)
+ON CONFLICT (user_name) DO NOTHING
 """
 
 
@@ -37,11 +37,9 @@ INSERT INTO
         user_id,
         from_jid,
         remote_bare_jid,
-        remote_resource,
         direction,
         message,
-        search_body,
-        origin_id
+        search_body
     )
 VALUES
     (
@@ -49,11 +47,9 @@ VALUES
         (SELECT id FROM mam_server_user WHERE user_name = %(from_username)s),
         '', -- from_jid is ignored
         %(to_username)s,
-        '', -- remote_resource is ignored
         'O',
         %(message)s,
-        %(search_body)s,
-        NULL
+        %(search_body)s
     ),
 
     (
@@ -61,11 +57,9 @@ VALUES
         (SELECT id FROM mam_server_user WHERE user_name = %(to_username)s),
         '', -- from_jid is ignored
         %(from_username)s,
-        '', -- remote_resource is ignored
         'I',
         %(message)s,
-        %(search_body)s,
-        NULL
+        %(search_body)s
     )
 """
 
@@ -82,8 +76,6 @@ WITH page AS (
     ON
         mam_server_user.id = mam_message.user_id
     WHERE
-        mam_server_user.server = '{LSERVER}'
-    AND
         mam_server_user.user_name = %(from_username)s
     AND
         mam_message.remote_bare_jid = %(to_username)s

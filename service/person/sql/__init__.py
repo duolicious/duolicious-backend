@@ -1453,18 +1453,16 @@ WITH q1 AS (
     WHERE
         mam_message.user_id = mam_server_user.id
     AND
-        mam_server_user.server = 'duolicious.app'
-    AND
         mam_server_user.user_name = %(person_uuid)s
 ), q2 AS (
     DELETE FROM last
     WHERE username = %(person_uuid)s
 ), q3 AS (
     DELETE FROM inbox
-    WHERE luser = %(person_uuid)s AND lserver = 'duolicious.app'
+    WHERE luser = %(person_uuid)s
 ), q4 AS (
     DELETE FROM mam_server_user
-    WHERE server = 'duolicious.app' AND user_name = %(person_uuid)s
+    WHERE user_name = %(person_uuid)s
 ), q5 AS (
     DELETE FROM duo_last_notification
     WHERE username = %(person_uuid)s
@@ -2073,8 +2071,6 @@ WITH last_messages AS (
         mam_server_user
     ON
         mam_server_user.id = mam_message.user_id
-    AND
-        mam_server_user.server = 'duolicious.app'
     AND
         mam_server_user.user_name = %(subject_person_uuid)s
     WHERE
@@ -2768,8 +2764,6 @@ JOIN
 ON
     mam_message.user_id = mam_server_user.id
 WHERE
-    mam_server_user.server = 'duolicious.app'
-AND
     mam_server_user.user_name = %(person_uuid)s::TEXT
 ORDER BY
     mam_message.id
