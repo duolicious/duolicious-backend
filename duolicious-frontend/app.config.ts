@@ -6,7 +6,7 @@ import { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'Duolicious',
   slug: 'duolicious',
-  version: "29.1.0",
+  version: "29.1.1",
   orientation: "portrait",
   icon: './assets/icon.png',
   newArchEnabled: true,
@@ -42,7 +42,8 @@ const config: ExpoConfig = {
     associatedDomains: ["applinks:get.duolicious.app"],
     appStoreUrl: "https://apps.apple.com/us/app/duolicious-dating-app/id6499066647",
     infoPlist: {
-      NSMicrophoneUsageDescription: "This app uses the microphone to capture audio for updating and sharing on your profile."
+      NSMicrophoneUsageDescription: "This app uses the microphone to capture audio for updating and sharing on your profile.",
+      ITSAppUsesNonExemptEncryption: false
     },
   },
   android: {
