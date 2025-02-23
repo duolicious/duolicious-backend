@@ -57,17 +57,6 @@ REDIS_PUB: Optional[redis.Redis] = redis.Redis(
         port=REDIS_PORT,
         decode_responses=True)
 
-# TODO: Tables to migrate to monolithic DB:
-#
-#  public.last
-#  public.mam_message
-#  public.mam_server_user
-#  public.inbox
-#  public.mongoose_cluster_id
-#  public.intro_hash
-#  public.duo_last_notification
-#  public.duo_push_token
-
 Q_SELECT_INTRO_HASH = """
 SELECT
     1
