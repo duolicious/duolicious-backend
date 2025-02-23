@@ -1446,27 +1446,15 @@ SELECT 1
 
 Q_DELETE_XMPP = """
 WITH q1 AS (
-    DELETE FROM
-        mam_message
-    USING
-        mam_server_user
-    WHERE
-        mam_message.user_id = mam_server_user.id
-    AND
-        mam_server_user.user_name = %(person_uuid)s
-), q2 AS (
     DELETE FROM last
     WHERE username = %(person_uuid)s
-), q3 AS (
+), q2 AS (
     DELETE FROM inbox
     WHERE luser = %(person_uuid)s
 ), q4 AS (
-    DELETE FROM mam_server_user
-    WHERE user_name = %(person_uuid)s
-), q5 AS (
     DELETE FROM duo_last_notification
     WHERE username = %(person_uuid)s
-), q6 AS (
+), q5 AS (
     DELETE FROM duo_push_token
     WHERE username = %(person_uuid)s
 )
@@ -2068,15 +2056,15 @@ WITH last_messages AS (
     FROM
         mam_message
     JOIN
-        mam_server_user
+        person
     ON
-        mam_server_user.id = mam_message.user_id
+        person.id = mam_message.person_id
     AND
-        mam_server_user.user_name = %(subject_person_uuid)s
+        person.uuid = %(subject_person_uuid)s
     WHERE
         mam_message.remote_bare_jid IN (
-            %(subject_person_uuid)s,
-            %(prospect_uuid)s
+            %(subject_person_uuid)s::TEXT,
+            %(prospect_uuid)s::TEXT
         )
     ORDER BY
         mam_message.id DESC
@@ -2760,11 +2748,11 @@ SELECT
 FROM
     mam_message
 JOIN
-    mam_server_user
+    person
 ON
-    mam_message.user_id = mam_server_user.id
+    mam_message.user_id = person.id
 WHERE
-    mam_server_user.user_name = %(person_uuid)s::TEXT
+    person.uuid = %(person_uuid)s::TEXT
 ORDER BY
     mam_message.id
 """

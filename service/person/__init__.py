@@ -761,7 +761,6 @@ def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
         with api_tx() as tx:
             last_messages = tx.execute(Q_LAST_MESSAGES, params=params).fetchall()
 
-        with api_tx() as tx:
             report_obj = tx.execute(Q_MAKE_REPORT, params=params).fetchall()
 
         threading.Thread(
