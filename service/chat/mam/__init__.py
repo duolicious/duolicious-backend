@@ -21,20 +21,11 @@ import uuid
 from async_lru_cache import AsyncLruCache
 
 
-Q_INSERT_SERVER_USER = f"""
-INSERT INTO
-    mam_server_user (user_name)
-VALUES
-    (%(user_name)s)
-ON CONFLICT (user_name) DO NOTHING
-"""
-
-
 Q_INSERT_MESSAGE = """
 INSERT INTO
     mam_message (
         id,
-        user_id,
+        person_id,
         from_jid,
         remote_bare_jid,
         direction,
@@ -44,7 +35,7 @@ INSERT INTO
 VALUES
     (
         %(id)s,
-        (SELECT id FROM mam_server_user WHERE user_name = %(from_username)s),
+        (SELECT id FROM person WHERE uuid = uuid_or_null(%(from_username)s)),
         '', -- from_jid is ignored
         %(to_username)s,
         'O',
@@ -54,7 +45,7 @@ VALUES
 
     (
         %(id)s + 1,
-        (SELECT id FROM mam_server_user WHERE user_name = %(to_username)s),
+        (SELECT id FROM person WHERE uuid = uuid_or_null(%(to_username)s)),
         '', -- from_jid is ignored
         %(from_username)s,
         'I',
@@ -72,11 +63,11 @@ WITH page AS (
     FROM
         mam_message
     JOIN
-        mam_server_user
+        person
     ON
-        mam_server_user.id = mam_message.user_id
+        person.id = mam_message.person_id
     WHERE
-        mam_server_user.user_name = %(from_username)s
+        person.uuid = %(from_username)s
     AND
         mam_message.remote_bare_jid = %(to_username)s
     AND (
@@ -327,12 +318,6 @@ async def _get_conversation(
                 iq_element, encoding='unicode', pretty_print=False))
 
     return messages
-
-
-@AsyncLruCache(maxsize=1024)
-async def insert_server_user(username: str):
-    async with asyncdatabase.api_tx() as tx:
-        await tx.execute(Q_INSERT_SERVER_USER, dict(user_name=username))
 
 
 def microseconds_to_mam_message_id(microseconds: int):
