@@ -46,7 +46,7 @@ async def delete_images_from_object_store(
 ):
     # Split the uuids list into chunks of 300 since the limit is 1000 and
     # there's three objects to delete per uuid
-    chunks = [uuids[i:i+300] for i in range(0, len(uuids), 300)]
+    chunks = [uuids[i:i+200] for i in range(0, len(uuids), 200)]
 
     s3_client = boto3.client(
         's3',
