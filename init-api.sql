@@ -1515,6 +1515,7 @@ CREATE TABLE IF NOT EXISTS mam_message(
   -- Term-encoded message packet
   message bytea NOT NULL,
   search_body text,
+  person_id INT,
   PRIMARY KEY(user_id, id)
 );
 
