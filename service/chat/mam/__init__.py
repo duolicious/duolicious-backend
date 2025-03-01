@@ -39,7 +39,8 @@ INSERT INTO
         remote_bare_jid,
         direction,
         message,
-        search_body
+        search_body,
+        person_id
     )
 VALUES
     (
@@ -49,7 +50,8 @@ VALUES
         %(to_username)s,
         'O',
         %(message)s,
-        %(search_body)s
+        %(search_body)s,
+        (SELECT id FROM person WHERE uuid = uuid_or_null(%(from_username)s))
     ),
 
     (
@@ -59,7 +61,8 @@ VALUES
         %(from_username)s,
         'I',
         %(message)s,
-        %(search_body)s
+        %(search_body)s,
+        (SELECT id FROM person WHERE uuid = uuid_or_null(%(to_username)s))
     )
 """
 
