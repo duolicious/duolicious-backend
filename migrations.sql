@@ -7,12 +7,11 @@ BEGIN
     WHERE table_schema = 'public'  -- adjust schema if needed
       AND table_name = 'mam_server_user'
   ) THEN
-
     -- DELETE orphaned `mam_server_user`s
     DELETE FROM
         mam_server_user
     WHERE
-        user_name NOT IN (SELECT DISTINCT uuid FROM person)
+        user_name NOT IN (SELECT DISTINCT uuid::TEXT FROM person)
     ;
 
     -- DELETE orphaned `mam_message`s
@@ -34,21 +33,15 @@ BEGIN
     UPDATE
         mam_message
     SET
-        person_id = (
-            SELECT
-                id
-            FROM
-                person
-            WHERE
-                uuid = (
-                    SELECT
-                        user_name
-                    FROM
-                        mam_server_user
-                    WHERE
-                        mam_server_user.id = mam_message.user_id
-                )
-        )
+        person_id = person.id
+    FROM
+        mam_server_user
+    JOIN
+        person
+    ON
+        person.uuid = uuid_or_null(mam_server_user.user_name)
+    WHERE
+        mam_message.user_id = mam_server_user.id
     ;
 
     -- Now that `mam_message.person_id` is populated, we can add a `NOT NULL`
@@ -77,6 +70,23 @@ BEGIN
 
     -- The `mam_server_user` table is no longer needed
     DROP TABLE IF EXISTS mam_server_user;
+
+    -- The `mam_message.user_id` column is no longer needed as it has been replace
+    -- with `mam_message.person_id`
+    ALTER TABLE mam_message DROP CONSTRAINT mam_message_pkey;
+    ALTER TABLE mam_message ADD  CONSTRAINT mam_message_pkey PRIMARY KEY (person_id, id);
+
+    DROP INDEX IF EXISTS i_mam_message_username_jid_id;
+
+    CREATE INDEX IF NOT EXISTS idx__mam_message__person_id__remote_bare_jid__id
+        ON mam_message
+        (person_id, remote_bare_jid, id);
+
+    ALTER TABLE
+        mam_message
+    DROP COLUMN IF EXISTS
+        user_id
+    ;
   END IF;
 END
 $$;
@@ -92,35 +102,3 @@ $$;
 
 
 
-
-
-
--- The `mam_message.user_id` column is no longer needed as it has been replace
--- with `mam_message.person_id`
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM pg_constraint
-    WHERE conname = 'mam_message_pkey'
-  ) THEN
-    ALTER TABLE mam_message DROP CONSTRAINT mam_message_pkey;
-    ALTER TABLE mam_message ADD  CONSTRAINT mam_message_pkey PRIMARY KEY (person_id, id);
-  END IF;
-END$$;
-
-
-
-DROP INDEX IF EXISTS i_mam_message_username_jid_id;
-
-
-CREATE INDEX IF NOT EXISTS idx__mam_message__person_id__remote_bare_jid__id
-    ON mam_message
-    (person_id, remote_bare_jid, id);
-
-
-ALTER TABLE
-    mam_message
-DROP COLUMN IF EXISTS
-    user_id
-;
