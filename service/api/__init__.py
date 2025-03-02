@@ -142,8 +142,7 @@ def init_db():
     maybe_run_init()
 
     with api_tx() as tx:
-        timeout = 2 * 60 * 60 * 1000  # 2 hours
-        tx.execute(f'SET LOCAL statement_timeout = {timeout}')
+        tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
         tx.execute(migrations_sql_file)
 
     with api_tx() as tx:

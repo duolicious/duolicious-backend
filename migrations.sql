@@ -45,7 +45,7 @@ BEGIN
             updated_mam_message
         WHERE
             mam_message.id = updated_mam_message.id
-          AND
+        AND
             mam_message.user_id = updated_mam_message.user_id
         ;
 
