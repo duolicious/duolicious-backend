@@ -26,7 +26,6 @@ from service.chat.inbox import (
     upsert_conversation,
 )
 from service.chat.mam import (
-    insert_server_user,
     maybe_get_conversation,
     store_message,
 )
@@ -399,15 +398,11 @@ async def process_duo_message(
 
     if not from_id:
         return
-    else:
-        await insert_server_user(from_username)
 
     to_id = await fetch_id_from_username(to_username)
 
     if not to_id:
         return
-    else:
-        await insert_server_user(to_username)
 
     if await fetch_is_skipped(from_id=from_id, to_id=to_id):
         return await redis_publish_many(connection_uuid, [
