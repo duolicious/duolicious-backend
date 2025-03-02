@@ -1515,9 +1515,13 @@ CREATE TABLE IF NOT EXISTS mam_message(
   -- Term-encoded message packet
   message bytea NOT NULL,
   search_body text,
-  person_id INT,
+  person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
   PRIMARY KEY(user_id, id)
 );
+
+CREATE INDEX IF NOT EXISTS idx__mam_message__person_id__remote_bare_jid__id
+    ON mam_message
+    (person_id, remote_bare_jid, id);
 
 CREATE INDEX IF NOT EXISTS i_mam_message_username_jid_id
     ON mam_message
