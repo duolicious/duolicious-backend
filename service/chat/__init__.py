@@ -45,6 +45,8 @@ import uuid
 import redis.asyncio as redis
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
+import xmltodict
+import json
 
 app = FastAPI()
 
@@ -329,16 +331,19 @@ def get_middleware(subprotocol: str) -> Middleware:
     if subprotocol == 'json':
         def input_middleware(text: str):
             json_data = json.loads(text)
-            xml_str = xmltodict.unparse(json_data)
-            return xml_str, parse_xml_or_none(text)
+            xml_str = xmltodict.unparse(json_data, full_document=False)
+            return xml_str, parse_xml_or_none(xml_str)
 
         def output_middleware(text: str):
+            if text == '</stream:stream>':
+                return '{"stream": null}'
+
             dict_obj = xmltodict.parse(text)
             return json.dumps(dict_obj)
     else:
         def input_middleware(text: str):
             xml_str = text
-            return xml_str, parse_xml_or_none(text)
+            return xml_str, parse_xml_or_none(xml_str)
 
         def output_middleware(text: str):
             return text
