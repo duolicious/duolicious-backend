@@ -1,0 +1,18 @@
+{
+  "name": "websocket-relay",
+  "version": "1.0.0",
+  "description": "A simple relay server that connects to a WebSocket server and relays raw messages via HTTP endpoints.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.1",
+    "ws": "^8.13.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
+
