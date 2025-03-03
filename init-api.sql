@@ -1488,20 +1488,10 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
-CREATE TABLE IF NOT EXISTS mam_server_user(
-  id SERIAL UNIQUE PRIMARY KEY,
-  user_name varchar(250) NOT NULL
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS
-    idx__mam_server_user__user_name
-    ON mam_server_user(user_name);
-
 CREATE TABLE IF NOT EXISTS mam_message(
   -- Message UID (64 bits)
   -- A server-assigned UID that MUST be unique within the archive.
   id BIGINT NOT NULL,
-  user_id INT NOT NULL,
   -- FromJID used to form a message without looking into stanza.
   -- This value will be send to the client "as is".
   from_jid varchar(250) NOT NULL,
@@ -1516,17 +1506,12 @@ CREATE TABLE IF NOT EXISTS mam_message(
   message bytea NOT NULL,
   search_body text,
   person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
-  PRIMARY KEY(user_id, id)
+  PRIMARY KEY(person_id, id)
 );
 
 CREATE INDEX IF NOT EXISTS idx__mam_message__person_id__remote_bare_jid__id
     ON mam_message
     (person_id, remote_bare_jid, id);
-
-CREATE INDEX IF NOT EXISTS i_mam_message_username_jid_id
-    ON mam_message
-    USING BTREE
-    (user_id, remote_bare_jid, id);
 
 CREATE TABLE IF NOT EXISTS inbox (
     luser VARCHAR(250)               NOT NULL,
@@ -1576,10 +1561,6 @@ ON last(seconds);
 CREATE INDEX IF NOT EXISTS duo_idx__mam_message__remote_bare_jid__id
 ON mam_message(remote_bare_jid, id)
 WHERE direction = 'I';
-
-CREATE UNIQUE INDEX IF NOT EXISTS
-    idx__mam_server_user__user_name
-    ON mam_server_user(user_name);
 
 CREATE INDEX IF NOT EXISTS
     idx__inbox__luser__timestamp
