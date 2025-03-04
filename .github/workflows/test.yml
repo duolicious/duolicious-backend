@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run functionality tests
-        run: ./test/util/with-container.sh ./test/functionality1.sh
+        run: ./test/util/with-container.sh ./test/functionality.sh 1
         env:
           DUO_EMAIL_KEY: 'not-a-real-key'
           DUO_EMAIL_URL: 'https://example.com'
@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run functionality tests
-        run: ./test/util/with-container.sh ./test/functionality2.sh
+        run: ./test/util/with-container.sh ./test/functionality.sh 2
         env:
           DUO_EMAIL_KEY: 'not-a-real-key'
           DUO_EMAIL_URL: 'https://example.com'
@@ -54,7 +54,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run functionality tests
-        run: ./test/util/with-container.sh ./test/functionality3.sh
+        run: ./test/util/with-container.sh ./test/functionality.sh 3
         env:
           DUO_EMAIL_KEY: 'not-a-real-key'
           DUO_EMAIL_URL: 'https://example.com'
@@ -72,7 +72,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run functionality tests
-        run: ./test/util/with-container.sh ./test/functionality4.sh
+        run: ./test/util/with-container.sh ./test/functionality.sh 4
         env:
           DUO_EMAIL_KEY: 'not-a-real-key'
           DUO_EMAIL_URL: 'https://example.com'
@@ -90,7 +90,25 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run functionality tests
-        run: ./test/util/with-container.sh ./test/functionality5.sh
+        run: ./test/util/with-container.sh ./test/functionality.sh 5
+        env:
+          DUO_EMAIL_KEY: 'not-a-real-key'
+          DUO_EMAIL_URL: 'https://example.com'
+
+          DUO_R2_BUCKET_NAME: s3-mock-bucket
+          DUO_R2_ACCT_ID: unused-in-dev-env
+          DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
+          DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
+
+  functionality-tests-6:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Out Code
+        uses: actions/checkout@v3
+
+      - name: Run functionality tests
+        run: ./test/util/with-container.sh ./test/functionality.sh 6
         env:
           DUO_EMAIL_KEY: 'not-a-real-key'
           DUO_EMAIL_URL: 'https://example.com'

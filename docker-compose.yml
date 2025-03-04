@@ -186,6 +186,17 @@ services:
     ports:
       - "3000:3000"
 
+  chatjsontest:
+    build:
+      context: .
+      dockerfile: chatjsontest.Dockerfile
+
+    volumes:
+      - ./test/chatjsontest/index.js:/usr/src/app/index.js
+
+    ports:
+      - "3001:3001"
+
   redis:
     image: "redis:alpine"
     container_name: redis

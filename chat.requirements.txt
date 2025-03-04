@@ -8,3 +8,4 @@ redis
 regex
 uvicorn
 websockets
+xmltodict

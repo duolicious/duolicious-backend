@@ -331,3 +331,33 @@ wait_for_audio_creation_by_uuid () {
 
   return 1
 }
+
+
+chat_auth () {
+  local fromUuid=$1
+  local fromToken=$2
+
+  local auth64=$(printf '\0%s\0%s' "$fromUuid" "$fromToken" | base64 -w 0);
+
+  read -r -d '' authJson <<EOF || true
+{
+  "auth": {
+    "@xmlns": "urn:ietf:params:xml:ns:xmpp-sasl",
+    "@mechanism": "PLAIN",
+    "#text": "${auth64}"
+  }
+}
+EOF
+
+  # Set up the connection
+  curl -X POST http://localhost:3001/config \
+    -H "Content-Type: application/json" \
+    -d '{ "server": "ws://chat:5443" }'
+
+  sleep 0.2
+
+  # Authentication
+  curl -X POST http://localhost:3001/send \
+    -H "Content-Type: application/json" \
+    -d "$authJson"
+}

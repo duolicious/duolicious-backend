@@ -10,7 +10,7 @@ from websockets.exceptions import ConnectionClosedError
 import notify
 from async_lru_cache import AsyncLruCache
 import random
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Callable, Tuple, Iterable
 from datetime import datetime
 from service.chat.insertintrohash import insert_intro_hash
 from service.chat.mayberegister import maybe_register
@@ -45,6 +45,8 @@ import uuid
 import redis.asyncio as redis
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
+import xmltodict
+import json
 
 app = FastAPI()
 
@@ -55,6 +57,10 @@ REDIS_PUB: Optional[redis.Redis] = redis.Redis(
         host=REDIS_HOST,
         port=REDIS_PORT,
         decode_responses=True)
+
+InputMiddleware = Callable[[str], Tuple[str, Optional[etree.Element]]]
+OutputMiddleware = Callable[[str], str]
+Middleware = Tuple[InputMiddleware, OutputMiddleware]
 
 Q_SELECT_INTRO_HASH = """
 SELECT
@@ -160,22 +166,9 @@ async def redis_publish(username_or_connection_uuid: str, message: str):
     await REDIS_PUB.publish(username_or_connection_uuid, message)
 
 
-async def redis_publish_many(username_or_connection_uuid: str, messages: list[str]):
+async def redis_publish_many(username_or_connection_uuid: str, messages: Iterable[str]):
     for message in messages:
         await redis_publish(username_or_connection_uuid, message)
-
-
-async def publish_message(message_body: str, to_username: str, from_username: str):
-    root = message_string_to_etree(
-        message_body=message_body,
-        to_username=to_username,
-        from_username=from_username,
-        id=str(uuid.uuid4()),
-    )
-
-    xml_str = etree.tostring(root, encoding='unicode', pretty_print=False)
-
-    await redis_publish(to_username, xml_str)
 
 
 async def send_notification(
@@ -255,11 +248,8 @@ def normalize_message(message_str):
 
     return message_str
 
-def is_xml_too_long(xml_str):
-    return len(xml_str) > MAX_MESSAGE_LEN + 1000
-
-def is_message_too_long(message_str):
-    return len(message_str) > MAX_MESSAGE_LEN
+def is_text_too_long(text: str):
+    return len(text) > MAX_MESSAGE_LEN
 
 def is_ping(parsed_xml):
     try:
@@ -337,16 +327,48 @@ async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
 
     return row if row else None
 
-async def process_duo_message(
-    xml_str: str,
-    parsed_xml: etree.Element,
+def get_middleware(subprotocol: str) -> Middleware:
+    if subprotocol == 'json':
+        def input_middleware(text: str):
+            json_data = json.loads(text)
+            xml_str = xmltodict.unparse(json_data, full_document=False)
+            return xml_str, parse_xml_or_none(xml_str)
+
+        def output_middleware(text: str):
+            if text == '</stream:stream>':
+                return '{"stream": null}'
+
+            dict_obj = xmltodict.parse(text)
+            return json.dumps(dict_obj)
+    else:
+        def input_middleware(text: str):
+            xml_str = text
+            return xml_str, parse_xml_or_none(xml_str)
+
+        def output_middleware(text: str):
+            return text
+
+    return input_middleware, output_middleware
+
+async def process_text(
     session: Session,
+    middleware: Middleware,
+    text: str
 ):
+    input_middleware, output_middleware = middleware
+
+    if is_text_too_long(text):
+        return await redis_publish_many(connection_uuid, map(output_middleware, [
+            f'<duo_message_too_long />'
+        ]))
+
+    xml_str, parsed_xml = input_middleware(text)
+
+    if parsed_xml is None:
+        return
+
     from_username = session.username
     connection_uuid = session.connection_uuid
-
-    if is_xml_too_long(xml_str):
-        return
 
     maybe_session_response = await maybe_get_session_response(
             parsed_xml, session)
@@ -354,29 +376,35 @@ async def process_duo_message(
     if maybe_session_response:
         return await redis_publish_many(
             connection_uuid,
-            maybe_session_response
+            map(output_middleware, maybe_session_response)
         )
 
     if is_ping(parsed_xml):
-        return await redis_publish_many(connection_uuid, [
+        return await redis_publish_many(connection_uuid, map(output_middleware, [
             '<duo_pong preferred_interval="10000" preferred_timeout="5000" />',
-        ])
+        ]))
 
     if not from_username:
         return
 
     if maybe_register(parsed_xml, from_username):
-        return await redis_publish_many(connection_uuid, [
+        return await redis_publish_many(connection_uuid, map(output_middleware, [
             '<duo_registration_successful />'
-        ])
+        ]))
 
     maybe_conversation = await maybe_get_conversation(parsed_xml, from_username)
     if maybe_conversation:
-        return await redis_publish_many(connection_uuid, maybe_conversation)
+        return await redis_publish_many(
+            connection_uuid,
+            map(output_middleware, maybe_conversation)
+        )
 
     maybe_inbox = await maybe_get_inbox(parsed_xml, from_username)
     if maybe_inbox:
-        return await redis_publish_many(connection_uuid, maybe_inbox)
+        return await redis_publish_many(
+            connection_uuid,
+            map(output_middleware, maybe_inbox)
+        )
 
     if maybe_mark_displayed(parsed_xml, from_username):
         return
@@ -389,11 +417,6 @@ async def process_duo_message(
     if not maybe_message_body:
         return
 
-    if is_message_too_long(maybe_message_body):
-        return await redis_publish_many(connection_uuid, [
-            f'<duo_message_too_long id="{stanza_id}"/>'
-        ])
-
     from_id = await fetch_id_from_username(from_username)
 
     if not from_id:
@@ -405,24 +428,24 @@ async def process_duo_message(
         return
 
     if await fetch_is_skipped(from_id=from_id, to_id=to_id):
-        return await redis_publish_many(connection_uuid, [
+        return await redis_publish_many(connection_uuid, map(output_middleware, [
             f'<duo_message_blocked id="{stanza_id}"/>'
-        ])
+        ]))
 
     is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
 
     if is_intro and is_rude(maybe_message_body):
-        return await redis_publish_many(connection_uuid, [
+        return await redis_publish_many(connection_uuid, map(output_middleware, [
             f'<duo_message_blocked id="{stanza_id}" reason="offensive"/>'
-        ])
+        ]))
 
     if \
             is_intro and \
             is_spam(maybe_message_body) and \
             not await fetch_is_trusted_account(from_id=from_id):
-        return await redis_publish_many(connection_uuid, [
+        return await redis_publish_many(connection_uuid, map(output_middleware, [
             f'<duo_message_blocked id="{stanza_id}" reason="spam"/>'
-        ])
+        ]))
 
     if is_intro:
         maybe_rate_limit = await maybe_fetch_rate_limit(
@@ -430,12 +453,15 @@ async def process_duo_message(
                 stanza_id=stanza_id)
 
         if maybe_rate_limit:
-            return await redis_publish_many(connection_uuid, maybe_rate_limit)
+            return await redis_publish_many(
+                connection_uuid,
+                map(output_middleware, maybe_rate_limit)
+            )
 
     if is_intro and not await is_message_unique(maybe_message_body):
-        return await redis_publish_many(connection_uuid, [
+        return await redis_publish_many(connection_uuid, map(output_middleware, [
             f'<duo_message_not_unique id="{stanza_id}"/>'
-        ])
+        ]))
 
     # TODO: Updates to `mam_message` and `inbox` tables should happen in one tx
     store_message(
@@ -452,11 +478,19 @@ async def process_duo_message(
         msg_id=stanza_id,
         content=xml_str)
 
-    await publish_message(
-        message_body=maybe_message_body,
-        to_username=to_username,
-        from_username=from_username
-    )
+    await redis_publish_many(to_username, map(output_middleware, [
+        etree.tostring(
+            message_string_to_etree(
+                message_body=maybe_message_body,
+                to_username=to_username,
+                from_username=from_username,
+                id=str(uuid.uuid4()),
+            ),
+            encoding='unicode',
+            pretty_print=False,
+        )
+    ]))
+
 
     immediate_data = await fetch_immediate_data(
             from_id=from_id,
@@ -481,9 +515,9 @@ async def process_duo_message(
             },
         )
 
-    return await redis_publish_many(connection_uuid, [
+    return await redis_publish_many(connection_uuid, map(output_middleware, [
         f'<duo_message_delivered id="{stanza_id}"/>'
-    ])
+    ]))
 
 
 async def forward_redis_to_websocket(pubsub: redis.client.PubSub, websocket: WebSocket) -> None:
@@ -507,7 +541,16 @@ async def forward_redis_to_websocket(pubsub: redis.client.PubSub, websocket: Web
 
 @app.websocket("/")
 async def process_websocket_messages(websocket: WebSocket) -> None:
-    await websocket.accept(subprotocol='xmpp')
+    subprotocol_header = websocket.headers.get('sec-websocket-protocol')
+
+    if subprotocol_header == 'json':
+        subprotocol = 'json'
+    else:
+        subprotocol = 'xmpp'
+
+    await websocket.accept(subprotocol=subprotocol)
+
+    middleware = get_middleware(subprotocol)
 
     session = Session()
 
@@ -532,15 +575,9 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
 
     try:
         while True:
-            incoming_message = await websocket.receive_text()
+            text = await websocket.receive_text()
 
-            parsed_xml = parse_xml_or_none(incoming_message)
-
-            if parsed_xml is None:
-                continue
-
-            await asyncio.shield(
-                    process_duo_message(incoming_message, parsed_xml, session))
+            await asyncio.shield(process_text(session, middleware, text))
 
             if not update_last_task and session.username:
                 update_last_task = asyncio.create_task(
