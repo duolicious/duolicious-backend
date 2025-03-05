@@ -177,6 +177,14 @@ services:
     ports:
       - "3000:3000"
 
+  chatjsontest:
+    build:
+      context: .
+      dockerfile: chatjsontest.Dockerfile
+
+    ports:
+      - "3001:3001"
+
   redis:
     image: "redis:alpine"
     container_name: redis

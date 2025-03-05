@@ -113,7 +113,8 @@ Install these:
 Then run this:
 
 ```bash
-./test/util/with-container.sh ./test/functionality.sh
+# Where ${n} is the test you want to run
+./test/util/with-container.sh ./test/functionality${n}.sh
 ```
 
 You can also do this in one terminal:
@@ -125,7 +126,8 @@ docker compose up
 ...Then run this in another:
 
 ```bash
-DUO_DB_PORT=5433 ./test/functionality.sh
+# Where ${n} is the test you want to run
+DUO_DB_PORT=5433 ./test/functionality${n}.sh
 ```
 
 ## Using pg_stat_statements:
