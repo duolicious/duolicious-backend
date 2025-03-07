@@ -352,17 +352,15 @@ def get_middleware(subprotocol: str) -> Middleware:
 
 async def process_text(
     session: Session,
-    middleware: Middleware,
+    middleware: InputMiddleware,
     text: str
 ):
-    input_middleware, output_middleware = middleware
-
     if is_text_too_long(text):
-        return await redis_publish_many(connection_uuid, map(output_middleware, [
+        return await redis_publish_many(connection_uuid, [
             f'<duo_message_too_long />'
-        ]))
+        ])
 
-    xml_str, parsed_xml = input_middleware(text)
+    xml_str, parsed_xml = middleware(text)
 
     if parsed_xml is None:
         return
@@ -374,37 +372,28 @@ async def process_text(
             parsed_xml, session)
 
     if maybe_session_response:
-        return await redis_publish_many(
-            connection_uuid,
-            map(output_middleware, maybe_session_response)
-        )
+        return await redis_publish_many(connection_uuid, maybe_session_response)
 
     if is_ping(parsed_xml):
-        return await redis_publish_many(connection_uuid, map(output_middleware, [
+        return await redis_publish_many(connection_uuid, [
             '<duo_pong preferred_interval="10000" preferred_timeout="5000" />',
-        ]))
+        ])
 
     if not from_username:
         return
 
     if maybe_register(parsed_xml, from_username):
-        return await redis_publish_many(connection_uuid, map(output_middleware, [
+        return await redis_publish_many(connection_uuid, [
             '<duo_registration_successful />'
-        ]))
+        ])
 
     maybe_conversation = await maybe_get_conversation(parsed_xml, from_username)
     if maybe_conversation:
-        return await redis_publish_many(
-            connection_uuid,
-            map(output_middleware, maybe_conversation)
-        )
+        return await redis_publish_many(connection_uuid, maybe_conversation)
 
     maybe_inbox = await maybe_get_inbox(parsed_xml, from_username)
     if maybe_inbox:
-        return await redis_publish_many(
-            connection_uuid,
-            map(output_middleware, maybe_inbox)
-        )
+        return await redis_publish_many(connection_uuid, maybe_inbox)
 
     if maybe_mark_displayed(parsed_xml, from_username):
         return
@@ -428,24 +417,24 @@ async def process_text(
         return
 
     if await fetch_is_skipped(from_id=from_id, to_id=to_id):
-        return await redis_publish_many(connection_uuid, map(output_middleware, [
+        return await redis_publish_many(connection_uuid, [
             f'<duo_message_blocked id="{stanza_id}"/>'
-        ]))
+        ])
 
     is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
 
     if is_intro and is_rude(maybe_message_body):
-        return await redis_publish_many(connection_uuid, map(output_middleware, [
+        return await redis_publish_many(connection_uuid, [
             f'<duo_message_blocked id="{stanza_id}" reason="offensive"/>'
-        ]))
+        ])
 
     if \
             is_intro and \
             is_spam(maybe_message_body) and \
             not await fetch_is_trusted_account(from_id=from_id):
-        return await redis_publish_many(connection_uuid, map(output_middleware, [
+        return await redis_publish_many(connection_uuid, [
             f'<duo_message_blocked id="{stanza_id}" reason="spam"/>'
-        ]))
+        ])
 
     if is_intro:
         maybe_rate_limit = await maybe_fetch_rate_limit(
@@ -453,15 +442,12 @@ async def process_text(
                 stanza_id=stanza_id)
 
         if maybe_rate_limit:
-            return await redis_publish_many(
-                connection_uuid,
-                map(output_middleware, maybe_rate_limit)
-            )
+            return await redis_publish_many(connection_uuid, maybe_rate_limit)
 
     if is_intro and not await is_message_unique(maybe_message_body):
-        return await redis_publish_many(connection_uuid, map(output_middleware, [
+        return await redis_publish_many(connection_uuid, [
             f'<duo_message_not_unique id="{stanza_id}"/>'
-        ]))
+        ])
 
     # TODO: Updates to `mam_message` and `inbox` tables should happen in one tx
     store_message(
@@ -478,7 +464,7 @@ async def process_text(
         msg_id=stanza_id,
         content=xml_str)
 
-    await redis_publish_many(to_username, map(output_middleware, [
+    await redis_publish_many(to_username, [
         etree.tostring(
             message_string_to_etree(
                 message_body=maybe_message_body,
@@ -489,7 +475,7 @@ async def process_text(
             encoding='unicode',
             pretty_print=False,
         )
-    ]))
+    ])
 
 
     immediate_data = await fetch_immediate_data(
@@ -515,12 +501,16 @@ async def process_text(
             },
         )
 
-    return await redis_publish_many(connection_uuid, map(output_middleware, [
+    return await redis_publish_many(connection_uuid, [
         f'<duo_message_delivered id="{stanza_id}"/>'
-    ]))
+    ])
 
 
-async def forward_redis_to_websocket(pubsub: redis.client.PubSub, websocket: WebSocket) -> None:
+async def forward_redis_to_websocket(
+    pubsub: redis.client.PubSub,
+    middleware: OutputMiddleware,
+    websocket: WebSocket
+) -> None:
     """
     Listens on the Redis subscription channel and forwards any messages
     to the connected websocket client.
@@ -530,7 +520,10 @@ async def forward_redis_to_websocket(pubsub: redis.client.PubSub, websocket: Web
             if message is None or message.get("type") != "message":
                 continue
 
-            data = message.get("data")
+            try:
+                data = middleware(message['data'])
+            except:
+                continue
 
             await websocket.send_text(data)
     except asyncio.CancelledError:
@@ -550,7 +543,7 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
 
     await websocket.accept(subprotocol=subprotocol)
 
-    middleware = get_middleware(subprotocol)
+    input_middleware, output_middleware = get_middleware(subprotocol)
 
     session = Session()
 
@@ -569,7 +562,7 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
     update_last_task = None
 
     forward_redis_to_websocket_task = asyncio.create_task(
-            forward_redis_to_websocket(pubsub, websocket))
+            forward_redis_to_websocket(pubsub, output_middleware, websocket))
 
     is_subscribed_by_username = False
 
@@ -577,7 +570,7 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
         while True:
             text = await websocket.receive_text()
 
-            await asyncio.shield(process_text(session, middleware, text))
+            await asyncio.shield(process_text(session, input_middleware, text))
 
             if not update_last_task and session.username:
                 update_last_task = asyncio.create_task(
