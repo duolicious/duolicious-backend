@@ -71,6 +71,15 @@ class TestIsOffensive(unittest.TestCase):
         self.assertTrue(
                 is_rude("be my big tiddy gf"))
 
+        self.assertTrue(
+                is_rude("Hey doll, you look positively rapable."))
+
+        self.assertTrue(
+                is_rude("When did you last cum?"))
+
+        self.assertTrue(
+                is_rude("pen15"))
+
     def test_non_rude_strings(self):
         self.assertFalse(
                 is_rude("She piped up after realizing that"))
