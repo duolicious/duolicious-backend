@@ -34,7 +34,7 @@ import {
   markDisplayed,
   onReceiveMessage,
   sendMessage,
-} from '../xmpp/xmpp';
+} from '../chat/application-layer';
 import {
   IMAGES_URL,
 } from '../env/env';
@@ -82,14 +82,13 @@ const maybeRequestReview = async (delayMs: number = 0) => {
   }
 };
 
-const Menu = ({navigation, name, personId, personUuid, closeFn}) => {
+const Menu = ({navigation, name, personUuid, closeFn}) => {
   const [isSkipped, setIsSkipped] = useState<boolean | undefined>();
   const [isUpdating, setIsUpdating] = useState(false);
 
   const isLoading = (
     isSkipped === undefined ||
-    name === undefined ||
-    personId === undefined);
+    name === undefined);
 
   const onPressSkip = useCallback(async () => {
     if (isSkipped === undefined) {
@@ -106,7 +105,7 @@ const Menu = ({navigation, name, personId, personUuid, closeFn}) => {
         navigation.popToTop();
       }
     }
-  }, [navigation, personId, isSkipped, closeFn]);
+  }, [navigation, isSkipped, closeFn]);
 
   const onPressReport = useCallback(async () => {
     closeFn();
@@ -118,7 +117,7 @@ const Menu = ({navigation, name, personId, personUuid, closeFn}) => {
     };
 
     notify('open-report-modal', data);
-  }, [name, personId, closeFn]);
+  }, [name, closeFn]);
 
   useEffect(() => {
     (async () => {
@@ -349,7 +348,6 @@ const ConversationScreenNavBar = ({
         <Menu
           navigation={navigation}
           name={name}
-          personId={personId}
           personUuid={personUuid}
           closeFn={() => setShowMenu(false)}
         />
@@ -524,7 +522,7 @@ const ConversationScreen = ({navigation, route}) => {
   }, []);
 
   useEffect(() => {
-    return listen('xmpp-is-online', setIsOnline);
+    return listen('xmpp-is-online', (data) => setIsOnline(data ?? false));
   }, []);
 
   useEffect(() => {

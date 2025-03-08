@@ -9,7 +9,7 @@ import {
   useRef,
 } from 'react';
 import { DefaultText } from '../default-text';
-import { Inbox, inboxStats } from '../../xmpp/xmpp';
+import { Inbox, inboxStats } from '../../chat/application-layer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { listen } from '../../events/events';
 import {

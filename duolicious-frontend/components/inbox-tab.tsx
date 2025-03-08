@@ -18,7 +18,7 @@ import { IntrosItem, ChatsItem } from './inbox-item';
 import { DefaultText } from './default-text';
 import { ButtonGroup } from './button-group';
 import { DefaultFlatList } from './default-flat-list';
-import { Inbox, Conversation, inboxStats } from '../xmpp/xmpp';
+import { Inbox, Conversation, inboxStats } from '../chat/application-layer';
 import { compareArrays } from '../util/util';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { inboxOrder, inboxSection } from '../kv-storage/inbox';
@@ -272,7 +272,6 @@ const InboxTab = () => {
       return <IntrosItemMemo
         wasRead={x.item.lastMessageRead}
         name={x.item.name}
-        personId={x.item.personId}
         personUuid={x.item.personUuid}
         imageUuid={x.item.imageUuid}
         imageBlurhash={x.item.imageBlurhash}
@@ -286,7 +285,6 @@ const InboxTab = () => {
       return <ChatsItemMemo
         wasRead={x.item.lastMessageRead}
         name={x.item.name}
-        personId={x.item.personId}
         personUuid={x.item.personUuid}
         imageUuid={x.item.imageUuid}
         imageBlurhash={x.item.imageBlurhash}
@@ -351,7 +349,7 @@ const InboxTabNavBar = ({
   const [isOnline, setIsOnline] = useState(lastEvent('xmpp-is-online') ?? false);
 
   useEffect(() => {
-    return listen('xmpp-is-online', setIsOnline);
+    return listen('xmpp-is-online', (data) => setIsOnline(data ?? false));
   }, []);
 
   return (

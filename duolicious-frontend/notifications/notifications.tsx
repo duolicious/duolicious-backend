@@ -1,7 +1,7 @@
 import { AppState, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { registerPushToken } from '../xmpp/xmpp';
+import { registerPushToken } from '../chat/application-layer';
 import { useEffect } from 'react';
 
 const setNofications = () => {

@@ -13,13 +13,12 @@ import { Avatar } from './avatar';
 import { useNavigation } from '@react-navigation/native';
 import { friendlyTimestamp } from '../util/util';
 import { listen } from '../events/events';
-import { setConversationArchived } from '../xmpp/xmpp';
+import { setConversationArchived } from '../chat/application-layer';
 import { VerificationBadge } from './verification-badge';
 
 const IntrosItem = ({
   wasRead,
   name,
-  personId,
   personUuid,
   imageUuid,
   imageBlurhash,
@@ -28,7 +27,6 @@ const IntrosItem = ({
 }: {
   wasRead: boolean
   name: string
-  personId: number
   personUuid: string
   imageUuid: string | null
   imageBlurhash: string | null
@@ -68,9 +66,9 @@ const IntrosItem = ({
     'Prospect Profile Screen',
     {
       screen: 'Prospect Profile',
-      params: { personId, personUuid, imageBlurhash },
+      params: { personUuid, imageBlurhash },
     }
-  ), [personId, personUuid]);
+  ), [personUuid]);
 
   // TODO: If the conversation is archived but there's no mounted component,
   // this won't trigger
@@ -157,7 +155,6 @@ const IntrosItem = ({
 const ChatsItem = ({
   wasRead,
   name,
-  personId,
   personUuid,
   imageUuid,
   imageBlurhash,
@@ -169,7 +166,6 @@ const ChatsItem = ({
 }: {
   wasRead: boolean
   name: string
-  personId: number
   personUuid: string
   imageUuid: string | null
   imageBlurhash: string | null
@@ -207,8 +203,8 @@ const ChatsItem = ({
 
   const onPress = useCallback(() => navigation.navigate(
     'Conversation Screen',
-    { personId, personUuid, name, imageUuid, imageBlurhash, isAvailableUser }
-  ), [personId, personUuid, name, imageUuid, imageBlurhash, isAvailableUser]);
+    { personUuid, name, imageUuid, imageBlurhash, isAvailableUser }
+  ), [personUuid, name, imageUuid, imageBlurhash, isAvailableUser]);
 
   return (
     <Pressable

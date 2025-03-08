@@ -1,6 +1,6 @@
 import { japi } from '../api/api';
 import { notify } from '../events/events';
-import { setConversationArchived } from '../xmpp/xmpp';
+import { setConversationArchived } from '../chat/application-layer';
 
 const setSkipped = async (
   personUuid: string,

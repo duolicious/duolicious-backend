@@ -17,7 +17,7 @@ import { faImage } from '@fortawesome/free-solid-svg-icons/faImage'
 import { faCalendar } from '@fortawesome/free-solid-svg-icons/faCalendar'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { NonNullImageCropperOutput } from '../components/image-cropper';
-import { login, logout } from '../xmpp/xmpp';
+import { login, logout } from '../chat/application-layer';
 import { LOGARITHMIC_SCALE, Scale } from "../scales/scales";
 import { VerificationBadge } from '../components/verification-badge';
 import { VerificationEvent } from '../verification/verification';

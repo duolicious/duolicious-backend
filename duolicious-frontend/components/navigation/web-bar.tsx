@@ -22,7 +22,7 @@ import {
 import {
   LabelToIcon
 } from './util';
-import { Inbox, inboxStats } from '../../xmpp/xmpp';
+import { Inbox, inboxStats } from '../../chat/application-layer';
 import { listen } from '../../events/events';
 import { WebBarFooter } from './web-bar-footer/web-bar-footer';
 

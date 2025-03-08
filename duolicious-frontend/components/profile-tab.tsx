@@ -56,7 +56,7 @@ import { ClubItem } from '../club/club';
 import { listen, notify } from '../events/events';
 import { ButtonWithCenteredText } from './button/centered-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { logout } from '../xmpp/xmpp';
+import { logout } from '../chat/application-layer';
 import { DetailedVerificationBadges } from './verification-badge';
 import {
   VerificationEvent,
