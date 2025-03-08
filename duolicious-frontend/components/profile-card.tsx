@@ -89,7 +89,6 @@ const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
 
   return (
     <ImageBackground
-      key={String(imageUuid) + ' ' + String(imageBlurhash)}
       source={uri && { uri: uri }}
       placeholder={imageBlurhash && { blurhash: imageBlurhash }}
       transition={transition}
