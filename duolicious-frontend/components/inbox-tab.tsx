@@ -10,6 +10,7 @@ import {
   memo,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -22,7 +23,7 @@ import { Inbox, Conversation, inboxStats } from '../chat/application-layer';
 import { compareArrays } from '../util/util';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { inboxOrder, inboxSection } from '../kv-storage/inbox';
-import { listen, lastEvent } from '../events/events';
+import { listen } from '../events/events';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
 import * as _ from "lodash";
 
@@ -346,10 +347,14 @@ const InboxTabNavBar = ({
   showArchive,
   onPressArchiveButton,
 }) => {
-  const [isOnline, setIsOnline] = useState(lastEvent('xmpp-is-online') ?? false);
+  const [isOnline, setIsOnline] = useState(false);
 
-  useEffect(() => {
-    return listen('xmpp-is-online', (data) => setIsOnline(data ?? false));
+  useLayoutEffect(() => {
+    return listen(
+      'xmpp-is-online',
+      (data) => setIsOnline(data ?? false),
+      true,
+    );
   }, []);
 
   return (

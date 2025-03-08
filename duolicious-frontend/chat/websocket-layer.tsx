@@ -85,7 +85,7 @@ type Send = {
     responseDetector?: undefined;
     sentinelDetector?: undefined;
     timeoutMs?: number;
-  }): Promise<void>;
+  }): Promise<'timeout' | void>;
 }
 
 const send: Send = async <T,>({
@@ -100,7 +100,7 @@ const send: Send = async <T,>({
   timeoutMs?: number
 }) => {
   if (ws?.readyState !== WebSocket.OPEN) {
-    return responseDetector ? 'timeout' : (void {});
+    return 'timeout';
   }
 
   return new Promise<T[] | T | 'timeout' | void>((resolve) => {

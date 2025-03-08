@@ -18,6 +18,7 @@ import {
   Fragment,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -45,7 +46,7 @@ import { RotateCcw, Flag, X } from "react-native-feather";
 import { setSkipped } from '../hide-and-block/hide-and-block';
 import { delay, isMobile } from '../util/util';
 import { ReportModalInitialData } from './modal/report-modal';
-import { listen, notify, lastEvent } from '../events/events';
+import { listen, notify } from '../events/events';
 import { Image, ImageBackground } from 'expo-image';
 import * as StoreReview from 'expo-store-review';
 import { askedForReviewBefore } from '../kv-storage/asked-for-review-before';
@@ -358,7 +359,7 @@ const ConversationScreenNavBar = ({
 
 const ConversationScreen = ({navigation, route}) => {
   const [isActive, setIsActive] = useState(AppState.currentState === 'active');
-  const [isOnline, setIsOnline] = useState(lastEvent('xmpp-is-online') ?? false);
+  const [isOnline, setIsOnline] = useState(false);
 
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [lastMessageStatus, setLastMessageStatus] = useState<
@@ -521,8 +522,12 @@ const ConversationScreen = ({navigation, route}) => {
     return () => subscription.remove();
   }, []);
 
-  useEffect(() => {
-    return listen('xmpp-is-online', (data) => setIsOnline(data ?? false));
+  useLayoutEffect(() => {
+    return listen(
+      'xmpp-is-online',
+      (data) => setIsOnline(data ?? false),
+      true,
+    );
   }, []);
 
   useEffect(() => {

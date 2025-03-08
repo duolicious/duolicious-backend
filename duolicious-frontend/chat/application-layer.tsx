@@ -362,6 +362,10 @@ const authenticate = async () => {
     return;
   }
 
+  if (lastEvent('xmpp-is-online')) {
+    return;
+  }
+
   const data = {
     auth: {
       "@xmlns": "urn:ietf:params:xml:ns:xmpp-sasl",
@@ -370,7 +374,14 @@ const authenticate = async () => {
     }
   };
 
-  await send({ data });
+  const response = await send({ data });
+
+  if (response === 'timeout') {
+    return;
+  }
+
+  notify('xmpp-is-online', true);
+
   await Promise.all([
     refreshInbox(),
     registerForPushNotificationsAsync(),
@@ -954,8 +965,7 @@ const registerPushToken = async (token: string | null) => {
 // Update the inbox upon receiving a message
 onReceiveMessage();
 
-listen(EV_CHAT_WS_OPEN,  authenticate);
-listen(EV_CHAT_WS_OPEN,  () => notify('xmpp-is-online', true));
+listen(EV_CHAT_WS_OPEN, authenticate);
 listen(EV_CHAT_WS_CLOSE, () => notify('xmpp-is-online', false));
 
 export {
