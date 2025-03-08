@@ -355,6 +355,9 @@ async def process_text(
     middleware: InputMiddleware,
     text: str
 ):
+    from_username = session.username
+    connection_uuid = session.connection_uuid
+
     if is_text_too_long(text):
         return await redis_publish_many(connection_uuid, [
             f'<duo_message_too_long />'
@@ -364,9 +367,6 @@ async def process_text(
 
     if parsed_xml is None:
         return
-
-    from_username = session.username
-    connection_uuid = session.connection_uuid
 
     maybe_session_response = await maybe_get_session_response(
             parsed_xml, session)
