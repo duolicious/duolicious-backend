@@ -138,6 +138,7 @@ const GifPickerModal: React.FC = () => {
             placeholder="Search Tenor"
             value={searchQuery}
             onChangeText={setSearchQuery}
+            autoFocus={true}
           />
           {loading ? (
             <ActivityIndicator
