@@ -141,7 +141,7 @@ const MonetaryDonationNagModalWeb = ({
   estimatedEndDate: Date
   visible: boolean
 }) => {
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => setIsVisible(visible), []);
 
