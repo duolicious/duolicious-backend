@@ -151,6 +151,7 @@ const EnlargeableImage = ({
         imageBlurhash={imageBlurhash}
         showGradient={false}
         style={innerStyle}
+        forceExpoImage={true}
       />
       {isVerified &&
         <VerificationBadge

@@ -5,10 +5,11 @@ import {
   View,
 } from 'react-native';
 import {
-  useEffect,
-  useCallback,
-  useState,
   memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
 } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DefaultText } from './default-text';
@@ -67,7 +68,21 @@ const ImageBackground = (props) => {
   );
 };
 
-const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
+const ImageOrSkeleton_ = ({
+  resolution,
+  imageUuid,
+  imageBlurhash,
+  forceExpoImage = false,
+  ...rest
+}: {
+  resolution: number,
+  imageUuid: string | undefined | null,
+  imageBlurhash: string | undefined | null,
+  imageExtraExts?: string[] | null,
+  showGradient?: boolean,
+  forceExpoImage?: boolean,
+  style?: any,
+}) => {
   const {
     imageExtraExts = [],
     showGradient = true,
@@ -87,8 +102,19 @@ const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
   // of a flat list.
   const transition = !imageUuid ? { duration: 0, effect: null } : 150;
 
+  // `ImageBackground` is a workaround that breaks gifs on prospect profiles in
+  // order to fix flickering while scrolling through the search tab. That
+  // workaround is to avoid using `ImageBackground` from `expo-image`
+  // (AKA `ExpoImageBackground`) `expo-image` is one of the buggiest pieces of
+  // software I've used in my life, though it comes with more features than
+  // vanilla React Native.
+  const ImageBackground_ = useMemo(
+    () => forceExpoImage ? ExpoImageBackground : ImageBackground,
+    [forceExpoImage]
+  );
+
   return (
-    <ImageBackground
+    <ImageBackground_
       source={uri && { uri: uri }}
       placeholder={imageBlurhash && { blurhash: imageBlurhash }}
       transition={transition}
@@ -126,7 +152,7 @@ const ImageOrSkeleton_ = ({resolution, imageUuid, imageBlurhash, ...rest}) => {
           />
         }
       </LinearGradient>
-    </ImageBackground>
+    </ImageBackground_>
   );
 };
 
