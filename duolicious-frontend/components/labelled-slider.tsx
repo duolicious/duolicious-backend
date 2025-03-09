@@ -49,7 +49,10 @@ const LabelledSlider = forwardRef(({label, minimumValue, maximumValue, ...rest}:
     style,
     addPlusAtMax,
     valueRewriter = (x) => x,
-    scale: {scaleValue, descaleValue} = LINEAR_SCALE,
+    scale: {
+      scaleValue = LINEAR_SCALE.scaleValue,
+      descaleValue = LINEAR_SCALE.descaleValue,
+    } = {},
   } = rest;
 
   const descaledInitialValue = descaleValue(initialValue, minimumValue, maximumValue);
