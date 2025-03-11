@@ -9,28 +9,23 @@ type Pong = {
 };
 
 const EV_CHAT_WS_CLOSE = 'chat-ws-close';
-const EV_CHAT_WS_ERROR = 'chat-ws-error';
 const EV_CHAT_WS_OPEN = 'chat-ws-open';
 const EV_CHAT_WS_RECEIVE = 'chat-ws-receive';
-const EV_CHAT_WS_SEND = 'chat-ws-send';
 const EV_CHAT_WS_SEND_CLOSE = 'chat-ws-send-close';
 
-const initialReconnectDelay = 1000;
+const reconnectDelayStep = 1000;
 const maxReconnectDelay = 30000;
+const initialReconnectDelay = 0;
 let reconnectDelay = initialReconnectDelay;
+
 const pong: Pong = {
   preferredInterval: 10000,
   preferredTimeout: 5000,
 };
+
+let lastEnteredActiveState =  new Date();
+
 let ws: WebSocket | null = null;
-
-listen<string>(EV_CHAT_WS_SEND, (data) => {
-  if (typeof data !== 'string') {
-    return;
-  }
-
-  ws?.send(data);
-});
 
 listen(EV_CHAT_WS_SEND_CLOSE, () => {
   ws?.close();
@@ -44,20 +39,26 @@ const connectChatWebSocket = (): void => {
     notify(EV_CHAT_WS_OPEN);
   };
 
-  ws.onmessage = (event: MessageEvent) =>
+  ws.onmessage = (event: MessageEvent) => {
     notify<string>(EV_CHAT_WS_RECEIVE, event.data);
+  };
 
+  // This seems to get called after the app has been backgrounded for some time.
+  // If not, the ping mechanism should still restart the connection, though more
+  // slowly.
   ws.onclose = (event: CloseEvent) => {
     notify<CloseEvent>(EV_CHAT_WS_CLOSE, event);
     ws = null;
     setTimeout(() => {
-      reconnectDelay = Math.min(reconnectDelay * 2, maxReconnectDelay);
+      reconnectDelay = Math.min(
+        2 * (reconnectDelay + reconnectDelayStep),
+        maxReconnectDelay
+      );
       connectChatWebSocket();
     }, reconnectDelay);
   };
 
-  ws.onerror = (event: Event) => {
-    notify<Event>(EV_CHAT_WS_ERROR, event);
+  ws.onerror = () => {
     ws?.close();
   };
 };
@@ -167,7 +168,7 @@ const send: Send = async <T,>({
       }, timeoutMs);
     }
 
-    notify<string>(EV_CHAT_WS_SEND, JSON.stringify(data));
+    ws?.send(JSON.stringify(data));
 
     if (!responseDetector && !sentinelDetector) {
       resolveAndCleanup();
@@ -175,7 +176,7 @@ const send: Send = async <T,>({
   });
 };
 
-const pingServer = async (timeoutMs?: number) => {
+const pingServer = async () => {
   const data = { duo_ping: null };
 
   const responseDetector = (doc: any): Pong | null => {
@@ -193,16 +194,30 @@ const pingServer = async (timeoutMs?: number) => {
     }
   };
 
+  const requestStartDate = new Date();
+
   const response = await send({
     data,
     responseDetector,
-    timeoutMs: timeoutMs ?? pong.preferredTimeout,
+    timeoutMs: pong.preferredInterval,
   });
 
-  if (response !== 'timeout') {
-    Object.assign(pong, response);
-  } else if (ws?.readyState === WebSocket.OPEN) {
+  // After the app becomes active from being backgrounded, there's a race
+  // between the update of `lastEnteredActiveState` and this comparison logic.
+  // Doing the comparison after the `response` is received is a hack so that we
+  // use the recently updated value of `lastEnteredActiveState` rather than the
+  // stale value, before the app was backgrounded.
+  const msSinceEnteredActiveState = (
+    requestStartDate.getTime() - lastEnteredActiveState.getTime());
+
+  if (msSinceEnteredActiveState < pong.preferredTimeout) {
+    return;
+  }
+
+  if (response === 'timeout') {
     ws?.close();
+  } else {
+    Object.assign(pong, response);
   }
 };
 
@@ -215,7 +230,7 @@ const pingServerForever = async () => {
 
 const onChangeAppState = (state: AppStateStatus) => {
   if (state === 'active') {
-    pingServer(3000);
+    lastEnteredActiveState = new Date();
   }
 };
 
@@ -229,10 +244,8 @@ pingServerForever();
 
 export {
   EV_CHAT_WS_CLOSE,
-  EV_CHAT_WS_ERROR,
   EV_CHAT_WS_OPEN,
   EV_CHAT_WS_RECEIVE,
-  EV_CHAT_WS_SEND,
   EV_CHAT_WS_SEND_CLOSE,
   send,
 };
