@@ -374,9 +374,9 @@ const authenticate = async () => {
     }
   };
 
-  const response = await send({ data });
+  const status = await send({ data });
 
-  if (response === 'timeout') {
+  if (status === 'timeout') {
     return;
   }
 
@@ -414,16 +414,28 @@ const sendMessage = async (
   recipientPersonUuid: string,
   messageBody: string,
   numTries: number = 3,
-): Promise<MessageStatus> => {
+): Promise<
+  | { message: Message, status: 'sent' }
+  | { message: null, status: Exclude<MessageStatus, 'sent'>}
+> => {
   if (numTries <= 0) {
-    return 'timeout';
+    return { message: null, status: 'timeout' };
   }
 
   if (!credentials) {
-    return 'blocked';
+    return { message: null, status: 'blocked' };
   }
 
   const id = getRandomString(40);
+
+  const message: Message = {
+    text: messageBody,
+    from: personUuidToJid(credentials.username),
+    to: personUuidToJid(recipientPersonUuid),
+    id,
+    timestamp: new Date(),
+    fromCurrentUser: true,
+  };
 
   const fromJid = personUuidToJid(credentials.username);
 
@@ -553,19 +565,20 @@ const sendMessage = async (
     return null;
   };
 
-  const response = await send<MessageStatus>({
+  const status = await send<MessageStatus>({
     data,
     responseDetector,
     timeoutMs: messageTimeout,
   });
 
-  if (response === 'sent') {
+  if (status === 'sent') {
     setInboxSent(recipientPersonUuid, messageBody);
     notify(`message-to-${recipientPersonUuid}`);
+    return { message, status };
   }
 
-  if (response !== 'timeout') {
-    return response;
+  if (status !== 'timeout') {
+    return { message: null, status };
   }
 
   // Deal with timeouts. To stop ourselves from sending the same message
@@ -579,9 +592,7 @@ const sendMessage = async (
   ) {
     return sendMessage(recipientPersonUuid, messageBody, numTries - 1);
   } else {
-    setInboxSent(recipientPersonUuid, messageBody);
-    notify(`message-to-${recipientPersonUuid}`);
-    return 'sent';
+    return { message: null, status: 'timeout' };
   }
 };
 

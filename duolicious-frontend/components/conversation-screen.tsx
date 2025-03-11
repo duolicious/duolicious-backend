@@ -39,7 +39,6 @@ import {
 import {
   IMAGES_URL,
 } from '../env/env';
-import { getRandomString } from '../random/string';
 import { api } from '../api/api';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { RotateCcw, Flag, X } from "react-native-feather";
@@ -383,37 +382,28 @@ const ConversationScreen = ({navigation, route}) => {
 
   const listRef = useRef<ScrollView>(null);
 
-  const onPressSend = useCallback(async (text: string): Promise<MessageStatus> => {
-    const message: Message = {
-      text: text,
-      from: '',
-      to: '',
-      id: getRandomString(40),
-      timestamp: new Date(),
-      fromCurrentUser: true,
-    };
-
+  const onPressSend = useCallback(async (messageBody: string): Promise<MessageStatus> => {
     setLastMessageStatus(null);
 
-    const messageStatus = await sendMessage(personUuid, message.text);
+    const response = await sendMessage(personUuid, messageBody);
 
-    if (messageStatus === 'sent') {
+    if (response.status === 'sent') {
       hasScrolled.current = false;
-      setMessages(messages => [...(messages ?? []), message]);
+      setMessages(messages => [...(messages ?? []), response.message]);
     }
 
     if (
-      messageStatus === 'sent' &&
-      text.toLowerCase().includes('hahaha') &&
+      response.status === 'sent' &&
+      messageBody.toLowerCase().includes('hahaha') &&
       messages &&
       messages.length > 40
     ) {
       maybeRequestReview(1000);
     }
 
-    setLastMessageStatus(messageStatus);
+    setLastMessageStatus(response.status);
 
-    return messageStatus;
+    return response.status;
   }, [personId, messages]);
 
   const maybeLoadNextPage = useCallback(async () => {
