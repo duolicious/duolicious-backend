@@ -41,7 +41,6 @@ import { ColorPickerModal } from './components/modal/color-picker-modal/color-pi
 import { DonationNagModal } from './components/modal/donation-nag-modal';
 import { GifPickerModal } from './components/modal/gif-picker-modal';
 import { ReportModal } from './components/modal/report-modal';
-import { StreamErrorModal } from './components/modal/stream-error-modal';
 import { ImageCropper } from './components/image-cropper';
 import {
   setNofications,
@@ -109,7 +108,7 @@ const WebSplashScreen = ({loading}) => {
   }, [loading]);
 
   if (Platform.OS !== 'web' || isFaded) {
-    return <></>;
+    return null;
   } else {
     return (
       <Animated.View
@@ -526,13 +525,16 @@ const App = () => {
             </Stack.Navigator>
           </NavigationContainer>
         }
-        <DonationNagModal/>
+        <DonationNagModal
+          name={signedInUser?.name}
+          estimatedEndDate={signedInUser?.estimatedEndDate}
+          visible={signedInUser?.doShowDonationNag}
+        />
         <ReportModal/>
         <ImageCropper/>
         <ColorPickerModal/>
         <GifPickerModal/>
         <Toast/>
-        <StreamErrorModal/>
       </GestureHandlerRootView>
       <WebSplashScreen loading={isLoading}/>
     </SafeAreaProvider>

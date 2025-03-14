@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { DefaultText } from '../default-text';
 import { ButtonWithCenteredText } from '../button/centered-text';
-import { signedInUser, setSignedInUser } from '../../App';
+import { setSignedInUser } from '../../App';
 import { api } from '../../api/api';
 import * as _ from "lodash";
 import { DefaultModal } from './deafult-modal';
@@ -94,10 +94,15 @@ const gagLocations = _.shuffle([
   'you want I want, what I really really want',
 ]);
 
-const DonationNagModal = () => {
-  const name = signedInUser?.name;
-  const estimatedEndDate = signedInUser?.estimatedEndDate;
-
+const DonationNagModal = ({
+  name,
+  estimatedEndDate,
+  visible,
+}: {
+  name: string | null | undefined
+  estimatedEndDate: Date | undefined
+  visible: boolean | undefined
+}) => {
   if (!name) return null;
   if (!estimatedEndDate) return null;
 
@@ -105,7 +110,7 @@ const DonationNagModal = () => {
     return <DonationNagModalWeb
       name={name}
       estimatedEndDate={estimatedEndDate}
-      visible={signedInUser?.doShowDonationNag ?? false}
+      visible={visible ?? false}
     />;
   } else {
     return <DonationNagModalMobile />;
@@ -143,11 +148,9 @@ const MonetaryDonationNagModalWeb = ({
 }) => {
   const [isVisible, setIsVisible] = useState(false);
 
-  useEffect(() => setIsVisible(visible), []);
+  useEffect(() => setIsVisible(visible), [visible]);
 
   const onPressDismiss = () => {
-    setIsVisible(false);
-
     setSignedInUser((value) =>
       value ? { ...value, doShowDonationNag: false } : value
     );
