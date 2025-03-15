@@ -266,7 +266,7 @@ const ProfileCard = ({
         style={{
           width: '100%',
           height: '100%',
-          borderBottomRightRadius: isOnline ? 20 : undefined,
+          borderBottomRightRadius: isOnline ? 24 : undefined,
           overflow: 'hidden',
         }}
       >
@@ -327,8 +327,8 @@ const ProfileCard = ({
             backgroundColor: 'white',
             justifyContent: 'center',
             alignItems: 'center',
-            width: 20,
-            height: 20,
+            width: 24,
+            height: 24,
           }}
         />
         <View
@@ -338,8 +338,8 @@ const ProfileCard = ({
             right: 0,
             backgroundColor: ONLINE_COLOR,
             borderRadius: 999,
-            width: 12,
-            height: 12,
+            width: 16,
+            height: 16,
           }}
         />
       </>}
