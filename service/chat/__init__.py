@@ -33,6 +33,11 @@ from service.chat.session import (
     Session,
     maybe_get_session_response,
 )
+from service.chat.online import (
+    redis_publish_online,
+    maybe_redis_subscribe_online,
+    maybe_redis_unsubscribe_online,
+)
 from service.chat.ratelimit import (
     maybe_fetch_rate_limit,
 )
@@ -53,7 +58,7 @@ app = FastAPI()
 # Global publisher connection, created once per worker.
 REDIS_HOST: str = os.environ.get("DUO_REDIS_HOST", "redis")
 REDIS_PORT: int = int(os.environ.get("DUO_REDIS_PORT", 6379))
-REDIS_PUB: Optional[redis.Redis] = redis.Redis(
+REDIS_WORKER_CLIENT: Optional[redis.Redis] = redis.Redis(
         host=REDIS_HOST,
         port=REDIS_PORT,
         decode_responses=True)
@@ -162,13 +167,39 @@ NON_ALPHANUMERIC_RE = regex.compile(r'[^\p{L}\p{N}]')
 REPEATED_CHARACTERS_RE = regex.compile(r'(.)\1{1,}')
 
 
-async def redis_publish(username_or_connection_uuid: str, message: str):
-    await REDIS_PUB.publish(username_or_connection_uuid, message)
+async def redis_publish(channel: str, message: str):
+    await REDIS_WORKER_CLIENT.publish(channel, message)
 
 
-async def redis_publish_many(username_or_connection_uuid: str, messages: Iterable[str]):
+async def redis_publish_many(channel: str, messages: Iterable[str]):
     for message in messages:
-        await redis_publish(username_or_connection_uuid, message)
+        await redis_publish(channel, message)
+
+
+async def redis_forward_to_websocket(
+    pubsub: redis.client.PubSub,
+    middleware: OutputMiddleware,
+    websocket: WebSocket
+) -> None:
+    """
+    Listens on the Redis subscription channel and forwards any messages
+    to the connected websocket client.
+    """
+    try:
+        async for message in pubsub.listen():
+            if message is None or message.get("type") != "message":
+                continue
+
+            try:
+                data = middleware(message['data'])
+            except:
+                continue
+
+            await websocket.send_text(data)
+    except asyncio.CancelledError:
+        raise
+    except:
+        print(traceback.format_exc())
 
 
 async def send_notification(
@@ -353,6 +384,7 @@ def get_middleware(subprotocol: str) -> Middleware:
 async def process_text(
     session: Session,
     middleware: InputMiddleware,
+    pubsub: redis.client.PubSub,
     text: str
 ):
     from_username = session.username
@@ -397,6 +429,19 @@ async def process_text(
 
     if maybe_mark_displayed(parsed_xml, from_username):
         return
+
+    maybe_subscription = await maybe_redis_subscribe_online(
+            parsed_xml=parsed_xml,
+            redis_client=REDIS_WORKER_CLIENT,
+            pubsub=pubsub)
+    if maybe_subscription:
+        return await redis_publish_many(connection_uuid, maybe_subscription)
+
+    maybe_unsubscription = await maybe_redis_unsubscribe_online(
+            parsed_xml=parsed_xml,
+            pubsub=pubsub)
+    if maybe_unsubscription:
+        return await redis_publish_many(connection_uuid, maybe_unsubscription)
 
     is_message, stanza_id, to_username, maybe_message_body = get_message_attrs(parsed_xml)
 
@@ -506,32 +551,6 @@ async def process_text(
     ])
 
 
-async def forward_redis_to_websocket(
-    pubsub: redis.client.PubSub,
-    middleware: OutputMiddleware,
-    websocket: WebSocket
-) -> None:
-    """
-    Listens on the Redis subscription channel and forwards any messages
-    to the connected websocket client.
-    """
-    try:
-        async for message in pubsub.listen():
-            if message is None or message.get("type") != "message":
-                continue
-
-            try:
-                data = middleware(message['data'])
-            except:
-                continue
-
-            await websocket.send_text(data)
-    except asyncio.CancelledError:
-        raise
-    except:
-        print(traceback.format_exc())
-
-
 @app.websocket("/")
 async def process_websocket_messages(websocket: WebSocket) -> None:
     subprotocol_header = websocket.headers.get('sec-websocket-protocol')
@@ -547,12 +566,12 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
 
     session = Session()
 
-    redis_sub: redis.Redis = redis.Redis(
+    redis_websocket_client: redis.Redis = redis.Redis(
             host=REDIS_HOST,
             port=REDIS_PORT,
             decode_responses=True)
 
-    pubsub = redis_sub.pubsub()
+    pubsub = redis_websocket_client.pubsub()
 
     await pubsub.subscribe(session.connection_uuid)
 
@@ -561,8 +580,8 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
     # https://github.com/python/cpython/issues/91887
     update_last_task = None
 
-    forward_redis_to_websocket_task = asyncio.create_task(
-            forward_redis_to_websocket(pubsub, output_middleware, websocket))
+    redis_forward_to_websocket_task = asyncio.create_task(
+            redis_forward_to_websocket(pubsub, output_middleware, websocket))
 
     is_subscribed_by_username = False
 
@@ -570,11 +589,21 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
         while True:
             text = await websocket.receive_text()
 
-            await asyncio.shield(process_text(session, input_middleware, text))
+            await asyncio.shield(
+                    process_text(
+                        session=session,
+                        middleware=input_middleware,
+                        pubsub=pubsub,
+                        text=text))
 
             if not update_last_task and session.username:
                 update_last_task = asyncio.create_task(
                         update_last_forever(session))
+
+                await redis_publish_online(
+                        redis_client=REDIS_WORKER_CLIENT,
+                        username=session.username,
+                        online=True)
 
             if not is_subscribed_by_username and session.username:
                 await pubsub.subscribe(session.username)
@@ -598,18 +627,21 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
                 pass
 
 
-        if forward_redis_to_websocket_task:
-            forward_redis_to_websocket_task.cancel()
+        if redis_forward_to_websocket_task:
+            redis_forward_to_websocket_task.cancel()
             try:
-                await forward_redis_to_websocket_task
+                await redis_forward_to_websocket_task
             except asyncio.CancelledError:
                 pass
 
-        if session.connection_uuid:
-            await pubsub.unsubscribe(session.connection_uuid)
-
         if session.username:
-            await pubsub.unsubscribe(session.username)
+            try:
+                await redis_publish_online(
+                        redis_client=REDIS_WORKER_CLIENT,
+                        username=session.username,
+                        online=False)
+            except asyncio.CancelledError:
+                pass
 
         await pubsub.close()
-        await redis_sub.close()
+        await redis_websocket_client.close()
