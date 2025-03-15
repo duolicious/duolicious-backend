@@ -24,6 +24,13 @@ const getCurrentScreen = (navigationState: any): string | null => {
   return currentRoute.name || null;
 };
 
+const makeLinkProps = (link: string) => {
+  return {
+    href: link
+  };
+};
+
 export {
   getCurrentScreen,
+  makeLinkProps
 };
