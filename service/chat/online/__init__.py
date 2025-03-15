@@ -1,0 +1,97 @@
+# TODO: Catch exceptions?
+from lxml import etree
+import redis.asyncio as redis
+import traceback
+
+
+FMT_KEY = 'online-{username}'
+
+FMT_SUB_OK  = '<duo_subscribe_successful uuid="{username}" />'
+FMT_SUB_BAD = '<duo_subscribe_unsuccessful uuid="{username}" />'
+
+FMT_UNSUB_OK  = '<duo_unsubscribe_successful uuid="{username}" />'
+FMT_UNSUB_BAD = '<duo_unsubscribe_unsuccessful uuid="{username}" />'
+
+
+async def _redis_subscribe_online(
+    redis_client: redis.Redis,
+    pubsub: redis.client.PubSub,
+    username: str,
+):
+    key = FMT_KEY.format(username=username)
+    val = await redis_client.get(key)
+
+    await pubsub.subscribe(key)
+    if val:
+        await redis_client.publish(key, val)
+
+
+async def _redis_unsubscribe_online(
+    pubsub: redis.client.PubSub,
+    username: str,
+):
+    key = FMT_KEY.format(username=username)
+    await pubsub.unsubscribe(key)
+
+async def redis_publish_online(
+    redis_client: redis.Redis,
+    username: str,
+    online: bool
+):
+    status = 'online' if online else 'offline'
+
+    key = FMT_KEY.format(username=username)
+    val = f'<duo_online_event uuid="{username}" status="{status}" />'
+
+    async with redis_client.pipeline(transaction=True) as pipe:
+        pipe.publish(key, val)
+        pipe.set(key, val, ex=604800)  # Expires in one week
+        await pipe.execute()
+
+
+async def maybe_redis_subscribe_online(
+    parsed_xml: etree.Element,
+    redis_client: redis.Redis,
+    pubsub: redis.client.PubSub,
+) -> list[str]:
+    if parsed_xml.tag != 'duo_subscribe_online':
+        return []
+
+    username = parsed_xml.attrib.get('uuid')
+
+    if not username:
+        return []
+
+    try:
+        await _redis_subscribe_online(
+                redis_client=redis_client,
+                pubsub=pubsub,
+                username=username)
+
+        return [FMT_SUB_OK.format(username=username)]
+    except:
+        print(traceback.format_exc())
+        return [FMT_SUB_BAD.format(username=username)]
+
+
+async def maybe_redis_unsubscribe_online(
+    parsed_xml: etree.Element,
+    pubsub: redis.client.PubSub,
+) -> list[str]:
+    if parsed_xml.tag != 'duo_unsubscribe_online':
+        return []
+
+    username = parsed_xml.attrib.get('uuid')
+
+    if not username:
+        return []
+
+    try:
+        await _redis_unsubscribe_online(
+                pubsub=pubsub,
+                username=username)
+
+        return [FMT_UNSUB_OK.format(username=username)]
+    except:
+        print(traceback.format_exc())
+        return [FMT_UNSUB_BAD.format(username=username)]
