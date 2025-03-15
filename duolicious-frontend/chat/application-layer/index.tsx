@@ -1,8 +1,8 @@
-import { getRandomString } from '../random/string';
-import { japi } from '../api/api';
-import { deleteFromArray, assert } from '../util/util';
-import { listen, notify, lastEvent } from '../events/events';
-import { registerForPushNotificationsAsync } from '../notifications/notifications';
+import { getRandomString } from '../../random/string';
+import { japi } from '../../api/api';
+import { deleteFromArray, assert } from '../../util/util';
+import { listen, notify, lastEvent } from '../../events/events';
+import { registerForPushNotificationsAsync } from '../../notifications/notifications';
 import * as _ from 'lodash';
 import {
   EV_CHAT_WS_CLOSE,
@@ -10,7 +10,7 @@ import {
   EV_CHAT_WS_RECEIVE,
   EV_CHAT_WS_SEND_CLOSE,
   send,
-} from './websocket-layer';
+} from '../websocket-layer';
 
 const messageTimeout = 10000;
 const fetchConversationTimeout = 15000;
@@ -661,10 +661,8 @@ const onReceiveMessage = (
   otherPersonUuid?: string,
   doMarkDisplayed?: boolean,
 ): (() => void) | undefined => {
-  const _onReceiveMessage = async (stanza: string) => {
+  const _onReceiveMessage = async (doc: any) => {
     try {
-      const doc = JSON.parse(stanza);
-
       const {
         message: {
           '@type': receivedType,
@@ -713,7 +711,7 @@ const onReceiveMessage = (
 
   };
 
-  return listen<string>(EV_CHAT_WS_RECEIVE, _onReceiveMessage);
+  return listen(EV_CHAT_WS_RECEIVE, _onReceiveMessage);
 };
 
 const fetchConversation = async (

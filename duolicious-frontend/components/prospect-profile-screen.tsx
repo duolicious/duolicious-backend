@@ -65,6 +65,7 @@ import { Audio, AVPlaybackStatus } from 'expo-av';
 import {
   AUDIO_URL,
 } from '../env/env';
+import { useOnline } from '../chat/application-layer/hooks/online';
 
 const Stack = createNativeStackNavigator();
 
@@ -1148,6 +1149,8 @@ const Body = ({
   personUuid: string,
   data: UserData | undefined,
 }) => {
+  const isOnline = useOnline(personUuid);
+
   const imageUuid1 = data?.photo_uuids && data?.photo_uuids[1];
   const imageUuid2 = data?.photo_uuids && data?.photo_uuids[2];
   const imageUuid3 = data?.photo_uuids && data?.photo_uuids[3];
@@ -1414,7 +1417,7 @@ const Body = ({
                 {
                   data === undefined ?
                   'Loading...' :
-                  data.seconds_since_last_online < 300 ?
+                  isOnline ?
                   'Now' :
                   `${friendlyTimeAgo(data.seconds_since_last_online)} ago`
                 }

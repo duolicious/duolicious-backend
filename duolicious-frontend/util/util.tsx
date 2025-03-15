@@ -140,10 +140,6 @@ const parseUrl = async () => {
 };
 
 const friendlyTimeAgo = (secondsAgo: number): string => {
-  if (secondsAgo < 300) { // 5 minutes
-    return "Now";
-  }
-
   const lastOnlineDate = subSeconds(new Date(), secondsAgo);
 
   return _.capitalize(formatDistanceToNow(lastOnlineDate));

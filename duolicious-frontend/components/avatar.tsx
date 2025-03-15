@@ -16,6 +16,8 @@ import { X } from "react-native-feather";
 import { ImageBackground } from "expo-image";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
+import { ONLINE_COLOR } from '../constants/constants';
+import { useOnline } from '../chat/application-layer/hooks/online';
 
 const Avatar = ({percentage, ...props}) => {
   const {
@@ -27,6 +29,8 @@ const Avatar = ({percentage, ...props}) => {
     isSkipped = false,
     verificationRequired = null,
   } = props;
+
+  const isOnline = useOnline(personUuid);
 
   const Element = navigation ? Pressable : View;
 
@@ -89,10 +93,38 @@ const Avatar = ({percentage, ...props}) => {
           }
         </ImageBackground>
       }
+      {isOnline && <>
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 6,
+            right: 6,
+
+            borderRadius: 999,
+
+            backgroundColor: 'white',
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: 20,
+            height: 20,
+          }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 10,
+            right: 10,
+            backgroundColor: ONLINE_COLOR,
+            borderRadius: 999,
+            width: 12,
+            height: 12,
+          }}
+        />
+      </>}
       <View
         style={{
           position: 'absolute',
-          right: 0,
+          left: 0,
           bottom: 0,
           height: 30,
           width: 30,

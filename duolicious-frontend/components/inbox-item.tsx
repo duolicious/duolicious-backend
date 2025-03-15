@@ -103,6 +103,7 @@ const IntrosItem = ({
           percentage={matchPercentage}
           imageUuid={imageUuid}
           imageBlurhash={imageBlurhash}
+          personUuid={personUuid}
         />
         <View
           style={{
@@ -229,6 +230,7 @@ const ChatsItem = ({
           percentage={matchPercentage}
           imageUuid={imageUuid}
           imageBlurhash={imageBlurhash}
+          personUuid={personUuid}
         />
         <View
           style={{

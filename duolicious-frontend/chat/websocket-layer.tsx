@@ -40,7 +40,7 @@ const connectChatWebSocket = (): void => {
   };
 
   ws.onmessage = (event: MessageEvent) => {
-    notify<string>(EV_CHAT_WS_RECEIVE, event.data);
+    notify<any>(EV_CHAT_WS_RECEIVE, jsonParseSilently(event.data));
   };
 
   // This seems to get called after the app has been backgrounded for some time.
@@ -118,12 +118,10 @@ const send: Send = async <T,>({
       resolve(value);
     };
 
-    const responseHandler = (input: string): void => {
+    const responseHandler = (parsed: any): void => {
       if (!responseDetector) {
         return;
       }
-
-      const parsed = jsonParseSilently(input);
 
       const maybeResponse = responseDetector(parsed);
 
@@ -136,12 +134,10 @@ const send: Send = async <T,>({
       }
     };
 
-    const sentinelHandler = (input: string): void => {
+    const sentinelHandler = (parsed: any): void => {
       if (!sentinelDetector) {
         return;
       }
-
-      const parsed = jsonParseSilently(input);
 
       const maybeSentinel = sentinelDetector(parsed);
 
@@ -150,7 +146,7 @@ const send: Send = async <T,>({
       };
     };
 
-    const removeListener = listen<string>(
+    const removeListener = listen(
       EV_CHAT_WS_RECEIVE,
       (data) => {
         if (data === undefined) {

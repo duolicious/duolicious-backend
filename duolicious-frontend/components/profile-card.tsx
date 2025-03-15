@@ -26,6 +26,8 @@ import { ImageBackground as ExpoImageBackground } from 'expo-image';
 import { VerificationBadge } from './verification-badge';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
+import { ONLINE_COLOR } from '../constants/constants';
+import { useOnline } from '../chat/application-layer/hooks/online';
 
 // This component wouldn't need to exist if expo-image (and expo itself (and the
 // JS eco system generally)) wasn't buggy trash. This fixes an issue on
@@ -179,6 +181,8 @@ const ProfileCard = ({
 
   const [isSkipped, setIsSkipped] = useState(false);
 
+  const isOnline = useOnline(personUuid);
+
   const [
     personMessagedProspectState,
     setPersonMessagedProspectState,
@@ -262,6 +266,7 @@ const ProfileCard = ({
         style={{
           width: '100%',
           height: '100%',
+          borderBottomRightRadius: isOnline ? 20 : undefined,
           overflow: 'hidden',
         }}
       >
@@ -276,34 +281,68 @@ const ProfileCard = ({
           matchPercentage={matchPercentage}
           verified={verified}
         />
-        {prospectMessagedPersonState &&
-          <Ionicons
+        {!isOnline && prospectMessagedPersonState &&
+          <View
             style={{
-              fontSize: 18,
-              color: 'white',
               position: 'absolute',
-              bottom: 0,
-              right: 18,
-              padding: 5,
+              bottom: 6,
+              right: 26,
+              width: 18,
+              height: 18,
             }}
-            name="chatbubble"
-          />
+          >
+            <Ionicons
+              style={{ fontSize: 18, color: 'white' }}
+              name="chatbubble"
+            />
+          </View>
         }
-        {personMessagedProspectState &&
-          <Ionicons
+        {!isOnline && personMessagedProspectState &&
+          <View
             style={{
               transform: [ { scaleX: -1 } ],
-              fontSize: 18,
-              color: 'white',
               position: 'absolute',
-              bottom: 0,
-              right: 0,
-              padding: 5,
+              bottom: 6,
+              right: 6,
+              width: 18,
+              height: 18,
             }}
-            name="chatbubble"
-          />
+          >
+            <Ionicons
+              style={{ fontSize: 18, color: 'white' }}
+              name="chatbubble"
+            />
+          </View>
         }
       </View>
+      {isOnline && <>
+        <View
+          style={{
+            position: 'absolute',
+            bottom: -4,
+            right: -4,
+
+            borderRadius: 999,
+
+            backgroundColor: 'white',
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: 20,
+            height: 20,
+          }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            right: 0,
+            backgroundColor: ONLINE_COLOR,
+            borderRadius: 999,
+            width: 12,
+            height: 12,
+          }}
+        />
+      </>}
       {isSkipped &&
         <View
           style={{

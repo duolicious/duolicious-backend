@@ -46,7 +46,7 @@ import { setSkipped } from '../hide-and-block/hide-and-block';
 import { delay, isMobile } from '../util/util';
 import { ReportModalInitialData } from './modal/report-modal';
 import { listen, notify } from '../events/events';
-import { Image, ImageBackground } from 'expo-image';
+import { ImageBackground } from 'expo-image';
 import * as StoreReview from 'expo-store-review';
 import { askedForReviewBefore } from '../kv-storage/asked-for-review-before';
 import { DefaultLongTextInput } from './default-long-text-input';
@@ -60,6 +60,8 @@ import Reanimated, {
 import {
   GifPickedEvent,
 } from './modal/gif-picker-modal';
+import { ONLINE_COLOR } from '../constants/constants';
+import { useOnline } from '../chat/application-layer/hooks/online';
 
 const propAt = (messages: Message[] | null | undefined, index: number, prop: string): string => {
   if (!messages) return '';
@@ -289,6 +291,8 @@ const ConversationScreenNavBar = ({
     setShowMenu(x => !x);
   }, []);
 
+  const isOtherPersonOnline = useOnline(personUuid);
+
   return (
     <TopNavBar>
       <TopNavBarButton
@@ -308,17 +312,66 @@ const ConversationScreenNavBar = ({
           gap: 10,
         }}
       >
-        <Image
-          key={imageUuid}
-          source={imageUuid && {uri: `${IMAGES_URL}/450-${imageUuid}.jpg`}}
-          placeholder={imageBlurhash && { blurhash: imageBlurhash }}
-          transition={150}
+        <View
           style={{
             width: 30,
             height: 30,
-            borderRadius: 9999,
           }}
-        />
+        >
+          <ImageBackground
+            source={imageUuid && {
+              uri: `${IMAGES_URL}/450-${imageUuid}.jpg`,
+              height: 30,
+              width: 30,
+            }}
+            placeholder={imageBlurhash && { blurhash: imageBlurhash }}
+            transition={150}
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 9999,
+              backgroundColor: imageUuid ? 'white' : '#f1e5ff',
+              justifyContent: 'center',
+              alignItems: 'center',
+              overflow: 'hidden',
+            }}
+          >
+            {!imageUuid &&
+              <Ionicons
+                style={{fontSize: 14, color: 'rgba(119, 0, 255, 0.2)'}}
+                name={'person'}
+              />
+            }
+          </ImageBackground>
+          {isOtherPersonOnline && <>
+            <View
+              style={{
+                position: 'absolute',
+                bottom: -4,
+                right: -4,
+
+                borderRadius: 999,
+
+                backgroundColor: 'white',
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: 16,
+                height: 16,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                bottom: -1,
+                right: -1,
+                backgroundColor: ONLINE_COLOR,
+                borderRadius: 999,
+                width: 10,
+                height: 10,
+              }}
+            />
+          </>}
+        </View>
         <DefaultText
           style={{
             fontWeight: '700',
