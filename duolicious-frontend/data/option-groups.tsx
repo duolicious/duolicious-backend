@@ -1950,14 +1950,16 @@ const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
                 left: cropperOutput.left,
               },
             },
-            2 * 60 * 1000, // 2 minutes
-            undefined,
-            true,
+            {
+              timeout: 2 * 60 * 1000, // 2 minutes
+              showValidationToast: true,
+            }
           );
 
           return response.ok;
         },
-        submitAll: async () => api('post', '/verify', undefined, undefined, 0),
+        submitAll: async () => api(
+          'post', '/verify', undefined, { maxRetries: 0 }),
         delete: async () => true,
         showProtip: false,
         validateAtLeastOne: true,

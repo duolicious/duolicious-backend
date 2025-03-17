@@ -17,6 +17,13 @@ type ApiResponse = {
   validationErrors: string[] | null
 };
 
+type Config = {
+  timeout?: number,
+  maxRetries?: number,
+  showValidationToast?: boolean,
+  retryOnServerError?: boolean,
+};
+
 const parseErrors = (errors: any): string[] => {
   try {
     return errors.map(
@@ -31,10 +38,15 @@ const api = async (
   method: string,
   endpoint: string,
   init?: RequestInit,
-  timeout?: number,
-  maxRetries?: number,
-  showValidationToast?: boolean,
+  config: Config = {},
 ): Promise<ApiResponse> => {
+  const {
+    timeout,
+    maxRetries,
+    showValidationToast,
+    retryOnServerError,
+  } = config;
+
   let response, json;
   let numRetries = 0;
 
@@ -71,7 +83,15 @@ const api = async (
 
     try {
       response = await fetch(url, init_);
-      break;
+      if (
+        retryOnServerError &&
+        response.status >= 500 &&
+        response.status <  600
+      ) {
+        throw new Error();
+      } else {
+        break;
+      }
     } catch (error) {
       const timeoutSeconds =
         Math.round(4 * Math.min(32, Math.pow(1.7, numRetries++))) +
@@ -113,9 +133,7 @@ const japi = async (
   method: string,
   endpoint: string,
   body?: any,
-  timeout?: number,
-  maxRetries?: number,
-  showValidationToast?: boolean,
+  config?: Config,
 ): Promise<ApiResponse> => {
   const init = body === undefined ? {} : {
     headers: {
@@ -129,9 +147,7 @@ const japi = async (
     method,
     endpoint,
     init,
-    timeout,
-    maxRetries,
-    showValidationToast
+    config,
   );
 };
 

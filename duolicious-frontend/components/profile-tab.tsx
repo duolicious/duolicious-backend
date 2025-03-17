@@ -126,9 +126,10 @@ const Images_ = ({data}) => {
                 left: cropperOutput.left,
               },
             },
-            2 * 60 * 1000, // 2 minutes
-            undefined,
-            true,
+            {
+              timeout: 2 * 60 * 1000, // 2 minutes
+              showValidationToast: true,
+            }
           );
 
           const response = await photoQueue.addTask(requester);

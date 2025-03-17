@@ -243,9 +243,14 @@ const App = () => {
     // Log into XMPP
     login(existingPersonUuid, existingSessionToken);
 
-    const response = await japi('post', '/check-session-token');
+    const response = await japi(
+      'post',
+      '/check-session-token',
+      undefined,
+      { retryOnServerError: true }
+    );
 
-    if (response.clientError || !response?.json?.onboarded) {
+    if (response.clientError || response?.json?.onboarded === false) {
       await sessionPersonUuid(null);
       await sessionToken(null);
       setSignedInUser(undefined);

@@ -375,7 +375,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
         email: email_,
         ...(clubName_ && { pending_club_name: clubName_ }),
       },
-      9999 * 1000
+      { timeout: 9999 * 1000 },
     );
 
     setIsLoading(false);
