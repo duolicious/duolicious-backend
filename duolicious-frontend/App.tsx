@@ -230,7 +230,7 @@ const App = () => {
       logout();
 
       if (!parsedUrl) {
-        navigationContainerRef.reset({ routes: [ { name: 'Welcome' } ]});
+        setInitialState({ routes: [ { name: 'Welcome' } ]});
       }
 
       return;
@@ -257,7 +257,7 @@ const App = () => {
       logout();
 
       if (!parsedUrl) {
-        navigationContainerRef.reset({ routes: [ { name: 'Welcome' } ]});
+        setInitialState({ routes: [ { name: 'Welcome' } ]});
       }
 
       return;
@@ -333,6 +333,8 @@ const App = () => {
       });
     } else if (existingNavigationState) {
       setInitialState(existingNavigationState);
+    } else {
+      setInitialState({ routes: [ { name: "Home" } ] });
     }
   }, []);
 
@@ -477,7 +479,7 @@ const App = () => {
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView>
-        {!isLoading &&
+        {!isLoading && initialState !== undefined &&
           <NavigationContainer
             ref={navigationContainerRef}
             initialState={
