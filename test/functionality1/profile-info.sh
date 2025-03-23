@@ -16,6 +16,7 @@ q "delete from undeleted_photo"
 q "update question set count_yes = 0, count_no = 0"
 
 img1=$(rand_image)
+img2=$(base64 -w 0 < ../fixtures/img.heic)
 snd1=$(rand_sound)
 snd2=$(const_sound)
 
@@ -122,11 +123,27 @@ test_photo () {
             }
         }"
 
-  wait_for_creation_by_uuid "$(q "select uuid from photo limit 1")"
+  jc PATCH /profile-info \
+    -d "{
+            \"base64_file\": {
+                \"position\": 2,
+                \"base64\": \"${img2}\",
+                \"top\": 0,
+                \"left\": 0
+            }
+        }"
+
+  wait_for_creation_by_uuid "$(q "select uuid from photo where position = 1")"
+
+  wait_for_creation_by_uuid "$(q "select uuid from photo where position = 2")"
+
+  [[ "$(q "select COUNT(*) from photo")" -eq 2 ]]
+
+  jc DELETE /profile-info -d '{ "files": [1] }'
 
   [[ "$(q "select COUNT(*) from photo")" -eq 1 ]]
 
-  jc DELETE /profile-info -d '{ "files": [1] }'
+  jc DELETE /profile-info -d '{ "files": [2] }'
 
   [[ "$(q "select COUNT(*) from photo")" -eq 0 ]]
 }

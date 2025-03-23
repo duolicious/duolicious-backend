@@ -13,3 +13,4 @@ openai
 psycopg[binary]
 pydantic[email]
 redis
+pillow-heif

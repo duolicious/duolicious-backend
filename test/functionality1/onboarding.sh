@@ -5,7 +5,7 @@ cd "$script_dir"
 
 source ../util/setup.sh
 
-img1=$(rand_image)
+img1=$(base64 -w 0 < ../fixtures/img.heic)
 img2=$(rand_image)
 img3=$(rand_image)
 
