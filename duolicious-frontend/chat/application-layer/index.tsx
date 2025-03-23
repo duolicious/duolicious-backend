@@ -68,7 +68,7 @@ type MessageStatus =
   | 'too long'
   | 'timeout'
 
-type Message = {
+type ChatMessage = {
   text: string
   from: string
   to: string
@@ -76,7 +76,17 @@ type Message = {
   id: string
   mamId?: string | undefined
   timestamp: Date
+  type: 'chat'
+}
+
+type TypingMessage = {
+  from: string
+  to: string
+  id: string
+  type: 'typing'
 };
+
+type Message = ChatMessage | TypingMessage
 
 type Conversation = {
   personUuid: string
@@ -388,7 +398,7 @@ const authenticate = async () => {
   ]);
 };
 
-const markDisplayed = async (message: Message) => {
+const markDisplayed = async (message: ChatMessage) => {
   if (message.fromCurrentUser) return;
 
   if (!isValidUuid(jidToBareJid(message.from))) return;
@@ -412,7 +422,7 @@ const markDisplayed = async (message: Message) => {
 
 const sendMessage = async (
   recipientPersonUuid: string,
-  messageBody: string,
+  messageBody: string | null = null,
   numTries: number = 3,
 ): Promise<
   | { message: Message, status: 'sent' }
@@ -428,28 +438,42 @@ const sendMessage = async (
 
   const id = getRandomString(40);
 
-  const message: Message = {
-    text: messageBody,
-    from: personUuidToJid(credentials.username),
-    to: personUuidToJid(recipientPersonUuid),
-    id,
-    timestamp: new Date(),
-    fromCurrentUser: true,
-  };
-
   const fromJid = personUuidToJid(credentials.username);
 
   const toJid = personUuidToJid(recipientPersonUuid);
 
-  const data = {
+  const data = messageBody === null ? {
     message: {
       '@xmlns': 'jabber:client',
-      '@type': "chat",
+      '@type': 'typing',
+      '@from': fromJid,
+      '@to': toJid,
+      '@id': id,
+    },
+  } : {
+    message: {
+      '@xmlns': 'jabber:client',
+      '@type': 'chat',
       '@from': fromJid,
       '@to': toJid,
       '@id': id,
       body: messageBody,
     },
+  };
+
+  const message: Message = messageBody === null ? {
+    type: 'typing',
+    from: personUuidToJid(credentials.username),
+    to: personUuidToJid(recipientPersonUuid),
+    id,
+  } : {
+    type: 'chat',
+    from: personUuidToJid(credentials.username),
+    to: personUuidToJid(recipientPersonUuid),
+    id,
+    text: messageBody,
+    timestamp: new Date(),
+    fromCurrentUser: true,
   };
 
   const responseDetector = (doc: any): MessageStatus | null => {
@@ -571,13 +595,16 @@ const sendMessage = async (
     timeoutMs: messageTimeout,
   });
 
-  if (status === 'sent') {
-    setInboxSent(recipientPersonUuid, messageBody);
+  if (message.type === 'typing') {
+    return {
+      message,
+      status: 'sent', // Deliberately ignore timeouts for typing indicators
+    };
+  } else if (status === 'sent') {
+    setInboxSent(recipientPersonUuid, message.text);
     notify(`message-to-${recipientPersonUuid}`);
     return { message, status };
-  }
-
-  if (status !== 'timeout') {
+  } else if (status !== 'timeout') {
     return { message: null, status };
   }
 
@@ -673,24 +700,35 @@ const onReceiveMessage = (
         }
       } = doc;
 
-      assert(receivedType === 'chat');
+      assert(['chat', 'typing'].includes(receivedType));
 
       const bareFrom = jidToBareJid(from)
 
-      if (
-        otherPersonUuid !== undefined &&
-        otherPersonUuid !== bareFrom
-      ) {
+      if (otherPersonUuid !== undefined && otherPersonUuid !== bareFrom) {
         return;
       }
 
-      const message: Message = {
+      if (receivedType === 'typing' && callback !== undefined) {
+        const message: TypingMessage = {
+          from: from,
+          to: to,
+          id: id,
+          type: 'typing',
+        };
+
+        callback(message);
+
+        return;
+      }
+
+      const message: ChatMessage = {
         text: bodyText,
         from: from,
         to: to,
         id: id,
         timestamp: new Date(),
-        fromCurrentUser: jidMatchesSignedInUser(from)
+        fromCurrentUser: jidMatchesSignedInUser(from),
+        type: 'chat',
       };
 
       await setInboxRecieved(bareFrom, bodyText);
@@ -717,7 +755,7 @@ const onReceiveMessage = (
 const fetchConversation = async (
   withPersonUuid: string,
   beforeId: string = '',
-): Promise<Message[] | 'timeout'> => {
+): Promise<ChatMessage[] | 'timeout'> => {
   const queryId = getRandomString(10);
 
   const data = {
@@ -744,7 +782,7 @@ const fetchConversation = async (
     }
   };
 
-  const responseDetector = (doc: any): Message | null => {
+  const responseDetector = (doc: any): ChatMessage | null => {
     try {
       const {
         message: {
@@ -776,6 +814,7 @@ const fetchConversation = async (
         mamId: mamId ? mamId : undefined,
         timestamp: new Date(timestamp),
         fromCurrentUser: jidMatchesSignedInUser(from),
+        type: 'chat',
       };
     } catch {
       return null;
@@ -803,7 +842,7 @@ const fetchConversation = async (
     return _.isEqual(doc, expectedDoc);
   };
 
-  const response = await send<Message>({
+  const response = await send<ChatMessage>({
     data,
     responseDetector,
     sentinelDetector,
@@ -982,6 +1021,8 @@ export {
   Conversations,
   Inbox,
   Message,
+  ChatMessage,
+  TypingMessage,
   MessageStatus,
   fetchConversation,
   inboxStats,

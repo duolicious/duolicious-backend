@@ -30,6 +30,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import {
   Message,
+  ChatMessage,
   MessageStatus,
   fetchConversation,
   markDisplayed,
@@ -43,7 +44,7 @@ import { api } from '../api/api';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { RotateCcw, Flag, X } from "react-native-feather";
 import { setSkipped } from '../hide-and-block/hide-and-block';
-import { delay, isMobile } from '../util/util';
+import { delay, isMobile, useAutoResetBoolean } from '../util/util';
 import { ReportModalInitialData } from './modal/report-modal';
 import { listen, notify } from '../events/events';
 import { ImageBackground } from 'expo-image';
@@ -62,8 +63,9 @@ import {
 } from './modal/gif-picker-modal';
 import { ONLINE_COLOR } from '../constants/constants';
 import { useOnline } from '../chat/application-layer/hooks/online';
+import * as _ from "lodash";
 
-const propAt = (messages: Message[] | null | undefined, index: number, prop: string): string => {
+const propAt = (messages: ChatMessage[] | null | undefined, index: number, prop: string): string => {
   if (!messages) return '';
 
   const message = messages[index];
@@ -73,7 +75,7 @@ const propAt = (messages: Message[] | null | undefined, index: number, prop: str
   return message[prop] ?? '';
 };
 
-const lastPropAt = (messages: Message[] | null | undefined, prop: string): string => {
+const lastPropAt = (messages: ChatMessage[] | null | undefined, prop: string): string => {
   return propAt(messages, (messages ?? []).length - 1, prop);
 }
 
@@ -413,7 +415,7 @@ const ConversationScreen = ({navigation, route}) => {
   const [isActive, setIsActive] = useState(AppState.currentState === 'active');
   const [isOnline, setIsOnline] = useState(false);
 
-  const [messages, setMessages] = useState<Message[] | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [lastMessageStatus, setLastMessageStatus] = useState<
     MessageStatus | null
   >(null);
@@ -422,6 +424,7 @@ const ConversationScreen = ({navigation, route}) => {
   const hasFinishedFirstLoad = useRef(false);
   const isFetchingNextPage = useRef(false);
   const [isFocused, setIsFocused] = useState(true);
+  const [isTyping, setIsTyping] = useAutoResetBoolean();
 
   const personId: number = route?.params?.personId;
   const personUuid: string = route?.params?.personUuid;
@@ -438,15 +441,18 @@ const ConversationScreen = ({navigation, route}) => {
   const onPressSend = useCallback(async (messageBody: string): Promise<MessageStatus> => {
     setLastMessageStatus(null);
 
-    const response = await sendMessage(personUuid, messageBody);
+    const {
+      message,
+      status,
+    } = await sendMessage(personUuid, messageBody);
 
-    if (response.status === 'sent') {
+    if (status === 'sent' && message.type === 'chat') {
       hasScrolled.current = false;
-      setMessages(messages => [...(messages ?? []), response.message]);
+      setMessages(messages => [...(messages ?? []), message]);
     }
 
     if (
-      response.status === 'sent' &&
+      status === 'sent' &&
       messageBody.toLowerCase().includes('hahaha') &&
       messages &&
       messages.length > 40
@@ -454,9 +460,9 @@ const ConversationScreen = ({navigation, route}) => {
       maybeRequestReview(1000);
     }
 
-    setLastMessageStatus(response.status);
+    setLastMessageStatus(status);
 
-    return response.status;
+    return status;
   }, [personId, messages]);
 
   const maybeLoadNextPage = useCallback(async () => {
@@ -487,9 +493,14 @@ const ConversationScreen = ({navigation, route}) => {
     }
   }, [messages]);
 
-  const _onReceiveMessage = useCallback((msg) => {
-    hasScrolled.current = false;
-    setMessages(msgs => [...(msgs ?? []), msg]);
+  const _onReceiveMessage = useCallback((msg: Message) => {
+    if (msg.type === 'chat') {
+      hasScrolled.current = false;
+      setMessages(msgs => [...(msgs ?? []), msg]);
+      setIsTyping(false);
+    } else {
+      setIsTyping(true);
+    }
   }, []);
 
   const isCloseToTop = ({contentOffset}) => contentOffset.y < 1;
@@ -759,14 +770,15 @@ const ConversationScreen = ({navigation, route}) => {
           maxWidth: 600,
           width: '100%',
           alignSelf: 'center',
-          textAlign: 'center',
-          paddingLeft: 5,
-          paddingRight: 5,
-          opacity: lastMessageStatus === 'sent' || lastMessageStatus === null ? 0 : 1,
+          textAlign: isTyping ? 'left' : 'center',
+          paddingLeft: 20,
+          paddingRight: 20,
+          opacity: lastMessageStatus !== 'sent' && lastMessageStatus !== null || isTyping ? 1 : 0,
           color: lastMessageStatus === 'timeout' ? 'red' : '#70f',
           ...(lastMessageStatus === 'timeout' ? {} : { fontFamily: 'Trueno' }),
         }}
       >
+        {(lastMessageStatus === 'sent' || lastMessageStatus === null) && isTyping ? `${name} is typing...` : ''}
         {lastMessageStatus === 'timeout' ? "Message not delivered. Are you online?" : '' }
         {lastMessageStatus === 'rate-limited-1day-unverified-basics' ? `You’ve used today’s daily intro limit! Message ${name} tomorrow or unlock extra daily intros by getting verified...` : '' }
         {lastMessageStatus === 'rate-limited-1day-unverified-photos' ? `You’ve used today’s daily intro limit! Message ${name} tomorrow or unlock extra daily intros by verifying your photos...` : '' }
@@ -778,7 +790,10 @@ const ConversationScreen = ({navigation, route}) => {
         {lastMessageStatus === 'too long' ? 'That message is too big! 😩' : '' }
       </DefaultText>
       {isAvailableUser &&
-        <TextInputWithButton onPress={onPressSend}/>
+        <TextInputWithButton
+          onPress={onPressSend}
+          recipientPersonUuid={personUuid}
+        />
       }
       {!isAvailableUser &&
         <DefaultText
@@ -804,8 +819,10 @@ const ConversationScreen = ({navigation, route}) => {
 
 const TextInputWithButton = ({
   onPress,
+  recipientPersonUuid
 }: {
   onPress: (text: string) => Promise<MessageStatus>,
+  recipientPersonUuid: string,
 }) => {
   const { height } = useWindowDimensions();
   const [text, setText] = useState("");
@@ -821,13 +838,27 @@ const TextInputWithButton = ({
   const fadeIn = useCallback(() => { opacity.value = 0.5; }, []);
   const fadeOut = useCallback(() => { opacity.value = withTiming(1); }, []);
 
+  const debouncedSendMessage = useCallback(
+    _.debounce(
+      () => sendMessage(recipientPersonUuid),
+      1000,
+      {
+        leading: true,
+        trailing: false,
+        maxWait: 1000,
+      },
+    ),
+    [recipientPersonUuid]
+  );
+
   const maybeSetText = useCallback((t: string) => {
     if (!isLoading) {
       setText(t);
+      debouncedSendMessage();
     }
-  }, [isLoading]);
+  }, [isLoading, debouncedSendMessage]);
 
-  const sendMessage = useCallback(async (textArg?: string) => {
+  const sendMessage_ = useCallback(async (textArg?: string) => {
     const trimmed = (textArg ?? text).trim();
     if (trimmed) {
       setIsLoading(true);
@@ -844,7 +875,7 @@ const TextInputWithButton = ({
   }, []);
 
   useEffect(() => {
-    return listen<GifPickedEvent>('gif-picked', sendMessage);
+    return listen<GifPickedEvent>('gif-picked', sendMessage_);
   }, []);
 
   const onKeyPress = useCallback((e) => {
@@ -863,9 +894,9 @@ const TextInputWithButton = ({
       !e.altKey
     ) {
       e.preventDefault();
-      sendMessage();
+      sendMessage_();
     }
-  }, [sendMessage]);
+  }, [sendMessage_]);
 
   return (
     <KeyboardAvoidingView
@@ -911,7 +942,7 @@ const TextInputWithButton = ({
             }}
             onPressIn={fadeIn}
             onPressOut={fadeOut}
-            onPress={() => sendMessage()}
+            onPress={() => sendMessage_()}
           >
             {isLoading &&
               <ActivityIndicator size="small" color="#70f" />

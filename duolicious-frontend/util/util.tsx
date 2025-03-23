@@ -1,4 +1,10 @@
 import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import {
   Linking,
   Platform,
 } from 'react-native';
@@ -163,6 +169,44 @@ const getRandomElement = <T,>(list: T[]): T | undefined =>
     undefined :
     list[Math.floor(Math.random() * list.length)];
 
+const useAutoResetBoolean = (delay: number = 5000): [boolean, (newValue: boolean) => void]  => {
+  const [value, setValue] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const setAutoResetValue = useCallback(
+    (newValue: boolean) => {
+      // Clear any existing timer
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+
+      // Update state immediately
+      setValue(newValue);
+
+      // If setting to true, start a timer to reset to false after the delay
+      if (newValue) {
+        timerRef.current = setTimeout(() => {
+          setValue(false);
+          timerRef.current = null;
+        }, delay);
+      }
+    },
+    [delay]
+  );
+
+  // Clear timer when component unmounts to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
+  return [value, setAutoResetValue];
+};
+
 export {
   assert,
   compareArrays,
@@ -179,4 +223,5 @@ export {
   possessive,
   secToMinSec,
   withTimeout,
+  useAutoResetBoolean,
 };
