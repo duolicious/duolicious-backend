@@ -13,6 +13,7 @@ from pydantic import (
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from PIL import Image
+from pillow_heif import register_heif_opener
 import constants
 import io
 import base64
@@ -25,6 +26,8 @@ import antiabuse.antirude.profile
 from antiabuse.antispam.urldetector import has_url
 from antiabuse.antispam.phonenumberdetector import detect_phone_numbers
 from antiabuse.antispam.solicitation import has_solicitation
+
+register_heif_opener()
 
 CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42
