@@ -1,5 +1,6 @@
 from lxml import etree
 import datetime
+from typing import Literal
 
 
 LSERVER = 'duolicious.app'
@@ -40,10 +41,11 @@ def to_bare_jid(jid: str | None):
 
 
 def message_string_to_etree(
-    message_body: str,
     to_username: str,
     from_username: str,
     id: str,
+    type: Literal['chat', 'typing'] = 'chat',
+    message_body: str | None = None,
 ) -> str:
     message_etree = build_element(
         'message',
@@ -51,18 +53,19 @@ def message_string_to_etree(
             'from': f'{from_username}@{LSERVER}',
             'to': f'{to_username}@{LSERVER}',
             'id': id,
-            'type': 'chat',
+            'type': type,
         },
         ns='jabber:client',
     )
 
-    body = build_element('body', text=message_body)
+    if message_body is not None:
+        body = build_element('body', text=message_body)
 
-    request = build_element(
-        'request',
-        ns='urn:xmpp:receipts'
-    )
+        request = build_element(
+            'request',
+            ns='urn:xmpp:receipts'
+        )
 
-    message_etree.extend([body, request])
+        message_etree.extend([body, request])
 
     return message_etree

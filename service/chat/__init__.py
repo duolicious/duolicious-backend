@@ -245,12 +245,17 @@ def get_message_attrs(parsed_xml):
         if parsed_xml.tag != '{jabber:client}message':
             raise Exception('Not a message')
 
-        if parsed_xml.attrib.get('type') != 'chat':
-            raise Exception('type != chat')
+        message_type = parsed_xml.attrib.get('type')
+        assert message_type in ('chat', 'typing')
 
         body = parsed_xml.find('{jabber:client}body')
 
-        maybe_message_body = None if body is None else body.text.strip()
+        maybe_message_body = (
+                None
+                if body is None or message_type == 'typing'
+                else body.text.strip())
+
+        assert maybe_message_body or message_type == 'typing'
 
         _id = parsed_xml.attrib.get('id')
         assert _id is not None
@@ -262,11 +267,11 @@ def get_message_attrs(parsed_xml):
 
         to_username = str(uuid.UUID(to_bare_jid_))
 
-        return True, _id, to_username, maybe_message_body
+        return _id, to_username, maybe_message_body
     except Exception as e:
         pass
 
-    return False, None, None, None
+    return None
 
 def normalize_message(message_str):
     message_str = message_str.lower()
@@ -443,12 +448,11 @@ async def process_text(
     if maybe_unsubscription:
         return await redis_publish_many(connection_uuid, maybe_unsubscription)
 
-    is_message, stanza_id, to_username, maybe_message_body = get_message_attrs(parsed_xml)
+    maybe_message = get_message_attrs(parsed_xml)
 
-    if not is_message:
-        return
-
-    if not maybe_message_body:
+    if maybe_message:
+        stanza_id, to_username, maybe_message_body = maybe_message
+    else:
         return
 
     from_id = await fetch_id_from_username(from_username)
@@ -464,6 +468,20 @@ async def process_text(
     if await fetch_is_skipped(from_id=from_id, to_id=to_id):
         return await redis_publish_many(connection_uuid, [
             f'<duo_message_blocked id="{stanza_id}"/>'
+        ])
+
+    if not maybe_message_body:
+        return await redis_publish_many(to_username, [
+            etree.tostring(
+                message_string_to_etree(
+                    to_username=to_username,
+                    from_username=from_username,
+                    id=str(uuid.uuid4()),
+                    type='typing',
+                ),
+                encoding='unicode',
+                pretty_print=False,
+            )
         ])
 
     is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
