@@ -1,6 +1,6 @@
 import {
   useEffect,
-  useLayoutEffect,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -49,39 +49,58 @@ const subscribe = (personUuid: string) => {
 };
 
 const useOnline = (personUuid: string | null | undefined): boolean => {
-  const [isOnline, setIsOnline] = useState<boolean>(false);
-  const [xmppIsOnline, setXmppIsOnline] = useState<boolean>(false);
-
-  useLayoutEffect(() => {
-    return listen(
-      'xmpp-is-online',
-      (data) => setXmppIsOnline(data ?? false),
-      true,
-    );
-  }, []);
+  const [isOnline, setIsOnline] = useState(false);
+  const xmppIsOnlineRef = useRef(false);
+  const personSubRef = useRef<{
+    removeSubscription: () => void;
+    removeListener: () => void;
+  } | null>(null);
 
   useEffect(() => {
-    if (!personUuid) {
-      return;
-    }
+    const subscribePerson = () => {
+      if (!personUuid || !xmppIsOnlineRef.current || personSubRef.current) {
+        return;
+      }
 
-    if (!xmppIsOnline) {
-      return;
-    }
+      personSubRef.current = {
+        removeSubscription: subscribe(personUuid),
+        removeListener: listen(
+          eventKey(personUuid),
+          (data: boolean) => setIsOnline(data ?? false),
+          true,
+        ),
+      };
+    };
 
-    const removeSubscription = subscribe(personUuid);
+    const unsubscribePerson = () => {
+      if (!personSubRef.current) {
+        return;
+      }
 
-    const removeListener = listen<boolean>(
-      eventKey(personUuid),
-      (data) => setIsOnline(data ?? false),
-      true
+      personSubRef.current.removeSubscription();
+      personSubRef.current.removeListener();
+      personSubRef.current = null;
+    };
+
+    const removeXmppListener = listen(
+      'xmpp-is-online',
+      (data: boolean) => {
+        const newStatus = data ?? false;
+        xmppIsOnlineRef.current = newStatus;
+        if (newStatus) {
+          subscribePerson();
+        } else {
+          unsubscribePerson();
+        }
+      },
+      true,
     );
 
     return () => {
-      removeSubscription();
-      removeListener();
+      removeXmppListener();
+      unsubscribePerson();
     };
-  }, [personUuid, xmppIsOnline]);
+  }, [personUuid]);
 
   return isOnline;
 };
