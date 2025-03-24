@@ -101,8 +101,8 @@ do_test () {
 
   local  days_ago_0=$(db_now as-seconds)
   local  days_ago_1=$(db_now as-seconds '-  1 days')
-  local  days_ago_2=$(db_now as-seconds '-  8 days')
-  local  days_ago_3=$(db_now as-seconds '- 15 days')
+  local  days_ago_2=$(db_now as-seconds '-  9 days')
+  local  days_ago_3=$(db_now as-seconds '- 11 days')
 
   delete_emails
 
