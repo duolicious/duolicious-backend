@@ -717,9 +717,12 @@ const onReceiveMessage = (
         };
 
         callback(message);
+      }
 
+      if (receivedType === 'typing') {
         return;
       }
+
 
       const message: ChatMessage = {
         text: bodyText,
