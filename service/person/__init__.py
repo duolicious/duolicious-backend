@@ -1884,10 +1884,7 @@ def get_export_data(token: str):
         return 'Invalid token. Link might have expired.', 401
 
     with api_tx('read committed') as tx:
-        raw_api_data = tx.execute(Q_EXPORT_API_DATA, params).fetchone()['j']
-
-    with api_tx('read committed') as tx:
-        raw_chat_data = tx.execute(Q_EXPORT_CHAT_DATA, params).fetchall()
+        raw_data = tx.execute(Q_EXPORT_API_DATA, params).fetchone()['j']
 
     person_id = params['person_id']
 
@@ -1896,25 +1893,32 @@ def get_export_data(token: str):
     search_filters = get_search_filters_by_person_id(person_id=person_id)
 
     # Redact sensitive fields
-    for person in raw_api_data['person']:
+    for person in raw_data['person']:
         del person['id_salt']
 
     # Decode messages
-    for row in raw_chat_data:
+    for row in raw_data['mam_message'] or []:
         row['timestamp'] = datetime.fromtimestamp(
             timestamp=(row['id'] >> 8) / 1_000_000,
             tz=timezone.utc,
         ).isoformat()
 
-        row['message'] = json.dumps(
-            erlastic.decode(row['message']),
-            cls=BytesEncoder,
-        )
+        # this is a json string that looks like: \x836804640005786d6c656c6d00000
+        message = row['message']
+
+        # Remove the \x prefix
+        no_prefix = message[2:]
+
+        # Bytes object
+        json_decoded = bytes.fromhex(no_prefix)
+
+        erlang_decoded = erlastic.decode(json_decoded)
+
+        row['message'] = json.dumps(erlang_decoded, cls=BytesEncoder)
 
     # Return the result
     exported_dict = dict(
-        raw_api_data=raw_api_data,
-        raw_chat_data=raw_chat_data,
+        raw_data=raw_data,
         inferred_personality_data=inferred_personality_data,
         search_filters=search_filters,
     )
