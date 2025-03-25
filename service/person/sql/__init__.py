@@ -2737,24 +2737,18 @@ SELECT json_build_object(
             messaged
         WHERE
             subject_person_id = %(person_id)s
+    ),
+
+    'mam_message', (
+        SELECT
+            json_agg(row_to_json(mam_message))
+        FROM
+            mam_message
+        WHERE
+            person_id = %(person_id)s
     )
 
 ) AS j
-"""
-
-Q_EXPORT_CHAT_DATA = """
-SELECT
-    mam_message.*
-FROM
-    mam_message
-JOIN
-    person
-ON
-    mam_message.user_id = person.id
-WHERE
-    person.uuid = uuid_or_null(%(person_uuid)s::TEXT)
-ORDER BY
-    mam_message.id
 """
 
 Q_GET_SESSION_CLUBS = """

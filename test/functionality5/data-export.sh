@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Usage:
+#    data-export.sh update-snapshot
+#    data-export.sh
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 
@@ -29,7 +33,7 @@ update_snapshot () {
   ../util/create-user.sh user1 2 2
 
   # Wait for images to be given nsfw scores
-  sleep 10
+  sleep 11
 
   qdump data-export
 
