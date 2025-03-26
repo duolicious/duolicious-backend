@@ -1,10 +1,11 @@
-# TODO: Catch exceptions?
 from lxml import etree
 import redis.asyncio as redis
 import traceback
 
 
 FMT_KEY = 'online-{username}'
+
+FMT_ONLINE_EVENT = '<duo_online_event uuid="{username}" status="{status}" />'
 
 FMT_SUB_OK  = '<duo_subscribe_successful uuid="{username}" />'
 FMT_SUB_BAD = '<duo_subscribe_unsuccessful uuid="{username}" />'
@@ -22,8 +23,7 @@ async def _redis_subscribe_online(
     val = await redis_client.get(key)
 
     await pubsub.subscribe(key)
-    if val:
-        await redis_client.publish(key, val)
+    return val or FMT_ONLINE_EVENT.format(username=username, status='offline')
 
 
 async def _redis_unsubscribe_online(
@@ -41,7 +41,7 @@ async def redis_publish_online(
     status = 'online' if online else 'offline'
 
     key = FMT_KEY.format(username=username)
-    val = f'<duo_online_event uuid="{username}" status="{status}" />'
+    val = FMT_ONLINE_EVENT.format(username=username, status=status)
 
     async with redis_client.pipeline(transaction=True) as pipe:
         pipe.publish(key, val)
@@ -63,12 +63,13 @@ async def maybe_redis_subscribe_online(
         return []
 
     try:
-        await _redis_subscribe_online(
-                redis_client=redis_client,
-                pubsub=pubsub,
-                username=username)
-
-        return [FMT_SUB_OK.format(username=username)]
+        return [
+            FMT_SUB_OK.format(username=username),
+            await _redis_subscribe_online(
+                    redis_client=redis_client,
+                    pubsub=pubsub,
+                    username=username),
+        ]
     except:
         print(traceback.format_exc())
         return [FMT_SUB_BAD.format(username=username)]
