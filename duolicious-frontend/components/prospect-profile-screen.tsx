@@ -10,6 +10,7 @@ import {
   TextStyle,
   View,
   ViewStyle,
+  useWindowDimensions,
 } from 'react-native';
 import {
   useCallback,
@@ -749,6 +750,8 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
 
   const [data, setData] = useState<UserData | undefined>(undefined);
 
+  const { width } = useWindowDimensions();
+
   useEffect(() => {
     setData(undefined);
     (async () => {
@@ -835,6 +838,11 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
               onChangeEmbiggened={goToGallery(navigation, imageUuid0)}
               isPrimary={true}
               isVerified={imageVerification0}
+              style={
+                width > 600 ?
+                styles.primaryEnlargeableImageBigScreen :
+                undefined
+              }
             />
             <ProspectUserDetails
               navigation={navigation}
@@ -1508,6 +1516,11 @@ const Body = ({
 };
 
 const styles = StyleSheet.create({
+  primaryEnlargeableImageBigScreen: {
+    overflow: 'hidden',
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
+  },
   secondaryEnlargeableImage: {
     borderRadius: 10,
     overflow: 'hidden',
