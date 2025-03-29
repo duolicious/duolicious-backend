@@ -66,6 +66,7 @@ import {
   AUDIO_URL,
 } from '../env/env';
 import { useOnline } from '../chat/application-layer/hooks/online';
+import { ONLINE_COLOR } from '../constants/constants';
 
 const Stack = createNativeStackNavigator();
 
@@ -838,6 +839,7 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
             <ProspectUserDetails
               navigation={navigation}
               personId={personId}
+              personUuid={personUuid}
               name={data?.name}
               age={data?.age}
               verified={verificationLevelId(data) > 1}
@@ -909,6 +911,7 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
 const ProspectUserDetails = ({
   navigation,
   personId,
+  personUuid,
   name,
   age,
   verified,
@@ -916,15 +919,14 @@ const ProspectUserDetails = ({
   userLocation,
   textColor,
 }) => {
+  const isOnline = useOnline(personUuid);
+
   const onPressDonutChart = useCallback(() => {
     if (personId === undefined) return;
     if (name === undefined) return;
 
     navigation.navigate('In-Depth', { personId, name });
   }, [personId, name]);
-
-  const displayedLocation = (
-    userLocation === undefined ? '' : (userLocation ?? 'Private location'));
 
   const isViewingSelf = personId === signedInUser?.personId;
 
@@ -941,6 +943,7 @@ const ProspectUserDetails = ({
       <View
         style={{
           flexShrink: 1,
+          gap: 8,
         }}
       >
         <View
@@ -951,6 +954,20 @@ const ProspectUserDetails = ({
             gap: 8,
           }}
         >
+          {isOnline &&
+            <View
+              style={{
+                borderColor: 'white',
+                borderWidth: 1,
+                borderRadius: 999,
+                backgroundColor: ONLINE_COLOR,
+                marginLeft: 1,
+                marginRight: 2,
+                width: 14,
+                height: 14,
+              }}
+            />
+          }
           <DefaultText
             style={{
               fontWeight: '700',
@@ -960,7 +977,10 @@ const ProspectUserDetails = ({
             }}
           >
             {[
-              name,
+              // The non-breaking space prevents the UI from jumping around too
+              // much while the content loads
+              name ?? '\u00A0',
+
               age,
             ].filter(Boolean).join(', ')}
           </DefaultText>
@@ -977,12 +997,12 @@ const ProspectUserDetails = ({
           <FontAwesomeIcon
             icon={faLocationDot}
             style={{
-              transform: [ { translateY: 2 } ]
+              transform: [ { translateY: 2 } ],
             }}
             color={textColor}
           />
           {'\u2002'}
-          {displayedLocation}
+          {userLocation === null ? 'Private location' : userLocation}
         </DefaultText>
       </View>
       <DonutChart
