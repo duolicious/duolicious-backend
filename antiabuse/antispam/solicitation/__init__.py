@@ -3,6 +3,7 @@ import re
 
 _strings = [
     'cashapp',
+    'finsub',
     'paypal',
     'telegram',
     'venmo',

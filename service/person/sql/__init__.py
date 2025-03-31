@@ -479,8 +479,8 @@ WITH onboardee_country AS (
             new_person
     ), unbounded_age_preference AS (
         SELECT
-            age - 10 AS min_age,
-            age + 10 AS max_age
+            age - 5 AS min_age,
+            age + 5 AS max_age
         FROM
             new_person_age
     )
