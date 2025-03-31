@@ -68,6 +68,7 @@ import {
 } from '../env/env';
 import { useOnline } from '../chat/application-layer/hooks/online';
 import { ONLINE_COLOR } from '../constants/constants';
+import { HeartBackground } from './heart-background';
 
 const Stack = createNativeStackNavigator();
 
@@ -823,45 +824,52 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
     <>
       <ScrollView style={{ backgroundColor: data?.theme?.background_color }}>
         <Reanimated.View style={animatedStyle}>
-          <View
+          <HeartBackground
             style={{
               width: '100%',
-              maxWidth: 600,
-              alignSelf: 'center',
-              paddingBottom: 100,
+              height: '100%',
             }}
           >
-            <EnlargeableImage
-              imageUuid={imageUuid0}
-              imageExtraExts={imageExtraExts0}
-              imageBlurhash={imageBlurhash0}
-              onChangeEmbiggened={goToGallery(navigation, imageUuid0)}
-              isPrimary={true}
-              isVerified={imageVerification0}
-              style={
-                width > 600 ?
-                styles.primaryEnlargeableImageBigScreen :
-                undefined
-              }
-            />
-            <ProspectUserDetails
-              navigation={navigation}
-              personId={personId}
-              personUuid={personUuid}
-              name={data?.name}
-              age={data?.age}
-              verified={verificationLevelId(data) > 1}
-              matchPercentage={data?.match_percentage}
-              userLocation={data?.location}
-              textColor={data?.theme?.title_color}
-            />
-            <Body
-              navigation={navigation}
-              personId={personId}
-              personUuid={personUuid}
-              data={data}
-            />
-          </View>
+            <View
+              style={{
+                width: '100%',
+                maxWidth: 600,
+                alignSelf: 'center',
+                paddingBottom: 100,
+              }}
+            >
+              <EnlargeableImage
+                imageUuid={imageUuid0}
+                imageExtraExts={imageExtraExts0}
+                imageBlurhash={imageBlurhash0}
+                onChangeEmbiggened={goToGallery(navigation, imageUuid0)}
+                isPrimary={true}
+                isVerified={imageVerification0}
+                style={
+                  width > 600 ?
+                  styles.primaryEnlargeableImageBigScreen :
+                  undefined
+                }
+              />
+              <ProspectUserDetails
+                navigation={navigation}
+                personId={personId}
+                personUuid={personUuid}
+                name={data?.name}
+                age={data?.age}
+                verified={verificationLevelId(data) > 1}
+                matchPercentage={data?.match_percentage}
+                userLocation={data?.location}
+                textColor={data?.theme?.title_color}
+              />
+              <Body
+                navigation={navigation}
+                personId={personId}
+                personUuid={personUuid}
+                data={data}
+              />
+            </View>
+          </HeartBackground>
         </Reanimated.View>
       </ScrollView>
       {showBottomButtons &&
