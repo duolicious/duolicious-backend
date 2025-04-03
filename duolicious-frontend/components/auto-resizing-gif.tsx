@@ -17,11 +17,13 @@ const AutoResizingGif = ({
   onError,
   style,
   requirePress = false,
+  priority,
 }: {
   uri: string
   onError?: () => void
   style?: StyleProp<ImageStyle>,
   requirePress?: boolean
+  priority?: null | 'low' | 'normal' | 'high'
 }) => {
   const [shouldLoad, setShouldLoad] = useState(!requirePress);
 
@@ -99,6 +101,7 @@ const AutoResizingGif = ({
 
   return (
     <Image
+      priority={priority}
       source={image}
       transition={150}
       style={[

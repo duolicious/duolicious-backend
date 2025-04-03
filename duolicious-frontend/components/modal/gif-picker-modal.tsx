@@ -28,22 +28,35 @@ const NUM_COLS = 3;
 const fadeIn = FadeIn.duration(200);
 const fadeOut = FadeOut.duration(200);
 
+const indexToPriority = (row: number): 'low' | 'normal' | 'high' => {
+  if (row < 5) {
+    return 'high';
+  } else if (row < 10) {
+    return 'normal';
+  } else {
+    return 'low';
+  }
+};
+
 // Helper to render a single gif item
 const RenderGifItem = ({
   gifUrl,
   previewUrl,
   onPress,
   isSelected,
+  priority,
 }: {
   gifUrl: string,
   previewUrl: string,
   onPress: (url: string) => void
   isSelected: boolean
+  priority: null | 'low' | 'normal' | 'high'
 }) => {
   return (
     <View style={styles.gifItemContainer}>
       <Pressable onPress={() => onPress(gifUrl)}>
         <AutoResizingGif
+          priority={priority}
           uri={previewUrl}
           style={[
             styles.gifImage,
@@ -156,6 +169,7 @@ const GifPickerModal: React.FC = () => {
                   {column.map((item, j) =>
                     <RenderGifItem
                       key={j}
+                      priority={indexToPriority(j)}
                       gifUrl={item.media[0]?.gif?.url}
                       previewUrl={
                         isMobile() ?
