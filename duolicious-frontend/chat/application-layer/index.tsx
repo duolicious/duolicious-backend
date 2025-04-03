@@ -11,6 +11,7 @@ import {
   EV_CHAT_WS_SEND_CLOSE,
   send,
 } from '../websocket-layer';
+import { delay } from '../../util/util';
 
 const messageTimeout = 10000;
 const fetchConversationTimeout = 15000;
@@ -278,6 +279,8 @@ const setInboxRecieved = async (
     inbox.chats.conversationsMap[fromPersonUuid] as Conversation | undefined;
   const introsConversation =
     inbox.intros.conversationsMap[fromPersonUuid] as Conversation | undefined;
+  const archiveConversation =
+    inbox.archive.conversationsMap[fromPersonUuid] as Conversation | undefined;
 
   const updatedConversation: Conversation = {
     personUuid: fromPersonUuid,
@@ -290,26 +293,52 @@ const setInboxRecieved = async (
     isVerified: false,
     ...chatsConversation,
     ...introsConversation,
+    ...archiveConversation,
     lastMessage: message,
     lastMessageRead: false,
     lastMessageTimestamp: new Date(),
   };
 
+  // The conversation is missing data as it's either new or from the archive
   if (!chatsConversation && !introsConversation) {
-    await populateConversation(updatedConversation);
+    // It's hard to understate how much I hate this `delay`. I fucked up pretty
+    // hard by using XMPP in the original design. It just wasn't made to
+    // integrate with external services. At least not the way I did it. Now we
+    // need this delay to wait for the `chat` and `api` services to become
+    // consistent with each other. Otherwise `populateConversation` (which
+    // calls /inbox-info) might be like, "Person A? They never messaged us!"
+    // right after the chat service sends a message from Person A over the
+    // fucking websocket!
+    await delay(1000);
 
-    if (updatedConversation.location === 'chats') {
-      inbox.chats.conversationsMap[fromPersonUuid] = updatedConversation;
-      inbox.chats.conversations = Object.values(inbox.chats.conversationsMap);
-    }
-    if (updatedConversation.location === 'intros') {
-      inbox.intros.conversationsMap[fromPersonUuid] = updatedConversation;
-      inbox.intros.conversations = Object.values(inbox.intros.conversationsMap);
-    }
-  } else if (chatsConversation) {
+    await populateConversation(updatedConversation);
+  }
+
+  // Update the conversation in-place, in the `inbox` object
+  if (chatsConversation) {
     Object.assign(chatsConversation, updatedConversation);
   } else if (introsConversation) {
     Object.assign(introsConversation, updatedConversation);
+  } else if (archiveConversation) {
+    Object.assign(archiveConversation, updatedConversation);
+  }
+
+  // The conversation's `.location` might have changed, so we need to update the
+  // inbox
+  if (!chatsConversation && !introsConversation) {
+    const updatedConversationsMap = {
+      [fromPersonUuid]: updatedConversation
+    };
+
+    Object.assign(updatedConversationsMap, inbox.chats.conversationsMap);
+    Object.assign(updatedConversationsMap, inbox.intros.conversationsMap);
+    Object.assign(updatedConversationsMap, inbox.archive.conversationsMap);
+
+    const updatedConversations = Object.values(updatedConversationsMap);
+
+    const updatedInbox = conversationsToInbox(updatedConversations);
+
+    Object.assign(inbox, updatedInbox);
   }
 
   notify<Inbox>('inbox', {...inbox});
