@@ -100,9 +100,9 @@ do_test () {
   local user4uuid=$(get_uuid 'will-remain-active3@duolicious.app')
 
   local  days_ago_0=$(db_now as-seconds)
-  local  days_ago_1=$(db_now as-seconds '-  1 days')
-  local  days_ago_2=$(db_now as-seconds '-  9 days')
-  local  days_ago_3=$(db_now as-seconds '- 11 days')
+  local  days_ago_1=$(db_now as-seconds '- 11   days')
+  local  days_ago_2=$(db_now as-seconds '- 21   days')
+  local  days_ago_3=$(db_now as-seconds '- 31   days')
 
   delete_emails
 
