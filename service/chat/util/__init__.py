@@ -1,9 +1,29 @@
+from async_lru_cache import AsyncLruCache
+from database.asyncdatabase import api_tx
 from lxml import etree
-import datetime
 from typing import Literal
+import datetime
 
 
 LSERVER = 'duolicious.app'
+
+
+Q_IS_SKIPPED = """
+SELECT
+    1
+FROM
+    skipped
+WHERE
+    subject_person_id = %(from_id)s AND object_person_id  = %(to_id)s
+OR
+    subject_person_id = %(to_id)s   AND object_person_id  = %(from_id)s
+LIMIT 1
+"""
+
+
+Q_FETCH_PERSON_ID = """
+SELECT id FROM person WHERE uuid = %(username)s
+"""
 
 
 def build_element(tag: str, text: str = None, attrib: dict = None, ns: str = None) -> etree.Element:
@@ -69,3 +89,21 @@ def message_string_to_etree(
         message_etree.extend([body, request])
 
     return message_etree
+
+
+@AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
+async def fetch_is_skipped(from_id: int, to_id: int) -> bool:
+    async with api_tx('read committed') as tx:
+        await tx.execute(Q_IS_SKIPPED, dict(from_id=from_id, to_id=to_id))
+        row = await tx.fetchone()
+
+    return bool(row)
+
+
+@AsyncLruCache(maxsize=1024)
+async def fetch_id_from_username(username: str) -> str | None:
+    async with api_tx('read committed') as tx:
+        await tx.execute(Q_FETCH_PERSON_ID, dict(username=username))
+        row = await tx.fetchone()
+
+    return row.get('id') if row else None

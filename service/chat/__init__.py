@@ -43,8 +43,10 @@ from service.chat.ratelimit import (
 )
 from lxml import etree
 from service.chat.util import (
+    fetch_is_skipped,
     message_string_to_etree,
     to_bare_jid,
+    fetch_id_from_username,
 )
 import uuid
 import redis.asyncio as redis
@@ -74,22 +76,6 @@ FROM
     intro_hash
 WHERE
     hash = %(hash)s
-"""
-
-Q_FETCH_PERSON_ID = """
-SELECT id FROM person WHERE uuid = %(username)s
-"""
-
-Q_IS_SKIPPED = """
-SELECT
-    1
-FROM
-    skipped
-WHERE
-    subject_person_id = %(from_id)s AND object_person_id  = %(to_id)s
-OR
-    subject_person_id = %(to_id)s   AND object_person_id  = %(from_id)s
-LIMIT 1
 """
 
 Q_HAS_MESSAGE = """
@@ -311,22 +297,6 @@ async def is_message_unique(message_str):
 
     return is_unique
 
-@AsyncLruCache(maxsize=1024)
-async def fetch_id_from_username(username: str) -> str | None:
-    async with api_tx('read committed') as tx:
-        await tx.execute(Q_FETCH_PERSON_ID, dict(username=username))
-        row = await tx.fetchone()
-
-    return row.get('id') if row else None
-
-@AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
-async def fetch_is_skipped(from_id: int, to_id: int) -> bool:
-    async with api_tx('read committed') as tx:
-        await tx.execute(Q_IS_SKIPPED, dict(from_id=from_id, to_id=to_id))
-        row = await tx.fetchone()
-
-    return bool(row)
-
 @AsyncLruCache(maxsize=1024, cache_condition=lambda x: not x)
 async def fetch_is_intro(from_id: int, to_id: int) -> bool:
     async with api_tx('read committed') as tx:
@@ -436,6 +406,7 @@ async def process_text(
         return
 
     maybe_subscription = await maybe_redis_subscribe_online(
+            from_username=from_username,
             parsed_xml=parsed_xml,
             redis_client=REDIS_WORKER_CLIENT,
             pubsub=pubsub)

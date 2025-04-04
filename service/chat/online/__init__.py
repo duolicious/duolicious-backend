@@ -1,6 +1,10 @@
 from lxml import etree
 import redis.asyncio as redis
 import traceback
+from service.chat.util import (
+    fetch_is_skipped,
+    fetch_id_from_username,
+)
 
 
 FMT_KEY = 'online-{username}'
@@ -50,6 +54,7 @@ async def redis_publish_online(
 
 
 async def maybe_redis_subscribe_online(
+    from_username: str,
     parsed_xml: etree.Element,
     redis_client: redis.Redis,
     pubsub: redis.client.PubSub,
@@ -57,22 +62,29 @@ async def maybe_redis_subscribe_online(
     if parsed_xml.tag != 'duo_subscribe_online':
         return []
 
-    username = parsed_xml.attrib.get('uuid')
+    to_username = parsed_xml.attrib.get('uuid')
 
-    if not username:
+    if not to_username:
         return []
 
+    from_id, to_id = (
+            await fetch_id_from_username(from_username),
+            await fetch_id_from_username(to_username))
+
     try:
-        return [
-            FMT_SUB_OK.format(username=username),
+        result  = []
+        result += [FMT_SUB_OK.format(username=to_username)]
+        result += [
             await _redis_subscribe_online(
                     redis_client=redis_client,
                     pubsub=pubsub,
-                    username=username),
-        ]
+                    username=to_username),
+        ] if not await fetch_is_skipped(from_id=from_id, to_id=to_id) else []
+
+        return result
     except:
         print(traceback.format_exc())
-        return [FMT_SUB_BAD.format(username=username)]
+        return [FMT_SUB_BAD.format(username=to_username)]
 
 
 async def maybe_redis_unsubscribe_online(
