@@ -4,7 +4,6 @@ import asyncio
 import duohash
 import regex
 import traceback
-import websockets
 import sys
 from websockets.exceptions import ConnectionClosedError
 import notify
@@ -365,11 +364,6 @@ async def process_text(
     from_username = session.username
     connection_uuid = session.connection_uuid
 
-    if is_text_too_long(text):
-        return await redis_publish_many(connection_uuid, [
-            f'<duo_message_too_long />'
-        ])
-
     xml_str, parsed_xml = middleware(text)
 
     if parsed_xml is None:
@@ -453,6 +447,11 @@ async def process_text(
                 encoding='unicode',
                 pretty_print=False,
             )
+        ])
+
+    if is_text_too_long(maybe_message_body):
+        return await redis_publish_many(connection_uuid, [
+            f'<duo_message_too_long />'
         ])
 
     is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
