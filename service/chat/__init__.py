@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import os
 from database.asyncdatabase import api_tx, check_connections_forever
 import asyncio
@@ -152,6 +153,30 @@ NON_ALPHANUMERIC_RE = regex.compile(r'[^\p{L}\p{N}]')
 REPEATED_CHARACTERS_RE = regex.compile(r'(.)\1{1,}')
 
 
+@dataclass(frozen=True)
+class BaseMessage:
+    stanza_id: str
+    to_username: str
+
+
+@dataclass(frozen=True)
+class ChatMessage(BaseMessage):
+    body: str
+
+
+@dataclass(frozen=True)
+class TypingMessage(BaseMessage):
+    pass
+
+
+@dataclass(frozen=True)
+class AudioMessage(BaseMessage):
+    audio_base64: str
+
+
+Message = ChatMessage | TypingMessage | AudioMessage
+
+
 async def redis_publish(channel: str, message: str):
     await REDIS_WORKER_CLIENT.publish(channel, message)
 
@@ -225,36 +250,50 @@ async def send_notification(
 
     upsert_last_notification(username=to_username, is_intro=is_intro)
 
-def get_message_attrs(parsed_xml):
-    try:
-        if parsed_xml.tag != '{jabber:client}message':
-            raise Exception('Not a message')
+def xml_to_message(parsed_xml: etree._Element) -> Message | None:
+    if parsed_xml.tag != '{jabber:client}message':
+        return None
 
-        message_type = parsed_xml.attrib.get('type')
-        assert message_type in ('chat', 'typing')
+    message_type = parsed_xml.attrib.get('type')
 
-        body = parsed_xml.find('{jabber:client}body')
+    stanza_id = parsed_xml.attrib.get('id')
+    stanza_id = stanza_id if stanza_id and len(stanza_id) <= 250 else None
 
-        maybe_message_body = (
-                None
-                if body is None or message_type == 'typing'
-                else body.text.strip())
+    audio_base64 = parsed_xml.attrib.get('audio_base64')
 
-        assert maybe_message_body or message_type == 'typing'
+    body_element = parsed_xml.find('{jabber:client}body')
+    body = (
+        body_element.text.strip()
+        if
+        body_element is not None
+        and body_element.text
+        and body_element.text.strip()
+        else None
+    )
 
-        _id = parsed_xml.attrib.get('id')
-        assert _id is not None
-        assert len(_id) <= 250
+    to_jid = parsed_xml.attrib.get('to')
+    to_bare_jid_ = to_bare_jid(parsed_xml.attrib.get('to'))
+    to_username = str(uuid.UUID(to_bare_jid_))
 
-        to_jid = parsed_xml.attrib.get('to')
-
-        to_bare_jid_ = to_bare_jid(parsed_xml.attrib.get('to'))
-
-        to_username = str(uuid.UUID(to_bare_jid_))
-
-        return _id, to_username, maybe_message_body
-    except Exception as e:
-        pass
+    if not stanza_id:
+        return None
+    elif not to_username:
+        return None
+    elif message_type == 'typing':
+        return TypingMessage(
+                stanza_id=stanza_id,
+                to_username=to_username)
+    elif message_type == 'chat':
+        if audio_base64:
+            return AudioMessage(
+                    stanza_id=stanza_id,
+                    to_username=to_username,
+                    audio_base64=audio_base64)
+        elif body:
+            return ChatMessage(
+                    stanza_id=stanza_id,
+                    to_username=to_username,
+                    body=body)
 
     return None
 
@@ -413,12 +452,14 @@ async def process_text(
     if maybe_unsubscription:
         return await redis_publish_many(connection_uuid, maybe_unsubscription)
 
-    maybe_message = get_message_attrs(parsed_xml)
+    maybe_message = xml_to_message(parsed_xml)
 
-    if maybe_message:
-        stanza_id, to_username, maybe_message_body = maybe_message
-    else:
+    if not maybe_message:
         return
+
+    stanza_id = maybe_message.stanza_id
+
+    to_username = maybe_message.to_username
 
     from_id = await fetch_id_from_username(from_username)
 
@@ -435,7 +476,7 @@ async def process_text(
             f'<duo_message_blocked id="{stanza_id}"/>'
         ])
 
-    if not maybe_message_body:
+    if isinstance(maybe_message, TypingMessage):
         return await redis_publish_many(to_username, [
             etree.tostring(
                 message_string_to_etree(
@@ -449,21 +490,25 @@ async def process_text(
             )
         ])
 
-    if is_text_too_long(maybe_message_body):
+    if isinstance(maybe_message, AudioMessage):
+        # TODO
+        return
+
+    if is_text_too_long(maybe_message.body):
         return await redis_publish_many(connection_uuid, [
             f'<duo_message_too_long />'
         ])
 
     is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
 
-    if is_intro and is_rude(maybe_message_body):
+    if is_intro and is_rude(maybe_message.body):
         return await redis_publish_many(connection_uuid, [
             f'<duo_message_blocked id="{stanza_id}" reason="offensive"/>'
         ])
 
     if \
             is_intro and \
-            is_spam(maybe_message_body) and \
+            is_spam(maybe_message.body) and \
             not await fetch_is_trusted_account(from_id=from_id):
         return await redis_publish_many(connection_uuid, [
             f'<duo_message_blocked id="{stanza_id}" reason="spam"/>'
@@ -477,14 +522,14 @@ async def process_text(
         if maybe_rate_limit:
             return await redis_publish_many(connection_uuid, maybe_rate_limit)
 
-    if is_intro and not await is_message_unique(maybe_message_body):
+    if is_intro and not await is_message_unique(maybe_message.body):
         return await redis_publish_many(connection_uuid, [
             f'<duo_message_not_unique id="{stanza_id}"/>'
         ])
 
     # TODO: Updates to `mam_message` and `inbox` tables should happen in one tx
     store_message(
-        maybe_message_body,
+        maybe_message.body,
         from_username=from_username,
         to_username=to_username,
         msg_id=stanza_id)
@@ -500,7 +545,7 @@ async def process_text(
     await redis_publish_many(to_username, [
         etree.tostring(
             message_string_to_etree(
-                message_body=maybe_message_body,
+                message_body=maybe_message.body,
                 to_username=to_username,
                 from_username=from_username,
                 id=str(uuid.uuid4()),
@@ -520,7 +565,7 @@ async def process_text(
         await send_notification(
             from_name=immediate_data['name'],
             to_username=to_username,
-            message=maybe_message_body,
+            message=maybe_message.body,
             is_intro=is_intro,
             data={
                 'screen': 'Conversation Screen',
