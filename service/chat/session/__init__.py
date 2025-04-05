@@ -32,7 +32,7 @@ class Session:
         self.username = None
 
 
-async def is_authorized(parsed_xml: etree.Element, session: Session) -> bool:
+async def is_authorized(parsed_xml: etree._Element, session: Session) -> bool:
     if session.username is not None:
         return False
 
@@ -42,6 +42,10 @@ async def is_authorized(parsed_xml: etree.Element, session: Session) -> bool:
             return False
 
         base64encoded = parsed_xml.text
+
+        if base64encoded is None:
+            return False
+
         decodedBytes = base64.b64decode(base64encoded)
         decodedString = decodedBytes.decode('utf-8')
 
@@ -70,7 +74,7 @@ async def is_authorized(parsed_xml: etree.Element, session: Session) -> bool:
     return False
 
 
-def handle_open(parsed_xml: etree.Element, session: Session) -> List[str]:
+def handle_open(parsed_xml: etree._Element, session: Session) -> List[str]:
     """
     Handles an <open> stanza in the XMPP framing namespace.
 
@@ -137,7 +141,7 @@ def handle_open(parsed_xml: etree.Element, session: Session) -> List[str]:
                 pretty_print=False)]
 
 
-async def handle_auth(parsed_xml: etree.Element, session: Session) -> List[str]:
+async def handle_auth(parsed_xml: etree._Element, session: Session) -> List[str]:
     """
     Handles an <auth> stanza in the SASL namespace.
 
@@ -209,7 +213,7 @@ def handle_iq_session(iq_id: str, session: Session) -> List[str]:
     ]
 
 
-def handle_iq(parsed_xml: etree.Element, session: Session) -> List[str]:
+def handle_iq(parsed_xml: etree._Element, session: Session) -> List[str]:
     """
     Handles an <iq> stanza, determining if it contains a <bind> request.
     """
@@ -229,7 +233,7 @@ def handle_iq(parsed_xml: etree.Element, session: Session) -> List[str]:
         return []
 
 
-async def maybe_get_session_response(parsed_xml: etree.Element, session: Session) -> List[str]:
+async def maybe_get_session_response(parsed_xml: etree._Element, session: Session) -> List[str]:
     """
     Determines the appropriate response stanzas for a given input XML element.
     Now includes support for <iq> stanzas containing <bind>.

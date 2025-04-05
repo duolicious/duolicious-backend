@@ -132,20 +132,20 @@ def _process_query(
         return None
 
     return Query(
-        query_id=query_id,
+        query_id=str(query_id),
         from_username=to_bare_jid(from_username),
-        to_username=to_bare_jid(to_username),
-        before=before_value,
-        max=max_value,
+        to_username=to_bare_jid(str(to_username)),
+        before=str(before_value) if before_value else None,
+        max=str(max_value) if max_value else None,
     )
 
 
 def _forwarded_element(
-    message: etree.Element,
+    message: etree._Element,
     query: Query,
     row_id: int,
     forwarded_id: str,
-) -> etree.Element:
+) -> etree._Element:
     delay = build_element(
         'delay',
         attrib={
@@ -199,7 +199,7 @@ async def maybe_get_conversation(
     query = _process_query(parsed_xml, from_username=from_username)
 
     if not query:
-        return None
+        return []
 
     return await _get_conversation(
         query=query,

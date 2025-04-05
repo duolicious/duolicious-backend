@@ -4,6 +4,7 @@ from service.chat.session import Session
 from typing import List
 from database import api_tx
 import asyncio
+import traceback
 
 LAST_UPDATE_INTERVAL_SECONDS = 4 * 60
 

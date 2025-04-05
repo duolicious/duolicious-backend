@@ -117,14 +117,17 @@ async def maybe_get_inbox(
     xpath_query = "/*[local-name()='iq']/*[local-name()='inbox'] | /*[local-name()='inbox']"
     inbox_element = parsed_xml.xpath(xpath_query)
 
-    if not inbox_element:
-        return None
+    if not inbox_element or type(inbox_element) is not list:
+        return []
 
     # Get the first <inbox> element and extract the `queryid` attribute
     inbox = inbox_element[0]
+    if type(inbox) is not etree._Element:
+        return []
+
     query_id = inbox.get("queryid")
     if not query_id:
-        return None
+        return []
 
     # Return the inbox based on the query_id
     return await _get_inbox(query_id, username)
@@ -254,12 +257,19 @@ def maybe_mark_displayed(
     xpath_query = "/*[local-name()='message'][*[local-name()='displayed']]"
     displayed_element = parsed_xml.xpath(xpath_query)
 
-    if not displayed_element:
+    if not displayed_element or type(displayed_element) is not list:
+        return False
+
+    first_displayed_element = displayed_element[0]
+    if type(first_displayed_element) is not etree._Element:
         return False
 
     try:
-        to_username, *_ = displayed_element[0].get('to').split('@')
+        to_username, *_ = first_displayed_element.get('to', '').split('@')
     except:
+        return False
+
+    if not to_username:
         return False
 
     _mark_displayed(from_username=from_username, to_username=to_username)

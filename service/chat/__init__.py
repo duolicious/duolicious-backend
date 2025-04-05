@@ -59,12 +59,12 @@ app = FastAPI()
 # Global publisher connection, created once per worker.
 REDIS_HOST: str = os.environ.get("DUO_REDIS_HOST", "redis")
 REDIS_PORT: int = int(os.environ.get("DUO_REDIS_PORT", 6379))
-REDIS_WORKER_CLIENT: Optional[redis.Redis] = redis.Redis(
+REDIS_WORKER_CLIENT: redis.Redis = redis.Redis(
         host=REDIS_HOST,
         port=REDIS_PORT,
         decode_responses=True)
 
-InputMiddleware = Callable[[str], Tuple[str, Optional[etree.Element]]]
+InputMiddleware = Callable[[str], Tuple[str, Optional[etree._Element]]]
 OutputMiddleware = Callable[[str], str]
 Middleware = Tuple[InputMiddleware, OutputMiddleware]
 

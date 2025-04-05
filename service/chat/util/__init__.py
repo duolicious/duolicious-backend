@@ -26,7 +26,12 @@ SELECT id FROM person WHERE uuid = %(username)s
 """
 
 
-def build_element(tag: str, text: str = None, attrib: dict = None, ns: str = None) -> etree.Element:
+def build_element(
+    tag: str,
+    text: str | None = None,
+    attrib: dict | None = None,
+    ns: str | None = None
+) -> etree._Element:
     """
     Helper function to create an XML element.
     """
@@ -54,6 +59,9 @@ def format_timestamp(microseconds: int) -> str:
 
 
 def to_bare_jid(jid: str | None):
+    if jid is None:
+        return None
+
     try:
         return jid.split('@')[0]
     except:
@@ -66,7 +74,7 @@ def message_string_to_etree(
     id: str,
     type: Literal['chat', 'typing'] = 'chat',
     message_body: str | None = None,
-) -> str:
+) -> etree._Element:
     message_etree = build_element(
         'message',
         attrib={
