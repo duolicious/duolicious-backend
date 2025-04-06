@@ -28,6 +28,7 @@ import blurhash
 import numpy
 import erlastic
 from datetime import datetime, timezone
+from duoaudio import put_audio_in_object_store
 
 
 @dataclass
@@ -73,7 +74,6 @@ R2_ACCT_ID = os.environ['DUO_R2_ACCT_ID']
 R2_ACCESS_KEY_ID = os.environ['DUO_R2_ACCESS_KEY_ID']
 R2_ACCESS_KEY_SECRET = os.environ['DUO_R2_ACCESS_KEY_SECRET']
 R2_BUCKET_NAME = os.environ['DUO_R2_BUCKET_NAME']
-R2_AUDIO_BUCKET_NAME = os.environ['DUO_R2_AUDIO_BUCKET_NAME']
 
 BOTO_ENDPOINT_URL = os.getenv(
     'DUO_BOTO_ENDPOINT_URL',
@@ -88,8 +88,6 @@ s3 = boto3.resource(
 )
 
 bucket = s3.Bucket(R2_BUCKET_NAME)
-
-audio_bucket = s3.Bucket(R2_AUDIO_BUCKET_NAME)
 
 def init_db():
     pass
@@ -271,21 +269,6 @@ def put_image_in_object_store(
         futures = {
             executor.submit(bucket.put_object, Key=key, Body=img)
             for key, img in key_img}
-
-        for future in as_completed(futures):
-            future.result()
-
-def put_audio_in_object_store(
-    uuid: str,
-    base64_audio_file: t.Base64AudioFile,
-):
-    key = f'{uuid}.aac'
-
-    audio = io.BytesIO(base64_audio_file.transcoded)
-
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        futures = [
-                executor.submit(audio_bucket.put_object, Key=key, Body=audio)]
 
         for future in as_completed(futures):
             future.result()
@@ -1292,7 +1275,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
 
     if uuid and base64_audio_file:
         try:
-            put_audio_in_object_store(uuid, base64_audio_file)
+            put_audio_in_object_store(uuid, base64_audio_file.transcoded)
         except:
             print(traceback.format_exc())
             return '', 500

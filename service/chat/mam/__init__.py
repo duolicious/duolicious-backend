@@ -6,13 +6,13 @@ from batcher import Batcher
 from database import asyncdatabase
 import database
 import erlastic
-from service.chat.util import (
+from service.chat.chatutil import (
     LSERVER,
     build_element,
     message_string_to_etree,
     to_bare_jid,
 )
-from service.chat.util.erlang import (
+from service.chat.chatutil.erlang import (
     etree_to_term,
     term_to_etree,
 )

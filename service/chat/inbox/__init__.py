@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from lxml import etree
 from typing import Optional, List
 import database
-from service.chat.util import (
+from service.chat.chatutil import (
     LSERVER,
     build_element,
     format_timestamp,

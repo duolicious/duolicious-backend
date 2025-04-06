@@ -1,7 +1,7 @@
 from lxml import etree
 import redis.asyncio as redis
 import traceback
-from service.chat.util import (
+from service.chat.chatutil import (
     fetch_is_skipped,
     fetch_id_from_username,
 )

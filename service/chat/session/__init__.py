@@ -1,7 +1,7 @@
 from lxml import etree
 import uuid
 from typing import List
-from service.chat.util import (
+from service.chat.chatutil import (
     LSERVER,
     build_element,
 )

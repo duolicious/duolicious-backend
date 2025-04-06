@@ -1,7 +1,7 @@
 from database.asyncdatabase import api_tx
 from service.cron.autodeactivate2.sql import *
 from service.cron.autodeactivate2.template import emailtemplate
-from service.cron.util import print_stacktrace, MAX_RANDOM_START_DELAY
+from service.cron.cronutil import print_stacktrace, MAX_RANDOM_START_DELAY
 from smtp import aws_smtp
 import asyncio
 import os

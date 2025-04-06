@@ -1,6 +1,6 @@
 from database.asyncdatabase import api_tx
 from service.cron.garbagerecords.sql import *
-from service.cron.util import print_stacktrace, MAX_RANDOM_START_DELAY
+from service.cron.cronutil import print_stacktrace, MAX_RANDOM_START_DELAY
 import asyncio
 import os
 import random

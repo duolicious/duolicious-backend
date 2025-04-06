@@ -91,6 +91,11 @@ services:
       DUO_DB_USER: postgres
       DUO_DB_PASS: password
 
+      DUO_R2_AUDIO_BUCKET_NAME: s3-mock-audio-bucket
+      DUO_R2_ACCT_ID: unused-in-dev-env
+      DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
+      DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
+
       DUO_CHAT_PORTS: '5443'
 
   cron:

@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import os
 from database.asyncdatabase import api_tx, check_connections_forever
 import asyncio
@@ -41,12 +40,20 @@ from service.chat.online import (
 from service.chat.ratelimit import (
     maybe_fetch_rate_limit,
 )
+from service.chat.audiomessage import (
+    process_audio_message,
+)
 from lxml import etree
-from service.chat.util import (
+from service.chat.chatutil import (
     fetch_is_skipped,
     message_string_to_etree,
     to_bare_jid,
     fetch_id_from_username,
+)
+from service.chat.message import (
+    AudioMessage,
+    TypingMessage,
+    xml_to_message,
 )
 import uuid
 import redis.asyncio as redis
@@ -153,30 +160,6 @@ NON_ALPHANUMERIC_RE = regex.compile(r'[^\p{L}\p{N}]')
 REPEATED_CHARACTERS_RE = regex.compile(r'(.)\1{1,}')
 
 
-@dataclass(frozen=True)
-class BaseMessage:
-    stanza_id: str
-    to_username: str
-
-
-@dataclass(frozen=True)
-class ChatMessage(BaseMessage):
-    body: str
-
-
-@dataclass(frozen=True)
-class TypingMessage(BaseMessage):
-    pass
-
-
-@dataclass(frozen=True)
-class AudioMessage(BaseMessage):
-    audio_base64: str
-
-
-Message = ChatMessage | TypingMessage | AudioMessage
-
-
 async def redis_publish(channel: str, message: str):
     await REDIS_WORKER_CLIENT.publish(channel, message)
 
@@ -249,53 +232,6 @@ async def send_notification(
     )
 
     upsert_last_notification(username=to_username, is_intro=is_intro)
-
-def xml_to_message(parsed_xml: etree._Element) -> Message | None:
-    if parsed_xml.tag != '{jabber:client}message':
-        return None
-
-    message_type = parsed_xml.attrib.get('type')
-
-    stanza_id = parsed_xml.attrib.get('id')
-    stanza_id = stanza_id if stanza_id and len(stanza_id) <= 250 else None
-
-    audio_base64 = parsed_xml.attrib.get('audio_base64')
-
-    body_element = parsed_xml.find('{jabber:client}body')
-    body = (
-        body_element.text.strip()
-        if
-        body_element is not None
-        and body_element.text
-        and body_element.text.strip()
-        else None
-    )
-
-    to_jid = parsed_xml.attrib.get('to')
-    to_bare_jid_ = to_bare_jid(parsed_xml.attrib.get('to'))
-    to_username = str(uuid.UUID(to_bare_jid_))
-
-    if not stanza_id:
-        return None
-    elif not to_username:
-        return None
-    elif message_type == 'typing':
-        return TypingMessage(
-                stanza_id=stanza_id,
-                to_username=to_username)
-    elif message_type == 'chat':
-        if audio_base64:
-            return AudioMessage(
-                    stanza_id=stanza_id,
-                    to_username=to_username,
-                    audio_base64=audio_base64)
-        elif body:
-            return ChatMessage(
-                    stanza_id=stanza_id,
-                    to_username=to_username,
-                    body=body)
-
-    return None
 
 def normalize_message(message_str):
     message_str = message_str.lower()
@@ -491,8 +427,7 @@ async def process_text(
         ])
 
     if isinstance(maybe_message, AudioMessage):
-        # TODO
-        return
+        return process_audio_message(maybe_message)
 
     if is_text_too_long(maybe_message.body):
         return await redis_publish_many(connection_uuid, [
