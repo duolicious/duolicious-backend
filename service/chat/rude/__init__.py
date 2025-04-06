@@ -1,5 +1,9 @@
 from antiabuse.normalize import normalize_string
 import re
+from service.chat.message import (
+    Message,
+    ChatMessage,
+)
 
 # The idea of this list is to filter the most extreme and most common ways to
 # offend in intros. Because it only applies to intros, we've aimed for broad
@@ -566,3 +570,10 @@ def is_rude(s: str) -> bool:
     normalized_input = normalize_string(s)
 
     return bool(_rude_matcher.search(normalized_input))
+
+
+def is_rude_message(message: Message) -> bool:
+    if isinstance(message, ChatMessage):
+        return is_rude(message.body)
+    else:
+        return False

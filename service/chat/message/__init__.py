@@ -1,9 +1,16 @@
+import secrets
 from dataclasses import dataclass
 import uuid
 from lxml import etree
 from service.chat.chatutil import (
     to_bare_jid,
 )
+
+AUDIO_MESSAGE_BODY = """
+Audio message
+
+Upgrade to the latest version of Duolicious to hear this message
+""".strip()
 
 @dataclass(frozen=True)
 class BaseMessage:
@@ -23,7 +30,9 @@ class TypingMessage(BaseMessage):
 
 @dataclass(frozen=True)
 class AudioMessage(BaseMessage):
+    body: str
     audio_base64: str
+    audio_uuid: str
 
 
 Message = ChatMessage | TypingMessage | AudioMessage
@@ -67,7 +76,9 @@ def xml_to_message(parsed_xml: etree._Element) -> Message | None:
             return AudioMessage(
                     stanza_id=stanza_id,
                     to_username=to_username,
-                    audio_base64=audio_base64)
+                    body=AUDIO_MESSAGE_BODY,
+                    audio_base64=audio_base64,
+                    audio_uuid=secrets.token_hex(32))
         elif body:
             return ChatMessage(
                     stanza_id=stanza_id,

@@ -2,7 +2,6 @@ from batcher import Batcher
 from database import asyncdatabase
 from dataclasses import dataclass
 from lxml import etree
-from typing import Optional, List
 import database
 from service.chat.chatutil import (
     LSERVER,
@@ -107,9 +106,9 @@ class MarkDisplayedJob:
 
 
 async def maybe_get_inbox(
-    parsed_xml: Optional[etree._Element],
+    parsed_xml: etree._Element | None,
     username: str,
-) -> List[str]:
+) -> list[str]:
     if parsed_xml is None:
         return []
 
@@ -133,7 +132,7 @@ async def maybe_get_inbox(
     return await _get_inbox(query_id, username)
 
 
-async def _get_inbox(query_id: str, username: str) -> List[str]:
+async def _get_inbox(query_id: str, username: str) -> list[str]:
     """
     Fetches the user's inbox using the query_id and constructs XML elements for each message.
     :param query_id: The ID of the query extracted from the XML.
@@ -207,31 +206,7 @@ async def _get_inbox(query_id: str, username: str) -> List[str]:
     return messages
 
 
-def upsert_conversation(
-    from_username: str,
-    to_username: str,
-    msg_id: str,
-    content: str,
-):
-    """
-    Inserts or updates a conversation in the inbox table for both sender and recipient.
-    Sets the conversation's box appropriately ('chats' for sender, 'inbox' for recipient).
-    :param from_username: The local username of the sender.
-    :param to_username: The local username of the recipient.
-    :param message_data: A dictionary containing 'msg_id', 'content'
-    """
-
-    job = UpsertConversationJob(
-        from_username=from_username,
-        to_username=to_username,
-        msg_id=msg_id,
-        content=content,
-    )
-
-    _upsert_conversation_batcher.enqueue(job)
-
-
-def _process_upsert_conversation_batch(batch: List[UpsertConversationJob]):
+def process_upsert_conversation_batch(tx, batch: list[UpsertConversationJob]):
     params_seq = [
         dict(
             from_username=job.from_username,
@@ -244,11 +219,10 @@ def _process_upsert_conversation_batch(batch: List[UpsertConversationJob]):
         for job in batch
     ]
 
-    with database.api_tx('read committed') as tx:
-        tx.executemany(Q_UPSERT_CONVERSATION, params_seq)
+    tx.executemany(Q_UPSERT_CONVERSATION, params_seq)
 
 def maybe_mark_displayed(
-    parsed_xml: Optional[etree._Element],
+    parsed_xml: etree._Element | None,
     from_username: str,
 ) -> bool:
     if parsed_xml is None:
@@ -283,7 +257,7 @@ def _mark_displayed(from_username: str, to_username: str):
     _mark_displayed_batcher.enqueue(job)
 
 
-def _process_mark_displayed_batch(batch: List[MarkDisplayedJob]):
+def _process_mark_displayed_batch(batch: list[MarkDisplayedJob]):
     params_seq = [
         dict(
             luser=job.from_username,
@@ -296,15 +270,6 @@ def _process_mark_displayed_batch(batch: List[MarkDisplayedJob]):
         tx.executemany(Q_MARK_DISPLAYED, params_seq)
 
 
-_upsert_conversation_batcher = Batcher[UpsertConversationJob](
-    process_fn=_process_upsert_conversation_batch,
-    flush_interval=1.0,
-    min_batch_size=1,
-    max_batch_size=1000,
-    retry=False,
-)
-
-
 _mark_displayed_batcher = Batcher[MarkDisplayedJob](
     process_fn=_process_mark_displayed_batch,
     flush_interval=1.0,
@@ -312,9 +277,6 @@ _mark_displayed_batcher = Batcher[MarkDisplayedJob](
     max_batch_size=1000,
     retry=False,
 )
-
-
-_upsert_conversation_batcher.start()
 
 
 _mark_displayed_batcher.start()

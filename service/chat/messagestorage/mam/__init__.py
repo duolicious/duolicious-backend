@@ -1,8 +1,7 @@
 import re
 from dataclasses import dataclass
 from lxml import etree
-from typing import Optional, List
-from batcher import Batcher
+from typing import Callable
 from database import asyncdatabase
 import database
 import erlastic
@@ -19,6 +18,10 @@ from service.chat.chatutil.erlang import (
 import datetime
 import uuid
 from async_lru_cache import AsyncLruCache
+from service.chat.message import (
+    ChatMessage,
+    AudioMessage,
+)
 
 
 Q_INSERT_MESSAGE = """
@@ -29,6 +32,7 @@ INSERT INTO
         remote_bare_jid,
         direction,
         message,
+        audio_uuid,
         search_body,
         person_id
     )
@@ -39,6 +43,7 @@ VALUES
         %(to_username)s,
         'O',
         %(message)s,
+        %(audio_uuid)s,
         %(search_body)s,
         (SELECT id FROM person WHERE uuid = uuid_or_null(%(from_username)s))
     ),
@@ -49,6 +54,7 @@ VALUES
         %(from_username)s,
         'I',
         %(message)s,
+        %(audio_uuid)s,
         %(search_body)s,
         (SELECT id FROM person WHERE uuid = uuid_or_null(%(to_username)s))
     )
@@ -59,7 +65,8 @@ Q_SELECT_MESSAGE = f"""
 WITH page AS (
     SELECT
         mam_message.id,
-        mam_message.message
+        mam_message.message,
+        mam_message.audio_uuid
     FROM
         mam_message
     JOIN
@@ -97,18 +104,19 @@ class Query:
 
 
 @dataclass(frozen=True)
-class Message:
-    message_body: str
+class StoreMamMessageJob:
     timestamp_microseconds: int
     from_username: str
     to_username: str
     id: str
+    message_body: str
+    audio_uuid: str | None
 
 
 def _process_query(
-    parsed_xml: Optional[etree._Element],
+    parsed_xml: etree._Element | None,
     from_username: str
-) -> Optional[Query]:
+) -> Query | None:
     if parsed_xml is None:
         return None
 
@@ -141,10 +149,11 @@ def _process_query(
 
 
 def _forwarded_element(
-    message: etree._Element,
     query: Query,
     row_id: int,
     forwarded_id: str,
+    message: etree._Element,
+    audio_uuid: str | None = None,
 ) -> etree._Element:
     delay = build_element(
         'delay',
@@ -180,6 +189,7 @@ def _forwarded_element(
             'from': f'{query.from_username}@{LSERVER}',
             'to': f'{query.from_username}@{LSERVER}',
             'id': forwarded_id,
+            **({'audio_uuid': audio_uuid} if audio_uuid else {}),
         },
         ns='jabber:client',
     )
@@ -190,9 +200,9 @@ def _forwarded_element(
 
 
 async def maybe_get_conversation(
-    parsed_xml: Optional[etree._Element],
+    parsed_xml: etree._Element | None,
     from_username: str,
-) -> List[str]:
+) -> list[str]:
     if parsed_xml is None:
         return []
 
@@ -208,26 +218,7 @@ async def maybe_get_conversation(
     )
 
 
-def store_message(
-    message_body: str,
-    from_username: str,
-    to_username: str,
-    msg_id: str
-):
-    timestamp = datetime.datetime.now().timestamp()
-
-    message = Message(
-        message_body=message_body,
-        timestamp_microseconds=int(timestamp * 1_000_000),
-        from_username=from_username,
-        to_username=to_username,
-        id=msg_id,
-    )
-
-    _store_message_batcher.enqueue(message)
-
-
-def _process_store_message_batch(batch: List[Message]):
+def process_store_mam_message_batch(tx, batch: list[StoreMamMessageJob]):
     params_seq = [
         dict(
             id=microseconds_to_mam_message_id(message.timestamp_microseconds),
@@ -243,20 +234,20 @@ def _process_store_message_batch(batch: List[Message]):
                     )
                 )
             ),
+            audio_uuid=message.audio_uuid,
             search_body=normalize_search_text(message.message_body),
         )
         for message in batch
     ]
 
-    with database.api_tx('read committed') as tx:
-        tx.executemany(Q_INSERT_MESSAGE, params_seq)
+    tx.executemany(Q_INSERT_MESSAGE, params_seq)
 
 
 async def _get_conversation(
     query: Query,
     from_username: str,
     to_username: str
-) -> List[str]:
+) -> list[str]:
     before_id = (
             binary_to_integer(bytes(query.before, 'utf-8'), 32)
             if query.before
@@ -277,6 +268,7 @@ async def _get_conversation(
     for row in rows:
         row_id = row['id']
         message_binary = row['message']
+        audio_uuid = row['audio_uuid']
 
         try:
             message_term = erlastic.decode(message_binary)
@@ -285,10 +277,11 @@ async def _get_conversation(
             continue
 
         forwarded_etree = _forwarded_element(
-            message=message_etree,
             query=query,
             row_id=row_id,
             forwarded_id=str(uuid.uuid4()),
+            message=message_etree,
+            audio_uuid=audio_uuid,
         )
 
         messages.append(
@@ -380,25 +373,14 @@ def normalize_search_text(text: str | None) -> str | None:
     lower_body = text.lower()
 
     # Step 1: Replace certain punctuations with a single space
-    re0 = re.sub(r"[, .:;\-?!]+", " ", lower_body, flags=re.UNICODE)
+    re0 = re.sub(r"[,.:;\-?!]+", " ", lower_body, flags=re.UNICODE)
 
-    # Step 2: Remove non-word characters at the start and end of the string, or
-    # entirely non-word characters
-    re1 = re.sub(r"([^\w ]+)|(^\s+)|(\s+$)", "", re0, flags=re.UNICODE)
+    # Step 2: Remove non-word characters except whitespace
+    # (allowing tabs, newlines, carriage returns, etc.)
+    re1 = re.sub(r"[^\w\s]+", "", re0, flags=re.UNICODE)
 
-    # Step 3: Replace multiple spaces with the word separator
-    re2 = re.sub(r"\s+", ' ', re1, flags=re.UNICODE)
+    # Step 3: Replace multiple whitespace characters (spaces, tabs, newlines, etc.)
+    # with a single space and trim any leading/trailing spaces.
+    re2 = re.sub(r"\s+", " ", re1, flags=re.UNICODE).strip()
 
     return re2
-
-
-_store_message_batcher = Batcher[Message](
-    process_fn=_process_store_message_batch,
-    flush_interval=1.0,
-    min_batch_size=1,
-    max_batch_size=1000,
-    retry=False,
-)
-
-
-_store_message_batcher.start()

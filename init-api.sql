@@ -1506,6 +1506,7 @@ CREATE TABLE IF NOT EXISTS mam_message(
   message bytea NOT NULL,
   search_body text,
   person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  audio_uuid TEXT,
   PRIMARY KEY(person_id, id)
 );
 
