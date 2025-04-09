@@ -479,43 +479,44 @@ async def process_text(
         encoding='unicode',
         pretty_print=False)
 
-    # TODO: Updates to `mam_message` and `inbox` tables should happen in one tx
+    async def notify():
+        await redis_publish_many(to_username, [sanitized_xml])
+
+        immediate_data = await fetch_immediate_data(
+                from_id=from_id,
+                to_id=to_id,
+                is_intro=is_intro)
+
+        if immediate_data is not None:
+            await send_notification(
+                from_name=immediate_data['name'],
+                to_username=to_username,
+                message=maybe_message.body,
+                is_intro=is_intro,
+                data={
+                    'screen': 'Conversation Screen',
+                    'params': {
+                        'personId': immediate_data['person_id'],
+                        'personUuid': immediate_data['person_uuid'],
+                        'name': immediate_data['name'],
+                        'imageUuid': immediate_data['image_uuid'],
+                        'imageBlurhash': immediate_data['image_blurhash'],
+                    },
+                },
+            )
+
+        return await redis_publish_many(connection_uuid, [
+            f'<duo_message_delivered id="{stanza_id}"/>'
+        ])
+
     store_message(
         from_username=from_username,
         to_username=to_username,
         from_id=from_id,
         to_id=to_id,
         msg_id=stanza_id,
-        message=maybe_message)
-
-    await redis_publish_many(to_username, [sanitized_xml])
-
-    immediate_data = await fetch_immediate_data(
-            from_id=from_id,
-            to_id=to_id,
-            is_intro=is_intro)
-
-    if immediate_data is not None:
-        await send_notification(
-            from_name=immediate_data['name'],
-            to_username=to_username,
-            message=maybe_message.body,
-            is_intro=is_intro,
-            data={
-                'screen': 'Conversation Screen',
-                'params': {
-                    'personId': immediate_data['person_id'],
-                    'personUuid': immediate_data['person_uuid'],
-                    'name': immediate_data['name'],
-                    'imageUuid': immediate_data['image_uuid'],
-                    'imageBlurhash': immediate_data['image_blurhash'],
-                },
-            },
-        )
-
-    return await redis_publish_many(connection_uuid, [
-        f'<duo_message_delivered id="{stanza_id}"/>'
-    ])
+        message=maybe_message,
+        callback=notify)
 
 
 @app.websocket("/")

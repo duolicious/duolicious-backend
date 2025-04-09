@@ -10,7 +10,7 @@ from service.chat.messagestorage.setmessaged import (
 from batcher import Batcher
 from database import api_tx
 from service.chat.message import AudioMessage, ChatMessage
-from typing import Callable
+from typing import Awaitable, Callable
 from lxml import etree
 from dataclasses import dataclass
 import datetime
@@ -33,7 +33,7 @@ def store_message(
     to_id: int,
     msg_id: str,
     message: ChatMessage | AudioMessage,
-    callback: Callable[[], None] | None = None
+    callback: Callable[[], None] | Callable[[], Awaitable[None]] | None = None
 ):
     timestamp = datetime.datetime.now().timestamp()
 
@@ -97,7 +97,7 @@ def _process_store_message_batch(batch: list[StoreMessageJob]):
 
 _store_message_batcher = Batcher[StoreMessageJob](
     process_fn=_process_store_message_batch,
-    flush_interval=1.0,
+    flush_interval=0.5,
     min_batch_size=1,
     max_batch_size=1000,
     retry=False,

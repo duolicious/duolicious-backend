@@ -1,16 +1,20 @@
 from dataclasses import dataclass
-from typing import Callable, Generic, TypeVar
+from typing import Awaitable, Callable, Generic, TypeVar
 import queue
 import threading
 import time
 import traceback
+import inspect
+import asyncio
 
 T = TypeVar('T')
+
+event_loop = asyncio.get_event_loop()
 
 @dataclass
 class BatchItem(Generic[T]):
     item: T
-    callback: Callable[[], None] | None = None
+    callback: Callable[[], None] | Callable[[], Awaitable[None]] | None = None
 
 class Batcher(Generic[T]):
     def __init__(
@@ -30,7 +34,11 @@ class Batcher(Generic[T]):
         self._flush_interval_lock = threading.Lock()
         self._stop_event = threading.Event()
 
-    def enqueue(self, item: T, callback: Callable[[], None] | None = None):
+    def enqueue(
+        self,
+        item: T,
+        callback: Callable[[], None] | Callable[[], Awaitable[None]] | None = None
+    ):
         self._queue.put(BatchItem(item, callback))
 
     def _get_flush_interval(self) -> float:
@@ -66,7 +74,14 @@ class Batcher(Generic[T]):
             items = [bi.item for bi in batch]
             self._process_fn(items)
             for bi in batch:
-                if bi.callback:
+                if not bi.callback:
+                    pass
+                elif inspect.iscoroutinefunction(bi.callback):
+                    asyncio.run_coroutine_threadsafe(
+                        coro=bi.callback(),
+                        loop=event_loop,
+                    )
+                else:
                     bi.callback()
         except Exception:
             print(traceback.format_exc())
