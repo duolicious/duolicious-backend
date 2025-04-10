@@ -852,20 +852,23 @@ def delete_or_ban_account(
     s: Optional[t.SessionInfo],
     admin_ban_token: Optional[str] = None,
 ):
-    if not s and not admin_ban_token:
-        raise ValueError('At least one parameter must not be None')
-
     with api_tx() as tx:
         if admin_ban_token:
-            params = dict(token=admin_ban_token)
-            rows = tx.execute(Q_ADMIN_BAN, params=params).fetchall()
+            rows = tx.execute(
+                Q_ADMIN_BAN,
+                params=dict(token=admin_ban_token)
+            ).fetchall()
+        elif s:
+            rows = [
+                dict(
+                    person_id=s.person_id,
+                    person_uuid=s.person_uuid
+                )
+            ]
         else:
-            params = dict(person_id=s.person_id, person_uuid=s.person_uuid)
-            rows = [params]
+            raise ValueError('At least one parameter must not be None')
 
         tx.executemany(Q_DELETE_ACCOUNT, params_seq=rows)
-
-        tx.executemany(Q_DELETE_XMPP, params_seq=rows)
 
     return rows
 
