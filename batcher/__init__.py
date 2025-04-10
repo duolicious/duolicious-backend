@@ -77,9 +77,16 @@ class Batcher(Generic[T]):
                 if not bi.callback:
                     pass
                 elif inspect.iscoroutinefunction(bi.callback):
-                    asyncio.run_coroutine_threadsafe(
+                    future = asyncio.run_coroutine_threadsafe(
                         coro=bi.callback(),
                         loop=event_loop,
+                    )
+
+                    future.add_done_callback(
+                        lambda fut:
+                            print(fut.exception())
+                            if fut.exception()
+                            else None
                     )
                 else:
                     bi.callback()

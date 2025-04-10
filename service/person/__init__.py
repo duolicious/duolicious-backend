@@ -1275,7 +1275,10 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
 
     if uuid and base64_audio_file:
         try:
-            put_audio_in_object_store(uuid, base64_audio_file.transcoded)
+            put_audio_in_object_store(
+                uuid=uuid,
+                audio_file_bytes=base64_audio_file.transcoded,
+            )
         except:
             print(traceback.format_exc())
             return '', 500

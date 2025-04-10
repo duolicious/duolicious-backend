@@ -32,13 +32,18 @@ audio_bucket = s3.Bucket(R2_AUDIO_BUCKET_NAME)
 
 def put_audio_in_object_store(
     uuid: str,
-    base64_audio_file: bytes,
+    audio_file_bytes: bytes,
 ):
     key = f'{uuid}.aac'
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = [
-                executor.submit(audio_bucket.put_object, Key=key, Body=base64_audio_file)]
+            executor.submit(
+                audio_bucket.put_object,
+                Key=key,
+                Body=audio_file_bytes
+            )
+        ]
 
         for future in as_completed(futures):
             future.result()

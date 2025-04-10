@@ -36,9 +36,6 @@ from service.chat.online import (
 from service.chat.ratelimit import (
     maybe_fetch_rate_limit,
 )
-from service.chat.audiomessage import (
-    process_audio_message,
-)
 from lxml import etree
 from service.chat.chatutil import (
     fetch_is_skipped,
@@ -53,7 +50,6 @@ from service.chat.message import (
     TypingMessage,
     xml_to_message,
 )
-import uuid
 import redis.asyncio as redis
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
@@ -428,7 +424,7 @@ async def process_text(
                 message_string_to_etree(
                     to_username=to_username,
                     from_username=from_username,
-                    id=str(uuid.uuid4()),
+                    id=maybe_message.stanza_id,
                     type='typing',
                 ),
                 encoding='unicode',
@@ -469,17 +465,26 @@ async def process_text(
             f'<duo_message_not_unique id="{stanza_id}"/>'
         ])
 
-    sanitized_xml = etree.tostring(
-        message_string_to_etree(
-            message_body=maybe_message.body,
-            to_username=to_username,
-            from_username=from_username,
-            id=str(uuid.uuid4()),
-        ),
-        encoding='unicode',
-        pretty_print=False)
+    async def store_audio_and_notify():
+        # TODO: Do these audio transcoding/uploading steps block later messages?
+        if \
+                isinstance(maybe_message, AudioMessage) and \
+                not transcode_and_put(
+                    uuid=maybe_message.audio_uuid,
+                    audio_base64=maybe_message.audio_base64,
+                ):
+            return
 
-    async def notify():
+        sanitized_xml = etree.tostring(
+            message_string_to_etree(
+                message_body=maybe_message.body,
+                to_username=to_username,
+                from_username=from_username,
+                id=maybe_message.stanza_id,
+            ),
+            encoding='unicode',
+            pretty_print=False)
+
         await redis_publish_many(to_username, [sanitized_xml])
 
         immediate_data = await fetch_immediate_data(
@@ -505,9 +510,19 @@ async def process_text(
                 },
             )
 
-        return await redis_publish_many(connection_uuid, [
-            f'<duo_message_delivered id="{stanza_id}"/>'
-        ])
+        if isinstance(message, AudioMessage):
+            response = (
+                f'<duo_message_delivered '
+                f'id="{stanza_id}" '
+                f'audio_uuid="{maybe_message.audio_uuid} '
+            ).strip() + '/>'
+        else:
+            response = (
+                f'<duo_message_delivered '
+                f'id="{stanza_id}" '
+            ).strip() + '/>'
+
+        return await redis_publish_many(connection_uuid, [response])
 
     store_message(
         from_username=from_username,
@@ -516,7 +531,7 @@ async def process_text(
         to_id=to_id,
         msg_id=stanza_id,
         message=maybe_message,
-        callback=notify)
+        callback=store_audio_and_notify)
 
 
 @app.websocket("/")
