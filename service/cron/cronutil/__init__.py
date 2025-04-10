@@ -1,7 +1,7 @@
 from database.asyncdatabase import api_tx
 from concurrent.futures import ThreadPoolExecutor
 from botocore.exceptions import ClientError
-from service.cron.util.sql import *
+from service.cron.cronutil.sql import *
 import asyncio
 import boto3
 import io

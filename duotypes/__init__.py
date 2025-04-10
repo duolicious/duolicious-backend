@@ -17,7 +17,7 @@ from pillow_heif import register_heif_opener
 import constants
 import io
 import base64
-import duoaudio
+from duoaudio import transcode_and_trim_audio_from_base64
 import traceback
 import antiabuse.antirude.displayname
 import antiabuse.antirude.education
@@ -26,6 +26,7 @@ import antiabuse.antirude.profile
 from antiabuse.antispam.urldetector import has_url
 from antiabuse.antispam.phonenumberdetector import detect_phone_numbers
 from antiabuse.antispam.solicitation import has_solicitation
+from util import human_readable_size_metric
 
 register_heif_opener()
 
@@ -48,16 +49,6 @@ MIN_GIF_DIM = 10
 
 MIN_PHOTO_POSITION = 1
 MAX_PHOTO_POSITION = 7
-
-
-def human_readable_size_metric(size_bytes):
-    # Define suffixes for metric prefixes
-    suffixes = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB']
-    i = 0
-    while size_bytes >= 1000 and i < len(suffixes) - 1:
-        size_bytes /= 1000.0
-        i += 1
-    return f"{size_bytes:.1f} {suffixes[i]}"
 
 
 def validate_gif_dimensions(larger_dim: int, smaller_dim: int):
@@ -96,8 +87,8 @@ class ClubItem(BaseModel):
 
 class Base64AudioFile(BaseModel):
     base64: str
-    bytes: bytes
     transcoded: bytes
+    bytes: bytes
 
     @model_validator(mode='before')
     def convert_base64(cls, values):
@@ -105,29 +96,12 @@ class Base64AudioFile(BaseModel):
         if 'base64' in values and 'bytes' in values and 'transcoded' in values:
             return values
 
-        try:
-            base64_value = values['base64'].split(',')[-1]
-        except:
-            raise ValueError('Field base64 must be a valid base64 string')
+        response = transcode_and_trim_audio_from_base64(values['base64'])
 
-        try:
-            decoded_bytes = base64.b64decode(base64_value)
-        except base64.binascii.Error as e:
-            raise ValueError(f'Field base64 must be a valid base64 string')
+        if isinstance(response, ValueError):
+            raise response
 
-        if len(decoded_bytes) > constants.MAX_AUDIO_BYTES:
-            raise ValueError(
-                f'Decoded file must be smaller than '
-                f'{human_readable_size_metric(constants.MAX_AUDIO_BYTES)}')
-
-        try:
-            transcoded = duoaudio.transcode_and_trim_audio(
-                    io.BytesIO(decoded_bytes),
-                    constants.MAX_AUDIO_SECONDS).getvalue()
-        except:
-            print(traceback.format_exc())
-            print('base64 input was: ' + values['base64'])
-            raise ValueError('Error while processing audio')
+        decoded_bytes, transcoded = response
 
         values['bytes'] = decoded_bytes
         values['transcoded'] = transcoded

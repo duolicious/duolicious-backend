@@ -9,7 +9,7 @@ from service.cron.notifications.template import (
     big_part,
     emailtemplate,
 )
-from service.cron.util import (
+from service.cron.cronutil import (
     MAX_RANDOM_START_DELAY,
     join_lists_of_dicts,
     print_stacktrace,

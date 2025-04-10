@@ -173,40 +173,22 @@ actual_inbox_2=$(get_inbox "$user2uuid" "$user2token"); query_id_2=$(query_id)
 actual_inbox_3=$(get_inbox "$user3uuid" "$user3token"); query_id_3=$(query_id)
 
 expected_inbox_1=$(cat << EOF
-<message xmlns="jabber:client" from="$user1uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="1" queryid="$query_id_1"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" type="chat" from="$user2uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1">
-    <body>from user 2 to user 1</body>
-    <request xmlns="urn:xmpp:receipts"/>
-  </message></forwarded><read>false</read><box>inbox</box><archive>false</archive><mute>0</mute></result></message>
-<message xmlns="jabber:client" from="$user1uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="1" queryid="$query_id_1"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" type="chat" from="$user3uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1">
-    <body>from user 3 to user 1</body>
-    <request xmlns="urn:xmpp:receipts"/>
-  </message></forwarded><read>false</read><box>inbox</box><archive>false</archive><mute>0</mute></result></message>
+<message xmlns="jabber:client" from="$user1uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="1" queryid="$query_id_1"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" from="$user2uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1" type="chat"><body>from user 2 to user 1</body><request xmlns="urn:xmpp:receipts"/></message></forwarded><read>false</read><box>inbox</box><archive>false</archive><mute>0</mute></result></message>
+<message xmlns="jabber:client" from="$user1uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="1" queryid="$query_id_1"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" from="$user3uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1" type="chat"><body>from user 3 to user 1</body><request xmlns="urn:xmpp:receipts"/></message></forwarded><read>false</read><box>inbox</box><archive>false</archive><mute>0</mute></result></message>
 <iq id="$query_id_1" type="result"><fin/></iq>
 EOF
 )
 
 expected_inbox_2=$(cat << EOF
-<message xmlns="jabber:client" from="$user2uuid@duolicious.app" to="$user2uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="0" queryid="$query_id_2"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" type="chat" from="$user2uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1">
-    <body>from user 2 to user 1</body>
-    <request xmlns="urn:xmpp:receipts"/>
-  </message></forwarded><read>true</read><box>chats</box><archive>false</archive><mute>0</mute></result></message>
-<message xmlns="jabber:client" from="$user2uuid@duolicious.app" to="$user2uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="1" queryid="$query_id_2"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" type="chat" from="$user3uuid@duolicious.app" to="$user2uuid@duolicious.app" id="id1">
-    <body>from user 3 to user 2</body>
-    <request xmlns="urn:xmpp:receipts"/>
-  </message></forwarded><read>false</read><box>chats</box><archive>false</archive><mute>0</mute></result></message>
+<message xmlns="jabber:client" from="$user2uuid@duolicious.app" to="$user2uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="0" queryid="$query_id_2"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" from="$user2uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1" type="chat"><body>from user 2 to user 1</body><request xmlns="urn:xmpp:receipts"/></message></forwarded><read>true</read><box>chats</box><archive>false</archive><mute>0</mute></result></message>
+<message xmlns="jabber:client" from="$user2uuid@duolicious.app" to="$user2uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="1" queryid="$query_id_2"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" from="$user3uuid@duolicious.app" to="$user2uuid@duolicious.app" id="id1" type="chat"><body>from user 3 to user 2</body><request xmlns="urn:xmpp:receipts"/></message></forwarded><read>false</read><box>chats</box><archive>false</archive><mute>0</mute></result></message>
 <iq id="$query_id_2" type="result"><fin/></iq>
 EOF
 )
 
 expected_inbox_3=$(cat << EOF
-<message xmlns="jabber:client" from="$user3uuid@duolicious.app" to="$user3uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="0" queryid="$query_id_3"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" type="chat" from="$user3uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1">
-    <body>from user 3 to user 1</body>
-    <request xmlns="urn:xmpp:receipts"/>
-  </message></forwarded><read>true</read><box>chats</box><archive>false</archive><mute>0</mute></result></message>
-<message xmlns="jabber:client" from="$user3uuid@duolicious.app" to="$user3uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="0" queryid="$query_id_3"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" type="chat" from="$user3uuid@duolicious.app" to="$user2uuid@duolicious.app" id="id1">
-    <body>from user 3 to user 2</body>
-    <request xmlns="urn:xmpp:receipts"/>
-  </message></forwarded><read>true</read><box>chats</box><archive>false</archive><mute>0</mute></result></message>
+<message xmlns="jabber:client" from="$user3uuid@duolicious.app" to="$user3uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="0" queryid="$query_id_3"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" from="$user3uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1" type="chat"><body>from user 3 to user 1</body><request xmlns="urn:xmpp:receipts"/></message></forwarded><read>true</read><box>chats</box><archive>false</archive><mute>0</mute></result></message>
+<message xmlns="jabber:client" from="$user3uuid@duolicious.app" to="$user3uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="0" queryid="$query_id_3"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" from="$user3uuid@duolicious.app" to="$user2uuid@duolicious.app" id="id1" type="chat"><body>from user 3 to user 2</body><request xmlns="urn:xmpp:receipts"/></message></forwarded><read>true</read><box>chats</box><archive>false</archive><mute>0</mute></result></message>
 <iq id="$query_id_3" type="result"><fin/></iq>
 EOF
 )
@@ -223,14 +205,8 @@ mark_displayed "$user1uuid" "$user1token" "$user2uuid"
 
 actual_inbox_1=$(get_inbox "$user1uuid" "$user1token"); query_id_1=$(query_id)
 expected_inbox_1=$(cat << EOF
-<message xmlns="jabber:client" from="$user1uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="0" queryid="$query_id_1"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" type="chat" from="$user2uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1">
-    <body>from user 2 to user 1</body>
-    <request xmlns="urn:xmpp:receipts"/>
-  </message></forwarded><read>true</read><box>inbox</box><archive>false</archive><mute>0</mute></result></message>
-<message xmlns="jabber:client" from="$user1uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="1" queryid="$query_id_1"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" type="chat" from="$user3uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1">
-    <body>from user 3 to user 1</body>
-    <request xmlns="urn:xmpp:receipts"/>
-  </message></forwarded><read>false</read><box>inbox</box><archive>false</archive><mute>0</mute></result></message>
+<message xmlns="jabber:client" from="$user1uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="0" queryid="$query_id_1"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" from="$user2uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1" type="chat"><body>from user 2 to user 1</body><request xmlns="urn:xmpp:receipts"/></message></forwarded><read>true</read><box>inbox</box><archive>false</archive><mute>0</mute></result></message>
+<message xmlns="jabber:client" from="$user1uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1"><result xmlns="erlang-solutions.com:xmpp:inbox:0" unread="1" queryid="$query_id_1"><forwarded xmlns="urn:xmpp:forward:0"><delay xmlns="urn:xmpp:delay" stamp="redacted"/><message xmlns="jabber:client" from="$user3uuid@duolicious.app" to="$user1uuid@duolicious.app" id="id1" type="chat"><body>from user 3 to user 1</body><request xmlns="urn:xmpp:receipts"/></message></forwarded><read>false</read><box>inbox</box><archive>false</archive><mute>0</mute></result></message>
 <iq id="$query_id_1" type="result"><fin/></iq>
 EOF
 )
