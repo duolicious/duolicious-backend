@@ -6,3 +6,7 @@ ALTER TABLE
 ADD COLUMN IF NOT EXISTS
     audio_uuid TEXT
 ;
+
+CREATE INDEX IF NOT EXISTS idx__mam_message__audio_uuid
+    ON mam_message
+    (audio_uuid);

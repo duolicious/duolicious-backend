@@ -96,6 +96,8 @@ services:
       DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
       DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
 
+      DUO_BOTO_ENDPOINT_URL: http://s3mock:9090
+
       DUO_CHAT_PORTS: '5443'
 
   cron:

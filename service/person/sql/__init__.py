@@ -1418,9 +1418,20 @@ WITH deleted_last AS (
 
     UNION
 
-    SELECT audio_uuid AS uuid
-    FROM deleted_mam_message
-    WHERE audio_uuid IS NOT NULL
+    SELECT
+        deleted_mam_message.audio_uuid AS uuid
+    FROM
+        deleted_mam_message
+    LEFT JOIN
+        mam_message
+    ON
+        mam_message.audio_uuid = deleted_mam_message.audio_uuid
+    AND
+        mam_message.person_id <> %(person_id)s
+    WHERE
+        deleted_mam_message.audio_uuid IS NOT NULL
+    AND
+        mam_message.audio_uuid IS NULL
 ), deleted_person_club AS (
     SELECT
         club_name

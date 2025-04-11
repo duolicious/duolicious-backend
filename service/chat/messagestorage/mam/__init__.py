@@ -153,7 +153,6 @@ def _forwarded_element(
     row_id: int,
     forwarded_id: str,
     message: etree._Element,
-    audio_uuid: str | None = None,
 ) -> etree._Element:
     delay = build_element(
         'delay',
@@ -189,7 +188,6 @@ def _forwarded_element(
             'from': f'{query.from_username}@{LSERVER}',
             'to': f'{query.from_username}@{LSERVER}',
             'id': forwarded_id,
-            **({'audio_uuid': audio_uuid} if audio_uuid else {}),
         },
         ns='jabber:client',
     )
@@ -273,7 +271,9 @@ async def _get_conversation(
         try:
             message_term = erlastic.decode(message_binary)
             message_etree = term_to_etree(message_term)
-        except:
+            if audio_uuid:
+                message_etree.set('audio_uuid', audio_uuid)
+        except Exception as e:
             continue
 
         forwarded_etree = _forwarded_element(
@@ -281,7 +281,6 @@ async def _get_conversation(
             row_id=row_id,
             forwarded_id=str(uuid.uuid4()),
             message=message_etree,
-            audio_uuid=audio_uuid,
         )
 
         messages.append(

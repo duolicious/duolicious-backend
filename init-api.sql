@@ -1514,6 +1514,10 @@ CREATE INDEX IF NOT EXISTS idx__mam_message__person_id__remote_bare_jid__id
     ON mam_message
     (person_id, remote_bare_jid, id);
 
+CREATE INDEX IF NOT EXISTS idx__mam_message__audio_uuid
+    ON mam_message
+    (audio_uuid);
+
 CREATE TABLE IF NOT EXISTS inbox (
     luser VARCHAR(250)               NOT NULL,
     remote_bare_jid VARCHAR(250)     NOT NULL,

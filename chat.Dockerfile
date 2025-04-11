@@ -13,6 +13,8 @@ COPY \
   . /app
 
 RUN : \
+  && apt update \
+  && apt install -y ffmpeg \
   && pip install --no-cache-dir -r /app/chat.requirements.txt
 
 CMD /app/chat.main.sh

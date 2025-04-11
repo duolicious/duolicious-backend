@@ -50,6 +50,9 @@ from service.chat.message import (
     TypingMessage,
     xml_to_message,
 )
+from service.chat.audiomessage import (
+    transcode_and_put,
+)
 import redis.asyncio as redis
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
@@ -434,7 +437,7 @@ async def process_text(
 
     if is_text_too_long(maybe_message):
         return await redis_publish_many(connection_uuid, [
-            f'<duo_message_too_long />'
+            f'<duo_message_too_long id="{stanza_id}"/>'
         ])
 
     is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
@@ -466,14 +469,15 @@ async def process_text(
         ])
 
     async def store_audio_and_notify():
-        # TODO: Do these audio transcoding/uploading steps block later messages?
         if \
                 isinstance(maybe_message, AudioMessage) and \
                 not transcode_and_put(
                     uuid=maybe_message.audio_uuid,
                     audio_base64=maybe_message.audio_base64,
                 ):
-            return
+            return await redis_publish_many(connection_uuid, [
+                f'<duo_server_error id="{stanza_id}"/>'
+            ])
 
         sanitized_xml = etree.tostring(
             message_string_to_etree(
@@ -510,11 +514,11 @@ async def process_text(
                 },
             )
 
-        if isinstance(message, AudioMessage):
+        if isinstance(maybe_message, AudioMessage):
             response = (
                 f'<duo_message_delivered '
                 f'id="{stanza_id}" '
-                f'audio_uuid="{maybe_message.audio_uuid} '
+                f'audio_uuid="{maybe_message.audio_uuid}" '
             ).strip() + '/>'
         else:
             response = (
