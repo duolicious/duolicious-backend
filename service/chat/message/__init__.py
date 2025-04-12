@@ -5,10 +5,17 @@ from lxml import etree
 from service.chat.chatutil import (
     to_bare_jid,
 )
+from constants import (
+    MAX_NOTIFICATION_LENGTH,
+)
 
-AUDIO_MESSAGE_BODY = """
+# Non-breaking spaces are inserted so that only the first line shows on old
+# clients, in inboxes, and in notifications
+NON_BREAKING_SPACES = '\xa0' * MAX_NOTIFICATION_LENGTH
+
+AUDIO_MESSAGE_BODY = f"""
 Audio message
-
+{NON_BREAKING_SPACES}
 Upgrade to the latest version of Duolicious to hear this message
 """.strip()
 

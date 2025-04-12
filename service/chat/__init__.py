@@ -58,6 +58,9 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 import xmltodict
 import json
+from constants import (
+    MAX_NOTIFICATION_LENGTH,
+)
 
 app = FastAPI()
 
@@ -216,10 +219,8 @@ async def send_notification(
     if to_token is None:
         return
 
-    max_notification_length = 128
-
-    truncated_message = message[:max_notification_length] + (
-            '...' if len(message) > max_notification_length else '')
+    truncated_message = message[:MAX_NOTIFICATION_LENGTH].strip() + (
+            '...' if len(message) > MAX_NOTIFICATION_LENGTH else '')
 
     notify.enqueue_mobile_notification(
         token=to_token,
