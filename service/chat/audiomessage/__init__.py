@@ -4,6 +4,7 @@ from duoaudio import (
 )
 from service.chat.message import AudioMessage
 import secrets
+import traceback
 
 def transcode_and_put(
     uuid: str,
@@ -12,11 +13,14 @@ def transcode_and_put(
     response = transcode_and_trim_audio_from_base64(audio_base64=audio_base64)
 
     if isinstance(response, ValueError):
-        # TODO: Handle the error case
         return False
 
     _, transcoded = response
 
-    put_audio_in_object_store(uuid=uuid, audio_file_bytes=transcoded)
+    try:
+        put_audio_in_object_store(uuid=uuid, audio_file_bytes=transcoded)
+    except:
+        print(traceback.format_exc())
+        return False
 
     return True
