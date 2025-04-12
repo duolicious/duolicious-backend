@@ -462,6 +462,7 @@ deleted_uuids_2=$(
 [ "${#remaining_audio_uuids_2[@]}" -eq 1 ]
 [ -n "${deleted_uuids_2}" ]
 wait_for_audio_deletion_by_uuid "${deleted_uuids_2}"
+wait_for_audio_creation_by_uuid "${remaining_audio_uuids_2[@]}"
 
 
 
