@@ -192,10 +192,10 @@ expected_inbox_1=$(cat << EOF
         },
         "message": {
           "@xmlns": "jabber:client",
-          "@type": "chat",
           "@from": "${user2uuid}@duolicious.app",
           "@to": "${user1uuid}@duolicious.app",
           "@id": "id1",
+          "@type": "chat",
           "body": "from user 2 to user 1",
           "request": {
             "@xmlns": "urn:xmpp:receipts"
@@ -227,10 +227,10 @@ expected_inbox_1=$(cat << EOF
         },
         "message": {
           "@xmlns": "jabber:client",
-          "@type": "chat",
           "@from": "${user3uuid}@duolicious.app",
           "@to": "${user1uuid}@duolicious.app",
           "@id": "id1",
+          "@type": "chat",
           "body": "from user 3 to user 1",
           "request": {
             "@xmlns": "urn:xmpp:receipts"
@@ -273,10 +273,10 @@ expected_inbox_2=$(cat << EOF
         },
         "message": {
           "@xmlns": "jabber:client",
-          "@type": "chat",
           "@from": "${user2uuid}@duolicious.app",
           "@to": "${user1uuid}@duolicious.app",
           "@id": "id1",
+          "@type": "chat",
           "body": "from user 2 to user 1",
           "request": {
             "@xmlns": "urn:xmpp:receipts"
@@ -308,10 +308,10 @@ expected_inbox_2=$(cat << EOF
         },
         "message": {
           "@xmlns": "jabber:client",
-          "@type": "chat",
           "@from": "${user3uuid}@duolicious.app",
           "@to": "${user2uuid}@duolicious.app",
           "@id": "id1",
+          "@type": "chat",
           "body": "from user 3 to user 2",
           "request": {
             "@xmlns": "urn:xmpp:receipts"
@@ -354,10 +354,10 @@ expected_inbox_3=$(cat << EOF
         },
         "message": {
           "@xmlns": "jabber:client",
-          "@type": "chat",
           "@from": "${user3uuid}@duolicious.app",
           "@to": "${user1uuid}@duolicious.app",
           "@id": "id1",
+          "@type": "chat",
           "body": "from user 3 to user 1",
           "request": {
             "@xmlns": "urn:xmpp:receipts"
@@ -389,10 +389,10 @@ expected_inbox_3=$(cat << EOF
         },
         "message": {
           "@xmlns": "jabber:client",
-          "@type": "chat",
           "@from": "${user3uuid}@duolicious.app",
           "@to": "${user2uuid}@duolicious.app",
           "@id": "id1",
+          "@type": "chat",
           "body": "from user 3 to user 2",
           "request": {
             "@xmlns": "urn:xmpp:receipts"
@@ -444,10 +444,10 @@ expected_inbox_1=$(cat << EOF
         },
         "message": {
           "@xmlns": "jabber:client",
-          "@type": "chat",
           "@from": "${user2uuid}@duolicious.app",
           "@to": "${user1uuid}@duolicious.app",
           "@id": "id1",
+          "@type": "chat",
           "body": "from user 2 to user 1",
           "request": {
             "@xmlns": "urn:xmpp:receipts"
@@ -479,10 +479,10 @@ expected_inbox_1=$(cat << EOF
         },
         "message": {
           "@xmlns": "jabber:client",
-          "@type": "chat",
           "@from": "${user3uuid}@duolicious.app",
           "@to": "${user1uuid}@duolicious.app",
           "@id": "id1",
+          "@type": "chat",
           "body": "from user 3 to user 1",
           "request": {
             "@xmlns": "urn:xmpp:receipts"

@@ -1,7 +1,7 @@
 from database.asyncdatabase import api_tx
 from service.cron.verificationjobrunner.sql import *
 from verification import verify
-from service.cron.util import print_stacktrace, MAX_RANDOM_START_DELAY
+from service.cron.cronutil import print_stacktrace, MAX_RANDOM_START_DELAY
 import asyncio
 import os
 import random

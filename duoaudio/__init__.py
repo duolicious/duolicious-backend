@@ -1,9 +1,62 @@
+import os
 import io
 import subprocess
 import tempfile
 from pathlib import Path
+import base64
+import binascii
+import constants
+from util import human_readable_size_metric
+import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import boto3
 
-def transcode_and_trim_audio(input_audio: io.BytesIO, duration: int) -> io.BytesIO:
+R2_AUDIO_BUCKET_NAME = os.environ['DUO_R2_AUDIO_BUCKET_NAME']
+R2_ACCT_ID = os.environ['DUO_R2_ACCT_ID']
+R2_ACCESS_KEY_ID = os.environ['DUO_R2_ACCESS_KEY_ID']
+R2_ACCESS_KEY_SECRET = os.environ['DUO_R2_ACCESS_KEY_SECRET']
+
+BOTO_ENDPOINT_URL = os.getenv(
+    'DUO_BOTO_ENDPOINT_URL',
+    f'https://{R2_ACCT_ID}.r2.cloudflarestorage.com'
+)
+
+s3 = boto3.resource(
+    's3',
+    endpoint_url=BOTO_ENDPOINT_URL,
+    aws_access_key_id=R2_ACCESS_KEY_ID,
+    aws_secret_access_key=R2_ACCESS_KEY_SECRET,
+)
+
+audio_bucket = s3.Bucket(R2_AUDIO_BUCKET_NAME)
+
+def put_audio_in_object_store(
+    uuid: str,
+    audio_file_bytes: bytes,
+):
+    key = f'{uuid}.aac'
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [
+            executor.submit(
+                audio_bucket.put_object,
+                Key=key,
+                Body=audio_file_bytes
+            )
+        ]
+
+        for future in as_completed(futures):
+            future.result()
+
+def transcode_and_trim_audio(
+    input_audio: io.BytesIO,
+    max_duration_or_none: int | None = None
+) -> io.BytesIO:
+    max_duration = (
+            constants.MAX_AUDIO_SECONDS
+            if max_duration_or_none is None
+            else max_duration_or_none)
+
     # Ensure input audio is not empty
     if input_audio.getbuffer().nbytes == 0:
         raise ValueError("Input audio buffer is empty.")
@@ -28,7 +81,7 @@ def transcode_and_trim_audio(input_audio: io.BytesIO, duration: int) -> io.Bytes
         ffmpeg_cmd = [
             'ffmpeg',
             '-i',   str(temp_input_file_path),  # Read from temporary input file
-            '-t',   str(duration),              # Set duration
+            '-t',   str(max_duration),          # Set max_duration
             '-c:a', 'aac',                      # Use AAC codec
             '-b:a', '128k',                     # Bitrate
             '-ar',  '44100',                    # Sample rate
@@ -63,3 +116,35 @@ def transcode_and_trim_audio(input_audio: io.BytesIO, duration: int) -> io.Bytes
     output_audio.seek(0)
 
     return output_audio
+
+
+def transcode_and_trim_audio_from_base64(
+    audio_base64: str,
+    max_duration: int | None = None
+) -> tuple[bytes, bytes] | ValueError:
+    try:
+        base64_value = audio_base64.split(',')[-1]
+    except:
+        return ValueError('Field base64 must be a valid base64 string')
+
+    try:
+        decoded_bytes = base64.b64decode(base64_value)
+    except binascii.Error as e:
+        return ValueError(f'Field base64 must be a valid base64 string')
+
+    if len(decoded_bytes) > constants.MAX_AUDIO_BYTES:
+        return ValueError(
+            f'Decoded file must be smaller than '
+            f'{human_readable_size_metric(constants.MAX_AUDIO_BYTES)}')
+
+    try:
+        transcoded = transcode_and_trim_audio(
+            io.BytesIO(decoded_bytes),
+            max_duration,
+        ).getvalue()
+    except:
+        print(traceback.format_exc())
+        print('base64 input was: ' + audio_base64)
+        return ValueError('Error while processing audio')
+
+    return decoded_bytes, transcoded

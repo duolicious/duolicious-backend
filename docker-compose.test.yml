@@ -85,6 +85,13 @@ services:
       DUO_DB_USER: postgres
       DUO_DB_PASS: password
 
+      DUO_R2_AUDIO_BUCKET_NAME: s3-mock-audio-bucket
+      DUO_R2_ACCT_ID: unused-in-dev-env
+      DUO_R2_ACCESS_KEY_ID: s3-mock-access-key-id
+      DUO_R2_ACCESS_KEY_SECRET: s3-mock-secret-access-key-secret
+
+      DUO_BOTO_ENDPOINT_URL: http://s3mock:9090
+
       DUO_CHAT_PORTS: '5443'
 
   cron:
@@ -142,7 +149,7 @@ services:
       DUO_CRON_MAX_RANDOM_START_DELAY: '0'
 
   s3mock:
-    image: adobe/s3mock
+    image: adobe/s3mock:3.12.0
 
     environment:
       initialBuckets: s3-mock-bucket, s3-mock-audio-bucket

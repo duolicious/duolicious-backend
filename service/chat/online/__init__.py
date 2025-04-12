@@ -1,7 +1,7 @@
 from lxml import etree
 import redis.asyncio as redis
 import traceback
-from service.chat.util import (
+from service.chat.chatutil import (
     fetch_is_skipped,
     fetch_id_from_username,
 )
@@ -55,7 +55,7 @@ async def redis_publish_online(
 
 async def maybe_redis_subscribe_online(
     from_username: str,
-    parsed_xml: etree.Element,
+    parsed_xml: etree._Element,
     redis_client: redis.Redis,
     pubsub: redis.client.PubSub,
 ) -> list[str]:
@@ -88,7 +88,7 @@ async def maybe_redis_subscribe_online(
 
 
 async def maybe_redis_unsubscribe_online(
-    parsed_xml: etree.Element,
+    parsed_xml: etree._Element,
     pubsub: redis.client.PubSub,
 ) -> list[str]:
     if parsed_xml.tag != 'duo_unsubscribe_online':

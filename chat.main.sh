@@ -5,6 +5,8 @@ cd "$script_dir"
 
 set -e
 
+WS_MAX_SIZE=10485760  # 10 MB
+
 export PYTHONUNBUFFERED=true
 export PYTHONDONTWRITEBYTECODE=true
 export PYTHONPATH=.
@@ -31,6 +33,7 @@ then
   exec uvicorn \
     --host 0.0.0.0 \
     --port "$PORT" \
+    --ws-max-size "${WS_MAX_SIZE}" \
     --workers "${DUO_WORKERS:-4}" \
     service.chat:app
 elif [ "$DUO_ENV" = "dev" ]
@@ -38,6 +41,7 @@ then
   exec uvicorn \
     --host 0.0.0.0 \
     --port "$PORT" \
+    --ws-max-size "${WS_MAX_SIZE}" \
     --reload \
     service.chat:app
 else

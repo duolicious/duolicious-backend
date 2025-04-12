@@ -4,31 +4,26 @@ import asyncio
 import duohash
 import regex
 import traceback
-import websockets
 import sys
 from websockets.exceptions import ConnectionClosedError
 import notify
 from async_lru_cache import AsyncLruCache
 import random
-from typing import Any, Optional, Tuple, Callable, Tuple, Iterable
+from typing import Any, Tuple, Callable, Tuple, Iterable
 from datetime import datetime
 from service.chat.insertintrohash import insert_intro_hash
 from service.chat.mayberegister import maybe_register
-from service.chat.rude import is_rude
-from service.chat.setmessaged import set_messaged
-from service.chat.spam import is_spam
+from service.chat.rude import is_rude_message
+from service.chat.spam import is_spam_message
 from service.chat.updatelast import update_last_forever
 from service.chat.upsertlastnotification import upsert_last_notification
 from service.chat.xmlparse import parse_xml_or_none
-from service.chat.inbox import (
+from service.chat.messagestorage.inbox import (
     maybe_get_inbox,
     maybe_mark_displayed,
-    upsert_conversation,
 )
-from service.chat.mam import (
-    maybe_get_conversation,
-    store_message,
-)
+from service.chat.messagestorage.mam import maybe_get_conversation
+from service.chat.messagestorage import store_message
 from service.chat.session import (
     Session,
     maybe_get_session_response,
@@ -42,30 +37,42 @@ from service.chat.ratelimit import (
     maybe_fetch_rate_limit,
 )
 from lxml import etree
-from service.chat.util import (
+from service.chat.chatutil import (
     fetch_is_skipped,
     message_string_to_etree,
     to_bare_jid,
     fetch_id_from_username,
 )
-import uuid
+from service.chat.message import (
+    AudioMessage,
+    ChatMessage,
+    Message,
+    TypingMessage,
+    xml_to_message,
+)
+from service.chat.audiomessage import (
+    transcode_and_put,
+)
 import redis.asyncio as redis
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 import xmltodict
 import json
+from constants import (
+    MAX_NOTIFICATION_LENGTH,
+)
 
 app = FastAPI()
 
 # Global publisher connection, created once per worker.
 REDIS_HOST: str = os.environ.get("DUO_REDIS_HOST", "redis")
 REDIS_PORT: int = int(os.environ.get("DUO_REDIS_PORT", 6379))
-REDIS_WORKER_CLIENT: Optional[redis.Redis] = redis.Redis(
+REDIS_WORKER_CLIENT: redis.Redis = redis.Redis(
         host=REDIS_HOST,
         port=REDIS_PORT,
         decode_responses=True)
 
-InputMiddleware = Callable[[str], Tuple[str, Optional[etree.Element]]]
+InputMiddleware = Callable[[str], etree._Element | None]
 OutputMiddleware = Callable[[str], str]
 Middleware = Tuple[InputMiddleware, OutputMiddleware]
 
@@ -212,10 +219,8 @@ async def send_notification(
     if to_token is None:
         return
 
-    max_notification_length = 128
-
-    truncated_message = message[:max_notification_length] + (
-            '...' if len(message) > max_notification_length else '')
+    truncated_message = message[:MAX_NOTIFICATION_LENGTH].strip() + (
+            '...' if len(message) > MAX_NOTIFICATION_LENGTH else '')
 
     notify.enqueue_mobile_notification(
         token=to_token,
@@ -226,38 +231,6 @@ async def send_notification(
 
     upsert_last_notification(username=to_username, is_intro=is_intro)
 
-def get_message_attrs(parsed_xml):
-    try:
-        if parsed_xml.tag != '{jabber:client}message':
-            raise Exception('Not a message')
-
-        message_type = parsed_xml.attrib.get('type')
-        assert message_type in ('chat', 'typing')
-
-        body = parsed_xml.find('{jabber:client}body')
-
-        maybe_message_body = (
-                None
-                if body is None or message_type == 'typing'
-                else body.text.strip())
-
-        assert maybe_message_body or message_type == 'typing'
-
-        _id = parsed_xml.attrib.get('id')
-        assert _id is not None
-        assert len(_id) <= 250
-
-        to_jid = parsed_xml.attrib.get('to')
-
-        to_bare_jid_ = to_bare_jid(parsed_xml.attrib.get('to'))
-
-        to_username = str(uuid.UUID(to_bare_jid_))
-
-        return _id, to_username, maybe_message_body
-    except Exception as e:
-        pass
-
-    return None
 
 def normalize_message(message_str):
     message_str = message_str.lower()
@@ -270,8 +243,13 @@ def normalize_message(message_str):
 
     return message_str
 
-def is_text_too_long(text: str):
-    return len(text) > MAX_MESSAGE_LEN
+
+def is_text_too_long(message: Message):
+    if isinstance(message, ChatMessage):
+        return len(message.body) > MAX_MESSAGE_LEN
+    else:
+        return False
+
 
 def is_ping(parsed_xml):
     try:
@@ -279,9 +257,16 @@ def is_ping(parsed_xml):
     except:
         return False
 
+
 @AsyncLruCache(maxsize=1024, cache_condition=lambda x: not x)
-async def is_message_unique(message_str):
-    normalized = normalize_message(message_str)
+async def is_unique_message(message: Message):
+    if isinstance(message, AudioMessage):
+        return True
+
+    if isinstance(message, TypingMessage):
+        return True
+
+    normalized = normalize_message(message.body)
     hashed = duohash.md5(normalized)
 
     params = dict(hash=hashed)
@@ -338,7 +323,7 @@ def get_middleware(subprotocol: str) -> Middleware:
         def input_middleware(text: str):
             json_data = json.loads(text)
             xml_str = xmltodict.unparse(json_data, full_document=False)
-            return xml_str, parse_xml_or_none(xml_str)
+            return parse_xml_or_none(xml_str)
 
         def output_middleware(text: str):
             if text == '</stream:stream>':
@@ -348,8 +333,7 @@ def get_middleware(subprotocol: str) -> Middleware:
             return json.dumps(dict_obj)
     else:
         def input_middleware(text: str):
-            xml_str = text
-            return xml_str, parse_xml_or_none(xml_str)
+            return parse_xml_or_none(text)
 
         def output_middleware(text: str):
             return text
@@ -365,12 +349,7 @@ async def process_text(
     from_username = session.username
     connection_uuid = session.connection_uuid
 
-    if is_text_too_long(text):
-        return await redis_publish_many(connection_uuid, [
-            f'<duo_message_too_long />'
-        ])
-
-    xml_str, parsed_xml = middleware(text)
+    parsed_xml = middleware(text)
 
     if parsed_xml is None:
         return
@@ -419,12 +398,14 @@ async def process_text(
     if maybe_unsubscription:
         return await redis_publish_many(connection_uuid, maybe_unsubscription)
 
-    maybe_message = get_message_attrs(parsed_xml)
+    maybe_message = xml_to_message(parsed_xml)
 
-    if maybe_message:
-        stanza_id, to_username, maybe_message_body = maybe_message
-    else:
+    if not maybe_message:
         return
+
+    stanza_id = maybe_message.stanza_id
+
+    to_username = maybe_message.to_username
 
     from_id = await fetch_id_from_username(from_username)
 
@@ -441,13 +422,13 @@ async def process_text(
             f'<duo_message_blocked id="{stanza_id}"/>'
         ])
 
-    if not maybe_message_body:
+    if isinstance(maybe_message, TypingMessage):
         return await redis_publish_many(to_username, [
             etree.tostring(
                 message_string_to_etree(
                     to_username=to_username,
                     from_username=from_username,
-                    id=str(uuid.uuid4()),
+                    id=maybe_message.stanza_id,
                     type='typing',
                 ),
                 encoding='unicode',
@@ -455,16 +436,21 @@ async def process_text(
             )
         ])
 
+    if is_text_too_long(maybe_message):
+        return await redis_publish_many(connection_uuid, [
+            f'<duo_message_too_long id="{stanza_id}"/>'
+        ])
+
     is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
 
-    if is_intro and is_rude(maybe_message_body):
+    if is_intro and is_rude_message(maybe_message):
         return await redis_publish_many(connection_uuid, [
             f'<duo_message_blocked id="{stanza_id}" reason="offensive"/>'
         ])
 
     if \
             is_intro and \
-            is_spam(maybe_message_body) and \
+            is_spam_message(maybe_message) and \
             not await fetch_is_trusted_account(from_id=from_id):
         return await redis_publish_many(connection_uuid, [
             f'<duo_message_blocked id="{stanza_id}" reason="spam"/>'
@@ -478,66 +464,79 @@ async def process_text(
         if maybe_rate_limit:
             return await redis_publish_many(connection_uuid, maybe_rate_limit)
 
-    if is_intro and not await is_message_unique(maybe_message_body):
+    if is_intro and not await is_unique_message(maybe_message):
         return await redis_publish_many(connection_uuid, [
             f'<duo_message_not_unique id="{stanza_id}"/>'
         ])
 
-    # TODO: Updates to `mam_message` and `inbox` tables should happen in one tx
-    store_message(
-        maybe_message_body,
-        from_username=from_username,
-        to_username=to_username,
-        msg_id=stanza_id)
+    async def store_audio_and_notify():
+        if \
+                isinstance(maybe_message, AudioMessage) and \
+                not transcode_and_put(
+                    uuid=maybe_message.audio_uuid,
+                    audio_base64=maybe_message.audio_base64,
+                ):
+            return await redis_publish_many(connection_uuid, [
+                f'<duo_server_error id="{stanza_id}"/>'
+            ])
 
-    set_messaged(from_id=from_id, to_id=to_id)
-
-    upsert_conversation(
-        from_username=from_username,
-        to_username=to_username,
-        msg_id=stanza_id,
-        content=xml_str)
-
-    await redis_publish_many(to_username, [
-        etree.tostring(
+        sanitized_xml = etree.tostring(
             message_string_to_etree(
-                message_body=maybe_message_body,
+                message_body=maybe_message.body,
                 to_username=to_username,
                 from_username=from_username,
-                id=str(uuid.uuid4()),
+                id=maybe_message.stanza_id,
             ),
             encoding='unicode',
-            pretty_print=False,
-        )
-    ])
+            pretty_print=False)
 
+        await redis_publish_many(to_username, [sanitized_xml])
 
-    immediate_data = await fetch_immediate_data(
-            from_id=from_id,
-            to_id=to_id,
-            is_intro=is_intro)
+        immediate_data = await fetch_immediate_data(
+                from_id=from_id,
+                to_id=to_id,
+                is_intro=is_intro)
 
-    if immediate_data is not None:
-        await send_notification(
-            from_name=immediate_data['name'],
-            to_username=to_username,
-            message=maybe_message_body,
-            is_intro=is_intro,
-            data={
-                'screen': 'Conversation Screen',
-                'params': {
-                    'personId': immediate_data['person_id'],
-                    'personUuid': immediate_data['person_uuid'],
-                    'name': immediate_data['name'],
-                    'imageUuid': immediate_data['image_uuid'],
-                    'imageBlurhash': immediate_data['image_blurhash'],
+        if immediate_data is not None:
+            await send_notification(
+                from_name=immediate_data['name'],
+                to_username=to_username,
+                message=maybe_message.body,
+                is_intro=is_intro,
+                data={
+                    'screen': 'Conversation Screen',
+                    'params': {
+                        'personId': immediate_data['person_id'],
+                        'personUuid': immediate_data['person_uuid'],
+                        'name': immediate_data['name'],
+                        'imageUuid': immediate_data['image_uuid'],
+                        'imageBlurhash': immediate_data['image_blurhash'],
+                    },
                 },
-            },
-        )
+            )
 
-    return await redis_publish_many(connection_uuid, [
-        f'<duo_message_delivered id="{stanza_id}"/>'
-    ])
+        if isinstance(maybe_message, AudioMessage):
+            response = (
+                f'<duo_message_delivered '
+                f'id="{stanza_id}" '
+                f'audio_uuid="{maybe_message.audio_uuid}" '
+            ).strip() + '/>'
+        else:
+            response = (
+                f'<duo_message_delivered '
+                f'id="{stanza_id}" '
+            ).strip() + '/>'
+
+        return await redis_publish_many(connection_uuid, [response])
+
+    store_message(
+        from_username=from_username,
+        to_username=to_username,
+        from_id=from_id,
+        to_id=to_id,
+        msg_id=stanza_id,
+        message=maybe_message,
+        callback=store_audio_and_notify)
 
 
 @app.websocket("/")

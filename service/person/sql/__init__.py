@@ -1372,7 +1372,23 @@ ORDER BY
 """
 
 Q_DELETE_ACCOUNT = """
-WITH deleted_photo AS (
+WITH deleted_last AS (
+    DELETE FROM last
+    WHERE username = %(person_uuid)s
+), deleted_inbox AS (
+    DELETE FROM inbox
+    WHERE luser = %(person_uuid)s
+), deleted_duo_last_notification AS (
+    DELETE FROM duo_last_notification
+    WHERE username = %(person_uuid)s
+), deleted_duo_push_token AS (
+    DELETE FROM duo_push_token
+    WHERE username = %(person_uuid)s
+), deleted_mam_message AS (
+    DELETE FROM mam_message
+    WHERE person_id = %(person_id)s
+    RETURNING audio_uuid
+), deleted_photo AS (
     SELECT
         uuid
     FROM
@@ -1399,6 +1415,23 @@ WITH deleted_photo AS (
     SELECT uuid FROM deleted_verification_photo
 ), every_deleted_audio_uuid AS (
     SELECT uuid FROM deleted_audio
+
+    UNION
+
+    SELECT
+        deleted_mam_message.audio_uuid AS uuid
+    FROM
+        deleted_mam_message
+    LEFT JOIN
+        mam_message
+    ON
+        mam_message.audio_uuid = deleted_mam_message.audio_uuid
+    AND
+        mam_message.person_id <> %(person_id)s
+    WHERE
+        deleted_mam_message.audio_uuid IS NOT NULL
+    AND
+        mam_message.audio_uuid IS NULL
 ), deleted_person_club AS (
     SELECT
         club_name
@@ -1440,23 +1473,6 @@ WITH deleted_photo AS (
         club.name = deleted_person_club.club_name
     AND
         (SELECT activated FROM deleted_person)
-)
-SELECT 1
-"""
-
-Q_DELETE_XMPP = """
-WITH q1 AS (
-    DELETE FROM last
-    WHERE username = %(person_uuid)s
-), q2 AS (
-    DELETE FROM inbox
-    WHERE luser = %(person_uuid)s
-), q4 AS (
-    DELETE FROM duo_last_notification
-    WHERE username = %(person_uuid)s
-), q5 AS (
-    DELETE FROM duo_push_token
-    WHERE username = %(person_uuid)s
 )
 SELECT 1
 """
