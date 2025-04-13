@@ -14,7 +14,7 @@ from constants import (
 NON_BREAKING_SPACES = '\xa0' * MAX_NOTIFICATION_LENGTH
 
 AUDIO_MESSAGE_BODY = f"""
-Audio message
+Voice message
 {NON_BREAKING_SPACES}
 Upgrade to the latest version of Duolicious to hear this message
 """.strip()

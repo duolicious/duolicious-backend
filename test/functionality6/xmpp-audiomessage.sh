@@ -263,7 +263,7 @@ expected_conversation_1_2=$(cat << EOF
             "@to": "${user2uuid}@duolicious.app",
             "@type": "chat",
             "@audio_uuid": "redacted",
-            "body": "Audio message\n                                                                                                                                \nUpgrade to the latest version of Duolicious to hear this message",
+            "body": "Voice message\n                                                                                                                                \nUpgrade to the latest version of Duolicious to hear this message",
             "request": {
               "@xmlns": "urn:xmpp:receipts"
             }
@@ -325,7 +325,7 @@ expected_conversation_2_1=$(cat << EOF
             "@to": "${user2uuid}@duolicious.app",
             "@type": "chat",
             "@audio_uuid": "redacted",
-            "body": "Audio message\n                                                                                                                                \nUpgrade to the latest version of Duolicious to hear this message",
+            "body": "Voice message\n                                                                                                                                \nUpgrade to the latest version of Duolicious to hear this message",
             "request": {
               "@xmlns": "urn:xmpp:receipts"
             }
@@ -387,7 +387,7 @@ expected_conversation_1_3=$(cat << EOF
             "@to": "${user3uuid}@duolicious.app",
             "@type": "chat",
             "@audio_uuid": "redacted",
-            "body": "Audio message\n                                                                                                                                \nUpgrade to the latest version of Duolicious to hear this message",
+            "body": "Voice message\n                                                                                                                                \nUpgrade to the latest version of Duolicious to hear this message",
             "request": {
               "@xmlns": "urn:xmpp:receipts"
             }
