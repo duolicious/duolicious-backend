@@ -11,7 +11,6 @@ import {
   EV_CHAT_WS_SEND_CLOSE,
   send,
 } from '../websocket-layer';
-import { delay } from '../../util/util';
 
 const AUDIO_MESSAGE = 'Audio message';
 
@@ -316,16 +315,6 @@ const setInboxRecieved = async (
 
   // The conversation is missing data as it's either new or from the archive
   if (!chatsConversation && !introsConversation) {
-    // It's hard to understate how much I hate this `delay`. I fucked up pretty
-    // hard by using XMPP in the original design. It just wasn't made to
-    // integrate with external services. At least not the way I did it. Now we
-    // need this delay to wait for the `chat` and `api` services to become
-    // consistent with each other. Otherwise `populateConversation` (which
-    // calls /inbox-info) might be like, "Person A? They never messaged us!"
-    // right after the chat service sends a message from Person A over the
-    // fucking websocket!
-    await delay(1000);
-
     await populateConversation(updatedConversation);
   }
 

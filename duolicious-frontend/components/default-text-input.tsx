@@ -1,5 +1,6 @@
 import {
   Keyboard,
+  StyleSheet,
   TextInput,
 } from 'react-native';
 
@@ -15,16 +16,7 @@ const DefaultTextInput = (props) => {
       returnKeyType="done"
       onSubmitEditing={() => Keyboard.dismiss()}
       style={{
-        backgroundColor: 'white',
-        padding: 10,
-        marginLeft: 20,
-        marginRight: 20,
-        textAlignVertical: 'center',
-        borderColor: '#999',
-        borderWidth: 1,
-        borderRadius: 10,
-        height: 50,
-        fontFamily: 'MontserratRegular',
+        ...styles.textInput,
         ...style,
       }}
       {...rest}
@@ -32,6 +24,23 @@ const DefaultTextInput = (props) => {
   );
 };
 
+const styles = StyleSheet.create({
+  textInput: {
+    backgroundColor: 'white',
+    padding: 10,
+    marginLeft: 20,
+    marginRight: 20,
+    textAlignVertical: 'center',
+    borderColor: '#999',
+    borderWidth: 1,
+    borderRadius: 10,
+    height: 50,
+    fontFamily: 'MontserratRegular',
+    fontSize: 16,
+  },
+});
+
 export {
   DefaultTextInput,
+  styles,
 };

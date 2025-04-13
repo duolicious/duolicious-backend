@@ -35,6 +35,7 @@ import {
 } from '../default-text';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane';
+import { styles as defaultTextInputStyles } from '../default-text-input';
 import { DefaultLongTextInput } from '../default-long-text-input';
 import { isMobile } from '../../util/util';
 import { Audio } from 'expo-av';
@@ -161,6 +162,7 @@ const AutoResizingTextInput = Platform.OS === 'web' ? (props) => {
           width: '100%',
           minHeight: 30,
           opacity: 0,
+          fontSize: defaultTextInputStyles.textInput.fontSize,
         }}
       >
         {props.value}
@@ -247,7 +249,7 @@ const Input = ({
     if (isRecording) {
       inputTranslateX.value = withTiming(-width);
       cancelTextTranslateX.value = withTiming(0);
-      recordOpacity.value = withTiming(0);
+      recordOpacity.value = withTiming(isMobile() ? 0 : 0.3);
       startRecording().then((didStart) => {
         if (!didStart) {
           setIsRecording(didStart);

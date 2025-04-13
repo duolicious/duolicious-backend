@@ -167,6 +167,22 @@ const assertNever = (x: never): never => {
   throw new Error(`Unexpected object: ${x}`);
 };
 
+const getDuplicates = <T,>(arr: T[]): Set<T> => {
+  const seen = new Map<string, T>();
+  const duplicates = new Set<T>();
+
+  for (const item of arr) {
+    const key = JSON.stringify(item);
+    if (seen.has(key)) {
+      duplicates.add(item);
+    } else {
+      seen.set(key, item);
+    }
+  }
+
+  return duplicates;
+};
+
 export {
   assert,
   assertNever,
@@ -176,6 +192,7 @@ export {
   friendlyDate,
   friendlyTimeAgo,
   friendlyTimestamp,
+  getDuplicates,
   getRandomElement,
   isMobile,
   jsonParseSilently,
