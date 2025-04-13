@@ -2,14 +2,31 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { DefaultText } from './default-text';
 import { friendlyDate } from '../util/util';
+import {
+  Message,
+} from '../chat/application-layer';
+import { isSameDay } from 'date-fns';
 
 type Props = {
-  timestamp: Date;
+  previousMessage: Message
+  message: Message
 };
 
-const MessageDivider = ({ timestamp }: Props) => {
+const MessageDivider = ({ previousMessage, message }: Props) => {
+  if (previousMessage.type === 'typing') {
+    return null;
+  }
+
+  if (message.type === 'typing') {
+    return null;
+  }
+
+  if (isSameDay(previousMessage.timestamp, message.timestamp)) {
+    return null;
+  }
+
   return (
-    <DefaultText style={styles.text}>{friendlyDate(timestamp)}</DefaultText>
+    <DefaultText style={styles.text}>{friendlyDate(message.timestamp)}</DefaultText>
   );
 };
 

@@ -28,7 +28,7 @@ import { QuizTab } from './components/quiz-tab';
 import ProfileTab from './components/profile-tab';
 import InboxTab from './components/inbox-tab';
 import { TraitsTab } from './components/traits-tab';
-import { ConversationScreen } from './components/conversation-screen';
+import { ConversationScreen } from './components/conversation-screen/conversation-screen';
 import { UtilityScreen } from './components/utility-screen';
 import { ProspectProfileScreen } from './components/prospect-profile-screen';
 import { InviteScreen, WelcomeScreen } from './components/welcome-screen';

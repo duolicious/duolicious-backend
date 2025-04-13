@@ -63,22 +63,24 @@ const connectChatWebSocket = (): void => {
   };
 };
 
+type MustIncludeNull<T> = null extends T ? T : never;
+
 type Send = {
   // When only a responseDetector is provided.
   <T>(params: {
     data: object;
-    responseDetector: (input: any) => T | null;
+    responseDetector: (input: any) => MustIncludeNull<T>;
     sentinelDetector?: never;
     timeoutMs?: number;
-  }): Promise<T | 'timeout'>;
+  }): Promise<NonNullable<T> | 'timeout'>;
 
   // When both responseDetector and sentinelDetector are provided.
   <T>(params: {
     data: object;
-    responseDetector: (input: any) => T | null;
+    responseDetector: (input: any) => MustIncludeNull<T>;
     sentinelDetector: (input: any) => boolean;
     timeoutMs?: number;
-  }): Promise<T[] | 'timeout'>;
+  }): Promise<NonNullable<T>[] | 'timeout'>;
 
   // When neither detector is provided.
   (params: {

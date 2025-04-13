@@ -61,14 +61,11 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { ClubItem, joinClub, leaveClub } from '../club/club';
 import * as _ from 'lodash';
-import { friendlyTimeAgo, possessive, secToMinSec } from '../util/util';
-import { Audio, AVPlaybackStatus } from 'expo-av';
-import {
-  AUDIO_URL,
-} from '../env/env';
+import { friendlyTimeAgo, possessive } from '../util/util';
 import { useOnline } from '../chat/application-layer/hooks/online';
 import { ONLINE_COLOR } from '../constants/constants';
 import { HeartBackground } from './heart-background';
+import { AudioPlayer } from './audio-player';
 
 const Stack = createNativeStackNavigator();
 
@@ -1047,133 +1044,6 @@ const ProspectUserDetails = ({
   );
 };
 
-const AudioPlayer = ({
-  name,
-  uuid,
-}: {
-  name: string | undefined
-  uuid: string
-}) => {
-  const sound = useRef<Audio.Sound>();
-
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const [secondsElapsed, setSecondsElapsed] = useState(0);
-
-  const [minutes, seconds] = secToMinSec(secondsElapsed);
-
-  const playIcon = isPlaying ? 'pause-circle' : 'play-circle';
-
-  const play = async () => {
-    if (!sound.current) {
-      return;
-    }
-
-    try {
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-      });
-
-      const response = await sound.current.playAsync();
-
-      setIsPlaying(response.isLoaded);
-    } catch (err) {
-      console.error('Failed to start recording', err);
-    }
-  };
-
-  const pause = async () => {
-    if (!sound.current) {
-      return;
-    }
-
-    setIsPlaying(false);
-
-    await sound.current.pauseAsync();
-  };
-
-  const togglePlayPlause = () => {
-    if (isPlaying) {
-      pause();
-    } else {
-      play();
-    }
-  };
-
-  useEffect(() => {
-    const onPlaybackStatusUpdate = async (status: AVPlaybackStatus) => {
-      if (!status.isLoaded) {
-        return;
-      }
-
-      setSecondsElapsed(Math.floor(status.positionMillis / 1000));
-
-      if (status.didJustFinish) {
-        setIsPlaying(false);
-        if (sound.current) {
-          await sound.current.pauseAsync();
-          await sound.current.setPositionAsync(0);
-        }
-      }
-    };
-
-    const go = async () => {
-      if (!uuid) {
-        return;
-      }
-
-      sound.current = (await Audio.Sound.createAsync(
-        { uri: `${AUDIO_URL}/${uuid}.aac` },
-        {},
-        onPlaybackStatusUpdate,
-        false,
-      )).sound;
-    };
-
-    go();
-
-    return () => {
-      if (sound.current) {
-        sound.current.unloadAsync();
-      }
-    };
-  }, [uuid]);
-
-  return (
-    <View
-      style={{
-        width: '100%',
-        marginTop: 20,
-        flexDirection: 'row',
-        backgroundColor: 'rgba(255, 255, 255, 0.3)',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderColor: 'rgba(0, 0, 0, 0.1)',
-        borderWidth: 1,
-        borderRadius: 10,
-        paddingHorizontal: 10,
-        paddingVertical: 10,
-        gap: 20,
-      }}
-    >
-      <Ionicons
-        onPress={togglePlayPlause}
-        style={{ fontSize: 42, flex: 1 }}
-        name={playIcon}
-      />
-
-      <DefaultText style={styles.audioPlayerMiddleText}>
-        {name ? `${possessive(name)} ` : ''}voice bio
-      </DefaultText>
-
-
-      <DefaultText style={{ flex: 1, textAlign: 'right', paddingRight: 5 }}>
-        {minutes}:{seconds}
-      </DefaultText>
-    </View>
-  );
-};
-
 const Body = ({
   navigation,
   personId,
@@ -1252,7 +1122,11 @@ const Body = ({
         }}
       >
         {data?.audio_bio_uuid &&
-          <AudioPlayer name={data?.name} uuid={data?.audio_bio_uuid} />
+          <AudioPlayer
+            name={data?.name}
+            uuid={data?.audio_bio_uuid}
+            presentation="profile"
+          />
         }
         <Title style={{color: data?.theme?.title_color}}>Basics</Title>
         <Basics>

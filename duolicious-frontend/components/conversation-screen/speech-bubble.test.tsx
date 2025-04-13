@@ -1,3 +1,5 @@
+jest.mock('../../chat/websocket-layer', () => ({ }));
+
 import { parseMarkdown } from './speech-bubble';
 
 describe('parseMarkdown', () => {

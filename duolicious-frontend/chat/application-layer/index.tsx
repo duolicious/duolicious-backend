@@ -13,6 +13,8 @@ import {
 } from '../websocket-layer';
 import { delay } from '../../util/util';
 
+const AUDIO_MESSAGE = 'Audio message';
+
 const messageTimeout = 10000;
 const fetchConversationTimeout = 15000;
 const fetchInboxTimeout = 30000;
@@ -58,27 +60,40 @@ const parseUuidOrNull = (uuid: string): string | null => {
 // TODO: Update match percentages when user answers some questions
 
 type MessageStatus =
+  | 'sending'
   | 'sent'
   | 'offensive'
   | 'rate-limited-1day'
   | 'rate-limited-1day-unverified-basics'
   | 'rate-limited-1day-unverified-photos'
+  | 'voice-intro'
+  | 'server-error'
   | 'spam'
   | 'blocked'
   | 'not unique'
   | 'too long'
   | 'timeout'
 
-type ChatMessage = {
-  text: string
+type ChatBaseMessage = {
   from: string
   to: string
   fromCurrentUser: boolean
   id: string
   mamId?: string | undefined
   timestamp: Date
-  type: 'chat'
-}
+};
+
+type ChatAudioMessage = ChatBaseMessage & {
+  type: 'chat-audio'
+  audioUuid: string
+};
+
+type ChatTextMessage = ChatBaseMessage & {
+  type: 'chat-text'
+  text: string
+};
+
+type ChatMessage = ChatAudioMessage | ChatTextMessage;
 
 type TypingMessage = {
   from: string
@@ -451,12 +466,29 @@ const markDisplayed = async (message: ChatMessage) => {
 
 const sendMessage = async (
   recipientPersonUuid: string,
-  messageBody: string | null = null,
-  numTries: number = 3,
+  content: {
+    type: 'chat-text',
+    text: string,
+  } | {
+    type: 'chat-audio',
+    audioBase64: string,
+  } | {
+    type: 'typing',
+  },
+  id: string,
+  config?: {
+    numTries?: number,
+    timeoutMs?: number,
+  },
 ): Promise<
   | { message: Message, status: 'sent' }
-  | { message: null, status: Exclude<MessageStatus, 'sent'>}
+  | { message: null, status: Exclude<MessageStatus, 'sent' | 'sending'>}
 > => {
+  const {
+    numTries = 3,
+    timeoutMs = messageTimeout,
+  } = config ?? {};
+
   if (numTries <= 0) {
     return { message: null, status: 'timeout' };
   }
@@ -465,176 +497,172 @@ const sendMessage = async (
     return { message: null, status: 'blocked' };
   }
 
-  const id = getRandomString(40);
-
-  const fromJid = personUuidToJid(credentials.username);
-
-  const toJid = personUuidToJid(recipientPersonUuid);
-
-  const data = messageBody === null ? {
-    message: {
-      '@xmlns': 'jabber:client',
-      '@type': 'typing',
-      '@from': fromJid,
-      '@to': toJid,
-      '@id': id,
-    },
-  } : {
-    message: {
-      '@xmlns': 'jabber:client',
-      '@type': 'chat',
-      '@from': fromJid,
-      '@to': toJid,
-      '@id': id,
-      body: messageBody,
-    },
-  };
-
-  const message: Message = messageBody === null ? {
-    type: 'typing',
-    from: personUuidToJid(credentials.username),
-    to: personUuidToJid(recipientPersonUuid),
-    id,
-  } : {
-    type: 'chat',
-    from: personUuidToJid(credentials.username),
-    to: personUuidToJid(recipientPersonUuid),
-    id,
-    text: messageBody,
-    timestamp: new Date(),
-    fromCurrentUser: true,
-  };
-
-  const responseDetector = (doc: any): MessageStatus | null => {
-    // Check duo_message_too_long
-    try {
-      const { duo_message_too_long: v } = doc;
-      assert(v !== undefined);
-      return 'too long';
-    } catch { }
-
-    // Check duo_message_not_unique
-    try {
-      const {
-        duo_message_not_unique: {
-          '@id': receivedQueryId,
+  const data = (() => {
+    if (content.type === 'typing') {
+      return {
+        message: {
+          '@xmlns': 'jabber:client',
+          '@type': 'typing',
+          '@from': personUuidToJid(credentials.username),
+          '@to': personUuidToJid(recipientPersonUuid),
+          '@id': id,
+        }
+      };
+    } else if (content.type === 'chat-text') {
+      return {
+        message: {
+          '@xmlns': 'jabber:client',
+          '@type': 'chat',
+          '@from': personUuidToJid(credentials.username),
+          '@to': personUuidToJid(recipientPersonUuid),
+          '@id': id,
+          body: content.text,
         },
-      } = doc;
-      assert(receivedQueryId === id);
-      return 'not unique';
-    } catch { }
-
-    // Check duo_message_blocked for rate-limited unverified basics
-    try {
-      const {
-        duo_message_blocked: {
-          '@id': receivedQueryId,
-          '@reason': reason,
-          '@subreason': subreason,
+      };
+    } else if (content.type === 'chat-audio') {
+      return {
+        message: {
+          '@xmlns': 'jabber:client',
+          '@type': 'chat',
+          '@from': personUuidToJid(credentials.username),
+          '@to': personUuidToJid(recipientPersonUuid),
+          '@id': id,
+          '@audio_base64': content.audioBase64,
         },
-      } = doc;
-      assert(receivedQueryId === id);
-      assert(reason === 'rate-limited-1day');
-      assert(subreason === 'unverified-basics');
-      return 'rate-limited-1day-unverified-basics';
-    } catch { }
+      };
+    } else {
+      throw new Error('Unhandled content type');
+    }
+  })();
 
-    // Check duo_message_blocked for rate-limited unverified photos
-    try {
-      const {
-        duo_message_blocked: {
-          '@id': receivedQueryId,
-          '@reason': reason,
-          '@subreason': subreason,
-        },
-      } = doc;
-      assert(receivedQueryId === id);
-      assert(reason === 'rate-limited-1day');
-      assert(subreason === 'unverified-photos');
-      return 'rate-limited-1day-unverified-photos';
-    } catch { }
+  const responseDetector = (doc: any):
+    | { status: Exclude<MessageStatus, 'sent' | 'sending' | 'timeout'> }
+    | { status: Extract<MessageStatus, 'sent'>, audioUuid?: string }
+    | null =>
+  {
+    type MappingInput = Exclude<MessageStatus, 'sending' | 'timeout'>;
 
-    // Check duo_message_blocked for generic rate-limited (no specific subreason)
-    try {
-      const {
-        duo_message_blocked: {
-          '@id': receivedQueryId,
-          '@reason': reason,
-        },
-      } = doc;
-      assert(receivedQueryId === id);
-      assert(reason === 'rate-limited-1day');
-      return 'rate-limited-1day';
-    } catch { }
+    const messageStatusMapping: Record<
+      MappingInput,
+      (doc: any) => false | { audioUuid?: string }
+    > = {
+      'sent': (doc) =>
+        doc.duo_message_delivered?.['@id'] === id &&
+        { audioUuid: doc.duo_message_delivered?.['@audio_uuid'] },
+      'offensive': (doc) =>
+        doc.duo_message_blocked?.['@reason'] === 'offensive' &&
+        {},
+      'rate-limited-1day': (doc) =>
+        doc.duo_message_blocked?.['@id'] === id &&
+        doc.duo_message_blocked?.['@reason'] === 'rate-limited-1day' &&
+        !doc.duo_message_blocked?.['@subreason'] &&
+        {},
+      'rate-limited-1day-unverified-basics': (doc) =>
+        doc.duo_message_blocked?.['@id'] === id &&
+        doc.duo_message_blocked?.['@reason'] === 'rate-limited-1day' &&
+        doc.duo_message_blocked?.['@subreason'] === 'unverified-basics' &&
+        {},
+      'rate-limited-1day-unverified-photos': (doc) =>
+        doc.duo_message_blocked?.['@id'] === id &&
+        doc.duo_message_blocked?.['@reason'] === 'rate-limited-1day' &&
+        doc.duo_message_blocked?.['@subreason'] === 'unverified-photos' &&
+        {},
+      'voice-intro': (doc) =>
+        doc.duo_message_blocked?.['@id'] === id &&
+        doc.duo_message_blocked?.['@reason'] === 'voice-intro' &&
+        {},
+      'spam': (doc) =>
+        doc.duo_message_blocked?.['@id'] === id &&
+        doc.duo_message_blocked?.['@reason'] === 'spam' &&
+        {},
+      'blocked': (doc) =>
+        // Fallback for any blocked case not caught above.
+        doc.duo_message_blocked?.['@id'] === id &&
+        doc.duo_message_blocked !== undefined &&
+        {},
+      'not unique': (doc) =>
+        doc.duo_message_not_unique?.['@id'] === id &&
+        doc.duo_message_not_unique !== undefined &&
+        {},
+      'too long': (doc) =>
+        doc.duo_message_too_long?.['@id'] === id &&
+        doc.duo_message_too_long !== undefined &&
+        {},
+      'server-error': (doc) =>
+        doc.duo_server_error?.['@id'] === id &&
+        doc.duo_server_error !== undefined &&
+        {},
+    };
 
-    // Check duo_message_blocked for spam
-    try {
-      const {
-        duo_message_blocked: {
-          '@id': receivedQueryId,
-          '@reason': reason,
-        },
-      } = doc;
-      assert(receivedQueryId === id);
-      assert(reason === 'spam');
-      return 'spam';
-    } catch { }
-
-    // Check duo_message_blocked for offensive
-    try {
-      const {
-        duo_message_blocked: {
-          '@id': receivedQueryId,
-          '@reason': reason,
-        },
-      } = doc;
-      assert(receivedQueryId === id);
-      assert(reason === 'offensive');
-      return 'offensive';
-    } catch { }
-
-    // Fallback for any duo_message_blocked case
-    try {
-      const {
-        duo_message_blocked: {
-          '@id': receivedQueryId,
-        },
-      } = doc;
-      assert(receivedQueryId === id);
-      return 'blocked';
-    } catch { }
-
-    // Check duo_message_delivered
-    try {
-      const {
-        duo_message_delivered: {
-          '@id': receivedQueryId,
-        },
-      } = doc;
-      assert(receivedQueryId === id);
-      return 'sent';
-    } catch { }
+    for (const [status, subDetector] of Object.entries(messageStatusMapping)) {
+      const detectedContent = subDetector(doc);
+      if (detectedContent) {
+        return {
+          status: status as MappingInput,
+          ...detectedContent
+        };
+      }
+    }
 
     return null;
   };
 
-  const status = await send<MessageStatus>({
-    data,
-    responseDetector,
-    timeoutMs: messageTimeout,
-  });
+  if (content.type === 'typing') {
+    await send({ data, timeoutMs });
 
-  if (message.type === 'typing') {
     return {
-      message,
+      message: {
+        type: 'typing',
+        from: personUuidToJid(credentials.username),
+        to: personUuidToJid(recipientPersonUuid),
+        id,
+      },
       status: 'sent', // Deliberately ignore timeouts for typing indicators
     };
-  } else if (status === 'sent') {
-    setInboxSent(recipientPersonUuid, message.text);
+  }
+
+  const response = await send({ data, responseDetector, timeoutMs });
+
+  if (response === 'timeout') {
+    ;
+  } else if (response.status === 'sent' && response.audioUuid) {
+    setInboxSent(recipientPersonUuid, AUDIO_MESSAGE);
+
     notify(`message-to-${recipientPersonUuid}`);
-    return { message, status };
-  } else if (status !== 'timeout') {
-    return { message: null, status };
+
+    return {
+      message: {
+        type: 'chat-audio',
+        from: personUuidToJid(credentials.username),
+        to: personUuidToJid(recipientPersonUuid),
+        id,
+        audioUuid: response.audioUuid,
+        timestamp: new Date(),
+        fromCurrentUser: true,
+      },
+      status: response.status,
+    };
+  } else if (response.status === 'sent') {
+    const text = content.type === 'chat-text' ? content.text : '';
+
+    setInboxSent(recipientPersonUuid, text);
+
+    notify(`message-to-${recipientPersonUuid}`);
+
+    return {
+      message: {
+        type: 'chat-text',
+        from: personUuidToJid(credentials.username),
+        to: personUuidToJid(recipientPersonUuid),
+        id,
+        text,
+        timestamp: new Date(),
+        fromCurrentUser: true,
+      },
+      status: response.status
+    };
+  } else {
+    return { message: null, status: response.status };
   }
 
   // Deal with timeouts. To stop ourselves from sending the same message
@@ -646,7 +674,15 @@ const sendMessage = async (
     conversation === 'timeout' ||
     conversation[conversation.length - 1]?.id !== id
   ) {
-    return sendMessage(recipientPersonUuid, messageBody, numTries - 1);
+    return sendMessage(
+      recipientPersonUuid,
+      content,
+      id,
+      {
+        numTries: numTries - 1,
+        timeoutMs,
+      }
+    );
   } else {
     return { message: null, status: 'timeout' };
   }
@@ -717,67 +753,105 @@ const onReceiveMessage = (
   otherPersonUuid?: string,
   doMarkDisplayed?: boolean,
 ): (() => void) | undefined => {
-  const _onReceiveMessage = async (doc: any) => {
+  const unpackDoc = (doc: any) => {
     try {
       const {
         message: {
-          '@type': receivedType,
+          '@type': type,
           '@from': from,
           '@to': to,
           '@id': id,
-          body: bodyText,
+          '@audioUuid': audioUuid,
+          body: text,
         }
       } = doc;
 
-      assert(['chat', 'typing'].includes(receivedType));
-
-      const bareFrom = jidToBareJid(from)
-
-      if (otherPersonUuid !== undefined && otherPersonUuid !== bareFrom) {
-        return;
-      }
-
-      if (receivedType === 'typing' && callback !== undefined) {
-        const message: TypingMessage = {
-          from: from,
-          to: to,
-          id: id,
-          type: 'typing',
-        };
-
-        callback(message);
-      }
-
-      if (receivedType === 'typing') {
-        return;
-      }
-
-
-      const message: ChatMessage = {
-        text: bodyText,
-        from: from,
-        to: to,
-        id: id,
-        timestamp: new Date(),
-        fromCurrentUser: jidMatchesSignedInUser(from),
-        type: 'chat',
+      const base = {
+        from: from as string,
+        to: to as string,
+        id: id as string,
       };
 
-      await setInboxRecieved(bareFrom, bodyText);
-
-      if (otherPersonUuid === undefined) {
-        notify(`message-from-${bareFrom}`);
+      if (type === 'chat' && audioUuid) {
+        return {
+          ...base,
+          type: 'chat-audio' as 'chat-audio',
+          audioUuid: audioUuid,
+        };
       }
 
-      if (otherPersonUuid !== undefined && doMarkDisplayed !== false) {
-        await markDisplayed(message);
+      if (type === 'chat' && text){
+        return {
+          ...base,
+          type: 'chat-text' as 'chat-text',
+          text: text as string,
+        };
       }
 
-      if (callback !== undefined) {
-        callback(message);
+      if (type === 'typing') {
+        return {
+          ...base,
+          type: 'typing' as 'typing',
+        };
       }
-
     } catch { }
+
+    return null;
+  };
+
+  const _onReceiveMessage = async (doc: any) => {
+    const unpacked = unpackDoc(doc);
+
+    if (!unpacked) {
+      return;
+    }
+
+    const bareFrom = jidToBareJid(unpacked.from)
+
+    if (otherPersonUuid !== undefined && otherPersonUuid !== bareFrom) {
+      return;
+    }
+
+    if (unpacked.type === 'typing' && callback !== undefined) {
+      const message: TypingMessage = unpacked;
+
+      callback(message);
+    }
+
+    if (unpacked.type === 'typing') {
+      return;
+    }
+
+
+    const message: ChatMessage = unpacked.type === 'chat-text' ? {
+      ...unpacked,
+      type: 'chat-text',
+      timestamp: new Date(),
+      fromCurrentUser: jidMatchesSignedInUser(unpacked.from),
+    } : {
+      ...unpacked,
+      type: 'chat-audio',
+      timestamp: new Date(),
+      fromCurrentUser: jidMatchesSignedInUser(unpacked.from),
+    };
+
+    if (unpacked.type === 'chat-text') {
+      await setInboxRecieved(bareFrom, unpacked.text);
+    } else if (unpacked.type === 'chat-audio') {
+      await setInboxRecieved(bareFrom, AUDIO_MESSAGE);
+    }
+
+    if (otherPersonUuid === undefined) {
+      notify(`message-from-${bareFrom}`);
+    }
+
+    if (otherPersonUuid !== undefined && doMarkDisplayed !== false) {
+      await markDisplayed(message);
+    }
+
+    if (callback !== undefined) {
+      callback(message);
+    }
 
   };
 
@@ -829,7 +903,8 @@ const fetchConversation = async (
                 '@id': id,
                 '@from': from,
                 '@to': to,
-                'body': bodyText,
+                '@audio_uuid': audioUuid,
+                'body': text,
               }
             }
           }
@@ -838,16 +913,29 @@ const fetchConversation = async (
 
       assert(receivedQueryId === queryId);
 
-      return {
-        text: bodyText,
-        from: from,
-        to: to,
-        id: id,
-        mamId: mamId ? mamId : undefined,
-        timestamp: new Date(timestamp),
-        fromCurrentUser: jidMatchesSignedInUser(from),
-        type: 'chat',
-      };
+      if (audioUuid) {
+        return {
+          type: 'chat-audio',
+          audioUuid: audioUuid,
+          from: from,
+          to: to,
+          id: id,
+          mamId: mamId ? mamId : undefined,
+          timestamp: new Date(timestamp),
+          fromCurrentUser: jidMatchesSignedInUser(from),
+        };
+      } else {
+        return {
+          type: 'chat-text',
+          text: text,
+          from: from,
+          to: to,
+          id: id,
+          mamId: mamId ? mamId : undefined,
+          timestamp: new Date(timestamp),
+          fromCurrentUser: jidMatchesSignedInUser(from),
+        };
+      }
     } catch {
       return null;
     }
@@ -874,7 +962,7 @@ const fetchConversation = async (
     return _.isEqual(doc, expectedDoc);
   };
 
-  const response = await send<ChatMessage>({
+  const response = await send({
     data,
     responseDetector,
     sentinelDetector,
@@ -947,7 +1035,7 @@ const refreshInbox = async (
               message: {
                 '@from': from,
                 '@to': to,
-                'body': bodyText,
+                'body': text,
               }
             }
           }
@@ -973,7 +1061,7 @@ const refreshInbox = async (
         name: '',
         matchPercentage: 0,
         imageUuid: null,
-        lastMessage: bodyText,
+        lastMessage: text,
         lastMessageRead: numUnread === '0',
         lastMessageTimestamp: new Date(timestamp),
         isAvailableUser: true,
@@ -998,7 +1086,7 @@ const refreshInbox = async (
     return _.isEqual(doc, expectedDoc);
   };
 
-  const response = await send<Conversation>({
+  const response = await send({
     data,
     responseDetector,
     sentinelDetector,

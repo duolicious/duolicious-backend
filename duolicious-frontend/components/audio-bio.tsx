@@ -142,7 +142,7 @@ const AudioBio = ({
     }
 
     return false;
-  }
+  };
 
   const stopRecording = async () => {
     const currentRecording = recording.current;
