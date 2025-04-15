@@ -82,6 +82,7 @@ def transcode_and_trim_audio(
             'ffmpeg',
             '-i',   str(temp_input_file_path),  # Read from temporary input file
             '-t',   str(max_duration),          # Set max_duration
+            '-af',  'dynaudnorm=f=30:r=1',      # Normalize loudness
             '-c:a', 'aac',                      # Use AAC codec
             '-b:a', '128k',                     # Bitrate
             '-ar',  '44100',                    # Sample rate
