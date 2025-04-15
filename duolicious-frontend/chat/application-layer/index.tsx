@@ -750,7 +750,7 @@ const onReceiveMessage = (
           '@from': from,
           '@to': to,
           '@id': id,
-          '@audioUuid': audioUuid,
+          '@audio_uuid': audioUuid,
           body: text,
         }
       } = doc;
