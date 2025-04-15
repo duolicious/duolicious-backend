@@ -711,7 +711,6 @@ const ConversationScreen = ({navigation, route}) => {
           }}
           contentContainerStyle={{
             paddingTop: 10,
-            paddingBottom: 20,
             maxWidth: 600,
             width: '100%',
             alignSelf: 'center',

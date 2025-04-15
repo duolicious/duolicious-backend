@@ -459,7 +459,7 @@ const TypingSpeechBubble = ({
             borderRadius: 10,
             backgroundColor: otherUserBackgroundColor,
             gap: 5,
-            paddingVertical: 15,
+            paddingVertical: 14,
             paddingHorizontal: 12,
             flexShrink: 1,
             flexDirection: 'row',
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 999,
-    backgroundColor: '#555',
+    backgroundColor: '#333',
   },
 });
 
