@@ -469,7 +469,7 @@ async def process_text(
             f'<duo_message_not_unique id="{stanza_id}"/>'
         ])
 
-    async def store_audio_and_notify():
+    async def store_audio_and_notify() -> None:
         if \
                 isinstance(maybe_message, AudioMessage) and \
                 not transcode_and_put(
@@ -480,17 +480,21 @@ async def process_text(
                 f'<duo_server_error id="{stanza_id}"/>'
             ])
 
+        audio_uuid = (
+                maybe_message.audio_uuid
+                if isinstance(maybe_message, AudioMessage)
+                else None)
+
         sanitized_xml = etree.tostring(
             message_string_to_etree(
-                message_body=maybe_message.body,
                 to_username=to_username,
                 from_username=from_username,
                 id=maybe_message.stanza_id,
+                message_body=maybe_message.body,
+                audio_uuid=audio_uuid,
             ),
             encoding='unicode',
             pretty_print=False)
-
-        await redis_publish_many(to_username, [sanitized_xml])
 
         immediate_data = await fetch_immediate_data(
                 from_id=from_id,
@@ -527,7 +531,9 @@ async def process_text(
                 f'id="{stanza_id}" '
             ).strip() + '/>'
 
-        return await redis_publish_many(connection_uuid, [response])
+        await redis_publish_many(to_username, [sanitized_xml])
+
+        await redis_publish_many(connection_uuid, [response])
 
     store_message(
         from_username=from_username,
