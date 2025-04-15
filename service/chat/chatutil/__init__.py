@@ -74,6 +74,7 @@ def message_string_to_etree(
     id: str,
     type: Literal['chat', 'typing'] = 'chat',
     message_body: str | None = None,
+    audio_uuid: str | None = None,
 ) -> etree._Element:
     message_etree = build_element(
         'message',
@@ -82,7 +83,11 @@ def message_string_to_etree(
             'to': f'{to_username}@{LSERVER}',
             'id': id,
             'type': type,
-        },
+        } | ({
+            'audio_uuid': audio_uuid
+        } if audio_uuid else {
+
+        }),
         ns='jabber:client',
     )
 
