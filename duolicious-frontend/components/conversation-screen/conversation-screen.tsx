@@ -47,7 +47,7 @@ import { listen, notify } from '../../events/events';
 import { ImageBackground } from 'expo-image';
 import * as StoreReview from 'expo-store-review';
 import { askedForReviewBefore } from '../../kv-storage/asked-for-review-before';
-import { MessageDivider }  from '../message-divider';
+import { MessageDivider }  from './message-divider';
 import { ONLINE_COLOR } from '../../constants/constants';
 import { useOnline } from '../../chat/application-layer/hooks/online';
 import * as _ from 'lodash';

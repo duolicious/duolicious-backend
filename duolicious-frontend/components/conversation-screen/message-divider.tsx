@@ -1,11 +1,12 @@
-import React from 'react';
+import { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
-import { DefaultText } from './default-text';
-import { friendlyDate } from '../util/util';
+import { DefaultText } from '../default-text';
+import { friendlyDate } from '../../util/util';
 import {
   Message,
-} from '../chat/application-layer';
+} from '../../chat/application-layer';
 import { isSameDay } from 'date-fns';
+import { useSharedValue, withTiming } from 'react-native-reanimated';
 
 type Props = {
   previousMessage: Message
@@ -13,6 +14,12 @@ type Props = {
 };
 
 const MessageDivider = ({ previousMessage, message }: Props) => {
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    opacity.value = withTiming(1.0);
+  }, []);
+
   if (previousMessage.type === 'typing') {
     return null;
   }
@@ -26,7 +33,9 @@ const MessageDivider = ({ previousMessage, message }: Props) => {
   }
 
   return (
-    <DefaultText style={styles.text}>{friendlyDate(message.timestamp)}</DefaultText>
+    <DefaultText style={styles.text} animated={true}>
+      {friendlyDate(message.timestamp)}
+    </DefaultText>
   );
 };
 

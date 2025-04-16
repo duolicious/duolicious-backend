@@ -265,7 +265,7 @@ const SpeechBubble = ({
     if (message?.status === 'sent') {
       opacity.value = withTiming(1.0);
     } else {
-      opacity.value = 0.5;
+      opacity.value = 0.3;
     }
   }, [message?.status === 'sent']);
 
