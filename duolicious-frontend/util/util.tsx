@@ -12,7 +12,7 @@ import {
   isYesterday,
   subSeconds,
 } from 'date-fns'
-import _ from 'lodash';
+import * as _ from 'lodash';
 
 const isMobile = () => {
   const re = /(android|iphone|ipod|iemobile|blackberry|webos|symbian)/i;

@@ -1,5 +1,5 @@
 import { possessive, secToMinSec } from '../util/util';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, View, Pressable, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import { AUDIO_URL } from '../env/env';
@@ -11,20 +11,23 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import {
+  LinearGradient,
+} from 'expo-linear-gradient';
+import * as _ from 'lodash';
 
 const LoadingBar = () => {
   const duration = 500;
-  const progress = useSharedValue(0);
+  const progress = useSharedValue(1);
   const [containerWidth, setContainerWidth] = useState(0);
 
-  // Set bar to be 30% of the container's width.
-  const barWidthRatio = 0.3;
+  const barWidthRatio = 0.4;
   const barWidth = containerWidth * barWidthRatio;
   const maxTranslate = containerWidth - barWidth;
 
   useEffect(() => {
     // Animate progress from 0 to 1 and reverse it to create a bounce effect.
-    progress.value = withRepeat(withTiming(1, { duration }), -1, true);
+    progress.value = withRepeat(withTiming(0, { duration }), -1, true);
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -38,12 +41,21 @@ const LoadingBar = () => {
   };
 
   return (
-    <View style={styles.loadingBarContainer} onLayout={onContainerLayout}>
-      {containerWidth > 0 && (
-        <Animated.View
-          style={[styles.loadingBar, animatedStyle, { width: barWidth }]}
-        />
-      )}
+    <View style={styles.loadingBarContainer}>
+      <View style={styles.loadingBar} onLayout={onContainerLayout}>
+        {containerWidth > 0 && (
+          <Animated.View
+            style={[styles.loadingBarFill, animatedStyle, { width: barWidth }]}
+          >
+            <LinearGradient
+              colors={['#ddd', '#000', '#ddd']}
+              style={{ width: '100%', height: '100%' }}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            />
+          </Animated.View>
+        )}
+      </View>
     </View>
   );
 };
@@ -61,29 +73,97 @@ type AudioPlayerProps = {
 const AudioPlayer = (props: AudioPlayerProps) => {
   const sound = useRef<Audio.Sound>();
 
+  const isMounted = useRef(true);
+
   const [isPlaying, setIsPlaying] = useState(false);
+
+  const [isPlaybackStarting, setIsPlaybackStarting] = useState(false);
+
+  const [isBuffering, setIsBuffering] = useState(false);
 
   const [secondsElapsed, setSecondsElapsed] = useState(0);
 
   const [minutes, seconds] = secToMinSec(secondsElapsed);
 
+  const [showLoader, setShowLoader] = useState(false);
+
   const playIcon = isPlaying ? 'pause' : 'play';
 
-  const play = async () => {
-    if (!sound.current) {
+  const debouncedShowLoader = useRef(
+    _.debounce((x: boolean) => setShowLoader(x), 200)
+  ).current;
+
+  const nextDebouncedShowLoaderValue = (
+      isPlaybackStarting
+      || isBuffering
+      || !props.uuid && props.presentation === 'conversation' && props.sending
+  );
+
+  useEffect(() => {
+    // Debouncing the loader is necessary to stop it from briefly flickering
+    // in the case that the audio has already been fetched from the server
+    debouncedShowLoader(nextDebouncedShowLoaderValue);
+  }, [nextDebouncedShowLoaderValue])
+
+  const onPlaybackStatusUpdate = useCallback(async (status: AVPlaybackStatus) => {
+    if (!isMounted.current) {
       return;
     }
+
+    if (!status.isLoaded) {
+      return;
+    }
+
+    setSecondsElapsed(Math.floor(status.positionMillis / 1000));
+
+    setIsBuffering(status.isBuffering);
+
+    if (status.didJustFinish) {
+      setIsPlaying(false);
+      if (sound.current) {
+        await sound.current.pauseAsync();
+        await sound.current.setPositionAsync(0);
+      }
+    }
+  }, []);
+
+  const play = async () => {
+    if (isPlaybackStarting) {
+      return;
+    }
+
+    setIsPlaybackStarting(true);
+    setIsPlaying(true);
 
     try {
       await Audio.setAudioModeAsync({
         playsInSilentModeIOS: true,
       });
 
-      const response = await sound.current.playAsync();
+      if (!sound.current) {
+        const uri = `${AUDIO_URL}/${props.uuid}.aac`;
 
-      setIsPlaying(response.isLoaded);
+        const result = await Audio.Sound.createAsync(
+          { uri },
+          {},
+          onPlaybackStatusUpdate,
+          false,
+        );
+
+        sound.current = result.sound;
+      }
+
+      if (!isMounted.current) {
+        await sound.current.unloadAsync();
+        return;
+      }
+
+      await sound.current.playAsync();
     } catch (err) {
-      console.error('Failed to start recording', err);
+      setIsPlaying(false);
+      console.error('Failed to start playback', err);
+    } finally {
+      setIsPlaybackStarting(false);
     }
   };
 
@@ -97,7 +177,9 @@ const AudioPlayer = (props: AudioPlayerProps) => {
     await sound.current.pauseAsync();
   };
 
-  const togglePlayPlause = () => {
+  const togglePlayPause = () => {
+    if (isPlaybackStarting) return;
+
     if (isPlaying) {
       pause();
     } else {
@@ -106,40 +188,18 @@ const AudioPlayer = (props: AudioPlayerProps) => {
   };
 
   useEffect(() => {
-    const onPlaybackStatusUpdate = async (status: AVPlaybackStatus) => {
-      if (!status.isLoaded) {
-        return;
-      }
+    isMounted.current = true;
 
-      setSecondsElapsed(Math.floor(status.positionMillis / 1000));
-
-      if (status.didJustFinish) {
-        setIsPlaying(false);
-        if (sound.current) {
-          await sound.current.pauseAsync();
-          await sound.current.setPositionAsync(0);
-        }
-      }
+    return () => {
+      isMounted.current = false;
     };
+  }, []);
 
-    const go = async () => {
-      if (!props.uuid) {
-        return;
-      }
-
-      sound.current = (await Audio.Sound.createAsync(
-        { uri: `${AUDIO_URL}/${props.uuid}.aac` },
-        {},
-        onPlaybackStatusUpdate,
-        false,
-      )).sound;
-    };
-
-    go();
-
+  useEffect(() => {
     return () => {
       if (sound.current) {
         sound.current.unloadAsync();
+        sound.current = undefined;
       }
     };
   }, [props.uuid]);
@@ -187,7 +247,8 @@ const AudioPlayer = (props: AudioPlayerProps) => {
           justifyContent: 'center',
           alignItems: 'center',
         }}
-        onPress={togglePlayPlause}
+        onPress={togglePlayPause}
+        disabled={isPlaybackStarting || isBuffering}
       >
         <View
           style={{
@@ -204,21 +265,35 @@ const AudioPlayer = (props: AudioPlayerProps) => {
         </View>
       </Pressable>
 
-      {!props.uuid && props.presentation === 'conversation' && props.sending &&
-        <LoadingBar/>
-      }
+      <View style={styles.middleContainer}>
+        {!!props.uuid &&
+          <DefaultText
+            style={
+              showLoader
+                ? {...styles.middleText, ...styles.transparent}
+                : {...styles.middleText}
+            }
+          >
+            {middleText}
+          </DefaultText>
+        }
 
-      {!props.uuid && props.presentation === 'conversation' && !props.sending &&
-        <DefaultText style={styles.audioPlayerMiddleText}>
-          Failed to send
-        </DefaultText>
-      }
+        {!props.uuid && props.presentation === 'conversation' && !props.sending &&
+          <DefaultText
+            style={
+              showLoader
+                ? {...styles.middleText, ...styles.transparent}
+                : {...styles.middleText}
+            }
+          >
+            failed to send
+          </DefaultText>
+        }
 
-      {!!props.uuid &&
-        <DefaultText style={styles.audioPlayerMiddleText}>
-          {middleText}
-        </DefaultText>
-      }
+        {showLoader &&
+          <LoadingBar/>
+        }
+      </View>
 
       <DefaultText
         style={{
@@ -234,22 +309,35 @@ const AudioPlayer = (props: AudioPlayerProps) => {
 };
 
 const styles = StyleSheet.create({
-  audioPlayerMiddleText: {
-    fontWeight: 700,
+  middleContainer: {
     flex: 3,
+    justifyContent: 'center',
+  },
+  middleText: {
+    fontWeight: 700,
     ...(Platform.OS === 'web' ? {
       wordBreak: 'break-all',
     } : {}),
     textAlign: 'center',
   },
+  transparent: {
+    opacity: 0,
+  },
   loadingBarContainer: {
-    width: 100,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
+  loadingBar: {
     height: 8,
     backgroundColor: '#ddd',
     borderRadius: 4,
     overflow: 'hidden',
   },
-  loadingBar: {
+  loadingBarFill: {
     height: '100%',
     borderRadius: 999,
     backgroundColor: 'black',
