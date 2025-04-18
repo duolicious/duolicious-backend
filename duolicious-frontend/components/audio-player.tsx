@@ -48,7 +48,7 @@ const LoadingBar = () => {
             style={[styles.loadingBarFill, animatedStyle, { width: barWidth }]}
           >
             <LinearGradient
-              colors={['#ddd', '#000', '#ddd']}
+              colors={['transparent', '#000', 'transparent']}
               style={{ width: '100%', height: '100%' }}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -340,7 +340,6 @@ const styles = StyleSheet.create({
   loadingBarFill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: 'black',
   },
 });
 
