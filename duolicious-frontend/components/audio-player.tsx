@@ -85,7 +85,9 @@ const AudioPlayer = (props: AudioPlayerProps) => {
 
   const [minutes, seconds] = secToMinSec(secondsElapsed);
 
-  const [showLoader, setShowLoader] = useState(false);
+  const [showLoader, setShowLoader] = useState(
+    props.presentation === 'conversation' && props.sending
+  );
 
   const playIcon = isPlaying ? 'pause' : 'play';
 
@@ -95,7 +97,7 @@ const AudioPlayer = (props: AudioPlayerProps) => {
 
   const nextDebouncedShowLoaderValue = (
       isPlaybackStarting
-      || isBuffering
+      || isPlaying && isBuffering
       || !props.uuid && props.presentation === 'conversation' && props.sending
   );
 
@@ -121,13 +123,16 @@ const AudioPlayer = (props: AudioPlayerProps) => {
     if (status.didJustFinish) {
       setIsPlaying(false);
       if (sound.current) {
-        await sound.current.pauseAsync();
-        await sound.current.setPositionAsync(0);
+        await sound.current.stopAsync();
       }
     }
   }, []);
 
   const play = async () => {
+    if (!props.uuid) {
+      return;
+    }
+
     if (isPlaybackStarting) {
       return;
     }
@@ -205,20 +210,13 @@ const AudioPlayer = (props: AudioPlayerProps) => {
   }, [props.uuid]);
 
   const middleText = (() => {
-    let middleText = '';
-
-    if (props.presentation === 'profile' && props.name)
-      middleText += `${possessive(props.name)} `
-
-    middleText += 'voice';
-
-    if (props.presentation === 'profile')
-      middleText += ' bio';
-
-    if (props.presentation === 'conversation')
-      middleText += ' message';
-
-    return middleText;
+    if (props.presentation === 'conversation') {
+      return !props.uuid && !props.sending ? 'failed to send' : 'voice message';
+    } else if (props.name) {
+      return `${possessive(props.name)} voice bio`
+    } else {
+      return 'failed to send';
+    }
   })();
 
   return (
@@ -266,29 +264,15 @@ const AudioPlayer = (props: AudioPlayerProps) => {
       </Pressable>
 
       <View style={styles.middleContainer}>
-        {!!props.uuid &&
-          <DefaultText
-            style={
-              showLoader
-                ? {...styles.middleText, ...styles.transparent}
-                : {...styles.middleText}
-            }
-          >
-            {middleText}
-          </DefaultText>
-        }
-
-        {!props.uuid && props.presentation === 'conversation' && !props.sending &&
-          <DefaultText
-            style={
-              showLoader
-                ? {...styles.middleText, ...styles.transparent}
-                : {...styles.middleText}
-            }
-          >
-            failed to send
-          </DefaultText>
-        }
+        <DefaultText
+          style={
+            showLoader
+              ? {...styles.middleText, ...styles.transparent}
+              : {...styles.middleText}
+          }
+        >
+          {middleText}
+        </DefaultText>
 
         {showLoader &&
           <LoadingBar/>
