@@ -178,7 +178,21 @@ def post_resend_otp(s: t.SessionInfo):
 )
 @validate(t.PostCheckOtp)
 def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
-    return person.post_check_otp(req, s)
+    limit = "50 per day"
+    scope = "check_otp"
+
+    with (
+        limiter.limit(
+            limit,
+            scope=scope,
+            exempt_when=disable_ip_rate_limit),
+        limiter.limit(
+            limit,
+            scope=scope,
+            key_func=limiter_account,
+            exempt_when=disable_account_rate_limit)
+    ):
+        return person.post_check_otp(req, s)
 
 @apost('/sign-out', expected_onboarding_status=None)
 def post_sign_out(s: t.SessionInfo):
