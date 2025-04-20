@@ -6,8 +6,8 @@ import unicodedata
 # easier to detect coarse language later on
 _normalization_map = {
     "[a4]+n[a4]+[l1]+": "anal",
-    "[a4][s5$]*h[o0][l1][e3]": "asshole",
     "[a4][s5$]{2}": "ass",
+    "[a4][s5$]*h[o0][l1][e3]": "asshole",
     "b[a4]ck ?sh[o0][tт][s5$z]": "backshots",
     "b": "be",
     "b[i1y]?tch": "bitch",
@@ -57,9 +57,11 @@ _normalization_map = {
     "n[i1ye3][gб]+uh*": "nigga",
     "n[ie][gб]{1,2}re{1,2}s+": "negress",
     "p[e3]d[o0]": "pedo",
+    "pen[i1][s5$]": "penis",
     "pissin": "pissing",
     "p[iy1][s5$][s5$]": "piss",
     "p[o0]rn": "porn",
+    "pre cum": "precum",
     "pr[o0]n": "porn",
     "r[@a4]p[e3]?-?ab[l1]e": "rapeable",
     "r[@a4]p[e3]d": "raped",
@@ -71,6 +73,7 @@ _normalization_map = {
     "s[e3][l1]f": "self",
     "seg+[zs]+": "sex",
     "sht": "shit",
+    "slvt": "slut",
     "strokin": "stroking",
     "s[uv][i1]c[i1]d[e3]": "suicide",
     "sxy": "sexy",
@@ -87,7 +90,6 @@ _normalization_map = {
     "u": "you",
     "wh[o0]r[e3][s5$z]": "whores",
     "wh[o0]r[e3]": "whores",
-    "pen[i1][s5$]": "penis",
 }
 
 
