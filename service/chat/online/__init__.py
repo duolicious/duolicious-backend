@@ -72,6 +72,9 @@ async def maybe_redis_subscribe_online(
             await fetch_id_from_username(to_username))
 
     try:
+        assert from_id is not None
+        assert to_id is not None
+
         result  = []
         result += [FMT_SUB_OK.format(username=to_username)]
         result += [

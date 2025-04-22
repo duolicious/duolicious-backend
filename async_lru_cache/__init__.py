@@ -1,6 +1,15 @@
 import asyncio
 from collections import OrderedDict
 import functools
+from typing import (
+    Awaitable,
+    Callable,
+    ParamSpec,
+    TypeVar,
+)
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 class AsyncLruCache:
     def __init__(self, maxsize=128, ttl=None, cache_condition=None):
@@ -9,7 +18,10 @@ class AsyncLruCache:
         self.cache_condition = cache_condition
         self.cache = OrderedDict()
 
-    def __call__(self, func):
+    def __call__(
+        self,
+        func: Callable[P, Awaitable[R]]
+    ) -> Callable[P, Awaitable[R]]:
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
             key = args + tuple(sorted(kwargs.items()))
