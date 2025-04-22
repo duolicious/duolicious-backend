@@ -1,6 +1,8 @@
 from service.chat.messagestorage.inbox import (
+        INBOX_CONTENT_ENCODING,
+        UpsertConversationJob,
         process_upsert_conversation_batch,
-        UpsertConversationJob)
+)
 from service.chat.messagestorage.mam import (
         process_store_mam_message_batch,
         StoreMamMessageJob)
@@ -46,7 +48,7 @@ def store_message(
         ),
         encoding='unicode',
         pretty_print=False,
-    )
+    ).encode(INBOX_CONTENT_ENCODING)
 
     job = StoreMessageJob(
         store_mam_message_job=StoreMamMessageJob(
