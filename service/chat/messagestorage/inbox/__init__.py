@@ -9,6 +9,8 @@ from service.chat.chatutil import (
     format_timestamp,
 )
 
+INBOX_CONTENT_ENCODING = 'utf-8'
+
 Q_GET_INBOX = f"""
 SELECT
     *
@@ -96,7 +98,7 @@ class UpsertConversationJob:
     from_username: str
     to_username: str
     msg_id: str
-    content: str
+    content: bytes
 
 
 @dataclass(frozen=True)
@@ -147,7 +149,9 @@ async def _get_inbox(query_id: str, username: str) -> list[str]:
     for row in rows:
         try:
             # Parse the content
-            content_xml = etree.fromstring(row['content'])
+            content_bytes = row['content']
+            content_str = content_bytes.decode(INBOX_CONTENT_ENCODING)
+            content_xml = etree.fromstring(content_str)
 
             # Build the 'delay' element
             delay_element = build_element(
