@@ -22,7 +22,7 @@ LIMIT 1
 
 
 Q_FETCH_PERSON_ID = """
-SELECT id FROM person WHERE uuid = %(username)s
+SELECT id FROM person WHERE uuid = uuid_or_null(%(username)s)
 """
 
 
@@ -114,7 +114,7 @@ async def fetch_is_skipped(from_id: int, to_id: int) -> bool:
 
 
 @AsyncLruCache(maxsize=1024)
-async def fetch_id_from_username(username: str) -> str | None:
+async def fetch_id_from_username(username: str) -> int | None:
     async with api_tx('read committed') as tx:
         await tx.execute(Q_FETCH_PERSON_ID, dict(username=username))
         row = await tx.fetchone()
