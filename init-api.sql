@@ -71,6 +71,21 @@ CREATE TABLE IF NOT EXISTS good_email_domain (
 );
 
 --------------------------------------------------------------------------------
+-- EVENTS
+--------------------------------------------------------------------------------
+
+DO $$ BEGIN
+    CREATE TYPE person_event AS ENUM (
+        'added-photo',
+        'joined',
+        'updated-bio'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+
+--------------------------------------------------------------------------------
 -- BANNED CLUBS
 --------------------------------------------------------------------------------
 
@@ -261,6 +276,11 @@ CREATE TABLE IF NOT EXISTS person (
 
     -- Whether the account was deactivated via the settings or automatically
     activated BOOLEAN NOT NULL DEFAULT TRUE,
+
+    -- Events
+    last_event_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    last_event_name person_event NOT NULL DEFAULT 'joined',
+    last_event_data JSONB NOT NULL DEFAULT '{}',
 
     -- Primary keys and constraints
     UNIQUE (email),
@@ -661,6 +681,8 @@ CREATE INDEX IF NOT EXISTS idx__person__uuid
     ON person(uuid);
 CREATE INDEX IF NOT EXISTS idx__person__normalized_email
     ON person(normalized_email);
+CREATE INDEX IF NOT EXISTS idx__person__last_event_time
+    ON person(last_event_time);
 
 CREATE INDEX IF NOT EXISTS idx__search_cache__searcher_person_id__position ON search_cache(searcher_person_id, position);
 

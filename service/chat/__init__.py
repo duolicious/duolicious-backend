@@ -61,6 +61,7 @@ import json
 from constants import (
     MAX_NOTIFICATION_LENGTH,
 )
+from util import truncate_text
 
 app = FastAPI()
 
@@ -219,8 +220,7 @@ async def send_notification(
     if to_token is None:
         return
 
-    truncated_message = message[:MAX_NOTIFICATION_LENGTH].strip() + (
-            '...' if len(message) > MAX_NOTIFICATION_LENGTH else '')
+    truncated_message = truncate_text(message, MAX_NOTIFICATION_LENGTH)
 
     notify.enqueue_mobile_notification(
         token=to_token,
@@ -232,7 +232,7 @@ async def send_notification(
     upsert_last_notification(username=to_username, is_intro=is_intro)
 
 
-def normalize_message(message_str):
+def normalize_message(message_str: str) -> str:
     message_str = message_str.lower()
 
     # Remove everything but non-alphanumeric characters
@@ -244,14 +244,14 @@ def normalize_message(message_str):
     return message_str
 
 
-def is_text_too_long(message: Message):
+def is_text_too_long(message: Message) -> bool:
     if isinstance(message, ChatMessage):
         return len(message.body) > MAX_MESSAGE_LEN
     else:
         return False
 
 
-def is_ping(parsed_xml):
+def is_ping(parsed_xml) -> bool:
     try:
         return parsed_xml.tag == 'duo_ping'
     except:

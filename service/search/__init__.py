@@ -1,13 +1,22 @@
 import psycopg
 import duotypes as t
 from database import api_tx
-from typing import Tuple, Optional
-from service.search.sql import *
+from typing import Tuple
+from service.search.sql import (
+    Q_CACHED_SEARCH,
+    Q_QUIZ_SEARCH,
+    Q_SEARCH_PREFERENCE,
+    Q_UNCACHED_SEARCH_1,
+    Q_UNCACHED_SEARCH_2,
+    Q_FEED,
+)
 from dataclasses import dataclass
+
 
 @dataclass
 class ClubHttpArg:
-    club: Optional[str]
+    club: str | None
+
 
 def _quiz_search_results(tx, searcher_person_id: int):
     params = dict(
@@ -15,6 +24,7 @@ def _quiz_search_results(tx, searcher_person_id: int):
     )
 
     return tx.execute(Q_QUIZ_SEARCH, params).fetchall()
+
 
 def _uncached_search_results(
     tx,
@@ -52,9 +62,10 @@ def _cached_search_results(tx, searcher_person_id: int, no: Tuple[int, int]):
 
     return tx.execute(Q_CACHED_SEARCH, params).fetchall()
 
-def get_search_type(n: Optional[str], o: Optional[str]):
-    n_: Optional[int] = n if n is None else int(n)
-    o_: Optional[int] = o if o is None else int(o)
+
+def get_search_type(n: str | None, o: str | None):
+    n_: int | None = n if n is None else int(n)
+    o_: int | None = o if o is None else int(o)
 
     if n_ is not None and not n_ >= 0:
         raise ValueError('n must be >= 0')
@@ -73,14 +84,17 @@ def get_search_type(n: Optional[str], o: Optional[str]):
 
 def get_search(
     s: t.SessionInfo,
-    n: Optional[str],
-    o: Optional[str],
-    club: Optional[ClubHttpArg],
+    n: str | None,
+    o: str | None,
+    club: ClubHttpArg | None,
 ):
     search_type, no = get_search_type(n, o)
 
     if no is not None and no[0] > 10:
         return 'n must be less than or equal to 10', 400
+
+    if s.person_id is None:
+        return '', 500
 
     params = dict(
         person_id=s.person_id,
@@ -115,3 +129,35 @@ def get_search(
 
         else:
             raise Exception('Unexpected quiz type')
+
+
+def get_feed(s: t.SessionInfo, n: str | None, o: str | None):
+    if n is None:
+        raise ValueError('n must be given')
+    if o is None:
+        raise ValueError('o must be given')
+
+    try:
+        limit = int(n)
+        offset = int(o)
+    except:
+        raise ValueError('n and o must be integers')
+
+    if not (limit >= 1 and limit <= 50):
+        raise ValueError('n must be between 1 and 50, inclusive')
+    if offset < 0:
+        raise ValueError('n must be greater than or equal to 0')
+
+    if offset > 1000:
+        return []
+
+    params = dict(
+        searcher_person_id=s.person_id,
+        limit=limit,
+        offset=offset
+    )
+
+    with api_tx('READ COMMITTED') as tx:
+        rows = tx.execute(Q_FEED, params).fetchall()
+
+    return [row['j'] for row in rows]

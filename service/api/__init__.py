@@ -293,7 +293,7 @@ def get_prospect_profile(s: t.SessionInfo, prospect_uuid: int):
 
 @apost('/skip/by-uuid/<prospect_uuid>')
 @validate(t.PostSkip)
-def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: int):
+def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
     limit = "1 per 5 seconds; 30 per day"
     scope = "report"
 
@@ -421,6 +421,13 @@ def get_update_notifications():
         type=request.args.get('type', ''),
         frequency=request.args.get('frequency', ''),
     )
+
+@aget('/feed')
+def get_feed(s: t.SessionInfo):
+    n = request.args.get('n')
+    o = request.args.get('o')
+
+    return search.get_feed(s=s, n=n, o=o)
 
 @apost('/verification-selfie')
 @validate(t.PostVerificationSelfie)

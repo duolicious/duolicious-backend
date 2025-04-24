@@ -29,6 +29,7 @@ import numpy
 import erlastic
 from datetime import datetime, timezone
 from duoaudio import put_audio_in_object_store
+from util import truncate_text
 
 
 @dataclass
@@ -976,6 +977,17 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
                 blurhash = EXCLUDED.blurhash,
                 extra_exts = EXCLUDED.extra_exts,
                 verified = FALSE
+        ), updated_person AS (
+            UPDATE person
+            SET
+                last_event_time = now(),
+                last_event_name = 'added-photo',
+                last_event_data = jsonb_build_object(
+                    'added_photo_uuid', %(uuid)s,
+                    'added_photo_blurhash', %(blurhash)s
+                )
+            WHERE
+                id = %(person_id)s
         )
         SELECT 1
         """
@@ -1055,10 +1067,28 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         WHERE id = %(person_id)s
         """
     elif field_name == 'about':
+        params = dict(
+            person_id=s.person_id,
+            field_value=field_value,
+            truncated_text=truncate_text(field_value, 250),
+        )
+
+        print(params)
+
         q1 = """
         UPDATE person
-        SET about = %(field_value)s
-        WHERE id = %(person_id)s
+        SET
+            about = %(field_value)s,
+
+            last_event_time = now(),
+            last_event_name = 'updated-bio',
+            last_event_data = jsonb_build_object(
+                'added_text', %(truncated_text)s::TEXT,
+                'body_color', body_color,
+                'background_color', background_color
+            )
+        WHERE
+            id = %(person_id)s
         """
     elif field_name == 'gender':
         q1 = """
