@@ -984,7 +984,8 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
                 last_event_name = 'added-photo',
                 last_event_data = jsonb_build_object(
                     'added_photo_uuid', %(uuid)s,
-                    'added_photo_blurhash', %(blurhash)s
+                    'added_photo_blurhash', %(blurhash)s,
+                    'added_photo_extra_exts', %(extra_exts)s::TEXT[]
                 )
             WHERE
                 id = %(person_id)s

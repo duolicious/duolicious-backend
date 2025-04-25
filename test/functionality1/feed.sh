@@ -119,6 +119,7 @@ test_json_format () {
 [
   {
     "added_photo_blurhash": "redacted_nonnull_value",
+    "added_photo_extra_exts": [],
     "added_photo_uuid": "redacted_nonnull_value",
     "is_verified": false,
     "match_percentage": 50,
