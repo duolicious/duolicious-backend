@@ -935,7 +935,7 @@ WITH searcher AS (
     ORDER BY
         last_event_time DESC
     LIMIT
-        10
+        50
 )
 SELECT
     jsonb_build_object(
