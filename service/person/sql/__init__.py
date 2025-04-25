@@ -25,7 +25,7 @@ _Q_DO_SHOW_DONATION_NAG = f"""
 """
 
 _Q_ESTIMATED_END_DATE = """
-(SELECT estimated_end_date::timestamptz::text FROM funding) AS estimated_end_date
+(SELECT iso8601_utc(estimated_end_date) FROM funding) AS estimated_end_date
 """
 
 Q_UPDATE_ANSWER = """

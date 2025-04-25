@@ -8,9 +8,9 @@ source ../util/setup.sh
 set -xe
 
 date_20_days_later=$(
-  q "select now() + interval '20 days'")
+  q "select iso8601_utc((now() + interval '20 days')::timestamp)")
 date_10_days_ago=$(
-  q "select now() - interval '10 days'")
+  q "select iso8601_utc((now() - interval '10 days')::timestamp)")
 
 q "delete from person"
 q "delete from club"

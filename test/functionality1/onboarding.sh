@@ -11,7 +11,7 @@ img3=$(rand_image)
 
 set -xe
 
-date_in_20_days=$(q "select now() + interval '20 days'")
+date_in_20_days=$(q "select iso8601_utc((now() + interval '20 days')::timestamp)")
 
 q "delete from duo_session"
 q "delete from person"
