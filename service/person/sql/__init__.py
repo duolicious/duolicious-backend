@@ -1987,7 +1987,7 @@ SELECT
         SELECT DISTINCT
             ip_address::TEXT
         FROM duo_session
-        WHERE email = p.email
+        WHERE person_id = p.id
     ) AS ip_addresses,
     count_answers,
     ARRAY(

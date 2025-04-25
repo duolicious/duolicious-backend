@@ -856,6 +856,8 @@ WITH searcher AS (
         LIMIT 1
     ) AS photo_data ON true
     WHERE
+        last_event_time < %(before)s
+    AND
         activated
     AND
         -- The searcher meets the prospects privacy_verification_level_id
@@ -933,9 +935,7 @@ WITH searcher AS (
     ORDER BY
         last_event_time DESC
     LIMIT
-        %(limit)s
-    OFFSET
-        %(offset)s
+        10
 )
 SELECT
     jsonb_build_object(

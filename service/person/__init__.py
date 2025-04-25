@@ -1074,8 +1074,6 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             truncated_text=truncate_text(field_value, 250),
         )
 
-        print(params)
-
         q1 = """
         UPDATE person
         SET

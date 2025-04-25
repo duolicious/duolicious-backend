@@ -516,3 +516,20 @@ class PostKofiData(BaseModel):
 
     class Config:
         extra = Extra.allow
+
+
+class ValidDatetime(BaseModel):
+    datetime: datetime
+
+    @field_validator('datetime', mode='before')
+    def _validate_iso8601(cls, v):
+        """
+        Allow None or anything `datetime.fromisoformat` can parse.
+        Accept the common trailing ‘Z’ (UTC) designator as well.
+        """
+        if isinstance(v, datetime):
+            return v
+        try:
+            return datetime.fromisoformat(v.replace('Z', '+00:00'))
+        except ValueError:
+            raise ValueError('`datetime` must be an ISO-8601 datetime')

@@ -9,6 +9,11 @@ source ../util/setup.sh
 set -xe
 
 test_json_format () {
+  local searcher_uuid
+  local before
+  local response
+  local expected
+
   q "delete from duo_session"
   q "delete from person"
   q "delete from club"
@@ -27,21 +32,7 @@ test_json_format () {
   ../util/create-user.sh user9 0 1
   ../util/create-user.sh user10 0 1
 
-  searcher_id=$(q "select id from person where email = 'searcher@example.com'")
-  user1_id=$(q "select id from person where email = 'user1@example.com'")
-  user2_id=$(q "select id from person where email = 'user2@example.com'")
-  user3_id=$(q "select id from person where email = 'user3@example.com'")
-  user4_id=$(q "select id from person where email = 'user4@example.com'")
-  user5_id=$(q "select id from person where email = 'user5@example.com'")
-  user6_id=$(q "select id from person where email = 'user6@example.com'")
-
   searcher_uuid=$(q "select uuid from person where email = 'searcher@example.com'")
-  user1_uuid=$(q "select uuid from person where email = 'user1@example.com'")
-  user2_uuid=$(q "select uuid from person where email = 'user2@example.com'")
-  user3_uuid=$(q "select uuid from person where email = 'user3@example.com'")
-  user4_uuid=$(q "select uuid from person where email = 'user4@example.com'")
-  user5_uuid=$(q "select uuid from person where email = 'user5@example.com'")
-  user6_uuid=$(q "select uuid from person where email = 'user6@example.com'")
 
   q "update person set privacy_verification_level_id = 1"
 
@@ -92,8 +83,10 @@ test_json_format () {
   assume_role searcher
   c POST "/skip/by-uuid/$(q "select uuid from person where name = 'user10'")"
 
-  local response=$(
-    c GET '/feed?n=10&o=0' \
+  before=$(q "select iso8601_utc(now()::timestamp)")
+
+  response=$(
+    c GET "/feed?before=${before}" \
       | jq -S '
         def redact: if . == null then . else "redacted_nonnull_value" end;
 
@@ -115,7 +108,7 @@ test_json_format () {
       '
   )
 
-  local expected=$(jq -r . << EOF
+  expected=$(jq -r . << EOF
 [
   {
     "added_photo_blurhash": "redacted_nonnull_value",

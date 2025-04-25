@@ -11,6 +11,7 @@ from service.search.sql import (
     Q_FEED,
 )
 from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass
@@ -131,30 +132,10 @@ def get_search(
             raise Exception('Unexpected quiz type')
 
 
-def get_feed(s: t.SessionInfo, n: str | None, o: str | None):
-    if n is None:
-        raise ValueError('n must be given')
-    if o is None:
-        raise ValueError('o must be given')
-
-    try:
-        limit = int(n)
-        offset = int(o)
-    except:
-        raise ValueError('n and o must be integers')
-
-    if not (limit >= 1 and limit <= 50):
-        raise ValueError('n must be between 1 and 50, inclusive')
-    if offset < 0:
-        raise ValueError('n must be greater than or equal to 0')
-
-    if offset > 1000:
-        return []
-
+def get_feed(s: t.SessionInfo, before: datetime):
     params = dict(
         searcher_person_id=s.person_id,
-        limit=limit,
-        offset=offset
+        before=before,
     )
 
     with api_tx('READ COMMITTED') as tx:
