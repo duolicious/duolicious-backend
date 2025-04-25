@@ -8,16 +8,22 @@ def human_readable_size_metric(size_bytes):
     return f"{size_bytes:.1f} {suffixes[i]}"
 
 
-def truncate_text(text: str, limit: int = 100) -> str:
-    """
-    Return `text` unchanged if its length ≤ `limit`.
-    Otherwise return the first `limit - len(ellipsis)` characters
-    followed by `ellipsis`, so the total length equals `limit`.
+def truncate_text(
+    text: str,
+    max_chars: int = 100,
+    max_newlines: int = 20,
+) -> str:
+    ellipsis = "..."
+    original = text
 
-    Works on Unicode code-points (Python str), not bytes.
-    """
-    ellipsis = '...'
+    # Truncate by `max_newlines`
+    lines = text.splitlines()
+    text = '\n'.join(lines[:max_newlines])
 
-    if len(text) <= limit:
-        return text
-    return text[: limit - len(ellipsis)] + ellipsis
+    # Truncate by `max_chars`
+    text = text[:max_chars - len(ellipsis)]
+
+    # Add the ellipsis if needed
+    text = text if text == original else text + ellipsis
+
+    return text

@@ -1081,7 +1081,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         params = dict(
             person_id=s.person_id,
             field_value=field_value,
-            truncated_text=truncate_text(field_value, 250),
+            truncated_text=truncate_text(text=field_value, max_chars=250),
         )
 
         q1 = """
