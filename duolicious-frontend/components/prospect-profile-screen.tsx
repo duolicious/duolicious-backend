@@ -29,8 +29,7 @@ import { ButtonWithCenteredText } from './button/centered-text';
 import { api } from '../api/api';
 import { cmToFeetInchesStr } from '../units/units';
 import { signedInUser } from '../App';
-import { setSkipped } from '../hide-and-block/hide-and-block';
-import { ImageOrSkeleton } from './profile-card';
+import { postSkipped } from '../hide-and-block/hide-and-block';
 import { Pinchy } from './pinchy';
 import { Basic, Basics } from './basic';
 import { Club, Clubs } from './club';
@@ -66,6 +65,9 @@ import { useOnline } from '../chat/application-layer/hooks/online';
 import { ONLINE_COLOR } from '../constants/constants';
 import { HeartBackground } from './heart-background';
 import { AudioPlayer } from './audio-player';
+import { EnlargeablePhoto } from './enlargeable-image';
+import { commonStyles } from '../styles';
+import { useSkipped, setSkipped } from '../hide-and-block/hide-and-block';
 
 const Stack = createNativeStackNavigator();
 
@@ -96,75 +98,14 @@ const ProspectProfileScreen = () => {
 };
 
 const GalleryScreen = ({navigation, route}) => {
-  const { imageUuid } = route.params;
+  const { photoUuid } = route.params;
 
   return (
     <>
-      <Pinchy uuid={imageUuid}/>
+      <Pinchy uuid={photoUuid}/>
       <StatusBarSpacer/>
       <FloatingBackButton onPress={() => navigation.goBack()}/>
     </>
-  );
-};
-
-const goToGallery = (navigation, imageUuid) => () =>
-  navigation.navigate('Gallery Screen', { imageUuid } );
-
-const EnlargeableImage = ({
-  imageUuid,
-  imageExtraExts,
-  imageBlurhash,
-  onChangeEmbiggened,
-  style,
-  innerStyle,
-  isPrimary,
-  isVerified = false,
-}: {
-  imageUuid: string | undefined | null,
-  imageExtraExts?: string[] | undefined | null,
-  imageBlurhash: string | undefined | null,
-  onChangeEmbiggened: (uuid: string) => void,
-  style?: any,
-  innerStyle?: any,
-  isPrimary: boolean,
-  isVerified?: boolean,
-}) => {
-  if (imageUuid === undefined && !isPrimary) {
-    return <></>;
-  }
-
-  return (
-    <Pressable
-      disabled={!!imageExtraExts?.length || !imageUuid}
-      onPress={() => imageUuid && onChangeEmbiggened(imageUuid)}
-      style={[
-        {
-          width: '100%',
-          aspectRatio: 1,
-        },
-        style,
-      ]}
-    >
-      <ImageOrSkeleton
-        resolution={900}
-        imageExtraExts={imageExtraExts}
-        imageUuid={imageUuid}
-        imageBlurhash={imageBlurhash}
-        showGradient={false}
-        style={innerStyle}
-        forceExpoImage={true}
-      />
-      {isVerified &&
-        <VerificationBadge
-          style={{
-            position: 'absolute',
-            top: 18,
-            right: 18,
-          }}
-          size={28}
-        />
-      }
-    </Pressable>
   );
 };
 
@@ -279,51 +220,34 @@ const FloatingProfileInteractionButton = ({
   );
 };
 
-const FloatingSkipButton = ({personUuid, isSkipped}) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSkippedState, setIsSkippedState] = useState<
-    boolean | undefined
-  >(isSkipped);
-
-  useEffect(() => {
-    setIsSkippedState(isSkipped);
-  }, [isSkipped]);
-
-  useEffect(() => {
-    return listen(`unskip-profile-${personUuid}`, () => setIsSkippedState(false));
-  }, [personUuid]);
-
-  useEffect(() => {
-    return listen(`skip-profile-${personUuid}`, () => setIsSkippedState(true));
-  }, [personUuid]);
+const FloatingSkipButton = ({personUuid}) => {
+  const { isSkipped, isLoading, isPosting } = useSkipped(personUuid);
 
   const onPress = useCallback(async () => {
     if (personUuid === undefined) return;
+    if (isLoading) return;
 
-    const nextIsSkippedState = !isSkippedState;
+    const nextIsSkippedState = !isSkipped;
 
-    setIsLoading(true);
-    if (await setSkipped(personUuid, nextIsSkippedState)) {
-      setIsLoading(false);
-    }
-  }, [isLoading, isSkippedState, personUuid]);
+    await postSkipped(personUuid, nextIsSkippedState);
+  }, [isLoading, isSkipped, personUuid]);
 
   return (
     <FloatingProfileInteractionButton
       onPress={onPress}
       backgroundColor="white"
     >
-      {isLoading &&
+      {isPosting &&
         <ActivityIndicator size="large" color="#70f"/>
       }
-      {!isLoading && isSkippedState === true && <RotateCcw
+      {!isLoading && isSkipped === true && <RotateCcw
           stroke="#70f"
           strokeWidth={3}
           height={24}
           width={24}
         />
       }
-      {!isLoading && isSkippedState === false && <X
+      {!isLoading && isSkipped === false && <X
           stroke="#70f"
           strokeWidth={3}
           height={24}
@@ -336,28 +260,26 @@ const FloatingSkipButton = ({personUuid, isSkipped}) => {
 
 const FloatingSendIntroButton = ({
   navigation,
-  personId,
   personUuid,
   name,
-  imageUuid,
-  imageBlurhash,
+  photoUuid,
+  photoBlurhash,
 }) => {
   const onPress = useCallback(() => {
-    if (personId === undefined) return;
     if (name === undefined) return;
 
     navigation.navigate(
       'Conversation Screen',
-      { personId, personUuid, name, imageUuid, imageBlurhash }
+      { personUuid, name, photoUuid, photoBlurhash }
     );
-  }, [navigation, personId, name, imageUuid]);
+  }, [navigation, name, photoUuid]);
 
   return (
     <FloatingProfileInteractionButton
       onPress={onPress}
       backgroundColor="#70f"
     >
-      {personId !== undefined && name !== undefined &&
+      {personUuid !== undefined && name !== undefined &&
         <FontAwesomeIcon
           icon={faPaperPlane}
           size={24}
@@ -417,24 +339,12 @@ const SeeQAndAButton = ({navigation, personId, name}) => {
   );
 };
 
-const BlockButton = ({name, personUuid, isSkipped}) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSkippedState, setIsSkippedState] = useState(false);
-
-  useEffect(() => {
-    setIsSkippedState(isSkipped);
-  }, [isSkipped]);
-
-  useEffect(() => {
-    return listen(`unskip-profile-${personUuid}`, () => setIsSkippedState(false));
-  }, [personUuid]);
+const BlockButton = ({name, personUuid}) => {
+  const { isSkipped, isLoading, isPosting } = useSkipped(personUuid);
 
   const onPress = useCallback(async () => {
-    if (isSkippedState) {
-      setIsLoading(true);
-      if (await setSkipped(personUuid, false)) {
-        setIsLoading(false);
-      }
+    if (isSkipped) {
+      await postSkipped(personUuid, false);
     } else {
       const data: ReportModalInitialData = {
         name,
@@ -443,9 +353,9 @@ const BlockButton = ({name, personUuid, isSkipped}) => {
       };
       notify('open-report-modal', data);
     }
-  }, [notify, name, personUuid, isSkippedState]);
+  }, [notify, name, personUuid, isSkipped]);
 
-  const text = isSkippedState ?
+  const text = isSkipped ?
     `You have skipped ${name}. Press to unskip.` :
     `Report ${name}`;
 
@@ -465,10 +375,10 @@ const BlockButton = ({name, personUuid, isSkipped}) => {
         borderRadius: 5,
       }}
     >
-      {isLoading &&
+      {isPosting &&
         <ActivityIndicator size="small" color="#70f"/>
       }
-      {!isLoading && isSkippedState &&
+      {!isLoading && isSkipped &&
         <RotateCcw
           stroke={iconStroke}
           strokeWidth={2}
@@ -476,7 +386,7 @@ const BlockButton = ({name, personUuid, isSkipped}) => {
           width={18}
         />
       }
-      {!isLoading && !isSkippedState &&
+      {!isLoading && !isSkipped &&
         <Flag
           stroke={iconStroke}
           strokeWidth={2}
@@ -744,71 +654,75 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
   const personId = route.params.personId;
   const personUuid = route.params.personUuid;
   const showBottomButtons = route.params.showBottomButtons ?? true;
-  const imageBlurhashParam = route.params.imageBlurhash;
+  const photoBlurhashParam = route.params.photoBlurhash;
 
   const [data, setData] = useState<UserData | undefined>(undefined);
+  useSkipped(personUuid, () => navigation.popToTop());
 
   const { width } = useWindowDimensions();
 
   useEffect(() => {
     setData(undefined);
     (async () => {
+      setSkipped(personUuid, { networkState: 'fetching' });
       const response = await api('get', `/prospect-profile/${personUuid}`);
       setData(response?.json);
+      setSkipped(
+        personUuid,
+        {
+          isSkipped: response?.json?.is_skipped ?? false,
+          networkState: 'settled',
+        }
+      );
       route.params.personId = response?.json?.person_id;
     })();
   }, [personUuid]);
 
-  useEffect(() =>
-    listen(`skip-profile-${personUuid}`, () => navigation.popToTop()),
-    [personUuid, navigation]
-  );
-
-  const imageUuid = data === undefined ?
+  const photoUuid = data === undefined ?
     undefined :
     data.photo_uuids.length === 0 ?
     null :
     data.photo_uuids[0];
 
-  const imageUuids = data?.photo_uuids;
+  const photoUuids = data?.photo_uuids;
 
-  const imageExtraExts = data?.photo_extra_exts;
+  const photoExtraExts = data?.photo_extra_exts;
 
-  const imageBlurhashes = data?.photo_blurhashes;
+  const photoBlurhashes = data?.photo_blurhashes;
 
   const imageVerifications = data?.photo_verifications;
 
-  const imageUuid0 = (() => {
-    if (imageUuids === undefined) {
+  const photoUuid0 = (() => {
+    if (photoUuids === undefined) {
       return undefined;
     }
-    if (imageUuids.length === 0) {
+    if (photoUuids.length === 0) {
       return null;
     }
-    return imageUuids[0];
+    return photoUuids[0];
   })();
 
-  const imageExtraExts0 = (() => {
-    if (imageExtraExts === undefined) {
+  const photoExtraExts0 = (() => {
+    if (photoExtraExts === undefined) {
       return undefined;
     }
-    if (imageExtraExts.length === 0) {
+    if (photoExtraExts.length === 0) {
       return null;
     }
-    return imageExtraExts[0];
+    return photoExtraExts[0];
   })();
 
-  const imageBlurhash0 = (() => {
-    if (imageBlurhashParam) {
-      return imageBlurhashParam;
+  const photoBlurhash0 = (() => {
+    if (photoBlurhashParam) {
+      return photoBlurhashParam;
     }
-    if (imageBlurhashes === undefined) {
+    if (photoBlurhashes === undefined) {
       return undefined;
     }
-    if (imageBlurhashes.length === 0) {
+    if (photoBlurhashes.length === 0) {
       return null;
     }
-    return imageBlurhashes[0];
+    return photoBlurhashes[0];
   })();
 
   const imageVerification0 = imageVerifications && imageVerifications[0];
@@ -835,16 +749,15 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
                 paddingBottom: 100,
               }}
             >
-              <EnlargeableImage
-                imageUuid={imageUuid0}
-                imageExtraExts={imageExtraExts0}
-                imageBlurhash={imageBlurhash0}
-                onChangeEmbiggened={goToGallery(navigation, imageUuid0)}
+              <EnlargeablePhoto
+                photoUuid={photoUuid0}
+                photoExtraExts={photoExtraExts0}
+                photoBlurhash={photoBlurhash0}
                 isPrimary={true}
                 isVerified={imageVerification0}
                 style={
                   width > 600 ?
-                  styles.primaryEnlargeableImageBigScreen :
+                  commonStyles.primaryEnlargeablePhotoBigScreen :
                   undefined
                 }
               />
@@ -891,15 +804,13 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
           >
             <FloatingSkipButton
               personUuid={personUuid}
-              isSkipped={data?.is_skipped}
             />
             <FloatingSendIntroButton
               navigation={navigation}
-              personId={data?.person_id}
               personUuid={personUuid}
               name={data?.name}
-              imageUuid={imageUuid}
-              imageBlurhash={imageBlurhash0}
+              photoUuid={photoUuid}
+              photoBlurhash={photoBlurhash0}
             />
           </View>
         </View>
@@ -1057,26 +968,26 @@ const Body = ({
 }) => {
   const isOnline = useOnline(personUuid);
 
-  const imageUuid1 = data?.photo_uuids && data?.photo_uuids[1];
-  const imageUuid2 = data?.photo_uuids && data?.photo_uuids[2];
-  const imageUuid3 = data?.photo_uuids && data?.photo_uuids[3];
-  const imageUuid4 = data?.photo_uuids && data?.photo_uuids[4];
-  const imageUuid5 = data?.photo_uuids && data?.photo_uuids[5];
-  const imageUuid6 = data?.photo_uuids && data?.photo_uuids[6];
+  const photoUuid1 = data?.photo_uuids && data?.photo_uuids[1];
+  const photoUuid2 = data?.photo_uuids && data?.photo_uuids[2];
+  const photoUuid3 = data?.photo_uuids && data?.photo_uuids[3];
+  const photoUuid4 = data?.photo_uuids && data?.photo_uuids[4];
+  const photoUuid5 = data?.photo_uuids && data?.photo_uuids[5];
+  const photoUuid6 = data?.photo_uuids && data?.photo_uuids[6];
 
-  const imageExtraExts1 = data?.photo_extra_exts && data?.photo_extra_exts[1];
-  const imageExtraExts2 = data?.photo_extra_exts && data?.photo_extra_exts[2];
-  const imageExtraExts3 = data?.photo_extra_exts && data?.photo_extra_exts[3];
-  const imageExtraExts4 = data?.photo_extra_exts && data?.photo_extra_exts[4];
-  const imageExtraExts5 = data?.photo_extra_exts && data?.photo_extra_exts[5];
-  const imageExtraExts6 = data?.photo_extra_exts && data?.photo_extra_exts[6];
+  const photoExtraExts1 = data?.photo_extra_exts && data?.photo_extra_exts[1];
+  const photoExtraExts2 = data?.photo_extra_exts && data?.photo_extra_exts[2];
+  const photoExtraExts3 = data?.photo_extra_exts && data?.photo_extra_exts[3];
+  const photoExtraExts4 = data?.photo_extra_exts && data?.photo_extra_exts[4];
+  const photoExtraExts5 = data?.photo_extra_exts && data?.photo_extra_exts[5];
+  const photoExtraExts6 = data?.photo_extra_exts && data?.photo_extra_exts[6];
 
-  const imageBlurhash1 = data?.photo_blurhashes && data?.photo_blurhashes[1];
-  const imageBlurhash2 = data?.photo_blurhashes && data?.photo_blurhashes[2];
-  const imageBlurhash3 = data?.photo_blurhashes && data?.photo_blurhashes[3];
-  const imageBlurhash4 = data?.photo_blurhashes && data?.photo_blurhashes[4];
-  const imageBlurhash5 = data?.photo_blurhashes && data?.photo_blurhashes[5];
-  const imageBlurhash6 = data?.photo_blurhashes && data?.photo_blurhashes[6];
+  const photoBlurhash1 = data?.photo_blurhashes && data?.photo_blurhashes[1];
+  const photoBlurhash2 = data?.photo_blurhashes && data?.photo_blurhashes[2];
+  const photoBlurhash3 = data?.photo_blurhashes && data?.photo_blurhashes[3];
+  const photoBlurhash4 = data?.photo_blurhashes && data?.photo_blurhashes[4];
+  const photoBlurhash5 = data?.photo_blurhashes && data?.photo_blurhashes[5];
+  const photoBlurhash6 = data?.photo_blurhashes && data?.photo_blurhashes[6];
 
   const imageVerification1 = data?.photo_verifications && data?.photo_verifications[1] || false;
   const imageVerification2 = data?.photo_verifications && data?.photo_verifications[2] || false;
@@ -1228,13 +1139,12 @@ const Body = ({
           </>
         }
 
-        <EnlargeableImage
-          imageUuid={imageUuid1}
-          imageExtraExts={imageExtraExts1}
-          imageBlurhash={imageBlurhash1}
-          onChangeEmbiggened={goToGallery(navigation, imageUuid1)}
-          style={styles.secondaryEnlargeableImage}
-          innerStyle={styles.secondaryEnlargeableImageInner}
+        <EnlargeablePhoto
+          photoUuid={photoUuid1}
+          photoExtraExts={photoExtraExts1}
+          photoBlurhash={photoBlurhash1}
+          style={commonStyles.secondaryEnlargeablePhoto}
+          innerStyle={commonStyles.secondaryEnlargeablePhotoInner}
           isPrimary={false}
           isVerified={imageVerification1}
         />
@@ -1251,24 +1161,22 @@ const Body = ({
           </>
         }
 
-        <EnlargeableImage
-          imageUuid={imageUuid2}
-          imageExtraExts={imageExtraExts2}
-          imageBlurhash={imageBlurhash2}
-          onChangeEmbiggened={goToGallery(navigation, imageUuid2)}
-          style={styles.secondaryEnlargeableImage}
-          innerStyle={styles.secondaryEnlargeableImageInner}
+        <EnlargeablePhoto
+          photoUuid={photoUuid2}
+          photoExtraExts={photoExtraExts2}
+          photoBlurhash={photoBlurhash2}
+          style={commonStyles.secondaryEnlargeablePhoto}
+          innerStyle={commonStyles.secondaryEnlargeablePhotoInner}
           isPrimary={false}
           isVerified={imageVerification2}
         />
 
-        <EnlargeableImage
-          imageUuid={imageUuid3}
-          imageExtraExts={imageExtraExts3}
-          imageBlurhash={imageBlurhash3}
-          onChangeEmbiggened={goToGallery(navigation, imageUuid3)}
-          style={styles.secondaryEnlargeableImage}
-          innerStyle={styles.secondaryEnlargeableImageInner}
+        <EnlargeablePhoto
+          photoUuid={photoUuid3}
+          photoExtraExts={photoExtraExts3}
+          photoBlurhash={photoBlurhash3}
+          style={commonStyles.secondaryEnlargeablePhoto}
+          innerStyle={commonStyles.secondaryEnlargeablePhotoInner}
           isPrimary={false}
           isVerified={imageVerification3}
         />
@@ -1281,35 +1189,32 @@ const Body = ({
           titleColor={data?.theme?.title_color}
         />
 
-        <EnlargeableImage
-          imageUuid={imageUuid4}
-          imageExtraExts={imageExtraExts4}
-          imageBlurhash={imageBlurhash4}
-          onChangeEmbiggened={goToGallery(navigation, imageUuid4)}
-          style={styles.secondaryEnlargeableImage}
-          innerStyle={styles.secondaryEnlargeableImageInner}
+        <EnlargeablePhoto
+          photoUuid={photoUuid4}
+          photoExtraExts={photoExtraExts4}
+          photoBlurhash={photoBlurhash4}
+          style={commonStyles.secondaryEnlargeablePhoto}
+          innerStyle={commonStyles.secondaryEnlargeablePhotoInner}
           isPrimary={false}
           isVerified={imageVerification4}
         />
 
-        <EnlargeableImage
-          imageUuid={imageUuid5}
-          imageExtraExts={imageExtraExts5}
-          imageBlurhash={imageBlurhash5}
-          onChangeEmbiggened={goToGallery(navigation, imageUuid5)}
-          style={styles.secondaryEnlargeableImage}
-          innerStyle={styles.secondaryEnlargeableImageInner}
+        <EnlargeablePhoto
+          photoUuid={photoUuid5}
+          photoExtraExts={photoExtraExts5}
+          photoBlurhash={photoBlurhash5}
+          style={commonStyles.secondaryEnlargeablePhoto}
+          innerStyle={commonStyles.secondaryEnlargeablePhotoInner}
           isPrimary={false}
           isVerified={imageVerification5}
         />
 
-        <EnlargeableImage
-          imageUuid={imageUuid6}
-          imageExtraExts={imageExtraExts6}
-          imageBlurhash={imageBlurhash6}
-          onChangeEmbiggened={goToGallery(navigation, imageUuid6)}
-          style={styles.secondaryEnlargeableImage}
-          innerStyle={styles.secondaryEnlargeableImageInner}
+        <EnlargeablePhoto
+          photoUuid={photoUuid6}
+          photoExtraExts={photoExtraExts6}
+          photoBlurhash={photoBlurhash6}
+          style={commonStyles.secondaryEnlargeablePhoto}
+          innerStyle={commonStyles.secondaryEnlargeablePhotoInner}
           isPrimary={false}
           isVerified={imageVerification6}
         />
@@ -1390,7 +1295,6 @@ const Body = ({
           <BlockButton
             name={data?.name}
             personUuid={personUuid}
-            isSkipped={data?.is_skipped}
           />}
       </View>
     </>
@@ -1398,19 +1302,6 @@ const Body = ({
 };
 
 const styles = StyleSheet.create({
-  primaryEnlargeableImageBigScreen: {
-    overflow: 'hidden',
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-  },
-  secondaryEnlargeableImage: {
-    borderRadius: 10,
-    overflow: 'hidden',
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  secondaryEnlargeableImageInner: {
-  },
   wFull: {
     width: '100%',
   },

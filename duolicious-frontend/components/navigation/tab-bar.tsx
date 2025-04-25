@@ -14,7 +14,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { listen } from '../../events/events';
 import {
   LabelToIcon,
-  displayedTabs
 } from './util';
 
 const Tab = ({ navigation, state, route, descriptors, index, unreadIndicatorOpacity }) => {
@@ -63,10 +62,6 @@ const Tab = ({ navigation, state, route, descriptors, index, unreadIndicatorOpac
       navigation.navigate({ name: route.name, merge: true });
     }
   };
-
-  if (!displayedTabs.has(route.name)) {
-    return null;
-  }
 
   return (
     <Pressable

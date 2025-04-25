@@ -13,6 +13,7 @@ const safeScreens = [
   "Home/Search/Search Filter Screen/Search Filter Tab",
   "Home/Search/Search Screen",
   "Home/Traits",
+  "Home/Feed",
   "Prospect Profile Screen/Prospect Profile",
 ];
 

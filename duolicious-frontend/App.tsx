@@ -26,7 +26,8 @@ import { TabBar } from './components/navigation/tab-bar';
 import SearchTab from './components/search-tab';
 import { QuizTab } from './components/quiz-tab';
 import ProfileTab from './components/profile-tab';
-import InboxTab from './components/inbox-tab';
+import { InboxTab } from './components/inbox-tab';
+import { FeedTab } from './components/feed-tab';
 import { TraitsTab } from './components/traits-tab';
 import { ConversationScreen } from './components/conversation-screen/conversation-screen';
 import { UtilityScreen } from './components/utility-screen';
@@ -60,8 +61,6 @@ import { Logo16 } from './components/logo';
 import { useScrollbarStyle } from './components/navigation/scroll-bar-hooks';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-// TODO: Onboarding works
-
 setNofications();
 verificationWatcher();
 
@@ -81,12 +80,16 @@ const HomeTabs = () => {
   return (
     <Tab.Navigator
       backBehavior="history"
-      screenOptions={{ headerShown: false, animation: 'shift' }}
+      screenOptions={{
+        headerShown: false,
+        animation: 'shift',
+      }}
       tabBar={props => <TabBar {...props} />}
     >
       <Tab.Screen name="Q&A" component={QuizTab} />
       <Tab.Screen name="Search" component={SearchTab} />
       <Tab.Screen name="Inbox" component={InboxTab} />
+      <Tab.Screen name="Feed" component={FeedTab} />
       <Tab.Screen name="Traits" component={TraitsTab} />
       <Tab.Screen name="Profile" component={ProfileTab} />
     </Tab.Navigator>

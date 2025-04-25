@@ -13,12 +13,13 @@ import { DefaultLongTextInput } from './../default-long-text-input';
 import { ButtonWithCenteredText } from './../button/centered-text';
 import { X } from "react-native-feather";
 import { listen } from '../../events/events';
-import { setSkipped } from '../../hide-and-block/hide-and-block';
+import { postSkipped } from '../../hide-and-block/hide-and-block';
 import { KeyboardDismissingView } from '../keyboard-dismissing-view';
 import { DefaultModal } from './deafult-modal';
 import {
   backgroundColors,
 } from './background-colors';
+import { useSkipped } from '../../hide-and-block/hide-and-block';
 
 type ReportModalInitialData = {
   name: string
@@ -32,9 +33,9 @@ const ReportModal = () => {
   const [context, setContext] = useState("");
   const [reportText, setReportText] = useState("");
   const [isVisible, setIsVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [isTooFewChars, setIsTooFewChars] = useState(false);
   const [isSomethingWrong, setIsSomethingWrong] = useState(false);
+  const { isPosting } = useSkipped(personUuid);
 
   const maxChars = 2000;
   const numChars = reportText.length;
@@ -58,23 +59,20 @@ const ReportModal = () => {
     setIsTooFewChars(false);
     setIsSomethingWrong(false);
 
-
-    setIsLoading(true);
     const completeReportText = `${context.slice(0, 7999)}\n${reportText}`;
-    if (await setSkipped(personUuid, true, completeReportText)) {
+
+    if (await postSkipped(personUuid, true, completeReportText)) {
       setIsVisible(false);
     } else {
       setIsSomethingWrong(true);
     }
-    setIsLoading(false);
   }, [
     context,
     numChars,
     reportText,
-    setIsLoading,
     setIsTooFewChars,
     setIsVisible,
-    setSkipped,
+    postSkipped,
   ]);
 
   const openReportModal = useCallback((data: ReportModalInitialData) => {
@@ -86,7 +84,6 @@ const ReportModal = () => {
     setContext(data.context);
     setReportText("");
     setIsVisible(true);
-    setIsLoading(false);
     setIsTooFewChars(false);
     setIsSomethingWrong(false);
   }, []);
@@ -217,7 +214,7 @@ const ReportModal = () => {
                 color: '#fff',
                 fontWeight: '700',
               }}
-              loading={isLoading}
+              loading={isPosting}
             >
               Submit
             </ButtonWithCenteredText>

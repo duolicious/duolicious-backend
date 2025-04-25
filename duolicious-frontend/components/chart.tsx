@@ -12,6 +12,7 @@ import {
 } from 'react';
 import { DefaultText } from './default-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { commonStyles } from '../styles';
 
 const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
   const {
@@ -186,20 +187,11 @@ const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
     <Animated.View
       style={{
         backgroundColor: backgroundColor,
-        borderRadius: 5,
         marginTop: 10,
         marginBottom: 10,
         overflow: 'visible',
 
-        borderTopWidth: 1,
-        borderLeftWidth: 1,
-        borderRightWidth: 1,
-        borderBottomWidth: 3,
-
-        borderTopColor: '#eee',
-        borderLeftColor: '#eee',
-        borderRightColor: '#eee',
-        borderBottomColor: '#ddd',
+        ...commonStyles.cardBorders,
       }}
     >
       <Pressable

@@ -6,14 +6,6 @@ import { QAndADevice } from '../q-and-a-device';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultText } from '../default-text';
 
-const displayedTabs: Set<string> = new Set([
-  "Q&A",
-  "Search",
-  "Inbox",
-  "Traits",
-  "Profile",
-]);
-
 const LabelToIcon = ({
   label,
   isFocused,
@@ -35,6 +27,8 @@ const LabelToIcon = ({
     isFocused ? 'search' : 'search-outline';
   const inboxIcon =
     isFocused ? 'chatbubbles' : 'chatbubbles-outline';
+  const feedIcon =
+    isFocused ? 'planet' : 'planet-outline';
   const profileIcon =
     isFocused ? 'person' : 'person-outline';
 
@@ -81,6 +75,9 @@ const LabelToIcon = ({
             }}
           />
         }
+        {label === 'Feed' &&
+          <Ionicons style={{...iconStyle}} name={feedIcon}/>
+        }
         {label === 'Traits' &&
           <View
             style={{
@@ -109,6 +106,5 @@ const LabelToIcon = ({
 };
 
 export {
-  displayedTabs,
   LabelToIcon,
 }

@@ -107,8 +107,8 @@ type Conversation = {
   personUuid: string
   name: string
   matchPercentage: number
-  imageUuid: string | null
-  imageBlurhash: string | null
+  photoUuid: string | null
+  photoBlurhash: string | null
   lastMessage: string
   lastMessageRead: boolean
   lastMessageTimestamp: Date
@@ -205,8 +205,8 @@ const populateConversationList = (
     // Update conversation information
     c.name = personInfo?.name ?? 'Unavailable Person';
     c.matchPercentage = personInfo?.match_percentage ?? 0;
-    c.imageUuid = personInfo?.image_uuid ?? null;
-    c.imageBlurhash = personInfo?.image_blurhash ?? null;
+    c.photoUuid = personInfo?.image_uuid ?? null;
+    c.photoBlurhash = personInfo?.image_blurhash ?? null;
     c.isAvailableUser = !!personInfo?.name;
     c.isVerified = !!personInfo?.verified;
     c.location = personInfo?.conversation_location ?? 'archive';
@@ -242,10 +242,10 @@ const setInboxSent = (recipientPersonUuid: string, message: string) => {
     personUuid: recipientPersonUuid,
     name: '',
     matchPercentage: 0,
-    imageUuid: null,
+    photoUuid: null,
     isAvailableUser: true,
     location: 'archive',
-    imageBlurhash: '',
+    photoBlurhash: '',
     isVerified: false,
     ...chatsConversation,
     ...introsConversation,
@@ -300,10 +300,10 @@ const setInboxRecieved = async (
     personUuid: fromPersonUuid,
     name: '',
     matchPercentage: 0,
-    imageUuid: null,
+    photoUuid: null,
     isAvailableUser: true,
     location: 'archive',
-    imageBlurhash: '',
+    photoBlurhash: '',
     isVerified: false,
     ...chatsConversation,
     ...introsConversation,
@@ -1049,13 +1049,13 @@ const refreshInbox = async (
         personUuid,
         name: '',
         matchPercentage: 0,
-        imageUuid: null,
+        photoUuid: null,
         lastMessage: text,
         lastMessageRead: numUnread === '0',
         lastMessageTimestamp: new Date(timestamp),
         isAvailableUser: true,
         location: 'archive',
-        imageBlurhash: '',
+        photoBlurhash: '',
         isVerified: false,
       };
     } catch {

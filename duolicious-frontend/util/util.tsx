@@ -6,6 +6,7 @@ import {
   differenceInCalendarDays,
   format,
   formatDistanceToNow,
+  intervalToDuration,
   isThisWeek,
   isThisYear,
   isToday,
@@ -99,6 +100,18 @@ const friendlyDate = (date: Date): string => {
     ...(isThisYear(date) ? {} : { year: 'numeric' }),
   }).format(date);
 };
+
+const getShortElapsedTime = (start: Date) => {
+  const end = new Date();
+  const duration = intervalToDuration({ start, end });
+
+  if (duration?.years ?? 0 > 0) return `${duration.years}y`;
+  if (duration?.months ?? 0 > 0) return `${duration.months}mo`;
+  if (duration?.days ?? 0 > 0) return `${duration.days}d`;
+  if (duration?.hours ?? 0 > 0) return `${duration.hours}h`;
+  if (duration?.minutes ?? 0 > 0) return `${duration.minutes}m`;
+  return `${duration.seconds}s`;
+}
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -201,4 +214,5 @@ export {
   possessive,
   secToMinSec,
   withTimeout,
+  getShortElapsedTime,
 };

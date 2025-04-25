@@ -64,10 +64,12 @@ type AudioPlayerProps = {
   name: string | null | undefined,
   uuid: string | null | undefined,
   presentation: 'profile',
+  style?: any
 } | {
   uuid: string | null | undefined,
   sending: boolean,
   presentation: 'conversation',
+  style?: any
 };
 
 const AudioPlayer = (props: AudioPlayerProps) => {
@@ -234,6 +236,7 @@ const AudioPlayer = (props: AudioPlayerProps) => {
         borderRadius: props.presentation === 'profile' ? 10 : 999,
         padding: 12,
         gap: 20,
+        ...props.style,
       }}
     >
       <Pressable

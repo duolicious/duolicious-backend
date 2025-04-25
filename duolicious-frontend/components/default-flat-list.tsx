@@ -17,6 +17,7 @@ import {
 } from 'react';
 import { DefaultText } from './default-text';
 import { RenderedHoc } from './rendered-hoc';
+import { FlashList, FlashListProps } from '@shopify/flash-list';
 
 const styles = StyleSheet.create({
   activityIndicator: {
@@ -183,6 +184,27 @@ type DefaultFlatListProps<ItemT> =
     | "refreshing"
   >;
 
+type DefaultFlashListProps<ItemT> =
+  Omit<
+    FlashListProps<ItemT> & {
+      emptyText?: string,
+      errorText?: string,
+      endText?: string,
+      endTextStyle?: StyleProp<ViewStyle>,
+      fetchPage: (pageNumber: number) => Promise<ItemT[] | null>,
+      hideListHeaderComponentWhenEmpty?: boolean,
+      hideListHeaderComponentWhenLoading?: boolean,
+      dataKey?: string,
+      disableRefresh?: boolean,
+      innerRef?: any,
+    },
+    | "ListEmptyComponent"
+    | "ListFooterComponent"
+    | "data"
+    | "onRefresh"
+    | "refreshing"
+  >;
+
 const ActivityIndicator_ = memo(() => {
   return (
     <View style={styles.activityIndicator}>
@@ -275,11 +297,11 @@ const EndTextNotice = ({
   }
 };
 
-const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, ref) => {
+const useList = <ItemT, ListType>(ref, props: DefaultFlatListProps<ItemT> | DefaultFlashListProps<ItemT>) => {
   const contentHeight = useRef(0);
   const viewportHeight = useRef(0);
 
-  const flatList = useRef<FlatList | null>(null);
+  const flatList = useRef<ListType | null>(null);
 
   const [books, setBooks] = useState<Books<ItemT>>({});
 
@@ -290,6 +312,11 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
   }, [dataKey]);
 
   const fetchNextPage = async () => {
+    if (viewportHeight.current < 1e-3) {
+      // FlashList seems to be calling `onEndReached` repeatedly when occluded
+      return;
+    }
+
     const book = getBookOrDefault(books, dataKey);
 
     if (isBookComplete(book)) {
@@ -355,6 +382,30 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
   const book = getBookOrDefault(books, dataKey);
   const items = bookToItems(book);
 
+  return {
+    flatList,
+    onRefresh,
+    fetchNextPage,
+    items,
+    book,
+    onContentSizeChange,
+    keyExtractor,
+    onLayout,
+  }
+};
+
+const UntypedDefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>, ref) => {
+  const {
+    flatList,
+    onRefresh,
+    fetchNextPage,
+    items,
+    book,
+    onContentSizeChange,
+    keyExtractor,
+    onLayout,
+  } = useList<ItemT, FlatList<ItemT>>(ref, props);
+
   return (
     <FlatList
       ref={(node) => {
@@ -370,7 +421,7 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
       }}
       refreshing={false}
       onRefresh={props.disableRefresh ? undefined : onRefresh}
-      onEndReachedThreshold={props.onEndReachedThreshold ?? 1}
+      onEndReachedThreshold={props.onEndReachedThreshold ?? 3}
       onEndReached={fetchNextPage}
       data={items}
       ListEmptyComponent={
@@ -412,9 +463,96 @@ const DefaultFlatList = forwardRef(<ItemT,>(props: DefaultFlatListProps<ItemT>, 
       onLayout={onLayout}
     />
   );
-});
+};
+
+const UntypedDefaultFlashList = <ItemT,>(props: DefaultFlashListProps<ItemT>, ref) => {
+  const {
+    flatList,
+    onRefresh,
+    fetchNextPage,
+    items,
+    book,
+    onContentSizeChange,
+    keyExtractor,
+    onLayout,
+  } = useList<ItemT, FlashList<ItemT>>(ref, props);
+
+  return (
+    <FlashList
+      ref={(node) => {
+        flatList.current = node;
+
+        if (props.innerRef === undefined) {
+          ;
+        } else if (typeof props.innerRef === 'function') {
+          props.innerRef(node);
+        } else {
+          props.innerRef.current = node;
+        }
+      }}
+      refreshing={false}
+      onRefresh={props.disableRefresh ? undefined : onRefresh}
+      onEndReachedThreshold={props.onEndReachedThreshold ?? 3}
+      onEndReached={fetchNextPage}
+      data={items}
+      ListEmptyComponent={
+        <ListEmptyComponent
+          isComplete={isBookComplete(book)}
+          isError={book.isError}
+          errorText={props.errorText}
+          emptyText={props.emptyText} />
+      }
+      ListFooterComponent={
+        <ListFooterComponent
+          isComplete={isBookComplete(book)}
+          isEmpty={isBookEmpty(book)}
+          EndTextNotice={<EndTextNotice endText={props.endText} />}
+        />
+      }
+      {...props}
+      contentContainerStyle={{
+        ...styles.flatList,
+        ...props.contentContainerStyle,
+      }}
+      ListHeaderComponent={
+        <ListHeaderComponent
+            isEmpty={isBookEmpty(book)}
+            isLoading={isBookFetching(book)}
+            hideListHeaderComponentWhenEmpty={
+              props.hideListHeaderComponentWhenEmpty ?? false
+            }
+            hideListHeaderComponentWhenLoading={
+              props.hideListHeaderComponentWhenLoading ?? true
+            }
+            ListHeaderComponent={props.ListHeaderComponent}
+        />
+      }
+      onContentSizeChange={onContentSizeChange}
+      keyExtractor={props.keyExtractor ?? keyExtractor}
+      onLayout={onLayout}
+    />
+  );
+};
+
+const TypedDefaultFlatList =
+  forwardRef(UntypedDefaultFlatList) as <ItemT>(
+    props: DefaultFlatListProps<ItemT> &
+           React.RefAttributes<FlatList<ItemT>>
+  ) => React.ReactElement | null;
+
+const TypedDefaultFlashList =
+  forwardRef(UntypedDefaultFlashList) as <ItemT>(
+    props: DefaultFlashListProps<ItemT> &
+           React.RefAttributes<FlashList<ItemT>>
+  ) => React.ReactElement | null;
+
+const DefaultFlatList =
+  memo(TypedDefaultFlatList) as typeof TypedDefaultFlatList;
+
+const DefaultFlashList =
+  memo(TypedDefaultFlashList) as typeof TypedDefaultFlashList;
 
 export {
   DefaultFlatList,
-  DefaultFlatListProps,
+  DefaultFlashList,
 };

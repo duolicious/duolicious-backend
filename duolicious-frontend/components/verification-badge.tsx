@@ -7,13 +7,15 @@ import { faCircleCheck } from '@fortawesome/free-solid-svg-icons/faCircleCheck'
 import { faCheck } from '@fortawesome/free-solid-svg-icons/faCheck'
 import { faXmark } from '@fortawesome/free-solid-svg-icons/faXmark'
 
-const VerificationBadge = (props) => {
-  const {
-    size = 20,
-    style = {},
-    color = '#1d9bf0',
-  } = props;
-
+const VerificationBadge = ({
+  size = 20,
+  style = { },
+  color = '#1d9bf0',
+}: {
+  size?: number
+  style?: any
+  color?: string
+}) => {
   return (
     <View style={[
       {

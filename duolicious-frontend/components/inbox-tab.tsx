@@ -274,8 +274,8 @@ const InboxTab = () => {
         wasRead={x.item.lastMessageRead}
         name={x.item.name}
         personUuid={x.item.personUuid}
-        imageUuid={x.item.imageUuid}
-        imageBlurhash={x.item.imageBlurhash}
+        photoUuid={x.item.photoUuid}
+        photoBlurhash={x.item.photoBlurhash}
         matchPercentage={x.item.matchPercentage}
         lastMessage={x.item.lastMessage}
         lastMessageTimestamp={x.item.lastMessageTimestamp}
@@ -287,8 +287,8 @@ const InboxTab = () => {
         wasRead={x.item.lastMessageRead}
         name={x.item.name}
         personUuid={x.item.personUuid}
-        imageUuid={x.item.imageUuid}
-        imageBlurhash={x.item.imageBlurhash}
+        photoUuid={x.item.photoUuid}
+        photoBlurhash={x.item.photoBlurhash}
         matchPercentage={x.item.matchPercentage}
         lastMessage={x.item.lastMessage}
         lastMessageTimestamp={x.item.lastMessageTimestamp}
@@ -358,36 +358,36 @@ const InboxTabNavBar = ({
   }, []);
 
   return (
-      <TopNavBar>
-        <View>
-          <DefaultText
+    <TopNavBar>
+      <View>
+        <DefaultText
+          style={{
+            fontWeight: '700',
+            fontSize: 20,
+          }}
+        >
+          {'Inbox' + (showArchive ? ' (Archive)' : '')}
+        </DefaultText>
+        {!isOnline &&
+          <ActivityIndicator
+            size="small"
+            color="#70f"
             style={{
-              fontWeight: '700',
-              fontSize: 20,
+              position: 'absolute',
+              right: -40,
+              top: 3,
             }}
-          >
-            {'Inbox' + (showArchive ? ' (Archive)' : '')}
-          </DefaultText>
-          {!isOnline &&
-            <ActivityIndicator
-              size="small"
-              color="#70f"
-              style={{
-                position: 'absolute',
-                right: -40,
-                top: 3,
-              }}
-            />
-          }
-        </View>
-        <TopNavBarButton
-          onPress={onPressArchiveButton}
-          iconName={showArchive ? 'chatbubbles-outline' : 'file-tray-full-outline'}
-          position="right"
-          secondary={false}
-          label={showArchive ? "Inbox" : "Archive"}
-        />
-      </TopNavBar>
+          />
+        }
+      </View>
+      <TopNavBarButton
+        onPress={onPressArchiveButton}
+        iconName={showArchive ? 'chatbubbles-outline' : 'file-tray-full-outline'}
+        position="right"
+        secondary={false}
+        label={showArchive ? "Inbox" : "Archive"}
+      />
+    </TopNavBar>
   );
 };
 
@@ -397,4 +397,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default InboxTab;
+export { InboxTab };

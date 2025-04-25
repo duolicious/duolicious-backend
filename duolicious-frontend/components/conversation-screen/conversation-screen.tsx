@@ -40,7 +40,7 @@ import {
 import { api } from '../../api/api';
 import { TopNavBarButton } from '../top-nav-bar-button';
 import { RotateCcw, Flag, X } from "react-native-feather";
-import { setSkipped } from '../../hide-and-block/hide-and-block';
+import { postSkipped } from '../../hide-and-block/hide-and-block';
 import { delay, getDuplicates } from '../../util/util';
 import { ReportModalInitialData } from '../modal/report-modal';
 import { listen, notify } from '../../events/events';
@@ -53,6 +53,7 @@ import { useOnline } from '../../chat/application-layer/hooks/online';
 import * as _ from 'lodash';
 import { Input } from './input';
 import { GifPickedEvent } from '../../components/modal/gif-picker-modal';
+import { useSkipped } from '../../hide-and-block/hide-and-block';
 
 const firstMamId = (messageIds: string[] | null): string => {
   if (!messageIds) {
@@ -103,7 +104,7 @@ const Menu = ({navigation, name, personUuid, closeFn}) => {
 
     setIsUpdating(true);
     const nextHiddenState = !isSkipped;
-    if (await setSkipped(personUuid, nextHiddenState)) {
+    if (await postSkipped(personUuid, nextHiddenState)) {
       setIsSkipped(nextHiddenState);
       setIsUpdating(false);
       closeFn();
@@ -269,11 +270,10 @@ const Menu = ({navigation, name, personUuid, closeFn}) => {
 
 const ConversationScreenNavBar = ({
   navigation,
-  personId,
   personUuid,
   isAvailableUser,
-  imageUuid,
-  imageBlurhash,
+  photoUuid,
+  photoBlurhash,
   name,
   isOnline,
 }) => {
@@ -285,11 +285,11 @@ const ConversationScreenNavBar = ({
         'Prospect Profile Screen',
         {
           screen: 'Prospect Profile',
-          params: { personId, personUuid, showBottomButtons: false },
+          params: { personUuid, photoBlurhash, showBottomButtons: false },
         }
       );
     }
-  }, [isAvailableUser, personId, name]);
+  }, [isAvailableUser, name]);
 
   const toggleMenu = useCallback(() => {
     setShowMenu(x => !x);
@@ -323,24 +323,24 @@ const ConversationScreenNavBar = ({
           }}
         >
           <ImageBackground
-            source={imageUuid && {
-              uri: `${IMAGES_URL}/450-${imageUuid}.jpg`,
+            source={photoUuid && {
+              uri: `${IMAGES_URL}/450-${photoUuid}.jpg`,
               height: 30,
               width: 30,
             }}
-            placeholder={imageBlurhash && { blurhash: imageBlurhash }}
+            placeholder={photoBlurhash && { blurhash: photoBlurhash }}
             transition={150}
             style={{
               width: 30,
               height: 30,
               borderRadius: 9999,
-              backgroundColor: imageUuid ? 'white' : '#f1e5ff',
+              backgroundColor: photoUuid ? 'white' : '#f1e5ff',
               justifyContent: 'center',
               alignItems: 'center',
               overflow: 'hidden',
             }}
           >
-            {!imageUuid &&
+            {!photoUuid &&
               <Ionicons
                 style={{fontSize: 14, color: 'rgba(119, 0, 255, 0.2)'}}
                 name={'person'}
@@ -428,11 +428,10 @@ const ConversationScreen = ({navigation, route}) => {
 
   const duplicatedMessageIds = getDuplicates(messageIds ?? []);
 
-  const personId: number = route?.params?.personId;
   const personUuid: string = route?.params?.personUuid;
   const name: string = route?.params?.name;
-  const imageUuid: string = route?.params?.imageUuid;
-  const imageBlurhash: string = route?.params?.imageBlurhash;
+  const photoUuid: string = route?.params?.photoUuid;
+  const photoBlurhash: string = route?.params?.photoBlurhash;
   const isAvailableUser: boolean = route?.params?.isAvailableUser ?? true;
 
   const listRef = useRef<ScrollView>(null);
@@ -564,11 +563,7 @@ const ConversationScreen = ({navigation, route}) => {
     await markDisplayed(lastMessage.message);
   }, [_.last(messageIds)]);
 
-  useEffect(() => {
-    return listen(`skip-profile-${personUuid}`, () => {
-      navigation.popToTop();
-    });
-  }, [navigation, personUuid]);
+  useSkipped(personUuid, () => navigation.popToTop());
 
   // Fetch the first page of messages when the conversation is first opened
   // while online
@@ -617,7 +612,7 @@ const ConversationScreen = ({navigation, route}) => {
     // conversation screen was already open on a conversation with a different
     // person, then the screen should be cleared.
     setMessageIds(null);
-  }, [personUuid, personId]);
+  }, [personUuid]);
 
   useEffect(() => {
     if (isActive && isOnline) {
@@ -677,11 +672,10 @@ const ConversationScreen = ({navigation, route}) => {
     <SafeAreaView style={styles.safeAreaView}>
       <ConversationScreenNavBar
         navigation={navigation}
-        personId={personId}
         personUuid={personUuid}
         isAvailableUser={isAvailableUser}
-        imageUuid={imageUuid}
-        imageBlurhash={imageBlurhash}
+        photoUuid={photoUuid}
+        photoBlurhash={photoBlurhash}
         name={name}
         isOnline={isOnline}
       />
@@ -725,12 +719,12 @@ const ConversationScreen = ({navigation, route}) => {
           {messageIds.length === 0 &&
             <>
               <ImageBackground
-                source={imageUuid && {
-                  uri: `${IMAGES_URL}/450-${imageUuid}.jpg`,
+                source={photoUuid && {
+                  uri: `${IMAGES_URL}/450-${photoUuid}.jpg`,
                   height: 450,
                   width: 450,
                 }}
-                placeholder={imageBlurhash && { blurhash: imageBlurhash }}
+                placeholder={photoBlurhash && { blurhash: photoBlurhash }}
                 transition={150}
                 style={{
                   height: 200,
@@ -738,14 +732,14 @@ const ConversationScreen = ({navigation, route}) => {
                   margin: 2,
                   borderRadius: 999,
                   borderColor: 'white',
-                  backgroundColor: imageUuid ? 'white' : '#f1e5ff',
+                  backgroundColor: photoUuid ? 'white' : '#f1e5ff',
                   overflow: 'hidden',
                   justifyContent: 'center',
                   alignItems: 'center',
                   alignSelf: 'center',
                 }}
               >
-                {!imageUuid &&
+                {!photoUuid &&
                   <Ionicons
                     style={{fontSize: 40, color: 'rgba(119, 0, 255, 0.2)'}}
                     name={'person'}
@@ -800,14 +794,14 @@ const ConversationScreen = ({navigation, route}) => {
                 <SpeechBubble
                   messageId={messageId}
                   name={name}
-                  avatarUuid={imageUuid}
+                  avatarUuid={photoUuid}
                 />
               </Fragment>
             );
           })}
           <TypingSpeechBubble
             personUuid={personUuid}
-            avatarUuid={imageUuid}
+            avatarUuid={photoUuid}
           />
         </ScrollView>
       }

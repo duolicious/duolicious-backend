@@ -19,18 +19,28 @@ import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
 import { ONLINE_COLOR } from '../constants/constants';
 import { useOnline } from '../chat/application-layer/hooks/online';
 
-const Avatar = ({percentage, ...props}) => {
-  const {
-    personId,
-    personUuid,
-    imageUuid,
-    imageBlurhash,
-    navigation,
-    isSkipped = false,
-    verificationRequired = null,
-  } = props;
-
-  const isOnline = useOnline(personUuid);
+const Avatar = ({
+  percentage,
+  personUuid,
+  photoUuid,
+  photoBlurhash,
+  personId,
+  navigation,
+  isSkipped = false,
+  verificationRequired = null,
+  doUseOnline = true,
+}: {
+  percentage: number
+  personUuid: string
+  photoUuid: string | null
+  photoBlurhash: string | null
+  personId?: number
+  navigation?: any
+  isSkipped?: boolean
+  verificationRequired?: boolean | null
+  doUseOnline?: boolean
+}) => {
+  const isOnline = useOnline(doUseOnline ? personUuid : null);
 
   const Element = navigation ? Pressable : View;
 
@@ -48,7 +58,7 @@ const Avatar = ({percentage, ...props}) => {
         'Prospect Profile Screen',
         {
           screen: 'Prospect Profile',
-          params: { personId, personUuid, imageBlurhash },
+          params: { personId, personUuid, photoBlurhash },
         }
       );
     }
@@ -63,7 +73,7 @@ const Avatar = ({percentage, ...props}) => {
       style={styles.elementStyle}
       {...link}
     >
-      {!Boolean(imageUuid || imageBlurhash) &&
+      {!Boolean(photoUuid || photoBlurhash) &&
         <View style={styles.imageStyle}>
           <Ionicons
             style={{fontSize: 40, color: 'rgba(119, 0, 255, 0.2)'}}
@@ -71,16 +81,17 @@ const Avatar = ({percentage, ...props}) => {
           />
         </View>
       }
-      {Boolean(imageUuid || imageBlurhash) &&
+      {Boolean(photoUuid || photoBlurhash) &&
         <ImageBackground
-          source={imageUuid ? {
-            uri: `${IMAGES_URL}/450-${imageUuid}.jpg`,
+          source={photoUuid ? {
+            uri: `${IMAGES_URL}/450-${photoUuid}.jpg`,
             height: 450,
             width: 450,
           } : undefined}
-          placeholder={imageBlurhash && { blurhash: imageBlurhash }}
-          transition={!imageUuid ? { duration: 0, effect: null } : 150}
+          placeholder={photoBlurhash && { blurhash: photoBlurhash }}
+          transition={!photoUuid ? { duration: 0, effect: null } : 150}
           style={styles.imageStyle}
+          recyclingKey={photoUuid}
         >
           {verificationRequired &&
             <View
@@ -121,43 +132,45 @@ const Avatar = ({percentage, ...props}) => {
           }}
         />
       </>}
-      <View
-        style={{
-          position: 'absolute',
-          left: 0,
-          bottom: 0,
-          height: 30,
-          width: 30,
-          borderRadius: 999,
-          borderColor: 'white',
-          borderWidth: 2,
-          backgroundColor: '#70f',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-        }}
-      >
-        <DefaultText
+      {percentage !== undefined &&
+        <View
           style={{
-            color: 'white',
-            textAlign: 'center',
-            fontWeight: '700',
-            fontSize: 10,
+            position: 'absolute',
+            left: 0,
+            bottom: 0,
+            height: 30,
+            width: 30,
+            borderRadius: 999,
+            borderColor: 'white',
+            borderWidth: 2,
+            backgroundColor: '#70f',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
           }}
         >
-          {percentage}%
-        </DefaultText>
-        {verificationRequired &&
-          <View
+          <DefaultText
             style={{
-              ...StyleSheet.absoluteFillObject,
-              zIndex: 999,
-              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+              color: 'white',
+              textAlign: 'center',
+              fontWeight: '700',
+              fontSize: 10,
             }}
           >
-          </View>
-        }
-      </View>
+            {percentage}%
+          </DefaultText>
+          {verificationRequired &&
+            <View
+              style={{
+                ...StyleSheet.absoluteFillObject,
+                zIndex: 999,
+                backgroundColor: 'rgba(255, 255, 255, 0.7)',
+              }}
+            >
+            </View>
+          }
+        </View>
+      }
       {isSkipped &&
         <View
           style={{

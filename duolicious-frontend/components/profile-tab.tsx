@@ -142,7 +142,7 @@ const Images_ = ({data}) => {
           { files: [filename] }
         )).ok,
         getUri: (position: string, resolution: string) => {
-          const imageUuid: string | null = (
+          const photoUuid: string | null = (
             data?.photo ?? {})[position] ?? null;
 
           const extraExts: string[] = (
@@ -152,16 +152,16 @@ const Images_ = ({data}) => {
 
           const prefix = extraExts.length ? '' : `${resolution}-`;
 
-          if (imageUuid) {
-            return `${IMAGES_URL}/${prefix}${imageUuid}.${ext}`
+          if (photoUuid) {
+            return `${IMAGES_URL}/${prefix}${photoUuid}.${ext}`
           } else {
             return null;
           }
         },
         getBlurhash: (position: string) => {
-          const imageBlurhash = (data?.photo_blurhash ?? {})[position] ?? null;
-          if (imageBlurhash) {
-            return imageBlurhash;
+          const photoBlurhash = (data?.photo_blurhash ?? {})[position] ?? null;
+          if (photoBlurhash) {
+            return photoBlurhash;
           } else {
             return null;
           }

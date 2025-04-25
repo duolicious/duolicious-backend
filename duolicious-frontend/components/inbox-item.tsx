@@ -5,31 +5,28 @@ import {
 } from 'react-native';
 import {
   useCallback,
-  useEffect,
   useRef,
 } from 'react';
 import { DefaultText } from './default-text';
 import { Avatar } from './avatar';
 import { useNavigation } from '@react-navigation/native';
 import { friendlyTimestamp } from '../util/util';
-import { listen } from '../events/events';
-import { setConversationArchived } from '../chat/application-layer';
 import { VerificationBadge } from './verification-badge';
 
 const IntrosItem = ({
   wasRead,
   name,
   personUuid,
-  imageUuid,
-  imageBlurhash,
+  photoUuid,
+  photoBlurhash,
   matchPercentage,
   isVerified,
 }: {
   wasRead: boolean
   name: string
   personUuid: string
-  imageUuid: string | null
-  imageBlurhash: string | null
+  photoUuid: string | null
+  photoBlurhash: string | null
   matchPercentage: number
   lastMessage: string
   lastMessageTimestamp: Date
@@ -66,19 +63,9 @@ const IntrosItem = ({
     'Prospect Profile Screen',
     {
       screen: 'Prospect Profile',
-      params: { personUuid, imageBlurhash },
+      params: { personUuid, photoBlurhash },
     }
   ), [personUuid]);
-
-  // TODO: If the conversation is archived but there's no mounted component,
-  // this won't trigger
-  useEffect(() => {
-    return listen(`unskip-profile-${personUuid}`, () => setConversationArchived(personUuid, false));
-  }, [personUuid]);
-
-  useEffect(() => {
-    return listen(`skip-profile-${personUuid}`, () => setConversationArchived(personUuid, true));
-  }, [personUuid]);
 
   return (
     <Pressable
@@ -101,8 +88,8 @@ const IntrosItem = ({
       >
         <Avatar
           percentage={matchPercentage}
-          imageUuid={imageUuid}
-          imageBlurhash={imageBlurhash}
+          photoUuid={photoUuid}
+          photoBlurhash={photoBlurhash}
           personUuid={personUuid}
         />
         <View
@@ -157,8 +144,8 @@ const ChatsItem = ({
   wasRead,
   name,
   personUuid,
-  imageUuid,
-  imageBlurhash,
+  photoUuid,
+  photoBlurhash,
   matchPercentage,
   lastMessage,
   lastMessageTimestamp,
@@ -168,8 +155,8 @@ const ChatsItem = ({
   wasRead: boolean
   name: string
   personUuid: string
-  imageUuid: string | null
-  imageBlurhash: string | null
+  photoUuid: string | null
+  photoBlurhash: string | null
   matchPercentage: number
   lastMessage: string
   lastMessageTimestamp: Date
@@ -204,8 +191,8 @@ const ChatsItem = ({
 
   const onPress = useCallback(() => navigation.navigate(
     'Conversation Screen',
-    { personUuid, name, imageUuid, imageBlurhash, isAvailableUser }
-  ), [personUuid, name, imageUuid, imageBlurhash, isAvailableUser]);
+    { personUuid, name, photoUuid, photoBlurhash, isAvailableUser }
+  ), [personUuid, name, photoUuid, photoBlurhash, isAvailableUser]);
 
   return (
     <Pressable
@@ -228,8 +215,8 @@ const ChatsItem = ({
       >
         <Avatar
           percentage={matchPercentage}
-          imageUuid={imageUuid}
-          imageBlurhash={imageBlurhash}
+          photoUuid={photoUuid}
+          photoBlurhash={photoBlurhash}
           personUuid={personUuid}
         />
         <View
