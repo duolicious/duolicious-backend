@@ -14,6 +14,8 @@ ON CONFLICT (person_id) DO UPDATE SET
     club_name = EXCLUDED.club_name
 """
 
+
+
 Q_SEARCH_PREFERENCE = f"""
 WITH delete_search_preference_club AS (
     DELETE FROM
@@ -42,12 +44,16 @@ WHERE
     person_id = %(person_id)s
 """
 
+
+
 Q_UNCACHED_SEARCH_1 = """
 DELETE FROM
     search_cache
 WHERE
     searcher_person_id = %(searcher_person_id)s
 """
+
+
 
 Q_UNCACHED_SEARCH_2 = """
 WITH searcher AS (
@@ -590,6 +596,8 @@ ON CONFLICT (searcher_person_id, position) DO UPDATE SET
     verified = EXCLUDED.verified
 """
 
+
+
 Q_CACHED_SEARCH = """
 WITH page AS (
     SELECT
@@ -694,7 +702,7 @@ ON
     private_page.prospect_person_id = public_page.prospect_person_id
 """
 
-Q_QUIZ_SEARCH = """
+Q_QUIZ_SEARCH = f"""
 WITH searcher AS (
     SELECT
         personality
@@ -805,3 +813,144 @@ LEFT JOIN
 ON
     private_page.prospect_person_id = public_page.prospect_person_id
 """
+
+# TODO: Avoid duplicating `searcher` sub query
+# TODO: Respect filters, privacy settings etc
+Q_FEED = f"""
+WITH searcher AS (
+    SELECT
+        personality,
+        verification_level_id
+    FROM
+        person
+    WHERE
+        person.id = %(searcher_person_id)s
+    LIMIT 1
+), person_data AS (
+    SELECT
+        prospect.uuid AS person_uuid,
+        prospect.name,
+        photo_data.blurhash AS photo_blurhash,
+        photo_data.uuid AS photo_uuid,
+        prospect.verification_level_id > 1 AS is_verified,
+        prospect.last_event_time::timestamptz::text AS time,
+        prospect.last_event_name AS type,
+        prospect.last_event_data,
+        CLAMP(
+            0,
+            99,
+            100 * (
+                1 - (prospect.personality <#> (SELECT personality FROM searcher))
+            ) / 2
+        )::SMALLINT AS match_percentage
+    FROM
+        person AS prospect
+    LEFT JOIN LATERAL (
+        SELECT
+            photo.uuid,
+            photo.blurhash
+        FROM
+            photo
+        WHERE
+            photo.person_id = prospect.id
+        ORDER BY
+            photo.position
+        LIMIT 1
+    ) AS photo_data ON true
+    WHERE
+        activated
+    AND
+        -- The searcher meets the prospects privacy_verification_level_id
+        -- requirement
+        prospect.privacy_verification_level_id <=
+            (SELECT verification_level_id FROM searcher)
+    AND
+        -- The prospect wants to be shown to strangers or isn't a stranger
+        (
+            prospect.id IN (
+                SELECT
+                    subject_person_id
+                FROM
+                    messaged
+                WHERE
+                    object_person_id = %(searcher_person_id)s
+            )
+        OR
+            NOT prospect.hide_me_from_strangers
+        )
+    AND
+        -- The prospect did not skip the searcher
+        prospect.id NOT IN (
+            SELECT
+                subject_person_id
+            FROM
+                skipped
+            WHERE
+                object_person_id = %(searcher_person_id)s
+        )
+    AND
+        -- The searcher did not skip the prospect, or the searcher wishes to
+        -- view skipped prospects
+        (
+            prospect.id NOT IN (
+                SELECT
+                    object_person_id
+                FROM
+                    skipped
+                WHERE
+                    subject_person_id = %(searcher_person_id)s
+            )
+        OR
+            1 IN (
+                SELECT
+                    skipped_id
+                FROM
+                    search_preference_skipped
+                WHERE
+                    person_id = %(searcher_person_id)s
+            )
+        )
+    AND
+        -- The searcher did not message the prospect, or the searcher wishes to
+        -- view messaged prospects
+        (
+            prospect.id NOT IN (
+                SELECT
+                    object_person_id
+                FROM
+                    messaged
+                WHERE
+                    subject_person_id = %(searcher_person_id)s
+            )
+        OR
+            1 IN (
+                SELECT
+                    messaged_id
+                FROM
+                    search_preference_messaged
+                WHERE
+                    person_id = %(searcher_person_id)s
+            )
+        )
+    ORDER BY
+        last_event_time DESC
+    LIMIT
+        %(limit)s
+    OFFSET
+        %(offset)s
+)
+SELECT
+    jsonb_build_object(
+        'person_uuid', person_uuid,
+        'name', name,
+        'photo_uuid', photo_uuid,
+        'photo_blurhash', photo_blurhash,
+        'is_verified', is_verified,
+        'time', time,
+        'type', type,
+        'match_percentage', match_percentage
+    ) || last_event_data AS j
+FROM
+    person_data
+"""
+

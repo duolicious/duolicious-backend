@@ -22,4 +22,12 @@ then
 fi
 
 # TODO: Include more files
-python3 -m mypy "${1:-service/chat}"
+if [ -n "$1" ]
+then
+  python3 -m mypy "${1}"
+else
+  python3 -m mypy \
+    service/chat \
+    service/api/__init__.py \
+    service/search/__init__.py
+fi
