@@ -29,7 +29,7 @@ CREATE INDEX IF NOT EXISTS idx__person__last_event_time
 update
     person
 set
-    last_event_time = greatest(last_event_time, sign_up_time)
+    last_event_time = sign_up_time
 where
     id > 250000
 ;
