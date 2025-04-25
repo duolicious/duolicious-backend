@@ -58,6 +58,18 @@ EXCEPTION WHEN invalid_text_representation THEN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE STRICT;
 
+
+CREATE OR REPLACE FUNCTION iso8601_utc(ts timestamp)
+  RETURNS text
+  LANGUAGE sql
+  IMMUTABLE
+  PARALLEL SAFE
+  RETURNS NULL ON NULL INPUT
+AS $$
+  SELECT to_char(ts AT TIME ZONE 'UTC',
+                 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
+$$;
+
 --------------------------------------------------------------------------------
 -- BLOCKED EMAIL DOMAINS
 --------------------------------------------------------------------------------

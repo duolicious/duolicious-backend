@@ -814,8 +814,6 @@ ON
     private_page.prospect_person_id = public_page.prospect_person_id
 """
 
-# TODO: Avoid duplicating `searcher` sub query
-# TODO: Respect filters, privacy settings etc
 Q_FEED = f"""
 WITH searcher AS (
     SELECT
@@ -833,7 +831,7 @@ WITH searcher AS (
         photo_data.blurhash AS photo_blurhash,
         photo_data.uuid AS photo_uuid,
         prospect.verification_level_id > 1 AS is_verified,
-        prospect.last_event_time::timestamptz::text AS time,
+        iso8601_utc(prospect.last_event_time) AS time,
         prospect.last_event_name AS type,
         prospect.last_event_data,
         CLAMP(
