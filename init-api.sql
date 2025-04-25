@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS good_email_domain (
 DO $$ BEGIN
     CREATE TYPE person_event AS ENUM (
         'added-photo',
+        'added-voice-bio',
         'joined',
         'updated-bio'
     );
@@ -705,6 +706,8 @@ CREATE INDEX IF NOT EXISTS idx__duo_session__email
     ON duo_session(email);
 CREATE INDEX IF NOT EXISTS idx__duo_session__session_expiry
     ON duo_session(session_expiry);
+CREATE INDEX IF NOT EXISTS idx__duo_session__person_id
+    ON duo_session(person_id);
 
 CREATE INDEX IF NOT EXISTS idx__location__coordinates ON location USING GIST(coordinates);
 CREATE INDEX IF NOT EXISTS idx__location__long_friendly ON location USING GIST(long_friendly gist_trgm_ops);

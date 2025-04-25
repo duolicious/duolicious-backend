@@ -424,10 +424,11 @@ def get_update_notifications():
 
 @aget('/feed')
 def get_feed(s: t.SessionInfo):
-    n = request.args.get('n')
-    o = request.args.get('o')
+    valid_datetime = t.ValidDatetime.model_validate(
+        {'datetime': request.args.get('before')}
+    )
 
-    return search.get_feed(s=s, n=n, o=o)
+    return search.get_feed(s=s, before=valid_datetime.datetime)
 
 @apost('/verification-selfie')
 @validate(t.PostVerificationSelfie)

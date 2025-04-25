@@ -9,6 +9,11 @@ source ../util/setup.sh
 set -xe
 
 test_json_format () {
+  local searcher_uuid
+  local before
+  local response
+  local expected
+
   q "delete from duo_session"
   q "delete from person"
   q "delete from club"
@@ -26,22 +31,10 @@ test_json_format () {
   ../util/create-user.sh user8 0 1
   ../util/create-user.sh user9 0 1
   ../util/create-user.sh user10 0 1
-
-  searcher_id=$(q "select id from person where email = 'searcher@example.com'")
-  user1_id=$(q "select id from person where email = 'user1@example.com'")
-  user2_id=$(q "select id from person where email = 'user2@example.com'")
-  user3_id=$(q "select id from person where email = 'user3@example.com'")
-  user4_id=$(q "select id from person where email = 'user4@example.com'")
-  user5_id=$(q "select id from person where email = 'user5@example.com'")
-  user6_id=$(q "select id from person where email = 'user6@example.com'")
+  ../util/create-user.sh user11 0 1
+  ../util/create-user.sh user12 0 1
 
   searcher_uuid=$(q "select uuid from person where email = 'searcher@example.com'")
-  user1_uuid=$(q "select uuid from person where email = 'user1@example.com'")
-  user2_uuid=$(q "select uuid from person where email = 'user2@example.com'")
-  user3_uuid=$(q "select uuid from person where email = 'user3@example.com'")
-  user4_uuid=$(q "select uuid from person where email = 'user4@example.com'")
-  user5_uuid=$(q "select uuid from person where email = 'user5@example.com'")
-  user6_uuid=$(q "select uuid from person where email = 'user6@example.com'")
 
   q "update person set privacy_verification_level_id = 1"
 
@@ -89,11 +82,22 @@ test_json_format () {
         }"
   jc DELETE /profile-info -d '{ "files": [1] }'
 
-  assume_role searcher
-  c POST "/skip/by-uuid/$(q "select uuid from person where name = 'user10'")"
+  assume_role user10
+  jc PATCH /profile-info \
+    -d "{ \"base64_audio_file\": { \"base64\": \"$(rand_sound)\" } }"
 
-  local response=$(
-    c GET '/feed?n=10&o=0' \
+  assume_role user11
+  jc PATCH /profile-info \
+    -d "{ \"base64_audio_file\": { \"base64\": \"$(rand_sound)\" } }"
+  jc DELETE /profile-info -d '{ "audio_files": [-1] }'
+
+  assume_role searcher
+  c POST "/skip/by-uuid/$(q "select uuid from person where name = 'user12'")"
+
+  before=$(q "select iso8601_utc(now()::timestamp)")
+
+  response=$(
+    c GET "/feed?before=${before}" \
       | jq -S '
         def redact: if . == null then . else "redacted_nonnull_value" end;
 
@@ -105,7 +109,8 @@ test_json_format () {
           end ;
 
         map(
-              redact_if_present("added_photo_uuid")
+              redact_if_present("added_audio_uuid")
+            | redact_if_present("added_photo_uuid")
             | redact_if_present("added_photo_blurhash")
             | redact_if_present("photo_blurhash")
             | redact_if_present("person_uuid")
@@ -115,8 +120,19 @@ test_json_format () {
       '
   )
 
-  local expected=$(jq -r . << EOF
+  expected=$(jq -r . << EOF
 [
+  {
+    "added_audio_uuid": "redacted_nonnull_value",
+    "is_verified": false,
+    "match_percentage": 50,
+    "name": "user10",
+    "person_uuid": "redacted_nonnull_value",
+    "photo_blurhash": "redacted_nonnull_value",
+    "photo_uuid": "redacted_nonnull_value",
+    "time": "redacted_nonnull_value",
+    "type": "added-voice-bio"
+  },
   {
     "added_photo_blurhash": "redacted_nonnull_value",
     "added_photo_extra_exts": [],
@@ -142,6 +158,16 @@ test_json_format () {
     "photo_uuid": "redacted_nonnull_value",
     "time": "redacted_nonnull_value",
     "type": "updated-bio"
+  },
+  {
+    "is_verified": false,
+    "match_percentage": 50,
+    "name": "user11",
+    "person_uuid": "redacted_nonnull_value",
+    "photo_blurhash": "redacted_nonnull_value",
+    "photo_uuid": "redacted_nonnull_value",
+    "time": "redacted_nonnull_value",
+    "type": "joined"
   },
   {
     "is_verified": false,
