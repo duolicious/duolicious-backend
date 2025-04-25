@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS good_email_domain (
 DO $$ BEGIN
     CREATE TYPE person_event AS ENUM (
         'added-photo',
+        'added-voice-bio',
         'joined',
         'updated-bio'
     );

@@ -1761,6 +1761,22 @@ WITH deleted_audio AS (
         position = %(position)s
     RETURNING
         uuid
+), deleted_person_event AS (
+    UPDATE
+        person
+    SET
+        last_event_time = sign_up_time,
+        last_event_name = 'joined',
+        last_event_data = '{}'
+    WHERE
+        id = %(person_id)s
+    AND
+        (last_event_data->>'added_audio_uuid')::TEXT = (
+            SELECT
+                uuid
+            FROM
+                deleted_audio
+        )
 )
 INSERT INTO undeleted_audio (
     uuid

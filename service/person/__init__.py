@@ -1033,6 +1033,16 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
                 %(uuid)s
             ) ON CONFLICT (person_id, position) DO UPDATE SET
                 uuid = EXCLUDED.uuid
+        ), updated_person AS (
+            UPDATE person
+            SET
+                last_event_time = now(),
+                last_event_name = 'added-voice-bio',
+                last_event_data = jsonb_build_object(
+                    'added_audio_uuid', %(uuid)s
+                )
+            WHERE
+                id = %(person_id)s
         )
         SELECT 1
         """

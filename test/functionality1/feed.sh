@@ -31,6 +31,8 @@ test_json_format () {
   ../util/create-user.sh user8 0 1
   ../util/create-user.sh user9 0 1
   ../util/create-user.sh user10 0 1
+  ../util/create-user.sh user11 0 1
+  ../util/create-user.sh user12 0 1
 
   searcher_uuid=$(q "select uuid from person where email = 'searcher@example.com'")
 
@@ -80,8 +82,17 @@ test_json_format () {
         }"
   jc DELETE /profile-info -d '{ "files": [1] }'
 
+  assume_role user10
+  jc PATCH /profile-info \
+    -d "{ \"base64_audio_file\": { \"base64\": \"$(rand_sound)\" } }"
+
+  assume_role user11
+  jc PATCH /profile-info \
+    -d "{ \"base64_audio_file\": { \"base64\": \"$(rand_sound)\" } }"
+  jc DELETE /profile-info -d '{ "audio_files": [-1] }'
+
   assume_role searcher
-  c POST "/skip/by-uuid/$(q "select uuid from person where name = 'user10'")"
+  c POST "/skip/by-uuid/$(q "select uuid from person where name = 'user12'")"
 
   before=$(q "select iso8601_utc(now()::timestamp)")
 
@@ -98,7 +109,8 @@ test_json_format () {
           end ;
 
         map(
-              redact_if_present("added_photo_uuid")
+              redact_if_present("added_audio_uuid")
+            | redact_if_present("added_photo_uuid")
             | redact_if_present("added_photo_blurhash")
             | redact_if_present("photo_blurhash")
             | redact_if_present("person_uuid")
@@ -110,6 +122,17 @@ test_json_format () {
 
   expected=$(jq -r . << EOF
 [
+  {
+    "added_audio_uuid": "redacted_nonnull_value",
+    "is_verified": false,
+    "match_percentage": 50,
+    "name": "user10",
+    "person_uuid": "redacted_nonnull_value",
+    "photo_blurhash": "redacted_nonnull_value",
+    "photo_uuid": "redacted_nonnull_value",
+    "time": "redacted_nonnull_value",
+    "type": "added-voice-bio"
+  },
   {
     "added_photo_blurhash": "redacted_nonnull_value",
     "added_photo_extra_exts": [],
@@ -135,6 +158,16 @@ test_json_format () {
     "photo_uuid": "redacted_nonnull_value",
     "time": "redacted_nonnull_value",
     "type": "updated-bio"
+  },
+  {
+    "is_verified": false,
+    "match_percentage": 50,
+    "name": "user11",
+    "person_uuid": "redacted_nonnull_value",
+    "photo_blurhash": "redacted_nonnull_value",
+    "photo_uuid": "redacted_nonnull_value",
+    "time": "redacted_nonnull_value",
+    "type": "joined"
   },
   {
     "is_verified": false,
