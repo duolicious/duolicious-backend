@@ -26,7 +26,7 @@ const notifyOnWeb = async (
   } else if (Notification.permission === 'denied') {
     console.warn('Notification permission denied');
   } else if (Notification.permission === 'granted') {
-    playSound();
+    await playSound();
     new Notification(sender, { body, icon });
   }
 };
