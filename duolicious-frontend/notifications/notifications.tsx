@@ -8,18 +8,18 @@ type MaybeToken = { token: string | null } | null;
 
 const requestPermissionOnWeb = async (): Promise<MaybeToken> => {
   if (Platform.OS !== 'web') {
-    return null;
+    return { token: null };
   }
 
   if (Notification.permission === 'granted') {
-    return null;
+    return { token: null };
   }
 
   const permission = await Notification.requestPermission();
 
   if (permission !== 'granted') {
     console.warn('Permissions not granted');
-    return null;
+    return { token: null };
   }
 
   notifyOnWeb(
