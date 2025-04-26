@@ -15,13 +15,11 @@ import {
   NavigationContainer,
   createNavigationContainerRef,
 } from '@react-navigation/native';
-
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Font from 'expo-font';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as SplashScreen from 'expo-splash-screen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-
 import { TabBar } from './components/navigation/tab-bar';
 import SearchTab from './components/search-tab';
 import { QuizTab } from './components/quiz-tab';
@@ -44,10 +42,9 @@ import { GifPickerModal } from './components/modal/gif-picker-modal';
 import { ReportModal } from './components/modal/report-modal';
 import { ImageCropper } from './components/image-cropper';
 import {
-  setNofications,
-  useNotificationObserver,
-  getLastNotificationResponseAsync,
-} from './notifications/notifications';
+  useNotificationObserverOnMobile,
+  getLastNotificationResponseOnMobile,
+} from './notifications/mobile';
 import { getCurrentScreen, getCurrentParams } from './navigation/navigation';
 import { navigationState } from './kv-storage/navigation-state';
 import { listen, notify } from './events/events';
@@ -61,7 +58,6 @@ import { Logo16 } from './components/logo';
 import { useScrollbarStyle } from './components/navigation/scroll-bar-hooks';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-setNofications();
 verificationWatcher();
 
 SplashScreen.preventAutoHideAsync();
@@ -199,7 +195,7 @@ const App = () => {
     const existingSessionToken = await sessionToken();
     const existingNavigationState = await navigationState();
     const parsedUrl = await parseUrl();
-    const notification = await getLastNotificationResponseAsync();
+    const notification = await getLastNotificationResponseOnMobile();
 
     if (!parsedUrl) {
       ;
@@ -456,7 +452,7 @@ const App = () => {
     }, [onChangeInbox]);
   }
 
-  useNotificationObserver((screen: string, params: any) => {
+  useNotificationObserverOnMobile((screen: string, params: any) => {
     const navigationContainer = navigationContainerRef.current;
 
     if (!navigationContainer) return;

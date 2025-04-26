@@ -1,13 +1,53 @@
 import { AppState, Platform } from 'react-native';
+import { registerPushToken } from '../chat/application-layer';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { registerPushToken } from '../chat/application-layer';
-import { useEffect } from 'react';
+import { notifyOnWeb } from './web';
 
-const setNofications = () => {
-  if (Platform.OS === 'web') {
-    return;
+type MaybeToken = { token: string | null } | null;
+
+const requestPermissionOnWeb = async (): Promise<MaybeToken> => {
+  if (Platform.OS !== 'web') {
+    return null;
   }
+
+  if (Notification.permission === 'granted') {
+    return null;
+  }
+
+  const permission = await Notification.requestPermission();
+
+  if (permission !== 'granted') {
+    console.warn('Permissions not granted');
+    return null;
+  }
+
+  notifyOnWeb(
+    'Duolicious',
+    'Here’s what a notification will look like 💜',
+    true
+  );
+
+  return { token: null };
+};
+
+
+const requestPermissionOnMobile = async (): Promise<MaybeToken> => {
+  const { status } = await Notifications.getPermissionsAsync();
+  const finalStatus =
+    status === 'granted' ?
+    status :
+    (await Notifications.requestPermissionsAsync()).status;
+
+  if (finalStatus !== 'granted') {
+    console.error('Failed to get push token for push notification!');
+    return null;
+  }
+
+  // The setNotificationChannelAsync must be called before
+  // getDevicePushTokenAsync or getExpoPushTokenAsync to obtain a push token.
+  //
+  // SRC: https://docs.expo.dev/versions/latest/sdk/notifications/#permissions
 
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -18,87 +58,33 @@ const setNofications = () => {
   });
 
   if (Platform.OS === 'android') {
-    Notifications.setNotificationChannelAsync('default', {
+    await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#FF231F7C',
     });
   }
-}
-
-const registerForPushNotificationsAsync = async (): Promise<void> => {
-  if (Platform.OS === 'web') {
-    registerPushToken(null);
-    return;
-  }
-
-  const { status } = await Notifications.getPermissionsAsync();
-  const finalStatus =
-    status === 'granted' ?
-    status :
-    (await Notifications.requestPermissionsAsync()).status;
-
-  if (finalStatus !== 'granted') {
-    console.error('Failed to get push token for push notification!');
-    return;
-  }
 
   const projectId = Constants.expoConfig?.extra?.eas.projectId;
   const token = await Notifications.getExpoPushTokenAsync({ projectId });
 
-  registerPushToken(token.data);
+  return { token: token.data };
 };
 
-const unpackNotificationResponse = (
-  response: Notifications.NotificationResponse | null,
-) => {
-  if (!response) {
-    return null;
-  }
 
-  const screen: string = response.notification.request.content.data.screen;
-  const params: any = response.notification.request.content.data.params;
+const getAndRegisterPushToken = async (): Promise<void> => {
+  const maybeToken = Platform.OS === 'web'
+    ? await requestPermissionOnWeb()
+    : await requestPermissionOnMobile();
 
-  return { screen, params };
-}
-
-const useNotificationObserver = (
-  func: (screen: string, params: any) => void,
-  deps?: React.DependencyList | undefined,
-) => {
-  if (Platform.OS === 'web') {
+  if (!maybeToken) {
     return;
   }
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useEffect(() => {
-    const subscription = Notifications
-      .addNotificationResponseReceivedListener(response => {
-        const notification = unpackNotificationResponse(response);
-
-        if (notification) {
-          func(notification.screen, notification.params);
-        }
-      });
-
-    return () => subscription.remove();
-  }, deps);
-};
-
-const getLastNotificationResponseAsync = async () => {
-  if (Platform.OS === 'web') {
-    return null;
-  }
-
-  const notification = await Notifications.getLastNotificationResponseAsync();
-
-  return unpackNotificationResponse(notification);
+  registerPushToken(maybeToken.token);
 };
 
 export {
-  getLastNotificationResponseAsync,
-  registerForPushNotificationsAsync,
-  setNofications,
-  useNotificationObserver,
+  getAndRegisterPushToken,
 };

@@ -2,7 +2,8 @@ import { getRandomString } from '../../random/string';
 import { japi } from '../../api/api';
 import { deleteFromArray, assert } from '../../util/util';
 import { listen, notify, lastEvent } from '../../events/events';
-import { registerForPushNotificationsAsync } from '../../notifications/notifications';
+import { getAndRegisterPushToken } from '../../notifications/notifications';
+import { notifyOnWeb } from '../../notifications/web';
 import * as _ from 'lodash';
 import {
   EV_CHAT_WS_CLOSE,
@@ -345,6 +346,8 @@ const setInboxRecieved = async (
     Object.assign(inbox, updatedInbox);
   }
 
+  notifyOnWeb(updatedConversation.name, updatedConversation.lastMessage);
+
   notify<Inbox>('inbox', {...inbox});
 };
 
@@ -427,7 +430,7 @@ const authenticate = async () => {
 
   await Promise.all([
     refreshInbox(),
-    registerForPushNotificationsAsync(),
+    getAndRegisterPushToken(),
   ]);
 };
 
@@ -824,13 +827,13 @@ const onReceiveMessage = (
       fromCurrentUser: jidMatchesSignedInUser(unpacked.from),
     };
 
-    if (unpacked.type === 'chat-text') {
-      await setInboxRecieved(bareFrom, unpacked.text);
-    } else if (unpacked.type === 'chat-audio') {
-      await setInboxRecieved(bareFrom, AUDIO_MESSAGE);
-    }
-
     if (otherPersonUuid === undefined) {
+      if (unpacked.type === 'chat-text') {
+        await setInboxRecieved(bareFrom, unpacked.text);
+      } else if (unpacked.type === 'chat-audio') {
+        await setInboxRecieved(bareFrom, AUDIO_MESSAGE);
+      }
+
       notify(`message-from-${bareFrom}`);
     }
 
