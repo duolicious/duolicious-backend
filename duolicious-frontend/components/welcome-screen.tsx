@@ -403,7 +403,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
       setLoginStatus(
         response.status === 429 ? 'You’re doing that too much' :
         response.status === 403 ? 'Your account has been banned' :
-        response.clientError ? 'We couldn’t send an email there' :
+        response.clientError ? 'We don’t support that email provider' :
         'We couldn’t connect to Duolicious'
       );
     }
