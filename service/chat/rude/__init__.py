@@ -17,7 +17,6 @@ from service.chat.message import (
 _strings = [
     "abuse me",
     "abuse you",
-    "anaaaaaaaal",
     "anal",
     "anally",
     "anus",
@@ -63,6 +62,8 @@ _strings = [
     "breed me",
     "breed you",
     "breedable",
+    "breeding me",
+    "breeding you",
     "bukkake",
     "butt fuck",
     "butt fucked",
