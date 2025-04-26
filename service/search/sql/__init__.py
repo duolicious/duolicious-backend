@@ -846,7 +846,8 @@ WITH searcher AS (
     LEFT JOIN LATERAL (
         SELECT
             photo.uuid,
-            photo.blurhash
+            photo.blurhash,
+            photo.nsfw_score
         FROM
             photo
         WHERE
@@ -932,6 +933,16 @@ WITH searcher AS (
                     person_id = %(searcher_person_id)s
             )
         )
+    AND NOT EXISTS (
+        SELECT
+            1
+        FROM
+            photo
+        WHERE
+            uuid = last_event_data->>'added_photo_uuid'
+        AND
+            nsfw_score > 0.2
+    )
     ORDER BY
         last_event_time DESC
     LIMIT
