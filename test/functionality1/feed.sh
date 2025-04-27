@@ -33,8 +33,10 @@ test_json_format () {
   ../util/create-user.sh user10 0 1
   ../util/create-user.sh user11 0 1
   ../util/create-user.sh user12 0 1
+  ../util/create-user.sh user13 0 1
 
-  searcher_uuid=$(q "select uuid from person where email = 'searcher@example.com'")
+  searcher_uuid=$(q "select uuid from person where name = 'searcher'")
+  user13_uuid=$(q "select uuid from person where name = 'user13'")
 
   q "update person set privacy_verification_level_id = 1"
 
@@ -90,6 +92,11 @@ test_json_format () {
   jc PATCH /profile-info \
     -d "{ \"base64_audio_file\": { \"base64\": \"$(rand_sound)\" } }"
   jc DELETE /profile-info -d '{ "audio_files": [-1] }'
+
+  assume_role user1
+  jc POST "/skip/by-uuid/${user13_uuid}" -d '{ "report_reason": "12345" }'
+  assume_role user2
+  jc POST "/skip/by-uuid/${user13_uuid}" -d '{ "report_reason": "12345" }'
 
   assume_role searcher
   c POST "/skip/by-uuid/$(q "select uuid from person where name = 'user12'")"

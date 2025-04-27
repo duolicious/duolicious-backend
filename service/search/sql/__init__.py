@@ -943,6 +943,19 @@ WITH searcher AS (
         AND
             nsfw_score > 0.2
     )
+    -- Exclude users who were reported two or more times in the past day
+    AND (
+        SELECT
+            count(*)
+        FROM
+            skipped
+        WHERE
+            object_person_id = prospect.id
+        AND
+            created_at > now() - interval '2 days'
+        AND
+            reported
+    ) < 2
     ORDER BY
         last_event_time DESC
     LIMIT

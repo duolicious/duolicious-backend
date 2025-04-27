@@ -63,7 +63,7 @@ _normalization_map = {
     "p[o0]rn": "porn",
     "pre cum": "precum",
     "pr[o0]n": "porn",
-    "r[@a4]p[e3]?-?ab[l1]e": "rapeable",
+    "r[@a4]p[e3]?-?[@a4]?b[l1][e3]": "rapeable",
     "r[@a4]p[e3]d": "raped",
     "r[@a4]p[e3]": "rape",
     "r[@a4]p[i1]*ng": "raping",
