@@ -75,6 +75,12 @@ class TestIsOffensive(unittest.TestCase):
                 is_rude("Hey doll, you look positively rapable."))
 
         self.assertTrue(
+                is_rude("you look rap4ble"))
+
+        self.assertTrue(
+                is_rude("you look rapeble"))
+
+        self.assertTrue(
                 is_rude("When did you last cum?"))
 
         self.assertTrue(
