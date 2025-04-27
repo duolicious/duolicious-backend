@@ -15,7 +15,7 @@ from service.chat.insertintrohash import insert_intro_hash
 from service.chat.mayberegister import maybe_register
 from service.chat.rude import is_rude_message
 from service.chat.spam import is_spam_message
-from service.chat.updatelast import update_last_forever
+from service.chat.updatelast import update_last_forever, update_last_once
 from service.chat.upsertlastnotification import upsert_last_notification
 from service.chat.xmlparse import parse_xml_or_none
 from service.chat.messagestorage.inbox import (
@@ -627,6 +627,8 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
                 await redis_forward_to_websocket_task
             except asyncio.CancelledError:
                 pass
+
+        update_last_once(session)
 
         if session.username:
             try:
