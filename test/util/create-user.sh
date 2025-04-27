@@ -52,7 +52,7 @@ add_audio () {
     -d "{ \"base64_audio_file\": { \"base64\": \"${snd}\" } }"
 }
 
-add_photos () {
+add_photos_to_onboardee () {
   for i in $(seq 1 $1)
   do
     local img=$(rand_image)
@@ -100,7 +100,7 @@ main () {
   jc PATCH /onboardee-info -d '{ "location": "New York, New York, United States" }'
   jc PATCH /onboardee-info -d '{ "gender": "Other" }'
   jc PATCH /onboardee-info -d '{ "other_peoples_genders": ["Man", "Woman", "Agender", "Intersex", "Non-binary", "Transgender", "Trans woman", "Trans man", "Other"] }'
-  add_photos "${num_photos}"
+  add_photos_to_onboardee "${num_photos}"
   c POST /finish-onboarding
 
   answer_questions "$num_questions"

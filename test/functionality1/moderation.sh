@@ -16,8 +16,14 @@ setup () {
   q "delete from banned_person_admin_token"
   q "delete from deleted_photo_admin_token"
 
-  ../util/create-user.sh 'reporter@gmail.com' 0 "${num_photos}"
-  ../util/create-user.sh 'accuse.d+1@gmail.com' 0 "${num_photos}"
+  ../util/create-user.sh 'reporter@gmail.com' 0 0
+  assume_role 'reporter@gmail.com'
+  add_photos "${num_photos}"
+
+  ../util/create-user.sh 'accuse.d+1@gmail.com' 0 0
+  assume_role 'accuse.d+1@gmail.com'
+  add_photos "${num_photos}"
+
   if [[ "${make_bystander}" == true ]]
   then
     ../util/create-user.sh 'bystander@gmail.com' 0 "${num_photos}"
@@ -173,10 +179,12 @@ specific_photo_is_banned () {
   jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "n/a" }'
 
   [[ "$(q "select count(*) from photo")" -eq 3 ]]
+  [[ "$(q "select count(*) from person where last_event_name = 'added-photo'")" -eq 2 ]]
 
   c GET "/admin/delete-photo/$(deleted_photo_token)"
 
   [[ "$(q "select count(*) from photo")" -eq 2 ]]
+  [[ "$(q "select count(*) from person where last_event_name = 'added-photo'")" -eq 1 ]]
 }
 
 bans_work_despite_no_active_sessions () {

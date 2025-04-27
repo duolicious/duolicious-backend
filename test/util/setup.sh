@@ -361,3 +361,20 @@ EOF
     -H "Content-Type: application/json" \
     -d "$authJson"
 }
+
+add_photos () {
+  for i in $(seq 1 $1)
+  do
+    local img=$(rand_image)
+
+    jc PATCH /profile-info \
+      -d "{
+              \"base64_file\": {
+                  \"position\": ${i},
+                  \"base64\": \"${img}\",
+                  \"top\": 0,
+                  \"left\": 0
+              }
+          }"
+  done
+}
