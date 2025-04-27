@@ -2418,6 +2418,22 @@ WITH deleted_token AS (
     RETURNING
         photo.uuid,
         photo.person_id
+), deleted_person_event AS (
+    UPDATE
+        person
+    SET
+        last_event_time = sign_up_time,
+        last_event_name = 'joined',
+        last_event_data = '{}'
+    WHERE
+        id = (SELECT person_id FROM deleted_photo)
+    AND
+        (last_event_data->>'added_photo_uuid')::TEXT = (
+            SELECT
+                uuid
+            FROM
+                deleted_photo
+        )
 ), inserted_undeleted_photo AS (
     INSERT INTO undeleted_photo (
         uuid
