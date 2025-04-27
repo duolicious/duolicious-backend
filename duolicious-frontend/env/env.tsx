@@ -16,9 +16,6 @@ export const AUDIO_URL = Constants.expoConfig?.extra?.audioUrl
 export const STATUS_URL = Constants.expoConfig?.extra?.statusUrl
   ?? 'http://localhost:8080';
 
-export const WEB_BASE_URL = Constants.expoConfig?.extra?.webUrl
-  ?? 'http://localhost:8081';
-
 export const WEB_VERSION = Constants.expoConfig?.extra?.webVersion
   ?? '000000';
 

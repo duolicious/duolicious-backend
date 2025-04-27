@@ -29,7 +29,6 @@ const config: ExpoConfig = {
     imagesUrl: process.env.DUO_IMAGES_URL,
     audioUrl: process.env.DUO_AUDIO_URL,
     statusUrl: process.env.DUO_STATUS_URL,
-    webUrl: process.env.DUO_WEB_BASE_URL,
     webVersion: process.env.DUO_WEB_VERSION,
     tenorApiKey: process.env.DUO_TENOR_API_KEY,
     notificationIconUrl: process.env.NOTIFICATION_ICON_URL,

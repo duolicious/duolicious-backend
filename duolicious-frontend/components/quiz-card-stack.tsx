@@ -27,7 +27,6 @@ import { StatusBarSpacer } from './status-bar-spacer';
 import { api, japi } from '../api/api';
 import { quizQueue } from '../api/queue';
 import * as _ from "lodash";
-import { markTraitDataDirty } from './traits-tab';
 import { useSkipped } from '../hide-and-block/hide-and-block';
 
 const styles = StyleSheet.create({
@@ -684,7 +683,6 @@ const QuizCardStack = (props) => {
             previousSwipeDirection === 'right'
           ) {
             removeNextProspectInPlace(stateRef, triggerRender);
-            markTraitDataDirty();
           }
         }
       );
@@ -744,7 +742,6 @@ const QuizCardStack = (props) => {
 
         if (direction === 'left' || direction === 'right') {
           await addNextProspectsInPlace(stateRef, triggerRender);
-          markTraitDataDirty();
         }
 
         addNextCardsInPlace(

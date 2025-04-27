@@ -21,12 +21,11 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import * as SplashScreen from 'expo-splash-screen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabBar } from './components/navigation/tab-bar';
-import SearchTab from './components/search-tab';
+import { SearchTab } from './components/search-tab';
 import { QuizTab } from './components/quiz-tab';
-import ProfileTab from './components/profile-tab';
+import { ProfileTab } from './components/profile-tab';
 import { InboxTab } from './components/inbox-tab';
 import { FeedTab } from './components/feed-tab';
-import { TraitsTab } from './components/traits-tab';
 import { ConversationScreen } from './components/conversation-screen/conversation-screen';
 import { UtilityScreen } from './components/utility-screen';
 import { ProspectProfileScreen } from './components/prospect-profile-screen';
@@ -84,9 +83,8 @@ const HomeTabs = () => {
     >
       <Tab.Screen name="Q&A" component={QuizTab} />
       <Tab.Screen name="Search" component={SearchTab} />
-      <Tab.Screen name="Inbox" component={InboxTab} />
       <Tab.Screen name="Feed" component={FeedTab} />
-      <Tab.Screen name="Traits" component={TraitsTab} />
+      <Tab.Screen name="Inbox" component={InboxTab} />
       <Tab.Screen name="Profile" component={ProfileTab} />
     </Tab.Navigator>
   );
@@ -199,16 +197,6 @@ const App = () => {
 
     if (!parsedUrl) {
       ;
-    } else if (parsedUrl.left === 'me') {
-      setReferrerId(parsedUrl.right);
-      setInitialState({
-        routes: [
-          {
-            name: "Traits Screen",
-          }
-        ]
-      });
-      return;
     } else if (parsedUrl.left === 'invite') {
       setInitialState({
         routes: [
@@ -525,9 +513,6 @@ const App = () => {
               <Tab.Screen
                 name="Invite Screen"
                 component={InviteScreen} />
-              <Tab.Screen
-                name="Traits Screen"
-                component={TraitsTab} />
             </Stack.Navigator>
           </NavigationContainer>
         }

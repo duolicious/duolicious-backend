@@ -10,6 +10,14 @@ const QAndADevice = ({
   isBold = false,
   spacing = -6,
   backgroundColor = 'white',
+  height = undefined,
+}: {
+  color: string
+  fontSize?: number
+  isBold?: boolean
+  spacing?: number
+  backgroundColor?: string
+  height?: number
 }) => {
   const noIcon = isBold ? 'close-circle' : 'close-circle-outline';
   const yesIcon = isBold ? 'checkmark-circle' : 'checkmark-circle-outline';
@@ -19,6 +27,7 @@ const QAndADevice = ({
       style={{
         flexDirection: 'row',
         marginHorizontal: spacing / 2,
+        height,
       }}
     >
       <View

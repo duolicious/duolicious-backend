@@ -852,8 +852,6 @@ const ProspectUserDetails = ({
     navigation.navigate('In-Depth', { personId, name });
   }, [personId, name]);
 
-  const isViewingSelf = personId === signedInUser?.personId;
-
   return (
     <View
       style={{
@@ -931,12 +929,9 @@ const ProspectUserDetails = ({
       </View>
       <DonutChart
         percentage={matchPercentage}
-        onPress={!isViewingSelf ? onPressDonutChart : undefined}
+        onPress={onPressDonutChart}
         textStyle={{
           color: textColor,
-        }}
-        style={{
-          opacity: isViewingSelf ? 0 : 1,
         }}
       >
         <DefaultText
@@ -1285,7 +1280,7 @@ const Body = ({
           </Stats>
         </>}
 
-        {!isViewingSelf && !!data?.count_answers &&
+        {!!data?.count_answers &&
           <SeeQAndAButton
             navigation={navigation}
             personId={personId}

@@ -116,7 +116,7 @@ const getStateFromClubItems = (cs: ClubItem[] | undefined) => {
 
 const Stack = createNativeStackNavigator();
 
-const SearchScreen = () => {
+const SearchTab = () => {
   return (
     <Stack.Navigator
       screenOptions={{
@@ -632,7 +632,7 @@ const SearchScreen_ = ({navigation}) => {
   );
 };
 
-export default SearchScreen;
 export {
+  SearchTab,
   PageItem,
 };

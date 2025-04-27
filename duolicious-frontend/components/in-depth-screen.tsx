@@ -2,7 +2,6 @@ import {
   View,
 } from 'react-native';
 import {
-  useCallback,
   useState,
   memo,
 } from 'react';
@@ -17,13 +16,12 @@ import { api } from '../api/api';
 import { StatusBarSpacer } from './status-bar-spacer';
 import { FloatingBackButton } from './prospect-profile-screen';
 import { CardState } from './quiz-card';
+import { signedInUser } from '../App';
 
 const sideMargins = {
   marginLeft: 10,
   marginRight: 10,
 };
-
-const AnsweredQuizCardMemo = memo(AnsweredQuizCard);
 
 const Subtitle = ({children}) => {
   return (
@@ -204,6 +202,47 @@ const InDepthScreen = (navigationRef) => {
   />;
 }
 
+const InDepthItem = ({personId, item}) => {
+  const isViewingSelf = personId === signedInUser?.personId;
+
+  const [, triggerRender] = useState({});
+
+  const onStateChange = (state: CardState) => {
+    item.item.person_public_ = state.public_;
+    item.item.person_answer = state.answer;
+    if (isViewingSelf) {
+      item.item.prospect_answer = state.answer;
+      triggerRender({});
+    }
+  };
+
+  switch (item.kind) {
+    case 'answer':
+      return <AnsweredQuizCard
+          questionNumber={item.item.question_id}
+          topic={item.item.topic}
+          user1={item.item.prospect_name}
+          answer1={item.item.prospect_answer}
+          user2="You"
+          answer2={item.item.person_answer}
+          answer2Publicly={item.item.person_public_ ?? true}
+          onStateChange={onStateChange}
+        >
+          {item.item.question}
+        </AnsweredQuizCard>;
+    case 'mbti':
+    case 'big5':
+    case 'politics':
+    case 'attachment':
+    case 'other':
+      return <Charts data={item.data}/>;
+    default:
+      return <></>;
+  }
+};
+
+const InDepthItemMemo = memo(InDepthItem);
+
 const CurredInDepthScreen = ({navigationRef, navigation, route}) => {
   if (navigationRef)
     navigationRef.current = navigation;
@@ -217,37 +256,6 @@ const CurredInDepthScreen = ({navigationRef, navigation, route}) => {
   const [idx4, setIdx4] = useState(0);
 
   const insets = useSafeAreaInsets();
-
-  const renderItem = useCallback(({item}) => {
-    const onStateChange = (state: CardState) => {
-      item.item.person_answer = state.answer;
-      item.item.person_public_ = state.public_;
-    };
-
-    switch (item.kind) {
-      case 'answer':
-        return <AnsweredQuizCardMemo
-            questionNumber={item.item.question_id}
-            topic={item.item.topic}
-            user1={item.item.prospect_name}
-            answer1={item.item.prospect_answer}
-            user2="You"
-            answer2={item.item.person_answer}
-            answer2Publicly={item.item.person_public_ ?? true}
-            onStateChange={onStateChange}
-          >
-            {item.item.question}
-          </AnsweredQuizCardMemo>;
-      case 'mbti':
-      case 'big5':
-      case 'politics':
-      case 'attachment':
-      case 'other':
-        return <ChartsMemo data={item.data}/>;
-      default:
-        return <></>;
-    }
-  }, []);
 
   return (
     <>
@@ -284,7 +292,9 @@ const CurredInDepthScreen = ({navigationRef, navigation, route}) => {
             onChangeIdx4={setIdx4}
           />
         }
-        renderItem={renderItem}
+        renderItem={({item}) =>
+          <InDepthItemMemo personId={personId} item={item} />
+        }
         disableRefresh={true}
       />
       <View
@@ -325,8 +335,6 @@ const Charts = ({data}) => {
     </View>
   );
 };
-
-const ChartsMemo = memo(Charts);
 
 export {
   InDepthScreen,

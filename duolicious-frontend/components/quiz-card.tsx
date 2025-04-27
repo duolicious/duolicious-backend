@@ -11,6 +11,7 @@ import {
   createElement,
   memo,
   useCallback,
+  useLayoutEffect,
   useState,
 } from 'react';
 import { StatelessCheckBox } from './check-box';
@@ -21,7 +22,6 @@ import { X, Check, FastForward } from "react-native-feather";
 import { Skeleton } from '@rneui/themed';
 import { japi } from '../api/api';
 import { quizQueue } from '../api/queue';
-import { markTraitDataDirty } from './traits-tab';
 import { IndeterminateProgressBar } from './indeterminate-progress-bar';
 import { Logo14 } from './logo';
 
@@ -606,6 +606,10 @@ const AnsweredQuizCard = ({
     public_: answer2Publicly
   });
 
+  useLayoutEffect(() => {
+    onStateChange(state);
+  }, [JSON.stringify(state)]);
+
   const textColor = useCallback(() => {
     if (state.answer === null)
       return '#666';
@@ -614,7 +618,7 @@ const AnsweredQuizCard = ({
     } else {
       return '#e57';
     }
-  }, [state.answer])();
+  }, [answer1, state.answer])();
 
   const textStyle: StyleProp<TextStyle> = {
     fontWeight: '500',
@@ -636,16 +640,12 @@ const AnsweredQuizCard = ({
             public: state.public_,
           }
         );
-
-        markTraitDataDirty();
       });
 
       const nextState = {
         ...state,
         answer: nextAnswer_,
       };
-
-      onStateChange(nextState);
 
       return nextState;
     });

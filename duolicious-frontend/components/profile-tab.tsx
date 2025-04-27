@@ -891,4 +891,6 @@ const styles = StyleSheet.create({
   }
 });
 
-export default ProfileTab;
+export {
+  ProfileTab,
+};
