@@ -440,7 +440,6 @@ const FeedItemUpdatedBio = ({ dataItem }: { dataItem: DataItemUpdatedBio }) => {
 };
 
 const FeedItem = ({ dataItem }: { dataItem: DataItem }) => {
-  // TODO: Get this based on person_uuid to prevent flashlist breaking
   const { isSkipped } = useSkipped(dataItem.person_uuid);
 
   if (isSkipped) {

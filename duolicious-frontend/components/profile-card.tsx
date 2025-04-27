@@ -128,6 +128,7 @@ const PhotoOrSkeleton_ = ({
           backgroundColor: photoUuid ? undefined : '#ccc',
       }}
       contentFit="contain"
+      recyclingKey={photoUuid}
     >
       <LinearGradient
         colors={showGradient ? [
