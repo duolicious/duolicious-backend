@@ -4,7 +4,6 @@ import {
 } from 'react-native';
 import { QAndADevice } from '../q-and-a-device';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { DefaultText } from '../default-text';
 
 const LabelToIcon = ({
   label,
@@ -45,10 +44,9 @@ const LabelToIcon = ({
       {label === 'Q&A' &&
         <QAndADevice
           color={color}
-          fontSize={fontSize}
+          height={height}
           isBold={isFocused}
           backgroundColor={backgroundColor}
-          height={height}
         />
       }
       {label === 'Search' &&

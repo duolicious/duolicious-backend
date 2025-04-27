@@ -71,7 +71,6 @@ const Tab = ({ navigation, state, route, descriptors, index, unreadIndicatorOpac
       onPressOut={fadeIn}
       style={{
         flex: 1,
-        flexGrow: 1,
         height: '100%',
       }}
     >
@@ -81,6 +80,8 @@ const Tab = ({ navigation, state, route, descriptors, index, unreadIndicatorOpac
         accessibilityLabel={options.tabBarAccessibilityLabel}
         testID={options.tabBarTestID}
         style={{
+          width: '100%',
+          height: '100%',
           paddingTop: 6,
           paddingBottom: 6,
           alignItems: 'center',

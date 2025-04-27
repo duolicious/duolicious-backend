@@ -6,28 +6,28 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 const QAndADevice = ({
   color,
-  fontSize = 20,
+  height = 20,
   isBold = false,
-  spacing = -6,
   backgroundColor = 'white',
-  height = undefined,
 }: {
   color: string
-  fontSize?: number
-  isBold?: boolean
-  spacing?: number
-  backgroundColor?: string
   height?: number
+  isBold?: boolean
+  backgroundColor?: string
 }) => {
   const noIcon = isBold ? 'close-circle' : 'close-circle-outline';
   const yesIcon = isBold ? 'checkmark-circle' : 'checkmark-circle-outline';
+
+  const width = 2 * height;
+
+  const spacing = 6 * (height / 20);
 
   return (
     <View
       style={{
         flexDirection: 'row',
-        marginHorizontal: spacing / 2,
         height,
+        width: width - spacing,
       }}
     >
       <View
@@ -35,26 +35,30 @@ const QAndADevice = ({
           backgroundColor: backgroundColor,
           borderRadius: 999,
           overflow: 'hidden',
-          aspectRatio: Platform.OS === 'web' ? 1 : undefined,
           justifyContent: 'center',
           alignItems: 'center',
-          right: spacing / 2,
+          height,
+          aspectRatio: 1,
+          position: 'absolute',
+          left: 0,
         }}
       >
-        <Ionicons style={{color: color, fontSize: fontSize}} name={noIcon} />
+        <Ionicons style={{color: color, fontSize: height }} name={noIcon} />
       </View>
       <View
         style={{
           backgroundColor: backgroundColor,
           borderRadius: 999,
           overflow: 'hidden',
-          aspectRatio: Platform.OS === 'web' ? 1 : undefined,
           justifyContent: 'center',
           alignItems: 'center',
-          left: spacing / 2,
+          height,
+          aspectRatio: 1,
+          position: 'absolute',
+          right: 0,
         }}
       >
-        <Ionicons style={{ color: color, fontSize: fontSize }} name={yesIcon} />
+        <Ionicons style={{ color: color, fontSize: height }} name={yesIcon} />
       </View>
     </View>
   );
