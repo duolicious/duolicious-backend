@@ -24,10 +24,7 @@ _batcher = Batcher[str](
 
 _batcher.start()
 
-def update_last(session: Session):
-    if session is None:
-        return
-
+def update_last_once(session: Session):
     if session.username is None:
         return
 
@@ -36,7 +33,7 @@ def update_last(session: Session):
 async def update_last_forever(session: Session):
     try:
         while True:
-            update_last(session)
+            update_last_once(session)
             await asyncio.sleep(LAST_UPDATE_INTERVAL_SECONDS)
     except asyncio.exceptions.CancelledError:
         pass

@@ -61,7 +61,7 @@ curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d
 
 sleep 3
 
-[[ "$(q "select count(*) from last")" = 1 ]]
+[[ "$(q "select count(*) from last where username = '$user1uuid'")" = 1 ]]
 
 
 
