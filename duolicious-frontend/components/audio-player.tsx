@@ -63,7 +63,11 @@ const LoadingBar = () => {
 type AudioPlayerProps = {
   name: string | null | undefined,
   uuid: string | null | undefined,
-  presentation: 'profile',
+  presentation: 'profile'
+  style?: any
+} | {
+  uuid: string | null | undefined,
+  presentation: 'feed',
   style?: any
 } | {
   uuid: string | null | undefined,
@@ -214,6 +218,8 @@ const AudioPlayer = (props: AudioPlayerProps) => {
   const middleText = (() => {
     if (props.presentation === 'conversation') {
       return !props.uuid && !props.sending ? 'failed to send' : 'voice message';
+    } else if (props.presentation === 'feed') {
+      return 'Voice bio'
     } else if (props.name) {
       return `${possessive(props.name)} voice bio`
     } else {
@@ -233,7 +239,7 @@ const AudioPlayer = (props: AudioPlayerProps) => {
         justifyContent: 'space-between',
         borderColor: 'rgba(0, 0, 0, 0.1)',
         borderWidth: 1,
-        borderRadius: props.presentation === 'profile' ? 10 : 999,
+        borderRadius: props.presentation === 'conversation' ? 999 : 10,
         padding: 12,
         gap: 20,
         ...props.style,
@@ -285,7 +291,7 @@ const AudioPlayer = (props: AudioPlayerProps) => {
       <DefaultText
         style={{
           textAlign: 'right',
-          paddingRight: props.presentation === 'profile' ? 5 : 10,
+          paddingRight: props.presentation === 'conversation' ? 10 : 5,
           width: 50,
         }}
       >

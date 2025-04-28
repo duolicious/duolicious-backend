@@ -368,7 +368,7 @@ const Prospect = ({
   matchPercentage,
   verificationRequired,
 }) => {
-  const { isSkipped } = useSkipped(personUuid);
+  const { isSkipped, wasPostSkipFiredInThisSession } = useSkipped(personUuid);
 
   return <Animated.View
     style={{
@@ -386,7 +386,7 @@ const Prospect = ({
       photoUuid={photoUuid}
       photoBlurhash={photoBlurhash}
       percentage={matchPercentage}
-      isSkipped={isSkipped}
+      isSkipped={isSkipped && wasPostSkipFiredInThisSession}
       verificationRequired={verificationRequired}
     />
   </Animated.View>

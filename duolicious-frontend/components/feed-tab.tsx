@@ -378,9 +378,8 @@ const FeedItemAddedVoiceBio = ({ dataItem }: { dataItem: DataItemAddedVoiceBio }
           doUseOnline={!dataItem.photo_uuid}
         />
         <AudioPlayer
-          name={dataItem.name}
           uuid={dataItem.added_audio_uuid}
-          presentation="profile"
+          presentation="feed"
           style={{ marginTop: 0 }}
         />
       </View>

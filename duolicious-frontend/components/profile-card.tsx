@@ -56,6 +56,7 @@ const ImageBackground = (props) => {
       transition={transition}
       style={style}
       contentFit={contentFit}
+      placeholderContentFit={contentFit}
     >
       <RNImageBackground
         source={source}
@@ -128,6 +129,7 @@ const PhotoOrSkeleton_ = ({
           backgroundColor: photoUuid ? undefined : '#ccc',
       }}
       contentFit="contain"
+      placeholderContentFit="contain"
       recyclingKey={photoUuid}
     >
       <LinearGradient
@@ -181,7 +183,7 @@ const ProfileCard = ({
     verification_required_to_view: verificationRequired,
   } = item;
 
-  const { isSkipped } = useSkipped(personUuid);
+  const { isSkipped, wasPostSkipFiredInThisSession } = useSkipped(personUuid);
 
   const isOnline = useOnline(personUuid);
 
@@ -332,7 +334,7 @@ const ProfileCard = ({
           }}
         />
       </>}
-      {isSkipped &&
+      {isSkipped && wasPostSkipFiredInThisSession &&
         <View
           style={{
             position: 'absolute',

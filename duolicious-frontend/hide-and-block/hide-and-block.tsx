@@ -14,6 +14,7 @@ type SkippedNetworkState
 
 type SkippedState = {
   isSkipped: boolean
+  wasPostSkipFiredInThisSession: boolean
   networkState: SkippedNetworkState
 };
 
@@ -27,6 +28,7 @@ const useSkipped = (
 ) => {
   const [state, setState] = useState<SkippedState>({
     isSkipped: false,
+    wasPostSkipFiredInThisSession: false,
     networkState: 'settled',
   });
 
@@ -67,15 +69,27 @@ const useSkipped = (
           return;
         }
 
-        if (partialNewData?.fireOnPostSkip) {
-          onPostSkip?.();
+        if (!partialNewData?.fireOnPostSkip) {
+          return;
         }
+
+        onPostSkip?.();
+
+        setState((oldData) => {
+          const newData = { ...oldData, wasPostSkipFiredInThisSession: true };
+          if (_.isEqual(oldData, newData)) {
+            return oldData;
+          } else {
+            return newData;
+          }
+        });
       },
     );
   }, [personUuid]);
 
   return {
     isSkipped: state.isSkipped,
+    wasPostSkipFiredInThisSession: state.wasPostSkipFiredInThisSession,
     isLoading: state.networkState !== 'settled',
     isFetching: state.networkState === 'fetching',
     isPosting: state.networkState === 'posting',
