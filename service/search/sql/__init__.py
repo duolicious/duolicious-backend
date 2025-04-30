@@ -935,6 +935,7 @@ WITH searcher AS (
                     person_id = %(searcher_person_id)s
             )
         )
+    -- Exclude photos that might be NSFW
     AND NOT EXISTS (
         SELECT
             1
@@ -944,6 +945,18 @@ WITH searcher AS (
             uuid = last_event_data->>'added_photo_uuid'
         AND
             nsfw_score > 0.2
+    )
+    -- Decrease users' odds of appearing in the feed if they're already getting
+    -- lots of messages
+    AND random() < (
+        SELECT
+            1.0 / (1.0 + count(*)::real) ^ 2.0
+        FROM
+            messaged
+        WHERE
+            object_person_id = prospect.id
+        AND
+            created_at > now() - interval '1 day'
     )
     -- Exclude users who were reported two or more times in the past day
     AND (
