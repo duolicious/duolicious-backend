@@ -3000,6 +3000,7 @@ VALUES
     ('tnd'),
     ('top goon'),
     ('total kike victory'),
+    ('totally not lying about age'),
     ('total nigger life'),
     ('touch me without consent'),
     ('towel head'),
