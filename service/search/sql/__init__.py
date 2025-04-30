@@ -859,6 +859,8 @@ WITH searcher AS (
     WHERE
         last_event_time < %(before)s
     AND
+        last_event_time > now() - interval '1 week'
+    AND
         activated
     AND
         -- The searcher meets the prospects privacy_verification_level_id
