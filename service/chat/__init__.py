@@ -125,8 +125,8 @@ SELECT
     person.id AS person_id,
     person.uuid::TEXT AS person_uuid,
     person.name AS name,
-    photo.uuid AS image_uuid,
-    photo.blurhash AS image_blurhash
+    photo.uuid AS photo_uuid,
+    photo.blurhash AS photo_blurhash
 FROM
     person
 LEFT JOIN
@@ -513,8 +513,13 @@ async def process_text(
                         'personId': immediate_data['person_id'],
                         'personUuid': immediate_data['person_uuid'],
                         'name': immediate_data['name'],
-                        'imageUuid': immediate_data['image_uuid'],
-                        'imageBlurhash': immediate_data['image_blurhash'],
+
+                        'photoUuid': immediate_data['photo_uuid'],
+                        'photoBlurhash': immediate_data['photo_blurhash'],
+
+                        # TODO: Deprecate these fields
+                        'imageUuid': immediate_data['photo_uuid'],
+                        'imageBlurhash': immediate_data['photo_blurhash'],
                     },
                 },
             )
