@@ -34,6 +34,7 @@ test_json_format () {
   ../util/create-user.sh user11 0 1
   ../util/create-user.sh user12 0 1
   ../util/create-user.sh user13 0 1
+  ../util/create-user.sh user14 0 1
 
   searcher_uuid=$(q "select uuid from person where name = 'searcher'")
   user13_uuid=$(q "select uuid from person where name = 'user13'")
@@ -97,6 +98,10 @@ test_json_format () {
   jc POST "/skip/by-uuid/${user13_uuid}" -d '{ "report_reason": "12345" }'
   assume_role user2
   jc POST "/skip/by-uuid/${user13_uuid}" -d '{ "report_reason": "12345" }'
+
+  assume_role user14
+  jc PATCH /profile-info -d '{ "about": "You just lost thug game" }'
+  jc PATCH /profile-info -d '{ "about": "  " }'
 
   assume_role searcher
   c POST "/skip/by-uuid/$(q "select uuid from person where name = 'user12'")"
@@ -165,6 +170,16 @@ test_json_format () {
     "photo_uuid": "redacted_nonnull_value",
     "time": "redacted_nonnull_value",
     "type": "updated-bio"
+  },
+  {
+    "is_verified": false,
+    "match_percentage": 50,
+    "name": "user14",
+    "person_uuid": "redacted_nonnull_value",
+    "photo_blurhash": "redacted_nonnull_value",
+    "photo_uuid": "redacted_nonnull_value",
+    "time": "redacted_nonnull_value",
+    "type": "joined"
   },
   {
     "is_verified": false,
