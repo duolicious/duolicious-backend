@@ -1078,10 +1078,12 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         WHERE id = %(person_id)s
         """
     elif field_name == 'about':
+        truncated_text = truncate_text(text=field_value, max_chars=250)
+
         params = dict(
             person_id=s.person_id,
             field_value=field_value,
-            truncated_text=truncate_text(text=field_value, max_chars=250),
+            truncated_text=truncated_text,
         )
 
         q1 = """
@@ -1089,13 +1091,32 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         SET
             about = %(field_value)s,
 
-            last_event_time = now(),
-            last_event_name = 'updated-bio',
-            last_event_data = jsonb_build_object(
-                'added_text', %(truncated_text)s::TEXT,
-                'body_color', body_color,
-                'background_color', background_color
-            )
+            last_event_time =
+                CASE
+                    WHEN %(field_value)s = ''
+                    THEN sign_up_time
+                    ELSE now()
+                END,
+
+            last_event_name =
+                CASE
+                    WHEN %(field_value)s = ''
+                    THEN 'joined'::person_event
+                    ELSE 'updated-bio'::person_event
+                END,
+
+            last_event_data =
+                CASE
+                    WHEN %(field_value)s = ''
+                    THEN
+                        '{}'::JSONB
+                    ELSE
+                        jsonb_build_object(
+                            'added_text', %(truncated_text)s::TEXT,
+                            'body_color', body_color,
+                            'background_color', background_color
+                        )
+                END
         WHERE
             id = %(person_id)s
         """

@@ -23,6 +23,8 @@ def truncate_text(
     # Truncate by `max_chars`
     text = text[:max_chars - len(ellipsis)]
 
+    text = text.strip()
+
     # Add the ellipsis if needed
     text = text if text == original else text + ellipsis
 

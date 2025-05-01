@@ -817,6 +817,7 @@ ON
 Q_FEED = f"""
 WITH searcher AS (
     SELECT
+        date_of_birth,
         personality,
         verification_level_id
     FROM
@@ -838,7 +839,7 @@ WITH searcher AS (
             0,
             99,
             100 * (
-                1 - (prospect.personality <#> (SELECT personality FROM searcher))
+                1 - (prospect.personality <#> searcher.personality)
             ) / 2
         )::SMALLINT AS match_percentage
     FROM
@@ -855,7 +856,11 @@ WITH searcher AS (
         ORDER BY
             photo.position
         LIMIT 1
-    ) AS photo_data ON true
+    ) AS photo_data
+    ON
+        true
+    CROSS JOIN
+        searcher
     WHERE
         last_event_time < %(before)s
     AND
@@ -866,7 +871,7 @@ WITH searcher AS (
         -- The searcher meets the prospects privacy_verification_level_id
         -- requirement
         prospect.privacy_verification_level_id <=
-            (SELECT verification_level_id FROM searcher)
+            searcher.verification_level_id
     AND
         -- The prospect wants to be shown to strangers or isn't a stranger
         (
@@ -950,13 +955,18 @@ WITH searcher AS (
     -- lots of messages
     AND random() < (
         SELECT
-            1.0 / (1.0 + count(*)::real) ^ 2.0
+            1.0 / (1.0 + count(*)::real) ^ 1.5
         FROM
             messaged
         WHERE
             object_person_id = prospect.id
         AND
             created_at > now() - interval '1 day'
+    )
+    -- Decrease users' odds of appearing in the feed as the age gap between them
+    -- and the searcher grows
+    AND random() < 1.0 / (
+        1.0 + 0.5 * ABS(searcher.date_of_birth - prospect.date_of_birth) / 365.0
     )
     -- Exclude users who were reported two or more times in the past day
     AND (
@@ -990,4 +1000,3 @@ SELECT
 FROM
     person_data
 """
-
