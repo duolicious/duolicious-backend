@@ -1,8 +1,9 @@
 from async_lru_cache import AsyncLruCache
 from database.asyncdatabase import api_tx
 from enum import Enum
+from dataclasses import dataclass
 
-class IntroRateLimit(Enum):
+class DefaultRateLimit(Enum):
     NONE = 0
     UNVERIFIED = 10
     BASICS = 20
@@ -33,60 +34,103 @@ WITH truncated_daily_message AS (
                 m2.created_at < m1.created_at
         )
     LIMIT
-        {max(x.value for x in IntroRateLimit)}
+        {max(x.value for x in DefaultRateLimit)}
+), weekly_report_count AS (
+    SELECT
+        count(*)
+    FROM
+        skipped
+    WHERE
+        object_person_id = %(from_id)s
+    AND
+        created_at > now() - interval '7 days'
+    AND
+        reported
 ), truncated_daily_message_count AS (
     SELECT COUNT(*) AS x FROM truncated_daily_message
 )
 SELECT
-    CASE
-
-    WHEN verification_level_id = 3 AND x >= {IntroRateLimit.PHOTOS.value}
-    THEN                                    {IntroRateLimit.PHOTOS.value}
-
-    WHEN verification_level_id = 2 AND x >= {IntroRateLimit.BASICS.value}
-    THEN                                    {IntroRateLimit.BASICS.value}
-
-    WHEN verification_level_id = 1 AND x >= {IntroRateLimit.UNVERIFIED.value}
-    THEN                                    {IntroRateLimit.UNVERIFIED.value}
-
-    ELSE                                    {IntroRateLimit.NONE.value}
-
-    END AS rate_limit_reason
+    person.verification_level_id,
+    truncated_daily_message_count.x AS daily_message_count,
+    weekly_report_count.count AS weekly_report_count
 FROM
     person,
-    truncated_daily_message_count
+    truncated_daily_message_count,
+    weekly_report_count
 WHERE
     id = %(from_id)s
 """
 
 
-@AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
-async def fetch_rate_limit_reason(from_id: int) -> IntroRateLimit:
-    async with api_tx('read committed') as tx:
-        await tx.execute(Q_RATE_LIMIT_REASON, dict(from_id=from_id))
-        row = await tx.fetchone()
-
-    return IntroRateLimit(row['rate_limit_reason'])
+@dataclass(frozen=True)
+class Row:
+    verification_level_id: int
+    daily_message_count: int
+    weekly_report_count: int
 
 
-async def maybe_fetch_rate_limit(from_id: int, stanza_id: str) -> list[str]:
-    rate_limit_reason = await fetch_rate_limit_reason(from_id=from_id)
+def get_default_rate_limit(row: Row) -> DefaultRateLimit:
+    if row.verification_level_id == 3:
+        default_limit = DefaultRateLimit.PHOTOS
+    elif row.verification_level_id == 2:
+        default_limit = DefaultRateLimit.BASICS
+    elif row.verification_level_id == 1:
+        default_limit = DefaultRateLimit.UNVERIFIED
+    else:
+        raise Exception('Unhandled verification_level_id')
 
-    if rate_limit_reason == IntroRateLimit.NONE:
+    limit = default_limit.value // (1 + row.weekly_report_count) ** 2
+
+    if limit == 0:
+        # DefaultRateLimit.PHOTOS
+        return max(DefaultRateLimit, key=lambda e: e.value)
+    elif row.daily_message_count >= limit:
+        return default_limit
+    else:
+        return DefaultRateLimit.NONE
+
+
+def get_stanza(default_rate_limit: DefaultRateLimit, stanza_id: str) -> list[str]:
+    if default_rate_limit == DefaultRateLimit.NONE:
         return []
-    elif rate_limit_reason == IntroRateLimit.UNVERIFIED:
+    elif default_rate_limit == DefaultRateLimit.UNVERIFIED:
         return [
                 f'<duo_message_blocked id="{stanza_id}" '
                 f'reason="rate-limited-1day" '
                 f'subreason="unverified-basics"/>']
-    elif rate_limit_reason == IntroRateLimit.BASICS:
+    elif default_rate_limit == DefaultRateLimit.BASICS:
         return [
                 f'<duo_message_blocked id="{stanza_id}" '
                 f'reason="rate-limited-1day" '
                 f'subreason="unverified-photos"/>']
-    elif rate_limit_reason == IntroRateLimit.PHOTOS:
+    elif default_rate_limit == DefaultRateLimit.PHOTOS:
         return [
                 f'<duo_message_blocked id="{stanza_id}" '
                 f'reason="rate-limited-1day"/>']
     else:
-        raise Exception(f'Unhandled rate limit reason {rate_limit_reason}')
+        raise Exception(f'Unhandled rate limit reason {default_rate_limit}')
+
+
+def pure_maybe_fetch_rate_limit(row: Row, stanza_id: str) -> list[str]:
+    default_rate_limit = get_default_rate_limit(row)
+
+    return get_stanza(default_rate_limit, stanza_id)
+
+
+@AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
+async def fetch_rate_limit_reason(from_id: int) -> Row:
+    async with api_tx('read committed') as tx:
+        await tx.execute(Q_RATE_LIMIT_REASON, dict(from_id=from_id))
+        row = await tx.fetchone()
+
+    return Row(
+        verification_level_id=row['verification_level_id'],
+        daily_message_count=row['daily_message_count'],
+        weekly_report_count=row['weekly_report_count'],
+    )
+
+
+async def maybe_fetch_rate_limit(from_id: int, stanza_id: str) -> list[str]:
+    row = await fetch_rate_limit_reason(from_id=from_id)
+
+    return pure_maybe_fetch_rate_limit(row, stanza_id)
