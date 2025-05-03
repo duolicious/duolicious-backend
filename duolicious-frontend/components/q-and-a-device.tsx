@@ -1,7 +1,4 @@
-import {
-  Platform,
-  View,
-} from 'react-native';
+import { View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const QAndADevice = ({

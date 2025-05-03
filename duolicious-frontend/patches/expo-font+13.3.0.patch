@@ -1,0 +1,26 @@
+diff --git a/node_modules/expo-font/build/ExpoFontLoader.web.js b/node_modules/expo-font/build/ExpoFontLoader.web.js
+index be6b8c8..f520a76 100644
+--- a/node_modules/expo-font/build/ExpoFontLoader.web.js
++++ b/node_modules/expo-font/build/ExpoFontLoader.web.js
+@@ -134,7 +134,7 @@ export default {
+         return new FontObserver(fontFamilyName, {
+             // @ts-expect-error: TODO(@kitten): Typings indicate that the polyfill may not support this?
+             display: resource.display,
+-        }).load(null, 6000);
++        }).load(null, 60000);
+     },
+ };
+ const ID = 'expo-generated-fonts';
+diff --git a/node_modules/expo-font/src/ExpoFontLoader.web.ts b/node_modules/expo-font/src/ExpoFontLoader.web.ts
+index a22959f..fe43bb6 100644
+--- a/node_modules/expo-font/src/ExpoFontLoader.web.ts
++++ b/node_modules/expo-font/src/ExpoFontLoader.web.ts
+@@ -174,7 +174,7 @@ export default {
+     return new FontObserver(fontFamilyName, {
+       // @ts-expect-error: TODO(@kitten): Typings indicate that the polyfill may not support this?
+       display: resource.display,
+-    }).load(null, 6000);
++    }).load(null, 60000);
+   },
+ };
+ 

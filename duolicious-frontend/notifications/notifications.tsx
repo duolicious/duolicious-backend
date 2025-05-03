@@ -51,7 +51,8 @@ const requestPermissionOnMobile = async (): Promise<MaybeToken> => {
 
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: AppState.currentState !== 'active',
+      shouldShowBanner: AppState.currentState !== 'active',
+      shouldShowList: AppState.currentState !== 'active',
       shouldPlaySound: AppState.currentState !== 'active',
       shouldSetBadge: false,
     }),

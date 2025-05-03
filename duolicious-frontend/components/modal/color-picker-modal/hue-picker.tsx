@@ -153,6 +153,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     borderColor: '#fff',
+    // @ts-ignore
     touchAction: 'none',
     userSelect: 'none',
   },

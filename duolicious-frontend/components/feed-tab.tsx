@@ -254,16 +254,17 @@ const NameActionTime = ({
           {action} • {getShortElapsedTime(time)}
         </DefaultText>
       </View>
-        <Flag
-          onPress={onPress}
-          stroke="rgba(0, 0, 0, 0.5)"
-          strokeWidth={2}
-          height={18}
-          width={18}
-          style={{
-            marginLeft: 10,
-          }}
-        />
+      <Flag
+        hitSlop={20}
+        onPress={onPress}
+        stroke="rgba(0, 0, 0, 0.5)"
+        strokeWidth={2}
+        height={18}
+        width={18}
+        style={{
+          marginLeft: 10,
+        }}
+      />
     </View>
   );
 };

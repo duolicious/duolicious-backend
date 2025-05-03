@@ -49,9 +49,9 @@ const AudioBio = ({
   const [playingState, setPlayingState] = useState<PlayingState>(
     'Stopped');
 
-  const recording = useRef<Audio.Recording>();
+  const recording = useRef<Audio.Recording>(undefined);
 
-  const sound = useRef<Audio.Sound>();
+  const sound = useRef<Audio.Sound>(undefined);
 
   const [duration, setDuration] = useState<null | number>(); // seconds
 

@@ -4,6 +4,7 @@
  */
 
 import {
+  JSX,
   ReactNode,
   Ref,
   forwardRef,
@@ -478,7 +479,11 @@ const BaseQuizCard = forwardRef(
     return (
       <Animated.View
         {...panResponder.panHandlers}
-        style={[cardStyle, containerStyle]}
+        style={[
+          { userSelect: 'none' } as any,
+          cardStyle,
+          containerStyle
+        ]}
       >
         {/* Actual card content */}
         {children}

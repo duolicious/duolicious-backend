@@ -31,11 +31,12 @@ import { useSkipped } from '../hide-and-block/hide-and-block';
 
 const styles = StyleSheet.create({
   stackContainerStyle: {
-    touchAction: 'none',
     flexGrow: 1,
     alignSelf: 'center',
     width: '100%',
     maxWidth: 600,
+    // @ts-ignore
+    touchAction: 'none',
   },
   dcStyle: {
     width: 90,

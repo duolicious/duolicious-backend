@@ -41,7 +41,7 @@ import { api } from '../../api/api';
 import { TopNavBarButton } from '../top-nav-bar-button';
 import { RotateCcw, Flag, X } from "react-native-feather";
 import { postSkipped } from '../../hide-and-block/hide-and-block';
-import { delay, getDuplicates } from '../../util/util';
+import { delay } from '../../util/util';
 import { ReportModalInitialData } from '../modal/report-modal';
 import { listen, notify } from '../../events/events';
 import { ImageBackground } from 'expo-image';
@@ -426,8 +426,6 @@ const ConversationScreen = ({navigation, route}) => {
   const scrollOffsetRef = useRef(0);
   const layoutMeasurementRef = useRef({ height: 0 });
 
-  const duplicatedMessageIds = getDuplicates(messageIds ?? []);
-
   const personUuid: string = route?.params?.personUuid;
   const name: string = route?.params?.name;
   const photoUuid: string = route?.params?.photoUuid;
@@ -770,21 +768,13 @@ const ConversationScreen = ({navigation, route}) => {
               </DefaultText>
             </>
           }
-          {messageIds.length > 0 && messageIds.map((messageId, i) => {
+          {messageIds.length > 0 && [... new Set(messageIds)].map((messageId, i) => {
             const [previousMessage, message] = [
               getMessage(messageIds[i - 1]),
               getMessage(messageId)];
 
-            // TODO: This is a workaround for the fact the server doesn't
-            // enforce the uniqueness of message IDs (yet). Using XMPP was a
-            // mistake.
-            const key =
-              duplicatedMessageIds.has(messageId)
-                ? `${messageId}-${Math.random()}`
-                : `${messageId}`;
-
             return (
-              <Fragment key={key}>
+              <Fragment key={messageId}>
                 {previousMessage && message &&
                   <MessageDivider
                     previousMessage={previousMessage.message}

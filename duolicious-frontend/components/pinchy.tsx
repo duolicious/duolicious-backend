@@ -275,13 +275,14 @@ const Pinchy = ({uuid}: {uuid: string}) => {
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    touchAction: 'none',
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'black',
     overflow: 'hidden',
     zIndex: 999,
+    // @ts-ignore
+    touchAction: 'none',
   },
 });
 

@@ -251,8 +251,9 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     borderColor: '#fff',
-    touchAction: 'none',
     userSelect: 'none',
+    // @ts-ignore
+    touchAction: 'none',
   },
   linearGradient: {
     overflow: 'hidden',

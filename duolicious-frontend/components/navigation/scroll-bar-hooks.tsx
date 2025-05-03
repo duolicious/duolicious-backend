@@ -2,12 +2,38 @@ import {
   useEffect,
   useRef,
 } from 'react';
-import {
-  isMobile,
-} from '../../util/util';
-import { findDOMNode } from 'react-dom';
+import { isMobile } from '../../util/util';
 import { notify } from '../../events/events';
 import { ScrollViewData } from '../navigation/scroll-bar';
+
+const findDomNode = (x: any, maxRecursionDepth = 99) => {
+  if (isMobile()) {
+    return null;
+  }
+
+  if (maxRecursionDepth < 0) {
+    console.warn('recursion limit reached while looking for dom node');
+    return null;
+  }
+
+  if (x instanceof Node) {
+    return x;
+  }
+
+  if ('_reactInternals' in x) {
+    return findDomNode(x._reactInternals, maxRecursionDepth - 1);
+  }
+
+  if ('child' in x && x?.elementType === 'div') {
+    return x?.stateNode;
+  }
+
+  if ('child' in x) {
+    return findDomNode(x.child, maxRecursionDepth - 1);
+  }
+
+  return null;
+};
 
 const useScrollbar = (controller: string) => {
   const observer = useRef<IntersectionObserver | null>(null);
@@ -130,7 +156,11 @@ const useScrollbar = (controller: string) => {
         { root: null }
       );
 
-      observer.current.observe(findDOMNode(node));
+      const maybeDiv = findDomNode(node);
+
+      if (maybeDiv) {
+        observer.current.observe(maybeDiv);
+      }
     }
   }).current;
 };

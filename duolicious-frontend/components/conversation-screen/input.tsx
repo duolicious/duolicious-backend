@@ -24,7 +24,6 @@ import Animated, {
 import {
   Gesture,
   GestureDetector,
-  RectButton,
   Pressable,
 } from 'react-native-gesture-handler';
 import { LayoutChangeEvent } from 'react-native';
@@ -63,7 +62,7 @@ const useComponentWidth = () => {
 const useRecorder = () => {
   const maxDuration = 2 * 60;
 
-  const recording = useRef<Audio.Recording>();
+  const recording = useRef<Audio.Recording>(undefined);
   const recordingActive = useRef(false);
   const [duration, setDuration] = useState(0);
 
@@ -150,7 +149,7 @@ const useRecorder = () => {
   return { startRecording, stopRecording, duration };
 };
 
-const AutoResizingTextInput = Platform.OS === 'web' ? (props) => {
+const AutoResizingTextInput = (props) => {
   const { height } = useWindowDimensions();
 
   return (
@@ -163,6 +162,7 @@ const AutoResizingTextInput = Platform.OS === 'web' ? (props) => {
           minHeight: 30,
           opacity: 0,
           fontSize: defaultTextInputStyles.textInput.fontSize,
+          paddingTop: Platform.OS === 'web' ? 5 : 4,
         }}
       >
         {props.value}
@@ -173,24 +173,13 @@ const AutoResizingTextInput = Platform.OS === 'web' ? (props) => {
           ...props.style,
           outline: 'none',
           position: 'absolute',
-          width: '100%',
-          height: '100%',
-          minHeight: 30,
+          top: Platform.OS === 'web' ? 5 : 4,
+          bottom: 0,
+          left: 0,
+          right: 0,
         }}
       />
     </View>
-  );
-} : (props) => {
-  const { height } = useWindowDimensions();
-
-  return (
-    <DefaultLongTextInput
-      {...props}
-      style={{
-        ...props.style,
-        maxHeight: height / 4,
-      }}
-    />
   );
 };
 
@@ -379,9 +368,10 @@ const Input = ({
   };
 
   const handleSendPress = () => {
-    if (text.trim().length > 0) {
-      onPressSend(text.trim());
+    const trimmedText = text.trim();
+    if (trimmedText.length > 0) {
       setText('');
+      onPressSend(trimmedText);
     }
   };
 
@@ -467,7 +457,7 @@ const Input = ({
               onKeyPress={handleKeyPress}
               onFocus={onFocus}
             />
-            <RectButton onPress={onPressGif} hitSlop={10}>
+            <Pressable onPress={onPressGif} hitSlop={10}>
               <Animated.View style={[styles.gifContainer, animatedGifStyle]}>
                 <DefaultText
                   style={styles.gifText}
@@ -477,7 +467,7 @@ const Input = ({
                   GIF
                 </DefaultText>
               </Animated.View>
-            </RectButton>
+            </Pressable>
           </Animated.View>
           {isRecording && (
             <View style={styles.cancelOverlay}>
@@ -575,7 +565,6 @@ const styles = StyleSheet.create({
     borderRadius: undefined,
     height: undefined,
     flex: 1,
-    textAlignVertical: 'center',
   },
   gifContainer: {
     height: 28,
@@ -631,8 +620,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     marginLeft: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
     position: 'relative',
   },
   microphoneIcon: {
@@ -645,14 +632,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sendPressable: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
   },
   sendAnimated: {
-    width: '100%',
-    height: '100%',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgb(228, 204, 255)',

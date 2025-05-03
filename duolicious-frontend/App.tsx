@@ -142,8 +142,6 @@ type SignedInUser = {
 
 type ServerStatus = "ok" | "down for maintenance" | "please update";
 
-let referrerId: string | undefined;
-let setReferrerId: React.Dispatch<React.SetStateAction<typeof referrerId>>;
 
 let signedInUser: SignedInUser | undefined;
 let setSignedInUser: React.Dispatch<React.SetStateAction<typeof signedInUser>>;
@@ -159,7 +157,6 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
   [signedInUser, setSignedInUser] = useState<SignedInUser | undefined>();
-  [referrerId, setReferrerId] = useState<string | undefined>();
 
   const loadFonts = useCallback(async () => {
     await Font.loadAsync({
@@ -378,7 +375,7 @@ const App = () => {
     // Without this flag, an infinite loop will start each time this effect
     // starts, which would effectively be whenever the server's status changes.
     // That would lead to multiple infinite loops running concurrently.
-    var doBreak = false;
+    let doBreak = false;
 
     (async () => {
       while (true) {
@@ -537,7 +534,6 @@ export {
   isImagePickerOpen,
   navigationContainerRef,
   otpDestination,
-  referrerId,
   setSignedInUser,
   signedInUser,
 };

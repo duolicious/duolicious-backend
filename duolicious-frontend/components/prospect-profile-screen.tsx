@@ -151,6 +151,7 @@ const FloatingBackButton = (props) => {
           icon={faArrowLeft}
           size={24}
           style={{
+            // @ts-ignore
             outline: 'none',
           }}
         />
@@ -285,6 +286,7 @@ const FloatingSendIntroButton = ({
           size={24}
           style={{
             color: 'white',
+            // @ts-ignore
             outline: 'none',
           }}
         />
@@ -657,16 +659,19 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
   const photoBlurhashParam = route.params.photoBlurhash;
 
   const [data, setData] = useState<UserData | undefined>(undefined);
+  const [notFound, setNotFound] = useState(false);
   useSkipped(personUuid, () => navigation.popToTop());
 
   const { width } = useWindowDimensions();
 
   useEffect(() => {
     setData(undefined);
+    setNotFound(false);
     (async () => {
       setSkipped(personUuid, { networkState: 'fetching' });
       const response = await api('get', `/prospect-profile/${personUuid}`);
       setData(response?.json);
+      setNotFound(response.clientError);
       setSkipped(
         personUuid,
         {
@@ -733,88 +738,110 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
 
   return (
     <>
-      <ScrollView style={{ backgroundColor: data?.theme?.background_color }}>
-        <Reanimated.View style={animatedStyle}>
-          <HeartBackground
+      {notFound &&
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: '#70f',
+          }}
+        >
+          <DefaultText
             style={{
-              width: '100%',
-              height: '100%',
+              fontWeight: '900',
+              fontSize: 26,
+              color: 'white',
             }}
+          >
+            Profile not found
+          </DefaultText>
+        </View>
+      }
+      {!notFound && <>
+        <ScrollView style={{ backgroundColor: data?.theme?.background_color }}>
+          <Reanimated.View style={animatedStyle}>
+            <HeartBackground
+              style={{
+                width: '100%',
+                height: '100%',
+              }}
+            >
+              <View
+                style={{
+                  width: '100%',
+                  maxWidth: 600,
+                  alignSelf: 'center',
+                  paddingBottom: 100,
+                }}
+              >
+                <EnlargeablePhoto
+                  photoUuid={photoUuid0}
+                  photoExtraExts={photoExtraExts0}
+                  photoBlurhash={photoBlurhash0}
+                  isPrimary={true}
+                  isVerified={imageVerification0}
+                  style={
+                    width > 600 ?
+                    commonStyles.primaryEnlargeablePhotoBigScreen :
+                    undefined
+                  }
+                />
+                <ProspectUserDetails
+                  navigation={navigation}
+                  personId={personId}
+                  personUuid={personUuid}
+                  name={data?.name}
+                  age={data?.age}
+                  verified={verificationLevelId(data) > 1}
+                  matchPercentage={data?.match_percentage}
+                  userLocation={data?.location}
+                  textColor={data?.theme?.title_color}
+                />
+                <Body
+                  navigation={navigation}
+                  personId={personId}
+                  personUuid={personUuid}
+                  data={data}
+                />
+              </View>
+            </HeartBackground>
+          </Reanimated.View>
+        </ScrollView>
+        {showBottomButtons &&
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              width: '100%',
+              maxWidth: 600,
+              alignSelf: 'center',
+              zIndex: 999,
+              overflow: 'visible',
+              justifyContent: 'center',
+              flexDirection: 'row',
+            }}
+            pointerEvents="box-none"
           >
             <View
               style={{
-                width: '100%',
-                maxWidth: 600,
-                alignSelf: 'center',
-                paddingBottom: 100,
+                flexDirection: 'row',
               }}
             >
-              <EnlargeablePhoto
-                photoUuid={photoUuid0}
-                photoExtraExts={photoExtraExts0}
-                photoBlurhash={photoBlurhash0}
-                isPrimary={true}
-                isVerified={imageVerification0}
-                style={
-                  width > 600 ?
-                  commonStyles.primaryEnlargeablePhotoBigScreen :
-                  undefined
-                }
+              <FloatingSkipButton
+                personUuid={personUuid}
               />
-              <ProspectUserDetails
+              <FloatingSendIntroButton
                 navigation={navigation}
-                personId={personId}
                 personUuid={personUuid}
                 name={data?.name}
-                age={data?.age}
-                verified={verificationLevelId(data) > 1}
-                matchPercentage={data?.match_percentage}
-                userLocation={data?.location}
-                textColor={data?.theme?.title_color}
-              />
-              <Body
-                navigation={navigation}
-                personId={personId}
-                personUuid={personUuid}
-                data={data}
+                photoUuid={photoUuid}
+                photoBlurhash={photoBlurhash0}
               />
             </View>
-          </HeartBackground>
-        </Reanimated.View>
-      </ScrollView>
-      {showBottomButtons &&
-        <View
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            width: '100%',
-            maxWidth: 600,
-            alignSelf: 'center',
-            zIndex: 999,
-            overflow: 'visible',
-            justifyContent: 'center',
-            flexDirection: 'row',
-          }}
-          pointerEvents="box-none"
-        >
-          <View
-            style={{
-              flexDirection: 'row',
-            }}
-          >
-            <FloatingSkipButton
-              personUuid={personUuid}
-            />
-            <FloatingSendIntroButton
-              navigation={navigation}
-              personUuid={personUuid}
-              name={data?.name}
-              photoUuid={photoUuid}
-              photoBlurhash={photoBlurhash0}
-            />
           </View>
-        </View>
-      }
+        }
+      </>}
       <View
         style={{
           position: 'absolute',

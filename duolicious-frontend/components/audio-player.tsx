@@ -1,6 +1,6 @@
 import { possessive, secToMinSec } from '../util/util';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, View, Pressable, StyleSheet, LayoutChangeEvent } from 'react-native';
+import { Platform, View, Pressable, StyleSheet } from 'react-native';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import { AUDIO_URL } from '../env/env';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -19,11 +19,8 @@ import * as _ from 'lodash';
 const LoadingBar = () => {
   const duration = 500;
   const progress = useSharedValue(1);
-  const [containerWidth, setContainerWidth] = useState(0);
 
-  const barWidthRatio = 0.4;
-  const barWidth = containerWidth * barWidthRatio;
-  const maxTranslate = containerWidth - barWidth;
+  const barWidthPct = 40;
 
   useEffect(() => {
     // Animate progress from 0 to 1 and reverse it to create a bounce effect.
@@ -32,29 +29,27 @@ const LoadingBar = () => {
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateX: progress.value * maxTranslate }],
+      left: `${progress.value * (100 - barWidthPct)}%`,
     };
   });
 
-  const onContainerLayout = (event: LayoutChangeEvent) => {
-    setContainerWidth(event.nativeEvent.layout.width);
-  };
-
   return (
     <View style={styles.loadingBarContainer}>
-      <View style={styles.loadingBar} onLayout={onContainerLayout}>
-        {containerWidth > 0 && (
-          <Animated.View
-            style={[styles.loadingBarFill, animatedStyle, { width: barWidth }]}
-          >
-            <LinearGradient
-              colors={['transparent', '#000', 'transparent']}
-              style={{ width: '100%', height: '100%' }}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            />
-          </Animated.View>
-        )}
+      <View style={styles.loadingBar}>
+        <Animated.View
+          style={[
+            styles.loadingBarFill,
+            animatedStyle,
+            { width: `${barWidthPct}%` },
+          ]}
+        >
+          <LinearGradient
+            colors={['transparent', '#000', 'transparent']}
+            style={{ width: '100%', height: '100%' }}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+        </Animated.View>
       </View>
     </View>
   );
@@ -77,7 +72,7 @@ type AudioPlayerProps = {
 };
 
 const AudioPlayer = (props: AudioPlayerProps) => {
-  const sound = useRef<Audio.Sound>();
+  const sound = useRef<Audio.Sound>(undefined);
 
   const isMounted = useRef(true);
 

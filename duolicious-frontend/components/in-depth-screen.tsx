@@ -52,7 +52,7 @@ const Header = ({
   onChangeIdx4,
 }) => {
   const answersSubtitle = () => {
-    var result = name.endsWith('s') ? `${name}' ` : `${name}'s `;
+    let result = name.endsWith('s') ? `${name}' ` : `${name}'s `;
 
     if (idx3 === 1) result += "Values-Related ";
     if (idx3 === 2) result += "Sex-Related ";
@@ -143,7 +143,7 @@ const Header = ({
             opacity: 0
           }}
           secondary={true}
-          pointerEvents="none"
+          disabled={true}
         />
       </>}
       <Subtitle>{subtitle}</Subtitle>

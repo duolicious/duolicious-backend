@@ -9,8 +9,8 @@ const unpackNotificationResponse = (
     return null;
   }
 
-  const screen: string = response.notification.request.content.data.screen;
-  const params: any = response.notification.request.content.data.params;
+  const screen = response.notification.request.content.data.screen as string;
+  const params = response.notification.request.content.data.params as any;
 
   return { screen, params };
 }

@@ -15,7 +15,7 @@ import {
   useState,
   Fragment,
 } from 'react';
-import { ButtonGroup } from '@rneui/themed';
+import { VerticalButtonGroup } from './vertical-button-group';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ButtonWithCenteredText } from './button/centered-text';
 import { StatusBarSpacer } from './status-bar-spacer';
@@ -92,55 +92,16 @@ type InputProps<T extends OptionGroupInputs> = {
   theme?: 'dark' | 'light'
 };
 
-const ButtonGroup_ = ({buttons, initialSelectedIndex, ...rest}) => {
-  const {onPress} = rest;
-
-  const [selectedIndex, setSelectedIndex] = useState<number>(initialSelectedIndex);
-
-  const onPress_ = (value: number) => {
-    setSelectedIndex(value);
-    if (onPress !== undefined) {
-      onPress(value);
-    }
-  };
-
-  return <ButtonGroup
-    vertical={true}
-    buttons={buttons}
-    selectedIndex={selectedIndex}
-    onPress={onPress_}
-    buttonContainerStyle={{
-      backgroundColor: 'transparent',
-    }}
-    selectedButtonStyle={{
-      backgroundColor: '#70f',
-    }}
-    containerStyle={{
-      marginTop: 0,
-      marginLeft: 20,
-      marginRight: 20,
-      marginBottom: 0,
-      borderWidth: 1,
-      borderRadius: 10,
-      backgroundColor: 'white',
-    }}
-    activeOpacity={0}
-    innerBorderStyle={{
-      width: 1,
-      color: '#ddd',
-    }}
-    textStyle={{
-      color: 'black',
-      fontFamily: 'MontserratMedium',
-    }}
-  />;
-};
-
 const Buttons = forwardRef((props: InputProps<OptionGroupButtons>, ref) => {
+  const [, render] = useState({});
+
   const inputValueRef = useRef<string>(props.input.buttons.currentValue ?? '');
+
+  const selectedIndex = props.input.buttons.values.indexOf(inputValueRef.current);
 
   const onChangeInputValue = useCallback((index: number) => {
     inputValueRef.current = props.input.buttons.values[index];
+    render({});
   }, []);
 
   const submit = useCallback(async () => {
@@ -156,12 +117,18 @@ const Buttons = forwardRef((props: InputProps<OptionGroupButtons>, ref) => {
 
   return (
     <>
-      <ButtonGroup_
+      <VerticalButtonGroup
         buttons={props.input.buttons.values}
-        initialSelectedIndex={
-          props.input.buttons.values.indexOf(inputValueRef.current)
-        }
+        selectedIndex={selectedIndex}
         onPress={onChangeInputValue}
+        containerStyle={{
+          marginTop: 0,
+          marginLeft: 20,
+          marginRight: 20,
+          marginBottom: 0,
+          borderRadius: 10,
+          backgroundColor: 'white',
+        }}
       />
       {props.showSkipButton &&
         <ButtonWithCenteredText
@@ -723,7 +690,7 @@ const CheckChips = forwardRef((props: InputProps<OptionGroupCheckChips>, ref) =>
 });
 
 const RangeSlider = forwardRef((props: InputProps<OptionGroupRangeSlider>, ref) => {
-  const rangeSliderRef = useRef<any>();
+  const rangeSliderRef = useRef<any>(undefined);
 
   const lowerValueRef = useRef<number | null>(
     props.input.rangeSlider.currentMin ??

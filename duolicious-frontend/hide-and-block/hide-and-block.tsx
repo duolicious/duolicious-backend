@@ -1,9 +1,9 @@
 import {
-  useLayoutEffect,
+  useEffect,
   useState,
 } from 'react';
 import { japi } from '../api/api';
-import { listen, notify } from '../events/events';
+import { listen, notify, lastEvent } from '../events/events';
 import { setConversationArchived } from '../chat/application-layer';
 import * as _ from 'lodash';
 
@@ -13,79 +13,74 @@ type SkippedNetworkState
   | 'settled'
 
 type SkippedState = {
+  personUuid: string | null | undefined
   isSkipped: boolean
   wasPostSkipFiredInThisSession: boolean
   networkState: SkippedNetworkState
 };
 
-type Event = Partial<SkippedState> & {
-  fireOnPostSkip?: boolean
+const INITIAL_STATE: SkippedState = {
+  personUuid: null,
+  isSkipped: false,
+  wasPostSkipFiredInThisSession: false,
+  networkState: 'settled',
+};
+
+const eventKey = (personUuid: string) =>
+  `skipped-state-${personUuid}`;
+
+const lastState = (personUuid: string | null | undefined) => {
+  const _lastEvent = personUuid
+    ? lastEvent<SkippedState>(eventKey(personUuid))
+    : INITIAL_STATE;
+
+  return {
+    ...INITIAL_STATE,
+    ..._lastEvent,
+    personUuid,
+  };
 };
 
 const useSkipped = (
   personUuid: string | null | undefined,
   onPostSkip?: () => void
 ) => {
-  const [state, setState] = useState<SkippedState>({
-    isSkipped: false,
-    wasPostSkipFiredInThisSession: false,
-    networkState: 'settled',
-  });
+  const [state, setState] = useState<SkippedState>(lastState(personUuid));
 
-  useLayoutEffect(() => {
+  if (state.personUuid !== personUuid) {
+    setState(lastState(personUuid));
+  }
+
+  useEffect(() => {
     if (!personUuid) {
       return;
     }
 
-    return listen<Event>(
-      `skipped-state-${personUuid}`,
-      (partialNewData: Event | undefined) => {
-        if (partialNewData === undefined) {
-          return;
+    const onEvent = (newState: SkippedState | undefined) => {
+      if (newState === undefined) {
+        return;
+      }
+
+      setState((oldState) => {
+        // Fire `onPostSkip` on the transition from unskipped to skipped
+        if (
+          newState.personUuid === oldState.personUuid &&
+          newState.isSkipped !== oldState.isSkipped &&
+          newState.isSkipped
+        ) {
+          onPostSkip?.();
         }
 
-        setState((oldData) => {
-          const newData = { ...oldData, ...partialNewData};
-          if (_.isEqual(oldData, newData)) {
-            return oldData;
-          } else {
-            return newData;
-          }
-        });
-      },
-      true,
-    );
-  }, [personUuid]);
-
-  useLayoutEffect(() => {
-    if (!personUuid) {
-      return;
-    }
-
-    return listen<Event>(
-      `skipped-state-${personUuid}`,
-      (partialNewData: Event | undefined) => {
-        if (partialNewData === undefined) {
-          return;
+        if (_.isEqual(oldState, newState)) {
+          return oldState;
+        } else {
+          return newState;
         }
+      });
+    };
 
-        if (!partialNewData?.fireOnPostSkip) {
-          return;
-        }
-
-        onPostSkip?.();
-
-        setState((oldData) => {
-          const newData = { ...oldData, wasPostSkipFiredInThisSession: true };
-          if (_.isEqual(oldData, newData)) {
-            return oldData;
-          } else {
-            return newData;
-          }
-        });
-      },
-    );
-  }, [personUuid]);
+    return listen<SkippedState>(eventKey(personUuid), onEvent, true);
+  }, [personUuid, onPostSkip]);
 
   return {
     isSkipped: state.isSkipped,
@@ -98,9 +93,26 @@ const useSkipped = (
 
 const setSkipped = (
   personUuid: string,
-  state: Event
+  state: Partial<SkippedState>
 ) => {
-  notify<Event>(`skipped-state-${personUuid}`, state);
+  const key = eventKey(personUuid);
+
+  const _lastEvent = lastEvent<SkippedState>(key);
+
+  notify<SkippedState>(
+    key,
+    {
+      ...INITIAL_STATE,
+      ..._lastEvent,
+      ...state,
+      personUuid,
+      wasPostSkipFiredInThisSession: (
+        _lastEvent?.wasPostSkipFiredInThisSession ||
+        state?.isSkipped ||
+        false
+      ),
+    }
+  );
 };
 
 const postSkipped = async (
@@ -132,7 +144,6 @@ const postSkipped = async (
     {
       isSkipped,
       networkState: 'settled',
-      fireOnPostSkip: isSkipped,
     }
   );
 

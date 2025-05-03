@@ -1,7 +1,6 @@
 import {
   ListRenderItemInfo,
   ActivityIndicator,
-  Animated,
   StyleSheet,
   SafeAreaView,
   View,
@@ -32,8 +31,6 @@ const IntrosItemMemo = memo(IntrosItem);
 const ChatsItemMemo = memo(ChatsItem);
 
 const InboxTab = () => {
-  const maxIntros = 1000;
-
   const [sectionIndex, setSectionIndex] = useState(0);
   const [sortByIndex, setSortByIndex] = useState(0);
   const [inbox, setInbox] = useState<Inbox | null>(null);
@@ -42,42 +39,17 @@ const InboxTab = () => {
 
   const _inboxStats = inbox ? inboxStats(inbox) : null;
 
-  const numUnreadChats  = _inboxStats?.numUnreadChats  ?? 0;
   const numUnreadIntros = _inboxStats?.numUnreadIntros ?? 0;
-  const numIntros       = _inboxStats?.numIntros       ?? 0;
-
-  const isIntrosTruncated = numIntros > maxIntros;
-  const isUnreadIntrosTruncated = numUnreadIntros > maxIntros;
-  const numUnreadIntrosTruncated = Math.min(numUnreadIntros, maxIntros);
-
-  const introsTruncationLabel = isUnreadIntrosTruncated ? '+' : '';
+  const numUnreadChats  = _inboxStats?.numUnreadChats  ?? 0;
 
   const introsNumericalLabel = (
-    numUnreadIntrosTruncated ?
-      ` (${numUnreadIntrosTruncated}${introsTruncationLabel})` :
+    numUnreadIntros ?
+      ` (${numUnreadIntros})` :
       '');
   const chatsNumericalLabel = (
     numUnreadChats  ?
     ` (${numUnreadChats})` :
     '');
-
-  const buttonOpacity = useRef(new Animated.Value(0)).current;
-
-  const fadeOut = useCallback(() => {
-    Animated.timing(buttonOpacity, {
-      toValue: 0.0,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-  }, []);
-
-  const fadeIn = useCallback(() => {
-    Animated.timing(buttonOpacity, {
-      toValue: 1.0,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-  }, []);
 
   const setSectionIndex_ = useCallback((value: number) => {
     setSectionIndex(value);
@@ -136,6 +108,10 @@ const InboxTab = () => {
       return [];
     }
 
+    if (n >= 2) {
+      return [];
+    }
+
     const section = (() => {
       switch (sectionName) {
         case 'chats':   return inbox.chats;
@@ -144,9 +120,7 @@ const InboxTab = () => {
       }
     })();
 
-    const pageSize = 10;
-    const page = section
-      .conversations
+    const page = [...section.conversations]
       .sort((a, b) => {
         if (sectionName === 'archive') {
           return compareArrays(
@@ -164,15 +138,7 @@ const InboxTab = () => {
             [+a.lastMessageTimestamp, a.matchPercentage],
           );
         }
-      })
-      .slice(
-        0,
-        sectionName === 'intros' ? maxIntros : section.conversations.length
-      )
-      .slice(
-        pageSize * (n - 1),
-        pageSize * n
-      );
+      });
 
     return page;
   };
@@ -208,65 +174,16 @@ const InboxTab = () => {
   })();
 
   const endText = (() => {
-    if (!showArchive && sectionIndex === 0 && isIntrosTruncated)
-      return (
-        `You have more intros! Skip or reply to your top ${maxIntros} intros ` +
-        'to see the rest'
-      );
-    if (!showArchive && sectionIndex === 0 && !isIntrosTruncated)
-      return 'Those are all the intros you have for now';
-    if (!showArchive && sectionIndex === 1)
-      return 'No more chats to show';
-    if (showArchive)
+    if (showArchive) {
       return 'No more archived conversations to show';
-    throw Error('Unhandled inbox section');
-  })();
-
-  const ListHeaderComponent = () => {
-    useEffect(() => {
+    } else {
       if (sectionIndex === 0) {
-        fadeIn();
+        return 'Those are all the intros you have for now';
       } else {
-        fadeOut();
+        return 'No more chats to show';
       }
-    }, [sectionIndex]);
-
-    return (
-      <>
-        <ButtonGroup
-          buttons={[
-            'Intros' + introsNumericalLabel,
-            'Chats'  + chatsNumericalLabel
-          ]}
-          selectedIndex={sectionIndex}
-          onPress={setSectionIndex_}
-          containerStyle={{
-            marginTop: 5,
-            marginLeft: 20,
-            marginRight: 20,
-          }}
-        />
-        <Animated.View
-          style={{
-            opacity: buttonOpacity,
-          }}
-          pointerEvents={sectionIndex === 1 ? 'none' : 'auto'}
-        >
-          <ButtonGroup
-            buttons={['Best Matches First', 'Latest First']}
-            selectedIndex={sortByIndex}
-            onPress={setSortByIndex_}
-            secondary={true}
-            containerStyle={{
-              flexGrow: 1,
-              marginLeft: 20,
-              marginRight: 20,
-            }}
-          />
-        </Animated.View>
-      </>
-    );
-  };
+    }
+  })();
 
   const renderItem = useCallback((x: ListRenderItemInfo<Conversation>) => {
     if (sectionIndex === 0 && !showArchive) {
@@ -328,7 +245,35 @@ const InboxTab = () => {
           endText={endText}
           fetchPage={fetchPage}
           dataKey={JSON.stringify({showArchive, sectionIndex})}
-          ListHeaderComponent={showArchive ? undefined : ListHeaderComponent}
+          ListHeaderComponent={<>{
+            !showArchive && <>
+              <ButtonGroup
+                buttons={[
+                  'Intros' + introsNumericalLabel,
+                  'Chats'  + chatsNumericalLabel
+                ]}
+                selectedIndex={sectionIndex}
+                onPress={setSectionIndex_}
+                containerStyle={{
+                  marginTop: 5,
+                  marginLeft: 20,
+                  marginRight: 20,
+                }}
+              />
+              <ButtonGroup
+                buttons={['Best Matches First', 'Latest First']}
+                selectedIndex={sortByIndex}
+                onPress={setSortByIndex_}
+                secondary={true}
+                disabled={sectionIndex === 1}
+                containerStyle={{
+                  flexGrow: 1,
+                  marginLeft: 20,
+                  marginRight: 20,
+                }}
+              />
+            </>
+          }</>}
           hideListHeaderComponentWhenLoading={false}
           renderItem={renderItem}
           keyExtractor={keyExtractor}

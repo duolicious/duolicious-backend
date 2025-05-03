@@ -19,7 +19,7 @@ import { BaseQuizCard } from './base-quiz-card';
 import { DefaultText } from './default-text';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Check, FastForward } from "react-native-feather";
-import { Skeleton } from '@rneui/themed';
+import { Skeleton } from './skeleton';
 import { japi } from '../api/api';
 import { quizQueue } from '../api/queue';
 import { IndeterminateProgressBar } from './indeterminate-progress-bar';
@@ -930,16 +930,7 @@ const SkeletonQuizCard = (props) => {
         ...props.innerStyle,
       }}
     >
-      <Skeleton
-        style={{
-          height: '100%',
-          ...cardBorders,
-          backgroundColor: 'rgb(220, 220, 225)',
-        }}
-        skeletonStyle={{
-          backgroundColor: 'rgb(240, 240, 245)',
-        }}
-      />
+      <Skeleton style={cardBorders} />
     </Animated.View>
   );
 };

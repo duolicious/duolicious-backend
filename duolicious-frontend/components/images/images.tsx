@@ -237,7 +237,8 @@ const useUri = (
   fileNumber: SharedValue<number> | number,
   initialUri: string | null
 ) => {
-  const [uri, setUri] = useState<string | null>(initialUri);
+  const [uriState, setUriState] = useState<string | null>(initialUri);
+  const uriRef = useRef<string | null>(initialUri);
 
   useEffect(() => {
     return listen<ImageUri>(
@@ -258,16 +259,18 @@ const useUri = (
           return;
         }
 
-        setUri(uri);
+        setUriState(uri);
+        uriRef.current = uri;
       }
     );
   }, []);
 
-  return uri;
+  return { uriState, uriRef };
 };
 
 const useIsVerified = (fileNumber: SharedValue<number>) => {
-  const [isVerified, setIsVerified] = useState(false);
+  const [isVerifiedState, setIsVerifiedState] = useState(false);
+  const isVerifiedRef = useRef(false);
 
   useEffect(() => {
     return listen<VerificationEvent>(
@@ -287,13 +290,14 @@ const useIsVerified = (fileNumber: SharedValue<number>) => {
           return;
         }
 
-        setIsVerified(photoData);
+        setIsVerifiedState(photoData);
+        isVerifiedRef.current = photoData;
       },
       true
     );
   }, []);
 
-  return isVerified;
+  return { isVerifiedState, isVerifiedRef };
 };
 
 const isSquareish = (width: number, height: number) => {
@@ -573,8 +577,8 @@ const MoveableImage = ({
   const _slots = useSharedValue(slots);
   const isSlotAssignmentUnfinished = useSharedValue(false);
   const isLoading = useIsImageLoading(fileNumber);
-  const uri = useUri(fileNumber, initialUri);
-  const isVerified = useIsVerified(fileNumber);
+  const { uriState, uriRef } = useUri(fileNumber, initialUri);
+  const { isVerifiedState, isVerifiedRef } = useIsVerified(fileNumber);
 
   const getBorderRadius = useCallback((fileNumber: number) => {
     'worklet';
@@ -659,13 +663,15 @@ const MoveableImage = ({
       runOnJS(addImageOnStart)();
     })
 
-  const composedGesture = uri && moveable ? Gesture.Exclusive(pan, tap) : tap;
+  const composedGesture = uriState && moveable
+    ? Gesture.Exclusive(pan, tap)
+    : tap;
 
   const removeGesture =
     Gesture
     .Tap()
     .onStart(() => {
-      if (uri === null || isLoading) {
+      if (uriState === null || isLoading) {
         return;
       }
 
@@ -708,14 +714,14 @@ const MoveableImage = ({
   const onSlotAssignmentFinish = useCallback(() => {
     notify<Images>(
       EV_IMAGES,
-      { [fileNumber.value]: { exists: Boolean(uri) } });
+      { [fileNumber.value]: { exists: Boolean(uriRef.current) } });
 
     notify<VerificationEvent>(
       EV_UPDATED_VERIFICATION,
-      { photos: { [`${fileNumber.value}`]: isVerified } });
+      { photos: { [`${fileNumber.value}`]: isVerifiedRef.current } });
 
     isSlotAssignmentUnfinished.value = false;
-  }, [uri, isVerified]);
+  }, [uriState, isVerifiedState]);
 
   useEffect(
     () => { translateX.value = absolutePosition?.left ?? 0; },
@@ -746,8 +752,10 @@ const MoveableImage = ({
   }, [onSlotAssignmentFinish]);
 
   useEffect(() => {
-    notify<Images>(EV_IMAGES, { [fileNumber.value]: { exists: Boolean(uri) } });
-  }, [uri]);
+    notify<Images>(
+      EV_IMAGES,
+      { [fileNumber.value]: { exists: Boolean(uriRef.current) } });
+  }, [uriState]);
 
   useLayoutEffect(() => {
     borderRadius.value = getBorderRadius(fileNumber.value);
@@ -785,11 +793,11 @@ const MoveableImage = ({
             borderRadiusStyle,
           ]}
         >
-          {uri &&
+          {uriState &&
             <ExpoImage
               pointerEvents="none"
               source={{
-                uri: uri,
+                uri: uriState,
                 height: 450,
                 width: 450,
               }}
@@ -807,7 +815,7 @@ const MoveableImage = ({
             <Loading/>
           }
         </Animated.View>
-        {uri &&
+        {uriState &&
           <GestureDetector gesture={removeGesture}>
             <View
               style={{
@@ -824,13 +832,14 @@ const MoveableImage = ({
                 size={26}
                 color="#000"
                 style={{
+                  // @ts-ignore
                   outline: 'none'
                 }}
               />
             </View>
           </GestureDetector>
         }
-        {isVerified && (
+        {isVerifiedState && (
           <VerificationBadge
             style={{
               position: 'absolute',
