@@ -11,7 +11,7 @@ import boto3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from service.person.sql import *
 from service.search.sql import *
-from sql import *
+from commonsql import *
 from service.person.template import otp_template, report_template
 import traceback
 import threading
@@ -30,6 +30,7 @@ import erlastic
 from datetime import datetime, timezone
 from duoaudio import put_audio_in_object_store
 from util import truncate_text
+from service.person.aboutdiff import diff_addition_with_context
 
 
 @dataclass
@@ -905,7 +906,71 @@ def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
         with api_tx() as tx:
             tx.executemany(Q_DELETE_PROFILE_INFO_AUDIO, audio_files_params)
 
+def _patch_profile_info_about(person_id: int, new_about: str):
+    select = """
+    SELECT about AS old_about FROM person WHERE id = %(person_id)s
+    """
+
+    update = """
+    UPDATE person
+    SET
+        about = %(new_about)s::TEXT,
+
+        last_event_time =
+            CASE
+                WHEN %(added_text)s::TEXT IS NULL
+                THEN sign_up_time
+                ELSE now()
+            END,
+
+        last_event_name =
+            CASE
+                WHEN %(added_text)s::TEXT IS NULL
+                THEN 'joined'::person_event
+                ELSE 'updated-bio'::person_event
+            END,
+
+        last_event_data =
+            CASE
+                WHEN %(added_text)s::TEXT IS NULL
+                THEN
+                    '{}'::JSONB
+                ELSE
+                    jsonb_build_object(
+                        'added_text', %(added_text)s::TEXT,
+                        'body_color', body_color,
+                        'background_color', background_color
+                    )
+            END
+    WHERE
+        id = %(person_id)s
+    """
+
+    with api_tx() as tx:
+        select_params = dict(
+            person_id=person_id,
+        )
+
+        tx.execute(select, select_params)
+
+        old_about = tx.fetchone()['old_about']
+
+        update_params = dict(
+            person_id=person_id,
+            new_about=new_about,
+            added_text=diff_addition_with_context(
+                old=old_about,
+                new=new_about,
+                window_size=250,
+            )
+        )
+
+        tx.execute(update, update_params)
+
 def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
+    if not s.person_id:
+        return 'Not authorized', 400
+
     [field_name] = req.__pydantic_fields_set__
     field_value = req.dict()[field_name]
 
@@ -1078,48 +1143,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         WHERE id = %(person_id)s
         """
     elif field_name == 'about':
-        truncated_text = truncate_text(text=field_value, max_chars=250)
-
-        params = dict(
-            person_id=s.person_id,
-            field_value=field_value,
-            truncated_text=truncated_text,
-        )
-
-        q1 = """
-        UPDATE person
-        SET
-            about = %(field_value)s,
-
-            last_event_time =
-                CASE
-                    WHEN %(field_value)s = ''
-                    THEN sign_up_time
-                    ELSE now()
-                END,
-
-            last_event_name =
-                CASE
-                    WHEN %(field_value)s = ''
-                    THEN 'joined'::person_event
-                    ELSE 'updated-bio'::person_event
-                END,
-
-            last_event_data =
-                CASE
-                    WHEN %(field_value)s = ''
-                    THEN
-                        '{}'::JSONB
-                    ELSE
-                        jsonb_build_object(
-                            'added_text', %(truncated_text)s::TEXT,
-                            'body_color', body_color,
-                            'background_color', background_color
-                        )
-                END
-        WHERE
-            id = %(person_id)s
-        """
+        return _patch_profile_info_about(s.person_id, field_value)
     elif field_name == 'gender':
         q1 = """
         UPDATE person

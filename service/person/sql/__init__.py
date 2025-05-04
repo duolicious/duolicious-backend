@@ -1,5 +1,5 @@
 import constants
-from sql import Q_IS_ALLOWED_CLUB_NAME
+from commonsql import Q_IS_ALLOWED_CLUB_NAME
 
 MAX_CLUB_SEARCH_RESULTS = 20
 

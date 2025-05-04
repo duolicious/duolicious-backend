@@ -1,7 +1,7 @@
 from typing import Iterable
 from dataclasses import dataclass
 from database import api_tx
-from sql import (
+from commonsql import (
     Q_UPSERT_LAST_INTRO_NOTIFICATION_TIME,
     Q_UPSERT_LAST_CHAT_NOTIFICATION_TIME,
 )

@@ -14,7 +14,7 @@ from service.cron.cronutil import (
     join_lists_of_dicts,
     print_stacktrace,
 )
-from sql import (
+from commonsql import (
     Q_UPSERT_LAST_INTRO_NOTIFICATION_TIME,
     Q_UPSERT_LAST_CHAT_NOTIFICATION_TIME,
 )

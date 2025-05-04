@@ -1,4 +1,4 @@
-from sql import Q_UPDATE_VERIFICATION_LEVEL
+from commonsql import Q_UPDATE_VERIFICATION_LEVEL
 
 Q_DELETE_GARBAGE_RECORDS = f"""
 WITH q1 AS (
