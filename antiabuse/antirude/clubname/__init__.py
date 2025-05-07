@@ -1,5 +1,5 @@
 from database import api_tx
-from sql import Q_IS_ALLOWED_CLUB_NAME
+from commonsql import Q_IS_ALLOWED_CLUB_NAME
 
 def is_allowed_club_name(club_name: str) -> bool:
     q = Q_IS_ALLOWED_CLUB_NAME.replace('%()s', '%(club_name)s')

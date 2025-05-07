@@ -1,4 +1,4 @@
-from sql import Q_UPSERT_LAST
+from commonsql import Q_UPSERT_LAST
 from batcher import Batcher
 from service.chat.session import Session
 from typing import List
