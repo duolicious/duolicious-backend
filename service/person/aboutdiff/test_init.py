@@ -41,7 +41,7 @@ class TestDiffAdditionWithContext(unittest.TestCase):
         old = "Boo! Alice loves cats."
         new = "Boo! Alice loves cats and dogs."
         snippet = diff_addition_with_context(old, new, window_size=20)
-        self.assertEqual(snippet, "Alice loves cats and")
+        self.assertEqual(snippet, "Alice loves cats an…")
 
     def test_exact_fit_window(self):
         """
@@ -75,7 +75,7 @@ class TestDiffAdditionWithContext(unittest.TestCase):
             "I hope that you like this brand new addition.",
             window_size=10
         )
-        self.assertEqual(snippet, 'I hope tha')
+        self.assertEqual(snippet, 'I hope tha…')
 
     def test_insertion_at_start(self):
         snippet = diff_addition_with_context(
@@ -97,9 +97,9 @@ class TestDiffAdditionWithContext(unittest.TestCase):
         snippet = diff_addition_with_context(
             "A. B. C.",
             "A. X. B. Y. C.",
-            window_size=4
+            window_size=6
         )
-        self.assertEqual(snippet, 'B. Y')
+        self.assertEqual(snippet, 'B. Y…')
 
     def test_emoji(self):
         snippet = diff_addition_with_context(
@@ -107,8 +107,29 @@ class TestDiffAdditionWithContext(unittest.TestCase):
             "There's no denying it. I love 🍕 and sushi",
             window_size=12,
         )
-        self.assertEqual(snippet, 'I love 🍕 and')
+        self.assertEqual(snippet, 'I love 🍕 an…')
 
+    def test_newlines(self):
+        snippet = diff_addition_with_context(
+            "There's no denying it. I love pizza\n"
+            "a\n"
+            "b\n"
+            "c\n"
+            ,
+
+            "There's no denying it. I love pizza\n"
+            "a\n"
+            "b\n"
+            "c\n"
+            "d\n"
+            "e\n"
+            "f\n"
+            ,
+
+            window_size=8,
+            max_newlines=3,
+        )
+        self.assertEqual(snippet, 'b\nc\nd…')
 
 
 if __name__ == "__main__":

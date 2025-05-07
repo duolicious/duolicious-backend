@@ -4,6 +4,12 @@ from typing import Tuple
 from util.timeout import run_with_timeout
 
 
+# TODO: This doesn't work for right-to-left languages like Arabic
+
+
+BOUNDARY_CHARS = '.!?\n'
+
+
 def get_last_addition(old: str, new: str) -> Tuple[int, int] | None:
     try:
         sm = run_with_timeout(
@@ -28,20 +34,25 @@ def get_last_addition(old: str, new: str) -> Tuple[int, int] | None:
 def diff_addition_with_context(
     old: str,
     new: str,
-    window_size: int = 250
+    window_size: int = 250,
+    max_newlines: int = 20,
 ) -> str | None:
-    stripped_new = new.strip()
-
-    last = get_last_addition(old, stripped_new)
+    last = get_last_addition(old, new)
     if not last:
         return None
 
     start_addition, end_addition = last
 
+    addition = new[start_addition:end_addition]
+
+    # Ignore whitespace additions
+    if not addition.strip():
+        return None
+
     # Try to pick a sentence/line boundary that both precedes the insertion and
     # still lets us cover it.
-    boundary_pattern = re.compile(r'[.!?\n]')
-    boundaries = [0] + [m.end() + 1 for m in boundary_pattern.finditer(stripped_new)]
+    boundary_pattern = re.compile(rf'[{BOUNDARY_CHARS}]')
+    boundaries = [0] + [m.end() for m in boundary_pattern.finditer(new)]
 
     # Target for centering: half a window before the insertion
     target = start_addition - window_size // 2
@@ -55,16 +66,20 @@ def diff_addition_with_context(
 
     best_boundary = min(left_boundaries, key=lambda b: abs(b - target))
 
-    snippet = stripped_new[best_boundary:best_boundary + window_size]
+    snippet = new[best_boundary:best_boundary + window_size]
 
-    stripped_snippet = snippet.strip()
+    # Truncate by `max_newlines`
+    lines = snippet.splitlines()
+    snippet = '\n'.join(lines[:max_newlines])
 
-    if not stripped_snippet:
+    # Strip whitespace
+    snippet = snippet.strip()
+
+    if not snippet:
         return None
 
-    insertion_length = end_addition - start_addition
+    # Add ellipsis
+    if not new.strip().endswith(snippet):
+        snippet = snippet.rstrip(f'{BOUNDARY_CHARS},') + '…'
 
-    if insertion_length > window_size:
-        return stripped_snippet + '…'
-    else:
-        return stripped_snippet
+    return snippet

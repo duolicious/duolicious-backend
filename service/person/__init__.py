@@ -958,11 +958,7 @@ def _patch_profile_info_about(person_id: int, new_about: str):
         update_params = dict(
             person_id=person_id,
             new_about=new_about,
-            added_text=diff_addition_with_context(
-                old=old_about,
-                new=new_about,
-                window_size=250,
-            )
+            added_text=diff_addition_with_context(old=old_about, new=new_about),
         )
 
         tx.execute(update, update_params)
