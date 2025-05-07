@@ -1,15 +1,27 @@
 import difflib
 import re
-from typing import Optional, Tuple
+from typing import Tuple
+from util.timeout import run_with_timeout
 
 
-def get_last_addition(old: str, new: str) -> Optional[Tuple[int, int]]:
-    sm = difflib.SequenceMatcher(None, old, new)
+def get_last_addition(old: str, new: str) -> Tuple[int, int] | None:
+    try:
+        sm = run_with_timeout(
+            0.5,
+            difflib.SequenceMatcher,
+            None,
+            old,
+            new
+        )
+    except TimeoutError:
+        return None
+
     additions = [
         (j1, j2)
         for tag, i1, i2, j1, j2 in sm.get_opcodes()
         if tag in ('insert', 'replace') and j2 > j1
     ]
+
     return additions[-1] if additions else None
 
 
