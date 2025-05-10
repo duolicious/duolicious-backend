@@ -29,6 +29,7 @@ import { TopNavBarButton } from './top-nav-bar-button';
 import { setQuote } from './conversation-screen/quote';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
+import { isMobile } from '../util/util';
 
 const NAME_ACTION_TIME_GAP_VERTICAL = 16;
 
@@ -443,37 +444,35 @@ const FeedItemUpdatedBio = ({ dataItem }: { dataItem: DataItemUpdatedBio }) => {
           doUseOnline={!!dataItem.photo_uuid}
         />
       }
-      <View style={{ flex: 1, gap: 8 }}>
-        <NameActionTime
-          personUuid={dataItem.person_uuid}
-          name={dataItem.name}
-          isVerified={dataItem.is_verified}
-          action={
-            dataItem.added_text.trim()
-              ? "updated their bio"
-              : "erased their bio"
-          }
-          time={new Date(dataItem.time)}
-          doUseOnline={!dataItem.photo_uuid}
-          style={{
-            paddingHorizontal: 10,
-          }}
-        />
-        <DefaultText
-          style={{
-            backgroundColor: dataItem.background_color,
-            color: dataItem.body_color,
-            borderRadius: 10,
-            padding: 10,
-          }}
-        >
-          {dataItem.added_text}
-        </DefaultText>
-        <View
-          style={{
-            alignItems: 'flex-end',
-          }}
-        >
+      <View style={{ flex: 1, gap: isMobile() ? 8 : 10 }}>
+        <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
+          <NameActionTime
+            personUuid={dataItem.person_uuid}
+            name={dataItem.name}
+            isVerified={dataItem.is_verified}
+            action={
+              dataItem.added_text.trim()
+                ? "updated their bio"
+                : "erased their bio"
+            }
+            time={new Date(dataItem.time)}
+            doUseOnline={!dataItem.photo_uuid}
+            style={{
+              paddingHorizontal: 10,
+            }}
+          />
+          <DefaultText
+            style={{
+              backgroundColor: dataItem.background_color,
+              color: dataItem.body_color,
+              borderRadius: 10,
+              padding: 10,
+            }}
+          >
+            {dataItem.added_text}
+          </DefaultText>
+        </View>
+        <View style={{ alignItems: 'flex-end' }} >
           <Pressable
             style={{
               flexDirection: 'row',
