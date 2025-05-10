@@ -2,17 +2,6 @@ import { useEffect, useState } from 'react';
 import { listen, notify, lastEvent } from '../../events/events';
 import { truncateText } from '../../util/util';
 
-// TODO: Pressing the quote button shouldn't cause the event to reach the parent DOM element
-// TODO: Handle quotes of quotes
-// TODO: Restructure code
-// TODO: Maybe you should only quote unquoted text or something
-// TODO: Clear quote when personUuid changes in conversation window rather in addition to unmount - Remove other unmount clearing code
-// TODO: This is very easy to unit test. Add tests.
-// TODO: Audio shouldn't be quotable/moveable
-// TODO: Ensure attribution format is backwards computable with previous version
-// TODO: Truncate very long text
-// TODO: A large number of users are on the web app. There should be an obvious way to reply there
-
 const eventKey = `conversation-quote`;
 
 const attributionRegex = /^\s*-\s*/;
@@ -120,11 +109,11 @@ const quoteToMarkdown = (quote: Quote | null, doTruncate: boolean): string => {
   }
 
   const truncatedText = doTruncate
-    ? truncateText(quote.text, 100, 3)
+    ? truncateText(quote.text, { maxLength: 100, maxLines: 3 })
     : quote.text;
 
   const truncatedAttribution = doTruncate
-    ? truncateText(quote.attribution, 100, 1)
+    ? truncateText(quote.attribution, { maxLength: 100, maxLines: 1 })
     : quote.attribution;
 
   const formattedQuote = truncatedText

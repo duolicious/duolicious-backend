@@ -20,7 +20,7 @@ interface State {
   attempts: number;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
+class CallbackErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, attempts: 0 };
 
   static getDerivedStateFromError(): Partial<State> {
@@ -39,6 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (attempts >= MAX_RETRIES) {
       return;
     }
+
 
     (async () => {
       try {
@@ -79,6 +80,13 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
+const NoOpErrorBoundary = ({ children, ..._ }) => children;
+
+// Disable error boundary in dev env so it doesn't keep logging us out
+const ErrorBoundary = process.env.NODE_ENV === 'development'
+  ? NoOpErrorBoundary
+  : CallbackErrorBoundary;
+
 /* Example React‑Native styles; replace with your actual StyleSheet */
 const styles = StyleSheet.create({
   container: {
@@ -93,3 +101,7 @@ const styles = StyleSheet.create({
     color: 'red',
   },
 });
+
+export {
+  ErrorBoundary,
+}

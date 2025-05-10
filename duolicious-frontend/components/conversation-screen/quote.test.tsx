@@ -1,4 +1,8 @@
-import { parseMarkdown } from './quote';
+import {
+  parseMarkdown,
+  quoteToMessageMarkdown,
+  quoteToPreviewMarkdown,
+} from './quote';
 
 describe('parseMarkdown', () => {
   test('should return an empty text block for an empty string', () => {
@@ -71,3 +75,55 @@ Mom makes really nice chicken broth around this time of year.`;
   });
 });
 
+
+describe('quoteToPreviewMarkdown', () => {
+  it('returns an empty string when given null', () => {
+    expect(quoteToPreviewMarkdown(null)).toBe('');
+  });
+
+  it('limits the preview to three quoted lines and includes an attribution', () => {
+    const quote = {
+      text: 'Line one\nLine two\nLine three\nLine four',
+      attribution: 'Author Name',
+    };
+
+    const result = quoteToPreviewMarkdown(quote);
+
+    const lines = result.split('\n');
+    const quotedLines = lines.filter((line) => line.startsWith('>') && !line.startsWith('>-'));
+    const attributionLine = lines.find((line) => line.startsWith('>-'));
+
+    expect(quotedLines.length).toBeLessThanOrEqual(3);
+    expect(attributionLine).toBeDefined();
+  });
+
+  it('prefers the first text block when the original markdown starts with a quote block', () => {
+    const quote = {
+      text: `> Quoted line\n\nPlain text line that should be chosen.`,
+      attribution: 'Tester',
+    };
+
+    const result = quoteToPreviewMarkdown(quote);
+
+    // The preview should contain the plain text line but not the quoted line.
+    expect(result).toContain('>Plain text line that should be chosen.');
+    expect(result).not.toContain('>Quoted line');
+  });
+});
+
+
+describe('quoteToMessageMarkdown', () => {
+  it('includes every line of the provided quote text and the attribution', () => {
+    const quote = {
+      text: 'Line one\nLine two',
+      attribution: 'Author',
+    };
+
+    const expected = `>Line one\n>Line two\n>- Author`;
+    expect(quoteToMessageMarkdown(quote)).toBe(expected);
+  });
+
+  it('returns an empty string when quote is null', () => {
+    expect(quoteToMessageMarkdown(null)).toBe('');
+  });
+});

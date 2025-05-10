@@ -182,29 +182,31 @@ const assertNever = (x: never): never => {
 
 const truncateText = (
   text: string,
-  maxLength?: number,
-  maxLines?: number
-) => {
+  opts: { maxLength?: number; maxLines?: number } = {}
+): string => {
+  const { maxLength, maxLines } = opts;
+  let truncated = false;
+
+  // 1. Line‑wise truncation
   let result = text;
-  let wasTruncated = false;
-
-  if (maxLines) {
+  if (maxLines != null && maxLines >= 0) {
     const lines = result.split('\n');
-    result = lines.slice(0, maxLines).join('\n');
-
-    wasTruncated ||= lines.length > maxLines;
+    if (lines.length > maxLines) {
+      result = lines.slice(0, maxLines).join('\n');
+      truncated = true;
+    }
   }
 
-  if (maxLength) {
-    result = result.slice(0, maxLength);
-    wasTruncated ||= result.length > maxLength;
+  // 2. Length‑wise truncation (unicode‑safe)
+  if (maxLength != null && maxLength >= 0) {
+    const chars = Array.from(result);               // grapheme clusters
+    if (chars.length > maxLength) {
+      result = chars.slice(0, maxLength).join('');
+      truncated = true;
+    }
   }
 
-  if (wasTruncated) {
-    result += '…';
-  }
-
-  return result;
+  return truncated ? `${result}…` : result;
 };
 
 export {
