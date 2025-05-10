@@ -64,8 +64,9 @@ const useSkipped = (
       setState((oldState) => {
         // Fire `onPostSkip` on the transition from unskipped to skipped
         if (
-          newState.personUuid === oldState.personUuid &&
-          newState.isSkipped !== oldState.isSkipped &&
+          oldState.networkState !== 'fetching' &&
+          oldState.personUuid === newState.personUuid &&
+          oldState.isSkipped !== newState.isSkipped &&
           newState.isSkipped
         ) {
           onPostSkip?.();
