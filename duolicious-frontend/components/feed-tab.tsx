@@ -443,7 +443,7 @@ const FeedItemUpdatedBio = ({ dataItem }: { dataItem: DataItemUpdatedBio }) => {
           doUseOnline={!!dataItem.photo_uuid}
         />
       }
-      <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
+      <View style={{ flex: 1, gap: 8 }}>
         <NameActionTime
           personUuid={dataItem.person_uuid}
           name={dataItem.name}
@@ -469,32 +469,34 @@ const FeedItemUpdatedBio = ({ dataItem }: { dataItem: DataItemUpdatedBio }) => {
         >
           {dataItem.added_text}
         </DefaultText>
-        <Pressable
+        <View
           style={{
-            position: 'absolute',
-            bottom: -6,
-            right: -3,
-            backgroundColor: 'white',
-            borderRadius: 999,
-            height: 40,
-            width: 40,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderColor: 'black',
-            borderWidth: 1,
+            alignItems: 'flex-end',
           }}
-          onPress={onPressReply}
         >
-          <FontAwesomeIcon
-            icon={faReply}
-            size={20}
-            color="black"
+          <Pressable
             style={{
-              /* @ts-ignore */
-              outline: 'none',
+              flexDirection: 'row',
+              gap: 6,
+              paddingRight: 5,
             }}
-          />
-        </Pressable>
+            hitSlop={20}
+            onPress={onPressReply}
+          >
+            <DefaultText style={{ fontWeight: 700 }}>
+              Reply
+            </DefaultText>
+            <FontAwesomeIcon
+              icon={faReply}
+              size={16}
+              color="black"
+              style={{
+                /* @ts-ignore */
+                outline: 'none',
+              }}
+            />
+          </Pressable>
+        </View>
       </View>
     </Pressable>
   );
