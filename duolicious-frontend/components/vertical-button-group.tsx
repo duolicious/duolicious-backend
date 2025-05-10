@@ -42,7 +42,6 @@ const VerticalButtonGroup: React.FC<VerticalButtonGroupProps> = ({
           >
             <DefaultText
               style={{
-                fontSize: 16,
                 fontWeight: '500',
                 color: isSelected ? 'white' : 'black',
               }}
