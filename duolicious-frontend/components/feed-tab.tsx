@@ -26,6 +26,9 @@ import { Flag } from "react-native-feather";
 import { AudioPlayer } from './audio-player';
 import { useSkipped } from '../hide-and-block/hide-and-block';
 import { TopNavBarButton } from './top-nav-bar-button';
+import { setQuote } from './conversation-screen/quote';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
 
 const NAME_ACTION_TIME_GAP_VERTICAL = 16;
 
@@ -166,6 +169,30 @@ const useNavigationToProfileGallery = (photoUuid) => {
       }
     );
   }, [photoUuid]);
+};
+
+const useNavigationToConversation = (
+  personUuid: string,
+  name: string,
+  photoUuid: string | null,
+  photoBlurhash: string | null,
+  quote: string,
+) => {
+  const navigation = useNavigation<any>();
+
+  return useCallback(() => {
+    setQuote({ text: quote, attribution: name });
+
+    navigation.navigate(
+      'Conversation Screen',
+      {
+        personUuid,
+        name,
+        photoUuid,
+        photoBlurhash,
+      }
+    );
+  }, [personUuid, name, photoUuid, photoBlurhash, quote]);
 };
 
 const NameActionTime = ({
@@ -394,6 +421,14 @@ const FeedItemUpdatedBio = ({ dataItem }: { dataItem: DataItemUpdatedBio }) => {
     dataItem.photo_blurhash,
   );
 
+  const onPressReply = useNavigationToConversation(
+    dataItem.person_uuid,
+    dataItem.name,
+    dataItem.photo_uuid,
+    dataItem.photo_blurhash,
+    dataItem.added_text,
+  );
+
   return (
     <Pressable
       onPress={onPress}
@@ -434,6 +469,32 @@ const FeedItemUpdatedBio = ({ dataItem }: { dataItem: DataItemUpdatedBio }) => {
         >
           {dataItem.added_text}
         </DefaultText>
+        <Pressable
+          style={{
+            position: 'absolute',
+            bottom: -6,
+            right: -3,
+            backgroundColor: 'white',
+            borderRadius: 999,
+            height: 40,
+            width: 40,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderColor: 'black',
+            borderWidth: 1,
+          }}
+          onPress={onPressReply}
+        >
+          <FontAwesomeIcon
+            icon={faReply}
+            size={20}
+            color="black"
+            style={{
+              /* @ts-ignore */
+              outline: 'none',
+            }}
+          />
+        </Pressable>
       </View>
     </Pressable>
   );

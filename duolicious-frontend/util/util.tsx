@@ -180,6 +180,33 @@ const assertNever = (x: never): never => {
   throw new Error(`Unexpected object: ${x}`);
 };
 
+const truncateText = (
+  text: string,
+  maxLength?: number,
+  maxLines?: number
+) => {
+  let result = text;
+  let wasTruncated = false;
+
+  if (maxLines) {
+    const lines = result.split('\n');
+    result = lines.slice(0, maxLines).join('\n');
+
+    wasTruncated ||= lines.length > maxLines;
+  }
+
+  if (maxLength) {
+    result = result.slice(0, maxLength);
+    wasTruncated ||= result.length > maxLength;
+  }
+
+  if (wasTruncated) {
+    result += '…';
+  }
+
+  return result;
+};
+
 export {
   assert,
   assertNever,
@@ -190,12 +217,13 @@ export {
   friendlyTimeAgo,
   friendlyTimestamp,
   getRandomElement,
+  getShortElapsedTime,
   isMobile,
   jsonParseSilently,
   longFriendlyTimestamp,
   parseUrl,
   possessive,
   secToMinSec,
+  truncateText,
   withTimeout,
-  getShortElapsedTime,
 };

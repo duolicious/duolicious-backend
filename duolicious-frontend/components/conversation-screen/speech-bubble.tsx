@@ -4,7 +4,7 @@ import {
   useState,
 } from 'react';
 import {
-  Pressable,
+  Platform,
   StyleSheet,
   View,
 } from 'react-native';
@@ -18,9 +18,11 @@ import { AudioPlayer } from '../audio-player';
 import { MessageStatus } from '../../chat/application-layer';
 import { useMessage } from '../../chat/application-layer/hooks/message';
 import { onReceiveMessage, Message } from '../../chat/application-layer';
+import { Gesture, GestureDetector, TapGestureHandler, State } from 'react-native-gesture-handler';
 import Animated, {
-  Easing,
   cancelAnimation,
+  Easing,
+  runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
@@ -29,86 +31,19 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { setQuote, parseMarkdown } from './quote';
+import * as Haptics from 'expo-haptics';
+import { signedInUser } from '../../App';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
 
 const otherUserBackgroundColor = '#eee';
 
 const currentUserBackgroundColor = '#70f';
 
-type MarkdownBlock = QuoteBlock | TextBlock;
+const defaultTextColor = 'black';
 
-type QuoteBlock = {
-  type: 'quote';
-  text: string;
-  attribution?: string;
-};
-
-type TextBlock = {
-  type: 'text';
-  text: string;
-};
-
-const parseMarkdown = (markdown: string): MarkdownBlock[] => {
-  const lines = markdown.split(/\r?\n/);
-  const blocks: MarkdownBlock[] = [];
-  let currentBlockType: 'quote' | 'text' | null = null;
-  let currentBlockLines: string[] = [];
-
-  const parseQuoteBlock = (lines: string[]): QuoteBlock => {
-    const trimmedLines = lines.map(line => line.trim());
-    let attribution: string | undefined;
-    let endIndex = lines.length;
-
-    for (let i = trimmedLines.length - 1; i >= 0; i--) {
-      if (trimmedLines[i] === '') continue;
-      if (/^-\s+/.test(trimmedLines[i])) {
-        attribution = trimmedLines[i].replace(/^-\s+/, '');
-        endIndex = i;
-      }
-      break;
-    }
-
-    return {
-      type: 'quote',
-      text: lines.slice(0, endIndex).join('\n').trim(),
-      attribution,
-    };
-  };
-
-  const flushBlock = (): void => {
-    if (currentBlockLines.length === 0 || currentBlockType === null) return;
-
-    if (currentBlockType === 'quote') {
-      blocks.push(parseQuoteBlock(currentBlockLines));
-    } else {
-      blocks.push({
-        type: 'text',
-        text: currentBlockLines.join('\n').trim(),
-      });
-    }
-
-    currentBlockLines = [];
-  };
-
-  for (const line of lines) {
-    if (line.trim().startsWith('>')) {
-      if (currentBlockType !== 'quote') {
-        flushBlock();
-        currentBlockType = 'quote';
-      }
-      // Remove the leading ">" and an optional space.
-      currentBlockLines.push(line.replace(/^>\s?/, ''));
-    } else {
-      if (currentBlockType !== 'text') {
-        flushBlock();
-        currentBlockType = 'text';
-      }
-      currentBlockLines.push(line);
-    }
-  }
-
-  flushBlock();
-  return blocks;
-};
+const defaultFontSize = 15;
 
 const isSafeImageUrl = (str: string): boolean => {
   const urlRegex = /^https:\/\/media\.tenor\.com\/\S+\.(gif|webp)$/i;
@@ -120,14 +55,22 @@ const isEmojiOnly = (str: string): boolean => {
   return emojiRegex.test(str);
 }
 
+const haptics = () => {
+  if (Platform.OS !== 'web') {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  }
+};
+
 const FormattedText = ({
   text,
-  color,
-  fontSize,
+  color = defaultTextColor,
+  fontSize = defaultFontSize,
+  backgroundColor = 'rgba(255, 255, 255, 0.8)',
 }: {
   text: string
-  color: string,
-  fontSize: number,
+  color?: string,
+  fontSize?: number,
+  backgroundColor?: string,
 }) => {
   const blocks = parseMarkdown(text);
 
@@ -136,7 +79,7 @@ const FormattedText = ({
       {blocks.map((block, i) =>
         <DefaultText
           key={i}
-          selectable={true}
+          selectable={!isMobile()}
           style={{
             color,
             fontSize,
@@ -146,7 +89,7 @@ const FormattedText = ({
               paddingVertical: 8,
               borderLeftWidth: 6,
               borderColor: 'black',
-              backgroundColor: 'rgba(255, 255, 255, 0.8)',
+              backgroundColor,
               color: 'black',
               borderRadius: 4,
             }: {})
@@ -226,13 +169,14 @@ const SpeechBubble = ({
   avatarUuid: string | null | undefined
 }) => {
   const opacity = useSharedValue(0);
-  const [showTimestamp, setShowTimestamp] = useState(false);
+
+  const translateX = useSharedValue(0);
+  const dragTriggered = useSharedValue(false);
+
+  const [isHovering, setIsHovering] = useState(false);
+  const [doShowTimestamp, setDoShowTimestamp] = useState(false);
   const [speechBubbleImageError, setSpeechBubbleImageError] = useState(false);
   const message = useMessage(messageId);
-
-  const onPress = useCallback(() => {
-    setShowTimestamp(t => !t);
-  }, [setShowTimestamp]);
 
   const doRenderUrlAsImage = (
     message &&
@@ -256,6 +200,85 @@ const SpeechBubble = ({
       return otherUserBackgroundColor;
     }
   })();
+
+  const textColor =
+    !!message &&
+    message.message.type === 'chat-text' &&
+    message.message.fromCurrentUser
+    ? 'white'
+    : defaultTextColor;
+
+  const showTimestamp = useCallback(() => {
+    setDoShowTimestamp(t => !t);
+  }, [setDoShowTimestamp]);
+
+  const setQuoteToThisSpeechBubble = useCallback(() => {
+    if (!message) {
+      return;
+    }
+
+    if (message.message.type !== 'chat-text') {
+      return;
+    }
+
+    haptics();
+
+    const text = message.message.text;
+
+    const attribution = !!message && message.message.fromCurrentUser
+      ? signedInUser?.name
+      : name;
+
+    if (attribution) {
+      setQuote({ text, attribution })
+    }
+  }, [message])
+
+  const pan = Gesture
+    .Pan()
+    .enabled(
+      isMobile() &&
+      !doRenderUrlAsImage &&
+      !!message &&
+      message.message.type === 'chat-text'
+    )
+    .activeOffsetX([-10, 10])
+    .onStart(() => {
+      dragTriggered.value = false;
+    })
+    .onUpdate(evt => {
+      const x = evt.translationX
+
+      translateX.value = x;
+
+      if (!dragTriggered.value && Math.abs(x) > 50) {
+        dragTriggered.value = true;
+        runOnJS(setQuoteToThisSpeechBubble)();
+      }
+    })
+    .onEnd(() => {
+      dragTriggered.value = false;
+      translateX.value = withTiming(0)
+    });
+
+  const tap = Gesture
+    .Tap()
+    .maxDistance(10)
+    .requireExternalGestureToFail()
+    .enabled(
+      !doRenderUrlAsImage &&
+      !!message &&
+      message.message.type === 'chat-text'
+    )
+    .onEnd(() => {
+      runOnJS(showTimestamp)()
+    });
+
+  const gesture = Gesture.Exclusive(pan, tap);
+
+  const gestureStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
 
   const animatedContainerStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -289,72 +312,116 @@ const SpeechBubble = ({
         },
       ]}
     >
-      <Animated.View
-        style={[
-          {
-            flexDirection: 'row',
-            gap: 5,
-            alignItems: 'flex-end',
-            ...(doRenderUrlAsImage ? {
-              width: '66%',
-            }: {
-              maxWidth: '80%',
-            })
-          },
-          animatedContainerStyle
-        ]}
+      <GestureDetector
+        gesture={gesture}
+        touchAction="pan-y"
       >
-        {!message.message.fromCurrentUser && avatarUuid &&
-          <Image
-            source={{ uri: `${IMAGES_URL}/450-${avatarUuid}.jpg` }}
-            transition={150}
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: 9999,
-            }}
-          />
-        }
-        {message.message.type === 'chat-text' &&
-          <Pressable
-            onPress={onPress}
-            style={{
-              borderRadius: 10,
-              backgroundColor: backgroundColor,
-              gap: 10,
+        <Animated.View
+          style={[
+            {
+              flexDirection: 'row',
+              gap: 5,
+              alignItems: 'flex-end',
               ...(doRenderUrlAsImage ? {
-                width: '100%',
+                width: '66%',
               }: {
-                padding: 10,
-                flexShrink: 1,
+                maxWidth: '80%',
               })
-            }}
-          >
-            {doRenderUrlAsImage &&
-              <AutoResizingGif
-                uri={message.message.text}
-                onError={() => setSpeechBubbleImageError(true)}
-                requirePress={isMobile()}
-              />
-            }
-            {!doRenderUrlAsImage &&
-              <FormattedText
-                text={message.message.text}
-                color={message.message.fromCurrentUser ? 'white' : 'black'}
-                fontSize={isEmojiOnly(message.message.text) ? 50 : 15}
-              />
-            }
-          </Pressable>
-        }
-        {message.message.type === 'chat-audio' &&
-          <AudioPlayer
-            sending={message.status === 'sending'}
-            uuid={message.message.audioUuid}
-            presentation="conversation"
-          />
-        }
-      </Animated.View>
-      {showTimestamp &&
+            },
+            animatedContainerStyle,
+            gestureStyle
+          ]}
+        >
+          {!message.message.fromCurrentUser && avatarUuid &&
+            <Image
+              source={{ uri: `${IMAGES_URL}/450-${avatarUuid}.jpg` }}
+              transition={150}
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 9999,
+              }}
+            />
+          }
+          {message.message.type === 'chat-text' &&
+            <View
+              style={{
+                borderRadius: 10,
+                backgroundColor: backgroundColor,
+                gap: 10,
+                ...(doRenderUrlAsImage ? {
+                  width: '100%',
+                }: {
+                  padding: 10,
+                  flexShrink: 1,
+                }),
+                overflow: 'hidden',
+              }}
+              /* @ts-ignore */
+              onMouseEnter={() => setIsHovering(true)}
+              onMouseLeave={() => setIsHovering(false)}
+            >
+              {doRenderUrlAsImage &&
+                <AutoResizingGif
+                  uri={message.message.text}
+                  onError={() => setSpeechBubbleImageError(true)}
+                  requirePress={isMobile()}
+                />
+              }
+              {!doRenderUrlAsImage &&
+                <FormattedText
+                  text={message.message.text}
+                  color={textColor}
+                  fontSize={isEmojiOnly(message.message.text) ? 50 : defaultFontSize}
+                />
+              }
+              {!doRenderUrlAsImage && !isMobile() &&
+                <TapGestureHandler
+                  onHandlerStateChange={({ nativeEvent }) => {
+                    if (nativeEvent.state === State.ACTIVE) {
+                      setQuoteToThisSpeechBubble();
+                    }
+                  }}
+                >
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      height: 32,
+                      width: 32,
+                      opacity: isHovering ? 1 : 0,
+                      borderBottomLeftRadius: 10,
+                      backgroundColor,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <FontAwesomeIcon
+                      icon={faReply}
+                      size={20}
+                      color={textColor}
+                      style={{
+                        /* @ts-ignore */
+                        outline: 'none',
+                      }}
+                    />
+                  </View>
+                </TapGestureHandler>
+              }
+            </View>
+          }
+          {message.message.type === 'chat-audio' &&
+            <AudioPlayer
+              sending={message.status === 'sending'}
+              uuid={message.message.audioUuid}
+              presentation="conversation"
+            />
+          }
+        </Animated.View>
+      </GestureDetector>
+      {doShowTimestamp &&
         <DefaultText
           selectable={true}
           style={{
@@ -492,7 +559,7 @@ const styles = StyleSheet.create({
 });
 
 export {
+  FormattedText,
   SpeechBubble,
   TypingSpeechBubble,
-  parseMarkdown,
 };

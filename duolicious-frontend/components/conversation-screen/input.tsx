@@ -19,7 +19,9 @@ import Animated, {
   withSequence,
   runOnJS,
   FadeIn,
+  FadeInDown,
   FadeOut,
+  FadeOutDown,
 } from 'react-native-reanimated';
 import {
   Gesture,
@@ -41,6 +43,15 @@ import { Audio } from 'expo-av';
 import { uriToBase64 } from '../../api/api';
 import { notify } from '../../events/events';
 import { ValidationErrorToast } from '../toast';
+import { FormattedText } from './speech-bubble';
+import { X } from 'react-native-feather';
+import {
+  Quote as QuoteType,
+  quoteToMessageMarkdown,
+  quoteToPreviewMarkdown,
+  setQuote,
+  useQuote,
+} from './quote';
 
 const haptics = () => {
   if (Platform.OS !== 'web') {
@@ -183,6 +194,44 @@ const AutoResizingTextInput = (props) => {
   );
 };
 
+const Quote = ({ quote }: { quote: QuoteType | null }) => {
+  if (!quote) {
+    return null;
+  };
+
+  return (
+    <Animated.View
+      entering={FadeInDown}
+      exiting={FadeOutDown}
+      style={{
+        width: '100%',
+        maxWidth: 600,
+        alignSelf: 'center',
+        padding: 10,
+        paddingBottom: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        backgroundColor: 'white',
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        <FormattedText
+          text={quoteToPreviewMarkdown(quote)}
+          backgroundColor="#eee"
+        />
+      </View>
+      <X
+        onPress={() => setQuote(null)}
+        hitSlop={10}
+        strokeWidth={3}
+        height={26}
+        width={26}
+      />
+    </Animated.View>
+  )
+};
+
 const Input = ({
   onPressSend,
   onChange,
@@ -196,6 +245,8 @@ const Input = ({
   onAudioComplete: (audioBase64: string) => void
   onFocus: () => void,
 }) => {
+  const quote = useQuote();
+
   const [text, setText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [showHint, setShowHint] = useState(false);
@@ -272,6 +323,10 @@ const Input = ({
       microphoneOpacity.value = 1;
     }
   }, [isRecording, arrowTranslateX]);
+
+  useEffect(() => {
+    return () => setQuote(null);
+  }, []);
 
   // Helper to format seconds as mm:ss.
   const formatTime = (seconds) => {
@@ -369,8 +424,18 @@ const Input = ({
 
   const handleSendPress = () => {
     const trimmedText = text.trim();
-    if (trimmedText.length > 0) {
-      setText('');
+    const quoteAsMarkdown = quoteToMessageMarkdown(quote);
+
+    if (trimmedText.length === 0) {
+      return;
+    }
+
+    setText('');
+    setQuote(null);
+
+    if (trimmedText.length > 0 && quoteAsMarkdown.length > 0) {
+      onPressSend(quoteAsMarkdown + '\n' + trimmedText);
+    } else if (trimmedText.length > 0) {
       onPressSend(trimmedText);
     }
   };
@@ -444,6 +509,7 @@ const Input = ({
 
   return (
     <KeyboardAvoidingView enabled={Platform.OS === 'ios'} behavior="padding">
+      <Quote quote={quote} />
       <View style={styles.container} onLayout={onLayout}>
         {/* Input wrapper: position relative so we can overlay the cancel overlay */}
         <View style={styles.inputWrapper}>

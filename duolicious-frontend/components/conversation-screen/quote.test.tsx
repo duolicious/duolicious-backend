@@ -1,6 +1,4 @@
-jest.mock('../../chat/websocket-layer', () => ({ }));
-
-import { parseMarkdown } from './speech-bubble';
+import { parseMarkdown } from './quote';
 
 describe('parseMarkdown', () => {
   test('should return an empty text block for an empty string', () => {
