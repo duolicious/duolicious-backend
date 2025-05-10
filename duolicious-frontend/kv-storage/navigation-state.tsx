@@ -40,5 +40,5 @@ const navigationState = async (value?: any) => {
 };
 
 export {
-  navigationState
+  navigationState,
 }

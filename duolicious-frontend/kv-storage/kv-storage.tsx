@@ -4,6 +4,15 @@ import {
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const CLEARABLE_SECURE_STORE_KEYS = [
+  'inbox_order',
+  'inbox_section',
+  'navigation_state',
+  'person_uuid',
+  'session_token',
+  'was_review_requested',
+];
+
 /*
  * Many users have been complaining that upgrading Duolicious on Android causes
  * it to get stuck on the splash screen. Clearing the app's data fixes the
@@ -74,6 +83,24 @@ const storeKv = async (
   } catch { };
 }
 
+const clearAllKv = async () => {
+  console.warn('Clearing all kv-storage');
+
+  try {
+    if (Platform.OS === 'web') {
+      await AsyncStorage.clear();
+    } else {
+      // Delete each known key manually
+      await Promise.all(CLEARABLE_SECURE_STORE_KEYS.map((key) =>
+        SecureStore.deleteItemAsync(key)
+      ));
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 export {
   storeKv,
+  clearAllKv,
 }

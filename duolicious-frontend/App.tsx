@@ -31,6 +31,8 @@ import { UtilityScreen } from './components/utility-screen';
 import { ProspectProfileScreen } from './components/prospect-profile-screen';
 import { InviteScreen, WelcomeScreen } from './components/welcome-screen';
 import { sessionToken, sessionPersonUuid } from './kv-storage/session-token';
+import { navigationState } from './kv-storage/navigation-state';
+import { clearAllKv } from './kv-storage/kv-storage';
 import { japi, SUPPORTED_API_VERSIONS } from './api/api';
 import { login, logout, Inbox, inboxStats } from './chat/application-layer';
 import { STATUS_URL } from './env/env';
@@ -45,7 +47,6 @@ import {
   getLastNotificationResponseOnMobile,
 } from './notifications/mobile';
 import { getCurrentScreen, getCurrentParams } from './navigation/navigation';
-import { navigationState } from './kv-storage/navigation-state';
 import { listen, notify } from './events/events';
 import { verificationWatcher } from './verification/verification';
 import { ClubItem } from './club/club';
@@ -56,6 +57,7 @@ import { isMobile } from './util/util';
 import { Logo16 } from './components/logo';
 import { useScrollbarStyle } from './components/navigation/scroll-bar-hooks';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ErrorBoundary } from './components/error-boundary';
 
 verificationWatcher();
 
@@ -358,17 +360,19 @@ const App = () => {
     }
   }, [serverStatus]);
 
-  useEffect(() => {
-    (async () => {
-      await Promise.all([
-        loadFonts(),
-        lockScreenOrientation(),
-        restoreSessionAndNavigate(),
-        fetchServerStatusState(),
-      ]);
+  const loadApp = useCallback(async () => {
+    await Promise.all([
+      loadFonts(),
+      lockScreenOrientation(),
+      restoreSessionAndNavigate(),
+      fetchServerStatusState(),
+    ]);
 
-      setIsLoading(false);
-    })();
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadApp();
   }, []);
 
   useEffect(() => {
@@ -387,6 +391,12 @@ const App = () => {
 
     return () => { doBreak = true; };
   }, [fetchServerStatusState]);
+
+  const onError = useCallback(async () => {
+    await clearAllKv();
+
+    loadApp();
+  }, []);
 
   const onNavigationStateChange = useCallback(async (state) => {
     if (Platform.OS !== 'web') {
@@ -461,71 +471,73 @@ const App = () => {
   }
 
   return (
-    <SafeAreaProvider>
-      <GestureHandlerRootView>
-        {!isLoading && initialState !== undefined &&
-          <NavigationContainer
-            ref={navigationContainerRef}
-            initialState={
-              initialState ?
-              { ...initialState, stale: true } :
-              undefined
-            }
-            onStateChange={onNavigationStateChange}
-            theme={{
-              ...DefaultTheme,
-              colors: {
-                ...DefaultTheme.colors,
-                background: 'white',
-              },
-            }}
-            documentTitle={{
-              formatter: () =>
-                (numUnreadTitle ? `(${numUnreadTitle}) ` : '') + 'Duolicious'
-            }}
-          >
-            <StatusBar
-              translucent={true}
-              backgroundColor="transparent"
-              barStyle="dark-content"
-            />
-            <Stack.Navigator
-              screenOptions={{
-                headerShown: false,
-                presentation: 'card',
+    <ErrorBoundary onError={onError}>
+      <SafeAreaProvider>
+        <GestureHandlerRootView>
+          {!isLoading && initialState !== undefined &&
+            <NavigationContainer
+              ref={navigationContainerRef}
+              initialState={
+                initialState ?
+                { ...initialState, stale: true } :
+                undefined
+              }
+              onStateChange={onNavigationStateChange}
+              theme={{
+                ...DefaultTheme,
+                colors: {
+                  ...DefaultTheme.colors,
+                  background: 'white',
+                },
+              }}
+              documentTitle={{
+                formatter: () =>
+                  (numUnreadTitle ? `(${numUnreadTitle}) ` : '') + 'Duolicious'
               }}
             >
-              <Tab.Screen
-                name="Welcome"
-                component={WelcomeScreen} />
-              <Tab.Screen
-                name="Home"
-                component={HomeTabs} />
-              <Tab.Screen
-                name="Conversation Screen"
-                component={ConversationScreen} />
-              <Tab.Screen
-                name="Prospect Profile Screen"
-                component={ProspectProfileScreen} />
-              <Tab.Screen
-                name="Invite Screen"
-                component={InviteScreen} />
-            </Stack.Navigator>
-          </NavigationContainer>
-        }
-        <DonationNagModal
-          name={signedInUser?.name}
-          estimatedEndDate={signedInUser?.estimatedEndDate}
-          visible={signedInUser?.doShowDonationNag}
-        />
-        <ReportModal/>
-        <ImageCropper/>
-        <ColorPickerModal/>
-        <GifPickerModal/>
-        <Toast/>
-      </GestureHandlerRootView>
-      <WebSplashScreen loading={isLoading}/>
-    </SafeAreaProvider>
+              <StatusBar
+                translucent={true}
+                backgroundColor="transparent"
+                barStyle="dark-content"
+              />
+              <Stack.Navigator
+                screenOptions={{
+                  headerShown: false,
+                  presentation: 'card',
+                }}
+              >
+                <Tab.Screen
+                  name="Welcome"
+                  component={WelcomeScreen} />
+                <Tab.Screen
+                  name="Home"
+                  component={HomeTabs} />
+                <Tab.Screen
+                  name="Conversation Screen"
+                  component={ConversationScreen} />
+                <Tab.Screen
+                  name="Prospect Profile Screen"
+                  component={ProspectProfileScreen} />
+                <Tab.Screen
+                  name="Invite Screen"
+                  component={InviteScreen} />
+              </Stack.Navigator>
+            </NavigationContainer>
+          }
+          <DonationNagModal
+            name={signedInUser?.name}
+            estimatedEndDate={signedInUser?.estimatedEndDate}
+            visible={signedInUser?.doShowDonationNag}
+          />
+          <ReportModal/>
+          <ImageCropper/>
+          <ColorPickerModal/>
+          <GifPickerModal/>
+          <Toast/>
+        </GestureHandlerRootView>
+        <WebSplashScreen loading={isLoading}/>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 };
 
