@@ -15,7 +15,6 @@ from service.chat.insertintrohash import insert_intro_hash
 from service.chat.mayberegister import maybe_register
 from service.chat.rude import is_rude_message
 from service.chat.spam import is_spam_message
-from service.chat.updatelast import update_last_forever, update_last_once
 from service.chat.upsertlastnotification import upsert_last_notification
 from service.chat.xmlparse import parse_xml_or_none
 from service.chat.messagestorage.inbox import (
@@ -29,9 +28,10 @@ from service.chat.session import (
     maybe_get_session_response,
 )
 from service.chat.online import (
-    redis_publish_online,
     maybe_redis_subscribe_online,
     maybe_redis_unsubscribe_online,
+    update_online_once,
+    update_online_forever,
 )
 from service.chat.ratelimit import (
     maybe_fetch_rate_limit,
@@ -577,7 +577,7 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
     # asyncio.create_task requires some manual memory management!
     # https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
     # https://github.com/python/cpython/issues/91887
-    update_last_task = None
+    update_online_task = None
 
     redis_forward_to_websocket_task = asyncio.create_task(
             redis_forward_to_websocket(pubsub, output_middleware, websocket))
@@ -595,14 +595,15 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
                         pubsub=pubsub,
                         text=text))
 
-            if not update_last_task and session.username:
-                update_last_task = asyncio.create_task(
-                        update_last_forever(session))
-
-                await redis_publish_online(
+            if not update_online_task and session.username:
+                update_online_task = asyncio.create_task(
+                    update_online_forever(
                         redis_client=REDIS_WORKER_CLIENT,
-                        username=session.username,
-                        online=True)
+                        session=session,
+                        online=True
+                    )
+                )
+
 
             if not is_subscribed_by_username and session.username:
                 await pubsub.subscribe(session.username)
@@ -618,29 +619,27 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
         )
         print(traceback.format_exc())
     finally:
-        if update_last_task:
-            update_last_task.cancel()
+        if update_online_task:
+            update_online_task.cancel()
+
             try:
-                await update_last_task
+                await update_online_task
             except asyncio.CancelledError:
                 pass
 
+            try:
+                await update_online_once(
+                    redis_client=REDIS_WORKER_CLIENT,
+                    session=session,
+                    online=False,
+                )
+            except asyncio.CancelledError:
+                pass
 
         if redis_forward_to_websocket_task:
             redis_forward_to_websocket_task.cancel()
             try:
                 await redis_forward_to_websocket_task
-            except asyncio.CancelledError:
-                pass
-
-        update_last_once(session)
-
-        if session.username:
-            try:
-                await redis_publish_online(
-                        redis_client=REDIS_WORKER_CLIENT,
-                        username=session.username,
-                        online=False)
             except asyncio.CancelledError:
                 pass
 
