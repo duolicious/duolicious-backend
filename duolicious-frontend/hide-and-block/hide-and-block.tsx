@@ -1,6 +1,7 @@
 import {
   useEffect,
   useState,
+  useRef,
 } from 'react';
 import { japi } from '../api/api';
 import { listen, notify, lastEvent } from '../events/events';
@@ -13,14 +14,12 @@ type SkippedNetworkState
   | 'settled'
 
 type SkippedState = {
-  personUuid: string | null | undefined
   isSkipped: boolean
   wasPostSkipFiredInThisSession: boolean
   networkState: SkippedNetworkState
 };
 
 const INITIAL_STATE: SkippedState = {
-  personUuid: null,
   isSkipped: false,
   wasPostSkipFiredInThisSession: false,
   networkState: 'settled',
@@ -45,10 +44,20 @@ const useSkipped = (
   personUuid: string | null | undefined,
   onPostSkip?: () => void
 ) => {
+  const personUuidRef = useRef<string | null | undefined>(personUuid);
   const [state, setState] = useState<SkippedState>(lastState(personUuid));
 
-  if (state.personUuid !== personUuid) {
-    setState(lastState(personUuid));
+  if (personUuidRef.current !== personUuid) {
+    personUuidRef.current = personUuid;
+    setState((oldState) => {
+      const newState = lastState(personUuid)
+
+      if (_.isEqual(oldState, newState)) {
+        return oldState;
+      } else {
+        return newState;
+      }
+    });
   }
 
   useEffect(() => {
@@ -65,7 +74,6 @@ const useSkipped = (
         // Fire `onPostSkip` on the transition from unskipped to skipped
         if (
           oldState.networkState !== 'fetching' &&
-          oldState.personUuid === newState.personUuid &&
           oldState.isSkipped !== newState.isSkipped &&
           newState.isSkipped
         ) {
@@ -80,7 +88,7 @@ const useSkipped = (
       });
     };
 
-    return listen<SkippedState>(eventKey(personUuid), onEvent, true);
+    return listen<SkippedState>(eventKey(personUuid), onEvent);
   }, [personUuid, onPostSkip]);
 
   return {
@@ -106,7 +114,6 @@ const setSkipped = (
       ...INITIAL_STATE,
       ..._lastEvent,
       ...state,
-      personUuid,
       wasPostSkipFiredInThisSession: (
         _lastEvent?.wasPostSkipFiredInThisSession ||
         state?.isSkipped ||
