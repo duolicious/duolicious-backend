@@ -25,6 +25,14 @@ const eventKey = (personUuid: string) => {
   return `is-online-${personUuid}`;
 };
 
+const onlineStatuses = [
+  'online',
+  'offline',
+  'within-1-day'
+] as const;
+
+type OnlineStatus = typeof onlineStatuses[number];
+
 // Flush pending changes after the batch window expires.
 const flushBatch = () => {
   Object.entries(pendingDeltas).forEach(([personUuid, delta]) => {
@@ -70,8 +78,8 @@ const subscribe = (personUuid: string) => {
   };
 };
 
-const useOnline = (personUuid: string | null | undefined): boolean => {
-  const [isOnline, setIsOnline] = useState(false);
+const useOnline = (personUuid: string | null | undefined): OnlineStatus => {
+  const [onlineStatus, setOnlineStatus] = useState<OnlineStatus>('offline');
   const xmppIsOnlineRef = useRef(false);
   const personSubRef = useRef<{
     removeSubscription: () => void;
@@ -86,9 +94,9 @@ const useOnline = (personUuid: string | null | undefined): boolean => {
 
       personSubRef.current = {
         removeSubscription: subscribe(personUuid),
-        removeListener: listen(
+        removeListener: listen<OnlineStatus>(
           eventKey(personUuid),
-          (data: boolean) => setIsOnline(data ?? false),
+          (data) => setOnlineStatus(data ?? 'offline'),
           true,
         ),
       };
@@ -124,7 +132,7 @@ const useOnline = (personUuid: string | null | undefined): boolean => {
     };
   }, [personUuid]);
 
-  return isOnline;
+  return onlineStatus;
 };
 
 const onReceive = async (doc: any) => {
@@ -140,7 +148,11 @@ const onReceive = async (doc: any) => {
 
     assert(onlineStatus);
 
-    notify<boolean>(eventKey(personUuid), onlineStatus === 'online');
+    if (onlineStatuses.includes(onlineStatus)) {
+      notify<OnlineStatus>(eventKey(personUuid), onlineStatus);
+    } else {
+      notify<OnlineStatus>(eventKey(personUuid), 'offline');
+    }
   } catch { }
 };
 

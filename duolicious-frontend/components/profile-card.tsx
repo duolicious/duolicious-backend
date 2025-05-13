@@ -26,9 +26,9 @@ import { ImageBackground as ExpoImageBackground } from 'expo-image';
 import { VerificationBadge } from './verification-badge';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
-import { ONLINE_COLOR } from '../constants/constants';
 import { useOnline } from '../chat/application-layer/hooks/online';
 import { useSkipped } from '../hide-and-block/hide-and-block';
+import { OnlineIndicator } from './online-indicator';
 
 // This component wouldn't need to exist if expo-image (and expo itself (and the
 // JS eco system generally)) wasn't buggy trash. This fixes an issue on
@@ -257,7 +257,7 @@ const ProfileCard = ({
         style={{
           width: '100%',
           height: '100%',
-          borderBottomRightRadius: isOnline ? 24 : undefined,
+          borderBottomRightRadius: isOnline !== 'offline' ? 24 : undefined,
           overflow: 'hidden',
         }}
       >
@@ -272,7 +272,7 @@ const ProfileCard = ({
           matchPercentage={matchPercentage}
           verified={verified}
         />
-        {!isOnline && prospectMessagedPersonState &&
+        {isOnline !== 'offline' && prospectMessagedPersonState &&
           <View
             style={{
               position: 'absolute',
@@ -288,7 +288,7 @@ const ProfileCard = ({
             />
           </View>
         }
-        {!isOnline && personMessagedProspectState &&
+        {isOnline !== 'offline' && personMessagedProspectState &&
           <View
             style={{
               transform: [ { scaleX: -1 } ],
@@ -306,34 +306,16 @@ const ProfileCard = ({
           </View>
         }
       </View>
-      {isOnline && <>
-        <View
-          style={{
-            position: 'absolute',
-            bottom: -4,
-            right: -4,
-
-            borderRadius: 999,
-
-            backgroundColor: 'white',
-            justifyContent: 'center',
-            alignItems: 'center',
-            width: 24,
-            height: 24,
-          }}
-        />
-        <View
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            right: 0,
-            backgroundColor: ONLINE_COLOR,
-            borderRadius: 999,
-            width: 16,
-            height: 16,
-          }}
-        />
-      </>}
+      <OnlineIndicator
+        personUuid={personUuid}
+        size={24}
+        borderWidth={4}
+        style={{
+          position: 'absolute',
+          bottom: -4,
+          right: -4,
+        }}
+      />
       {isSkipped && wasPostSkipFiredInThisSession &&
         <View
           style={{

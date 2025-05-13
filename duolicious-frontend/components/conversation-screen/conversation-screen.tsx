@@ -48,12 +48,11 @@ import { ImageBackground } from 'expo-image';
 import * as StoreReview from 'expo-store-review';
 import { askedForReviewBefore } from '../../kv-storage/asked-for-review-before';
 import { MessageDivider }  from './message-divider';
-import { ONLINE_COLOR } from '../../constants/constants';
-import { useOnline } from '../../chat/application-layer/hooks/online';
 import * as _ from 'lodash';
 import { Input } from './input';
 import { GifPickedEvent } from '../../components/modal/gif-picker-modal';
 import { useSkipped } from '../../hide-and-block/hide-and-block';
+import { OnlineIndicator } from '../online-indicator';
 
 const firstMamId = (messageIds: string[] | null): string => {
   if (!messageIds) {
@@ -295,8 +294,6 @@ const ConversationScreenNavBar = ({
     setShowMenu(x => !x);
   }, []);
 
-  const isOtherPersonOnline = useOnline(personUuid);
-
   return (
     <TopNavBar>
       <TopNavBarButton
@@ -347,34 +344,16 @@ const ConversationScreenNavBar = ({
               />
             }
           </ImageBackground>
-          {isOtherPersonOnline && <>
-            <View
-              style={{
-                position: 'absolute',
-                bottom: -4,
-                right: -4,
-
-                borderRadius: 999,
-
-                backgroundColor: 'white',
-                justifyContent: 'center',
-                alignItems: 'center',
-                width: 16,
-                height: 16,
-              }}
-            />
-            <View
-              style={{
-                position: 'absolute',
-                bottom: -1,
-                right: -1,
-                backgroundColor: ONLINE_COLOR,
-                borderRadius: 999,
-                width: 10,
-                height: 10,
-              }}
-            />
-          </>}
+          <OnlineIndicator
+            personUuid={personUuid}
+            size={16}
+            borderWidth={2}
+            style={{
+              position: 'absolute',
+              bottom: -4,
+              right: -4,
+            }}
+          />
         </View>
         <DefaultText
           style={{

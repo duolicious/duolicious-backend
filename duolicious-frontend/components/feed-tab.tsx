@@ -13,8 +13,6 @@ import { getShortElapsedTime } from '../util/util';
 import { GestureResponderEvent, Pressable } from 'react-native';
 import { EnlargeablePhoto } from './enlargeable-image';
 import { commonStyles } from '../styles';
-import { useOnline } from '../chat/application-layer/hooks/online';
-import { ONLINE_COLOR } from '../constants/constants';
 import { VerificationBadge } from './verification-badge';
 import { useNavigation } from '@react-navigation/native';
 import { japi } from '../api/api';
@@ -30,6 +28,8 @@ import { setQuote } from './conversation-screen/quote';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
 import { isMobile } from '../util/util';
+import { OnlineIndicator } from './online-indicator';
+
 
 const NAME_ACTION_TIME_GAP_VERTICAL = 16;
 
@@ -213,8 +213,6 @@ const NameActionTime = ({
   doUseOnline: boolean
   style?: any
 }) => {
-  const isOnline = useOnline(doUseOnline ? personUuid : null);
-
   const onPress = useCallback((event: GestureResponderEvent) => {
     event.stopPropagation();
 
@@ -250,14 +248,11 @@ const NameActionTime = ({
             alignItems: 'center',
           }}
         >
-          {isOnline &&
-            <View
-              style={{
-                height: 10,
-                width: 10,
-                borderRadius: 999,
-                backgroundColor: ONLINE_COLOR,
-              }}
+          {doUseOnline &&
+            <OnlineIndicator
+              personUuid={personUuid}
+              size={12}
+              borderWidth={0}
             />
           }
           <DefaultText

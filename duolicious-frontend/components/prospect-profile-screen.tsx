@@ -62,12 +62,12 @@ import { ClubItem, joinClub, leaveClub } from '../club/club';
 import * as _ from 'lodash';
 import { friendlyTimeAgo, possessive } from '../util/util';
 import { useOnline } from '../chat/application-layer/hooks/online';
-import { ONLINE_COLOR } from '../constants/constants';
 import { HeartBackground } from './heart-background';
 import { AudioPlayer } from './audio-player';
 import { EnlargeablePhoto } from './enlargeable-image';
 import { commonStyles } from '../styles';
 import { useSkipped, setSkipped } from '../hide-and-block/hide-and-block';
+import { OnlineIndicator } from './online-indicator';
 
 const Stack = createNativeStackNavigator();
 
@@ -870,8 +870,6 @@ const ProspectUserDetails = ({
   userLocation,
   textColor,
 }) => {
-  const isOnline = useOnline(personUuid);
-
   const onPressDonutChart = useCallback(() => {
     if (personId === undefined) return;
     if (name === undefined) return;
@@ -903,20 +901,11 @@ const ProspectUserDetails = ({
             gap: 8,
           }}
         >
-          {isOnline &&
-            <View
-              style={{
-                borderColor: 'white',
-                borderWidth: 1,
-                borderRadius: 999,
-                backgroundColor: ONLINE_COLOR,
-                marginLeft: 1,
-                marginRight: 2,
-                width: 14,
-                height: 14,
-              }}
-            />
-          }
+          <OnlineIndicator
+            personUuid={personUuid}
+            size={14}
+            borderWidth={1}
+          />
           <DefaultText
             style={{
               fontWeight: '700',
@@ -1254,7 +1243,7 @@ const Body = ({
                 {
                   data === undefined ?
                   'Loading...' :
-                  isOnline ?
+                  isOnline === 'online' ?
                   'Now' :
                   `${friendlyTimeAgo(data.seconds_since_last_online)} ago`
                 }

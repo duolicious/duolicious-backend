@@ -16,8 +16,7 @@ import { X } from "react-native-feather";
 import { ImageBackground } from "expo-image";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
-import { ONLINE_COLOR } from '../constants/constants';
-import { useOnline } from '../chat/application-layer/hooks/online';
+import { OnlineIndicator } from './online-indicator';
 
 const Avatar = ({
   percentage,
@@ -40,8 +39,6 @@ const Avatar = ({
   verificationRequired?: boolean | null
   doUseOnline?: boolean
 }) => {
-  const isOnline = useOnline(doUseOnline ? personUuid : null);
-
   const Element = navigation ? Pressable : View;
 
   const onPress = useCallback((e) => {
@@ -106,34 +103,18 @@ const Avatar = ({
           }
         </ImageBackground>
       }
-      {isOnline && <>
-        <View
+      {doUseOnline &&
+        <OnlineIndicator
+          personUuid={personUuid}
+          size={20}
+          borderWidth={2}
           style={{
             position: 'absolute',
             bottom: 6,
             right: 6,
-
-            borderRadius: 999,
-
-            backgroundColor: 'white',
-            justifyContent: 'center',
-            alignItems: 'center',
-            width: 20,
-            height: 20,
           }}
         />
-        <View
-          style={{
-            position: 'absolute',
-            bottom: 10,
-            right: 10,
-            backgroundColor: ONLINE_COLOR,
-            borderRadius: 999,
-            width: 12,
-            height: 12,
-          }}
-        />
-      </>}
+      }
       {percentage !== undefined &&
         <View
           style={{
