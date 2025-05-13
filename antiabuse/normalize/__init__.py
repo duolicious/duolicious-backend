@@ -33,8 +33,8 @@ _normalization_map = {
     "fked": "fucked",
     "fk": "fuck",
     "fking": "fucking",
-    "f[o0]{2}tj[o0]b": "footjob",
-    "f[o0]{2}tj[o0]b[s5$z]": "footjobs",
+    "f[o0]{2}t\s*j[o0]b": "footjob",
+    "f[o0]{2}t\s*j[o0]b[s5$z]": "footjobs",
     "f[uv]ck[e3]d": "fucked",
     "f[uv]ck": "fuck",
     "f[uv]ckin": "fucking",
@@ -90,6 +90,7 @@ _normalization_map = {
     "u": "you",
     "wh[o0]r[e3][s5$z]": "whores",
     "wh[o0]r[e3]": "whores",
+    "r[@a4]y\s+p[i1]ng": "raping",
 }
 
 
