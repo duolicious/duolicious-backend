@@ -92,6 +92,10 @@ class TestNormalizeString(unittest.TestCase):
 
         self.assertEqual(normalize_string("ahole"), "asshole")
 
+        self.assertEqual(normalize_string("ray ping"), "raping")
+
+        self.assertEqual(normalize_string("f00t job"), "footjob")
+
 
 if __name__ == '__main__':
     unittest.main()
