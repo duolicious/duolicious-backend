@@ -272,7 +272,7 @@ const ProfileCard = ({
           matchPercentage={matchPercentage}
           verified={verified}
         />
-        {isOnline !== 'offline' && prospectMessagedPersonState &&
+        {isOnline === 'offline' && prospectMessagedPersonState &&
           <View
             style={{
               position: 'absolute',
@@ -288,7 +288,7 @@ const ProfileCard = ({
             />
           </View>
         }
-        {isOnline !== 'offline' && personMessagedProspectState &&
+        {isOnline === 'offline' && personMessagedProspectState &&
           <View
             style={{
               transform: [ { scaleX: -1 } ],
