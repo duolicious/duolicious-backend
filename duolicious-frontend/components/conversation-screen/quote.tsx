@@ -132,6 +132,7 @@ const quotablePortion = (quote: Quote | null) => {
   }
 
   const bestBlock = parseMarkdown(quote.text)
+    .filter((block) => !!block.text.trim()) // ignore empty blocks
     .map((block, i) => ({ block, i }))
     .sort((a, b) => {
       if (a.block.type === b.block.type) {

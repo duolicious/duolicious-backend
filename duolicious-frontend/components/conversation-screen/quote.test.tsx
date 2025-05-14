@@ -109,6 +109,29 @@ describe('quoteToPreviewMarkdown', () => {
     expect(result).toContain('>Plain text line that should be chosen.');
     expect(result).not.toContain('>Quoted line');
   });
+
+  it('blank blocks are ignored', () => {
+    const quote = {
+      text: `
+>🇨🇳
+
+> 6 year neet veteran
+
+>17 cats owner
+
+>idk what am i doing w my life
+`.trim(),
+      attribution: 'Tester',
+    };
+
+    const result = quoteToPreviewMarkdown(quote);
+
+    // The preview should contain the plain text line but not the quoted line.
+    expect(result).toBe(`
+>🇨🇳
+>- Tester
+`.trim());
+  });
 });
 
 
