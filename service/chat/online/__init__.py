@@ -13,7 +13,9 @@ from database import api_tx
 import asyncio
 import traceback
 
-LAST_UPDATE_INTERVAL_SECONDS = 4 * 60
+LAST_UPDATE_INTERVAL_SECONDS = 4 * 60  # 4 minutes
+
+ONLINE_RECENTLY_SECONDS = 3 * 60 * 60  # 3 hours
 
 FMT_KEY = 'online-{username}'
 
@@ -28,7 +30,7 @@ FMT_UNSUB_BAD = '<duo_unsubscribe_unsuccessful uuid="{username}" />'
 
 class OnlineStatus(Enum):
     ONLINE = 'online'
-    WITHIN_ONE_DAY = 'within-1-day'
+    ONLINE_RECENTLY = 'online-recently'
     OFFLINE = 'offline'
 
 
@@ -62,14 +64,14 @@ async def redis_publish_online(
     status = (
         OnlineStatus.ONLINE.value
         if online
-        else OnlineStatus.WITHIN_ONE_DAY.value)
+        else OnlineStatus.ONLINE_RECENTLY.value)
 
     key = FMT_KEY.format(username=username)
     val = FMT_ONLINE_EVENT.format(username=username, status=status)
 
     async with redis_client.pipeline(transaction=True) as pipe:
         pipe.publish(key, val)
-        pipe.set(key, val, ex=86400)  # Expires in one day
+        pipe.set(key, val, ex=ONLINE_RECENTLY_SECONDS)
         await pipe.execute()
 
 
