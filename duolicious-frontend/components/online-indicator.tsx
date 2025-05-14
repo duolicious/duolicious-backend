@@ -31,6 +31,7 @@ const OnlineIndicator = ({
       const state: TooltipState = {
         left: x + width / 2,
         top: y + height / 2,
+        padding: Math.max(width, height) / 2 + 1,
         text: friendlyOnlineStatus(onlineStatus),
       };
 

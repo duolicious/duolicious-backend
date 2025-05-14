@@ -5,6 +5,7 @@ import { listen, notify } from '../events/events';
 
 type TooltipState = {
   text: string
+  padding: number
   bottom?: number
   top?: number
   left?: number
@@ -57,7 +58,7 @@ const TooltipListener = () => {
     return null;
   }
 
-  const padding = 10;
+  const padding = state.padding;
 
   return (
     <View
