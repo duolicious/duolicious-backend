@@ -855,6 +855,8 @@ def delete_or_ban_account(
     admin_ban_token: Optional[str] = None,
 ):
     with api_tx() as tx:
+        tx.execute('SET LOCAL statement_timeout = 30_000')  # 30 seconds
+
         if admin_ban_token:
             rows = tx.execute(
                 Q_ADMIN_BAN,
