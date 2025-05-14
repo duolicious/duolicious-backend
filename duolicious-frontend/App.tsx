@@ -58,6 +58,7 @@ import { Logo16 } from './components/logo';
 import { useScrollbarStyle } from './components/navigation/scroll-bar-hooks';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ErrorBoundary } from './components/error-boundary';
+import { TooltipListener } from './components/tooltip';
 
 verificationWatcher();
 
@@ -524,6 +525,7 @@ const App = () => {
               </Stack.Navigator>
             </NavigationContainer>
           }
+          <TooltipListener/>
           <DonationNagModal
             name={signedInUser?.name}
             estimatedEndDate={signedInUser?.estimatedEndDate}

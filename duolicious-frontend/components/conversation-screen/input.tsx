@@ -52,6 +52,7 @@ import {
   setQuote,
   useQuote,
 } from './quote';
+import { Tooltip } from '../tooltip';
 
 const haptics = () => {
   if (Platform.OS !== 'web') {
@@ -563,9 +564,9 @@ const Input = ({
         <View style={styles.iconContainer}>
           {showHint && (
             <View style={styles.hintContainer}>
-              <DefaultText style={styles.hintText} numberOfLines={1}>
+              <Tooltip style={styles.hintText}>
                 Hold to record, release to send
-              </DefaultText>
+              </Tooltip>
             </View>
           )}
           <GestureDetector gesture={finalGesture}>
@@ -725,13 +726,8 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   hintText: {
-    backgroundColor: 'black',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 5,
     borderBottomRightRadius: 2,
     color: 'white',
-    fontSize: 14,
     flexShrink: 1,
     alignSelf: 'flex-end',
   },

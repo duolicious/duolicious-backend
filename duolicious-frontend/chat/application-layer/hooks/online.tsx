@@ -11,7 +11,7 @@ import {
   send,
   EV_CHAT_WS_RECEIVE,
 } from '../../websocket-layer';
-import { assert } from '../../../util/util';
+import { assert, assertNever } from '../../../util/util';
 
 // Global reference counts (online status) per person
 const REFERENCE_COUNT_BY_PERSON_UUID: Record<string, number> = {};
@@ -27,8 +27,8 @@ const eventKey = (personUuid: string) => {
 
 const onlineStatuses = [
   'online',
+  'online-recently',
   'offline',
-  'within-1-day'
 ] as const;
 
 type OnlineStatus = typeof onlineStatuses[number];
@@ -156,10 +156,23 @@ const onReceive = async (doc: any) => {
   } catch { }
 };
 
+const friendlyOnlineStatus = (onlineStatus: OnlineStatus) => {
+  if (onlineStatus === 'online') {
+    return 'Online';
+  } else if (onlineStatus === 'online-recently') {
+    return 'Online recently';
+  } else if (onlineStatus === 'offline') {
+    return 'Offline';
+  } else {
+    return assertNever(onlineStatus);
+  }
+};
+
 listen(EV_CHAT_WS_RECEIVE, onReceive);
 
 export {
+  OnlineStatus,
+  friendlyOnlineStatus,
   subscribe,
   useOnline,
 };
-
