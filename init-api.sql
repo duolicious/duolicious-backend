@@ -295,6 +295,10 @@ CREATE TABLE IF NOT EXISTS person (
     last_event_name person_event NOT NULL DEFAULT 'joined',
     last_event_data JSONB NOT NULL DEFAULT '{}',
 
+    -- Flair and roles
+    flair TEXT[] NOT NULL DEFAULT '{}',
+    roles TEXT[] NOT NULL DEFAULT '{}',
+
     -- Primary keys and constraints
     UNIQUE (email),
     PRIMARY KEY (id)

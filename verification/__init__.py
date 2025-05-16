@@ -162,11 +162,12 @@ def success(
 
 def process_response(
     response: str | None,
-    claimed_uuids: list[int],
+    claimed_uuids: list[str],
 ) -> VerificationResult:
     response_str = str(response)
 
     try:
+        assert response
         json_obj = json.loads(response)
 
         image_1_was_not_edited          = json_obj['image_1_was_not_edited']
@@ -340,7 +341,7 @@ async def verify(
 ) -> VerificationResult:
     if _mock_response_file:
         with _mock_response_file.open('r') as f:
-            response = f.read()
+            response: str | None = f.read()
     else:
         try:
             response = (await AsyncOpenAI().chat.completions.create(
