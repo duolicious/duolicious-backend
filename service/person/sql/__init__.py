@@ -309,9 +309,21 @@ WITH valid_session AS (
     SET
         signed_in = TRUE
     WHERE
-        session_token_hash = %(session_token_hash)s AND
-        otp = %(otp)s AND
+        session_token_hash = %(session_token_hash)s
+    AND
+        otp = %(otp)s
+    AND
         otp_expiry > NOW()
+    AND NOT EXISTS (
+        SELECT
+            1
+        FROM
+            person
+        WHERE
+            person.id = duo_session.person_id
+        AND
+            'bot' = ANY(person.roles)
+    )
     RETURNING
         person_id,
         email
@@ -1018,6 +1030,7 @@ SELECT
         'is_skipped',                (SELECT j                         FROM is_skipped),
         'seconds_since_last_online', (SELECT seconds_since_last_online FROM prospect),
         'seconds_since_sign_up',     (SELECT seconds_since_sign_up     FROM prospect),
+        'flair',                     (SELECT flair                     FROM prospect),
 
         -- Basics
         'occupation',             (SELECT occupation    FROM prospect),

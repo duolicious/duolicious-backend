@@ -185,7 +185,9 @@ WITH searcher AS (
             100 * (
                 1 - (personality <#> (SELECT personality FROM searcher))
             ) / 2
-        ) AS match_percentage
+        ) AS match_percentage,
+
+        roles
 
     FROM
         person AS prospect
@@ -195,8 +197,6 @@ WITH searcher AS (
         prospects_third_pass.id = prospect.id
 
     WHERE
-        prospect.id != %(searcher_person_id)s
-    AND
         -- The searcher meets the prospect's gender preference
         EXISTS (
             SELECT 1
@@ -533,7 +533,11 @@ WITH searcher AS (
         match_percentage DESC
 
     LIMIT
-        500
+        -- 500 + 2. The two extra records are the searcher and the moderation
+        -- bot, which we'll filter out later so that we have 500 records to show
+        -- the user. We don't filer them here to reduce the number of checks we
+        -- need to do for 'bot' or 'self' status.
+        502
 ), do_promote_verified AS (
     SELECT
         count(*) >= 250 AS x
@@ -581,8 +585,14 @@ SELECT
     verified
 FROM
     prospects_fourth_pass
+WHERE
+    prospects_fourth_pass.prospect_person_id != %(searcher_person_id)s
+AND
+    'bot' <> ALL(prospects_fourth_pass.roles)
 ORDER BY
     position
+LIMIT
+    500
 ON CONFLICT (searcher_person_id, position) DO UPDATE SET
     searcher_person_id = EXCLUDED.searcher_person_id,
     position = EXCLUDED.position,
