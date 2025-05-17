@@ -10,7 +10,7 @@ GARBAGE_RECORDS_POLL_SECONDS = int(os.environ.get(
     str(60), # 1 minute
 ))
 
-print('Hello from cron module: garbagerecords')
+print(f'Hello from cron module: {__name__}')
 
 async def delete_garbage_records_once():
     async with api_tx() as tx:

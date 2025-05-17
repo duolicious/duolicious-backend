@@ -304,6 +304,13 @@ CREATE TABLE IF NOT EXISTS person (
     PRIMARY KEY (id)
 );
 
+CREATE TABLE IF NOT EXISTS unmoderated_person (
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    trait TEXT NOT NULL,
+
+    PRIMARY KEY (person_id, trait)
+);
+
 CREATE TABLE IF NOT EXISTS onboardee (
     email TEXT NOT NULL,
 
@@ -700,6 +707,9 @@ CREATE INDEX IF NOT EXISTS idx__person__normalized_email
     ON person(normalized_email);
 CREATE INDEX IF NOT EXISTS idx__person__last_event_time
     ON person(last_event_time);
+CREATE INDEX IF NOT EXISTS idx__person__roles
+    ON person
+    USING GIN (roles);
 
 CREATE INDEX IF NOT EXISTS idx__search_cache__searcher_person_id__position ON search_cache(searcher_person_id, position);
 
@@ -1275,7 +1285,7 @@ WHERE
 ON CONFLICT DO NOTHING;
 
 INSERT INTO funding (id, estimated_end_date, cost_per_month_usd)
-VALUES (1, '2024-09-17 15:02:10.866000+00', 360.0)
+VALUES (1, now() + interval '1 year', 360.0)
 ON CONFLICT (id) DO NOTHING;
 
 --------------------------------------------------------------------------------

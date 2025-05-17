@@ -12,7 +12,7 @@ VERIFICATION_POLL_SECONDS = int(os.environ.get(
     str(1), # 1 second
 ))
 
-print('Hello from cron module: verificationjobrunner')
+print(f'Hello from cron module: {__name__}')
 
 @dataclass
 class VerificationJob:

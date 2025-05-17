@@ -1,0 +1,75 @@
+To: [
+  "duolicious@example.com"
+]
+From: [
+  "Duolicious <duolicious@example.com>"
+]
+Subj: [
+]
+Body: <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report</title>
+</head>
+<body>
+<pre>
+- about: &#x27;&#x27;
+  account_age_in_days: 0
+  age: 26
+  all_report_reasons: []
+  clubs: []
+  count_answers: 0
+  education: null
+  email_domain: example.com
+  gender: Other
+  ip_addresses:
+    - 172.18.0.1/32
+  location: New York, New York, United States
+  name: reporterbot
+  occupation: null
+  photo_deletion_links: []
+  photo_links: []
+  role: Reporter
+  times_reported: 0
+  times_reported_in_the_past_24_hours: 0
+  verification_level: No verification
+- about: 17. just looking for friends
+  account_age_in_days: 0
+  age: 26
+  all_report_reasons: []
+  clubs: []
+  count_answers: 0
+  education: null
+  email_domain: example.com
+  gender: Other
+  ip_addresses:
+    - 172.18.0.1/32
+  location: New York, New York, United States
+  name: user2
+  occupation: null
+  photo_deletion_links: []
+  photo_links: []
+  role: Accused
+  times_reported: 0
+  times_reported_in_the_past_24_hours: 0
+  verification_level: No verification
+</pre>
+<p><b>Accused person's images:</b></p>
+<p><b>Last messages between reporter and accused:</b></p>
+<pre>
+[]
+</pre>
+<p><b>Reporter's reason:</b></p>
+<pre>
+Automatically lodged report: Possible minor
+</pre>
+<p><b>Ban REPORTING user for one month:</b></p>
+</a>
+<br/>
+<br/>
+<p><b>Ban ACCUSED user for one month:</b></p>
+</a>
+</body>
+</html>

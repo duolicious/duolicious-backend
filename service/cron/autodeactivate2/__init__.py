@@ -17,7 +17,7 @@ AUTODEACTIVATE2_POLL_SECONDS = int(os.environ.get(
     str(60 * 10), # 10 minutes
 ))
 
-print('Hello from cron module: autodeactivate2')
+print(f'Hello from cron module: {__name__}')
 
 def maybe_send_email(email: str):
     if email.lower().endswith('@example.com'):
