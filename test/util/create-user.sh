@@ -99,7 +99,7 @@ main () {
     date -d "-26 years -6 months" "+%Y-%m-%d")'" }'
   jc PATCH /onboardee-info -d '{ "location": "New York, New York, United States" }'
   jc PATCH /onboardee-info -d '{ "gender": "Other" }'
-  jc PATCH /onboardee-info -d '{ "other_peoples_genders": ["Man", "Woman", "Agender", "Intersex", "Non-binary", "Transgender", "Trans woman", "Trans man", "Other"] }'
+  jc PATCH /onboardee-info -d '{ "other_peoples_genders": ["Man", "Woman", "Agender", "Femboy", "Intersex", "Non-binary", "Transgender", "Trans woman", "Trans man", "Other"] }'
   add_photos_to_onboardee "${num_photos}"
   c POST /finish-onboarding
 

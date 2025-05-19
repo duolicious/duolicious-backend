@@ -784,6 +784,7 @@ SELECT setval('gender_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM gender), FA
 INSERT INTO gender (name) VALUES ('Man') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Woman') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Agender') ON CONFLICT (name) DO NOTHING;
+INSERT INTO gender (name) VALUES ('Femboy') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Intersex') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Non-binary') ON CONFLICT (name) DO NOTHING;
 INSERT INTO gender (name) VALUES ('Transgender') ON CONFLICT (name) DO NOTHING;
