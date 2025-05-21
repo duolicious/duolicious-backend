@@ -1,50 +1,96 @@
 import {
+  Linking,
   Platform,
   Text,
   View,
 } from 'react-native';
 import {
+  useEffect,
   useMemo,
+  useState,
 } from 'react';
 import { DefaultText } from './default-text';
 import {
   randomGagMaintenanceNotice,
   randomGagUpdateNotice,
 } from '../data/gag-utility-notices';
+import { assertNever } from '../util/util'
+import { ButtonWithCenteredText } from './button/centered-text';
+
+type ServerStatus = "ok" | "down for maintenance" | "please update";
+
+const useHasDonations = (estimatedEndDate: Date | undefined) => {
+  const [hasDonations, setHasDonations] = useState(() => {
+    return estimatedEndDate ? estimatedEndDate > new Date() : true;
+  });
+
+  useEffect(() => {
+    if (!estimatedEndDate) {
+      setHasDonations(true);
+      return;
+    }
+
+    const now = new Date();
+    const timeUntilEnd = estimatedEndDate.getTime() - now.getTime();
+
+    if (timeUntilEnd <= 0) {
+      setHasDonations(false);
+      return;
+    }
+
+    // Set a timer to update when the date is no longer in the future
+    const timer = setTimeout(() => {
+      setHasDonations(false);
+    }, timeUntilEnd);
+
+    return () => clearTimeout(timer); // Clean up the timer if the date changes
+  }, [estimatedEndDate]);
+
+  return hasDonations;
+};
 
 const UtilityScreen = ({
-  serverStatus
+  serverStatus,
+  hasDonations,
 }: {
   serverStatus:
     | "down for maintenance"
     | "please update"
+  hasDonations: true
+} | {
+  serverStatus: ServerStatus
+  hasDonations: false
 }) => {
   const getBody = () => {
     if (serverStatus === "down for maintenance") {
       return randomGagMaintenanceNotice();
-    }
-    if (serverStatus === "please update") {
+    } else if (serverStatus === "please update") {
       return randomGagUpdateNotice();
+    } else if (!hasDonations) {
+      return "";
+    } else {
+      return assertNever(serverStatus);
     }
-
-    // Just in case the type signature is a lie
-    return randomGagMaintenanceNotice();
   };
 
   const getTitle = () => {
     if (serverStatus === "down for maintenance") {
       return "Down For Maintenance";
-    }
-    if (serverStatus === "please update") {
+    } else if (serverStatus === "please update") {
       if (Platform.OS === 'web') {
         return "Please Refresh This Page 😇"
       } else {
         return "Please Update Your App 😇"
       }
+    } else if (!hasDonations) {
+      return "Got Any Change?"
+    } else {
+      return assertNever(serverStatus);
     }
+  };
 
-    // Just in case the type signature is a lie
-    return "Down For Maintenance";
+  const onPressDonate = () => {
+    Linking.openURL('https://ko-fi.com/duolicious');
   };
 
   const title_ = useMemo(getTitle, [serverStatus]);
@@ -100,11 +146,62 @@ const UtilityScreen = ({
         >
           {body_}
         </DefaultText>
+        {!hasDonations && <>
+          <DefaultText
+            style={{
+              color: 'white',
+              textAlign: 'center',
+            }}
+          >
+            Even though we’re donation-based, have no ads, and ask for less than
+            1% of what Tinder charges per user, we still need to pay our bills
+            to stay running.
+            {'\n\n'}
+            Thankfully, {}
+            <DefaultText style={{ fontWeight: '700' }}>
+              your donation can bring us back for everyone, instantly
+            </DefaultText>.
+            {} Learn more about donating {}
+            <DefaultText
+              onPress={() => Linking.openURL('https://duolicious.app/donation-faq/')}
+              style={{
+                fontWeight: '700',
+              }}
+            >
+              here
+            </DefaultText>
+            {} or donate now.
+          </DefaultText>
+          <ButtonWithCenteredText
+            onPress={onPressDonate}
+            textStyle={{
+              fontWeight: '700',
+            }}
+            secondary={true}
+            containerStyle={{
+              marginTop: 40,
+              width: '90%',
+            }}
+          >
+            Donate via Ko-fi
+          </ButtonWithCenteredText>
+          <DefaultText
+            style={{
+              color: 'white',
+              textAlign: 'center',
+            }}
+          >
+            You’ll need to refresh this page after donating to use Duolicious
+            again
+          </DefaultText>
+        </>}
       </View>
     </View>
   );
 };
 
 export {
+  ServerStatus,
   UtilityScreen,
+  useHasDonations,
 };

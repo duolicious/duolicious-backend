@@ -27,7 +27,7 @@ import { ProfileTab } from './components/profile-tab';
 import { InboxTab } from './components/inbox-tab';
 import { FeedTab } from './components/feed-tab';
 import { ConversationScreen } from './components/conversation-screen/conversation-screen';
-import { UtilityScreen } from './components/utility-screen';
+import { ServerStatus, UtilityScreen, useHasDonations } from './components/utility-screen';
 import { ProspectProfileScreen } from './components/prospect-profile-screen';
 import { InviteScreen, WelcomeScreen } from './components/welcome-screen';
 import { sessionToken, sessionPersonUuid } from './kv-storage/session-token';
@@ -143,8 +143,6 @@ type SignedInUser = {
   name: string | null
 };
 
-type ServerStatus = "ok" | "down for maintenance" | "please update";
-
 
 let signedInUser: SignedInUser | undefined;
 let setSignedInUser: React.Dispatch<React.SetStateAction<typeof signedInUser>>;
@@ -160,6 +158,7 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
   [signedInUser, setSignedInUser] = useState<SignedInUser | undefined>();
+  const hasDonations = useHasDonations(signedInUser?.estimatedEndDate);
 
   const loadFonts = useCallback(async () => {
     await Font.loadAsync({
@@ -467,8 +466,18 @@ const App = () => {
 
   useScrollbarStyle();
 
+  // I realize this is a verbose way to write it, but TypeScript's type
+  // narrowing couldn't figure out the types were correct otherwise.
   if (serverStatus !== "ok") {
-    return <UtilityScreen serverStatus={serverStatus}/>
+    return <UtilityScreen
+      serverStatus={serverStatus}
+      hasDonations={hasDonations}
+    />
+  } else if (hasDonations === false && Platform.OS === 'web') {
+    return <UtilityScreen
+      serverStatus={serverStatus}
+      hasDonations={hasDonations}
+    />
   }
 
   return (
