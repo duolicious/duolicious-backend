@@ -9,6 +9,8 @@ source ../util/setup.sh
 set -xe
 
 # TODO: Set search preferences via API calls instead of queries
+personality_full='[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]'
+personality_half='[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]'
 
 setup () {
   q "delete from duo_session"
@@ -21,8 +23,9 @@ setup () {
   ../util/create-user.sh user1 0 1
   ../util/create-user.sh user2 0 1
 
-  q "update person set privacy_verification_level_id = 1"
   q "update photo set blurhash = 'the-blurhash'"
+  q "update person set privacy_verification_level_id = 1"
+  q "update person set personality = array_full(47, 1e-5)"
 
   searcher_id=$(q "select id from person where email = 'searcher@example.com'")
   user1_id=$(q "select id from person where email = 'user1@example.com'")
@@ -209,27 +212,35 @@ test_quiz_search () {
   setup
 
   q "
-  update person set personality = array_full(47, 1)
+  update person set personality = '${personality_full}'
+  where id = ${searcher_id}"
+
+  q "
+  update person set personality = '${personality_full}'
   where id = ${user1_id}"
 
   q "
-  update person set personality = array_full(47, -1)
+  update person set personality = '${personality_half}'
   where id = ${user2_id}"
+
+  q "update person set personality = l2_normalize(personality)"
 
   echo Populate the search cache
   c GET '/search?n=1&o=0'
 
   echo user1 has the higher match percentage
   q "
-  update person set personality = array_full(47, 1)
+  update person set personality = '${personality_full}'
   where id = ${searcher_id}"
+  q "update person set personality = l2_normalize(personality)"
   local response1=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response1" = "$user1_id" ]]
 
   echo user1 has the lower match percentage
   q "
-  update person set personality = array_full(47, -1)
+  update person set personality = '${personality_half}'
   where id = ${searcher_id}"
+  q "update person set personality = l2_normalize(personality)"
   local response2=$(c GET /search | jq -r '[.[].prospect_person_id] | join(" ")')
   [[ "$response2" != "$user1_id" ]]
 
@@ -294,6 +305,7 @@ test_photos_promoted () {
   setup
   ../util/create-user.sh user3 0
   ../util/create-user.sh user4 0
+  q "update person set personality = array_full(47, 1e-5)"
 
   assert_search_names 'user1 user2 user3 user4' 10 0
 
@@ -339,7 +351,7 @@ test_verified_promoted () {
 
   q "
   update person
-  set personality = array_full(47, 0)"
+  set personality = array_full(47, 1e-3)"
   q "
   update person
   set personality = array_full(47, 9e-2)
@@ -402,6 +414,7 @@ test_verified_promoted () {
 test_quiz_filters () {
   setup
   ../util/create-user.sh user3 2
+  q "update person set personality = array_full(47, 1e-5)"
 
   # Gotta set answers to something non-null; ../util/create-user.sh sometimes gives
   # null answers
