@@ -279,9 +279,9 @@ WITH searcher AS (
             LIMIT 1
         )
 
-    -- The users have a greater-than 50%% match
+    -- The users have at least a 50%% match
     AND
-        (personality <#> (SELECT personality FROM searcher)) < 0.0
+        (personality <#> (SELECT personality FROM searcher)) < 1e-5
 
     -- One-way filters
     AND
