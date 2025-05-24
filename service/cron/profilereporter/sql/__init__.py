@@ -6,6 +6,8 @@ WITH bot_account AS (
         person
     WHERE
         roles @> ARRAY['bot']
+    ORDER BY
+        roles
     LIMIT
         1
 )
