@@ -38,7 +38,7 @@ _disable_mobile_notifications_file = (
     'input' /
     'disable-mobile-notifications')
 
-print('Hello from cron module: notifications')
+print(f'Hello from cron module: {__name__}')
 
 @dataclass
 class PersonNotification:

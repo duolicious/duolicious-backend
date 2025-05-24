@@ -15,7 +15,7 @@ NSFW_PHOTO_RUNNER_POLL_SECONDS = int(os.environ.get(
     str(1), # 1 second
 ))
 
-print('Hello from cron module: nsfwphotorunner')
+print(f'Hello from cron module: {__name__}')
 
 async def predict_nsfw_photos_once():
     async with api_tx() as tx:

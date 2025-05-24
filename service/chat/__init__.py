@@ -93,7 +93,6 @@ FROM
     messaged
 WHERE
     subject_person_id = %(to_id)s AND object_person_id = %(from_id)s
-LIMIT 1
 """
 
 # Accounts are trusted after they've been around for a day. Verified accounts
@@ -119,7 +118,6 @@ WITH to_notification AS (
         id = %(to_id)s
     AND
         [[type]]_notification = 1 -- Immediate notification ID
-    LIMIT 1
 )
 SELECT
     person.id AS person_id,

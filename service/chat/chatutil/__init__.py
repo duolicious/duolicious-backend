@@ -17,7 +17,6 @@ WHERE
     subject_person_id = %(from_id)s AND object_person_id  = %(to_id)s
 OR
     subject_person_id = %(to_id)s   AND object_person_id  = %(from_id)s
-LIMIT 1
 """
 
 

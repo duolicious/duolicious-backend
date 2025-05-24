@@ -20,7 +20,7 @@ if [ "${DUO_USE_VENV:-true}" = true ] && [ ! -d venv/chat/ ]
 then
   python3 -m venv venv/chat/
   export PATH=$(readlink -e venv/chat/bin):$PATH
-  python3 -m pip install -r chat.requirements.txt
+  python3 -m pip install -r requirements.txt
 fi
 
 if [ -z "$PORT" ]

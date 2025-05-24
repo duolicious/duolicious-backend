@@ -35,7 +35,7 @@ BOTO_ENDPOINT_URL = os.getenv(
     f'https://{R2_ACCT_ID}.r2.cloudflarestorage.com'
 )
 
-print('Hello from cron module: checkphotos')
+print(f'Hello from cron module: {__name__}')
 
 s3_client = boto3.client(
     's3',

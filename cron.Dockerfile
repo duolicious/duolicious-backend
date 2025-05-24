@@ -11,6 +11,6 @@ COPY \
   --exclude=vm \
   . /app
 
-RUN pip install --no-cache-dir -r /app/cron.requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 CMD /app/cron.main.sh

@@ -12,9 +12,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from service.person.sql import *
 from service.search.sql import *
 from commonsql import *
-from service.person.template import otp_template, report_template
+from service.person.template import otp_template
 import traceback
-import threading
 import re
 from smtp import aws_smtp
 from flask import request, send_file
@@ -23,7 +22,12 @@ import psycopg
 from functools import lru_cache
 import random
 from antiabuse.antispam.signupemail import (
-        check_and_update_bad_domains, normalize_email)
+    check_and_update_bad_domains,
+    normalize_email,
+)
+from antiabuse.lodgereport import (
+    lodge_report,
+)
 import blurhash
 import numpy
 import erlastic
@@ -31,12 +35,6 @@ from datetime import datetime, timezone
 from duoaudio import put_audio_in_object_store
 from util import truncate_text
 from service.person.aboutdiff import diff_addition_with_context
-
-
-@dataclass
-class EmailEntry:
-    email: str
-    count: int
 
 
 class BytesEncoder(json.JSONEncoder):
@@ -49,28 +47,7 @@ class BytesEncoder(json.JSONEncoder):
 
         return super().default(obj)
 
-def parse_email_string(email_string):
-    # Regular expression to match an email followed optionally by a number
-    pattern = r'(\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b)(?:\s+(\d+))?'
-    matches = re.findall(pattern, email_string)
-
-    result = []
-    for email, count in matches:
-        # If no number is given, default to 1
-        if count == '':
-            count = 1
-        else:
-            count = int(count)
-        result.append(EmailEntry(email, count))
-
-    return result
-
 DUO_ENV = os.environ['DUO_ENV']
-
-REPORT_EMAIL = os.environ['DUO_REPORT_EMAIL']
-REPORT_EMAILS = parse_email_string(REPORT_EMAIL)
-PRIMARY_REPORT_EMAIL = REPORT_EMAILS[0].email
-print(REPORT_EMAILS)
 
 R2_ACCT_ID = os.environ['DUO_R2_ACCT_ID']
 R2_ACCESS_KEY_ID = os.environ['DUO_R2_ACCESS_KEY_ID']
@@ -94,45 +71,10 @@ bucket = s3.Bucket(R2_BUCKET_NAME)
 def init_db():
     pass
 
-def sample_email(email_entries):
-    # Extract the emails and their respective weights from the list of EmailEntry instances
-    emails = [entry.email for entry in email_entries]
-    weights = [entry.count for entry in email_entries]
-
-    # Use random.choices() to perform weighted sampling and return a single email
-    sampled_email = random.choices(emails, weights=weights, k=1)[0]  # Get the first item from the result
-
-    return sampled_email
-
 @dataclass
 class CropSize:
     top: int
     left: int
-
-def _send_report(
-    report_reason: str,
-    report_obj: Any,
-    last_messages: list[dict],
-    **kwargs: Any,
-):
-    subject_person_id = report_obj[0]['id']
-    object_person_id  = report_obj[1]['id']
-
-    report_email = sample_email(REPORT_EMAILS)
-
-    try:
-        aws_smtp.send(
-            subject=f"Report: {subject_person_id} - {object_person_id}",
-            body=report_template(
-                report_obj=report_obj,
-                report_reason=report_reason,
-                last_messages=last_messages,
-            ),
-            to_addr=report_email,
-            from_addr=PRIMARY_REPORT_EMAIL,
-        )
-    except:
-        print(traceback.format_exc())
 
 def process_image_as_image(
     image: Image.Image,
@@ -731,10 +673,12 @@ def get_prospect_profile(s: t.SessionInfo, prospect_uuid):
     return profile
 
 def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
+    if not s.person_uuid:
+        return 'Authentication required', 401
+
     params = dict(
-        subject_person_id=s.person_id,
-        subject_person_uuid=s.person_uuid,
-        prospect_uuid=prospect_uuid,
+        subject_uuid=s.person_uuid,
+        object_uuid=prospect_uuid,
         reported=bool(req.report_reason),
         report_reason=req.report_reason or '',
     )
@@ -743,18 +687,11 @@ def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
         tx.execute(Q_INSERT_SKIPPED, params=params)
 
     if req.report_reason:
-        with api_tx() as tx:
-            last_messages = tx.execute(Q_LAST_MESSAGES, params=params).fetchall()
-
-            report_obj = tx.execute(Q_MAKE_REPORT, params=params).fetchall()
-
-        threading.Thread(
-            target=_send_report,
-            kwargs=params | dict(
-                report_obj=report_obj,
-                last_messages=last_messages,
-            )
-        ).start()
+        lodge_report(
+            subject_uuid=s.person_uuid,
+            object_uuid=prospect_uuid,
+            reason=req.report_reason
+        )
 
 def post_unskip(s: t.SessionInfo, prospect_person_id: int):
     params = dict(
@@ -914,38 +851,47 @@ def _patch_profile_info_about(person_id: int, new_about: str):
     """
 
     update = """
-    UPDATE person
-    SET
-        about = %(new_about)s::TEXT,
+    WITH updated_person AS (
+        UPDATE person
+        SET
+            about = %(new_about)s::TEXT,
 
-        last_event_time =
-            CASE
-                WHEN %(added_text)s::TEXT IS NULL
-                THEN sign_up_time
-                ELSE now()
-            END,
+            last_event_time =
+                CASE
+                    WHEN %(added_text)s::TEXT IS NULL
+                    THEN sign_up_time
+                    ELSE now()
+                END,
 
-        last_event_name =
-            CASE
-                WHEN %(added_text)s::TEXT IS NULL
-                THEN 'joined'::person_event
-                ELSE 'updated-bio'::person_event
-            END,
+            last_event_name =
+                CASE
+                    WHEN %(added_text)s::TEXT IS NULL
+                    THEN 'joined'::person_event
+                    ELSE 'updated-bio'::person_event
+                END,
 
-        last_event_data =
-            CASE
-                WHEN %(added_text)s::TEXT IS NULL
-                THEN
-                    '{}'::JSONB
-                ELSE
-                    jsonb_build_object(
-                        'added_text', %(added_text)s::TEXT,
-                        'body_color', body_color,
-                        'background_color', background_color
-                    )
-            END
-    WHERE
-        id = %(person_id)s
+            last_event_data =
+                CASE
+                    WHEN %(added_text)s::TEXT IS NULL
+                    THEN
+                        '{}'::JSONB
+                    ELSE
+                        jsonb_build_object(
+                            'added_text', %(added_text)s::TEXT,
+                            'body_color', body_color,
+                            'background_color', background_color
+                        )
+                END
+        WHERE
+            id = %(person_id)s
+    ), updated_unmoderated_person AS (
+        INSERT INTO
+            unmoderated_person (person_id, trait)
+        VALUES
+            (%(person_id)s, 'about')
+        ON CONFLICT DO NOTHING
+    )
+    SELECT 1
     """
 
     with api_tx() as tx:

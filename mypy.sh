@@ -29,5 +29,6 @@ else
   python3 -m mypy \
     service/chat \
     service/api/__init__.py \
-    service/search/__init__.py
+    service/search/__init__.py \
+    verification/__init__.py
 fi

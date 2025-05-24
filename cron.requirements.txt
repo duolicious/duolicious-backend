@@ -1,8 +1,0 @@
-Pillow
-blurhash
-boto3==1.35.99
-numpy
-numpy==1.26.4
-onnxruntime
-openai
-psycopg[binary]

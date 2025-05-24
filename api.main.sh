@@ -18,7 +18,7 @@ if [ "${DUO_USE_VENV:-true}" = true ] && [ ! -d venv/api/ ]
 then
   python3 -m venv venv/api/
   export PATH=$(readlink -e venv/api/bin):$PATH
-  python3 -m pip install -r api.requirements.txt
+  python3 -m pip install -r requirements.txt
 fi
 
 if [ -z "$PORT" ]

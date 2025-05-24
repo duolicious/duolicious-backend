@@ -19,7 +19,7 @@ AUDIO_CLEANER_POLL_SECONDS = int(os.environ.get(
     str(60), # 1 minute
 ))
 
-print('Hello from cron module: audiocleaner')
+print(f'Hello from cron module: {__name__}')
 
 async def clean_audio_once():
     params = dict(polling_interval_seconds=AUDIO_CLEANER_POLL_SECONDS)

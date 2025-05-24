@@ -15,6 +15,6 @@ COPY \
 RUN : \
   && apt update \
   && apt install -y ffmpeg \
-  && pip install --no-cache-dir -r /app/api.requirements.txt
+  && pip install --no-cache-dir -r /app/requirements.txt
 
 CMD /app/api.main.sh

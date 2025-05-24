@@ -10,29 +10,5 @@ else
   sudos+=(sudo)
 fi
 
-"${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep chat- | cut -d ' ' -f 1)" \
-  python3 -m unittest discover -s antiabuse
-
-"${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep chat- | cut -d ' ' -f 1)" \
-  python3 -m unittest discover -s service/chat
-
-"${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep cron | cut -d ' ' -f 1)" \
-  python3 -m unittest discover -s service/cron
-
-"${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep api | cut -d ' ' -f 1)" \
-  python3 -m unittest discover -s service/api
-
-"${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep api | cut -d ' ' -f 1)" \
-  python3 -m unittest discover -s service/person
-
-"${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep api | cut -d ' ' -f 1)" \
-  python3 -m unittest discover -s verification
-
-"${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep api | cut -d ' ' -f 1)" \
-  python3 -m unittest discover -s batcher
-
-"${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep api | cut -d ' ' -f 1)" \
-  python3 -m unittest discover -s notify
-
-"${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep api | cut -d ' ' -f 1)" \
-  python3 -m unittest discover -s async_lru_cache
+"${sudos[@]}" docker exec "$("${sudos[@]}" docker ps | grep api- | cut -d ' ' -f 1)" \
+  python3 -m unittest discover -s .
