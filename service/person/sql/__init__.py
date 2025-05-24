@@ -557,7 +557,6 @@ WITH onboardee_country AS (
                         WHERE
                             preference.person_id = prospect.id AND
                             preference.gender_id = (SELECT gender_id FROM new_person)
-                        LIMIT 1
                     )
                 AND
                     -- The new_person meets the prospect's location preference
@@ -578,7 +577,6 @@ WITH onboardee_country AS (
                                             person.id = person_id
                                         WHERE
                                             person.id = prospect.id
-                                        LIMIT 1
                                     ),
                                     1e9
                                 )
@@ -601,7 +599,6 @@ WITH onboardee_country AS (
                                 INTERVAL '1 year' *
                                 (COALESCE(preference.max_age, 999) + 1)
                             )
-                        LIMIT 1
                     )
                 AND
                    -- The new_person meets the prospect's age preference
@@ -622,7 +619,6 @@ WITH onboardee_country AS (
                                 INTERVAL '1 year' *
                                 (COALESCE(preference.max_age, 999) + 1)
                             )
-                        LIMIT 1
                     )
                 LIMIT
                     2000 * 2
@@ -854,7 +850,6 @@ WITH prospect AS (
             WHERE
                 subject_person_id = prospect.id AND
                 object_person_id  = %(person_id)s
-            LIMIT 1
         )
     OR
 
@@ -862,9 +857,6 @@ WITH prospect AS (
         uuid = uuid_or_null(%(prospect_uuid)s::TEXT)
     AND
         prospect.id = %(person_id)s
-
-    LIMIT
-        1
 ), negative_dot_prod AS (
     SELECT (
         SELECT personality FROM person WHERE id = %(person_id)s
@@ -1221,7 +1213,6 @@ WITH person_info AS (
                 subject_person_id = %(person_id)s
             AND
                 object_person_id = id_table.id
-            LIMIT 1
         ) AS person_messaged_prospect,
         EXISTS (
             SELECT
@@ -1232,7 +1223,6 @@ WITH person_info AS (
                 subject_person_id = id_table.id
             AND
                 object_person_id = %(person_id)s
-            LIMIT 1
         ) AS prospect_messaged_person,
         EXISTS (
             SELECT
@@ -1243,7 +1233,6 @@ WITH person_info AS (
                 subject_person_id = %(person_id)s
             AND
                 object_person_id = id_table.id
-            LIMIT 1
         ) AS person_skipped_prospect,
         EXISTS (
             SELECT
@@ -1254,7 +1243,6 @@ WITH person_info AS (
                 subject_person_id = id_table.id
             AND
                 object_person_id = %(person_id)s
-            LIMIT 1
         ) AS prospect_skipped_person
     FROM
         (

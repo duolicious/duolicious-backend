@@ -69,7 +69,6 @@ WITH searcher AS (
                     search_preference_distance
                 WHERE
                     person_id = %(searcher_person_id)s
-                LIMIT 1
             ),
             1e9
         ) AS distance_preference,
@@ -80,14 +79,12 @@ WITH searcher AS (
                 search_preference_club
             WHERE
                 person_id = %(searcher_person_id)s
-            LIMIT 1
         ) AS club_preference,
         date_of_birth
     FROM
         person
     WHERE
         person.id = %(searcher_person_id)s
-    LIMIT 1
 ), prospects_first_pass_without_club AS (
     SELECT
         id
@@ -204,7 +201,6 @@ WITH searcher AS (
             WHERE
                 preference.person_id = prospect.id AND
                 preference.gender_id = (SELECT gender_id FROM searcher)
-            LIMIT 1
         )
 
     AND
@@ -226,7 +222,6 @@ WITH searcher AS (
                                 person.id = person_id
                             WHERE
                                 person.id = prospect.id
-                            LIMIT 1
                         ),
                         1e9
                     )
@@ -276,7 +271,6 @@ WITH searcher AS (
                     INTERVAL '1 year' *
                     (COALESCE(preference.max_age, 999) + 1)
                 )
-            LIMIT 1
         )
 
     -- The users have at least a 50%% match
@@ -524,7 +518,6 @@ WITH searcher AS (
                 -- Contrary because the answer doesn't exist but should
                 ans.answer IS NULL AND
                 pref.accept_unanswered = FALSE
-            LIMIT 1
         )
 
     ORDER BY
@@ -720,7 +713,6 @@ WITH searcher AS (
         person
     WHERE
         person.id = %(searcher_person_id)s
-    LIMIT 1
 ), do_promote_verified AS (
     SELECT
         count(*) >= 250 AS x
@@ -834,7 +826,6 @@ WITH searcher AS (
         person
     WHERE
         person.id = %(searcher_person_id)s
-    LIMIT 1
 ), person_data AS (
     SELECT
         prospect.uuid AS person_uuid,
