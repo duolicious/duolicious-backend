@@ -387,6 +387,11 @@ Anonymous 12/01/24(Sun)15:42:33 No.847392651
 This must be like the 15th time I've signed up T_T
                 """.strip()))
 
+        self.assertFalse(
+                potential_minor("""
+Photos of memes, things i like and me doing cosplay in the 4th one
+                """.strip()))
+
 
 if __name__ == '__main__':
     unittest.main()

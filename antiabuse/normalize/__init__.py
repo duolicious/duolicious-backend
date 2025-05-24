@@ -46,6 +46,7 @@ _normalization_map = {
     "gr[a4]p[i1]ng": "raping",
     "gr[o0][o0]mer": "groomer",
     "gr[o0][o0]m": "groom",
+    "gutz": "guts",
     "h[@a4]rm": "harm",
     "k[iy1][l1]+": "kill",
     "[l1]0[l1]icon": "lolicon",
@@ -67,6 +68,7 @@ _normalization_map = {
     "r[@a4]p[e3]d": "raped",
     "r[@a4]p[e3]": "rape",
     "r[@a4]p[i1]*ng": "raping",
+    "r[@a4]y\s+p[i1]ng": "raping",
     "r": "are",
     "raype": "rape",
     "r[e3]t[@a4]rd": "retard",
@@ -87,10 +89,10 @@ _normalization_map = {
     "un-?r[@a4]p[e3]": "unrape",
     "urse[l1]f": "yourself",
     "ur": "your",
+    "us[e3]": "use",
     "u": "you",
     "wh[o0]r[e3][s5$z]": "whores",
     "wh[o0]r[e3]": "whores",
-    "r[@a4]y\s+p[i1]ng": "raping",
 }
 
 

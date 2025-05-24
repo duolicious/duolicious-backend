@@ -9,8 +9,7 @@ _re_adult_ages = rf'({_re_adult_ages_as_numbers}|{_re_adult_ages_as_words})'
 _re_minor_ages_as_numbers = r'(1[0-7][mfy]?)'
 
 _re_minor_ages_as_words = (
-    '(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|'
-    'twelve|thirteen|fourteen|fifteen|sixteen|seventeen)')
+    '(ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen)')
 
 _re_minor_ages = rf'({_re_minor_ages_as_numbers}|{_re_minor_ages_as_words})'
 
