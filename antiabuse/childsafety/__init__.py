@@ -6,10 +6,10 @@ _re_adult_ages_as_words = r'(eighteen|nineteen|twenty)'
 
 _re_adult_ages = rf'({_re_adult_ages_as_numbers}|{_re_adult_ages_as_words})'
 
-_re_minor_ages_as_numbers = r'(1[0-7][mfy]?)'
+_re_minor_ages_as_numbers = r'(1[1-7][mfy]?)'
 
 _re_minor_ages_as_words = (
-    '(ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen)')
+    '(eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen)')
 
 _re_minor_ages = rf'({_re_minor_ages_as_numbers}|{_re_minor_ages_as_words})'
 
@@ -51,17 +51,20 @@ _re_neg_prev = {
 
 _re_neg_next = {
     # Measure words
-    "lb", "lbs", "pound", "pounds", "kg", "kilo", "kilos", "kilogram", "kilograms",
-    "km", "kilometer", "kilometers", "kilometre", "kilometres", "mile", "miles", "mi",
-    "ft", "feet", "inch", "inches", "cm", "mm", "meter", "meters", "metre", "metres",
-    "oz", "ounces", "g", "grams", "bmi", "%", "percent", "reps", "rep", "sets", "set",
-    "hour", "hours", "hr", "hrs", "minute", "minutes", "min", "mins",
-    "second", "seconds", "sec", "secs", "times", "dollar", "dollars",
+    'lb', 'lbs', 'pound', 'pounds', 'kg', 'kilo', 'kilos', 'kilogram', 'kilograms',
+    'km', 'kilometer', 'kilometers', 'kilometre', 'kilometres', 'mile', 'miles', 'mi',
+    'ft', 'feet', 'inch', 'inches', 'cm', 'mm', 'meter', 'meters', 'metre', 'metres',
+    'oz', 'ounces', 'g', 'grams', 'bmi', '%', 'percent', 'reps', 'rep', 'sets', 'set',
+    'hour', 'hours', 'hr', 'hrs', 'minute', 'minutes', 'min', 'mins',
+    'second', 'seconds', 'sec', 'secs', 'times', 'dollar', 'dollars',
 
     # Months
-    "january","february","march","april","may","june","july",
-    "august","september","october","november","december",
-    "jan","feb","mar","apr","jun","jul","aug","sept","sep","oct","nov","dec",
+    'january','february','march','april','may','june','july',
+    'august','september','october','november','december',
+    'jan','feb','mar','apr','jun','jul','aug','sept','sep','oct','nov','dec',
+
+    # Number suffixes
+    'million', 'billion', 'thousand', 'hundred',
 
     # Misc patterns
     'years\s+ago',
