@@ -64,22 +64,36 @@ const TooltipListener = () => {
     <View
       style={{
         position: 'absolute',
-        top: state.top === undefined ? undefined : state.top - padding,
-        bottom: state.bottom === undefined ? undefined : state.bottom - padding,
-        left: state.left === undefined ? undefined : state.left - padding,
-        right: state.right === undefined ? undefined : state.right - padding,
-
-        paddingTop: state.top === undefined ? undefined : padding,
-        paddingBottom: state.bottom === undefined ? undefined : padding,
-        paddingLeft: state.left === undefined ? undefined : padding,
-        paddingRight: state.right === undefined ? undefined : padding,
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
       }}
       // @ts-ignore
-      onMouseLeave={
-        () => setTooltip(null)
+      onMouseMove={
+        (e) => {
+          if (e.target === e.currentTarget) {
+            setTooltip(null);
+          }
+        }
       }
     >
-      <Tooltip>{state.text}</Tooltip>
+      <View
+        style={{
+          position: 'absolute',
+          top: state.top === undefined ? undefined : state.top - padding,
+          bottom: state.bottom === undefined ? undefined : state.bottom - padding,
+          left: state.left === undefined ? undefined : state.left - padding,
+          right: state.right === undefined ? undefined : state.right - padding,
+
+          paddingTop: state.top === undefined ? undefined : padding,
+          paddingBottom: state.bottom === undefined ? undefined : padding,
+          paddingLeft: state.left === undefined ? undefined : padding,
+          paddingRight: state.right === undefined ? undefined : padding,
+        }}
+      >
+        <Tooltip>{state.text}</Tooltip>
+      </View>
     </View>
   );
 };
