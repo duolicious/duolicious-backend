@@ -38,7 +38,8 @@ Body: <!DOCTYPE html>
 - about: 17. just looking for friends
   account_age_in_days: 0
   age: 26
-  all_report_reasons: []
+  all_report_reasons:
+    - &#x27;Automatically lodged report: Possible minor&#x27;
   clubs: []
   count_answers: 0
   education: null
@@ -52,8 +53,8 @@ Body: <!DOCTYPE html>
   photo_deletion_links: []
   photo_links: []
   role: Accused
-  times_reported: 0
-  times_reported_in_the_past_24_hours: 0
+  times_reported: 1
+  times_reported_in_the_past_24_hours: 1
   verification_level: No verification
 </pre>
 <p><b>Accused person's images:</b></p>

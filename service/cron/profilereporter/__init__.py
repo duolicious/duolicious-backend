@@ -11,7 +11,7 @@ import asyncio
 import os
 import random
 from antiabuse.childsafety import potential_minor
-from antiabuse.lodgereport import lodge_report
+from antiabuse.lodgereport import skip_by_uuid
 
 PROFILE_REPORTER_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_PROFILE_REPORTER_POLL_SECONDS',
@@ -29,7 +29,7 @@ async def report_profiles_once():
     for row in rows:
         if potential_minor(row['about']):
             print(f'{__name__} -', row['object_uuid'], 'reported')
-            lodge_report(
+            skip_by_uuid(
                 subject_uuid=row['subject_uuid'],
                 object_uuid=row['object_uuid'],
                 reason='Automatically lodged report: Possible minor'

@@ -26,7 +26,7 @@ from antiabuse.antispam.signupemail import (
     normalize_email,
 )
 from antiabuse.lodgereport import (
-    lodge_report,
+    skip_by_uuid,
 )
 import blurhash
 import numpy
@@ -676,22 +676,12 @@ def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
     if not s.person_uuid:
         return 'Authentication required', 401
 
-    params = dict(
+    skip_by_uuid(
         subject_uuid=s.person_uuid,
         object_uuid=prospect_uuid,
-        reported=bool(req.report_reason),
-        report_reason=req.report_reason or '',
+        reason=req.report_reason or '',
     )
 
-    with api_tx() as tx:
-        tx.execute(Q_INSERT_SKIPPED, params=params)
-
-    if req.report_reason:
-        lodge_report(
-            subject_uuid=s.person_uuid,
-            object_uuid=prospect_uuid,
-            reason=req.report_reason
-        )
 
 def post_unskip(s: t.SessionInfo, prospect_person_id: int):
     params = dict(

@@ -2,6 +2,7 @@ from database import api_tx
 from antiabuse.sql import (
     Q_LAST_MESSAGES,
     Q_MAKE_REPORT,
+    Q_INSERT_SKIPPED,
 )
 from typing import Any
 import os
@@ -229,3 +230,22 @@ def lodge_report(subject_uuid: str, object_uuid: str, reason: str):
             last_messages=last_messages,
         )
     ).start()
+
+
+def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str):
+    params = dict(
+        subject_uuid=subject_uuid,
+        object_uuid=object_uuid,
+        reported=bool(reason),
+        report_reason=reason or '',
+    )
+
+    with api_tx() as tx:
+        tx.execute(Q_INSERT_SKIPPED, params=params)
+
+    if reason:
+        lodge_report(
+            subject_uuid=subject_uuid,
+            object_uuid=object_uuid,
+            reason=reason
+        )

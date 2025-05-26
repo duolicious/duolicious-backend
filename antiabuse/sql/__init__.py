@@ -194,3 +194,42 @@ ON
 ORDER BY
     (id = (SELECT id FROM subject_person_id)) DESC
 """
+
+Q_INSERT_SKIPPED = """
+WITH subject_person_id AS (
+    SELECT
+        id
+    FROM
+        person
+    WHERE
+        uuid = %(subject_uuid)s
+), object_person_id AS (
+    SELECT
+        id
+    FROM
+        person
+    WHERE
+        uuid = %(object_uuid)s
+), q1 AS (
+    INSERT INTO skipped (
+        subject_person_id,
+        object_person_id,
+        reported,
+        report_reason
+    ) VALUES (
+        (SELECT id FROM subject_person_id),
+        (SELECT id FROM object_person_id),
+        %(reported)s,
+        %(report_reason)s
+    ) ON CONFLICT DO NOTHING
+), q2 AS (
+    DELETE FROM search_cache
+    WHERE
+        searcher_person_id = (SELECT id FROM subject_person_id) AND
+        prospect_person_id = (SELECT id FROM object_person_id)
+    OR
+        searcher_person_id = (SELECT id FROM object_person_id) AND
+        prospect_person_id = (SELECT id FROM subject_person_id)
+)
+SELECT 1
+"""
