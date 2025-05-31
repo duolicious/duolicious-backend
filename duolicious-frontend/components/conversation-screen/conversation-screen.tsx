@@ -421,11 +421,7 @@ const ConversationScreen = ({navigation, route}) => {
 
     setMessageIds(messageIds => [...(messageIds ?? []), messageId]);
 
-    if (
-      messageBody.toLowerCase().includes('hahaha') &&
-      messageIds &&
-      messageIds.length > 40
-    ) {
+    if (messageIds && messageIds.length > 45) {
       maybeRequestReview(1000);
     }
   }, [personUuid, messageIds]);
