@@ -351,6 +351,10 @@ test_verified_promoted () {
 
   q "
   update person
+  set count_answers = 1
+  where name = 'searcher'"
+  q "
+  update person
   set personality = array_full(47, 1e-3)"
   q "
   update person

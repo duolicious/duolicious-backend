@@ -80,7 +80,8 @@ WITH searcher AS (
             WHERE
                 person_id = %(searcher_person_id)s
         ) AS club_preference,
-        date_of_birth
+        date_of_birth,
+        count_answers
     FROM
         person
     WHERE
@@ -540,6 +541,8 @@ WITH searcher AS (
         profile_photo_uuid IS NOT NULL
     AND
         verified
+    AND
+        (SELECT count_answers > 0 FROM searcher)
 )
 INSERT INTO search_cache (
     searcher_person_id,
@@ -708,7 +711,8 @@ ON
 Q_QUIZ_SEARCH = f"""
 WITH searcher AS (
     SELECT
-        personality
+        personality,
+        count_answers
     FROM
         person
     WHERE
@@ -717,13 +721,16 @@ WITH searcher AS (
     SELECT
         count(*) >= 250 AS x
     FROM
-        search_cache
+        search_cache,
+        searcher
     WHERE
         searcher_person_id = %(searcher_person_id)s
     AND
         profile_photo_uuid IS NOT NULL
     AND
         verified
+    AND
+        (SELECT count_answers > 0 FROM searcher)
 ), page AS (
     SELECT
         prospect_person_id,
