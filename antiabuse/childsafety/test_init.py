@@ -392,6 +392,11 @@ This must be like the 15th time I've signed up T_T
 Photos of memes, things i like and me doing cosplay in the 4th one
                 """.strip()))
 
+        self.assertFalse(
+                potential_minor("""
+I have 10 million things to do today
+                """.strip()))
+
 
 if __name__ == '__main__':
     unittest.main()

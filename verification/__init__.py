@@ -339,13 +339,13 @@ async def verify(
     claimed_gender: str,
     claimed_ethnicity: str | None,
 ) -> VerificationResult:
-    if _mock_response_file:
+    if _mock_response_file and _mock_response_file.exists():
         with _mock_response_file.open('r') as f:
             response: str | None = f.read()
     else:
         try:
             response = (await AsyncOpenAI().chat.completions.create(
-                model="gpt-4o-2024-08-06",
+                model="gpt-4.1-2025-04-14",
                 response_format={"type": "json_object"},
                 temperature=0.0,
                 frequency_penalty=0.0,
