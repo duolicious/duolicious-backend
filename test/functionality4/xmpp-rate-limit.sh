@@ -10,8 +10,10 @@ test_rate_limit () {
   local max_intros_per_day=$1
   local verification_level_id=$2
   local expected_limit_response=$3
-  local num_manual_reporters=${4:-0}
-  local num_bot_reporters=${5:-0}
+  local num_manual_reporters_of_sender_1=${4:-0}
+  local num_bot_reporters_of_sender_1=${5:-0}
+  local num_manual_reporters_of_sender_2=${6:-0}
+  local num_bot_reporters_of_sender_2=${7:-0}
 
   set -xe
 
@@ -52,21 +54,40 @@ test_rate_limit () {
   sender2uuid=$(get_uuid 'sender2@example.com')
 
   # Send manual reports about sender 1
-  for i in $(seq "${num_manual_reporters}")
+  for i in $(seq "${num_manual_reporters_of_sender_1}")
   do
-    local name="manual-reporter-$i"
+    local name="manual-reporter-of-sender-1-$i"
     ../util/create-user.sh "${name}" 0 0
     assume_role "${name}"
     jc POST "/skip/by-uuid/${sender1uuid}" -d '{ "report_reason": "12345" }'
   done
 
   # Send bot reports about sender 1
-  for i in $(seq "${num_bot_reporters}")
+  for i in $(seq "${num_bot_reporters_of_sender_1}")
   do
-    local name="bot-reporter-$i"
+    local name="bot-reporter-of-sender-1$i"
     ../util/create-user.sh "${name}" 0 0
     assume_role "${name}"
     jc POST "/skip/by-uuid/${sender1uuid}" -d '{ "report_reason": "12345" }'
+    q "update person set roles = '{\"bot\"}' where name = '${name}'"
+  done
+
+  # Send manual reports about sender 2
+  for i in $(seq "${num_manual_reporters_of_sender_2}")
+  do
+    local name="manual-reporter-of-sender-2-$i"
+    ../util/create-user.sh "${name}" 0 0
+    assume_role "${name}"
+    jc POST "/skip/by-uuid/${sender2uuid}" -d '{ "report_reason": "12345" }'
+  done
+
+  # Send bot reports about sender 2
+  for i in $(seq "${num_bot_reporters_of_sender_2}")
+  do
+    local name="bot-reporter-of-sender-2-$i"
+    ../util/create-user.sh "${name}" 0 0
+    assume_role "${name}"
+    jc POST "/skip/by-uuid/${sender2uuid}" -d '{ "report_reason": "12345" }'
     q "update person set roles = '{\"bot\"}' where name = '${name}'"
   done
 
@@ -227,23 +248,41 @@ test_rate_limit () {
     | grep -qF "<duo_message_delivered id=\"id$((max_intros_per_day + 2))\"/>"
 }
 
+# Send some reports about sender 1
+# Send no reports about sender 2
 test_rate_limit \
   5 \
   1 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day" subreason="unverified-basics"/>' \
   1 \
+  3 \
+  0 \
+  0
+
+# Send no reports about sender 1
+# Send some reports about sender 2
+test_rate_limit \
+  10 \
+  1 \
+  '<duo_message_blocked id="id999" reason="rate-limited-1day" subreason="unverified-basics"/>' \
+  0 \
+  0 \
+  1 \
   3
 
+# Test base limit
 test_rate_limit \
   10 \
   1 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day" subreason="unverified-basics"/>'
 
+# Test base limit
 test_rate_limit \
   20 \
   2 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day" subreason="unverified-photos"/>'
 
+# Test base limit
 test_rate_limit \
   50 \
   3 \
