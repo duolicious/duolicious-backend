@@ -10,6 +10,8 @@ test_rate_limit () {
   local max_intros_per_day=$1
   local verification_level_id=$2
   local expected_limit_response=$3
+  local num_manual_reporters=${4:-0}
+  local num_bot_reporters=${5:-0}
 
   set -xe
 
@@ -49,9 +51,26 @@ test_rate_limit () {
   sender2token=$SESSION_TOKEN
   sender2uuid=$(get_uuid 'sender2@example.com')
 
+  # Send manual reports about sender 1
+  for i in $(seq "${num_manual_reporters}")
+  do
+    local name="manual-reporter-$i"
+    ../util/create-user.sh "${name}" 0 0
+    assume_role "${name}"
+    jc POST "/skip/by-uuid/${sender1uuid}" -d '{ "report_reason": "12345" }'
+  done
 
+  # Send bot reports about sender 1
+  for i in $(seq "${num_bot_reporters}")
+  do
+    local name="bot-reporter-$i"
+    ../util/create-user.sh "${name}" 0 0
+    assume_role "${name}"
+    jc POST "/skip/by-uuid/${sender1uuid}" -d '{ "report_reason": "12345" }'
+    q "update person set roles = '{\"bot\"}' where name = '${name}'"
+  done
 
-  echo 'Send one message to sender1, a reply to which should not count towards the limit'
+  echo "Send one message from sender2 to sender1, which should not count towards sender1's limit"
 
   curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d '{
     "service": "ws://chat:5443",
@@ -207,6 +226,13 @@ test_rate_limit () {
   curl -sX GET http://localhost:3000/pop \
     | grep -qF "<duo_message_delivered id=\"id$((max_intros_per_day + 2))\"/>"
 }
+
+test_rate_limit \
+  5 \
+  1 \
+  '<duo_message_blocked id="id999" reason="rate-limited-1day" subreason="unverified-basics"/>' \
+  1 \
+  3
 
 test_rate_limit \
   10 \
