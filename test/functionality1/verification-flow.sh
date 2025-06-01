@@ -38,6 +38,7 @@ wait_for_verification_result () {
 test_success () {
   q "delete from person"
   q "delete from verification_job"
+  q "delete from verification_photo_hash"
 
   ../util/create-user.sh user1 0 3
   assume_role user1
@@ -96,6 +97,7 @@ EOF
 test_failure () {
   q "delete from person"
   q "delete from verification_job"
+  q "delete from verification_photo_hash"
 
   ../util/create-user.sh user1 0 3
   assume_role user1

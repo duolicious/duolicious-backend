@@ -2317,14 +2317,30 @@ INSERT INTO verification_job (
 )
 """
 
-Q_ENQUEUE_VERIFICATION_JOB = """
+Q_INSERT_VERIFICATION_PHOTO_HASH = """
+INSERT INTO verification_photo_hash (
+    hash
+)
+VALUES
+    (%(photo_hash)s)
+ON CONFLICT DO NOTHING
+RETURNING
+    1
+"""
+
+Q_UPDATE_VERIFICATION_JOB = """
 UPDATE
     verification_job
 SET
-    status = 'queued',
-    message = 'Waiting in line for the next selfie checker'
+    status = %(status)s,
+    message = %(message)s
 WHERE
     person_id = %(person_id)s
+AND (
+        status = %(expected_previous_status)s
+    OR
+        %(expected_previous_status)s::verification_job_status IS NULL
+)
 """
 
 Q_CHECK_VERIFICATION = """

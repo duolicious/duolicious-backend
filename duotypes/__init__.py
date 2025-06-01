@@ -506,7 +506,7 @@ class PostSkip(BaseModel):
 
 
 class PostVerificationSelfie(BaseModel):
-    base64_file: Optional[Base64File] = None
+    base64_file: Base64File
 
 
 class PostKofiData(BaseModel):

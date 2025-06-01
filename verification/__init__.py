@@ -8,6 +8,7 @@ import base64
 import urllib.request
 import traceback
 from pathlib import Path
+from verification.messages import *
 
 VERIFICATION_IMAGE_BASE_URL = os.getenv('DUO_VERIFICATION_IMAGE_BASE_URL')
 VERIFICATION_MOCK_RESPONSE_FILE = os.getenv('DUO_VERIFICATION_MOCK_RESPONSE_FILE')
@@ -218,7 +219,7 @@ def process_response(
     except:
         print(traceback.format_exc())
         print('JSON was:', response_str)
-        return failure("Something went wrong.", response_str)
+        return failure(V_SOMETHING_WENT_WRONG, response_str)
 
     # These settings are tuned to gpt-4-turbo. gpt-4o worked better with higher
     # numbers.
@@ -256,39 +257,39 @@ def process_response(
     ethnicity_truthiness_threshold = 0.4
 
     if image_1_is_photograph < general_truthiness_threshold:
-        return failure("Our AI thinks your image isn’t a real photo.", response_str)
+        return failure(V_NOT_REAL, response_str)
 
     if image_1_was_not_edited < edit_truthiness_threshold:
-        return failure("Our AI thinks your image might have been edited.", response_str)
+        return failure(V_EDITED, response_str)
 
     if image_1_has_at_least_one_person < general_truthiness_threshold:
-        return failure("Our AI thinks your photo doesn’t have a person in it.", response_str)
+        return failure(V_NO_PEOPLE, response_str)
 
     if image_1_has_exactly_one_person < general_truthiness_threshold:
-        return failure("Our AI thinks there’s more than one person in your photo.", response_str)
+        return failure(V_MANY_PEOPLE, response_str)
 
     if image_1_has_claimed_gender < gender_truthiness_threshold:
-        return failure("Our AI couldn’t verify your gender.", response_str)
+        return failure(V_GENDER, response_str)
 
     if (
             image_1_has_claimed_ethnicity is not None and
             image_1_has_claimed_ethnicity < ethnicity_truthiness_threshold):
-        return failure("Our AI couldn’t verify your ethnicity.", response_str)
+        return failure(V_ETHNCITY, response_str)
 
     if image_1_has_claimed_age < age_truthiness_threshold:
-        return failure("Our AI couldn’t verify your age.", response_str)
+        return failure(V_AGE, response_str)
 
     if image_1_has_claimed_minimum_age < minimum_age_truthiness_threshold:
-        return failure("Our AI couldn’t verify your age.", response_str)
+        return failure(V_AGE, response_str)
 
     if image_1_has_smiling_person < general_truthiness_threshold:
-        return failure("Our AI thinks you’re not smiling.", response_str)
+        return failure(V_SMILING, response_str)
 
     if image_1_has_eyebrow_touch < general_truthiness_threshold:
-        return failure("Our AI thinks you’re not touching your eyebrow.", response_str)
+        return failure(V_EYEBROW, response_str)
 
     if image_1_has_downward_thumb < general_truthiness_threshold:
-        return failure("Our AI thinks you’re not giving the thumbs down.", response_str)
+        return failure(V_THUMBS_DOWN, response_str)
 
     return success(
         verified_uuids=verified_uuids,
