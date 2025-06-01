@@ -16,6 +16,7 @@ _mock_response_file = (
      Path(__file__).parent.parent / VERIFICATION_MOCK_RESPONSE_FILE
      if VERIFICATION_MOCK_RESPONSE_FILE else None)
 
+
 def get_system_content(
     num_claimed_uuids: int,
     claimed_age: int,
@@ -90,6 +91,7 @@ def get_system_content(
 
     return content
 
+
 def get_user_content(
     proof_uuid: str,
     claimed_uuids: list[str],
@@ -110,7 +112,8 @@ def get_user_content(
 
     return list(go())
 
-@dataclass
+
+@dataclass(frozen=True)
 class Success:
     verified_uuids: list[str]
 
@@ -120,15 +123,18 @@ class Success:
 
     raw_json: str
 
-@dataclass
+
+@dataclass(frozen=True)
 class Failure:
     reason: str
     raw_json: str
 
-@dataclass
+
+@dataclass(frozen=True)
 class VerificationResult:
     success: Success | None
     failure: Failure | None
+
 
 def failure(
     reason: str,
@@ -141,6 +147,7 @@ def failure(
             raw_json=raw_json,
         ),
     )
+
 
 def success(
     verified_uuids: list[str],
@@ -159,6 +166,7 @@ def success(
         ),
         failure=None,
     )
+
 
 def process_response(
     response: str | None,
@@ -290,6 +298,7 @@ def process_response(
         raw_json=response_str,
     )
 
+
 def get_image_url(uuid: str) -> str:
     if not VERIFICATION_IMAGE_BASE_URL:
         return f"https://user-images.duolicious.app/450-{uuid}.jpg"
@@ -305,6 +314,7 @@ def get_image_url(uuid: str) -> str:
     base64_encoded_str = base64.b64encode(data).decode('utf-8')
 
     return f"data:image/jpeg;base64,{base64_encoded_str}"
+
 
 def get_messages(
     proof_uuid: str,
@@ -332,6 +342,51 @@ def get_messages(
         },
     ]
 
+
+async def mock_verification_response(
+    proof_uuid: str,
+    claimed_uuids: list[str],
+    claimed_age: int,
+    claimed_gender: str,
+    claimed_ethnicity: str | None,
+) -> str | None:
+    if _mock_response_file and _mock_response_file.exists():
+        with _mock_response_file.open('r') as f:
+            return f.read()
+    else:
+        return None
+
+
+async def real_verification_response(
+    proof_uuid: str,
+    claimed_uuids: list[str],
+    claimed_age: int,
+    claimed_gender: str,
+    claimed_ethnicity: str | None,
+) -> str | None:
+    try:
+        return (await AsyncOpenAI().chat.completions.create(
+            model="gpt-4.1-2025-04-14",
+            response_format={"type": "json_object"},
+            temperature=0.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.0,
+            messages=get_messages(
+                proof_uuid=proof_uuid,
+                claimed_uuids=claimed_uuids,
+                claimed_age=claimed_age,
+                claimed_gender=claimed_gender,
+                claimed_ethnicity=claimed_ethnicity,
+            ),
+            max_tokens=500,
+            timeout=45,
+        )).choices[0].message.content
+    except:
+        print(traceback.format_exc())
+
+    return None
+
+
 async def verify(
     proof_uuid: str,
     claimed_uuids: list[str],
@@ -340,28 +395,20 @@ async def verify(
     claimed_ethnicity: str | None,
 ) -> VerificationResult:
     if _mock_response_file and _mock_response_file.exists():
-        with _mock_response_file.open('r') as f:
-            response: str | None = f.read()
+        response = await mock_verification_response(
+            proof_uuid=proof_uuid,
+            claimed_uuids=claimed_uuids,
+            claimed_age=claimed_age,
+            claimed_gender=claimed_gender,
+            claimed_ethnicity=claimed_ethnicity,
+        )
     else:
-        try:
-            response = (await AsyncOpenAI().chat.completions.create(
-                model="gpt-4.1-2025-04-14",
-                response_format={"type": "json_object"},
-                temperature=0.0,
-                frequency_penalty=0.0,
-                presence_penalty=0.0,
-                messages=get_messages(
-                    proof_uuid=proof_uuid,
-                    claimed_uuids=claimed_uuids,
-                    claimed_age=claimed_age,
-                    claimed_gender=claimed_gender,
-                    claimed_ethnicity=claimed_ethnicity,
-                ),
-                max_tokens=500,
-                timeout=45,
-            )).choices[0].message.content
-        except:
-            print(traceback.format_exc())
-            response = None
+        response = await real_verification_response(
+            proof_uuid=proof_uuid,
+            claimed_uuids=claimed_uuids,
+            claimed_age=claimed_age,
+            claimed_gender=claimed_gender,
+            claimed_ethnicity=claimed_ethnicity,
+        )
 
     return process_response(response, claimed_uuids)
