@@ -442,6 +442,10 @@ CREATE TABLE IF NOT EXISTS verification_job (
     expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 day')
 );
 
+CREATE TABLE IF NOT EXISTS verification_photo_hash (
+    hash TEXT PRIMARY KEY
+);
+
 CREATE TABLE IF NOT EXISTS club (
     name TEXT NOT NULL,
     count_members INT NOT NULL DEFAULT 0,
