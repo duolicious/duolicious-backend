@@ -44,6 +44,7 @@ const config: ExpoConfig = {
     appStoreUrl: "https://apps.apple.com/us/app/duolicious-dating-app/id6499066647",
     infoPlist: {
       NSMicrophoneUsageDescription: "This app uses the microphone to capture audio for updating and sharing on your profile.",
+      NSCameraUsageDescription: "This app uses the camera to capture images for verifying your profile.",
       ITSAppUsesNonExemptEncryption: false
     },
   },

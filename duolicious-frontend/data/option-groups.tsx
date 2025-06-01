@@ -1,5 +1,5 @@
 import * as _ from "lodash";
-import { api, japi, ApiResponse } from '../api/api';
+import { japi, ApiResponse } from '../api/api';
 import { setSignedInUser, navigationContainerRef } from '../App';
 import { sessionToken, sessionPersonUuid } from '../kv-storage/session-token';
 import { X } from "react-native-feather";
@@ -20,7 +20,6 @@ import { NonNullImageCropperOutput } from '../components/image-cropper';
 import { login, logout } from '../chat/application-layer';
 import { LOGARITHMIC_SCALE, Scale } from "../scales/scales";
 import { VerificationBadge } from '../components/verification-badge';
-import { VerificationEvent } from '../verification/verification';
 import { notify } from '../events/events';
 import { ClubItem } from '../club/club';
 import { DefaultText } from '../components/default-text';
@@ -32,6 +31,8 @@ import {
 } from 'react-native';
 import { FC } from 'react';
 import { onboardingQueue } from '../api/queue';
+import { showVerificationCamera } from '../components/verification-camera';
+import { notifyUpdatedVerification } from '../verification/verification';
 
 const noneFontSize = 16;
 
@@ -572,7 +573,7 @@ const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
         const ok = (await japi('patch', '/profile-info', { gender })).ok;
         if (ok) {
           this.currentValue = gender;
-          notify<VerificationEvent>('updated-verification', { gender: false });
+          notifyUpdatedVerification({ gender: false });
         }
         return ok;
       },
@@ -606,7 +607,7 @@ const ethnicityOptionGroup: OptionGroup<OptionGroupButtons> = {
         const ok = (await japi('patch', '/profile-info', { ethnicity })).ok;
         if (ok) {
           this.currentValue = ethnicity;
-          notify<VerificationEvent>('updated-verification', { ethnicity: false });
+          notifyUpdatedVerification({ ethnicity: false });
         }
         return ok;
       },
@@ -1930,41 +1931,10 @@ const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       none: {
         description: verificationDescription,
         textAlign: 'left',
-        submit: async () => true,
-      }
-    }
-  },
-  {
-    title: 'Get Verified',
-    description: `Press ‘Continue’ to submit your selfie.`,
-    input: {
-      photos: {
-        submit: async (position, cropperOutput) => {
-          const response = await japi(
-            'post',
-            '/verification-selfie',
-            {
-              base64_file: {
-                position: 1,
-                base64: cropperOutput.originalBase64,
-                top: cropperOutput.top,
-                left: cropperOutput.left,
-              },
-            },
-            {
-              timeout: 2 * 60 * 1000, // 2 minutes
-              showValidationToast: true,
-            }
-          );
-
-          return response.ok;
+        submit: async () => {
+          showVerificationCamera(true);
+          return true;
         },
-        submitAll: async () => api(
-          'post', '/verify', undefined, { maxRetries: 0 }),
-        delete: async () => true,
-        showProtip: false,
-        validateAtLeastOne: true,
-        firstFileNumber: -1,
       }
     }
   },

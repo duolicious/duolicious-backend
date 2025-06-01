@@ -74,13 +74,19 @@ import { CheckChip as CheckChip_, CheckChips as CheckChips_ } from './check-chip
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons/faArrowLeft'
 import { faCaretDown } from '@fortawesome/free-solid-svg-icons/faCaretDown'
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
-import { japi } from '../api/api';
+import { japi, api } from '../api/api';
 import { delay } from '../util/util';
 import { KeyboardDismissingView } from './keyboard-dismissing-view';
 import { listen, notify } from '../events/events';
 import { Title } from './title';
 import { ShowColorPickerEvent } from './modal/color-picker-modal/color-picker-modal';
 import { isMobile } from '../util/util';
+import {
+  listenVerificationCameraResult,
+  showVerificationCamera,
+} from './verification-camera';
+import { notifyUpdatedVerification } from '../verification/verification';
+import { useNavigation } from '@react-navigation/native';
 
 type InputProps<T extends OptionGroupInputs> = {
   input: T,
@@ -784,9 +790,10 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
     | 'failure'
   >('uploading-photo');
   const [message, setMessage] = useState('Loading...');
-  const [numChecks, setNumChecks] = useState(0);
+  const [numChecks, setNumChecks] = useState(3);
   const [verifiedThings, setVerifiedThings] = useState<string[]>([]);
   const [unverifiedThings, setUnverifiedThings] = useState<string[]>([]);
+  const navigation = useNavigation<any>();
 
   const isDone = status === 'success' || status === 'failure';
 
@@ -842,13 +849,51 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
   }, []);
 
   useEffect(() => {
-    notify('watch-verification');
-
     return listen<VerificationEvent>(
       'updated-verification',
       onVerificationEvent,
     );
 
+  }, []);
+
+  useEffect(() => {
+    return listenVerificationCameraResult(async (photo) => {
+      if (!photo) {
+        navigation.goBack();
+        showVerificationCamera(false);
+        return;
+      }
+
+      const photoSize = Math.min(photo.width, photo.height);
+
+      notifyUpdatedVerification({
+        status: 'uploading-photo',
+        message: 'Uploading photo',
+      });
+
+      showVerificationCamera(false);
+
+      await japi(
+        'post',
+        '/verification-selfie',
+        {
+          base64_file: {
+            position: 1,
+            base64: photo.base64,
+            top:  Math.round((photo.height - photoSize) / 2),
+            left: Math.round((photo.width  - photoSize) / 2),
+          },
+        },
+        {
+          timeout: 2 * 60 * 1000, // 2 minutes
+          showValidationToast: true,
+        }
+      );
+
+      notify('watch-verification');
+
+      await api('post', '/verify', undefined, { maxRetries: 0 });
+    });
   }, []);
 
   const VerificationText = useCallback(({

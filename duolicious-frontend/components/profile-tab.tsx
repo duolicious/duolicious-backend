@@ -59,7 +59,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { logout } from '../chat/application-layer';
 import { DetailedVerificationBadges } from './verification-badge';
 import {
-  VerificationEvent,
+  notifyUpdatedVerification,
+  listenUpdatedVerification,
 } from '../verification/verification';
 import { InviteEntrypoint } from './invite';
 import { InvitePicker } from './invite';
@@ -199,10 +200,7 @@ const ProfileTab_ = ({navigation}) => {
 
       setData(response.json);
 
-      notify<VerificationEvent>(
-        'updated-verification',
-        { photos: response.json.photo_verification }
-      );
+      notifyUpdatedVerification({ photos: response.json.photo_verification });
 
       notify<string>('updated-name', response.json.name);
     })();
@@ -498,8 +496,7 @@ const Options = ({ navigation, data }) => {
   }, [triggerRender]);
 
   useEffect(() => {
-    return listen<VerificationEvent>(
-      'updated-verification',
+    return listenUpdatedVerification(
       (v) => {
         if (!v)
           return;

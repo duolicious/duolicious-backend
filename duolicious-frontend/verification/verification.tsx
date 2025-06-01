@@ -2,6 +2,13 @@ import { japi } from '../api/api';
 import { listen, notify } from '../events/events';
 import { delay } from '../util/util';
 
+type VerificationStatus =
+  | 'uploading-photo'
+  | 'enqueued'
+  | 'running'
+  | 'success'
+  | 'failure';
+
 type VerificationEvent = {
   photos?: {
     [position: string]: boolean
@@ -9,13 +16,18 @@ type VerificationEvent = {
   gender?: boolean
   age?: boolean
   ethnicity?: boolean
-  status?:
-    | 'uploading-photo'
-    | 'enqueued'
-    | 'running'
-    | 'success'
-    | 'failure'
+  status?: VerificationStatus
   message?: string
+};
+
+const EV_UPDATED_VERIFICATION = 'updated-verification';
+
+const notifyUpdatedVerification = (e: VerificationEvent) => {
+  notify<VerificationEvent>(EV_UPDATED_VERIFICATION, e);
+};
+
+const listenUpdatedVerification = (f: (e: VerificationEvent) => void) => {
+  listen<VerificationEvent>(EV_UPDATED_VERIFICATION, f);
 };
 
 const verificationWatcher = async () => {
@@ -41,13 +53,10 @@ const verificationWatcher = async () => {
     const isDone = ['success', 'failure'].includes(lastStatus);
 
     if (isTimeReached && !isDone) {
-      notify<VerificationEvent>(
-        'updated-verification',
-        {
-          status: 'failure',
-          message: 'Verification took too long. Try again later.',
-        }
-      );
+      notifyUpdatedVerification({
+        status: 'failure',
+        message: 'Verification took too long. Try again later.',
+      });
 
       lastStatus = 'failure';
     }
@@ -67,17 +76,14 @@ const verificationWatcher = async () => {
       continue;
     }
 
-    notify<VerificationEvent>(
-      'updated-verification',
-      {
-        status: response.json.status,
-        message: response.json.message,
-        photos: response.json.verified_photos,
-        gender: response.json.verified_gender,
-        age: response.json.verified_age,
-        ethnicity: response.json.verified_ethnicity,
-      }
-    );
+    notifyUpdatedVerification({
+      status: response.json.status,
+      message: response.json.message,
+      photos: response.json.verified_photos,
+      gender: response.json.verified_gender,
+      age: response.json.verified_age,
+      ethnicity: response.json.verified_ethnicity,
+    });
 
     lastStatus = response.json.status ?? '';
   }
@@ -85,5 +91,8 @@ const verificationWatcher = async () => {
 
 export {
   VerificationEvent,
+  VerificationStatus,
+  listenUpdatedVerification,
+  notifyUpdatedVerification,
   verificationWatcher,
 };

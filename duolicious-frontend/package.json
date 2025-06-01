@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
-    "@expo/vector-icons": "^14.1.0",
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
     "@fortawesome/react-native-fontawesome": "^0.3.2",
@@ -33,6 +32,7 @@
     "date-fns": "^2.30.0",
     "expo": "53.0.9",
     "expo-av": "~15.1.4",
+    "expo-camera": "~16.1.6",
     "expo-checkbox": "~4.1.4",
     "expo-clipboard": "~7.1.4",
     "expo-constants": "~17.1.6",

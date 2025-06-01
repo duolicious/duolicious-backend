@@ -59,6 +59,7 @@ import { useScrollbarStyle } from './components/navigation/scroll-bar-hooks';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ErrorBoundary } from './components/error-boundary';
 import { TooltipListener } from './components/tooltip';
+import { VerificationCameraModal } from './components/verification-camera';
 
 verificationWatcher();
 
@@ -545,6 +546,7 @@ const App = () => {
           <ColorPickerModal/>
           <GifPickerModal/>
           <Toast/>
+          <VerificationCameraModal/>
         </GestureHandlerRootView>
         <WebSplashScreen loading={isLoading}/>
       </SafeAreaProvider>
