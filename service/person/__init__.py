@@ -4,7 +4,7 @@ from typing import Any, Optional, Iterable, Tuple, Literal
 import duotypes as t
 import json
 import secrets
-from duohash import sha512
+from duohash import md5, sha512
 from PIL import Image
 import io
 import boto3
@@ -35,6 +35,11 @@ from datetime import datetime, timezone
 from duoaudio import put_audio_in_object_store
 from util import truncate_text
 from service.person.aboutdiff import diff_addition_with_context
+from verification.messages import (
+    V_QUEUED,
+    V_REUSED_SELFIE,
+    V_UPLOADING_PHOTO,
+)
 
 
 class BytesEncoder(json.JSONEncoder):
@@ -1751,6 +1756,7 @@ def get_update_notifications(email: str, type: str, frequency: str):
         return 'Invalid email address or notification frequency', 400
 
 def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo):
+    base64 = req.base64_file.base64
     image = req.base64_file.image
     top = req.base64_file.top
     left = req.base64_file.left
@@ -1758,14 +1764,26 @@ def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo):
     crop_size = CropSize(top=top, left=left)
     photo_uuid = secrets.token_hex(32)
 
-    params = dict(
+    params_ok = dict(
         person_id=s.person_id,
         photo_uuid=photo_uuid,
+        photo_hash=md5(base64),
+        expected_previous_status=None,
+    )
+
+    params_bad = dict(
+        person_id=s.person_id,
+        status='failure',
+        message=V_REUSED_SELFIE,
+        expected_previous_status=None,
     )
 
     with api_tx() as tx:
-        tx.execute(Q_DELETE_VERIFICATION_JOB, params)
-        tx.execute(Q_INSERT_VERIFICATION_JOB, params)
+        if tx.execute(Q_INSERT_VERIFICATION_PHOTO_HASH, params_ok).fetchall():
+            tx.execute(Q_DELETE_VERIFICATION_JOB, params_ok)
+            tx.execute(Q_INSERT_VERIFICATION_JOB, params_ok)
+        else:
+            tx.execute(Q_UPDATE_VERIFICATION_JOB, params_bad)
 
     try:
         put_image_in_object_store(
@@ -1775,8 +1793,15 @@ def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo):
         return '', 500
 
 def post_verify(s: t.SessionInfo):
+    params = dict(
+        person_id=s.person_id,
+        status='queued',
+        message=V_QUEUED,
+        expected_previous_status='uploading-photo',
+    )
+
     with api_tx() as tx:
-        tx.execute(Q_ENQUEUE_VERIFICATION_JOB, dict(person_id=s.person_id))
+        tx.execute(Q_UPDATE_VERIFICATION_JOB, params)
 
 def get_check_verification(s: t.SessionInfo):
     with api_tx() as tx:

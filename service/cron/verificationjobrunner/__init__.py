@@ -1,6 +1,9 @@
 from database.asyncdatabase import api_tx
 from service.cron.verificationjobrunner.sql import *
 from verification import verify
+from verification.messages import (
+    V_SOMETHING_WENT_WRONG,
+)
 from service.cron.cronutil import print_stacktrace, MAX_RANDOM_START_DELAY
 import asyncio
 import os
@@ -60,7 +63,7 @@ async def do_verification_job(verification_job: VerificationJob):
         message = (
             verification_result.failure.reason
             if verification_result.failure
-            else 'Something went wrong')
+            else V_SOMETHING_WENT_WRONG)
 
         params = dict(
             verification_job_id=verification_job.id,
