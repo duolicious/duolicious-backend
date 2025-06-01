@@ -48,6 +48,7 @@ test_uniqueness () {
 {
   "image_1_was_not_edited": 1.0,
   "image_1_is_photograph": 1.0,
+  "image_1_is_not_screenshot": 1.0,
   "image_1_has_at_least_one_person": 1.0,
   "image_1_has_exactly_one_person": 1.0,
   "image_1_has_45_degree_angle": 1.0,
@@ -167,6 +168,7 @@ test_success () {
 {
   "image_1_was_not_edited": 1.0,
   "image_1_is_photograph": 1.0,
+  "image_1_is_not_screenshot": 1.0,
   "image_1_has_at_least_one_person": 1.0,
   "image_1_has_exactly_one_person": 1.0,
   "image_1_has_45_degree_angle": 1.0,
@@ -226,6 +228,7 @@ test_failure () {
 {
   "image_1_was_not_edited": 1.0,
   "image_1_is_photograph": 1.0,
+  "image_1_is_not_screenshot": 1.0,
   "image_1_has_at_least_one_person": 1.0,
   "image_1_has_exactly_one_person": 1.0,
   "image_1_has_45_degree_angle": 1.0,

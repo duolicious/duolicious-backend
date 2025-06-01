@@ -55,6 +55,9 @@ def get_system_content(
         '  // Image #1 is a photograph',
         '  image_1_is_photograph: number',
         '',
+        '  // Image #1 shows no signs of being a screenshot or photograph of a computer screen',
+        '  image_1_is_not_screenshot: number',
+        '',
         '  // Image #1 contains at least one person',
         '  image_1_has_at_least_one_person: number',
         '',
@@ -181,6 +184,7 @@ def process_response(
 
         image_1_was_not_edited          = json_obj['image_1_was_not_edited']
         image_1_is_photograph           = json_obj['image_1_is_photograph']
+        image_1_is_not_screenshot       = json_obj['image_1_is_not_screenshot']
         image_1_has_at_least_one_person = json_obj['image_1_has_at_least_one_person']
         image_1_has_exactly_one_person  = json_obj['image_1_has_exactly_one_person']
         image_1_has_claimed_gender      = json_obj['image_1_has_claimed_gender']
@@ -200,6 +204,7 @@ def process_response(
 
         image_1_was_not_edited          = float(image_1_was_not_edited)
         image_1_is_photograph           = float(image_1_is_photograph)
+        image_1_is_not_screenshot       = float(image_1_is_not_screenshot)
         image_1_has_at_least_one_person = float(image_1_has_at_least_one_person)
         image_1_has_exactly_one_person  = float(image_1_has_exactly_one_person)
         image_1_has_claimed_gender      = float(image_1_has_claimed_gender)
@@ -258,6 +263,9 @@ def process_response(
 
     if image_1_is_photograph < general_truthiness_threshold:
         return failure(V_NOT_REAL, response_str)
+
+    if image_1_is_not_screenshot < general_truthiness_threshold:
+        return failure(V_SCREENSHOT, response_str)
 
     if image_1_was_not_edited < edit_truthiness_threshold:
         return failure(V_EDITED, response_str)
