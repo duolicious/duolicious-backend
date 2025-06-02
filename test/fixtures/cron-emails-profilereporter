@@ -39,7 +39,7 @@ Body: <!DOCTYPE html>
   account_age_in_days: 0
   age: 26
   all_report_reasons:
-    - &#x27;Automatically lodged report: Possible minor&#x27;
+    - &#x27;Automatically lodged report: Child safety&#x27;
   clubs: []
   count_answers: 0
   education: null
@@ -64,7 +64,7 @@ Body: <!DOCTYPE html>
 </pre>
 <p><b>Reporter's reason:</b></p>
 <pre>
-Automatically lodged report: Possible minor
+Automatically lodged report: Child safety
 </pre>
 <p><b>Ban REPORTING user for one month:</b></p>
 </a>
