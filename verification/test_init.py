@@ -11,6 +11,7 @@ success_content_template = """
 {
   "image_1_was_not_edited": 1.0,
   "image_1_is_photograph": 1.0,
+  "image_1_is_not_screenshot": 1.0,
   "image_1_has_at_least_one_person": 1.0,
   "image_1_has_exactly_one_person": 1.0,
   "image_1_has_claimed_gender": 1.0,
@@ -46,38 +47,42 @@ failure_content_2 = success_content_template.replace(
     '"image_1_was_not_edited": 0.0')
 
 failure_content_3 = success_content_template.replace(
+    '"image_1_is_not_screenshot": 1.0',
+    '"image_1_is_not_screenshot": 0.0')
+
+failure_content_4 = success_content_template.replace(
     '"image_1_has_at_least_one_person": 1.0',
     '"image_1_has_at_least_one_person": 0.0')
 
-failure_content_4 = success_content_template.replace(
+failure_content_5 = success_content_template.replace(
     '"image_1_has_exactly_one_person": 1.0',
     '"image_1_has_exactly_one_person": 0.0')
 
-failure_content_5 = success_content_template.replace(
+failure_content_6 = success_content_template.replace(
     '"image_1_has_claimed_gender": 1.0',
     '"image_1_has_claimed_gender": 0.0')
 
-failure_content_6 = success_content_template.replace(
+failure_content_7 = success_content_template.replace(
     '"image_1_has_claimed_age": 1.0',
     '"image_1_has_claimed_age": 0.0')
 
-failure_content_7 = success_content_template.replace(
+failure_content_8 = success_content_template.replace(
     '"image_1_has_claimed_ethnicity": 1.0',
     '"image_1_has_claimed_ethnicity": 0.0')
 
-failure_content_8 = success_content_template.replace(
+failure_content_9 = success_content_template.replace(
     '"image_1_has_smiling_person": 1.0',
     '"image_1_has_smiling_person": 0.0')
 
-failure_content_9 = success_content_template.replace(
+failure_content_10 = success_content_template.replace(
     '"image_1_has_eyebrow_touch": 1.0',
     '"image_1_has_eyebrow_touch": 0.0')
 
-failure_content_10 = success_content_template.replace(
+failure_content_11 = success_content_template.replace(
     '"image_1_has_downward_thumb": 1.0',
     '"image_1_has_downward_thumb": 0.0')
 
-failure_content_11 = success_content_template.replace(
+failure_content_12 = success_content_template.replace(
     '"image_1_has_person_from_image_2": 1.0',
     '"image_1_has_person_from_image_2": 0.0')
 
@@ -151,18 +156,6 @@ class TestProcessResponse(unittest.TestCase):
             "Our AI thinks your image might have been edited.")
         self.assertEqual(processed.failure.raw_json, response)
 
-    def test_failure_3(self):
-        response = failure_content_3
-
-        processed = process_response(response, claimed_uuids=['u2', 'u3'])
-
-        self.assertIsNotNone(processed.failure)
-        self.assertIsNone(processed.success)
-
-        self.assertEqual(processed.failure.reason,
-            "Our AI thinks your photo doesn’t have a person in it.")
-        self.assertEqual(processed.failure.raw_json, response)
-
     def test_failure_4(self):
         response = failure_content_4
 
@@ -172,7 +165,7 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNone(processed.success)
 
         self.assertEqual(processed.failure.reason,
-            "Our AI thinks there’s more than one person in your photo.")
+            "Our AI thinks your photo doesn’t have a person in it.")
         self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_5(self):
@@ -184,7 +177,7 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNone(processed.success)
 
         self.assertEqual(processed.failure.reason,
-            "Our AI couldn’t verify your gender.")
+            "Our AI thinks there’s more than one person in your photo.")
         self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_6(self):
@@ -196,7 +189,7 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNone(processed.success)
 
         self.assertEqual(processed.failure.reason,
-            "Our AI couldn’t verify your age.")
+            "Our AI couldn’t verify your gender.")
         self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_7(self):
@@ -208,7 +201,7 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNone(processed.success)
 
         self.assertEqual(processed.failure.reason,
-            "Our AI couldn’t verify your ethnicity.")
+            "Our AI couldn’t verify your age.")
         self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_8(self):
@@ -220,7 +213,7 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNone(processed.success)
 
         self.assertEqual(processed.failure.reason,
-            "Our AI thinks you’re not smiling.")
+            "Our AI couldn’t verify your ethnicity.")
         self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_9(self):
@@ -232,11 +225,23 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNone(processed.success)
 
         self.assertEqual(processed.failure.reason,
-            "Our AI thinks you’re not touching your eyebrow.")
+            "Our AI thinks you’re not smiling.")
         self.assertEqual(processed.failure.raw_json, response)
 
     def test_failure_10(self):
         response = failure_content_10
+
+        processed = process_response(response, claimed_uuids=['u2', 'u3'])
+
+        self.assertIsNotNone(processed.failure)
+        self.assertIsNone(processed.success)
+
+        self.assertEqual(processed.failure.reason,
+            "Our AI thinks you’re not touching your eyebrow.")
+        self.assertEqual(processed.failure.raw_json, response)
+
+    def test_failure_11(self):
+        response = failure_content_11
 
         processed = process_response(response, claimed_uuids=['u2', 'u3'])
 
@@ -275,6 +280,9 @@ You have been given one or more image(s) by a user attempting to verify their id
 
   // Image #1 is a photograph
   image_1_is_photograph: number
+
+  // Image #1 shows no signs of being a screenshot or photograph of a computer screen
+  image_1_is_not_screenshot: number
 
   // Image #1 contains at least one person
   image_1_has_at_least_one_person: number
@@ -354,6 +362,9 @@ You have been given one or more image(s) by a user attempting to verify their id
 
   // Image #1 is a photograph
   image_1_is_photograph: number
+
+  // Image #1 shows no signs of being a screenshot or photograph of a computer screen
+  image_1_is_not_screenshot: number
 
   // Image #1 contains at least one person
   image_1_has_at_least_one_person: number
@@ -464,6 +475,9 @@ You have been given one or more image(s) by a user attempting to verify their id
   // Image #1 is a photograph
   image_1_is_photograph: number
 
+  // Image #1 shows no signs of being a screenshot or photograph of a computer screen
+  image_1_is_not_screenshot: number
+
   // Image #1 contains at least one person
   image_1_has_at_least_one_person: number
 
@@ -534,6 +548,9 @@ You have been given one or more image(s) by a user attempting to verify their id
 
   // Image #1 is a photograph
   image_1_is_photograph: number
+
+  // Image #1 shows no signs of being a screenshot or photograph of a computer screen
+  image_1_is_not_screenshot: number
 
   // Image #1 contains at least one person
   image_1_has_at_least_one_person: number
