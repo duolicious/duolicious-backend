@@ -32,7 +32,7 @@ async def report_profiles_once():
             skip_by_uuid(
                 subject_uuid=row['subject_uuid'],
                 object_uuid=row['object_uuid'],
-                reason='Automatically lodged report: Possible minor'
+                reason='Automatically lodged report: Child safety'
             )
         else:
             print(f'{__name__} -', row['object_uuid'], 'not reported')
