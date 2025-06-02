@@ -193,6 +193,26 @@ I'm 71 🔄
 
                 """.strip()))
 
+        self.assertTrue(
+                potential_minor("""
+i want to be groomed so its ok
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
+proud kiddy groomer/toucher, don't @ me
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
+i like grooming children
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
+i wanna be a victim
+                """.strip()))
+
 
     def test_not_potential_minor(self):
         self.assertFalse(
@@ -395,6 +415,11 @@ Photos of memes, things i like and me doing cosplay in the 4th one
         self.assertFalse(
                 potential_minor("""
 I have 10 million things to do today
+                """.strip()))
+
+        self.assertFalse(
+                potential_minor("""
+future twink death victim
                 """.strip()))
 
 

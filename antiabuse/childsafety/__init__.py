@@ -26,7 +26,17 @@ _re_minor_declarations = (
         rf'(turning\s+{_re_adult_ages})|'
         rf'({_re_palindomic_minor_ages}\s*{_re_palindome_assertion}))')
 
-_re_minor = rf'\b(({_re_minor_ages}|{_re_minor_declarations})\b)'
+_re_gooming = r'(groomer|groomed|grooming)'
+
+_re_victim = r'(be\s+a\s+victim)'
+
+_re_minor = (
+        rf'(\b('
+        rf'{_re_minor_ages}|'
+        rf'{_re_minor_declarations}|'
+        rf'{_re_gooming}|'
+        rf'{_re_victim}'
+        rf')\b)')
 
 _re_neg_prev = {
     'for',
