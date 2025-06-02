@@ -1,5 +1,6 @@
 import {
   Animated,
+  BackHandler,
   Image,
   PanResponder,
   Platform,
@@ -169,7 +170,7 @@ const ImageCropper = () => {
 
   const onCancelPress = () => {
     if (!data) {
-      return;
+      return true;
     }
 
     notify<ImageCropperOutput>(
@@ -180,6 +181,8 @@ const ImageCropper = () => {
     );
 
     setData(undefined);
+
+    return true;
   };
 
   const onCropPress = async () => {
@@ -211,6 +214,32 @@ const ImageCropper = () => {
 
     setData(undefined);
   };
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+
+    if (Platform.OS !== 'ios') {
+      return;
+    }
+
+    const pushed = StatusBar.pushStackEntry({ hidden: true });
+    return () => StatusBar.popStackEntry(pushed);
+  }, []);
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      onCancelPress,
+    );
+
+    return () => subscription.remove();
+  }, [data]);
 
   if (!data) {
     return null;

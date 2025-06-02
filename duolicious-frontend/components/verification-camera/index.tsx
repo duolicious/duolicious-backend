@@ -1,17 +1,20 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import {
+  BackHandler,
+  Platform,
+  StatusBar,
   StyleSheet,
-  View,
   TouchableOpacity,
+  View,
   useWindowDimensions,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { faTimes } from '@fortawesome/free-solid-svg-icons/faTimes';
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { DefaultText } from '../default-text';
 import { SomethingWentWrongToast } from '../toast';
 import { notify, listen } from '../../events/events';
 import { getBestResolution } from './resolution';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const EVENT_KEY_SHOW = 'verification-camera-show';
 const EVENT_KEY_RESULT = 'verification-camera-result';
@@ -41,6 +44,9 @@ const VerificationCamera = () => {
   const [pictureSize, setPictureSize] = useState<string | undefined>();
   const cameraRef = useRef<CameraView>(null);
 
+  const insets = useSafeAreaInsets();
+  const [initialInsets,] = useState<typeof insets>(insets);
+
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const windowSize = Math.min(windowWidth, windowHeight);
 
@@ -52,6 +58,25 @@ const VerificationCamera = () => {
 
   const onPressClose = useCallback(() => {
     notifyVerificationCameraResult(null);
+    return true;
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios') {
+      return;
+    }
+
+    const pushed = StatusBar.pushStackEntry({ hidden: true });
+    return () => StatusBar.popStackEntry(pushed);
+  }, []);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      onPressClose,
+    );
+
+    return () => subscription.remove();
   }, []);
 
   const handleTakePhoto = async () => {
@@ -85,52 +110,54 @@ const VerificationCamera = () => {
 
   return (
     <View style={styles.container}>
-      {permission?.granted ? (
-        <View style={{ width: windowSize, height: windowSize }}>
-          <CameraView
-            ref={cameraRef}
-            facing="front"
-            zoom={0}
-            flash="off"
-            mute={true}
-            mirror={false}
-            style={styles.camera}
-            pictureSize={pictureSize}
-            onCameraReady={async () => {
-              const availablePictureSizes = await cameraRef.current?.getAvailablePictureSizesAsync();
-              const bestResolution = getBestResolution(availablePictureSizes);
-              setPictureSize(bestResolution ?? undefined);
-            }}
-          />
-        </View>
-      ) : (
-        <DefaultText style={styles.message}>
-          We need your permission to show the camera
-        </DefaultText>
-      )}
-      <View style={styles.controlsContainer}>
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={onPressClose}
-        >
-          <FontAwesomeIcon
-            icon={faTimes}
-            size={28}
-            color="white"
-            style={{
-              // @ts-ignore
-              outline: 'none'
-            }}
-          />
-        </TouchableOpacity>
-
-        {permission?.granted &&
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.shutterOuter} onPress={handleTakePhoto}>
-              <View style={styles.shutterInner} />
-            </TouchableOpacity>
+      <View style={[styles.safeAreaContainer, initialInsets]}>
+        {permission?.granted ? (
+          <View style={{ width: windowSize, height: windowSize }}>
+            <CameraView
+              ref={cameraRef}
+              facing="front"
+              zoom={0}
+              flash="off"
+              mute={true}
+              mirror={false}
+              style={styles.camera}
+              pictureSize={pictureSize}
+              onCameraReady={async () => {
+                const availablePictureSizes = await cameraRef.current?.getAvailablePictureSizesAsync();
+                const bestResolution = getBestResolution(availablePictureSizes);
+                setPictureSize(bestResolution ?? undefined);
+              }}
+            />
           </View>
-        }
+        ) : (
+          <DefaultText style={styles.message}>
+            We need your permission to show the camera
+          </DefaultText>
+        )}
+        <View style={styles.controlsContainer}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={onPressClose}
+          >
+            <Ionicons
+              style={{
+                marginTop: 10,
+                marginLeft: 10,
+                fontSize: 30,
+                color: 'white',
+              }}
+              name="close"
+            />
+          </TouchableOpacity>
+
+          {permission?.granted &&
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={styles.shutterOuter} onPress={handleTakePhoto}>
+                <View style={styles.shutterInner} />
+              </TouchableOpacity>
+            </View>
+          }
+        </View>
       </View>
     </View>
   );
@@ -158,6 +185,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
     backgroundColor: 'black',
+  },
+  safeAreaContainer: {
+    position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -196,8 +226,8 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: 26,
-    left: 26,
+    top: 0,
+    left: 0,
     zIndex: 2,
   },
   shutterOuter: {
