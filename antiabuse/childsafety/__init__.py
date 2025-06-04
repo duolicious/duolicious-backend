@@ -1,12 +1,14 @@
 import re
 
-_re_adult_ages_as_numbers = r'([1-9][0-9][mfy]?)'
+_re_age_modifier_suffix = r'(m|f|y|yrs|y/o|y\.o|yo)'
+
+_re_adult_ages_as_numbers = rf'([1-9][0-9]{_re_age_modifier_suffix}?)'
 
 _re_adult_ages_as_words = r'(eighteen|nineteen|twenty)'
 
 _re_adult_ages = rf'({_re_adult_ages_as_numbers}|{_re_adult_ages_as_words})'
 
-_re_minor_ages_as_numbers = r'(1[1-7][mfy]?)'
+_re_minor_ages_as_numbers = rf'(1[1-7]{_re_age_modifier_suffix}?)'
 
 _re_minor_ages_as_words = (
     '(eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen)')

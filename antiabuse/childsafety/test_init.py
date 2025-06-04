@@ -195,6 +195,26 @@ I'm 71 🔄
 
         self.assertTrue(
                 potential_minor("""
+15yrs
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
+15yo
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
+15.y.o
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
+15y/o
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
 i want to be groomed so its ok
                 """.strip()))
 
