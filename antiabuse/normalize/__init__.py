@@ -1,98 +1,73 @@
 from confusable_homoglyphs import confusables
 import re
 import unicodedata
+from functools import cache
 
-# Used to convert slang in an input string to a more standard form so that it's
-# easier to detect coarse language later on
-_normalization_map = {
-    "[a4]+n[a4]+[l1]+": "anal",
-    "[a4][s5$]{2}": "ass",
-    "[a4][s5$]*h[o0][l1][e3]": "asshole",
-    "b[a4]ck ?sh[o0][tт][s5$z]": "backshots",
-    "b": "be",
-    "b[i1y]?tch": "bitch",
-    "b[o0][o0]b[i1][e3][s5$z]": "boobies",
-    "c[a4][s5$z]h[a4]pp": "cashapp",
-    "c[o0]ck": "cock",
-    "c[o0]ck[s5$z]": "cocks",
-    "c[o0]ck[s5$z][uv]ck[e3]r": "cocksucker",
-    "cok": "cock",
-    "c+[uv]+m+": "cum",
-    "c[uv]mm[i1]ng": "cumming",
-    "c[uv]m[s5$z]h[o0][tт]": "cumshot",
-    "c+[uv]+m+s+": "cums",
-    "d[i1]ck": "dick",
-    "d[iy1]k[e3]": "dyke",
-    "dyck": "dick",
-    "ejaku[l1]ate": "ejaculate",
-    "f[a4]*[gб]+[o0]*[tᴛ][s5$z]": "faggots",
-    "f[a4]*[gб]+[o0]*[tт]": "faggot",
-    "fcked": "fucked",
-    "fck": "fuck",
-    "fcking": "fucking",
-    "fked": "fucked",
-    "fk": "fuck",
-    "fking": "fucking",
-    "f[o0]{2}t\s*j[o0]b": "footjob",
-    "f[o0]{2}t\s*j[o0]b[s5$z]": "footjobs",
-    "f[uv]ck[e3]d": "fucked",
-    "f[uv]ck": "fuck",
-    "f[uv]ckin": "fucking",
-    "f[uv]cking": "fucking",
-    "f[uv]ked": "fucked",
-    "f[uv]k": "fuck",
-    "f[uv]king": "fucking",
-    "gr[a4]p[e3]d": "raped",
-    "gr[a4]p[i1]ng": "raping",
-    "gr[o0][o0]mer": "groomer",
-    "gr[o0][o0]m": "groom",
-    "gutz": "guts",
-    "h[@a4]rm": "harm",
-    "k[iy1][l1]+": "kill",
-    "[l1]0[l1]icon": "lolicon",
-    "[l1]0[l1]i": "loli",
-    "n[i1ye3]gg[l1]et": "niglet",
-    "n[i1ye3]*[gб]+(a|uh|e)": "nigga",
-    "n[i1ye3]*[gб]+([e3]*r)?": "nigger",
-    "n[i1ye3]*[gб]+[e3]*r[s5$z]": "niggers",
-    "n[i1ye3][gб]+uh*": "nigga",
-    "n[ie][gб]{1,2}re{1,2}s+": "negress",
-    "p[e3]d[o0]": "pedo",
-    "pen[i1][s5$]": "penis",
-    "pissin": "pissing",
-    "p[iy1][s5$][s5$]": "piss",
-    "p[o0]rn": "porn",
-    "pre cum": "precum",
-    "pr[o0]n": "porn",
-    "r[@a4]p[e3]?-?[@a4]?b[l1][e3]": "rapeable",
-    "r[@a4]p[e3]d": "raped",
-    "r[@a4]p[e3]": "rape",
-    "r[@a4]p[i1]*ng": "raping",
-    "r[@a4]y\s+p[i1]ng": "raping",
-    "r": "are",
-    "raype": "rape",
-    "r[e3]t[@a4]rd": "retard",
-    "s[e3][l1]f": "self",
-    "seg+[zs]+": "sex",
-    "sht": "shit",
-    "slvt": "slut",
-    "strokin": "stroking",
-    "s[uv][i1]c[i1]d[e3]": "suicide",
-    "sxy": "sexy",
-    "tiddies": "titties",
-    "tiddy": "titty",
-    "tr[@a4]nnie[s5$z]": "trannies",
-    "tr[@a4]nny": "tranny",
-    "tr[o0]{2}n[s5$z]": "troons",
-    "tr[o0]{2}n": "troon",
-    "un-?r[@a4]p[e3]-?ab[l1]e": "unrapeable",
-    "un-?r[@a4]p[e3]": "unrape",
-    "urse[l1]f": "yourself",
-    "ur": "your",
-    "us[e3]": "use",
-    "u": "you",
-    "wh[o0]r[e3][s5$z]": "whores",
-    "wh[o0]r[e3]": "whores",
+_char_map = {
+    "a": "a@4x*",
+    "c": "ck",
+    "e": "e3x*",
+    "g": "gб",
+    "i": "i1l!yx*",
+    "l": "l1l!",
+    "o": "o0x*",
+    "s": "sz5$",
+    "t": "tт",
+    "u": "uvx*",
+    "y": "yi1",
+}
+
+_elideable_chars = {
+    "a",
+    "e",
+    "i",
+    "o",
+    "u",
+}
+
+_punctuation = {
+    '!',
+    ',',
+    '.',
+    '?',
+}
+
+_closed_class_slang_words = {
+    "yourself": [
+        "urself",
+        "your self",
+        "ur self",
+    ],
+    "myself": [
+        "my self",
+    ],
+    "you": [
+        "u",
+    ],
+    "your": [
+        "ur",
+    ],
+    "are": [
+        "r",
+    ],
+    "be": [
+        "b",
+    ],
+    "fuck": [
+        "fck",
+        "fk",
+        "fuc",
+        "fuk",
+    ],
+}
+
+_closed_class_slang_suffixes = {
+    "ing": [
+        "in",
+    ],
+    "ed": [
+        "d",
+    ],
 }
 
 
@@ -130,22 +105,163 @@ def _get_latin_homoglyph(char: str) -> str:
 
 def _normalize_homoglyphs(s: str) -> str:
     """
-    Normalizes an input string by replacing characters that are confusable with Latin homoglyphs.
+    Normalizes an input string by replacing characters that are confusable with
+    Latin homoglyphs.
     """
     return ''.join(_get_latin_homoglyph(char) for char in s)
 
 
-def _normalize_spelling(haystack: str):
-    for needle, replacement in _normalization_map.items():
-        # Apparently compiled regexes are cached between invocations of
-        # re.compile.
-        pattern = re.compile(
-                r'((?<=[^a-z0-9])|^)'
-                f'{needle}'
-                r'((?=[^a-z0-9])|$)',
-                re.IGNORECASE)
+def verb_forms(verb: str) -> list[str]:
+    """
+    Return a list of common English derivations for *verb*:
+        base, -s, -ed/-d, -ing, -able, -er, -ers
+    with simple spelling rules:
+        • drop final e before -ing/-able/-er/-ers. But also add -eable to
+          account for misspellings.
+        • add only 'd' to verbs ending in e  (dance → danced)
+        • double final consonant (except w/x/y) for CVC verbs
+          before vowel-initial suffixes  (stop → stopped/stopping/stoppable)
 
-        haystack = pattern.sub(replacement, haystack)
+    NOTE: Ignores irregular spellings (go→went, run→ran, etc.).
+    """
+    vowels = "aeiou"
+
+    def double_final_consonant(w: str) -> str:
+        """CVC doubling heuristic (ignores w/x/y)."""
+        if (len(w) >= 3 and
+            w[-1] not in vowels + "wxy" and
+            w[-2] in vowels and
+            w[-3] not in vowels):
+            return w + w[-1]
+        return w
+
+    def derive(w: str) -> set[str]:
+        """Derivations for a single verb form (no 'un-' added here)."""
+        forms = {w}
+
+        if w.endswith("e"):
+            stem = w[:-1]
+            forms.update({
+                w + "d",            # danced
+                stem + "ing",       # dancing
+                stem + "able",      # dancable
+                stem + "eable",     # danceable
+                stem + "er", stem + "ers"
+            })
+        else:
+            base = double_final_consonant(w)
+            forms.update({
+                base + "ed",        # stopped
+                base + "ing",       # stopping
+                base + "able",      # stoppable
+                base + "er", base + "ers"
+            })
+
+        forms.add(w + "s")           # stops / loves
+        return forms
+
+    # 1. normal verb
+    derivs = derive(verb)
+
+    # 2. add un- prefixed set if requested and verb itself isn’t already “un…”
+    if not verb.startswith("un"):
+        derivs |= {"un" + f for f in derivs}
+
+    return sorted(derivs)
+
+
+def verb_forms_for_each(verb_list: list[str]) -> list[str]:
+    return [
+        verb_form
+        for verb in verb_list
+        for verb_form in verb_forms(verb)
+    ]
+
+
+def char_to_regex(c: str, is_initial: bool, is_final: bool):
+    is_medial = not is_initial and not is_final
+
+    re_quantifier = rf'*' if is_medial and c in _elideable_chars else '+'
+
+    re_chars = _char_map[c] if c in _char_map else c
+
+    # Don't match punctuation at the end of a word
+    if is_final:
+        re_chars = ''.join(c for c in re_chars if c not in _punctuation)
+
+    return rf'[{re_chars}]{re_quantifier}'
+
+
+def suffix_class_instance_to_regex(suffix_class_instance: str) -> str:
+    return '(' + ''.join(
+        char_to_regex(
+            c=c,
+            is_initial=i == 0,
+            is_final=i == len(suffix_class_instance) - 1,
+        )
+        for i, c in enumerate(suffix_class_instance)
+    ) + ')'
+
+
+def suffix_class_to_regex(suffix_class: list[str]) -> str:
+    return '(' + '|'.join(
+        suffix_class_instance_to_regex(suffix_class_instance)
+        for suffix_class_instance in suffix_class
+    ) + ')'
+
+
+def word_class_instance_to_regex(word_class_instance: str) -> str:
+    for suffix in _closed_class_slang_suffixes:
+        if word_class_instance.endswith(suffix):
+            without_suffix = word_class_instance[:-len(suffix)]
+
+            with_suffixes = [
+                f'{without_suffix}{suffix_class_instance}'
+                for suffix_class_instance in _closed_class_slang_suffixes[suffix]
+            ]
+
+            return suffix_class_to_regex([word_class_instance] + with_suffixes)
+
+    return suffix_class_to_regex([word_class_instance])
+
+
+
+def word_class_to_regex(word_class: list[str]) -> str:
+    return '(' + '|'.join(
+        word_class_instance_to_regex(word_class_instance)
+        for word_class_instance in word_class
+    ) + ')'
+
+
+def word_to_regex(word: str) -> str:
+    if word in _closed_class_slang_words:
+        return word_class_to_regex([word] + _closed_class_slang_words[word])
+    else:
+        return word_class_to_regex([word])
+
+
+def phrase_to_regex(phrase: str) -> str:
+    return '(' + '[ -]?'.join(
+            word_to_regex(word) for word in phrase.split(' ')
+    ) + ')'
+
+
+@cache
+def phrase_to_pattern(phrase: str):
+    needle = phrase_to_regex(phrase)
+
+    return re.compile(
+            r'((?<=[^a-z0-9])|^)'
+            f'{needle}'
+            r'((?=[^a-z0-9])|$)',
+            re.IGNORECASE)
+
+
+def _normalize_spelling(haystack: str, normalizeable_phrases: list[str]):
+    for phrase in normalizeable_phrases:
+        pattern = phrase_to_pattern(phrase)
+
+        haystack = pattern.sub(phrase, haystack)
 
     return haystack
 
@@ -154,7 +270,7 @@ def _remove_zero_width_characters(s: str):
     return _zero_width_chars.sub('', s)
 
 
-def normalize_string(s: str):
+def normalize_string(s: str, normalizeable_phrases: list[str]):
     normalized_input = unicodedata.normalize('NFKD', s)
     normalized_input = ''.join(
         char for char in normalized_input if not unicodedata.combining(char)
@@ -174,6 +290,6 @@ def normalize_string(s: str):
     normalized_input = _remove_zero_width_characters(normalized_input)
 
     # Replace slang
-    normalized_input = _normalize_spelling(normalized_input)
+    normalized_input = _normalize_spelling(normalized_input, normalizeable_phrases)
 
     return normalized_input

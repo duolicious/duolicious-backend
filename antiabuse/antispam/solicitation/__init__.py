@@ -1,22 +1,15 @@
 from antiabuse.normalize import normalize_string
+from antiabuse.normalize.normalizationlists import solitication
 import re
 
-_strings = [
-    'cashapp',
-    'finsub',
-    'paypal',
-    'telegram',
-    'venmo',
-    'zangi',
-]
 
-_solicitation_pattern = '|'.join(f'(\\b{re.escape(s)}\\b)' for s in _strings)
+_solicitation_pattern = '|'.join(f'(\\b{re.escape(s)}\\b)' for s in solitication)
 
 
 _solicitation_matcher = re.compile(_solicitation_pattern, re.IGNORECASE)
 
 
 def has_solicitation(s: str) -> bool:
-    normalized_input = normalize_string(s)
+    normalized_input = normalize_string(s, solitication)
 
     return bool(_solicitation_matcher.search(normalized_input))

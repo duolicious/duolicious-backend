@@ -13,7 +13,10 @@ class TestIsRude(unittest.TestCase):
         self.assertTrue(
                 is_rude("ywnbaw is an acronym"))
 
-    def test_inrude_strings(self):
+    def test_non_rude_strings(self):
+        self.assertFalse(
+                is_rude("bot-reporter-of-sender-11"))
+
         self.assertFalse(
                 is_rude("go hug urself please"))
 
