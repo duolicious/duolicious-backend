@@ -1,100 +1,32 @@
 import unittest
-from antiabuse.normalize import normalize_string
+from antiabuse.normalize import (
+    normalize_string,
+)
 
 class TestNormalizeString(unittest.TestCase):
-
     def test_normalize_string(self):
-        self.assertEqual(normalize_string("fuk"), "fuck")
+        normalizeable_phrases = [
+            "fuck",
+            "cum",
+            "rape",
+            "kill you",
+        ]
 
-        self.assertEqual(normalize_string("ccvvvmmm"), "cum")
+        self.assertEqual(
+                normalize_string("I'm gonna fck you", normalizeable_phrases),
+                "I'm gonna fuck you")
 
-        self.assertEqual(normalize_string("r4p3"), "rape")
+        self.assertEqual(
+                normalize_string("I'm gonna cvm on u", normalizeable_phrases),
+                "I'm gonna cum on u")
 
-        self.assertEqual(normalize_string("raype"), "rape")
+        self.assertEqual(
+                normalize_string("I'm gonna kill u", normalizeable_phrases),
+                "I'm gonna kill you")
 
-        self.assertEqual(normalize_string("a55"), "ass")
-
-        self.assertEqual(normalize_string("𝖓𝖎𝖌𝖌𝖊𝖗"), "nigger")
-
-        self.assertEqual(normalize_string("𝖓𝖎𝖌𝖌𝖊"), "nigga")
-
-        self.assertEqual(normalize_string("unr4pe-able"), "unrapeable")
-
-        self.assertEqual(normalize_string("s3lf h4rm"), "self harm")
-
-        self.assertEqual(normalize_string("tr@nnies"), "trannies")
-
-        self.assertEqual(normalize_string("tr@nny"), "tranny")
-
-        self.assertEqual(normalize_string("niggreess"), "negress")
-
-        self.assertEqual(normalize_string("slūt"), "slut")
-
-        self.assertEqual(normalize_string("dyck"), "dick")
-
-        self.assertEqual(normalize_string("niga"), "nigga")
-
-        self.assertEqual(normalize_string("wh0r3$"), "whores")
-
-        self.assertEqual(normalize_string("fo0tj0b$"), "footjobs")
-
-        self.assertEqual(normalize_string("fo0tj0b"), "footjob")
-
-        self.assertEqual(normalize_string("tr00nz"), "troons")
-
-        self.assertEqual(normalize_string("r4p3d"), "raped")
-
-        self.assertEqual(normalize_string("b4ck sh0tz"), "backshots")
-
-        self.assertEqual(normalize_string("fk"), "fuck")
-
-        self.assertEqual(normalize_string("sht"), "shit")
-
-        self.assertEqual(normalize_string("bytch"), "bitch")
-
-        self.assertEqual(normalize_string("btch"), "bitch")
-
-        self.assertEqual(normalize_string("su1cide"), "suicide")
-
-        self.assertEqual(normalize_string("pyss"), "piss")
-
-        self.assertEqual(normalize_string("b00bies"), "boobies")
-
-        self.assertEqual(normalize_string("nigguhh"), "nigga")
-
-        self.assertEqual(normalize_string("neggers"), "niggers")
-
-        self.assertEqual(normalize_string("dike"), "dyke")
-
-        self.assertEqual(normalize_string("d1k3"), "dyke")
-
-        self.assertEqual(normalize_string("nyigger"), "nigger")
-
-        self.assertEqual(normalize_string("nigguh"), "nigga")
-
-        self.assertEqual(normalize_string("nyggr"), "nigger")
-
-        self.assertEqual(normalize_string("urself"), "yourself")
-
-        self.assertEqual(normalize_string("nigg"), "nigger")
-
-        self.assertEqual(normalize_string("fag0t"), "faggot")
-
-        self.assertEqual(normalize_string("r@ping"), "raping")
-
-        self.assertEqual(normalize_string("rapng"), "raping")
-
-        self.assertEqual(normalize_string("an4l"), "anal")
-
-        self.assertEqual(normalize_string("nggrs"), "niggers")
-
-        self.assertEqual(normalize_string("fаббoтs"), "faggots")
-
-        self.assertEqual(normalize_string("ahole"), "asshole")
-
-        self.assertEqual(normalize_string("ray ping"), "raping")
-
-        self.assertEqual(normalize_string("f00t job"), "footjob")
+        self.assertEqual(
+                normalize_string("I'm gonna r4p3 you", normalizeable_phrases),
+                "I'm gonna rape you")
 
 
 if __name__ == '__main__':

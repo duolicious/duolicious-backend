@@ -86,7 +86,7 @@ def has_url(
     do_normalize: bool = True
 ) -> List[Tuple[UrlType, str]]:
     if do_normalize:
-        text = normalize_string(text)
+        text = normalize_string(text, [])
 
     matches = URL_PATTERN.findall(text)
 

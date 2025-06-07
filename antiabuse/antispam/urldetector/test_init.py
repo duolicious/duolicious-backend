@@ -91,7 +91,7 @@ Also some clubs are just there to find people who might like me; I’m hetero un
 
         expected = [(UrlType.VERY_SAFE, haystack)]
 
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
     def test_tenor_match_2(self):
         needle = "https://media.tenor.com/dxsHgu0_-QAAAAAMx/meganleigh-megaxn.gif"
@@ -102,7 +102,7 @@ Also some clubs are just there to find people who might like me; I’m hetero un
 
         expected = [(UrlType.VERY_SAFE, needle)]
 
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
 
 
