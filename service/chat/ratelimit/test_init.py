@@ -6,16 +6,17 @@ from service.chat.ratelimit import (
     Row,
 )
 
+
 class TestRateLimit(unittest.TestCase):
     def test_photos_default_normal(self):
         """
-        verification_level_id = 3 → DefaultRateLimit.PHOTOS (value 50)
-        weekly_manual_report_count = 0 ⇒ limit = 50 // 2**0 = 50
+        verification_level_id = 3 → DefaultRateLimit.PHOTOS (value 64)
+        weekly_manual_report_count = 0 ⇒ limit = 64 // 2**0 = 64
         """
-        row = Row(verification_level_id=3, daily_message_count=49, weekly_manual_report_count=0)
+        row = Row(verification_level_id=3, daily_message_count=63, weekly_manual_report_count=0)
         self.assertEqual(get_default_rate_limit(row), DefaultRateLimit.NONE)
 
-        row = Row(verification_level_id=3, daily_message_count=50, weekly_manual_report_count=0)
+        row = Row(verification_level_id=3, daily_message_count=64, weekly_manual_report_count=0)
         self.assertEqual(get_default_rate_limit(row), DefaultRateLimit.PHOTOS)
 
         row = Row(verification_level_id=3, daily_message_count=100, weekly_manual_report_count=0)
@@ -23,35 +24,35 @@ class TestRateLimit(unittest.TestCase):
 
     def test_basics_halved_limit(self):
         """
-        verification_level_id = 2 → DefaultRateLimit.BASICS (value 20)
-        weekly_manual_report_count = 1 halves the limit: 20 // 2**1 = 10
+        verification_level_id = 2 → DefaultRateLimit.BASICS (value 16)
+        weekly_manual_report_count = 1 halves the limit: 16 // 2**1 = 8
         """
-        row = Row(verification_level_id=2, daily_message_count=9, weekly_manual_report_count=1)
+        row = Row(verification_level_id=2, daily_message_count=7, weekly_manual_report_count=1)
         self.assertEqual(get_default_rate_limit(row), DefaultRateLimit.NONE)
 
-        row = Row(verification_level_id=2, daily_message_count=10, weekly_manual_report_count=1)
+        row = Row(verification_level_id=2, daily_message_count=8, weekly_manual_report_count=1)
         self.assertEqual(get_default_rate_limit(row), DefaultRateLimit.BASICS)
 
-        row = Row(verification_level_id=2, daily_message_count=11, weekly_manual_report_count=1)
+        row = Row(verification_level_id=2, daily_message_count=9, weekly_manual_report_count=1)
         self.assertEqual(get_default_rate_limit(row), DefaultRateLimit.BASICS)
 
     def test_unverified_baseline_limit(self):
         """
-        verification_level_id = 1 → DefaultRateLimit.UNVERIFIED (value 10)
-        weekly_manual_report_count = 0 ⇒ limit = 10 // 2**0 = 10
+        verification_level_id = 1 → DefaultRateLimit.UNVERIFIED (value 8)
+        weekly_manual_report_count = 0 ⇒ limit = 8 // 2**0 = 8
         """
-        row = Row(verification_level_id=1, daily_message_count=9, weekly_manual_report_count=0)
+        row = Row(verification_level_id=1, daily_message_count=7, weekly_manual_report_count=0)
         self.assertEqual(get_default_rate_limit(row), DefaultRateLimit.NONE)
 
-        row = Row(verification_level_id=1, daily_message_count=10, weekly_manual_report_count=0)
+        row = Row(verification_level_id=1, daily_message_count=8, weekly_manual_report_count=0)
         self.assertEqual(get_default_rate_limit(row), DefaultRateLimit.UNVERIFIED)
 
-        row = Row(verification_level_id=1, daily_message_count=15, weekly_manual_report_count=0)
+        row = Row(verification_level_id=1, daily_message_count=12, weekly_manual_report_count=0)
         self.assertEqual(get_default_rate_limit(row), DefaultRateLimit.UNVERIFIED)
 
     def test_unverified_quarter_limit(self):
         """
-        weekly_manual_report_count = 2 quarters the limit: 10 // 2**2 = 2
+        weekly_manual_report_count = 2 quarters the limit: 8 // 2**2 = 2
         """
         row = Row(verification_level_id=1, daily_message_count=1, weekly_manual_report_count=2)
         self.assertEqual(get_default_rate_limit(row), DefaultRateLimit.NONE)
@@ -64,19 +65,19 @@ class TestRateLimit(unittest.TestCase):
 
     def test_limit_zero_branch_returns_max_enum(self):
         """
-        limit becomes zero when 2**weekly_manual_report_count > default_limit.value
+        limit becomes zero when 2**weekly_manual_report_count > default_limit.value.
         Expect fallback to max(DefaultRateLimit) → PHOTOS.
         """
-        # UNVERIFIED: 10 // 2**4 = 0
+        # UNVERIFIED: 8 // 2**4 = 0
         row = Row(verification_level_id=1, daily_message_count=0, weekly_manual_report_count=4)
         self.assertEqual(get_default_rate_limit(row), DefaultRateLimit.PHOTOS)
 
-        # BASICS: 20 // 2**5 = 0
+        # BASICS: 16 // 2**5 = 0
         row = Row(verification_level_id=2, daily_message_count=0, weekly_manual_report_count=5)
         self.assertEqual(get_default_rate_limit(row), DefaultRateLimit.PHOTOS)
 
-        # PHOTOS: 50 // 2**6 = 0
-        row = Row(verification_level_id=3, daily_message_count=0, weekly_manual_report_count=6)
+        # PHOTOS: 64 // 2**7 = 0
+        row = Row(verification_level_id=3, daily_message_count=0, weekly_manual_report_count=7)
         self.assertEqual(get_default_rate_limit(row), DefaultRateLimit.PHOTOS)
 
     def test_unhandled_verification_level(self):
@@ -110,6 +111,7 @@ class TestRateLimit(unittest.TestCase):
 
     def test_get_stanza_unhandled_enum(self):
         class FakeLimit: pass
+
         with self.assertRaises(Exception) as cm:
             get_stanza(FakeLimit(), 'xyz')
         self.assertIn('Unhandled rate limit reason', str(cm.exception))
