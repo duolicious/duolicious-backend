@@ -82,9 +82,10 @@ profile = [
     "ywnbaw",
 ] + verb_forms_for_each([
     "dick",
-    "rape",
     "self harm"
-])
+]) + verb_forms_for_each([
+    "rape"
+], exclude=['er', 'ers'])
 
 display_name = list(profile)
 
@@ -438,6 +439,7 @@ chat = [
     "porno",
     "pornography",
     "pornos",
+    "pp",
     "precum",
     "prostitute",
     "pussies",
@@ -593,7 +595,6 @@ chat = [
     "finger lick",
     "fist lick",
     "gang bang",
-    "rape",
     "self cut",
     "self harm",
     "throat fuck",
@@ -601,4 +602,6 @@ chat = [
     "titty wank",
     "tit wank",
     "wank",
-])
+]) + verb_forms_for_each([
+    "rape"
+], exclude=['er', 'ers'])
