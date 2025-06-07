@@ -4,6 +4,8 @@ from antiabuse.antirude.chat import is_rude
 class TestIsOffensive(unittest.TestCase):
 
     def test_rude_strings(self):
+        self.assertTrue(is_rude("how big is that dih"))
+
         self.assertTrue(is_rude("selfharm"))
 
         self.assertTrue(is_rude("self harming"))
@@ -157,15 +159,24 @@ class TestIsOffensive(unittest.TestCase):
         self.assertTrue(is_rude("f00t job"))
 
     def test_non_rude_strings(self):
+        # dm shouldn't get interpreted as "dom"
         self.assertFalse(
-                is_rude("lol"))
+                is_rude("I’ll DM you"))
+
+        # Hell shouldn't be confused with heil
+        self.assertFalse(
+                is_rude("the hell"))
 
         # This shouldn't be confused with loli
         self.assertFalse(
                 is_rude("lol!"))
 
         self.assertFalse(
-                is_rude("lmao"))
+                is_rude("lol"))
+
+        # kiss shouldn't get normalized to kys
+        self.assertFalse(
+                is_rude("im waiting for marriage to kiss you"))
 
         self.assertFalse(
                 is_rude("Hey! You’re amazing, keep going."))

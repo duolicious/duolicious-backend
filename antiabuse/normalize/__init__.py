@@ -8,13 +8,12 @@ _char_map = {
     "c": "ck",
     "e": "e3x*",
     "g": "gб",
-    "i": "i1l!yx*",
-    "l": "l1l!",
+    "i": "i1!lyx*",
+    "l": "l1!",
     "o": "o0x*",
     "s": "sz5$",
     "t": "tт",
     "u": "uvx*",
-    "y": "yi1",
 }
 
 _elideable_chars = {
@@ -178,10 +177,14 @@ def verb_forms_for_each(verb_list: list[str]) -> list[str]:
     ]
 
 
-def char_to_regex(c: str, is_initial: bool, is_final: bool):
+def char_to_regex(c: str, is_initial: bool, is_final: bool, is_short: bool):
     is_medial = not is_initial and not is_final
 
-    re_quantifier = rf'*' if is_medial and c in _elideable_chars else '+'
+    re_quantifier = (
+        rf'*'
+        if is_medial and not is_short and c in _elideable_chars
+        else '+'
+    )
 
     re_chars = _char_map[c] if c in _char_map else c
 
@@ -198,6 +201,7 @@ def suffix_class_instance_to_regex(suffix_class_instance: str) -> str:
             c=c,
             is_initial=i == 0,
             is_final=i == len(suffix_class_instance) - 1,
+            is_short=len(suffix_class_instance) <= 3,
         )
         for i, c in enumerate(suffix_class_instance)
     ) + ')'
