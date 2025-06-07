@@ -11,8 +11,8 @@ def make_row(**overrides):
     defaults = dict(
         verification_level_id=1,
         daily_message_count=0,
-        weekly_manual_report_count=0,
-        daily_rude_message_count=0,
+        recent_manual_report_count=0,
+        recent_rude_message_count=0,
     )
     defaults.update(overrides)
     return Row(**defaults)
@@ -24,7 +24,7 @@ class TestRateLimit(unittest.TestCase):
     # ──────────────────────────────────────────────────────────────
     def test_photos_default_normal(self):
         """
-        weekly_manual_report_count = 0 ⇒ limit = 64
+        recent_manual_report_count = 0 ⇒ limit = 64
         """
         self.assertEqual(
             get_default_rate_limit(make_row(
@@ -47,23 +47,23 @@ class TestRateLimit(unittest.TestCase):
     # ──────────────────────────────────────────────────────────────
     def test_basics_halved_limit(self):
         """
-        weekly_manual_report_count = 1 halves the limit: 16 // 2 = 8
+        recent_manual_report_count = 1 halves the limit: 16 // 2 = 8
         """
         self.assertEqual(
             get_default_rate_limit(make_row(
-                verification_level_id=2, weekly_manual_report_count=1,
+                verification_level_id=2, recent_manual_report_count=1,
                 daily_message_count=7)),
             DefaultRateLimit.NONE,
         )
         self.assertEqual(
             get_default_rate_limit(make_row(
-                verification_level_id=2, weekly_manual_report_count=1,
+                verification_level_id=2, recent_manual_report_count=1,
                 daily_message_count=8)),
             DefaultRateLimit.BASICS,
         )
         self.assertEqual(
             get_default_rate_limit(make_row(
-                verification_level_id=2, weekly_manual_report_count=1,
+                verification_level_id=2, recent_manual_report_count=1,
                 daily_message_count=9)),
             DefaultRateLimit.BASICS,
         )
@@ -73,7 +73,7 @@ class TestRateLimit(unittest.TestCase):
     # ──────────────────────────────────────────────────────────────
     def test_unverified_baseline_limit(self):
         """
-        weekly_manual_report_count = 0 ⇒ limit = 8
+        recent_manual_report_count = 0 ⇒ limit = 8
         """
         self.assertEqual(
             get_default_rate_limit(make_row(
@@ -93,23 +93,23 @@ class TestRateLimit(unittest.TestCase):
 
     def test_unverified_quarter_limit(self):
         """
-        weekly_manual_report_count = 2 quarters the limit: 8 // 4 = 2
+        recent_manual_report_count = 2 quarters the limit: 8 // 4 = 2
         """
         self.assertEqual(
             get_default_rate_limit(make_row(
-                verification_level_id=1, weekly_manual_report_count=2,
+                verification_level_id=1, recent_manual_report_count=2,
                 daily_message_count=1)),
             DefaultRateLimit.NONE,
         )
         self.assertEqual(
             get_default_rate_limit(make_row(
-                verification_level_id=1, weekly_manual_report_count=2,
+                verification_level_id=1, recent_manual_report_count=2,
                 daily_message_count=2)),
             DefaultRateLimit.UNVERIFIED,
         )
         self.assertEqual(
             get_default_rate_limit(make_row(
-                verification_level_id=1, weekly_manual_report_count=2,
+                verification_level_id=1, recent_manual_report_count=2,
                 daily_message_count=3)),
             DefaultRateLimit.UNVERIFIED,
         )
@@ -122,36 +122,36 @@ class TestRateLimit(unittest.TestCase):
         # UNVERIFIED: 8 // 2**4 = 0
         self.assertEqual(
             get_default_rate_limit(make_row(
-                verification_level_id=1, weekly_manual_report_count=4)),
+                verification_level_id=1, recent_manual_report_count=4)),
             DefaultRateLimit.PHOTOS,
         )
         # BASICS: 16 // 2**5 = 0
         self.assertEqual(
             get_default_rate_limit(make_row(
-                verification_level_id=2, weekly_manual_report_count=5)),
+                verification_level_id=2, recent_manual_report_count=5)),
             DefaultRateLimit.PHOTOS,
         )
         # PHOTOS: 64 // 2**7 = 0
         self.assertEqual(
             get_default_rate_limit(make_row(
-                verification_level_id=3, weekly_manual_report_count=7)),
+                verification_level_id=3, recent_manual_report_count=7)),
             DefaultRateLimit.PHOTOS,
         )
 
     # ──────────────────────────────────────────────────────────────
-    #  daily_rude_message_count affects the penalty exponent
+    #  recent_rude_message_count affects the penalty exponent
     # ──────────────────────────────────────────────────────────────
     def test_rude_messages_reduce_limit(self):
         """
         verification_level_id = 3 (PHOTOS, value 64)
-        daily_rude_message_count = 2 → adds ⌊2 / 2⌋ = 1 to the exponent
+        recent_rude_message_count = 2 → adds ⌊2 / 2⌋ = 1 to the exponent
         → limit = 64 // 2 = 32
         """
         # One message below the new limit
         self.assertEqual(
             get_default_rate_limit(make_row(
                 verification_level_id=3,
-                daily_rude_message_count=2,
+                recent_rude_message_count=2,
                 daily_message_count=31)),
             DefaultRateLimit.NONE,
         )
@@ -159,31 +159,31 @@ class TestRateLimit(unittest.TestCase):
         self.assertEqual(
             get_default_rate_limit(make_row(
                 verification_level_id=3,
-                daily_rude_message_count=2,
+                recent_rude_message_count=2,
                 daily_message_count=32)),
             DefaultRateLimit.PHOTOS,
         )
 
-    def test_combined_weekly_and_rude_penalties(self):
+    def test_combined_recent_and_rude_penalties(self):
         """
         verification_level_id = 2 (BASICS, value 16)
-        weekly_manual_report_count = 1  → +1 exponent
-        daily_rude_message_count  = 4  → +⌊4 / 2⌋ = 2 exponent
+        recent_manual_report_count = 1  → +1 exponent
+        recent_rude_message_count  = 4  → +⌊4 / 2⌋ = 2 exponent
         total exponent = 3 → limit = 16 // 2**3 = 2
         """
         self.assertEqual(
             get_default_rate_limit(make_row(
                 verification_level_id=2,
-                weekly_manual_report_count=1,
-                daily_rude_message_count=4,
+                recent_manual_report_count=1,
+                recent_rude_message_count=4,
                 daily_message_count=1)),
             DefaultRateLimit.NONE,
         )
         self.assertEqual(
             get_default_rate_limit(make_row(
                 verification_level_id=2,
-                weekly_manual_report_count=1,
-                daily_rude_message_count=4,
+                recent_manual_report_count=1,
+                recent_rude_message_count=4,
                 daily_message_count=2)),
             DefaultRateLimit.BASICS,
         )
@@ -191,13 +191,13 @@ class TestRateLimit(unittest.TestCase):
     def test_rude_messages_can_force_zero_limit(self):
         """
         verification_level_id = 2 (BASICS, value 16)
-        daily_rude_message_count = 10 → +⌊10 / 2⌋ = 5 exponent
+        recent_rude_message_count = 10 → +⌊10 / 2⌋ = 5 exponent
         limit = 16 // 2**5 = 0 → fallback to max(DefaultRateLimit) (PHOTOS)
         """
         self.assertEqual(
             get_default_rate_limit(make_row(
                 verification_level_id=2,
-                daily_rude_message_count=10,
+                recent_rude_message_count=10,
                 daily_message_count=0)),
             DefaultRateLimit.PHOTOS,
         )
