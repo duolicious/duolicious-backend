@@ -35,7 +35,7 @@ WITH truncated_daily_message AS (
         )
     LIMIT
         {max(x.value for x in DefaultRateLimit)}
-), weekly_manual_report_count AS (
+), recent_manual_report_count AS (
     SELECT
         count(*)
     FROM
@@ -56,7 +56,7 @@ WITH truncated_daily_message AS (
         AND
             person.roles @> ARRAY['bot']
     )
-), daily_rude_message_count AS (
+), recent_rude_message_count AS (
     SELECT
         count(*)
     FROM
@@ -64,20 +64,20 @@ WITH truncated_daily_message AS (
     WHERE
         person_id = %(from_id)s
     AND
-        created_at > now() - interval '1 day'
+        created_at > now() - interval '2 days'
 ), truncated_daily_message_count AS (
     SELECT COUNT(*) AS x FROM truncated_daily_message
 )
 SELECT
     person.verification_level_id,
     truncated_daily_message_count.x AS daily_message_count,
-    weekly_manual_report_count.count AS weekly_manual_report_count,
-    daily_rude_message_count.count AS daily_rude_message_count
+    recent_manual_report_count.count AS recent_manual_report_count,
+    recent_rude_message_count.count AS recent_rude_message_count
 FROM
     person,
     truncated_daily_message_count,
-    weekly_manual_report_count,
-    daily_rude_message_count
+    recent_manual_report_count,
+    recent_rude_message_count
 WHERE
     id = %(from_id)s
 """
@@ -87,8 +87,8 @@ WHERE
 class Row:
     verification_level_id: int
     daily_message_count: int
-    weekly_manual_report_count: int
-    daily_rude_message_count: int
+    recent_manual_report_count: int
+    recent_rude_message_count: int
 
 
 def get_default_rate_limit(row: Row) -> DefaultRateLimit:
@@ -102,8 +102,8 @@ def get_default_rate_limit(row: Row) -> DefaultRateLimit:
         raise Exception('Unhandled verification_level_id')
 
     penalty_exponent = 0
-    penalty_exponent += row.weekly_manual_report_count
-    penalty_exponent += row.daily_rude_message_count // 2
+    penalty_exponent += row.recent_manual_report_count
+    penalty_exponent += row.recent_rude_message_count // 2
 
     limit = default_limit.value // 2 ** penalty_exponent
 
@@ -152,8 +152,8 @@ async def fetch_rate_limit_reason(from_id: int) -> Row:
     return Row(
         verification_level_id=row['verification_level_id'],
         daily_message_count=row['daily_message_count'],
-        weekly_manual_report_count=row['weekly_manual_report_count'],
-        daily_rude_message_count=row['daily_rude_message_count'],
+        recent_manual_report_count=row['recent_manual_report_count'],
+        recent_rude_message_count=row['recent_rude_message_count'],
     )
 
 
