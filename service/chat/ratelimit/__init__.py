@@ -56,17 +56,28 @@ WITH truncated_daily_message AS (
         AND
             person.roles @> ARRAY['bot']
     )
+), daily_rude_message_count AS (
+    SELECT
+        count(*)
+    FROM
+        rude_message
+    WHERE
+        person_id = %(from_id)s
+    AND
+        created_at > now() - interval '1 day'
 ), truncated_daily_message_count AS (
     SELECT COUNT(*) AS x FROM truncated_daily_message
 )
 SELECT
     person.verification_level_id,
     truncated_daily_message_count.x AS daily_message_count,
-    weekly_manual_report_count.count AS weekly_manual_report_count
+    weekly_manual_report_count.count AS weekly_manual_report_count,
+    daily_rude_message_count.count AS daily_rude_message_count
 FROM
     person,
     truncated_daily_message_count,
-    weekly_manual_report_count
+    weekly_manual_report_count,
+    daily_rude_message_count
 WHERE
     id = %(from_id)s
 """
@@ -77,6 +88,7 @@ class Row:
     verification_level_id: int
     daily_message_count: int
     weekly_manual_report_count: int
+    daily_rude_message_count: int
 
 
 def get_default_rate_limit(row: Row) -> DefaultRateLimit:
@@ -89,7 +101,11 @@ def get_default_rate_limit(row: Row) -> DefaultRateLimit:
     else:
         raise Exception('Unhandled verification_level_id')
 
-    limit = default_limit.value // 2 ** row.weekly_manual_report_count
+    penalty_exponent = 0
+    penalty_exponent += row.weekly_manual_report_count
+    penalty_exponent += row.daily_rude_message_count // 2
+
+    limit = default_limit.value // 2 ** penalty_exponent
 
     if limit == 0:
         # DefaultRateLimit.PHOTOS
@@ -137,6 +153,7 @@ async def fetch_rate_limit_reason(from_id: int) -> Row:
         verification_level_id=row['verification_level_id'],
         daily_message_count=row['daily_message_count'],
         weekly_manual_report_count=row['weekly_manual_report_count'],
+        daily_rude_message_count=row['daily_rude_message_count'],
     )
 
 
