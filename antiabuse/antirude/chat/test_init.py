@@ -4,6 +4,8 @@ from antiabuse.antirude.chat import is_rude
 class TestIsOffensive(unittest.TestCase):
 
     def test_rude_strings(self):
+        self.assertTrue(is_rude("pp very hard"))
+
         self.assertTrue(is_rude("how big is that dih"))
 
         self.assertTrue(is_rude("selfharm"))
@@ -159,9 +161,21 @@ class TestIsOffensive(unittest.TestCase):
         self.assertTrue(is_rude("f00t job"))
 
     def test_non_rude_strings(self):
+        # All doom shouldn't get interpreted as "dom"
+        self.assertFalse(
+                is_rude("doom is a fun game"))
+
         # dm shouldn't get interpreted as "dom"
         self.assertFalse(
                 is_rude("I’ll DM you"))
+
+        # `verb_forms_for_each` shouldn't include 'raper'
+        self.assertFalse(
+                is_rude("underground rappers"))
+
+        # jet shouldn't get interpreted as "jeet"
+        self.assertFalse(
+                is_rude("jet black"))
 
         # Hell shouldn't be confused with heil
         self.assertFalse(

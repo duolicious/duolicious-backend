@@ -16,12 +16,17 @@ _char_map = {
     "u": "uvx*",
 }
 
-_elideable_chars = {
+_vowel_chars = {
     "a",
     "e",
     "i",
     "o",
     "u",
+}
+
+_non_repeatable_vowels = {
+    'o',
+    'e',
 }
 
 _punctuation = {
@@ -110,7 +115,7 @@ def _normalize_homoglyphs(s: str) -> str:
     return ''.join(_get_latin_homoglyph(char) for char in s)
 
 
-def verb_forms(verb: str) -> list[str]:
+def verb_forms(verb: str, exclude: list[str]) -> list[str]:
     """
     Return a list of common English derivations for *verb*:
         base, -s, -ed/-d, -ing, -able, -er, -ers
@@ -123,14 +128,12 @@ def verb_forms(verb: str) -> list[str]:
 
     NOTE: Ignores irregular spellings (go→went, run→ran, etc.).
     """
-    vowels = "aeiou"
-
     def double_final_consonant(w: str) -> str:
         """CVC doubling heuristic (ignores w/x/y)."""
         if (len(w) >= 3 and
-            w[-1] not in vowels + "wxy" and
-            w[-2] in vowels and
-            w[-3] not in vowels):
+            w[-1] not in _vowel_chars | set('wxy') and
+            w[-2] in _vowel_chars and
+            w[-3] not in _vowel_chars):
             return w + w[-1]
         return w
 
@@ -138,25 +141,28 @@ def verb_forms(verb: str) -> list[str]:
         """Derivations for a single verb form (no 'un-' added here)."""
         forms = {w}
 
-        if w.endswith("e"):
+        def add(form: str, suffix: str) -> None:
+            if suffix not in exclude:
+                forms.add(form + suffix)
+
+        if w.endswith('e'):
             stem = w[:-1]
-            forms.update({
-                w + "d",            # danced
-                stem + "ing",       # dancing
-                stem + "able",      # dancable
-                stem + "eable",     # danceable
-                stem + "er", stem + "ers"
-            })
+            add(w, 'd')
+            add(stem, 'ing')       # dancing
+            add(stem, 'able')      # dancable
+            add(stem, 'eable')     # danceable
+            add(stem, 'er')
+            add(stem, 'ers')
         else:
             base = double_final_consonant(w)
-            forms.update({
-                base + "ed",        # stopped
-                base + "ing",       # stopping
-                base + "able",      # stoppable
-                base + "er", base + "ers"
-            })
+            add(base, 'ed')        # stopped
+            add(base, 'ing')       # stopping
+            add(base, 'able')      # stoppable
+            add(base, 'er')
+            add(base, 'ers')
 
-        forms.add(w + "s")           # stops / loves
+        add(w, 's')           # stops / loves
+
         return forms
 
     # 1. normal verb
@@ -169,21 +175,37 @@ def verb_forms(verb: str) -> list[str]:
     return sorted(derivs)
 
 
-def verb_forms_for_each(verb_list: list[str]) -> list[str]:
+def verb_forms_for_each(
+    verb_list: list[str],
+    exclude: list[str] = []
+) -> list[str]:
     return [
         verb_form
         for verb in verb_list
-        for verb_form in verb_forms(verb)
+        for verb_form in verb_forms(verb, exclude)
     ]
 
 
 def char_to_regex(c: str, is_initial: bool, is_final: bool, is_short: bool):
     is_medial = not is_initial and not is_final
 
+    is_elidable = is_medial and not is_short and c in _vowel_chars
+
+    is_repeatable = not is_short or c not in _non_repeatable_vowels
+
+    start_quantifier_number = 0 if is_elidable else 1
+
+    end_quantifier_number = (
+            ''
+            if is_repeatable
+            else str(start_quantifier_number))
+
     re_quantifier = (
-        rf'*'
-        if is_medial and not is_short and c in _elideable_chars
-        else '+'
+        '{' +
+        str(start_quantifier_number) +
+        ',' +
+        str(end_quantifier_number) +
+        '}'
     )
 
     re_chars = _char_map[c] if c in _char_map else c
@@ -196,12 +218,20 @@ def char_to_regex(c: str, is_initial: bool, is_final: bool, is_short: bool):
 
 
 def suffix_class_instance_to_regex(suffix_class_instance: str) -> str:
+    suffix_class_instance_with_elision = ''.join(
+        c
+        for c in suffix_class_instance
+        if c not in _vowel_chars
+    )
+
+    is_short = len(suffix_class_instance_with_elision) <= 3
+
     return '(' + ''.join(
         char_to_regex(
             c=c,
             is_initial=i == 0,
             is_final=i == len(suffix_class_instance) - 1,
-            is_short=len(suffix_class_instance) <= 3,
+            is_short=is_short,
         )
         for i, c in enumerate(suffix_class_instance)
     ) + ')'
