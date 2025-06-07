@@ -1612,6 +1612,14 @@ CREATE TABLE IF NOT EXISTS duo_push_token (
     PRIMARY KEY (username)
 );
 
+CREATE TABLE IF NOT EXISTS rude_message (
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    message TEXT NOT NULL,
+
+    PRIMARY KEY (person_id, created_at)
+);
+
 CREATE INDEX IF NOT EXISTS duo_idx__inbox__timestamp__unread_count
 ON inbox(timestamp, unread_count)
 WHERE unread_count > 0;

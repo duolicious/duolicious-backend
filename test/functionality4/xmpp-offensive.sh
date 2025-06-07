@@ -77,6 +77,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1" reason="offensive"/>'
 
 [[ "$(q "select count(*) from mam_message")" = 0 ]]
+[[ "$(q "select count(*) from rude_message")" = 1 ]]
 
 
 
@@ -105,6 +106,8 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1" reason="offensive"/>'
 
 [[ "$(q "select count(*) from mam_message")" = 0 ]]
+[[ "$(q "select count(*) from rude_message")" = 2 ]]
+
 
 
 
@@ -133,6 +136,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"/>'
 
 [[ "$(q "select count(*) from mam_message")" = 2 ]]
+[[ "$(q "select count(*) from rude_message")" = 2 ]]
 
 
 
@@ -175,3 +179,4 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"/>'
 
 [[ "$(q "select count(*) from mam_message")" = 4 ]]
+[[ "$(q "select count(*) from rude_message")" = 2 ]]
