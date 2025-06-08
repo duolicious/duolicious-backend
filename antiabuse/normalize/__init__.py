@@ -3,18 +3,23 @@ import re
 import unicodedata
 from functools import cache
 
+
+_censored_chars = 'x*_.-';
+
+
 _char_map = {
-    "a": "a@4x*",
+    "a": "a@4" + _censored_chars,
     "c": "ck",
-    "e": "e3x*",
+    "e": "e3" + _censored_chars,
     "g": "gб",
-    "i": "i1!lyx*",
+    "i": "i1!ly" + _censored_chars,
     "l": "l1!",
-    "o": "o0x*",
+    "o": "o0" + _censored_chars,
     "s": "sz5$",
     "t": "tт",
-    "u": "uvx*",
+    "u": "uv" + _censored_chars,
 }
+
 
 _vowel_chars = {
     "a",
@@ -24,10 +29,12 @@ _vowel_chars = {
     "u",
 }
 
+
 _non_repeatable_vowels = {
     'o',
     'e',
 }
+
 
 _punctuation = {
     '!',
@@ -35,6 +42,7 @@ _punctuation = {
     '.',
     '?',
 }
+
 
 _closed_class_slang_words = {
     "yourself": [
@@ -65,6 +73,7 @@ _closed_class_slang_words = {
     ],
 }
 
+
 _closed_class_slang_suffixes = {
     "ing": [
         "in",
@@ -72,6 +81,14 @@ _closed_class_slang_suffixes = {
     "ed": [
         "d",
     ],
+}
+
+
+# This list takes precedence over unsafe phrases
+_closed_class_safe_phrases = {
+    'essex',
+    'l+o+l+',
+    'p+l+s+',
 }
 
 
@@ -291,11 +308,28 @@ def phrase_to_pattern(phrase: str):
             re.IGNORECASE)
 
 
+@cache
+def make_sub_unless_safe(phrase: str):
+    def sub_unless_safe(match: re.Match[str]) -> str:
+        matched_text = match.group(0)
+
+        for re_safe_phrase in _closed_class_safe_phrases:
+            safe_pattern = re.compile(re_safe_phrase, re.IGNORECASE)
+            if safe_pattern.fullmatch(matched_text):
+                return matched_text
+
+        return phrase
+
+    return sub_unless_safe
+
+
 def _normalize_spelling(haystack: str, normalizeable_phrases: list[str]):
     for phrase in normalizeable_phrases:
+        sub_unless_safe = make_sub_unless_safe(phrase)
+
         pattern = phrase_to_pattern(phrase)
 
-        haystack = pattern.sub(phrase, haystack)
+        haystack = pattern.sub(sub_unless_safe, haystack)
 
     return haystack
 
