@@ -4,6 +4,38 @@ from antiabuse.antirude.chat import is_rude
 class TestIsOffensive(unittest.TestCase):
 
     def test_rude_strings(self):
+        self.assertTrue(is_rude("masterbation"))
+
+        self.assertTrue(is_rude("masturbation"))
+
+        self.assertTrue(is_rude("masterbate"))
+
+        self.assertTrue(is_rude("masturbate"))
+
+        self.assertTrue(is_rude("can i rub my tongue ur piercings"))
+
+        self.assertTrue(is_rude("very creampieable"))
+
+        self.assertTrue(is_rude("can i finish in u"))
+
+        self.assertTrue(is_rude("id love to finish in ur cookie"))
+
+        self.assertTrue(is_rude("i rlly rlly wanna fill u"))
+
+        self.assertTrue(is_rude("i would love to pound ur cute mouth darling"))
+
+        self.assertTrue(is_rude("can i pls have my way w u"))
+
+        self.assertTrue(is_rude("can i finish on your face"))
+
+        self.assertTrue(is_rude("id love to pound you"))
+
+        self.assertTrue(is_rude("can we have esex?"))
+
+        self.assertTrue(is_rude("can we have e sex?"))
+
+        self.assertTrue(is_rude("niggg"))
+
         self.assertTrue(is_rude("pp very hard"))
 
         self.assertTrue(is_rude("how big is that dih"))
@@ -161,6 +193,18 @@ class TestIsOffensive(unittest.TestCase):
         self.assertTrue(is_rude("f00t job"))
 
     def test_non_rude_strings(self):
+        # `cm' (centimetres) isn't confused with `cmm` (cum)
+        self.assertFalse(
+                is_rude("only 5 cm taller than you"))
+
+        # This shouldn't be confused with e-sex or 'e sex'
+        self.assertFalse(
+                is_rude("I live in essex"))
+
+        # This shouldn't be confused with piss
+        self.assertFalse(
+                is_rude("plssss"))
+
         # All doom shouldn't get interpreted as "dom"
         self.assertFalse(
                 is_rude("doom is a fun game"))
@@ -187,6 +231,20 @@ class TestIsOffensive(unittest.TestCase):
 
         self.assertFalse(
                 is_rude("lol"))
+
+        self.assertFalse(
+                is_rude("loll"))
+
+        # This shouldn't be confused with "have my way with you"
+        self.assertFalse(
+                is_rude("I have my ways"))
+
+        self.assertFalse(
+                is_rude("I might finish in a week"))
+
+        # False positives about being "used"
+        self.assertFalse(
+                is_rude("Use your words rather than physical aggression"))
 
         # kiss shouldn't get normalized to kys
         self.assertFalse(
