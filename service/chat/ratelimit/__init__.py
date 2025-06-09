@@ -5,9 +5,9 @@ from dataclasses import dataclass
 
 class DefaultRateLimit(Enum):
     NONE = 0
-    UNVERIFIED = 8
-    BASICS = 16
-    PHOTOS = 64
+    UNVERIFIED = 10
+    BASICS = 20
+    PHOTOS = 50
 
 
 Q_RATE_LIMIT_REASON = f"""

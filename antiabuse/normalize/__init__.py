@@ -4,7 +4,7 @@ import unicodedata
 from functools import cache
 
 
-_censored_chars = 'x*_.-';
+_censored_chars = 'x*#_.-';
 
 
 _char_map = {

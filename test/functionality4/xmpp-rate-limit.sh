@@ -251,7 +251,7 @@ test_rate_limit () {
 # Send some reports about sender 1
 # Send no reports about sender 2
 test_rate_limit \
-  4 \
+  5 \
   1 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day" subreason="unverified-basics"/>' \
   1 \
@@ -262,7 +262,7 @@ test_rate_limit \
 # Send no reports about sender 1
 # Send some reports about sender 2
 test_rate_limit \
-  8 \
+  10 \
   1 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day" subreason="unverified-basics"/>' \
   0 \
@@ -272,18 +272,18 @@ test_rate_limit \
 
 # Test base limit
 test_rate_limit \
-  8 \
+  10 \
   1 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day" subreason="unverified-basics"/>'
 
 # Test base limit
 test_rate_limit \
-  16 \
+  20 \
   2 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day" subreason="unverified-photos"/>'
 
 # Test base limit
 test_rate_limit \
-  64 \
+  50 \
   3 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day"/>'

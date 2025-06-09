@@ -4,6 +4,24 @@ from antiabuse.antirude.chat import is_rude
 class TestIsOffensive(unittest.TestCase):
 
     def test_rude_strings(self):
+        self.assertTrue(is_rude("you deserve to be ass fucked hard"))
+
+        self.assertTrue(is_rude("so you take it up the ass"))
+
+        self.assertTrue(is_rude("id enter that ass everyday"))
+
+        self.assertTrue(is_rude("let me gobble your ass"))
+
+        self.assertTrue(is_rude("you have a very nice ašŝ 😊"))
+
+        self.assertTrue(is_rude("im not fact checking your shit just your ass cheeks"))
+
+        self.assertTrue(is_rude("that's a fat ass"))
+
+        self.assertTrue(is_rude("lemme eat that ass"))
+
+        self.assertTrue(is_rude("u gon git 🍇ed"))
+
         self.assertTrue(is_rude("masterbation"))
 
         self.assertTrue(is_rude("masturbation"))
@@ -193,6 +211,27 @@ class TestIsOffensive(unittest.TestCase):
         self.assertTrue(is_rude("f00t job"))
 
     def test_non_rude_strings(self):
+        # 'ass' is a very versatile word. While the word itself can be
+        # considered offensive, we're mostly interested in filtering it when
+        # it's used sexually.
+        self.assertFalse(
+                is_rude("that's a boring ass game"))
+
+        self.assertFalse(
+                is_rude("overwatch is ass fr fr"))
+
+        self.assertFalse(
+                is_rude("ngl thats some cute ass miku art"))
+
+        self.assertFalse(
+                is_rude("nuke enthusiast lookin ass"))
+
+        self.assertFalse(
+                is_rude("im being dead ass rn"))
+
+        self.assertFalse(
+                is_rude("it's a pain in the ass"))
+
         # `cm' (centimetres) isn't confused with `cmm` (cum)
         self.assertFalse(
                 is_rude("only 5 cm taller than you"))
