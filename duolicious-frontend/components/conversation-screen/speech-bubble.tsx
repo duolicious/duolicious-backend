@@ -36,6 +36,8 @@ import * as Haptics from 'expo-haptics';
 import { signedInUser } from '../../App';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
+import { useNavigation } from '@react-navigation/native';
+import { verificationOptionGroups } from '../../data/option-groups';
 
 const otherUserBackgroundColor = '#eee';
 
@@ -118,16 +120,55 @@ const MessageStatusComponent = ({
   messageStatus: MessageStatus,
   name: string,
 }) => {
+  const verificationStatuses: MessageStatus[] =  [
+    'rate-limited-1day-unverified-basics',
+    'rate-limited-1day-unverified-photos',
+    'age-verification',
+  ];
+
+  const isPressable = verificationStatuses.includes(messageStatus);
+
+  const navigation = useNavigation<any>();
+
+  const onHandlerStateChange = useCallback(({ nativeEvent }) => {
+    if (!isPressable) {
+      return;
+    }
+
+    if (nativeEvent.state !== State.ACTIVE) {
+      return;
+    }
+
+    return navigation.navigate(
+      'Home',
+      {
+        screen: 'Profile',
+        params: {
+          screen: 'Profile Option Screen',
+          params: {
+            optionGroups: verificationOptionGroups,
+            showSkipButton: false,
+            theme: 'light',
+            extraPopToTop: true,
+          }
+        },
+      }
+    );
+  }, [isPressable]);
+
+  const verificationMessageText = ` Verification is free and takes just a few minutes. Press here to start.`;
+
   const messageTexts: Record<MessageStatus, string> = {
     'sending': '',
     'sent': '',
     'timeout': 'Message not delivered. Are you online?',
-    'rate-limited-1day-unverified-basics': `You’ve used today’s daily intro limit! Message ${name} tomorrow or unlock extra daily intros by getting verified. Verification is free and takes just a few minutes.`,
-    'rate-limited-1day-unverified-photos': `You’ve used today’s daily intro limit! Message ${name} tomorrow or unlock extra daily intros by verifying your photos. Verification is free and takes just a few minutes.`,
+    'rate-limited-1day-unverified-basics': `You’ve used today’s daily intro limit! Message ${name} tomorrow or unlock extra daily intros by getting verified.` + verificationMessageText,
+    'rate-limited-1day-unverified-photos': `You’ve used today’s daily intro limit! Message ${name} tomorrow or unlock extra daily intros by verifying your photos.` + verificationMessageText,
     'rate-limited-1day': `You’ve used today’s daily intro limit! Try messaging ${name} tomorrow...`,
     'voice-intro': `Voice messages aren’t allowed in intros`,
     'spam': `We think that might be spam. Try sending ${name} a different message.`,
     'offensive': `Intros can’t be too rude. Try sending ${name} a different message.`,
+    'age-verification': `Age verification is required to chat.` + verificationMessageText,
     'blocked': name + ' is unavailable right now. Try messaging someone else!',
     'not unique': `Someone already sent that intro! Try sending ${name} a different message.`,
     'too long': 'That message is too big! 😩',
@@ -141,21 +182,24 @@ const MessageStatusComponent = ({
   }
 
   return (
-    <View
-      style={{
-        borderRadius: 10,
-        backgroundColor: 'black',
-        padding: 10,
-        maxWidth: '80%',
-      }}
-    >
-      <DefaultText style={{
-        color: 'white',
-        fontWeight: 700,
-      }}>
-        {messageText}
-      </DefaultText>
-    </View>
+    <TapGestureHandler onHandlerStateChange={onHandlerStateChange} >
+      <View
+        style={{
+          borderRadius: 10,
+          backgroundColor: 'black',
+          padding: 10,
+          maxWidth: '80%',
+          cursor: isPressable ? 'pointer' : undefined,
+        }}
+      >
+        <DefaultText style={{
+          color: 'white',
+          fontWeight: 700,
+        }}>
+          {messageText}
+        </DefaultText>
+      </View>
+    </TapGestureHandler>
   );
 };
 

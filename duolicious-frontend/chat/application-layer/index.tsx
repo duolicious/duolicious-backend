@@ -69,6 +69,7 @@ type MessageStatus =
   | 'voice-intro'
   | 'server-error'
   | 'spam'
+  | 'age-verification'
   | 'blocked'
   | 'not unique'
   | 'too long'
@@ -566,6 +567,10 @@ const sendMessage = async (
       'spam': (doc) =>
         doc.duo_message_blocked?.['@id'] === id &&
         doc.duo_message_blocked?.['@reason'] === 'spam' &&
+        {},
+      'age-verification': (doc) =>
+        doc.duo_message_blocked?.['@id'] === id &&
+        doc.duo_message_blocked?.['@reason'] === 'age-verification' &&
         {},
       'blocked': (doc) =>
         // Fallback for any blocked case not caught above.
