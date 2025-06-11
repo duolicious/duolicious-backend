@@ -4,14 +4,16 @@ import {
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const CLEARABLE_SECURE_STORE_KEYS = [
+const KEYS = [
   'inbox_order',
   'inbox_section',
   'navigation_state',
   'person_uuid',
   'session_token',
   'was_review_requested',
-];
+] as const;
+
+type Key = typeof KEYS[number];
 
 /*
  * Many users have been complaining that upgrading Duolicious on Android causes
@@ -29,7 +31,7 @@ const CLEARABLE_SECURE_STORE_KEYS = [
  *
  */
 
-const storeKvWeb = async (
+const storeKvAsyncStorage = async (
   key: string,
   token?: string | null
 ): Promise<string | null | void> => {
@@ -44,8 +46,8 @@ const storeKvWeb = async (
   return await AsyncStorage.setItem(key, token)
 };
 
-const storeKvMobile = async (
-  key: string,
+const storeKvSecureStore = async (
+  key: Key,
   token?: string | null
 ): Promise<string | null | void> => {
   if (token === undefined) {
@@ -60,18 +62,20 @@ const storeKvMobile = async (
 };
 
 const storeKvUnsafe = async (
-  key: string,
+  key: Key,
   value?: string | null
 ): Promise<string | null | void> => {
   if (Platform.OS === "web") {
-    return await storeKvWeb(key, value);
+    return await storeKvAsyncStorage(key, value);
+  } else if (['person_uuid', 'session_token'].includes(key)) {
+    return await storeKvSecureStore(key, value);
   } else {
-    return await storeKvMobile(key, value);
+    return await storeKvAsyncStorage(key, value);
   }
 };
 
 const storeKv = async (
-  key: string,
+  key: Key,
   value?: string | null
 ): Promise<string | null | void> => {
   try {
@@ -87,11 +91,14 @@ const clearAllKv = async () => {
   console.warn('Clearing all kv-storage');
 
   try {
-    if (Platform.OS === 'web') {
-      await AsyncStorage.clear();
-    } else {
-      // Delete each known key manually
-      await Promise.all(CLEARABLE_SECURE_STORE_KEYS.map((key) =>
+    await AsyncStorage.clear();
+  } catch (error) {
+    console.error(error);
+  }
+
+  try {
+    if (Platform.OS !== 'web') {
+      await Promise.all(KEYS.map((key) =>
         SecureStore.deleteItemAsync(key)
       ));
     }

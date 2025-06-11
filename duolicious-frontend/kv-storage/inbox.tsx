@@ -1,6 +1,9 @@
 import { storeKv } from './kv-storage';
 
-const inboxNumber = async (key: string, value?: number) => {
+const inboxNumber = async (
+  key: 'inbox_order' | 'inbox_section',
+  value?: number
+) => {
   const loaded = await storeKv(
     key,
     value === undefined ? undefined : String(value));
