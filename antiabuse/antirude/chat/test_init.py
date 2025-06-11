@@ -4,6 +4,18 @@ from antiabuse.antirude.chat import is_rude
 class TestIsOffensive(unittest.TestCase):
 
     def test_rude_strings(self):
+        self.assertTrue(is_rude("hi could i put my feet on your face"))
+
+        self.assertTrue(is_rude("hi could you put your feet on my face"))
+
+        self.assertTrue(is_rude("how tight is it"))
+
+        self.assertTrue(is_rude("can i p33 on your face"))
+
+        self.assertTrue(is_rude("lets rvpe each other"))
+
+        self.assertTrue(is_rude("Can I jerk off to your selfie"))
+
         self.assertTrue(is_rude("you deserve to be ass fucked hard"))
 
         self.assertTrue(is_rude("so you take it up the ass"))
@@ -291,6 +303,9 @@ class TestIsOffensive(unittest.TestCase):
 
         self.assertFalse(
                 is_rude("Hey! You’re amazing, keep going."))
+
+        self.assertFalse(
+                is_rude("Jintai and K-On are pretty cute."))
 
         self.assertFalse(
                 is_rude("She piped up after realizing that"))
