@@ -87,6 +87,7 @@ _closed_class_slang_suffixes = {
 # This list takes precedence over unsafe phrases
 _closed_class_safe_phrases = {
     'essex',
+    'k-on',
     'l+o+l+',
     'p+l+s+',
 }
