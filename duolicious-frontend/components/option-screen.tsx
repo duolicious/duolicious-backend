@@ -1330,8 +1330,6 @@ const OptionScreen = ({navigation, route}) => {
   const color: string | undefined = route?.params?.color;
   const onSubmitSuccess: any | undefined = route?.params?.onSubmitSuccess;
   const theme: any | undefined = route?.params?.theme;
-  const extraPopToTop: boolean = route?.params?.extraPopToTop ?? false;
-  const returnTo: string | undefined = route?.params?.returnTo;
 
   const transparentBackgroundColor = backgroundColor === 'white' ? '#ffffff00' : '#7700ff00';
 
@@ -1351,18 +1349,6 @@ const OptionScreen = ({navigation, route}) => {
     throw Error('Expected input to be defined');
   }
 
-  const close = useCallback(() => {
-    if (returnTo) {
-      navigation.popToTop();
-      navigation.navigate(returnTo);
-    } else if (extraPopToTop) {
-      navigation.popToTop();
-      navigation.popToTop();
-    } else {
-      navigation.popToTop();
-    }
-  }, [returnTo, extraPopToTop]);
-
   const _onSubmitSuccess = useCallback(async () => {
     onSubmitSuccess && onSubmitSuccess();
 
@@ -1371,7 +1357,7 @@ const OptionScreen = ({navigation, route}) => {
         throw Error('Expected there to be some option groups');
       }
       case 1: {
-        close();
+        navigation.popToTop();
         break;
       }
       default: {
@@ -1384,7 +1370,7 @@ const OptionScreen = ({navigation, route}) => {
         );
       }
     }
-  }, [inputRef, close]);
+  }, [inputRef]);
 
   const onPressContinue = useCallback(() => {
     const submit = inputRef.current?.submit;
@@ -1451,7 +1437,7 @@ const OptionScreen = ({navigation, route}) => {
         >
           {showCloseButton &&
             <Pressable
-              onPress={close}
+              onPress={() => navigation.popToTop()}
               style={{position: 'absolute', top: 0, left: 0, zIndex: 99}}
             >
               <Ionicons

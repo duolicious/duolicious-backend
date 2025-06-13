@@ -37,7 +37,6 @@ import { signedInUser } from '../../App';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
 import { useNavigation } from '@react-navigation/native';
-import { verificationOptionGroups } from '../../data/option-groups';
 
 const otherUserBackgroundColor = '#eee';
 
@@ -139,21 +138,7 @@ const MessageStatusComponent = ({
       return;
     }
 
-    return navigation.navigate(
-      'Home',
-      {
-        screen: 'Profile',
-        params: {
-          screen: 'Profile Option Screen',
-          params: {
-            optionGroups: verificationOptionGroups,
-            showSkipButton: false,
-            theme: 'light',
-            extraPopToTop: true,
-          }
-        },
-      }
-    );
+    return navigation.navigate('Home', { screen: 'Profile' });
   }, [isPressable]);
 
   const verificationMessageText = ` Verification is free and takes just a few minutes. Press here to start.`;

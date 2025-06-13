@@ -33,6 +33,7 @@ import { InviteScreen, WelcomeScreen } from './components/welcome-screen';
 import { sessionToken, sessionPersonUuid } from './kv-storage/session-token';
 import { navigationState } from './kv-storage/navigation-state';
 import { clearAllKv } from './kv-storage/kv-storage';
+import { maybeDoUpgrade } from './kv-storage/upgrade';
 import { japi, SUPPORTED_API_VERSIONS } from './api/api';
 import { login, logout, Inbox, inboxStats } from './chat/application-layer';
 import { STATUS_URL } from './env/env';
@@ -362,6 +363,8 @@ const App = () => {
   }, [serverStatus]);
 
   const loadApp = useCallback(async () => {
+    await maybeDoUpgrade();
+
     await Promise.all([
       loadFonts(),
       lockScreenOrientation(),

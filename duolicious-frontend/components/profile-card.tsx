@@ -29,7 +29,6 @@ import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
 import { useOnline } from '../chat/application-layer/hooks/online';
 import { useSkipped } from '../hide-and-block/hide-and-block';
 import { OnlineIndicator } from './online-indicator';
-import { verificationOptionGroups } from '../data/option-groups';
 
 // This component wouldn't need to exist if expo-image (and expo itself (and the
 // JS eco system generally)) wasn't buggy trash. This fixes an issue on
@@ -207,21 +206,7 @@ const ProfileCard = ({
     }
 
     if (verificationRequired) {
-      return navigation.navigate(
-        'Home',
-        {
-          screen: 'Profile',
-          params: {
-            screen: 'Profile Option Screen',
-            params: {
-              optionGroups: verificationOptionGroups,
-              showSkipButton: false,
-              theme: 'light',
-              returnTo: 'Search',
-            }
-          },
-        }
-      );
+      return navigation.navigate('Profile');
     } else if (personUuid) {
       return navigation.navigate(
         'Prospect Profile Screen',

@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const KEYS = [
   'inbox_order',
   'inbox_section',
+  'last_version',
   'navigation_state',
   'person_uuid',
   'session_token',
