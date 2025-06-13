@@ -2433,6 +2433,7 @@ VALUES
     ('nuke india 2020'),
     ('nuke israel'),
     ('nuke switzerland'),
+    ('nuke the middle east'),
     ('n word'),
     ('n-word'),
     ('n word screamer'),
