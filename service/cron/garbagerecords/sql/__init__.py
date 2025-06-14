@@ -1,4 +1,4 @@
-from commonsql import Q_UPDATE_VERIFICATION_LEVEL
+from commonsql import Q_UPDATE_VERIFICATION_LEVEL_ASSIGN
 
 Q_DELETE_GARBAGE_RECORDS = f"""
 WITH q1 AS (
@@ -84,12 +84,18 @@ WITH q1 AS (
     RETURNING
         1
 ), q10 AS (
-    {
-        Q_UPDATE_VERIFICATION_LEVEL.replace(
-            '= %(person_id)s',
-            'IN (SELECT person_id FROM q7)',
-        )
-    }
+    UPDATE
+        person
+    SET
+        {Q_UPDATE_VERIFICATION_LEVEL_ASSIGN},
+
+        -- The account's last event was likely `added_photo_uuid`, but we just
+        -- removed the photo which the event referred to.
+        last_event_time = sign_up_time,
+        last_event_name = 'joined',
+        last_event_data = '{{}}'  -- Escape python's f-string syntax
+    WHERE
+        id IN (SELECT person_id FROM q7)
 )
 SELECT
     SUM(n) AS count
