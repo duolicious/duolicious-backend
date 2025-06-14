@@ -7,7 +7,7 @@ import random
 
 GARBAGE_RECORDS_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_GARBAGE_RECORDS_POLL_SECONDS',
-    str(60), # 1 minute
+    str(10), # 10 seconds
 ))
 
 print(f'Hello from cron module: {__name__}')

@@ -4,6 +4,22 @@ from antiabuse.antirude.chat import is_rude
 class TestIsOffensive(unittest.TestCase):
 
     def test_rude_strings(self):
+        self.assertTrue(is_rude("you gotta lemme hit"))
+
+        self.assertTrue(is_rude("do you like being choked?"))
+
+        self.assertTrue(is_rude("be my little cumslut"))
+
+        self.assertTrue(is_rude("nice funbags"))
+
+        self.assertTrue(is_rude("hi. can i impregnate you gently?"))
+
+        self.assertTrue(is_rude("ur gonna get slutted out"))
+
+        self.assertTrue(is_rude("lemme stretch you out"))
+
+        self.assertTrue(is_rude("imma gape it, baby"))
+
         self.assertTrue(is_rude("hi could i put my feet on your face"))
 
         self.assertTrue(is_rude("hi could you put your feet on my face"))
