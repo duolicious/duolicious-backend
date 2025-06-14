@@ -1,7 +1,4 @@
-Q_UPDATE_VERIFICATION_LEVEL = """
-UPDATE
-    person
-SET
+Q_UPDATE_VERIFICATION_LEVEL_ASSIGN = """
     verification_level_id = CASE
         WHEN EXISTS (
             SELECT
@@ -31,6 +28,13 @@ SET
 
         ELSE 1
     END
+"""
+
+Q_UPDATE_VERIFICATION_LEVEL = f"""
+UPDATE
+    person
+SET
+    {Q_UPDATE_VERIFICATION_LEVEL_ASSIGN}
 WHERE
     id = %(person_id)s
 """
