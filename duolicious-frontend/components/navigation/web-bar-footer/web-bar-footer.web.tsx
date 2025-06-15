@@ -1,4 +1,3 @@
-const discordIcon = require('../../../assets/social/discord-white.svg');
 const twitterIcon = require('../../../assets/social/twitter-white.svg');
 const redditIcon = require('../../../assets/social/reddit-white.svg');
 const githubIcon = require('../../../assets/social/github-white.svg');
@@ -23,11 +22,6 @@ const SocialBadges = () => {
         marginBottom: 8,
       }}
     >
-      <li>
-        <a target="_blank" href="https://discord.gg/cxrgbPT5Ua">
-          <img src={discordIcon.uri} style={{ height: '20px' }} />
-        </a>
-      </li>
       <li>
         <a target="_blank" href="https://twitter.com/duoliciousapp">
           <img src={twitterIcon.uri} style={{ height: '20px' }} />
