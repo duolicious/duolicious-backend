@@ -259,13 +259,13 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
             else:
                 return 'Invalid session token', 401
 
-            is_onboarding_complete = session_info.person_id is not None
+            is_onboarded = session_info.person_id is not None
             is_signed_in = session_info.signed_in
 
             has_expected_onboarding_status = (
                 expected_onboarding_status is None or
                 expected_onboarding_status is not None and
-                expected_onboarding_status == is_onboarding_complete)
+                expected_onboarding_status == is_onboarded)
 
             has_expected_sign_in_status = (
                 expected_sign_in_status is None or
@@ -275,18 +275,8 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
             if has_expected_onboarding_status and has_expected_sign_in_status:
                 result = rate_limited_func(session_info, *args, **kwargs)
                 return result if result is not None else ''
-            elif not has_expected_onboarding_status:
-                if is_onboarding_complete:
-                    return 'You are already onboarded', 403
-                else:
-                    return 'You must finish onboarding first', 403
-            elif not has_expected_sign_in_status:
-                if is_signed_in:
-                    return 'You are already signed in', 403
-                else:
-                    return 'You must sign in', 401
             else:
-                raise 'Unhandled authentication state'
+                return 'Unauthorized', 401
 
         go1.__name__ = func.__name__
 
