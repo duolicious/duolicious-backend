@@ -375,6 +375,8 @@ VALUES
     ('ass too fat'),
     ('ass woman'),
     ('asuka breeder'),
+    ('austrian painter'),
+    ('austrian painter enthusiast'),
     ('autistic fag boyfriend'),
     ('autistic faggot'),
     ('autistic fuck machine'),

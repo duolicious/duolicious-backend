@@ -80,6 +80,8 @@ class TestIsOffensive(unittest.TestCase):
 
         self.assertTrue(is_rude("can we have e sex?"))
 
+        self.assertTrue(is_rude("nig"))
+
         self.assertTrue(is_rude("niggg"))
 
         self.assertTrue(is_rude("pp very hard"))
