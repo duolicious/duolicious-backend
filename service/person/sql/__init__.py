@@ -654,13 +654,15 @@ WITH onboardee_country AS (
         person_id,
         position,
         uuid,
-        blurhash
+        blurhash,
+        hash
     )
     SELECT
         new_person.id,
         position,
         onboardee_photo.uuid,
-        onboardee_photo.blurhash
+        onboardee_photo.blurhash,
+        onboardee_photo.hash
     FROM onboardee_photo
     JOIN new_person
     ON onboardee_photo.email = new_person.email
@@ -2196,6 +2198,7 @@ WITH deleted_token AS (
         photo.uuid = deleted_token.photo_uuid
     RETURNING
         photo.uuid,
+        photo.hash,
         photo.person_id
 ), deleted_person_event AS (
     UPDATE
@@ -2223,6 +2226,17 @@ WITH deleted_token AS (
         deleted_photo
     RETURNING
         uuid
+), inserted_banned_photo_hash AS (
+    INSERT INTO banned_photo_hash (
+        hash
+    )
+    SELECT
+        hash
+    FROM
+        deleted_photo
+    WHERE
+        hash <> ''
+    ON CONFLICT DO NOTHING
 )
 SELECT
     inserted_undeleted_photo.uuid,

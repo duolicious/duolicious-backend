@@ -23,10 +23,12 @@ import antiabuse.antirude.displayname
 import antiabuse.antirude.education
 import antiabuse.antirude.occupation
 import antiabuse.antirude.profile
+import antiabuse.bannedphoto
 from antiabuse.antispam.urldetector import has_url
 from antiabuse.antispam.phonenumberdetector import detect_phone_numbers
 from antiabuse.antispam.solicitation import has_solicitation
 from util import human_readable_size_metric
+from duohash import md5
 
 register_heif_opener()
 
@@ -111,6 +113,8 @@ class Base64AudioFile(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
+# Even though this class has a very generic name, it's used exclusively for
+# uploading photos
 class Base64File(BaseModel):
     position: conint(ge=MIN_PHOTO_POSITION, le=MAX_PHOTO_POSITION)
     base64: str
@@ -118,6 +122,7 @@ class Base64File(BaseModel):
     image: Image.Image
     top: int
     left: int
+    md5_hash: str
 
     @model_validator(mode='before')
     def convert_base64(cls, values):
@@ -146,6 +151,10 @@ class Base64File(BaseModel):
         except:
             raise ValueError(f'Image invalid')
 
+        md5_hash = md5(base64_value)
+        if antiabuse.bannedphoto.is_banned_photo(md5_hash):
+            raise ValueError("You can’t upload this image")
+
         width, height = image.size
 
         larger_dim = max(width, height)
@@ -158,6 +167,7 @@ class Base64File(BaseModel):
 
         values['image'] = image
         values['bytes'] = decoded_bytes
+        values['md5_hash'] = md5_hash
 
         return values
 

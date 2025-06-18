@@ -4,7 +4,7 @@ from typing import Any, Optional, Iterable, Tuple, Literal
 import duotypes as t
 import json
 import secrets
-from duohash import md5, sha512
+from duohash import sha512
 from PIL import Image
 import io
 import boto3
@@ -493,6 +493,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
             uuid=uuid,
             blurhash=blurhash_,
             extra_exts=extra_exts,
+            hash=base64_file.md5_hash,
         )
 
         # Create new onboardee photos. Because we:
@@ -526,13 +527,15 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
                     position,
                     uuid,
                     blurhash,
-                    extra_exts
+                    extra_exts,
+                    hash
                 ) VALUES (
                     %(email)s,
                     %(position)s,
                     %(uuid)s,
                     %(blurhash)s,
-                    %(extra_exts)s
+                    %(extra_exts)s,
+                    %(hash)s
                 ) ON CONFLICT (email, position) DO UPDATE SET
                     uuid = EXCLUDED.uuid,
                     blurhash = EXCLUDED.blurhash,
@@ -943,6 +946,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             uuid=uuid,
             blurhash=blurhash_,
             extra_exts=extra_exts,
+            hash=base64_file.md5_hash,
         )
 
         q1 = """
@@ -969,17 +973,20 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
                 position,
                 uuid,
                 blurhash,
-                extra_exts
+                extra_exts,
+                hash
             ) VALUES (
                 %(person_id)s,
                 %(position)s,
                 %(uuid)s,
                 %(blurhash)s,
-                %(extra_exts)s
+                %(extra_exts)s,
+                %(hash)s
             ) ON CONFLICT (person_id, position) DO UPDATE SET
                 uuid = EXCLUDED.uuid,
                 blurhash = EXCLUDED.blurhash,
                 extra_exts = EXCLUDED.extra_exts,
+                hash = EXCLUDED.hash,
                 verified = FALSE
         ), updated_person AS (
             UPDATE person
@@ -1760,6 +1767,7 @@ def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo):
     image = req.base64_file.image
     top = req.base64_file.top
     left = req.base64_file.left
+    hash = req.base64_file.md5_hash
 
     crop_size = CropSize(top=top, left=left)
     photo_uuid = secrets.token_hex(32)
@@ -1767,7 +1775,7 @@ def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo):
     params_ok = dict(
         person_id=s.person_id,
         photo_uuid=photo_uuid,
-        photo_hash=md5(base64),
+        photo_hash=hash,
         expected_previous_status=None,
     )
 

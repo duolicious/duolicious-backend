@@ -5,6 +5,9 @@ cd "$script_dir"
 
 source ../util/setup.sh
 
+img1=$(rand_image)
+img2=$(rand_image)
+
 setup () {
   local num_photos=${1:-0}
   local make_bystander=${2:-false}
@@ -15,6 +18,7 @@ setup () {
   q "delete from banned_person"
   q "delete from banned_person_admin_token"
   q "delete from deleted_photo_admin_token"
+  q "delete from banned_photo_hash"
 
   ../util/create-user.sh 'reporter@gmail.com' 0 0
   assume_role 'reporter@gmail.com'
@@ -174,17 +178,55 @@ specific_person_is_banned () {
 specific_photo_is_banned () {
   setup 1 true
 
+  assume_role 'accuse.d+1@gmail.com'
+
+  jc PATCH /profile-info \
+    -d "{
+            \"base64_file\": {
+                \"position\": 1,
+                \"base64\": \"${img1}\",
+                \"top\": 0,
+                \"left\": 0
+            }
+        }"
+
   assume_role 'reporter@gmail.com'
 
   jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "n/a" }'
 
   [[ "$(q "select count(*) from photo")" -eq 3 ]]
+  [[ "$(q "select count(*) from banned_photo_hash")" -eq 0 ]]
   [[ "$(q "select count(*) from person where last_event_name = 'added-photo'")" -eq 2 ]]
 
   c GET "/admin/delete-photo/$(deleted_photo_token)"
 
   [[ "$(q "select count(*) from photo")" -eq 2 ]]
+  [[ "$(q "select count(*) from banned_photo_hash where hash <> ''")" -eq 1 ]]
   [[ "$(q "select count(*) from person where last_event_name = 'added-photo'")" -eq 1 ]]
+
+  assume_role 'accuse.d+1@gmail.com'
+
+  ! jc PATCH /profile-info \
+    -d "{
+            \"base64_file\": {
+                \"position\": 2,
+                \"base64\": \"${img1}\",
+                \"top\": 0,
+                \"left\": 0
+            }
+        }" || exit 1
+
+  jc PATCH /profile-info \
+    -d "{
+            \"base64_file\": {
+                \"position\": 3,
+                \"base64\": \"${img2}\",
+                \"top\": 0,
+                \"left\": 0
+            }
+        }"
+
+  [[ "$(q "select count(*) from photo")" -eq 3 ]]
 }
 
 bans_work_despite_no_active_sessions () {
