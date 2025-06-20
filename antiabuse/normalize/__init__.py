@@ -68,6 +68,7 @@ _closed_class_slang_words = {
     "fuck": [
         "fck",
         "fk",
+        "flck",
         "fuc",
         "fuk",
     ],
