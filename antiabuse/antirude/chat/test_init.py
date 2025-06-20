@@ -4,6 +4,8 @@ from antiabuse.antirude.chat import is_rude
 class TestIsOffensive(unittest.TestCase):
 
     def test_rude_strings(self):
+        self.assertTrue(is_rude("gonna make u chke on me 2nite"))
+
         self.assertTrue(is_rude("gib milkies pls"))
 
         self.assertTrue(is_rude("nice milkers bro mind if i have a sip"))
