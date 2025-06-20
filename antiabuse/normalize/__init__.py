@@ -239,8 +239,10 @@ def char_to_regex(c: str, is_initial: bool, is_final: bool, is_short: bool):
 def suffix_class_instance_to_regex(suffix_class_instance: str) -> str:
     suffix_class_instance_with_elision = ''.join(
         c
-        for c in suffix_class_instance
+        for i, c in enumerate(suffix_class_instance)
         if c not in _vowel_chars
+        or i == 0
+        or i == len(suffix_class_instance) - 1
     )
 
     is_short = len(suffix_class_instance_with_elision) <= 3
