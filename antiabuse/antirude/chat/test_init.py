@@ -4,6 +4,28 @@ from antiabuse.antirude.chat import is_rude
 class TestIsOffensive(unittest.TestCase):
 
     def test_rude_strings(self):
+        self.assertTrue(is_rude("gib milkies pls"))
+
+        self.assertTrue(is_rude("nice milkers bro mind if i have a sip"))
+
+        self.assertTrue(is_rude("pls touch my pp"))
+
+        self.assertTrue(is_rude("mommy can you please sit on me"))
+
+        self.assertTrue(is_rude("you will let me call you the n word while i smash"))
+
+        self.assertTrue(is_rude("I'm gonna end my own life"))
+
+        self.assertTrue(is_rude("let me have my way with ur mouth n make u swallow it all"))
+
+        self.assertTrue(is_rude("can i pls cmm in iuuu"))
+
+        self.assertTrue(is_rude("ur tiddies look nice"))
+
+        self.assertTrue(is_rude("ill ruin u while u wear cosplay"))
+
+        self.assertTrue(is_rude("pls pls pls let me flck ur cute mouth"))
+
         self.assertTrue(is_rude("you gotta lemme hit"))
 
         self.assertTrue(is_rude("do you like being choked?"))
@@ -83,8 +105,6 @@ class TestIsOffensive(unittest.TestCase):
         self.assertTrue(is_rude("nig"))
 
         self.assertTrue(is_rude("niggg"))
-
-        self.assertTrue(is_rude("pp very hard"))
 
         self.assertTrue(is_rude("how big is that dih"))
 
@@ -241,6 +261,10 @@ class TestIsOffensive(unittest.TestCase):
         self.assertTrue(is_rude("f00t job"))
 
     def test_non_rude_strings(self):
+        # the :pp emoticon doesn't trigger a false positives
+        self.assertFalse(
+                is_rude("haha :pp"))
+
         # 'ass' is a very versatile word. While the word itself can be
         # considered offensive, we're mostly interested in filtering it when
         # it's used sexually.

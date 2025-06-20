@@ -1940,6 +1940,7 @@ VALUES
     ('kaiju fucker'),
     ('kanye likes fingers in his ass'),
     ('kanye was right'),
+    ('kate hikes'),
     ('kawaii bitch'),
     ('kekistan vs israel'),
     ('ketamine'),
