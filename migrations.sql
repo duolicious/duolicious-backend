@@ -1,7 +1,30 @@
-CREATE TABLE IF NOT EXISTS rude_message (
-    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    message TEXT NOT NULL,
+ALTER TABLE
+    photo
+ADD COLUMN IF NOT EXISTS
+    hash TEXT NOT NULL DEFAULT '';
 
-    PRIMARY KEY (person_id, created_at)
+ALTER TABLE
+    photo
+ALTER COLUMN
+    hash
+DROP DEFAULT;
+
+
+
+ALTER TABLE
+    onboardee_photo
+ADD COLUMN IF NOT EXISTS
+    hash TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE
+    onboardee_photo
+ALTER COLUMN
+    hash
+DROP DEFAULT;
+
+
+
+CREATE TABLE IF NOT EXISTS banned_photo_hash (
+    hash TEXT NOT NULL,
+    PRIMARY KEY (hash)
 );

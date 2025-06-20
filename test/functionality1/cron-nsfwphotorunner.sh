@@ -38,8 +38,8 @@ jc PATCH /profile-info \
       }"
 
 q "
-  insert into photo (person_id, position, uuid, blurhash)
-  values ($PERSON_ID, 3, 'not-in-object-store', '')"
+  insert into photo (person_id, position, uuid, blurhash, hash)
+  values ($PERSON_ID, 3, 'not-in-object-store', '', random()::text)"
 
 
 # Maximum number of retries

@@ -338,6 +338,7 @@ CREATE TABLE IF NOT EXISTS onboardee_photo (
     uuid TEXT NOT NULL,
     blurhash TEXT NOT NULL,
     extra_exts TEXT[] NOT NULL DEFAULT '{}',
+    hash TEXT NOT NULL,
     PRIMARY KEY (email, position)
 );
 
@@ -362,11 +363,17 @@ CREATE TABLE IF NOT EXISTS photo (
     verified BOOLEAN NOT NULL DEFAULT FALSE,
     nsfw_score FLOAT4,
     extra_exts TEXT[] NOT NULL DEFAULT '{}',
+    hash TEXT NOT NULL,
     PRIMARY KEY (person_id, position)
 );
 
 CREATE TABLE IF NOT EXISTS undeleted_photo (
     uuid TEXT PRIMARY KEY
+);
+
+CREATE TABLE IF NOT EXISTS banned_photo_hash (
+    hash TEXT NOT NULL,
+    PRIMARY KEY (hash)
 );
 
 CREATE TABLE IF NOT EXISTS audio (
