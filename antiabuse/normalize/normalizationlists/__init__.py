@@ -118,7 +118,6 @@ chat = [
     "anal",
     "anally",
     "anus",
-    "a pp",
     "around your throat",
     "ass cheeks",
     "ass hole",
