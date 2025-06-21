@@ -9,10 +9,14 @@ _locations_json_file = os.path.join(
         'locations', 'locations.json')
 
 Q_SEARCH_LOCATIONS = """
-SELECT long_friendly
-FROM location
-WHERE long_friendly ILIKE %(first_character)s || '%%'
-ORDER BY long_friendly <-> %(search_string)s
+SELECT
+    long_friendly
+FROM
+    location
+WHERE
+    long_friendly ILIKE %(first_character)s || '%%'
+ORDER BY
+    long_friendly <-> %(search_string)s
 LIMIT 10
 """
 
@@ -33,14 +37,16 @@ def init_db():
                 city,
                 subdivision,
                 country,
-                coordinates
+                coordinates,
+                verification_required
             ) VALUES (
                 %(short_friendly)s,
                 %(long_friendly)s,
                 %(city)s,
                 %(subdivision)s,
                 %(country)s,
-                ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4326)
+                ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4326),
+                %(verification_required)s
             ) ON CONFLICT DO NOTHING
             """,
             locations

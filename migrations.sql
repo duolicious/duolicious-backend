@@ -2,3 +2,8 @@ ALTER TABLE
     person
 ADD COLUMN IF NOT EXISTS
     verification_required BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE
+    location
+ADD COLUMN IF NOT EXISTS
+    verification_required BOOLEAN NOT NULL DEFAULT FALSE;

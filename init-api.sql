@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS location (
     subdivision TEXT NOT NULL,
     country TEXT NOT NULL,
     coordinates GEOGRAPHY(Point, 4326) NOT NULL,
+    verification_required BOOLEAN NOT NULL DEFAULT FALSE,
     UNIQUE (short_friendly),
     UNIQUE (long_friendly)
 );
