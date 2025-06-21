@@ -1,30 +1,4 @@
 ALTER TABLE
-    photo
+    person
 ADD COLUMN IF NOT EXISTS
-    hash TEXT NOT NULL DEFAULT '';
-
-ALTER TABLE
-    photo
-ALTER COLUMN
-    hash
-DROP DEFAULT;
-
-
-
-ALTER TABLE
-    onboardee_photo
-ADD COLUMN IF NOT EXISTS
-    hash TEXT NOT NULL DEFAULT '';
-
-ALTER TABLE
-    onboardee_photo
-ALTER COLUMN
-    hash
-DROP DEFAULT;
-
-
-
-CREATE TABLE IF NOT EXISTS banned_photo_hash (
-    hash TEXT NOT NULL,
-    PRIMARY KEY (hash)
-);
+    verification_required BOOLEAN NOT NULL DEFAULT FALSE;

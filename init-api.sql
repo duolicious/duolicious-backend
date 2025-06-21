@@ -244,6 +244,7 @@ CREATE TABLE IF NOT EXISTS person (
     verified_age BOOLEAN NOT NULL DEFAULT FALSE,
     verified_gender BOOLEAN NOT NULL DEFAULT FALSE,
     verified_ethnicity BOOLEAN NOT NULL DEFAULT FALSE,
+    verification_required BOOLEAN NOT NULL DEFAULT FALSE,
 
     -- Basics
     orientation_id SMALLINT REFERENCES orientation(id) NOT NULL DEFAULT 1,

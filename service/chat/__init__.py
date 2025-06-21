@@ -62,6 +62,10 @@ from constants import (
     MAX_NOTIFICATION_LENGTH,
 )
 from util import truncate_text
+from service.chat.verification import (
+    FMT_VERIFICATION_REQUIRED,
+    verification_required,
+)
 
 app = FastAPI()
 
@@ -256,7 +260,7 @@ def is_ping(parsed_xml) -> bool:
         return False
 
 
-@AsyncLruCache(maxsize=1024, cache_condition=lambda x: not x)
+@AsyncLruCache(cache_condition=lambda x: not x)
 async def is_unique_message(message: Message):
     if isinstance(message, AudioMessage):
         return True
@@ -280,7 +284,7 @@ async def is_unique_message(message: Message):
 
     return is_unique
 
-@AsyncLruCache(maxsize=1024, cache_condition=lambda x: not x)
+@AsyncLruCache(cache_condition=lambda x: not x)
 async def fetch_is_intro(from_id: int, to_id: int) -> bool:
     async with api_tx('read committed') as tx:
         await tx.execute(Q_HAS_MESSAGE, dict(from_id=from_id, to_id=to_id))
@@ -288,7 +292,7 @@ async def fetch_is_intro(from_id: int, to_id: int) -> bool:
 
     return not bool(row)
 
-@AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
+@AsyncLruCache(ttl=5)  # 5 seconds
 async def fetch_is_trusted_account(from_id: int) -> bool:
     async with api_tx('read committed') as tx:
         await tx.execute(
@@ -414,6 +418,11 @@ async def process_text(
 
     if not to_id:
         return
+
+    if await verification_required(person_id=from_id):
+        return await redis_publish_many(connection_uuid, [
+            FMT_VERIFICATION_REQUIRED.format(stanza_id=stanza_id)
+        ])
 
     if await fetch_is_skipped(from_id=from_id, to_id=to_id):
         return await redis_publish_many(connection_uuid, [

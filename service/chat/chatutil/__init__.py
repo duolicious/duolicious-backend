@@ -103,7 +103,7 @@ def message_string_to_etree(
     return message_etree
 
 
-@AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
+@AsyncLruCache(ttl=5)  # 5 seconds
 async def fetch_is_skipped(from_id: int, to_id: int) -> bool:
     async with api_tx('read committed') as tx:
         await tx.execute(Q_IS_SKIPPED, dict(from_id=from_id, to_id=to_id))
@@ -112,7 +112,7 @@ async def fetch_is_skipped(from_id: int, to_id: int) -> bool:
     return bool(row)
 
 
-@AsyncLruCache(maxsize=1024)
+@AsyncLruCache()
 async def fetch_id_from_username(username: str) -> int | None:
     async with api_tx('read committed') as tx:
         await tx.execute(Q_FETCH_PERSON_ID, dict(username=username))
