@@ -15,6 +15,7 @@ COPY \
 RUN : \
   && apt update \
   && apt install -y ffmpeg \
-  && pip install --no-cache-dir -r /app/requirements.txt
+  && pip install --no-cache-dir -r /app/requirements.txt \
+  && python -m spacy download en_core_web_sm
 
 CMD /app/chat.main.sh

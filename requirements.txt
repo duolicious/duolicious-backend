@@ -20,6 +20,7 @@ pydantic[email]
 PyYAML
 redis
 regex
+spacy
 uvicorn
 websockets
 xmltodict
