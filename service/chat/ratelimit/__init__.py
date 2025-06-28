@@ -64,7 +64,7 @@ WITH truncated_daily_message AS (
     WHERE
         person_id = %(from_id)s
     AND
-        created_at > now() - interval '2 days'
+        created_at > now() - interval '1 day'
 ), truncated_daily_message_count AS (
     SELECT COUNT(*) AS x FROM truncated_daily_message
 )

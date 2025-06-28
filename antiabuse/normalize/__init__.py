@@ -122,6 +122,7 @@ _closed_class_safe_phrases = {
     'k-on',
     'l+o+l+',
     'p+l+s+',
+    'puzzles',
 }
 
 
