@@ -266,6 +266,8 @@ class TestIsOffensive(unittest.TestCase):
         self.assertTrue(is_rude("f00t job"))
 
     def test_non_rude_strings(self):
+        self.assertFalse(is_rude("What puzzles do you enjoy"))
+
         # the :pp emoticon doesn't trigger a false positives
         self.assertFalse(
                 is_rude("haha :pp"))
