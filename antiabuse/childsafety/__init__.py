@@ -17,7 +17,7 @@ _re_minor_ages = rf'({_re_minor_ages_as_numbers}|{_re_minor_ages_as_words})'
 
 _re_palindomic_minor_ages = rf'([1-7]1)'
 
-_re_palindome_assertion = rf'(backwards|backward|🔄)'
+_re_palindome_assertion = rf'(backwards|backward|🔄|⏪️|⏮️|🔁|↩️|↪️)'
 
 _re_minor_declarations = (
         rf'((underage)|'
