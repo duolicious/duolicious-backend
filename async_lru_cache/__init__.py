@@ -12,9 +12,9 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 class AsyncLruCache:
-    def __init__(self, maxsize=128, ttl=None, cache_condition=None):
+    def __init__(self, maxsize=1024, ttl=None, cache_condition=None):
         self.maxsize = maxsize
-        self.ttl = ttl
+        self.ttl = ttl  # seconds
         self.cache_condition = cache_condition
         self.cache = OrderedDict()
 

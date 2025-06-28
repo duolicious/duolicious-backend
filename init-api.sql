@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS location (
     subdivision TEXT NOT NULL,
     country TEXT NOT NULL,
     coordinates GEOGRAPHY(Point, 4326) NOT NULL,
+    verification_required BOOLEAN NOT NULL DEFAULT FALSE,
     UNIQUE (short_friendly),
     UNIQUE (long_friendly)
 );
@@ -244,6 +245,7 @@ CREATE TABLE IF NOT EXISTS person (
     verified_age BOOLEAN NOT NULL DEFAULT FALSE,
     verified_gender BOOLEAN NOT NULL DEFAULT FALSE,
     verified_ethnicity BOOLEAN NOT NULL DEFAULT FALSE,
+    verification_required BOOLEAN NOT NULL DEFAULT FALSE,
 
     -- Basics
     orientation_id SMALLINT REFERENCES orientation(id) NOT NULL DEFAULT 1,
