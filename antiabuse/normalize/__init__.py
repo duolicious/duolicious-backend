@@ -2,6 +2,37 @@ from confusable_homoglyphs import confusables
 import re
 import unicodedata
 from functools import cache
+import spacy
+
+_spacy_nlp = spacy.load("en_core_web_sm")
+
+
+def remove_modifiers(text: str) -> str:
+    document = _spacy_nlp(text)
+    modifier_pos = {"ADJ", "ADV"}
+    was_last_token_dropped = False
+
+    def do_keep(token):
+        global was_last_token_dropped
+
+        do_drop = (
+                token.pos_ in modifier_pos or
+                token.pos_ == 'PUNCT' and was_last_token_dropped)
+
+        was_last_token_dropped = do_drop
+
+        return not do_drop
+
+    kept_tokens = [token.text for token in document if do_keep(token)]
+
+    # rebuild the sentence
+    cleaned = " ".join(kept_tokens)
+
+    # tidy whitespace around punctuation and collapse doubles
+    cleaned = re.sub(r"\s+([,.;:!?])", r"\1", cleaned)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned)
+
+    return cleaned.strip()
 
 
 _censored_chars = 'x*#_.-';
@@ -342,7 +373,11 @@ def _remove_zero_width_characters(s: str):
     return _zero_width_chars.sub('', s)
 
 
-def normalize_string(s: str, normalizeable_phrases: list[str]):
+def normalize_string(
+    s: str,
+    normalizeable_phrases: list[str],
+    do_remove_modifiers: bool = False
+):
     normalized_input = unicodedata.normalize('NFKD', s)
     normalized_input = ''.join(
         char for char in normalized_input if not unicodedata.combining(char)
@@ -360,6 +395,10 @@ def normalize_string(s: str, normalizeable_phrases: list[str]):
 
     # Remove zero width characters
     normalized_input = _remove_zero_width_characters(normalized_input)
+
+    # Remove adverbs and adjectives
+    if do_remove_modifiers:
+        normalized_input = remove_modifiers(normalized_input)
 
     # Replace slang
     normalized_input = _normalize_spelling(normalized_input, normalizeable_phrases)

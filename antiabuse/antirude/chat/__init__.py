@@ -16,6 +16,8 @@ _rude_matcher = re.compile(_rude_pattern, re.IGNORECASE)
 
 
 def is_rude(s: str) -> bool:
-    normalized_input = normalize_string(s, chat)
-
-    return bool(_rude_matcher.search(normalized_input))
+    return \
+            bool(_rude_matcher.search(
+                normalize_string(s, chat, do_remove_modifiers=False))) or \
+            bool(_rude_matcher.search(
+                normalize_string(s, chat, do_remove_modifiers=True)))
