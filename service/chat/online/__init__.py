@@ -15,7 +15,7 @@ import traceback
 
 LAST_UPDATE_INTERVAL_SECONDS = 4 * 60  # 4 minutes
 
-ONLINE_RECENTLY_SECONDS = 3 * 60 * 60  # 3 hours
+ONLINE_RECENTLY_SECONDS = 6 * 60 * 60  # 6 hours
 
 FMT_KEY = 'online-{username}'
 
