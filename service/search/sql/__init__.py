@@ -253,7 +253,7 @@ WITH searcher AS (
                 person_id = %(searcher_person_id)s
         )::DATE
 
-   -- The searcher meets the prospect's age preference
+    -- The searcher meets the prospect's age preference
     AND
        EXISTS (
             SELECT 1
@@ -826,6 +826,7 @@ ON
 Q_FEED = f"""
 WITH searcher AS (
     SELECT
+        gender_id,
         date_of_birth,
         personality,
         verification_level_id
@@ -872,7 +873,7 @@ WITH searcher AS (
     WHERE
         last_event_time < %(before)s
     AND
-        last_event_time > now() - interval '1 week'
+        last_event_time > now() - interval '1 month'
     AND
         activated
     AND
@@ -948,17 +949,6 @@ WITH searcher AS (
                     person_id = %(searcher_person_id)s
             )
         )
-    -- Exclude photos that might be NSFW
-    AND NOT EXISTS (
-        SELECT
-            1
-        FROM
-            photo
-        WHERE
-            uuid = last_event_data->>'added_photo_uuid'
-        AND
-            nsfw_score > 0.2
-    )
     -- Decrease users' odds of appearing in the feed if they're already getting
     -- lots of messages
     AND random() < (
@@ -975,6 +965,28 @@ WITH searcher AS (
     -- and the searcher grows
     AND random() < 1.0 / (
         1.0 + 0.5 * ABS(searcher.date_of_birth - prospect.date_of_birth) / 365.0
+    )
+    -- The searcher meets the prospect's gender preference
+    AND EXISTS (
+        SELECT
+            1
+        FROM
+            search_preference_gender
+        WHERE
+            search_preference_gender.person_id = prospect.id
+        AND
+            search_preference_gender.gender_id = searcher.gender_id
+    )
+    -- Exclude photos that might be NSFW
+    AND NOT EXISTS (
+        SELECT
+            1
+        FROM
+            photo
+        WHERE
+            uuid = last_event_data->>'added_photo_uuid'
+        AND
+            nsfw_score > 0.2
     )
     -- Exclude users who were reported two or more times in the past day
     AND (
