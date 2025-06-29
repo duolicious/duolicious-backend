@@ -153,7 +153,7 @@ class Base64File(BaseModel):
 
         md5_hash = md5(base64_value)
         if antiabuse.bannedphoto.is_banned_photo(md5_hash):
-            raise ValueError("You can’t upload this image")
+            raise ValueError("That pic breaks the rules 🙈")
 
         width, height = image.size
 
