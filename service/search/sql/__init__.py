@@ -91,6 +91,8 @@ WITH searcher AS (
         id
     FROM
         person AS prospect
+    CROSS JOIN
+        searcher
     WHERE
         prospect.activated
     AND
@@ -100,11 +102,11 @@ WITH searcher AS (
         -- The prospect meets the searcher's location preference
         ST_DWithin(
             prospect.coordinates,
-            (SELECT coordinates FROM searcher),
-            (SELECT distance_preference FROM searcher)
+            searcher.coordinates,
+            searcher.distance_preference
         )
     AND
-        (SELECT club_preference FROM searcher) IS NULL
+        searcher.club_preference IS NULL
 
     LIMIT
         30000
@@ -113,6 +115,8 @@ WITH searcher AS (
         person_id AS id
     FROM
         person_club AS prospect
+    CROSS JOIN
+        searcher
     WHERE
         prospect.activated
     AND
@@ -122,11 +126,11 @@ WITH searcher AS (
         -- The prospect meets the searcher's location preference
         ST_DWithin(
             prospect.coordinates,
-            (SELECT coordinates FROM searcher),
-            (SELECT distance_preference FROM searcher)
+            searcher.coordinates,
+            searcher.distance_preference
         )
     AND
-        prospect.club_name = (SELECT club_preference FROM searcher)
+        prospect.club_name = searcher.club_preference
 
     LIMIT
         30000
@@ -143,8 +147,10 @@ WITH searcher AS (
         prospects_second_pass
     ON
         prospects_second_pass.id = prospect.id
+    CROSS JOIN
+        searcher
     ORDER BY
-        personality <#> (SELECT personality FROM searcher)
+        prospect.personality <#> searcher.personality
     LIMIT
         10000
 ), prospects_fourth_pass AS (
@@ -155,7 +161,7 @@ WITH searcher AS (
 
         name,
 
-        personality,
+        prospect.personality,
 
         verification_level_id > 1 AS verified,
 
@@ -173,16 +179,14 @@ WITH searcher AS (
 
         CASE
             WHEN show_my_age
-            THEN EXTRACT(YEAR FROM AGE(date_of_birth))
+            THEN EXTRACT(YEAR FROM AGE(prospect.date_of_birth))
             ELSE NULL
         END AS age,
 
         CLAMP(
             0,
             99,
-            100 * (
-                1 - (personality <#> (SELECT personality FROM searcher))
-            ) / 2
+            100 * (1 - (prospect.personality <#> searcher.personality)) / 2
         ) AS match_percentage,
 
         roles
@@ -193,22 +197,31 @@ WITH searcher AS (
         prospects_third_pass
     ON
         prospects_third_pass.id = prospect.id
+    CROSS JOIN
+        searcher
 
-    WHERE
-        -- The searcher meets the prospect's gender preference
+    WHERE (
+        -- The searcher meets the prospect's gender preference or
+        -- the searcher is searching with in a club
         EXISTS (
-            SELECT 1
-            FROM search_preference_gender AS preference
+            SELECT
+                1
+            FROM
+                search_preference_gender AS preference
             WHERE
-                preference.person_id = prospect.id AND
-                preference.gender_id = (SELECT gender_id FROM searcher)
+                preference.person_id = prospect.id
+            AND
+                preference.gender_id = searcher.gender_id
         )
+        OR searcher.club_preference IS NOT NULL
+    )
 
-    AND
-        -- The searcher meets the prospect's location preference
+    AND (
+        -- The searcher meets the prospect's location preference or
+        -- the searcher is searching within a club
         ST_DWithin(
             prospect.coordinates,
-            (SELECT coordinates FROM searcher),
+            searcher.coordinates,
             (
                 SELECT
                     COALESCE(
@@ -228,6 +241,8 @@ WITH searcher AS (
                     )
             )
         )
+        OR searcher.club_preference IS NOT NULL
+    )
 
    -- The prospect meets the searcher's age preference
     AND
@@ -253,30 +268,36 @@ WITH searcher AS (
                 person_id = %(searcher_person_id)s
         )::DATE
 
-    -- The searcher meets the prospect's age preference
-    AND
+    -- The searcher meets the prospect's age preference or
+    -- the searcher is searching within a club
+    AND (
        EXISTS (
             SELECT 1
             FROM search_preference_age AS preference
             WHERE
                 preference.person_id = prospect.id
             AND
-                (SELECT date_of_birth FROM searcher) <= (
+                searcher.date_of_birth <= (
                     CURRENT_DATE -
                     INTERVAL '1 year' *
                     COALESCE(preference.min_age, 0)
                 )
             AND
-                (SELECT date_of_birth FROM searcher) > (
+                searcher.date_of_birth > (
                     CURRENT_DATE -
                     INTERVAL '1 year' *
                     (COALESCE(preference.max_age, 999) + 1)
                 )
         )
+        OR searcher.club_preference IS NOT NULL
+    )
 
-    -- The users have at least a 50%% match
-    AND
-        (personality <#> (SELECT personality FROM searcher)) < 1e-5
+    -- The users have at least a 50%% match or
+    -- the searcher is searching within a club
+    AND (
+        (prospect.personality <#> searcher.personality) < 1e-5
+        OR searcher.club_preference IS NOT NULL
+    )
 
     -- One-way filters
     AND
