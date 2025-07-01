@@ -200,18 +200,25 @@ WITH searcher AS (
     CROSS JOIN
         searcher
 
-    WHERE
-        -- The searcher meets the prospect's gender preference
+    WHERE (
+        -- The searcher meets the prospect's gender preference or
+        -- the searcher is searching with in a club
         EXISTS (
-            SELECT 1
-            FROM search_preference_gender AS preference
+            SELECT
+                1
+            FROM
+                search_preference_gender AS preference
             WHERE
-                preference.person_id = prospect.id AND
+                preference.person_id = prospect.id
+            AND
                 preference.gender_id = searcher.gender_id
         )
+        OR searcher.club_preference IS NOT NULL
+    )
 
-    AND
-        -- The searcher meets the prospect's location preference
+    AND (
+        -- The searcher meets the prospect's location preference or
+        -- the searcher is searching within a club
         ST_DWithin(
             prospect.coordinates,
             searcher.coordinates,
@@ -234,6 +241,8 @@ WITH searcher AS (
                     )
             )
         )
+        OR searcher.club_preference IS NOT NULL
+    )
 
    -- The prospect meets the searcher's age preference
     AND
@@ -259,8 +268,9 @@ WITH searcher AS (
                 person_id = %(searcher_person_id)s
         )::DATE
 
-    -- The searcher meets the prospect's age preference
-    AND
+    -- The searcher meets the prospect's age preference or
+    -- the searcher is searching within a club
+    AND (
        EXISTS (
             SELECT 1
             FROM search_preference_age AS preference
@@ -279,10 +289,15 @@ WITH searcher AS (
                     (COALESCE(preference.max_age, 999) + 1)
                 )
         )
+        OR searcher.club_preference IS NOT NULL
+    )
 
-    -- The users have at least a 50%% match
-    AND
+    -- The users have at least a 50%% match or
+    -- the searcher is searching within a club
+    AND (
         (prospect.personality <#> searcher.personality) < 1e-5
+        OR searcher.club_preference IS NOT NULL
+    )
 
     -- One-way filters
     AND
