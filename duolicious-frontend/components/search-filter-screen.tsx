@@ -366,8 +366,8 @@ const SearchFilterScreen_ = ({navigation, route}) => {
               marginLeft: 10,
             }}
           >
-            Anyone you filter out with your two-way search settings won’t
-            see you in their searches either
+            Anyone you filter with your two-way search settings won’t see you in
+            their searches either, unless searching a mutual club
           </DefaultText>
 
           <Title style={{marginTop: 40}}>Basics (Other Filters)</Title>
