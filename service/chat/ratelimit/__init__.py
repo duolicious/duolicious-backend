@@ -7,7 +7,7 @@ class DefaultRateLimit(Enum):
     NONE = 0
     UNVERIFIED = 10
     BASICS = 20
-    PHOTOS = 50
+    PHOTOS = 40
 
 
 Q_RATE_LIMIT_REASON = f"""
