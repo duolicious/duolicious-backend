@@ -301,6 +301,24 @@ test_deactivated () {
   assert_search_names 'user1 user2' 10 0
 }
 
+test_verification_required () {
+  setup
+
+  assert_search_names 'user1 user2' 10 0
+
+  q "
+  update person
+  set verification_required = TRUE
+  where name in ('user1', 'user2')"
+
+  q "
+  update person
+  set verification_level_id = 2
+  where name = 'user2'"
+
+  assert_search_names 'user2' 10 0
+}
+
 test_photos_promoted () {
   setup
   ../util/create-user.sh user3 0
@@ -908,6 +926,8 @@ test_photos_promoted
 test_verified_promoted
 
 test_deactivated
+
+test_verification_required
 
 test_search_cache
 

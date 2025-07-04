@@ -35,11 +35,17 @@ test_json_format () {
   ../util/create-user.sh user12 0 1
   ../util/create-user.sh user13 0 1
   ../util/create-user.sh user14 0 1
+  ../util/create-user.sh user15 0 1
+  ../util/create-user.sh user16 0 1
 
   searcher_uuid=$(q "select uuid from person where name = 'searcher'")
   user13_uuid=$(q "select uuid from person where name = 'user13'")
 
   q "update person set privacy_verification_level_id = 1"
+
+  q "update person set verification_required = true where name = 'user15'"
+  q "update person set verification_required = true where name = 'user16'"
+  q "update person set verification_level_id = 2 where name = 'user16'"
 
   assume_role searcher
   jc PATCH /profile-info -d '{ "verification_level": "Basics only" }'
@@ -170,6 +176,16 @@ test_json_format () {
     "photo_uuid": "redacted_nonnull_value",
     "time": "redacted_nonnull_value",
     "type": "updated-bio"
+  },
+  {
+    "is_verified": true,
+    "match_percentage": 50,
+    "name": "user16",
+    "person_uuid": "redacted_nonnull_value",
+    "photo_blurhash": "redacted_nonnull_value",
+    "photo_uuid": "redacted_nonnull_value",
+    "time": "redacted_nonnull_value",
+    "type": "joined"
   },
   {
     "is_verified": false,
