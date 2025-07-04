@@ -305,6 +305,10 @@ class TestIsOffensive(unittest.TestCase):
         self.assertFalse(
                 is_rude("plssss"))
 
+        # This shouldn't be confused with piss
+        self.assertFalse(
+                is_rude("plzzzz"))
+
         # All doom shouldn't get interpreted as "dom"
         self.assertFalse(
                 is_rude("doom is a fun game"))
