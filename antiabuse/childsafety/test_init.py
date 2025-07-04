@@ -233,6 +233,16 @@ i like grooming children
 i wanna be a victim
                 """.strip()))
 
+        self.assertTrue(
+                potential_minor("""
+31🔁🔁🔁
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
+31🔁
+                """.strip()))
+
 
     def test_not_potential_minor(self):
         self.assertFalse(
