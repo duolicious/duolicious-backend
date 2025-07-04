@@ -48,6 +48,6 @@ SESSION_TOKEN="" c \
   --data-urlencode 'data={"verification_token":"valid-token","message_id":"8d737342-2311-429f-b920-f6e98cde402e","timestamp":"2024-12-26T12:32:57Z","type":"Donation","is_public":true,"from_name":"Jo Example","message":"Good luck with the integration!","amount":"50.00","url":"https://ko-fi.com/Home/CoffeeShop?txid=00000000-1111-2222-3333-444444444444","email":"jo.example@example.com","currency":"USD","is_subscription_payment":false,"is_first_subscription_payment":false,"kofi_transaction_id":"00000000-1111-2222-3333-444444444444","shop_items":null,"tier_name":null,"shipping":null}'
 
 actual=$(q "select estimated_end_date from funding")
-expected='2024-10-01 15:02:10.866'
+expected='2024-10-03 03:02:10.866'
 
 diff <(echo "$actual") <(echo "$expected")

@@ -2775,12 +2775,18 @@ FROM
 """
 
 Q_KOFI_DONATION = """
+WITH days_per_month AS (
+    SELECT (date_trunc('month', current_date) + interval '1 month')
+         -  date_trunc('month', current_date) AS dpm
+)
 UPDATE
     funding
 SET
     estimated_end_date
         = estimated_end_date
-        + interval '28 days' * %(amount)s / cost_per_month_usd
+        + dpm * %(amount)s / cost_per_month_usd
+FROM
+    days_per_month
 WHERE
     token_hash = %(token_hash)s
 """
