@@ -17,7 +17,7 @@ _re_minor_ages = rf'({_re_minor_ages_as_numbers}|{_re_minor_ages_as_words})'
 
 _re_palindomic_minor_ages = rf'([1-7]1)'
 
-_re_palindome_assertion = rf'(backwards|backward|🔄|⏪️|⏮️|🔁|↩️|↪️)'
+_re_palindome_assertion = rf'(backwards|backward|🔄+|⏪️+|⏮️+|🔁+|↩️+|↪️+)'
 
 _re_minor_declarations = (
         rf'((underage)|'
@@ -38,7 +38,7 @@ _re_minor = (
         rf'{_re_minor_declarations}|'
         rf'{_re_gooming}|'
         rf'{_re_victim}'
-        rf')\b)')
+        rf')(\b|\s|$))')
 
 _re_neg_prev = {
     'for',
