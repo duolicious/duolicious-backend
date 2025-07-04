@@ -542,6 +542,13 @@ WITH searcher AS (
                 pref.accept_unanswered = FALSE
         )
 
+    -- Exclude users who should be verified but aren't
+    AND (
+            prospect.verification_level_id > 1
+        OR
+            NOT prospect.verification_required
+    )
+
     ORDER BY
         -- If this is changed, other subqueries will need changing too
         verified DESC,
@@ -1022,6 +1029,12 @@ WITH searcher AS (
         AND
             reported
     ) < 2
+    -- Exclude users who should be verified but aren't
+    AND (
+            prospect.verification_level_id > 1
+        OR
+            NOT prospect.verification_required
+    )
     ORDER BY
         last_event_time DESC
     LIMIT
