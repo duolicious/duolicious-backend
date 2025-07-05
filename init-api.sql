@@ -91,7 +91,8 @@ DO $$ BEGIN
         'added-photo',
         'added-voice-bio',
         'joined',
-        'updated-bio'
+        'updated-bio',
+        'was-recently-online'
     );
 EXCEPTION
     WHEN duplicate_object THEN null;

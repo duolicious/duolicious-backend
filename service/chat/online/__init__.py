@@ -12,10 +12,14 @@ from service.chat.session import Session
 from database import api_tx
 import asyncio
 import traceback
+import random
+from dataclasses import dataclass
 
 LAST_UPDATE_INTERVAL_SECONDS = 4 * 60  # 4 minutes
 
 ONLINE_RECENTLY_SECONDS = 6 * 60 * 60  # 6 hours
+
+LIKELIHOOD_OF_LAST_EVENT_UPDATE = 0.05  # 5 percent
 
 FMT_KEY = 'online-{username}'
 
@@ -28,10 +32,37 @@ FMT_UNSUB_OK  = '<duo_unsubscribe_successful uuid="{username}" />'
 FMT_UNSUB_BAD = '<duo_unsubscribe_unsuccessful uuid="{username}" />'
 
 
+Q_UPDATE_LAST_EVENT = """
+UPDATE
+    person
+SET
+    last_event_time = now(),
+    last_event_name = 'was-recently-online',
+    last_event_data = jsonb_build_object(
+        'text', about,
+        'body_color', body_color,
+        'background_color', background_color
+    )
+WHERE
+    uuid = %(person_uuid)s
+AND (
+        last_event_time < now() - interval '1 day'
+    OR
+        last_event_name = 'was-recently-online'
+)
+"""
+
+
 class OnlineStatus(Enum):
     ONLINE = 'online'
     ONLINE_RECENTLY = 'online-recently'
     OFFLINE = 'offline'
+
+
+@dataclass(frozen=True)
+class UpdateLastJob:
+    session_username: str
+    do_update_last_event: bool
 
 
 async def _redis_subscribe_online(
@@ -136,26 +167,46 @@ async def maybe_redis_unsubscribe_online(
 
 
 
-def process_batch(usernames: list[str]):
-    params_seq = [dict(person_uuid=username) for username in usernames]
+def process_batch(jobs: list[UpdateLastJob]):
+    update_last_event_params_seq = [
+        dict(person_uuid=job.session_username)
+        for job in jobs
+        if job.do_update_last_event
+        and random.random() < LIKELIHOOD_OF_LAST_EVENT_UPDATE
+    ]
+
+    upsert_last_params_seq = [
+        dict(person_uuid=job.session_username)
+        for job in jobs
+    ]
 
     with api_tx('read committed') as tx:
-        tx.executemany(Q_UPSERT_LAST, params_seq)
+        tx.executemany(Q_UPDATE_LAST_EVENT, update_last_event_params_seq)
+        tx.executemany(Q_UPSERT_LAST, upsert_last_params_seq)
 
 
-def update_last_once(session_username: str):
-    _batcher.enqueue(session_username)
+def update_last_once(session_username: str, do_update_last_event: bool):
+    _batcher.enqueue(
+        UpdateLastJob(
+            session_username=session_username,
+            do_update_last_event=do_update_last_event,
+        )
+    )
 
 
 async def update_online_once(
     redis_client: redis.Redis,
     session: Session,
-    online: bool
+    online: bool,
+    do_update_last_event: bool = False,
 ):
     if session.username is None:
         return
 
-    update_last_once(session_username=session.username)
+    update_last_once(
+        session_username=session.username,
+        do_update_last_event=do_update_last_event,
+    )
 
     await redis_publish_online(
         redis_client=redis_client,
@@ -170,13 +221,21 @@ async def update_online_forever(
     online: bool
 ):
     try:
+        await update_online_once(
+            redis_client=redis_client,
+            session=session,
+            online=online,
+            do_update_last_event=True,
+        )
+
         while True:
+            await asyncio.sleep(LAST_UPDATE_INTERVAL_SECONDS)
+
             await update_online_once(
                 redis_client=redis_client,
                 session=session,
                 online=online,
             )
-            await asyncio.sleep(LAST_UPDATE_INTERVAL_SECONDS)
     except asyncio.exceptions.CancelledError:
         pass
     except:
@@ -184,7 +243,7 @@ async def update_online_forever(
         raise
 
 
-_batcher = Batcher[str](
+_batcher = Batcher[UpdateLastJob](
     process_fn=process_batch,
     flush_interval=1.0,
     min_batch_size=1,

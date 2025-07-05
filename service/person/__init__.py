@@ -20,7 +20,6 @@ from flask import request, send_file
 from dataclasses import dataclass
 import psycopg
 from functools import lru_cache
-import random
 from antiabuse.antispam.signupemail import (
     check_and_update_bad_domains,
     normalize_email,
