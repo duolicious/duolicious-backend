@@ -1,3 +1,5 @@
+from constants import ONLINE_RECENTLY_SECONDS
+
 Q_UPSERT_SEARCH_PREFERENCE_CLUB = """
 INSERT INTO search_preference_club (
     person_id,
@@ -904,6 +906,11 @@ WITH searcher AS (
         last_event_time > now() - interval '1 month'
     AND
         activated
+    AND NOT (
+            last_event_name = 'was-recently-online'
+        AND
+            last_event_time < now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
+    )
     AND
         -- The searcher meets the prospects privacy_verification_level_id
         -- requirement

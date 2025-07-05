@@ -14,10 +14,9 @@ import asyncio
 import traceback
 import random
 from dataclasses import dataclass
+from constants import ONLINE_RECENTLY_SECONDS
 
 LAST_UPDATE_INTERVAL_SECONDS = 4 * 60  # 4 minutes
-
-ONLINE_RECENTLY_SECONDS = 6 * 60 * 60  # 6 hours
 
 LIKELIHOOD_OF_LAST_EVENT_UPDATE = 0.05  # 5 percent
 
@@ -32,7 +31,7 @@ FMT_UNSUB_OK  = '<duo_unsubscribe_successful uuid="{username}" />'
 FMT_UNSUB_BAD = '<duo_unsubscribe_unsuccessful uuid="{username}" />'
 
 
-Q_UPDATE_LAST_EVENT = """
+Q_UPDATE_LAST_EVENT = f"""
 UPDATE
     person
 SET
@@ -45,11 +44,10 @@ SET
     )
 WHERE
     uuid = %(person_uuid)s
-AND (
-        last_event_time < now() - interval '1 day'
-    OR
-        last_event_name = 'was-recently-online'
-)
+AND
+    about <> ''
+AND
+    last_event_time < now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
 """
 
 
