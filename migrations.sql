@@ -1,9 +1,2 @@
-ALTER TABLE
-    person
-ADD COLUMN IF NOT EXISTS
-    verification_required BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TYPE person_event ADD VALUE IF NOT EXISTS 'was-recently-online';
 
-ALTER TABLE
-    location
-ADD COLUMN IF NOT EXISTS
-    verification_required BOOLEAN NOT NULL DEFAULT FALSE;
