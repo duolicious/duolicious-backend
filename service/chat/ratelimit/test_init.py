@@ -21,20 +21,20 @@ def make_row(**overrides):
 
 class TestRateLimit(unittest.TestCase):
     # ──────────────────────────────────────────────────────────────
-    #  PHOTOS default (verification_level_id = 3, value = 40)
+    #  PHOTOS default (verification_level_id = 3, value = 30)
     # ──────────────────────────────────────────────────────────────
     def test_photos_default_normal(self):
         """
-        recent_manual_report_count = 0 ⇒ limit = 40
+        recent_manual_report_count = 0 ⇒ limit = 30
         """
         self.assertEqual(
             get_default_rate_limit(make_row(
-                verification_level_id=3, daily_message_count=40 - 1)),
+                verification_level_id=3, daily_message_count=30 - 1)),
             DefaultRateLimit.NONE,
         )
         self.assertEqual(
             get_default_rate_limit(make_row(
-                verification_level_id=3, daily_message_count=40)),
+                verification_level_id=3, daily_message_count=30)),
             DefaultRateLimit.PHOTOS,
         )
         self.assertEqual(
@@ -132,7 +132,7 @@ class TestRateLimit(unittest.TestCase):
                 verification_level_id=2, recent_manual_report_count=5)),
             DefaultRateLimit.PHOTOS,
         )
-        # PHOTOS: 40 // 2**6 = 0
+        # PHOTOS: 30 // 2**6 = 0
         self.assertEqual(
             get_default_rate_limit(make_row(
                 verification_level_id=3, recent_manual_report_count=6)),
@@ -144,16 +144,16 @@ class TestRateLimit(unittest.TestCase):
     # ──────────────────────────────────────────────────────────────
     def test_rude_messages_reduce_limit(self):
         """
-        verification_level_id = 3 (PHOTOS, value 40)
+        verification_level_id = 3 (PHOTOS, value 30)
         recent_rude_message_count = 2 → adds ⌊2 / 2⌋ = 1 to the exponent
-        → limit = 40 // 2 = 20
+        → limit = 30 // 2 = 20
         """
         # One message below the new limit
         self.assertEqual(
             get_default_rate_limit(make_row(
                 verification_level_id=3,
                 recent_rude_message_count=2,
-                daily_message_count=40 / 2 - 1)),
+                daily_message_count=30 / 2 - 1)),
             DefaultRateLimit.NONE,
         )
         # At the limit (and beyond) we are rate-limited
@@ -161,7 +161,7 @@ class TestRateLimit(unittest.TestCase):
             get_default_rate_limit(make_row(
                 verification_level_id=3,
                 recent_rude_message_count=2,
-                daily_message_count=40 / 2)),
+                daily_message_count=30 / 2)),
             DefaultRateLimit.PHOTOS,
         )
 
