@@ -284,6 +284,6 @@ test_rate_limit \
 
 # Test base limit
 test_rate_limit \
-  40 \
+  30 \
   3 \
   '<duo_message_blocked id="id999" reason="rate-limited-1day"/>'
