@@ -18,7 +18,7 @@ from constants import ONLINE_RECENTLY_SECONDS
 
 LAST_UPDATE_INTERVAL_SECONDS = 4 * 60  # 4 minutes
 
-LIKELIHOOD_OF_LAST_EVENT_UPDATE = 0.05  # 5 percent
+LIKELIHOOD_OF_LAST_EVENT_UPDATE = 0.10  # 10 percent
 
 FMT_KEY = 'online-{username}'
 
