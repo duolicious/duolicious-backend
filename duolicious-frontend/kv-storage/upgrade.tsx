@@ -1,6 +1,6 @@
 import { storeKv } from './kv-storage';
 
-const thisVersion = '1';
+const thisVersion = '2';
 
 const doUpgrade = () => {
   console.log('Performing upgrade');

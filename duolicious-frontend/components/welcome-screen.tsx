@@ -148,7 +148,20 @@ const InviteScreen = ({navigation, route}) => {
         history.pushState((history?.state ?? 0) + 1, "", "/#");
       }
 
-      navigation.navigate('Home', { screen: 'Search' });
+      navigation.reset({
+        routes: [
+          {
+            name: "Home",
+            state: {
+              routes: [
+                {
+                  name: "Search"
+                }
+              ]
+            }
+          }
+        ]
+      });
     } else {
       navigation.reset({
         routes: [
