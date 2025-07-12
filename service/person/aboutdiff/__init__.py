@@ -34,7 +34,7 @@ def get_last_addition(old: str, new: str) -> Tuple[int, int] | None:
 def diff_addition_with_context(
     old: str,
     new: str,
-    window_size: int = 250,
+    window_size: int = 300,
     max_newlines: int = 20,
 ) -> str | None:
     last = get_last_addition(old, new)

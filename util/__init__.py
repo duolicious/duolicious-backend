@@ -10,7 +10,7 @@ def human_readable_size_metric(size_bytes):
 
 def truncate_text(
     text: str,
-    max_chars: int = 100,
+    max_chars: int = 300,
     max_newlines: int = 20,
 ) -> str:
     ellipsis = "..."
