@@ -32,7 +32,6 @@ import numpy
 import erlastic
 from datetime import datetime, timezone
 from duoaudio import put_audio_in_object_store
-from util import truncate_text
 from service.person.aboutdiff import diff_addition_with_context
 from verification.messages import (
     V_QUEUED,
