@@ -55,7 +55,7 @@ SET
     last_event_time = now(),
     last_event_name = 'was-recently-online',
     last_event_data = jsonb_build_object(
-        'text', %(about_text)s,
+        'text', %(about_text)s::TEXT,
         'body_color', body_color,
         'background_color', background_color
     )
