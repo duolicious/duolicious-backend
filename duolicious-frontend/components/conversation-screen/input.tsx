@@ -3,6 +3,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useReducer,
 } from 'react';
 import {
   KeyboardAvoidingView,
@@ -54,12 +55,52 @@ import {
 } from './quote';
 import { Tooltip } from '../tooltip';
 
+// ────────────────────────────────────────────────────────────────
+// Behaviour-tuning constants – change these to tweak UX quickly
+// ────────────────────────────────────────────────────────────────
+const MAX_RECORDING_SECS   = 2 * 60;   // Hard recording limit (seconds)
+const MIC_HOLD_DELAY_MS    = 300;      // Long-press threshold to start (ms)
+const PAN_CANCEL_THRESHOLD = -150;     // Drag distance to cancel (px)
+
+// ────────────────────────────────────────────────────────────────
+// Finite-state reducer for the recording flow
+// ────────────────────────────────────────────────────────────────
+type RecordingState = 'idle' | 'pending' | 'recording';
+
+type RecordingAction =
+  | { type: 'hold' }
+  | { type: 'start' }
+  | { type: 'finish' }
+  | { type: 'cancel' }
+  | { type: 'error' };
+
+// Transition table ─ only the valid moves are listed.
+const TRANSITIONS: Record<
+  RecordingState,
+  Partial<Record<RecordingAction['type'], RecordingState>>
+> = {
+  idle:      { hold:   'pending' },
+  pending:   { start:  'recording', cancel: 'idle', error: 'idle' },
+  recording: { finish: 'idle',      cancel: 'idle', error: 'idle' },
+} as const;
+
+const recordingReducer = (
+  state: RecordingState,
+  action: RecordingAction
+): RecordingState =>
+  TRANSITIONS[state][action.type] ?? state;   // default: stay where we are
+
+// Helper that triggers a short, heavy haptic feedback whenever the user starts/stops/cancels
+// a recording **as long as we are _not_ on the web** (the browser would ignore the call).
+// Using a single place for this keeps the UX consistent and avoids repetition.
 const haptics = () => {
   if (Platform.OS !== 'web') {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   }
 };
 
+// Simple hook that exposes the rendered width of a component (we need this to know how far
+// to slide the text input out of the way when recording starts).
 const useComponentWidth = () => {
   const [width, setWidth] = useState(0);
 
@@ -71,9 +112,21 @@ const useComponentWidth = () => {
   return { width, onLayout };
 };
 
+// ────────────────────────────────────────────────────────────────────────────────
+// useRecorder ─ encapsulates everything related to audio recording life-cycle
+// ────────────────────────────────────────────────────────────────────────────────
+//  • Requests / verifies microphone permission and surfaces **permission errors**
+//    through a toast so the user understands why recording failed.
+//  • Starts a HIGH_QUALITY recording session (with platform specific overrides).
+//  • Exposes a reactive `duration` (in seconds) so the UI can show a timer.
+//  • Enforces a hard limit (`maxDuration`) and gracefully stops when reached.
+//  • Converts the final file to a base-64 data-uri so callers can POST it without
+//    having to deal with the file-system.
+//
+//  NOTE: We purposefully keep mutable `recording.current` & `recordingActive`
+//  refs so we can *synchronously* know if a session is live from gesture
+//  callbacks that run on the UI thread.
 const useRecorder = () => {
-  const maxDuration = 2 * 60;
-
   const recording = useRef<Audio.Recording>(undefined);
   const recordingActive = useRef(false);
   const [duration, setDuration] = useState(0);
@@ -81,13 +134,24 @@ const useRecorder = () => {
   const startRecording = async (): Promise<boolean> => {
     if (recording.current) {
       return true;
-    };
+    }
 
     try {
       recordingActive.current = true;
 
-      if ((await Audio.getPermissionsAsync())?.status !== 'granted') {
-        await Audio.requestPermissionsAsync();
+      if ((await Audio.getPermissionsAsync())?.status === 'granted') {
+        ;
+      } else if ((await Audio.requestPermissionsAsync()).status === 'granted') {
+        // Permission was granted but the recording shouldn't start until the
+        // user repeats the gesture to start the recording
+        recordingActive.current = false;
+      } else {
+        // Permission denied or dismissed permanently
+        recordingActive.current = false;
+        notify<React.FC>(
+          'toast',
+          () => <ValidationErrorToast error="You need to give permission to record audio" />
+        );
       }
 
       // The value of `recordingActive` might've changed while we were waiting
@@ -106,7 +170,7 @@ const useRecorder = () => {
 
         setDuration(seconds);
 
-        if (seconds >= maxDuration) {
+        if (seconds >= MAX_RECORDING_SECS) {
           stopRecording();
         }
       };
@@ -195,7 +259,7 @@ const AutoResizingTextInput = (props) => {
   );
 };
 
-const Quote = ({ quote }: { quote: QuoteType | null }) => {
+const QuotePreview = ({ quote }: { quote: QuoteType | null }) => {
   if (!quote) {
     return null;
   };
@@ -233,6 +297,130 @@ const Quote = ({ quote }: { quote: QuoteType | null }) => {
   )
 };
 
+// ────────────────────────────────────────────────────────────────────────────────
+// CancelOverlay – timer & “slide to cancel” prompt shown while recording
+// ────────────────────────────────────────────────────────────────────────────────
+const CancelOverlay = ({
+  isRecording,
+  animatedTimerStyle,
+  animatedCancelMicrophoneStyle,
+  animatedCancelTextStyle,
+  animatedArrowStyle,
+  duration,
+  formatTime,
+}: {
+  isRecording: boolean;
+  animatedTimerStyle: any;
+  animatedCancelMicrophoneStyle: any;
+  animatedCancelTextStyle: any;
+  animatedArrowStyle: any;
+  duration: number;
+  formatTime: (s: number) => string;
+}) => {
+  if (!isRecording) return null;
+
+  return (
+    <View style={styles.cancelOverlay}>
+      <Animated.View style={[styles.timerStyle, animatedTimerStyle]}>
+        <Animated.View style={animatedCancelMicrophoneStyle}>
+          <Ionicons name="mic" style={{ fontSize: 28, color: 'crimson' }} />
+        </Animated.View>
+        <DefaultText style={[styles.recordingText, styles.recordingTimer]}>
+          {formatTime(duration)}
+        </DefaultText>
+      </Animated.View>
+
+      <Animated.View style={[styles.cancelTextStyle, animatedCancelTextStyle]}>
+        <DefaultText style={styles.recordingText}>Slide to cancel</DefaultText>
+        <DefaultText animated style={[styles.arrowText, animatedArrowStyle]}>←</DefaultText>
+      </Animated.View>
+    </View>
+  );
+};
+
+// ────────────────────────────────────────────────────────────────────────────────
+// IconBar – microphone button (with gestures) + send paper-plane + hint tooltip
+// ────────────────────────────────────────────────────────────────────────────────
+const IconBar = ({
+  showHint,
+  finalGesture,
+  animatedRecordingStyle,
+  textHasContent,
+  handleSendPress,
+}: {
+  showHint: boolean;
+  finalGesture: any;
+  animatedRecordingStyle: any;
+  textHasContent: boolean;
+  handleSendPress: () => void;
+}) => (
+  <View style={styles.iconContainer}>
+    {showHint && (
+      <View style={styles.hintContainer}>
+        <Tooltip style={styles.hintText}>Hold to record, release to send</Tooltip>
+      </View>
+    )}
+
+    <GestureDetector gesture={finalGesture}>
+      <Animated.View style={[styles.microphoneIcon, animatedRecordingStyle]}>
+        <Ionicons name="mic" style={{ fontSize: 28, color: 'black' }} />
+      </Animated.View>
+    </GestureDetector>
+
+    {textHasContent && (
+      <Pressable onPress={handleSendPress} style={styles.sendPressable}>
+        <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.sendAnimated}>
+          <FontAwesomeIcon
+            icon={faPaperPlane}
+            size={20}
+            color="#70f"
+            // @ts-ignore – 'outline' is a web-only style prop
+            style={{ marginRight: 5, marginBottom: 5, outline: 'none' }}
+          />
+        </Animated.View>
+      </Pressable>
+    )}
+  </View>
+);
+// ────────────────────────────────────────────────────────────────────────────────
+// <Input /> component – this is the heart of the chat composer.
+// ────────────────────────────────────────────────────────────────────────────────
+//  Layout overview:
+//  ┌──────────────────────────────────────────────────────────────────────────┐
+//  │  TextInput  |  GIF button  |  (hidden) cancel-overlay                    │
+//  └──────────────────────────────────────────────────────────────────────────┘
+//                                   │
+//  ┌──────────────────────────────────────────────────────────────────────────┐
+//  │  Mic / Send button (overlaps, fades in/out)                             │
+//  └──────────────────────────────────────────────────────────────────────────┘
+//
+//  Interaction matrix:
+//  ────────────────────────────────────────────────────────────────────────────
+//   Tap mic   → show hint ("Hold to record")
+//   Hold mic  → start recording (after 300 ms) & slide input left
+//   Drag left → live-update mic position, if >150 px → **cancel** recording
+//   Release    ├─ if cancelled → discard
+//              └─ else → stop & emit audio (≥1 s)
+//  Errors (permission denied, unexpected exceptions) are surfaced immediately
+//  via `ValidationErrorToast` so the user gets feedback without breaking flow.
+//
+//  Animation strategy:
+//  • All transient UI state (widths, translations, opacity, timers…) lives in
+//    Reanimated **shared values** so it can be mutated from the worklet side
+//    inside gesture handlers without causing React renders.
+//  • When `isRecording` flips we kick off `withTiming`/`withRepeat` sequences
+//    to move the input out, reveal the cancel overlay, flash the red mic, and
+//    run the “slide to cancel” arrow.
+//  • The overlay re-uses the same `cancelTextTranslateX` shared value that the
+//    input container animates with – that guarantees both elements stay in
+//    perfect sync regardless of screen width.
+//
+//  High-level data-flow:
+//     Gestures  ──→ SharedValues ──→ AnimatedStyles ──→ Rendered UI
+//                      ▲                                   │
+//                      │                                   ▼
+//                useRecorder (timer & async events) ── setState/props
+//
 const Input = ({
   onPressSend,
   onChange,
@@ -249,12 +437,21 @@ const Input = ({
   const quote = useQuote();
 
   const [text, setText] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
+  const [recordingState, dispatchRecording] = useReducer(recordingReducer, 'idle');
+  const isRecording = recordingState === 'recording';
   const [showHint, setShowHint] = useState(false);
 
   const { width, onLayout } = useComponentWidth();
 
   const { startRecording, stopRecording, duration } = useRecorder();
+
+  // ────────────────────────────────
+  // Shared animation state (Reanimated)
+  // ────────────────────────────────
+  // All of the following `useSharedValue` calls create values that can be read
+  // and mutated from worklet context (e.g. inside gesture handlers). This keeps
+  // every frame on the UI thread and avoids the overhead of React state
+  // updates during high-frequency interactions such as drags.
 
   // Shared value for GIF container width.
   const gifWidth = useSharedValue(40);
@@ -285,23 +482,17 @@ const Input = ({
     }
   }, [text, gifWidth]);
 
-  // Animate the input area and cancel overlay when recording starts/ends.
+  // Animate UI elements based on the *actual* recording state.
   useEffect(() => {
     if (isRecording) {
       inputTranslateX.value = withTiming(-width);
       cancelTextTranslateX.value = withTiming(0);
       recordOpacity.value = withTiming(isMobile() ? 0 : 0.3);
-      startRecording().then((didStart) => {
-        if (!didStart) {
-          setIsRecording(didStart);
-        }
-      });
     } else {
       inputTranslateX.value = withTiming(0);
       cancelTextTranslateX.value = withTiming(width);
       recordOpacity.value = withTiming(1);
       recordTranslateX.value = withTiming(0);
-      stopRecording();
     }
   }, [isRecording, inputTranslateX, cancelTextTranslateX, width]);
 
@@ -335,6 +526,13 @@ const Input = ({
     const secs = seconds % 60;
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // ──────────────────────────────────────────────────────────────────────
+  // AnimatedStyle hooks – declaratively bind shared values to view props
+  // ──────────────────────────────────────────────────────────────────────
+  // Each hook maps an *input* (shared value) to an *output* (style object).
+  // We never mutate the styles directly; instead we nudge the shared values
+  // and let Reanimated update the view on the UI thread.
 
   const animatedGifStyle = useAnimatedStyle(() => ({
     width: gifWidth.value,
@@ -375,32 +573,55 @@ const Input = ({
     transform: [{ translateX: arrowTranslateX.value }],
   }));
 
-  // Define functions before they're used in gestures.
+  // ------------------------------------------------------------------
+  // Recording life-cycle handlers (called from gesture worklets via runOnJS)
+  // ------------------------------------------------------------------
+  // We keep these separate from the gesture definitions so they stay readable
+  // and can be unit-tested if needed.
+
+  // Try to begin recording – only mark `isRecording` true once we actually
+  // have a recording session running.
   const handleStartRecording = () => {
     cancelTriggered.value = false;
     // Reset cancellation animation values.
     micRotation.value = 0;
     micTranslateY.value = 0;
-    setIsRecording(true);
     haptics();
+
+    // We are in long-press hold → pending state
+    dispatchRecording({ type: 'hold' });
+
+    startRecording().then((didStart) => {
+      if (didStart) {
+        // Real recording session started → trigger UI/animation state.
+        dispatchRecording({ type: 'start' });
+      } else {
+        // Permission denied or other failure – make sure mic snaps back.
+        recordTranslateX.value = withTiming(0);
+        dispatchRecording({ type: 'error' });
+      }
+    });
   };
 
   const handleFinishRecording = () => {
-    setIsRecording(false);
+    // Grab current state before we flip it so we know if a recording was live.
+    const wasRecording = isRecording;
+
+    dispatchRecording({ type: 'finish' });
     haptics();
+    // Always reset the mic position.
+    recordTranslateX.value = withTiming(0);
 
     (async () => {
-      if (duration < 1) {
-        return;
-      }
-
+      // Stop the recorder no matter what – it is safe to call even if it
+      // never started.
       const base64 = await stopRecording();
 
-      if (!base64) {
-        return;
+      // Only emit the audio if we were actually recording and we captured
+      // something of reasonable length.
+      if (wasRecording && base64 && duration >= 1) {
+        onAudioComplete(base64);
       }
-
-      onAudioComplete(base64);
     })();
   };
 
@@ -414,7 +635,11 @@ const Input = ({
       withTiming(-300, { duration: 500 }),
     );
     haptics();
-    setTimeout(() => setIsRecording(false), 1000);
+    // Always snap the mic back.
+    recordTranslateX.value = withTiming(0);
+    // Stop and discard any recording.
+    stopRecording();
+    setTimeout(() => dispatchRecording({ type: 'cancel' }), 1000);
   };
 
   const handleFailedTap = () => {
@@ -475,7 +700,7 @@ const Input = ({
 
   // Create a long press gesture to trigger recording.
   const longPressGesture = Gesture.LongPress()
-    .minDuration(300)
+    .minDuration(MIC_HOLD_DELAY_MS)
     .onStart(() => {
       runOnJS(handleStartRecording)();
     })
@@ -494,7 +719,7 @@ const Input = ({
       if (!cancelTriggered.value) {
         recordTranslateX.value = Math.min(0, event.translationX);
       }
-      if (event.translationX < -150 && !cancelTriggered.value) {
+      if (event.translationX < PAN_CANCEL_THRESHOLD && !cancelTriggered.value) {
         runOnJS(handleCancelRecording)();
       }
     })
@@ -510,7 +735,7 @@ const Input = ({
 
   return (
     <KeyboardAvoidingView enabled={Platform.OS === 'ios'} behavior="padding">
-      <Quote quote={quote} />
+      <QuotePreview quote={quote} />
       <View style={styles.container} onLayout={onLayout}>
         {/* Input wrapper: position relative so we can overlay the cancel overlay */}
         <View style={styles.inputWrapper}>
@@ -536,62 +761,23 @@ const Input = ({
               </Animated.View>
             </Pressable>
           </Animated.View>
-          {isRecording && (
-            <View style={styles.cancelOverlay}>
-              <Animated.View style={[styles.timerStyle, animatedTimerStyle]}>
-                <Animated.View style={animatedCancelMicrophoneStyle}>
-                  <Ionicons name="mic" style={{ fontSize: 28, color: 'crimson' }} />
-                </Animated.View>
-                <DefaultText style={[styles.recordingText, styles.recordingTimer]}>
-                  {formatTime(duration)}
-                </DefaultText>
-              </Animated.View>
-              <Animated.View style={[styles.cancelTextStyle, animatedCancelTextStyle]}>
-                <DefaultText style={styles.recordingText}>
-                  Slide to cancel
-                </DefaultText>
-                <DefaultText
-                  animated={true}
-                  style={[styles.arrowText, animatedArrowStyle]}
-                >
-                  ←
-                </DefaultText>
-              </Animated.View>
-            </View>
-          )}
+          <CancelOverlay
+            isRecording={isRecording}
+            animatedTimerStyle={animatedTimerStyle}
+            animatedCancelMicrophoneStyle={animatedCancelMicrophoneStyle}
+            animatedCancelTextStyle={animatedCancelTextStyle}
+            animatedArrowStyle={animatedArrowStyle}
+            duration={duration}
+            formatTime={formatTime}
+          />
         </View>
-        {/* Mic/Send icon container */}
-        <View style={styles.iconContainer}>
-          {showHint && (
-            <View style={styles.hintContainer}>
-              <Tooltip style={styles.hintText}>
-                Hold to record, release to send
-              </Tooltip>
-            </View>
-          )}
-          <GestureDetector gesture={finalGesture}>
-            <Animated.View style={[styles.microphoneIcon, animatedRecordingStyle]}>
-              <Ionicons name="mic" style={{ fontSize: 28, color: 'black' }} />
-            </Animated.View>
-          </GestureDetector>
-          {text.trim().length !== 0 &&
-            <Pressable onPress={handleSendPress} style={styles.sendPressable}>
-              <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.sendAnimated}>
-                <FontAwesomeIcon
-                  icon={faPaperPlane}
-                  size={20}
-                  color="#70f"
-                  style={{
-                    marginRight: 5,
-                    marginBottom: 5,
-                    /* @ts-ignore */
-                    outline: 'none',
-                  }}
-                />
-              </Animated.View>
-            </Pressable>
-          }
-        </View>
+        <IconBar
+          showHint={showHint}
+          finalGesture={finalGesture}
+          animatedRecordingStyle={animatedRecordingStyle}
+          textHasContent={text.trim().length !== 0}
+          handleSendPress={handleSendPress}
+        />
       </View>
     </KeyboardAvoidingView>
   );
