@@ -422,21 +422,24 @@ const IconBar = ({
 //                useRecorder (timer & async events) ── setState/props
 //
 const Input = ({
+  initialValue = '',
   onPressSend,
   onChange,
   onPressGif,
   onAudioComplete,
   onFocus,
 }: {
+  initialValue?: string
   onPressSend: (text: string) => void
-  onChange: () => void
+  onChange: (s: string) => void
   onPressGif: () => void
   onAudioComplete: (audioBase64: string) => void
   onFocus: () => void,
 }) => {
   const quote = useQuote();
 
-  const [text, setText] = useState('');
+  const [text, setText] = useState(initialValue ?? '');
+
   const [recordingState, dispatchRecording] = useReducer(recordingReducer, 'idle');
   const isRecording = recordingState === 'recording';
   const [showHint, setShowHint] = useState(false);
@@ -668,7 +671,7 @@ const Input = ({
 
   const handleTextChange = (newText) => {
     setText(newText);
-    onChange();
+    onChange(newText);
   };
 
   const handleKeyPress = (event) => {

@@ -9,6 +9,7 @@ const KEYS = [
   'inbox_section',
   'last_version',
   'navigation_state',
+  'draft_messages',
   'person_uuid',
   'session_token',
   'was_review_requested',

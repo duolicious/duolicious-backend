@@ -50,6 +50,7 @@ import { askedForReviewBefore } from '../../kv-storage/asked-for-review-before';
 import { MessageDivider }  from './message-divider';
 import * as _ from 'lodash';
 import { Input } from './input';
+import { useDraftMessage } from '../../chat/application-layer/hooks/draft-message';
 import { GifPickedEvent } from '../../components/modal/gif-picker-modal';
 import { useSkipped } from '../../hide-and-block/hide-and-block';
 import { OnlineIndicator } from '../online-indicator';
@@ -411,6 +412,9 @@ const ConversationScreen = ({navigation, route}) => {
   const photoBlurhash: string = route?.params?.photoBlurhash;
   const isAvailableUser: boolean = route?.params?.isAvailableUser ?? true;
 
+  // Load & persist draft message for this conversation (after personUuid available)
+  const [draft, saveDraft] = useDraftMessage(personUuid);
+
   const listRef = useRef<ScrollView>(null);
 
   const onPressSend = useCallback((messageBody: string): void => {
@@ -424,9 +428,11 @@ const ConversationScreen = ({navigation, route}) => {
     if (messageIds && messageIds.length > 45) {
       maybeRequestReview(1000);
     }
-  }, [personUuid, messageIds]);
 
-  const onChange = useCallback(
+    saveDraft('');
+  }, [personUuid, messageIds, saveDraft]);
+
+  const sendTypingMessage = useCallback(
     _.debounce(
       () => sendMessageAndNotify(personUuid, { type: 'typing' }),
       1000,
@@ -438,6 +444,11 @@ const ConversationScreen = ({navigation, route}) => {
     ),
     [personUuid]
   );
+
+  const onChange = useCallback((s: string) => {
+    sendTypingMessage();
+    saveDraft(s);
+  }, [sendTypingMessage, saveDraft]);
 
   const onPressGif = useCallback(() => {
     notify('show-gif-picker');
@@ -770,8 +781,9 @@ const ConversationScreen = ({navigation, route}) => {
           />
         </ScrollView>
       }
-      {isAvailableUser &&
+      {isAvailableUser && draft !== null &&
         <Input
+          initialValue={draft}
           onPressSend={onPressSend}
           onChange={onChange}
           onPressGif={onPressGif}
