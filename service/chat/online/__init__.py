@@ -15,6 +15,7 @@ import traceback
 import random
 from dataclasses import dataclass
 from constants import ONLINE_RECENTLY_SECONDS
+from util import truncate_text
 
 LAST_UPDATE_INTERVAL_SECONDS = 4 * 60  # 4 minutes
 
@@ -31,6 +32,22 @@ FMT_UNSUB_OK  = '<duo_unsubscribe_successful uuid="{username}" />'
 FMT_UNSUB_BAD = '<duo_unsubscribe_unsuccessful uuid="{username}" />'
 
 
+# Fetch `about` text for candidates whose last_event_time is old enough.
+Q_SELECT_LAST_EVENT = f"""
+SELECT
+    uuid,
+    about
+FROM
+    person
+WHERE
+    uuid = ANY(%(person_uuids)s)
+AND
+    about <> ''
+AND
+    last_event_time < now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
+"""
+
+
 Q_UPDATE_LAST_EVENT = f"""
 UPDATE
     person
@@ -38,16 +55,12 @@ SET
     last_event_time = now(),
     last_event_name = 'was-recently-online',
     last_event_data = jsonb_build_object(
-        'text', about,
+        'text', %(about_text)s,
         'body_color', body_color,
         'background_color', background_color
     )
 WHERE
     uuid = %(person_uuid)s
-AND
-    about <> ''
-AND
-    last_event_time < now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
 """
 
 
@@ -166,8 +179,8 @@ async def maybe_redis_unsubscribe_online(
 
 
 def process_batch(jobs: list[UpdateLastJob]):
-    update_last_event_params_seq = [
-        dict(person_uuid=job.session_username)
+    select_last_event_params_seq = [
+        job.session_username
         for job in jobs
         if job.do_update_last_event
         and random.random() < LIKELIHOOD_OF_LAST_EVENT_UPDATE
@@ -179,7 +192,22 @@ def process_batch(jobs: list[UpdateLastJob]):
     ]
 
     with api_tx('read committed') as tx:
+        # Update `about` text for the selected users.
+        tx.execute(
+            Q_SELECT_LAST_EVENT,
+            dict(person_uuids=select_last_event_params_seq)
+        )
+        rows = tx.fetchall()
+        update_last_event_params_seq = [
+            dict(
+                person_uuid=row['uuid'],
+                about_text=truncate_text(row['about'])
+            )
+            for row in rows
+        ]
         tx.executemany(Q_UPDATE_LAST_EVENT, update_last_event_params_seq)
+
+        # Always perform the UPSERT for last_seen regardless.
         tx.executemany(Q_UPSERT_LAST, upsert_last_params_seq)
 
 
