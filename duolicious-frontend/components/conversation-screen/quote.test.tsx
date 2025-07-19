@@ -7,7 +7,7 @@ import {
 describe('parseMarkdown', () => {
   test('should return an empty text block for an empty string', () => {
     expect(parseMarkdown('')).toEqual([
-      { type: 'text', text: '' }
+      { type: 'text', text: '', tokens: [] }
     ]);
   });
 
@@ -15,7 +15,13 @@ describe('parseMarkdown', () => {
     const markdown = `> Quote one
 > Quote two`;
     expect(parseMarkdown(markdown)).toEqual([
-      { type: 'quote', text: 'Quote one\nQuote two' }
+      {
+        type: 'quote',
+        text: 'Quote one\nQuote two',
+        tokens: [
+          { kind: 'text', value: 'Quote one\nQuote two' }
+        ]
+      }
     ]);
   });
 
@@ -24,7 +30,11 @@ describe('parseMarkdown', () => {
 Line two
 Line three`;
     expect(parseMarkdown(markdown)).toEqual([
-      { type: 'text', text: 'Line one\nLine two\nLine three' }
+      {
+        type: 'text',
+        text: 'Line one\nLine two\nLine three',
+        tokens: [ { kind: 'text', value: 'Line one\nLine two\nLine three' } ]
+      }
     ]);
   });
 
@@ -39,10 +49,36 @@ Regular text line two.
 
 Regular text after quote.`;
     expect(parseMarkdown(markdown)).toEqual([
-      { type: 'quote', text: 'Quote one\nQuote two' },
-      { type: 'text', text: 'Regular text line one.\nRegular text line two.' },
-      { type: 'quote', text: 'Quote three' },
-      { type: 'text', text: 'Regular text after quote.' }
+      {
+        type: 'quote',
+        text: 'Quote one\nQuote two',
+        tokens: [
+          {
+            kind: 'text',
+            value: 'Quote one\nQuote two'
+          }
+        ]
+      },
+      {
+        type: 'text',
+        text: 'Regular text line one.\nRegular text line two.',
+        tokens: [
+          {
+            kind: 'text',
+            value: 'Regular text line one.\nRegular text line two.'
+          }
+        ]
+      },
+      {
+        type: 'quote',
+        text: 'Quote three',
+        tokens: [ { kind: 'text', value: 'Quote three' } ]
+      },
+      {
+        type: 'text',
+        text: 'Regular text after quote.',
+        tokens: [ { kind: 'text', value: 'Regular text after quote.' } ]
+      }
     ]);
   });
 
@@ -51,9 +87,21 @@ Regular text after quote.`;
 \\> Quote two
 > Quote three`;
     expect(parseMarkdown(markdown)).toEqual([
-      { type: 'quote', text: 'Quote one' },
-      { type: 'text', text: '> Quote two' },
-      { type: 'quote', text: 'Quote three' },
+      {
+        type: 'quote',
+        text: 'Quote one',
+        tokens: [ { kind: 'text', value: 'Quote one' } ]
+      },
+      {
+        type: 'text',
+        text: '> Quote two',
+        tokens: [ { kind: 'text', value: '> Quote two' } ]
+      },
+      {
+        type: 'quote',
+        text: 'Quote three',
+        tokens: [ { kind: 'text', value: 'Quote three' } ]
+      },
     ]);
   });
 
@@ -66,12 +114,35 @@ Regular text after quote.`;
 \\\\\\\\> Quote \\\\ six
 `;
     expect(parseMarkdown(markdown)).toEqual([
-      { type: 'quote', text: 'Quote one' },
-      { type: 'text', text: '\\> Quote \\\\ two' },
-      { type: 'quote', text: 'Quote three' },
-      { type: 'text', text: '\\> Quote \\\\ four' },
-      { type: 'quote', text: 'Quote five' },
-      { type: 'text', text: '\\\\> Quote \\\\ six' },
+      {
+        type: 'quote',
+        text: 'Quote one',
+        tokens: [ { kind: 'text', value: 'Quote one' } ]
+      },
+      {
+        type: 'text',
+        text: '\\> Quote \\\\ two',
+        tokens: [ { kind: 'text', value: '\\> Quote \\\\ two' } ]
+      },
+      {
+        type: 'quote',
+        text: 'Quote three',
+        tokens: [ { kind: 'text', value: 'Quote three' } ]
+      },
+      {
+        type: 'text',
+        text: '\\> Quote \\\\ four',
+        tokens: [ { kind: 'text', value: '\\> Quote \\\\ four' } ]  },
+      {
+        type: 'quote',
+        text: 'Quote five',
+        tokens: [ { kind: 'text', value: 'Quote five' } ]
+      },
+      {
+        type: 'text',
+        text: '\\\\> Quote \\\\ six',
+        tokens: [ { kind: 'text', value: '\\\\> Quote \\\\ six' } ]
+      },
     ]);
   });
 
@@ -87,19 +158,52 @@ I'm a pretty big fan of you though...
 
 Mom makes really nice chicken broth around this time of year.`;
     expect(parseMarkdown(markdown)).toEqual([
-      { type: 'quote', text: "You're pretty cool\n:)" },
-      { type: 'text', text: "Thanks, but I'm not really.\n\nI'm a pretty big fan of you though..." },
-      { type: 'quote', text: "What do you like to drink during winter?" },
-      { type: 'text', text: "Mom makes really nice chicken broth around this time of year." }
+      {
+        type: 'quote',
+        text: "You're pretty cool\n:)",
+        tokens: [ { kind: 'text', value: "You're pretty cool\n:)" } ] },
+      {
+        type: 'text',
+        text: "Thanks, but I'm not really.\n\nI'm a pretty big fan of you though...",
+        tokens: [
+          {
+            kind: 'text',
+            value: "Thanks, but I'm not really.\n\nI'm a pretty big fan of you though..."
+          }
+        ]
+      },
+      {
+        type: 'quote',
+        text: 'What do you like to drink during winter?',
+        tokens: [
+          {
+            kind: 'text',
+            value: 'What do you like to drink during winter?'
+          }
+        ]
+      },
+      {
+        type: 'text',
+        text: 'Mom makes really nice chicken broth around this time of year.',
+        tokens: [
+          {
+            kind: 'text',
+            value: 'Mom makes really nice chicken broth around this time of year.'
+          }
+        ]
+      }
     ]);
   });
 
   test('should extract optional attribution from quote block', () => {
-    const markdown = `> I like turtles
->
-> - turtle kid`;
+    const markdown = `> I like turtles\n>\n> - turtle kid`;
     expect(parseMarkdown(markdown)).toEqual([
-      { type: 'quote', text: 'I like turtles', attribution: 'turtle kid' }
+      {
+        type: 'quote',
+        text: 'I like turtles',
+        attribution: 'turtle kid',
+        tokens: [ { kind: 'text', value: 'I like turtles' } ]
+      }
     ]);
   });
 });

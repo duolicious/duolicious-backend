@@ -4,6 +4,7 @@ import {
   useState,
 } from 'react';
 import {
+  Linking,
   Platform,
   StyleSheet,
   View,
@@ -31,12 +32,13 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { setQuote, parseMarkdown } from './quote';
+import { setQuote, parseMarkdown, QuoteBlock, TextBlock } from './quote';
 import * as Haptics from 'expo-haptics';
 import { signedInUser } from '../../App';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
 import { useNavigation } from '@react-navigation/native';
+import { assertNever } from '../../util/util';
 
 const otherUserBackgroundColor = '#eee';
 
@@ -62,6 +64,95 @@ const haptics = () => {
   }
 };
 
+const FormattedQuoteBlock = ({
+  block,
+  fontSize,
+  backgroundColor,
+}: {
+  block: QuoteBlock,
+  fontSize: number,
+  backgroundColor: string,
+}) => {
+  return (
+    <DefaultText
+      selectable={!isMobile()}
+      style={{
+        fontSize,
+        paddingLeft: 7,
+        paddingRight: 10,
+        paddingVertical: 8,
+        borderLeftWidth: 6,
+        borderColor: 'black',
+        backgroundColor,
+        color: 'black',
+        borderRadius: 4,
+      }}
+    >
+      {block.type === "quote" && block?.attribution &&
+        <DefaultText
+          style={{
+            fontWeight: '700',
+          }}
+        >
+          {block.attribution}{'\n'}
+        </DefaultText>
+      }
+      {block.text}
+    </DefaultText>
+  );
+};
+
+const FormattedTextBlock = ({
+  block,
+  color,
+  fontSize,
+}: {
+  block: TextBlock,
+  color: string,
+  fontSize: number,
+}) => {
+  return (
+    <>
+      {block.tokens.map((token, i) => {
+        if (token.kind === 'text') {
+          return (
+            <DefaultText key={i} style={{ color, fontSize }}>
+              {token.value}
+            </DefaultText>
+          );
+        } else if (token.kind === 'link') {
+          const openLink = (url: string) => {
+            Linking.openURL(url);
+          };
+
+          const gesture = Gesture.Tap().onEnd(() => {
+            runOnJS(openLink)(token.url);
+          });
+
+          return (
+            <GestureDetector key={i} gesture={gesture}>
+              <View>
+                <DefaultText
+                  key={i}
+                  style={{
+                    color,
+                    fontSize,
+                    ...styles.hyperlink,
+                  }}
+                >
+                  {token.display}
+                </DefaultText>
+              </View>
+            </GestureDetector>
+          );
+        } else {
+          return assertNever(token);
+        }
+      })}
+    </>
+  );
+};
+
 const FormattedText = ({
   text,
   color = defaultTextColor,
@@ -77,37 +168,25 @@ const FormattedText = ({
 
   return (
     <>
-      {blocks.map((block, i) =>
-        <DefaultText
-          key={i}
-          selectable={!isMobile()}
-          style={{
-            color,
-            fontSize,
-            ...(block.type === "quote" ? {
-              paddingLeft: 7,
-              paddingRight: 10,
-              paddingVertical: 8,
-              borderLeftWidth: 6,
-              borderColor: 'black',
-              backgroundColor,
-              color: 'black',
-              borderRadius: 4,
-            }: {})
-          }}
-        >
-          {block.type === "quote" && block?.attribution &&
-            <DefaultText
-              style={{
-                fontWeight: '700',
-              }}
-            >
-              {block.attribution}{'\n'}
-            </DefaultText>
-          }
-          {block.text}
-        </DefaultText>
-      )}
+      {blocks.map((block, i) => {
+        if (block.type === 'quote') {
+          return <FormattedQuoteBlock
+            key={i}
+            block={block}
+            fontSize={fontSize}
+            backgroundColor={backgroundColor}
+          />
+        } else if (block.type === 'text') {
+          return <FormattedTextBlock
+            key={i}
+            block={block}
+            color={color}
+            fontSize={fontSize}
+          />
+        } else {
+          return assertNever(block);
+        }
+      })}
     </>
   );
 };
@@ -585,6 +664,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: '#333',
   },
+  hyperlink: {
+    textDecorationLine: 'underline',
+    cursor: 'pointer',
+  }
 });
 
 export {

@@ -1,204 +1,248 @@
+
+/**
+ * Quote parsing utilities with explicit block + inline stages
+ * and hyperlink tokenization. Implements requested style tweaks:
+ *   • use `type` aliases (no interfaces)
+ *   • arrow functions for all helpers
+ *   • named exports collected at the bottom of the file
+ */
+
 import { useEffect, useState } from 'react';
 import { listen, notify, lastEvent } from '../../events/events';
 import { truncateText } from '../../util/util';
 
-const eventKey = `conversation-quote`;
+// ──────────────────────────────────────────────────────────────────────────
+// Types
+// ──────────────────────────────────────────────────────────────────────────
 
-const attributionRegex = /^\s*-\s*/;
+type RawBlockKind = 'quote' | 'text';
 
-type MarkdownBlock = QuoteBlock | TextBlock;
+// Inline‑tokens -----------------------------------------------------------
+
+type TextToken = { kind: 'text'; value: string };
+
+/**
+ * Raw‑URL hyperlink (no Markdown [label](url) support)
+ * display == original captured string (can differ from `url` iff we prepend https://)
+ */
+export type LinkToken = { kind: 'link'; url: string; display: string };
+
+type InlineToken = TextToken | LinkToken;
+
+// Structural blocks ------------------------------------------------------
 
 type QuoteBlock = {
   type: 'quote';
   text: string;
   attribution?: string;
+  tokens: InlineToken[];
 };
 
 type TextBlock = {
   type: 'text';
   text: string;
+  tokens: InlineToken[];
 };
 
-type Quote = {
-  text: string
-  attribution: string
+type MarkdownBlock = QuoteBlock | TextBlock;
+
+// Domain entities --------------------------------------------------------
+
+type Quote = { text: string; attribution: string };
+
+// ──────────────────────────────────────────────────────────────────────────
+// Constants / Regexes
+// ──────────────────────────────────────────────────────────────────────────
+
+const eventKey = 'conversation-quote';
+const attributionRegex = /^\s*-\s*/;
+// Bare‑URL matcher: begins with http(s):// OR www. and runs until whitespace/punctuation
+const RAW_URL_REGEX = /((?:https?:\/\/|www\.)[^\s<>{}\[\]"]+)/gi;
+
+// ──────────────────────────────────────────────────────────────────────────
+// Inline lexical analysis
+// ──────────────────────────────────────────────────────────────────────────
+
+/** Remove common trailing punctuation that does not belong to the URL */
+const _trimURL = (url: string): string => {
+  // Balance‑aware trim for parentheses – simple heuristic.
+  const isBalanced = (s: string) => s.split('(').length === s.split(')').length;
+  while (/[.,;:!?)]$/.test(url) && isBalanced(url)) {
+    url = url.slice(0, -1);
+  }
+  return url;
 };
 
-const useQuote = (): Quote | null => {
-  const _lastEvent = lastEvent<Quote>(eventKey) ?? null;
+/**
+ * Convert a raw string into TEXT / LINK tokens.
+ * Adds https:// prefix when link started with www.
+ */
+const tokenizeInline = (text: string): InlineToken[] => {
+  const tokens: InlineToken[] = [];
+  let lastIdx = 0;
+  let match: RegExpExecArray | null;
 
-  const [quote, setQuote] = useState<Quote | null>(_lastEvent);
+  RAW_URL_REGEX.lastIndex = 0; // safety for global regex reuse
+  while ((match = RAW_URL_REGEX.exec(text)) !== null) {
+    if (match.index > lastIdx) {
+      tokens.push({ kind: 'text', value: text.slice(lastIdx, match.index) });
+    }
 
-  useEffect(() => {
-    return listen(eventKey, setQuote);
-  }, []);
+    let captured = match[0];
+    captured = _trimURL(captured);
 
-  return quote;
+    const normalized = captured.startsWith('www.') ? `https://${captured}` : captured;
+    tokens.push({ kind: 'link', url: normalized, display: captured });
+
+    lastIdx = match.index + match[0].length;
+  }
+  if (lastIdx < text.length) {
+    tokens.push({ kind: 'text', value: text.slice(lastIdx) });
+  }
+  return tokens;
 };
 
-const setQuote = (quote: Quote | null) => {
-  return notify(eventKey, quote);
+const isLinkToken = (t: InlineToken): t is LinkToken => t.kind === 'link';
+
+// ──────────────────────────────────────────────────────────────────────────
+// Block‑level parsing (syntactic analysis)
+// ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * Given lines inside a quote block (without leading '>'),
+ * extract attribution if last non‑blank line starts with '- '.
+ */
+const _parseQuoteBlock = (lines: string[]): QuoteBlock => {
+  const trimmedLines = lines.map(l => l.trim());
+  let attribution: string | undefined;
+  let endIdx = lines.length;
+
+  for (let i = trimmedLines.length - 1; i >= 0; i--) {
+    const ln = trimmedLines[i];
+    if (ln === '') continue;
+    if (attributionRegex.test(ln)) {
+      attribution = ln.replace(attributionRegex, '');
+      endIdx = i; // exclude attribution line from quote text
+    }
+    break;
+  }
+
+  const text = lines.slice(0, endIdx).join('\n').trim();
+  return { type: 'quote', text, attribution, tokens: tokenizeInline(text) };
 };
 
+/**
+ * Primary block parser – splits incoming markdown into quote / text blocks
+ * (strips leading '>' from quote lines, converts inline tokens).
+ */
 const parseMarkdown = (markdown: string): MarkdownBlock[] => {
   const lines = markdown.split(/\r?\n/);
   const blocks: MarkdownBlock[] = [];
-  let currentBlockType: 'quote' | 'text' | null = null;
-  let currentBlockLines: string[] = [];
 
-  const parseQuoteBlock = (lines: string[]): QuoteBlock => {
-    const trimmedLines = lines.map(line => line.trim());
-    let attribution: string | undefined;
-    let endIndex = lines.length;
+  let curType: RawBlockKind | null = null;
+  let curLines: string[] = [];
 
-    for (let i = trimmedLines.length - 1; i >= 0; i--) {
-      if (trimmedLines[i] === '') continue;
-      if (attributionRegex.test(trimmedLines[i])) {
-        attribution = trimmedLines[i].replace(attributionRegex, '');
-        endIndex = i;
-      }
-      break;
+  const flush = () => {
+    if (!curType || curLines.length === 0) return;
+    if (curType === 'quote') {
+      blocks.push(_parseQuoteBlock(curLines));
+    } else {
+      const text = curLines.join('\n').trim();
+      blocks.push({ type: 'text', text, tokens: tokenizeInline(text) });
     }
-
-    return {
-      type: 'quote',
-      text: lines.slice(0, endIndex).join('\n').trim(),
-      attribution,
-    };
+    curLines = [];
   };
 
-  const flushBlock = (): void => {
-    if (currentBlockLines.length === 0 || currentBlockType === null) return;
-
-    if (currentBlockType === 'quote') {
-      blocks.push(parseQuoteBlock(currentBlockLines));
-    } else {
-      blocks.push({
-        type: 'text',
-        text: currentBlockLines.join('\n').trim(),
-      });
-    }
-
-    currentBlockLines = [];
-  };
-
-  for (const line of lines) {
-    if (line.trim().startsWith('>')) {
-      if (currentBlockType !== 'quote') {
-        flushBlock();
-        currentBlockType = 'quote';
+  for (const raw of lines) {
+    const isQuote = raw.trim().startsWith('>');
+    if (isQuote) {
+      if (curType !== 'quote') {
+        flush();
+        curType = 'quote';
       }
-      // Remove the leading ">" and an optional space.
-      currentBlockLines.push(line.replace(/^>\s*/, ''));
+      curLines.push(raw.replace(/^>\s*/, ''));
     } else {
-      if (currentBlockType !== 'text') {
-        flushBlock();
-        currentBlockType = 'text';
+      if (curType !== 'text') {
+        flush();
+        curType = 'text';
       }
-      currentBlockLines.push(
-        line.replace(
-          /^(\\+)>/,
-          (s, slashes) => '\\'.repeat(Math.floor(slashes.length / 2)) + '>'
-        )
-      );
+      // Protect escaped leading '>' (markdown spec)
+      curLines.push(raw.replace(/^(\\+)>/, (_s, slashes) => '\\'.repeat(Math.floor(slashes.length / 2)) + '>'));
     }
   }
-
-  flushBlock();
+  flush();
   return blocks;
 };
 
-const quoteToMarkdown = (quote: Quote | null, doTruncate: boolean): string => {
-  if (!quote) {
-    return '';
-  }
+// ──────────────────────────────────────────────────────────────────────────
+// Quote selection helpers (unchanged logic, refactored style)
+// ──────────────────────────────────────────────────────────────────────────
 
-  const truncatedText = doTruncate
-    ? truncateText(quote.text, { maxLength: 100, maxLines: 3 })
-    : quote.text;
-
-  const truncatedAttribution = doTruncate
-    ? truncateText(quote.attribution, { maxLength: 100, maxLines: 1 })
-    : quote.attribution;
-
-  const formattedQuote = truncatedText
-    .split('\n')
-    .map((line) => `>${line}`)
-    .join('\n');
-
-  const formattedAttribution = '>- ' + truncatedAttribution.replaceAll('\n', '');
-
-  return formattedQuote + '\n' + formattedAttribution;
-};
-
-const quotablePortion = (quote: Quote | null) => {
-  if (!quote) {
-    return '';
-  }
-
-  const bestBlock = parseMarkdown(quote.text)
-    .filter((block) => !!block.text.trim()) // ignore empty blocks
-    .map((block, i) => ({ block, i }))
+const _quotablePortion = (quote: Quote | null): string => {
+  if (!quote) return '';
+  const best = parseMarkdown(quote.text)
+    .filter(b => b.text.trim())
+    .map((block, idx) => ({ block, idx }))
     .sort((a, b) => {
-      if (a.block.type === b.block.type) {
-        return a.i < b.i ? -1 : 1;
-      } else if (a.block.type === 'text') {
-        return -1;
-      } else {
-        return 1;
-      }
-    })
-
-  if (bestBlock.length === 0) {
-    return '';
-  }
-
-  return bestBlock[0].block.text;
+      if (a.block.type === b.block.type) return a.idx - b.idx;
+      return a.block.type === 'text' ? -1 : 1; // prefer text over nested quote
+    });
+  return best.length ? best[0].block.text : '';
 };
+
+const _quoteToMarkdown = (quote: Quote | null, truncate: boolean): string => {
+  if (!quote) return '';
+
+  const txt = truncate ? truncateText(quote.text, { maxLength: 100, maxLines: 3 }) : quote.text;
+  const attr = truncate ? truncateText(quote.attribution, { maxLength: 100, maxLines: 1 }) : quote.attribution;
+
+  const quoted = txt.split('\n').map(l => `>${l}`).join('\n');
+  return `${quoted}\n>- ${attr.replaceAll('\n', '')}`;
+};
+
+// API helpers ------------------------------------------------------------
 
 const quoteToPreviewMarkdown = (quote: Quote | null) => {
-  if (!quote) {
-    return '';
-  }
-
-  const _quotablePortion = quotablePortion(quote);
-
-  if (_quotablePortion.length === 0) {
-    return '';
-  }
-
-  const quotable: Quote = {
-    text: _quotablePortion,
-    attribution: quote.attribution,
-  };
-
-  return quoteToMarkdown(quotable, true);
+  const portion = _quotablePortion(quote);
+  if (!portion) return '';
+  return _quoteToMarkdown({ text: portion, attribution: quote!.attribution }, true);
 };
 
 const quoteToMessageMarkdown = (quote: Quote | null) => {
-  if (!quote) {
-    return '';
-  }
-
-  const _quotablePortion = quotablePortion(quote);
-
-  if (_quotablePortion.length === 0) {
-    return '';
-  }
-
-  const quotable: Quote = {
-    text: _quotablePortion,
-    attribution: quote.attribution,
-  };
-
-  return quoteToMarkdown(quotable, false);
+  const portion = _quotablePortion(quote);
+  if (!portion) return '';
+  return _quoteToMarkdown({ text: portion, attribution: quote!.attribution }, false);
 };
 
+// ──────────────────────────────────────────────────────────────────────────
+// Event‑based Quote store (unchanged)
+// ──────────────────────────────────────────────────────────────────────────
+
+const _lastEvent = lastEvent<Quote>(eventKey) ?? null;
+const useQuote = (): Quote | null => {
+  const [quote, setQuoteState] = useState<Quote | null>(_lastEvent);
+  useEffect(() => listen(eventKey, setQuoteState), []);
+  return quote;
+};
+
+const setQuote = (quote: Quote | null) => notify(eventKey, quote);
+
+// ──────────────────────────────────────────────────────────────────────────
+// Exports – gathered here per request
+// ──────────────────────────────────────────────────────────────────────────
+
 export {
-  Quote,
-  setQuote,
-  useQuote,
+  InlineToken,
+  isLinkToken,
+  MarkdownBlock,
   parseMarkdown,
-  quoteToPreviewMarkdown,
+  Quote,
+  QuoteBlock,
   quoteToMessageMarkdown,
+  quoteToPreviewMarkdown,
+  setQuote,
+  TextBlock,
+  TextToken,
+  tokenizeInline,
+  useQuote,
 };
