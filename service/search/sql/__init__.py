@@ -1159,22 +1159,7 @@ SELECT
         'is_verified', is_verified,
         'time', time,
         'type', type,
-        'match_percentage', match_percentage,
-
-        'costs', jsonb_build_object(
-            'verification_cost', verification_cost,
-            'incoming_message_cost', incoming_message_cost,
-            'age_gap_cost', age_gap_cost,
-            'match_cost', match_cost,
-            'prospect_gender_preference_cost', prospect_gender_preference_cost,
-            'searcher_gender_preference_cost', searcher_gender_preference_cost,
-            'mutual_club_cost', mutual_club_cost,
-            'club_cost', club_cost,
-            'about_length_cost', about_length_cost,
-            'photo_count_cost', photo_count_cost,
-            'animation_count_cost', animation_count_cost,
-            'distance_cost', distance_cost
-        )
+        'match_percentage', match_percentage
     ) || last_event_data AS j
 FROM
     ranked_person_data
