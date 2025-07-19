@@ -27,7 +27,7 @@ const listen = <T = any>(
   // Notify new listener of last event
   const lastEvent = listeners[key].lastEvent;
   if (notifyOnBind && lastEvent !== undefined) {
-    notify<T>(key, lastEvent);
+    listener(lastEvent);
   }
 
   return () => unlisten(key, listener);

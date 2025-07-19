@@ -1,17 +1,16 @@
 import {
-  Pressable,
-  Animated,
-  View,
-} from 'react-native';
-import {
   useCallback,
   useEffect,
   useRef,
 } from 'react';
+import {
+  Pressable,
+  Animated,
+  View,
+} from 'react-native';
 import { DefaultText } from '../default-text';
-import { Inbox, inboxStats } from '../../chat/application-layer';
+import { useInboxStats } from '../../chat/application-layer/hooks/inbox-stats';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { listen } from '../../events/events';
 import {
   LabelToIcon,
 } from './util';
@@ -112,43 +111,31 @@ const Tab = ({ navigation, state, route, descriptors, index, unreadIndicatorOpac
 const TabBar = ({state, descriptors, navigation}) => {
   const insets = useSafeAreaInsets();
 
-  const prevNumUnread = useRef(0);
-  const numUnread = useRef(0);
+  const stats = useInboxStats();
+  const numUnread = stats ?
+    (stats.numChats ? stats.numUnreadChats : stats.numUnreadIntros) :
+    0;
+
+  const prevNumUnread = useRef<number>(-1);
 
   const unreadIndicatorOpacity = useRef(new Animated.Value(0)).current;
 
   const hideIndicator = useCallback(() => {
     unreadIndicatorOpacity.setValue(0);
-  }, []);
+  }, [unreadIndicatorOpacity]);
 
   const showIndicator = useCallback(() => {
     unreadIndicatorOpacity.setValue(1);
-  }, []);
-
-  const onChangeInbox = useCallback((inbox: Inbox | null) => {
-    if (inbox) {
-      prevNumUnread.current = numUnread.current;
-
-      const stats = inboxStats(inbox);
-      numUnread.current = stats.numChats ?
-        stats.numUnreadChats :
-        stats.numUnreadIntros;
-
-    } else {
-      prevNumUnread.current = numUnread.current;
-      numUnread.current = 0;
-    }
-
-    if (numUnread.current === 0) {
-      hideIndicator();
-    } else if (numUnread.current > prevNumUnread.current) {
-      showIndicator();
-    }
-  }, []);
+  }, [unreadIndicatorOpacity]);
 
   useEffect(() => {
-    return listen<Inbox | null>('inbox', onChangeInbox, true);
-  }, []);
+    if (numUnread === 0) {
+      hideIndicator();
+    } else if (numUnread > prevNumUnread.current) {
+      showIndicator();
+    }
+    prevNumUnread.current = numUnread;
+  }, [numUnread, hideIndicator, showIndicator]);
 
   return (
     <View

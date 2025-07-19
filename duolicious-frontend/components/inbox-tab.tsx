@@ -10,37 +10,79 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
-  useRef,
   useState,
 } from 'react';
+import Animated from 'react-native-reanimated';
+import { useConversation } from '../chat/application-layer/hooks/conversation';
 import { TopNavBar } from './top-nav-bar';
 import { IntrosItem, ChatsItem } from './inbox-item';
 import { DefaultText } from './default-text';
 import { ButtonGroup } from './button-group';
-import { DefaultFlatList } from './default-flat-list';
-import { Inbox, Conversation, inboxStats } from '../chat/application-layer';
-import { compareArrays } from '../util/util';
+import { useInboxStats } from '../chat/application-layer/hooks/inbox-stats';
+import { useConversations } from '../chat/application-layer/hooks/conversations';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { inboxOrder, inboxSection } from '../kv-storage/inbox';
 import { listen } from '../events/events';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
-import * as _ from "lodash";
 
 
 const IntrosItemMemo = memo(IntrosItem);
 const ChatsItemMemo = memo(ChatsItem);
 
+const RenderItem = ({ item }: { item: string }) => {
+  const conversation = useConversation(item);
+
+  if (!conversation) {
+    return <></>;
+  } else if (conversation.location === 'intros') {
+    return <IntrosItemMemo
+      wasRead={conversation.lastMessageRead}
+      name={conversation.name}
+      personUuid={conversation.personUuid}
+      photoUuid={conversation.photoUuid}
+      photoBlurhash={conversation.photoBlurhash}
+      matchPercentage={conversation.matchPercentage}
+      lastMessage={conversation.lastMessage}
+      lastMessageTimestamp={conversation.lastMessageTimestamp}
+      isAvailableUser={conversation.isAvailableUser}
+      isVerified={conversation.isVerified}
+    />
+  } else {
+    return <ChatsItemMemo
+      wasRead={conversation.lastMessageRead}
+      name={conversation.name}
+      personUuid={conversation.personUuid}
+      photoUuid={conversation.photoUuid}
+      photoBlurhash={conversation.photoBlurhash}
+      matchPercentage={conversation.matchPercentage}
+      lastMessage={conversation.lastMessage}
+      lastMessageTimestamp={conversation.lastMessageTimestamp}
+      isAvailableUser={conversation.isAvailableUser}
+      isVerified={conversation.isVerified}
+    />
+  }
+};
+
+const renderItem = ({ item }: ListRenderItemInfo<string>) =>
+  <RenderItem item={item} />;
+
+const keyExtractor = (id: string) => id;
+
 const InboxTab = () => {
-  const [sectionIndex, setSectionIndex] = useState(0);
-  const [sortByIndex, setSortByIndex] = useState(0);
-  const [inbox, setInbox] = useState<Inbox | null>(null);
-  const [showArchive, setShowArchive] = useState(false);
-  const listRef = useRef<any>(undefined);
+  const {
+    conversations,
+    sectionIndex,
+    sortByIndex,
+    showArchive,
+    setSectionIndex,
+    setSortByIndex,
+    setShowArchive,
+  } = useConversations();
 
-  const _inboxStats = inbox ? inboxStats(inbox) : null;
+  const stats = useInboxStats();
 
-  const numUnreadIntros = _inboxStats?.numUnreadIntros ?? 0;
-  const numUnreadChats  = _inboxStats?.numUnreadChats  ?? 0;
+  const numUnreadIntros = stats?.numUnreadIntros ?? 0;
+  const numUnreadChats  = stats?.numUnreadChats  ?? 0;
 
   const introsNumericalLabel = (
     numUnreadIntros ?
@@ -55,6 +97,7 @@ const InboxTab = () => {
     setSectionIndex(value);
     inboxSection(value);
   }, []);
+
   const setSortByIndex_  = useCallback((value: number) => {
     setSortByIndex(value);
     inboxOrder(value);
@@ -62,26 +105,6 @@ const InboxTab = () => {
 
   const onPressArchiveButton = useCallback(() => {
     setShowArchive(x => !x);
-  }, []);
-
-  const maybeRefresh = useCallback(() => {
-    listRef.current?.refresh && listRef.current.refresh();
-  }, [listRef]);
-
-  useEffect(() => {
-    return listen<Inbox | null>(
-      'inbox',
-      (inbox) => {
-        setInbox((oldInbox) => {
-          if (_.isEqual(oldInbox, inbox)) {
-            return oldInbox ?? null
-          } else {
-            return inbox ?? null
-          }
-        });
-      },
-      true
-    );
   }, []);
 
   useEffect(() => {
@@ -93,69 +116,6 @@ const InboxTab = () => {
       setSortByIndex(_inboxOrder);
     })();
   }, []);
-
-  useEffect(maybeRefresh, [maybeRefresh, sectionIndex]);
-  useEffect(maybeRefresh, [maybeRefresh, sortByIndex]);
-  useEffect(maybeRefresh, [maybeRefresh, inbox]);
-  useEffect(maybeRefresh, [maybeRefresh, showArchive]);
-
-  const fetchInboxPage = (
-    sectionName: 'chats' | 'intros' | 'archive'
-  ) => async (
-    n: number
-  ): Promise<Conversation[]> => {
-    if (inbox === null) {
-      return [];
-    }
-
-    if (n >= 2) {
-      return [];
-    }
-
-    const section = (() => {
-      switch (sectionName) {
-        case 'chats':   return inbox.chats;
-        case 'intros':  return inbox.intros;
-        case 'archive': return inbox.archive;
-      }
-    })();
-
-    const page = [...section.conversations]
-      .sort((a, b) => {
-        if (sectionName === 'archive') {
-          return compareArrays(
-            [+b.lastMessageTimestamp],
-            [+a.lastMessageTimestamp],
-          );
-        } else if (sectionName === 'intros' && sortByIndex === 0) {
-          return compareArrays(
-            [b.matchPercentage, +b.lastMessageTimestamp],
-            [a.matchPercentage, +a.lastMessageTimestamp],
-          );
-        } else {
-          return compareArrays(
-            [+b.lastMessageTimestamp, b.matchPercentage],
-            [+a.lastMessageTimestamp, a.matchPercentage],
-          );
-        }
-      });
-
-    return page;
-  };
-
-  const fetchChatsPage   = fetchInboxPage('chats');
-  const fetchIntrosPage  = fetchInboxPage('intros');
-  const fetchArchivePage = fetchInboxPage('archive');
-
-  const fetchPage = (() => {
-    if (!showArchive && sectionIndex === 0)
-      return fetchIntrosPage;
-    if (!showArchive && sectionIndex === 1)
-      return fetchChatsPage;
-    if (showArchive)
-      return fetchArchivePage;
-    throw Error('Unhandled inbox section');
-  })();
 
   const emptyText = (() => {
     if (!showArchive && sectionIndex === 0)
@@ -185,38 +145,6 @@ const InboxTab = () => {
     }
   })();
 
-  const renderItem = useCallback((x: ListRenderItemInfo<Conversation>) => {
-    if (sectionIndex === 0 && !showArchive) {
-      return <IntrosItemMemo
-        wasRead={x.item.lastMessageRead}
-        name={x.item.name}
-        personUuid={x.item.personUuid}
-        photoUuid={x.item.photoUuid}
-        photoBlurhash={x.item.photoBlurhash}
-        matchPercentage={x.item.matchPercentage}
-        lastMessage={x.item.lastMessage}
-        lastMessageTimestamp={x.item.lastMessageTimestamp}
-        isAvailableUser={x.item.isAvailableUser}
-        isVerified={x.item.isVerified}
-      />
-    } else {
-      return <ChatsItemMemo
-        wasRead={x.item.lastMessageRead}
-        name={x.item.name}
-        personUuid={x.item.personUuid}
-        photoUuid={x.item.photoUuid}
-        photoBlurhash={x.item.photoBlurhash}
-        matchPercentage={x.item.matchPercentage}
-        lastMessage={x.item.lastMessage}
-        lastMessageTimestamp={x.item.lastMessageTimestamp}
-        isAvailableUser={x.item.isAvailableUser}
-        isVerified={x.item.isVerified}
-      />
-    }
-  }, [sectionIndex, showArchive]);
-
-  const keyExtractor = useCallback((c: Conversation) => JSON.stringify(c), []);
-
   const {
     onLayout,
     onContentSizeChange,
@@ -231,58 +159,63 @@ const InboxTab = () => {
         showArchive={showArchive}
         onPressArchiveButton={onPressArchiveButton}
       />
-      {inbox === null &&
+      {conversations === null &&
         <View style={{height: '100%', justifyContent: 'center', alignItems: 'center'}}>
           <ActivityIndicator size="large" color="#70f" />
         </View>
       }
-      {inbox !== null &&
-        <DefaultFlatList
-          key={JSON.stringify(inbox)}
-          ref={listRef}
-          innerRef={observeListRef}
-          emptyText={emptyText}
-          endText={endText}
-          fetchPage={fetchPage}
-          dataKey={JSON.stringify({showArchive, sectionIndex})}
-          ListHeaderComponent={<>{
-            !showArchive && <>
-              <ButtonGroup
-                buttons={[
-                  'Intros' + introsNumericalLabel,
-                  'Chats'  + chatsNumericalLabel
-                ]}
-                selectedIndex={sectionIndex}
-                onPress={setSectionIndex_}
-                containerStyle={{
-                  marginTop: 5,
-                  marginLeft: 20,
-                  marginRight: 20,
-                }}
-              />
-              <ButtonGroup
-                buttons={['Best Matches First', 'Latest First']}
-                selectedIndex={sortByIndex}
-                onPress={setSortByIndex_}
-                secondary={true}
-                disabled={sectionIndex === 1}
-                containerStyle={{
-                  flexGrow: 1,
-                  marginLeft: 20,
-                  marginRight: 20,
-                }}
-              />
-            </>
-          }</>}
-          hideListHeaderComponentWhenLoading={false}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          disableRefresh={true}
-          onLayout={onLayout}
-          onContentSizeChange={onContentSizeChange}
-          onScroll={onScroll}
-          showsVerticalScrollIndicator={showsVerticalScrollIndicator}
-        />
+      {conversations !== null &&
+        <View style={styles.flatListContainer} onLayout={onLayout}>
+          <Animated.FlatList<string>
+            ref={observeListRef}
+            data={conversations}
+            ListHeaderComponent={<>{
+              !showArchive && <>
+                <ButtonGroup
+                  buttons={[
+                    'Intros' + introsNumericalLabel,
+                    'Chats'  + chatsNumericalLabel
+                  ]}
+                  selectedIndex={sectionIndex}
+                  onPress={setSectionIndex_}
+                  containerStyle={{
+                    marginTop: 5,
+                    marginLeft: 20,
+                    marginRight: 20,
+                  }}
+                />
+                <ButtonGroup
+                  buttons={['Best Matches First', 'Latest First']}
+                  selectedIndex={sortByIndex}
+                  onPress={setSortByIndex_}
+                  secondary={true}
+                  disabled={sectionIndex === 1}
+                  containerStyle={{
+                    flexGrow: 1,
+                    marginLeft: 20,
+                    marginRight: 20,
+                  }}
+                />
+              </>
+            }</>}
+            ListEmptyComponent={
+              <DefaultText style={styles.emptyText}>
+                {emptyText}
+              </DefaultText>
+            }
+            ListFooterComponent={
+              conversations.length > 0 ?
+                <DefaultText style={styles.endText}>{endText}</DefaultText> :
+                null
+            }
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            onContentSizeChange={onContentSizeChange}
+            onScroll={onScroll}
+            showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+            contentContainerStyle={styles.flatList}
+          />
+        </View>
       }
     </SafeAreaView>
   );
@@ -339,6 +272,32 @@ const InboxTabNavBar = ({
 const styles = StyleSheet.create({
   safeAreaView: {
     flex: 1
+  },
+  flatList: {
+    paddingTop: 10,
+    alignItems: 'stretch',
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
+  },
+  flatListContainer: {
+    flex: 1,
+  },
+  emptyText: {
+    fontFamily: 'Trueno',
+    margin: '20%',
+    textAlign: 'center',
+  },
+  endText: {
+    fontFamily: 'TruenoBold',
+    color: '#000',
+    fontSize: 16,
+    textAlign: 'center',
+    alignSelf: 'center',
+    marginTop: 30,
+    marginBottom: 30,
+    marginLeft: '15%',
+    marginRight: '15%',
   }
 });
 

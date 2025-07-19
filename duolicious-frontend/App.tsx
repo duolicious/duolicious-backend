@@ -35,7 +35,8 @@ import { navigationState } from './kv-storage/navigation-state';
 import { clearAllKv } from './kv-storage/kv-storage';
 import { maybeDoUpgrade } from './kv-storage/upgrade';
 import { japi, SUPPORTED_API_VERSIONS } from './api/api';
-import { login, logout, Inbox, inboxStats } from './chat/application-layer';
+import { login, logout } from './chat/application-layer';
+import { useInboxStats } from './chat/application-layer/hooks/inbox-stats';
 import { STATUS_URL } from './env/env';
 import { delay, parseUrl } from './util/util';
 import { ColorPickerModal } from './components/modal/color-picker-modal/color-picker-modal';
@@ -48,7 +49,6 @@ import {
   getLastNotificationResponseOnMobile,
 } from './notifications/mobile';
 import { getCurrentScreen, getCurrentParams } from './navigation/navigation';
-import { listen, notify } from './events/events';
 import { verificationWatcher } from './verification/verification';
 import { ClubItem } from './club/club';
 import { Toast } from './components/toast';
@@ -61,6 +61,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ErrorBoundary } from './components/error-boundary';
 import { TooltipListener } from './components/tooltip';
 import { VerificationCameraModal } from './components/verification-camera';
+import { notify } from './events/events';
 
 verificationWatcher();
 
@@ -155,7 +156,6 @@ const isImagePickerOpen = { value: false };
 const navigationContainerRef = createNavigationContainerRef<any>();
 
 const App = () => {
-  const [numUnreadTitle, setNumUnreadTitle] = useState(0);
   const [initialState, setInitialState] = useState<any>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
@@ -420,14 +420,12 @@ const App = () => {
     }
   }, [signedInUser]);
 
-  const onChangeInbox = useCallback((inbox: Inbox | null) => {
-    const stats = inbox ? inboxStats(inbox) : undefined;
-    const num = stats?.numChats ?
-      stats?.numUnreadChats :
-      stats?.numUnreadIntros;
+  // Only need live updates on web (for browser tab title)
+  const stats = useInboxStats(Platform.OS === 'web');
 
-    setNumUnreadTitle(num ?? 0);
-  }, [inboxStats, setNumUnreadTitle]);
+  const numUnreadTitle = stats?.numChats
+    ? stats?.numUnreadChats
+    : stats?.numUnreadIntros;
 
   if (Platform.OS === 'web') {
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -444,11 +442,6 @@ const App = () => {
 
       window.addEventListener('popstate', handlePopstate);
     }, []);
-
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useEffect(() => {
-      return listen<Inbox | null>('inbox', onChangeInbox, true);
-    }, [onChangeInbox]);
   }
 
   useNotificationObserverOnMobile((screen: string, params: any) => {

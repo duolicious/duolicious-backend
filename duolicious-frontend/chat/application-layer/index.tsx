@@ -1151,4 +1151,5 @@ export {
   registerPushToken,
   sendMessage,
   setConversationArchived,
+  getInbox,
 };
