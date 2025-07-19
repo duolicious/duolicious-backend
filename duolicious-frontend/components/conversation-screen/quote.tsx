@@ -95,7 +95,12 @@ const parseMarkdown = (markdown: string): MarkdownBlock[] => {
         flushBlock();
         currentBlockType = 'text';
       }
-      currentBlockLines.push(line);
+      currentBlockLines.push(
+        line.replace(
+          /^(\\+)>/,
+          (s, slashes) => '\\'.repeat(Math.floor(slashes.length / 2)) + '>'
+        )
+      );
     }
   }
 

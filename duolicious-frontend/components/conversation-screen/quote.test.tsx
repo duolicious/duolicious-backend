@@ -46,6 +46,35 @@ Regular text after quote.`;
     ]);
   });
 
+  test('should allow escaping quote blocks', () => {
+    const markdown = `> Quote one
+\\> Quote two
+> Quote three`;
+    expect(parseMarkdown(markdown)).toEqual([
+      { type: 'quote', text: 'Quote one' },
+      { type: 'text', text: '> Quote two' },
+      { type: 'quote', text: 'Quote three' },
+    ]);
+  });
+
+  test('should allow escaping escapes', () => {
+    const markdown = `> Quote one
+\\\\> Quote \\\\ two
+> Quote three
+\\\\\\> Quote \\\\ four
+> Quote five
+\\\\\\\\> Quote \\\\ six
+`;
+    expect(parseMarkdown(markdown)).toEqual([
+      { type: 'quote', text: 'Quote one' },
+      { type: 'text', text: '\\> Quote \\\\ two' },
+      { type: 'quote', text: 'Quote three' },
+      { type: 'text', text: '\\> Quote \\\\ four' },
+      { type: 'quote', text: 'Quote five' },
+      { type: 'text', text: '\\\\> Quote \\\\ six' },
+    ]);
+  });
+
   test('should parse the provided sample correctly', () => {
     const markdown = `> You're pretty cool
 > :)
