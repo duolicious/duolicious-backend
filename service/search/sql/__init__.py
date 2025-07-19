@@ -919,7 +919,7 @@ WITH searcher AS (
         ((prospect.personality <#> searcher.personality) + 1) / 2 AS match_cost,
 
         -- The searcher meets the prospect's gender preference
-        2e0 * (
+        4e0 * (
             SELECT
                 1.0 - COUNT(*)
             FROM
@@ -1128,7 +1128,7 @@ WITH searcher AS (
     ORDER BY
         last_event_time DESC
     LIMIT
-        200
+        500
 ), ranked_person_data AS (
     SELECT
         *
@@ -1148,7 +1148,7 @@ WITH searcher AS (
         animation_count_cost +
         distance_cost
     LIMIT
-        10
+        25
 )
 SELECT
     jsonb_build_object(
