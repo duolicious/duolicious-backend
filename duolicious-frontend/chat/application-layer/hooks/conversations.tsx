@@ -107,7 +107,6 @@ const useConversations = () => {
   // Subscribe to inbox updates and update only when the derived list changes.
   useEffect(() => {
     const onUpdate = (newInbox?: Inbox | null) => {
-      console.log('onUpdate', newInbox);
       setState((oldState) => {
         const { sectionIndex, sortByIndex, showArchive } = oldState;
 
