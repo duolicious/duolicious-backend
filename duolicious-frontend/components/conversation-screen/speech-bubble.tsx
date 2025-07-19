@@ -153,7 +153,7 @@ const MessageStatusComponent = ({
     'voice-intro': `Voice messages aren’t allowed in intros`,
     'spam': `We think that might be spam. Try sending ${name} a different message.`,
     'offensive': `Intros can’t be too rude. Try sending ${name} a different message.`,
-    'age-verification': `Age verification is required to chat.` + verificationMessageText,
+    'age-verification': `Verification is required to chat.` + verificationMessageText,
     'blocked': name + ' is unavailable right now. Try messaging someone else!',
     'not unique': `Someone already sent that intro! Try sending ${name} a different message.`,
     'too long': 'That message is too big! 😩',
