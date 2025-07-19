@@ -856,15 +856,17 @@ ON
 Q_FEED = f"""
 WITH searcher AS (
     SELECT
+        id,
         gender_id,
         date_of_birth,
         personality,
-        verification_level_id
+        verification_level_id,
+        coordinates
     FROM
         person
     WHERE
         person.id = %(searcher_person_id)s
-), person_data AS (
+), unranked_person_data AS (
     SELECT
         prospect.uuid AS person_uuid,
         prospect.name,
@@ -872,6 +874,7 @@ WITH searcher AS (
         photo_data.uuid AS photo_uuid,
         prospect.verification_level_id > 1 AS is_verified,
         iso8601_utc(prospect.last_event_time) AS time,
+        prospect.last_event_time,
         prospect.last_event_name AS type,
         prospect.last_event_data,
         CLAMP(
@@ -880,7 +883,115 @@ WITH searcher AS (
             100 * (
                 1 - (prospect.personality <#> searcher.personality)
             ) / 2
-        )::SMALLINT AS match_percentage
+        )::SMALLINT AS match_percentage,
+
+        ------------------------------------------------------------------------
+        -- FEED RANKING COSTS
+        --
+        -- These rank feed results. Sadly, they're hand-crafted. It'd be better
+        -- to have an ML algorithm to optimize for something like clicks or
+        -- dwell time, but there's no time to make one of those. Anyway, all
+        -- these parameters have been defined so that they're non-negative. I
+        -- tried to tune them so that they don't frequently exceed values of
+        -- 1.0 by much while still having them indicate the relative importance
+        -- of each thing they measure.
+        ------------------------------------------------------------------------
+
+        3e0 * (3.0 - prospect.verification_level_id) / 2.0 AS verification_cost,
+
+        1e1 * (
+            -- Decrease users' odds of appearing in the feed if they're already
+            -- getting lots of messages
+            SELECT
+                1.0 - 1.0 / (1.0 + count(*)::real) ^ 1.5
+            FROM
+                messaged
+            WHERE
+                object_person_id = prospect.id
+            AND
+                created_at > now() - interval '1 day'
+        ) AS incoming_message_cost,
+
+        5e-4 * ABS(
+            searcher.date_of_birth - prospect.date_of_birth
+        ) AS age_gap_cost,
+
+        ((prospect.personality <#> searcher.personality) + 1) / 2 AS match_cost,
+
+        -- The searcher meets the prospect's gender preference
+        2e0 * (
+            SELECT
+                1.0 - COUNT(*)
+            FROM
+                search_preference_gender
+            WHERE
+                search_preference_gender.person_id = prospect.id
+            AND
+                search_preference_gender.gender_id = searcher.gender_id
+        ) AS prospect_gender_preference_cost,
+
+        -- Prospect meets the searcher's gender preference
+        (
+            SELECT
+                1.0 - COUNT(*)
+            FROM
+                search_preference_gender
+            WHERE
+                search_preference_gender.person_id = searcher.id
+            AND
+                search_preference_gender.gender_id = prospect.gender_id
+        ) AS searcher_gender_preference_cost,
+
+        1.0 / (
+            SELECT
+                1.0 + COUNT(*)
+            FROM (
+                SELECT club_name FROM person_club WHERE person_id = searcher.id
+                INTERSECT
+                SELECT club_name FROM person_club WHERE person_id = prospect.id
+            ) AS x
+        ) AS mutual_club_cost,
+
+        1.0 / (
+            SELECT
+                1.0 + COUNT(*)
+            FROM
+                person_club
+            WHERE
+                person_id = prospect.id
+        ) AS club_cost,
+
+        1.0 / (1.0 + length(prospect.about)) AS about_length_cost,
+
+        1.0 / (
+            SELECT
+                1.0 + COUNT(*)
+            FROM
+                photo
+            WHERE
+                photo.person_id = prospect.id
+        ) AS photo_count_cost,
+
+        (
+            SELECT (
+                NOT EXISTS (
+                    SELECT
+                        1
+                    FROM
+                        photo
+                    WHERE
+                        uuid = prospect.last_event_data->>'added_photo_uuid'
+                    AND
+                        photo.extra_exts <> '{{}}'
+                )
+            )::INT::FLOAT
+        ) AS animation_count_cost,
+
+        1e-7 * ST_Distance(
+            prospect.coordinates,
+            searcher.coordinates
+        ) AS distance_cost
+
     FROM
         person AS prospect
     LEFT JOIN LATERAL (
@@ -984,34 +1095,6 @@ WITH searcher AS (
                     person_id = %(searcher_person_id)s
             )
         )
-    -- Decrease users' odds of appearing in the feed if they're already getting
-    -- lots of messages
-    AND random() < (
-        SELECT
-            1.0 / (1.0 + count(*)::real) ^ 1.5
-        FROM
-            messaged
-        WHERE
-            object_person_id = prospect.id
-        AND
-            created_at > now() - interval '1 day'
-    )
-    -- Decrease users' odds of appearing in the feed as the age gap between them
-    -- and the searcher grows
-    AND random() < 1.0 / (
-        1.0 + 0.5 * ABS(searcher.date_of_birth - prospect.date_of_birth) / 365.0
-    )
-    -- The searcher meets the prospect's gender preference
-    AND EXISTS (
-        SELECT
-            1
-        FROM
-            search_preference_gender
-        WHERE
-            search_preference_gender.person_id = prospect.id
-        AND
-            search_preference_gender.gender_id = searcher.gender_id
-    )
     -- Exclude photos that might be NSFW
     AND NOT EXISTS (
         SELECT
@@ -1045,7 +1128,27 @@ WITH searcher AS (
     ORDER BY
         last_event_time DESC
     LIMIT
-        50
+        200
+), ranked_person_data AS (
+    SELECT
+        *
+    FROM
+        unranked_person_data
+    ORDER BY
+        verification_cost +
+        incoming_message_cost +
+        age_gap_cost +
+        match_cost +
+        prospect_gender_preference_cost +
+        searcher_gender_preference_cost +
+        mutual_club_cost +
+        club_cost +
+        about_length_cost +
+        photo_count_cost +
+        animation_count_cost +
+        distance_cost
+    LIMIT
+        10
 )
 SELECT
     jsonb_build_object(
@@ -1056,8 +1159,25 @@ SELECT
         'is_verified', is_verified,
         'time', time,
         'type', type,
-        'match_percentage', match_percentage
+        'match_percentage', match_percentage,
+
+        'costs', jsonb_build_object(
+            'verification_cost', verification_cost,
+            'incoming_message_cost', incoming_message_cost,
+            'age_gap_cost', age_gap_cost,
+            'match_cost', match_cost,
+            'prospect_gender_preference_cost', prospect_gender_preference_cost,
+            'searcher_gender_preference_cost', searcher_gender_preference_cost,
+            'mutual_club_cost', mutual_club_cost,
+            'club_cost', club_cost,
+            'about_length_cost', about_length_cost,
+            'photo_count_cost', photo_count_cost,
+            'animation_count_cost', animation_count_cost,
+            'distance_cost', distance_cost
+        )
     ) || last_event_data AS j
 FROM
-    person_data
+    ranked_person_data
+ORDER BY
+    last_event_time DESC
 """
