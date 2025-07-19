@@ -218,14 +218,22 @@ const quoteToMessageMarkdown = (quote: Quote | null) => {
 // Event‑based Quote store (unchanged)
 // ──────────────────────────────────────────────────────────────────────────
 
-const _lastEvent = lastEvent<Quote>(eventKey) ?? null;
 const useQuote = (): Quote | null => {
-  const [quote, setQuoteState] = useState<Quote | null>(_lastEvent);
-  useEffect(() => listen(eventKey, setQuoteState), []);
+  const _lastEvent = lastEvent<Quote>(eventKey) ?? null;
+
+  const [quote, setQuote] = useState<Quote | null>(_lastEvent);
+
+  useEffect(() => {
+    return listen(eventKey, setQuote);
+  }, []);
+
   return quote;
 };
 
-const setQuote = (quote: Quote | null) => notify(eventKey, quote);
+const setQuote = (quote: Quote | null) => {
+  return notify(eventKey, quote);
+};
+
 
 // ──────────────────────────────────────────────────────────────────────────
 // Exports – gathered here per request
