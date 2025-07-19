@@ -30,20 +30,14 @@ const useHasDonations = (estimatedEndDate: Date | undefined) => {
       return;
     }
 
-    const now = new Date();
-    const timeUntilEnd = estimatedEndDate.getTime() - now.getTime();
+    const update = () => {
+      setHasDonations(Date.now() < estimatedEndDate.getTime());
+    };
 
-    if (timeUntilEnd <= 0) {
-      setHasDonations(false);
-      return;
-    }
+    update(); // ensure immediate correctness
 
-    // Set a timer to update when the date is no longer in the future
-    const timer = setTimeout(() => {
-      setHasDonations(false);
-    }, timeUntilEnd);
-
-    return () => clearTimeout(timer); // Clean up the timer if the date changes
+    const interval = setInterval(update, 60_000); // check every minute
+    return () => clearInterval(interval);
   }, [estimatedEndDate]);
 
   return hasDonations;
