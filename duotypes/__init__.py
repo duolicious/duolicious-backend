@@ -243,6 +243,10 @@ class PostRequestOtp(BaseModel):
     def validate_email(cls, value):
         return EmailStr._validate(value.lower().strip())
 
+    @field_validator('pending_club_name', mode='before')
+    def validate_pending_club_name(cls, value):
+        return value.lower().strip()
+
 
 class PostCheckOtp(BaseModel):
     otp: constr(pattern=r'^\d{6}$')
@@ -488,7 +492,7 @@ class PostJoinClub(BaseModel):
             max_length=CLUB_MAX_LEN)
 
     @model_validator(mode='before')
-    def set_onboarded(cls, values):
+    def validate_name(cls, values):
         name = values.get('name')
 
         if name is None:
@@ -498,7 +502,7 @@ class PostJoinClub(BaseModel):
         if len(name) < 1:
             raise ValueError('Name must be one or more characters long')
 
-        values['name'] = name
+        values['name'] = name.lower().strip()
 
         return values
 
