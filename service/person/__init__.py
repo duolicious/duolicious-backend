@@ -1693,19 +1693,22 @@ def get_search_clubs(
         s: Optional[t.SessionInfo],
         search_str: str,
         allow_empty: bool = False):
-    if allow_empty and not search_str:
+
+    lower_search_str = search_str.lower().strip()
+
+    if allow_empty and not lower_search_str:
         pass
-    elif not re.match(t.CLUB_PATTERN, search_str):
+    elif not re.match(t.CLUB_PATTERN, lower_search_str):
         return []
-    elif not len(search_str) <= t.CLUB_MAX_LEN:
+    elif not len(lower_search_str) <= t.CLUB_MAX_LEN:
         return []
 
     params = dict(
         person_id=s.person_id if s else None,
-        search_string=search_str,
+        search_string=lower_search_str,
     )
 
-    q = Q_SEARCH_CLUBS if search_str else Q_TOP_CLUBS
+    q = Q_SEARCH_CLUBS if lower_search_str else Q_TOP_CLUBS
 
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(q, params).fetchall()

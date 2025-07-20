@@ -262,8 +262,10 @@ def get_search(s: t.SessionInfo):
     o = request.args.get('o')
 
     rawClub = request.args.get('club')
+    lowerClub = None if rawClub is None else rawClub.lower().strip()
+
     club = (
-        search.ClubHttpArg(rawClub if rawClub != '\0' else None)
+        search.ClubHttpArg(lowerClub if lowerClub != '\0' else None)
         if 'club' in request.args
         else None
     )
@@ -271,7 +273,7 @@ def get_search(s: t.SessionInfo):
     search_type, _ = search.get_search_type(n, o)
 
     limit = "15 per 2 minutes"
-    scope = json.dumps([search_type, rawClub])
+    scope = json.dumps([search_type, lowerClub])
 
     if search_type == 'uncached-search':
         with (
