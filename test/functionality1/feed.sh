@@ -46,6 +46,7 @@ test_json_format () {
   q "update person set verification_required = true where name = 'user15'"
   q "update person set verification_required = true where name = 'user16'"
   q "update person set verification_level_id = 2 where name = 'user16'"
+  q "update person set background_color = '#aaaaaa'"
 
   assume_role searcher
   jc PATCH /profile-info -d '{ "verification_level": "Basics only" }'
@@ -166,7 +167,7 @@ test_json_format () {
   },
   {
     "added_text": "You just lost the game",
-    "background_color": "#ffffff",
+    "background_color": "#aaaaaa",
     "body_color": "#000000",
     "is_verified": false,
     "match_percentage": 50,

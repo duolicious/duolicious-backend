@@ -1036,11 +1036,37 @@ WITH searcher AS (
         AND
             reported
     ) < 2
-    -- Exclude users who should be verified but aren't
+    -- Exclude users who aren't verified but are required to be
     AND (
             prospect.verification_level_id > 1
         OR
             NOT prospect.verification_required
+    )
+    -- Exclude users who don't seem human. A user seems human if:
+    --   * They're verified; or
+    --   * Their account is more than a month old; or
+    --   * They've customized their account's color scheme
+    --   * They've got an otherwise well-completed profile
+    AND (
+            prospect.verification_level_id > 1
+
+        OR
+            prospect.sign_up_time < now() - interval '1 month'
+
+        OR
+            lower(prospect.title_color) <> '#000000'
+        OR
+            lower(prospect.body_color) <> '#000000'
+        OR
+            lower(prospect.background_color) <> '#ffffff'
+
+        OR
+            prospect.count_answers >= 25
+        AND
+            length(prospect.about) > 0
+        AND EXISTS (
+            SELECT 1 FROM person_club WHERE person_id = prospect.id
+        )
     )
     ORDER BY
         last_event_time DESC
