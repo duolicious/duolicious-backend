@@ -1046,6 +1046,7 @@ WITH searcher AS (
     --   * They're verified; or
     --   * Their account is more than a month old; or
     --   * They've customized their account's color scheme
+    --   * They've got an audio bio
     --   * They've got an otherwise well-completed profile
     AND (
             prospect.verification_level_id > 1
@@ -1059,6 +1060,10 @@ WITH searcher AS (
             lower(prospect.body_color) <> '#000000'
         OR
             lower(prospect.background_color) <> '#ffffff'
+
+        OR EXISTS (
+            SELECT 1 FROM audio WHERE person_id = prospect.id
+        )
 
         OR
             prospect.count_answers >= 25
