@@ -116,7 +116,7 @@ const FormattedTextBlock = ({
       {block.tokens.map((token, i) => {
         if (token.kind === 'text') {
           return (
-            <DefaultText key={i} style={{ color, fontSize }}>
+            <DefaultText key={i} selectable={!isMobile()} style={{ color, fontSize }}>
               {token.value}
             </DefaultText>
           );
