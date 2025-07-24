@@ -1119,7 +1119,12 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         q2 = Q_UPDATE_VERIFICATION_LEVEL
     elif field_name == 'location':
         q1 = """
-        UPDATE person SET coordinates = location.coordinates
+        UPDATE person
+        SET
+            coordinates
+                = location.coordinates,
+            verification_required
+                = location.verification_required OR person.verification_required
         FROM location
         WHERE person.id = %(person_id)s
         AND long_friendly = %(field_value)s
