@@ -379,6 +379,14 @@ test_verification_loss_photo_removed () {
     where uuid = '$USER_UUID' and verification_level_id = 2")" -eq 1 ]]
 }
 
+test_verification_required () {
+  [[ "$(q "select COUNT(*) from person where verification_required")" -eq 0 ]]
+  test_set location "London, England, United Kingdom"
+  [[ "$(q "select COUNT(*) from person where verification_required")" -eq 1 ]]
+  test_set location "New York, New York, United States"
+  [[ "$(q "select COUNT(*) from person where verification_required")" -eq 1 ]]
+}
+
 test_set name "Jeff"
 test_set about "I'm a bad ass motherfuckin' DJ / This is why I walk and talk this way"
 test_set gender Woman
@@ -421,3 +429,5 @@ test_verification_loss_gender
 test_verification_loss_ethnicity
 test_verification_loss_photo_changed
 test_verification_loss_photo_removed
+
+test_verification_required
