@@ -421,8 +421,11 @@ WHERE session_token_hash = %(session_token_hash)s
 
 Q_FINISH_ONBOARDING = f"""
 WITH onboardee_country AS (
-    SELECT country
-    FROM location
+    SELECT
+        country,
+        verification_required
+    FROM
+        location
     ORDER BY coordinates <-> (
         SELECT coordinates
         FROM onboardee
@@ -441,7 +444,8 @@ WITH onboardee_country AS (
         has_profile_picture_id,
         unit_id,
         intros_notification,
-        privacy_verification_level_id
+        privacy_verification_level_id,
+        verification_required
     ) SELECT
         email,
         %(normalized_email)s,
@@ -459,21 +463,22 @@ WITH onboardee_country AS (
             SELECT id
             FROM unit
             WHERE name IN (
-                SELECT
-                    CASE
-                        WHEN country IN ('United States', 'United Kingdom')
-                        THEN 'Imperial'
-                        ELSE 'Metric'
-                    END AS name
-                FROM onboardee_country
+                CASE
+                    WHEN country IN ('United States', 'United Kingdom')
+                    THEN 'Imperial'
+                    ELSE 'Metric'
+                END
             )
         ) AS unit_id,
         2 AS intros_notification,
         CASE
             WHEN RANDOM() < 0.5 THEN 1
             ELSE 3
-        END AS privacy_verification_level_id
-    FROM onboardee
+        END AS privacy_verification_level_id,
+        verification_required
+    FROM
+        onboardee,
+        onboardee_country
     WHERE email = %(email)s
     RETURNING
         id,
