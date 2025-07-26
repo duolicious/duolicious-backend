@@ -40,7 +40,7 @@ const Toast: React.FC = () => {
 
     const holdPosition = Animated.timing(animation, {
       toValue: 0,
-      duration: 4000,
+      duration: 3000,
       useNativeDriver: true,
     });
 

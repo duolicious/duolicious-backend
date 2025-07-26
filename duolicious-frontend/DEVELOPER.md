@@ -26,7 +26,7 @@ export DUO_STATUS_URL=http://localhost:8080
 export DUO_API_URL=http://localhost:5000
 export DUO_CHAT_URL=ws://localhost:5443
 export DUO_IMAGES_URL=http://localhost:9090/s3-mock-bucket
-export DUO_IMAGES_URL=http://localhost:9090/s3-mock-audio-bucket
+export DUO_AUDIO_URL=http://localhost:9090/s3-mock-audio-bucket
 
 npx expo start
 ```

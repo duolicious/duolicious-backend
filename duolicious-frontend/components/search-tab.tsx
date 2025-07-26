@@ -30,6 +30,7 @@ import { ClubItem, sortClubs } from '../club/club';
 import { listen, lastEvent } from '../events/events';
 import { searchQueue } from '../api/queue';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
+import { onPressInvite } from '../components/invite';
 
 const styles = StyleSheet.create({
   safeAreaView: {
@@ -542,7 +543,7 @@ const SearchScreen_ = ({navigation}) => {
       screen: 'Search Filter Tab',
       params: { onPressRefresh },
     });
-  }, [onPressRefresh]);
+  }, [selectedClub]);
 
   useEffect(() => {
     const refresh = listRef?.current?.refresh;
@@ -578,13 +579,35 @@ const SearchScreen_ = ({navigation}) => {
             label="Refresh"
           />
         }
-        <TopNavBarButton
-          onPress={onPressOptions}
-          iconName="options-outline"
-          position="right"
-          secondary={false}
-          label="Search Filters"
-        />
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            height: '100%',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            right: 10,
+            gap: 14,
+          }}
+        >
+          {selectedClub &&
+            <TopNavBarButton
+              onPress={onPressInvite(selectedClub)}
+              iconName="person-add-outline"
+              position={null}
+              secondary={true}
+              label="Invite"
+            />
+          }
+          <TopNavBarButton
+            onPress={onPressOptions}
+            iconName="options-outline"
+            position={null}
+            secondary={false}
+            label="Filters"
+          />
+        </View>
       </DuoliciousTopNavBar>
       <DefaultFlatList
         key={

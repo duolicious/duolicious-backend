@@ -28,6 +28,7 @@ import { notify } from '../events/events';
 import { faLink } from '@fortawesome/free-solid-svg-icons/faLink'
 import * as Clipboard from 'expo-clipboard';
 import { ToastContainer } from './toast';
+import { INVITE_URL } from '../env/env';
 
 const LinkCopiedToast = () => {
   return (
@@ -49,6 +50,14 @@ const LinkCopiedToast = () => {
   );
 };
 
+const onPressInvite = (clubName: string) => async () => {
+  const url = `${INVITE_URL}/${encodeURIComponent(clubName)}`;
+
+  await Clipboard.setStringAsync(url);
+
+  notify<React.FC>('toast', LinkCopiedToast)
+};
+
 const InvitePicker = ({navigation}) => {
   const [clubs, setClubs] = useState(lastEvent<ClubItem[]>('updated-clubs'));
 
@@ -59,15 +68,6 @@ const InvitePicker = ({navigation}) => {
   const goBack = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
-
-  const onPressInvite = (clubName: string) => async () => {
-    const url = (
-      `https://get.duolicious.app/invite/${encodeURIComponent(clubName)}`);
-
-    await Clipboard.setStringAsync(url);
-
-    notify<React.FC>('toast', LinkCopiedToast)
-  };
 
   return (
     <SafeAreaView style={styles.safeAreaView}>
@@ -224,4 +224,5 @@ const styles = StyleSheet.create({
 export {
   InviteEntrypoint,
   InvitePicker,
+  onPressInvite,
 };

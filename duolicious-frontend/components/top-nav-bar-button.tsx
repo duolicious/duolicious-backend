@@ -15,13 +15,15 @@ const TopNavBarButton = ({
   iconName,
   secondary,
   position,
-  label
+  label,
+  style,
 }: {
   onPress: any
   iconName: any
   secondary: boolean
-  position: 'left' | 'right'
+  position: 'left' | 'right' | null
   label?: string,
+  style?: any,
 }) => {
   const opacity = useRef(new Animated.Value(1)).current;
 
@@ -43,12 +45,16 @@ const TopNavBarButton = ({
       onPressOut={onPressOut}
       onPress={onPress}
       style={{
-        position: 'absolute',
-        top: 0,
         height: '100%',
         alignItems: 'center',
         justifyContent: 'center',
-        ...(position === 'left' ? { left: 10 } : { right: 10 }),
+        ...(position === 'left' ? { left: 10 } : { }),
+        ...(position === 'right' ? { right: 10 } : { }),
+        ...(position === 'left' || position === 'right' ? {
+          position: 'absolute',
+          top: 0,
+        } : { }),
+        ...style,
       }}
     >
       <Animated.View style={{
