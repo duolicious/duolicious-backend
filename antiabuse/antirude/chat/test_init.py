@@ -111,6 +111,8 @@ class TestIsOffensive(unittest.TestCase):
 
         self.assertTrue(is_rude("niggg"))
 
+        self.assertTrue(is_rude("ni99er"))
+
         self.assertTrue(is_rude("how big is that dih"))
 
         self.assertTrue(is_rude("selfharm"))

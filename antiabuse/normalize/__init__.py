@@ -42,7 +42,7 @@ _char_map = {
     "a": "a@4" + _censored_chars,
     "c": "ck",
     "e": "e3" + _censored_chars,
-    "g": "gб",
+    "g": "gб9",
     "i": "i1!ly" + _censored_chars,
     "l": "l1!",
     "o": "o0" + _censored_chars,
