@@ -2454,6 +2454,7 @@ VALUES
     ('n word screamer'),
     ('nympho'),
     ('o9a'),
+    ('oberfuhrer'),
     ('occasionally horny'),
     ('ogre you asshole'),
     ('oh fuck i''m cumming'),
@@ -2938,6 +2939,7 @@ VALUES
     ('smegma'),
     ('smoking after sex is hot'),
     ('snap the neck of canadian indian semites'),
+    ('sneedwaffen oberfuhrer'),
     ('snuff'),
     ('snuff bait'),
     ('snuffbait'),
@@ -3158,6 +3160,7 @@ VALUES
     ('we are so fucking back'),
     ('weed'),
     ('wehrmacht'),
+    ('wh0re'),
     ('what the actual fuck'),
     ('what the fuck'),
     ('what the fuck is a kilometer'),
@@ -3237,4 +3240,4 @@ DELETE FROM
 USING
     banned_club
 WHERE
-    LOWER(club.name) = banned_club.name;
+    club.name = banned_club.name;
