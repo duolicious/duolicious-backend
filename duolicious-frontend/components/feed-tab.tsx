@@ -9,7 +9,7 @@ import { DefaultText } from './default-text';
 import { DuoliciousTopNavBar } from './top-nav-bar';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
 import { Avatar } from './avatar';
-import { getShortElapsedTime } from '../util/util';
+import { getShortElapsedTime, isMobile, assertNever } from '../util/util';
 import { GestureResponderEvent, Pressable } from 'react-native';
 import { EnlargeablePhoto } from './enlargeable-image';
 import { commonStyles } from '../styles';
@@ -27,13 +27,20 @@ import { TopNavBarButton } from './top-nav-bar-button';
 import { setQuote } from './conversation-screen/quote';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
-import { isMobile } from '../util/util';
 import { OnlineIndicator } from './online-indicator';
 
 
 const NAME_ACTION_TIME_GAP_VERTICAL = 16;
 
 const DefaultList = Platform.OS === 'web' ? DefaultFlatList : DefaultFlashList;
+
+type Action =
+  | "added a photo"
+  | "added a voice bio"
+  | "erased their bio"
+  | "joined"
+  | "recently online"
+  | "updated their bio"
 
 const DataItemBaseSchema = z.object({
   time: z.string(),
@@ -45,8 +52,38 @@ const DataItemBaseSchema = z.object({
   match_percentage: z.number(),
 });
 
-const DataItemJoinedSchema = DataItemBaseSchema.extend({
+const AddedPhotoFieldsSchema = DataItemBaseSchema.extend({
+  added_photo_uuid: z.string(),
+  added_photo_blurhash: z.string(),
+  added_photo_extra_exts: z.array(z.string()),
+});
+
+const AddedVoiceBioFieldsSchema = DataItemBaseSchema.extend({
+  added_audio_uuid: z.string(),
+});
+
+const UpdatedBioFieldsSchema = DataItemBaseSchema.extend({
+  added_text: z.string(),
+  background_color: z.string(),
+  body_color: z.string(),
+});
+
+const JoinedFieldsSchema = DataItemBaseSchema;
+
+const DataItemJoinedSchema = JoinedFieldsSchema.extend({
   type: z.literal('joined'),
+});
+
+const DataItemAddedPhotoSchema = AddedPhotoFieldsSchema.extend({
+  type: z.literal('added-photo'),
+});
+
+const DataItemAddedVoiceBioSchema = AddedVoiceBioFieldsSchema.extend({
+  type: z.literal('added-voice-bio'),
+});
+
+const DataItemUpdatedBioSchema = UpdatedBioFieldsSchema.extend({
+  type: z.literal('updated-bio'),
 });
 
 const DataItemWasRecentlyOnlineSchema = DataItemBaseSchema.extend({
@@ -56,39 +93,39 @@ const DataItemWasRecentlyOnlineSchema = DataItemBaseSchema.extend({
   body_color: z.string(),
 });
 
-const DataItemAddedPhotoSchema = DataItemBaseSchema.extend({
-  type: z.literal('added-photo'),
-  added_photo_uuid: z.string(),
-  added_photo_blurhash: z.string(),
-  added_photo_extra_exts: z.array(z.string()),
+const DataItemWasRecentlyOnlineWithBioSchema = UpdatedBioFieldsSchema.extend({
+  type: z.literal('recently-online-with-bio'),
 });
 
-const DataItemAddedVoiceBioSchema = DataItemBaseSchema.extend({
-  type: z.literal('added-voice-bio'),
-  added_audio_uuid: z.string(),
+const DataItemWasRecentlyOnlineWithPhotoSchema = AddedPhotoFieldsSchema.extend({
+  type: z.literal('recently-online-with-photo'),
 });
 
-const DataItemUpdatedBioSchema = DataItemBaseSchema.extend({
-  type: z.literal('updated-bio'),
-  added_text: z.string(),
-  background_color: z.string(),
-  body_color: z.string(),
+const DataItemWasRecentlyOnlineWithVoiceBioSchema = AddedVoiceBioFieldsSchema.extend({
+  type: z.literal('recently-online-with-voice-bio'),
 });
 
 const DataItemSchema = z.discriminatedUnion('type', [
   DataItemJoinedSchema,
   DataItemWasRecentlyOnlineSchema,
+  DataItemWasRecentlyOnlineWithBioSchema,
+  DataItemWasRecentlyOnlineWithPhotoSchema,
+  DataItemWasRecentlyOnlineWithVoiceBioSchema,
   DataItemAddedVoiceBioSchema,
   DataItemAddedPhotoSchema,
   DataItemUpdatedBioSchema,
 ]);
 
 type DataItem = z.infer<typeof DataItemSchema>;
-type DataItemJoined = z.infer<typeof DataItemJoinedSchema>;
 type DataItemWasRecentlyOnline = z.infer<typeof DataItemWasRecentlyOnlineSchema>;
-type DataItemAddedPhoto = z.infer<typeof DataItemAddedPhotoSchema>;
-type DataItemAddedVoiceBio = z.infer<typeof DataItemAddedVoiceBioSchema>;
-type DataItemUpdatedBio = z.infer<typeof DataItemUpdatedBioSchema>;
+type DataItemWasRecentlyOnlineWithBio = z.infer<typeof DataItemWasRecentlyOnlineWithBioSchema>;
+type DataItemWasRecentlyOnlineWithPhoto = z.infer<typeof DataItemWasRecentlyOnlineWithPhotoSchema>;
+type DataItemWasRecentlyOnlineWithVoiceBio = z.infer<typeof DataItemWasRecentlyOnlineWithVoiceBioSchema>;
+
+type JoinedFields = z.infer<typeof JoinedFieldsSchema>;
+type UpdatedBioFields = z.infer<typeof UpdatedBioFieldsSchema>;
+type AddedPhotoFields = z.infer<typeof AddedPhotoFieldsSchema>;
+type AddedVoiceBioFields = z.infer<typeof AddedVoiceBioFieldsSchema>;
 
 const pageMetadata = {
   lastPage: null,
@@ -217,7 +254,7 @@ const NameActionTime = ({
   personUuid: string
   name: string
   isVerified: boolean
-  action: string
+  action: Action
   time: Date
   doUseOnline: boolean
   style?: any
@@ -301,10 +338,10 @@ const NameActionTime = ({
   );
 };
 
-const FeedItemJoined = ({ dataItem }: { dataItem: DataItemJoined }) => {
+const FeedItemJoined = ({ fields }: { fields: JoinedFields }) => {
   const onPress = useNavigationToProfile(
-    dataItem.person_uuid,
-    dataItem.photo_blurhash,
+    fields.person_uuid,
+    fields.photo_blurhash,
   );
 
   return (
@@ -312,28 +349,28 @@ const FeedItemJoined = ({ dataItem }: { dataItem: DataItemJoined }) => {
       onPress={onPress}
       style={styles.cardBorders}
     >
-      {dataItem.photo_uuid &&
+      {fields.photo_uuid &&
         <Avatar
-          percentage={dataItem.match_percentage}
-          personUuid={dataItem.person_uuid}
-          photoUuid={dataItem.photo_uuid}
-          photoBlurhash={dataItem.photo_blurhash}
-          doUseOnline={!!dataItem.photo_uuid}
+          percentage={fields.match_percentage}
+          personUuid={fields.person_uuid}
+          photoUuid={fields.photo_uuid}
+          photoBlurhash={fields.photo_blurhash}
+          doUseOnline={!!fields.photo_uuid}
         />
       }
       <NameActionTime
-        personUuid={dataItem.person_uuid}
-        name={dataItem.name}
-        isVerified={dataItem.is_verified}
+        personUuid={fields.person_uuid}
+        name={fields.name}
+        isVerified={fields.is_verified}
         action="joined"
-        time={new Date(dataItem.time)}
-        doUseOnline={!dataItem.photo_uuid}
+        time={new Date(fields.time)}
+        doUseOnline={!fields.photo_uuid}
       />
     </Pressable>
   );
 };
 
-const FeedItemWasRecentlyOnline = ({ dataItem }: { dataItem: DataItemWasRecentlyOnline }) => {
+const DeprecatedFeedItemWasRecentlyOnline = ({ dataItem }: { dataItem: DataItemWasRecentlyOnline }) => {
   const onPress = useNavigationToProfile(
     dataItem.person_uuid,
     dataItem.photo_blurhash,
@@ -414,42 +451,71 @@ const FeedItemWasRecentlyOnline = ({ dataItem }: { dataItem: DataItemWasRecently
   );
 };
 
-const FeedItemAddedPhoto = ({ dataItem }: { dataItem: DataItemAddedPhoto }) => {
+const FeedItemWasRecentlyOnline = ({
+  dataItem
+}: {
+  dataItem:
+    | DataItemWasRecentlyOnline
+    | DataItemWasRecentlyOnlineWithBio
+    | DataItemWasRecentlyOnlineWithPhoto
+    | DataItemWasRecentlyOnlineWithVoiceBio
+}) => {
+  switch (dataItem.type) {
+    case 'was-recently-online':
+      return <DeprecatedFeedItemWasRecentlyOnline dataItem={dataItem} />;
+    case 'recently-online-with-bio':
+      return <FeedItemUpdatedBio fields={dataItem} action="recently online" />;
+    case 'recently-online-with-photo':
+      return <FeedItemAddedPhoto fields={dataItem} action="recently online" />;
+    case 'recently-online-with-voice-bio':
+      return <FeedItemAddedVoiceBio fields={dataItem} action="recently online" />;
+    default:
+      return assertNever(dataItem);
+  }
+};
+
+const FeedItemAddedPhoto = ({
+  fields,
+  action = "added a photo",
+}: {
+  fields: AddedPhotoFields,
+  action?: Action,
+}) => {
   const onPress = useNavigationToProfile(
-    dataItem.person_uuid,
-    dataItem.photo_blurhash,
+    fields.person_uuid,
+    fields.photo_blurhash,
   );
 
-  const onPressPhoto = useNavigationToProfileGallery(dataItem.added_photo_uuid);
+  const onPressPhoto = useNavigationToProfileGallery(fields.added_photo_uuid);
 
   return (
     <Pressable
       onPress={onPress}
       style={styles.cardBorders}
     >
-      {dataItem.photo_uuid &&
+      {fields.photo_uuid &&
         <Avatar
-          percentage={dataItem.match_percentage}
-          personUuid={dataItem.person_uuid}
-          photoUuid={dataItem.photo_uuid}
-          photoBlurhash={dataItem.photo_blurhash}
-          doUseOnline={!!dataItem.photo_uuid}
+          percentage={fields.match_percentage}
+          personUuid={fields.person_uuid}
+          photoUuid={fields.photo_uuid}
+          photoBlurhash={fields.photo_blurhash}
+          doUseOnline={!!fields.photo_uuid}
         />
       }
       <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
         <NameActionTime
-          personUuid={dataItem.person_uuid}
-          name={dataItem.name}
-          isVerified={dataItem.is_verified}
-          action="added a photo"
-          time={new Date(dataItem.time)}
-          doUseOnline={!dataItem.photo_uuid}
+          personUuid={fields.person_uuid}
+          name={fields.name}
+          isVerified={fields.is_verified}
+          action={action}
+          time={new Date(fields.time)}
+          doUseOnline={!fields.photo_uuid}
         />
         <EnlargeablePhoto
           onPress={onPressPhoto}
-          photoUuid={dataItem.added_photo_uuid}
-          photoExtraExts={dataItem.added_photo_extra_exts}
-          photoBlurhash={dataItem.added_photo_blurhash}
+          photoUuid={fields.added_photo_uuid}
+          photoExtraExts={fields.added_photo_extra_exts}
+          photoBlurhash={fields.added_photo_blurhash}
           isPrimary={true}
           style={{
             ...commonStyles.secondaryEnlargeablePhoto,
@@ -462,10 +528,16 @@ const FeedItemAddedPhoto = ({ dataItem }: { dataItem: DataItemAddedPhoto }) => {
   );
 };
 
-const FeedItemAddedVoiceBio = ({ dataItem }: { dataItem: DataItemAddedVoiceBio }) => {
+const FeedItemAddedVoiceBio = ({
+  fields,
+  action = "added a voice bio"
+}: {
+  fields: AddedVoiceBioFields
+  action?: Action
+}) => {
   const onPress = useNavigationToProfile(
-    dataItem.person_uuid,
-    dataItem.photo_blurhash,
+    fields.person_uuid,
+    fields.photo_blurhash,
   );
 
   return (
@@ -473,26 +545,26 @@ const FeedItemAddedVoiceBio = ({ dataItem }: { dataItem: DataItemAddedVoiceBio }
       onPress={onPress}
       style={styles.cardBorders}
     >
-      {dataItem.photo_uuid &&
+      {fields.photo_uuid &&
         <Avatar
-          percentage={dataItem.match_percentage}
-          personUuid={dataItem.person_uuid}
-          photoUuid={dataItem.photo_uuid}
-          photoBlurhash={dataItem.photo_blurhash}
-          doUseOnline={!!dataItem.photo_uuid}
+          percentage={fields.match_percentage}
+          personUuid={fields.person_uuid}
+          photoUuid={fields.photo_uuid}
+          photoBlurhash={fields.photo_blurhash}
+          doUseOnline={!!fields.photo_uuid}
         />
       }
       <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
         <NameActionTime
-          personUuid={dataItem.person_uuid}
-          name={dataItem.name}
-          isVerified={dataItem.is_verified}
-          action="added a voice bio"
-          time={new Date(dataItem.time)}
-          doUseOnline={!dataItem.photo_uuid}
+          personUuid={fields.person_uuid}
+          name={fields.name}
+          isVerified={fields.is_verified}
+          action={action}
+          time={new Date(fields.time)}
+          doUseOnline={!fields.photo_uuid}
         />
         <AudioPlayer
-          uuid={dataItem.added_audio_uuid}
+          uuid={fields.added_audio_uuid}
           presentation="feed"
           style={{ marginTop: 0 }}
         />
@@ -501,18 +573,24 @@ const FeedItemAddedVoiceBio = ({ dataItem }: { dataItem: DataItemAddedVoiceBio }
   );
 };
 
-const FeedItemUpdatedBio = ({ dataItem }: { dataItem: DataItemUpdatedBio }) => {
+const FeedItemUpdatedBio = ({
+  fields,
+  action = "updated their bio"
+}: {
+  fields: UpdatedBioFields,
+  action?: Action,
+}) => {
   const onPress = useNavigationToProfile(
-    dataItem.person_uuid,
-    dataItem.photo_blurhash,
+    fields.person_uuid,
+    fields.photo_blurhash,
   );
 
   const onPressReply = useNavigationToConversation(
-    dataItem.person_uuid,
-    dataItem.name,
-    dataItem.photo_uuid,
-    dataItem.photo_blurhash,
-    dataItem.added_text,
+    fields.person_uuid,
+    fields.name,
+    fields.photo_uuid,
+    fields.photo_blurhash,
+    fields.added_text,
   );
 
   return (
@@ -520,41 +598,41 @@ const FeedItemUpdatedBio = ({ dataItem }: { dataItem: DataItemUpdatedBio }) => {
       onPress={onPress}
       style={styles.cardBorders}
     >
-      {dataItem.photo_uuid &&
+      {fields.photo_uuid &&
         <Avatar
-          percentage={dataItem.match_percentage}
-          personUuid={dataItem.person_uuid}
-          photoUuid={dataItem.photo_uuid}
-          photoBlurhash={dataItem.photo_blurhash}
-          doUseOnline={!!dataItem.photo_uuid}
+          percentage={fields.match_percentage}
+          personUuid={fields.person_uuid}
+          photoUuid={fields.photo_uuid}
+          photoBlurhash={fields.photo_blurhash}
+          doUseOnline={!!fields.photo_uuid}
         />
       }
       <View style={{ flex: 1, gap: isMobile() ? 8 : 10 }}>
         <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
           <NameActionTime
-            personUuid={dataItem.person_uuid}
-            name={dataItem.name}
-            isVerified={dataItem.is_verified}
+            personUuid={fields.person_uuid}
+            name={fields.name}
+            isVerified={fields.is_verified}
             action={
-              dataItem.added_text.trim()
-                ? "updated their bio"
+              fields.added_text.trim()
+                ? action
                 : "erased their bio"
             }
-            time={new Date(dataItem.time)}
-            doUseOnline={!dataItem.photo_uuid}
+            time={new Date(fields.time)}
+            doUseOnline={!fields.photo_uuid}
             style={{
               paddingHorizontal: 10,
             }}
           />
           <DefaultText
             style={{
-              backgroundColor: dataItem.background_color,
-              color: dataItem.body_color,
+              backgroundColor: fields.background_color,
+              color: fields.body_color,
               borderRadius: 10,
               padding: 10,
             }}
           >
-            {dataItem.added_text}
+            {fields.added_text}
           </DefaultText>
         </View>
         <View style={{ alignItems: 'flex-end' }} >
@@ -591,18 +669,24 @@ const FeedItem = ({ dataItem }: { dataItem: DataItem }) => {
 
   if (isSkipped) {
     return <></>;
-  } else if (dataItem.type === 'joined') {
-    return <FeedItemJoined dataItem={dataItem} />;
-  } else if (dataItem.type === 'was-recently-online') {
-    return <FeedItemWasRecentlyOnline dataItem={dataItem} />;
-  } else if (dataItem.type === 'added-photo') {
-    return <FeedItemAddedPhoto dataItem={dataItem} />;
-  } else if (dataItem.type === 'added-voice-bio') {
-    return <FeedItemAddedVoiceBio dataItem={dataItem} />;
-  } else if (dataItem.type === 'updated-bio') {
-    return <FeedItemUpdatedBio dataItem={dataItem} />;
-  } else {
-    return <></>;
+  }
+
+  switch (dataItem.type) {
+    case 'joined':
+      return <FeedItemJoined fields={dataItem} />;
+    case 'was-recently-online':
+    case 'recently-online-with-bio':
+    case 'recently-online-with-photo':
+    case 'recently-online-with-voice-bio':
+      return <FeedItemWasRecentlyOnline dataItem={dataItem} />;
+    case 'added-photo':
+      return <FeedItemAddedPhoto fields={dataItem} />;
+    case 'added-voice-bio':
+      return <FeedItemAddedVoiceBio fields={dataItem} />;
+    case 'updated-bio':
+      return <FeedItemUpdatedBio fields={dataItem} />;
+    default:
+      return assertNever(dataItem);
   }
 };
 
