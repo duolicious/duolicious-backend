@@ -53,12 +53,37 @@ UPDATE
     person
 SET
     last_event_time = now(),
-    last_event_name = 'was-recently-online',
-    last_event_data = jsonb_build_object(
-        'text', %(about_text)s::TEXT,
-        'body_color', body_color,
-        'background_color', background_color
-    )
+
+    last_event_name = CASE
+        WHEN last_event_name = 'added-photo'
+        THEN 'recently-online-with-photo'
+
+        WHEN last_event_name = 'added-voice-bio'
+        THEN 'recently-online-with-voice-bio'
+
+        WHEN last_event_name = 'updated-bio'
+        THEN 'recently-online-with-bio'
+
+        ELSE 'recently-online-with-bio'
+    END::person_event,
+
+    last_event_data = CASE
+        WHEN (
+                last_event_name = 'added-photo'
+            OR
+                last_event_name = 'added-voice-bio'
+            OR
+                last_event_name = 'updated-bio'
+        ) THEN
+            last_event_data
+
+        ELSE
+            jsonb_build_object(
+                'added_text', %(about_text)s::TEXT,
+                'body_color', body_color,
+                'background_color', background_color
+            )
+    END
 WHERE
     uuid = %(person_uuid)s
 """
