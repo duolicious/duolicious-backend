@@ -57,7 +57,7 @@ def migrate_unnormalized_emails():
     `normalize_email` normalizes more address.
     """
     with api_tx() as tx:
-        q = "SELECT 1 FROM person WHERE normalized_email = '' LIMIT 1"
+        q = "SELECT 1 FROM person WHERE normalized_email ILIKE '%@googlemail.com' LIMIT 1"
         if tx.execute(q).fetchone():
             print('Unnormalized emails found. Normalizing...')
         else:
