@@ -4,8 +4,9 @@ import time
 import unittest
 from datetime import timedelta
 from unittest.mock import patch
-
-from antiabuse.firehol import Firehol, _parse_blocklist
+import random
+from typing import Iterable, Tuple
+from antiabuse.firehol import Firehol, _parse_blocklist, _Trie, IPvXNetwork
 
 # ---------------------------------------------------------------------------
 # Fixture data & helpers
@@ -22,6 +23,36 @@ bad_line_should_be_ignored
 def _fake_download(_self, _name: str) -> str:
     """Stub that replaces Firehol._download_or_load — never hits disk/network."""
     return _SAMPLE_NETSET
+
+
+def _sample_addresses(net: IPvXNetwork) -> Iterable[ipaddress._BaseAddress]:
+    """
+    Yield up to three representative addresses from *inside* `net`:
+      • the network address
+      • the broadcast/last address
+      • a midpoint host (when at least 3 usable addresses)
+    """
+    yield net.network_address
+    yield net.broadcast_address
+
+    if net.num_addresses > 2:
+        yield net[(net.num_addresses // 2)]
+
+
+def _address_outside(net: IPvXNetwork) -> ipaddress._BaseAddress:
+    """
+    Deterministically pick an address that is *not* in `net`.
+    The method biases toward nearby addresses so we sometimes cross
+    prefix-boundaries.
+    """
+    if isinstance(net, ipaddress.IPv4Network):
+        # Flip the MSB (bit-31) to guarantee we leave the /1 that contains `net`
+        addr_int = int(net.network_address) ^ (1 << 31)
+        return ipaddress.IPv4Address(addr_int)
+    else:
+        # Flip the MSB (bit-127) for IPv6
+        addr_int = int(net.network_address) ^ (1 << 127)
+        return ipaddress.IPv6Address(addr_int)
 
 
 class PatchedFireholMixin(unittest.TestCase):
@@ -99,3 +130,83 @@ class ConstructorGuardTests(unittest.TestCase):
     def test_empty_list_names(self):
         with self.assertRaises(ValueError):
             Firehol([])
+
+
+class TrieTests(unittest.TestCase):
+    """
+    Populates one trie with a mix of ~2 000 random networks
+    and probes each one for correctness.
+    """
+
+    trie: _Trie
+    lookup_table: dict[IPvXNetwork, str]
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        random.seed(0xF1EE)  # deterministic
+
+        cls.trie = _Trie()
+        cls.lookup_table = {}
+
+        # Generate random networks
+        for family, count in (("v4", 1000), ("v6", 1000)):
+            for _ in range(count):
+                net, name = cls._make_random_network(family)
+                cls.trie.insert(net, name)
+                cls.lookup_table[net] = name
+
+    # ------------------------------------------------------------------ #
+    #                               helpers                              #
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def _make_random_network(
+        family: str,
+    ) -> Tuple[IPvXNetwork, str]:
+        """
+        Return a random IPv4 / IPv6 network together with a unique list-name.
+        """
+        addr: ipaddress.IPv4Address | ipaddress.IPv6Address
+        if family == "v4":
+            addr = ipaddress.IPv4Address(random.getrandbits(32))
+            prefix = random.randint(8, 32)  # avoid /0 in tests
+        else:
+            addr = ipaddress.IPv6Address(random.getrandbits(128))
+            prefix = random.randint(16, 128)
+
+        net = ipaddress.ip_network((addr, prefix), strict=False)
+        name = f"list_{family}_{addr}_{prefix}"
+        return net, name
+
+    # ------------------------------------------------------------------ #
+    #                               tests                                #
+    # ------------------------------------------------------------------ #
+
+    def test_all_positive_matches(self):
+        """
+        Every sampled address *inside* each inserted network must match
+        exactly the corresponding list-name.
+        """
+        for net, expected_list in self.lookup_table.items():
+            for addr in _sample_addresses(net):
+                with self.subTest(addr=str(addr), net=str(net)):
+                    self.assertIn(
+                        expected_list,
+                        self.trie.search(addr),
+                        msg=f"{addr} should match {net}",
+                    )
+
+    def test_no_false_positives(self):
+        """
+        An address deliberately chosen *outside* a network must NOT match that
+        network’s list-name (though it may match something else if there is
+        overlap; we merely assert it isn’t a false positive for *that* list).
+        """
+        for net, list_name in self.lookup_table.items():
+            addr = _address_outside(net)
+            with self.subTest(addr=str(addr), net=str(net)):
+                self.assertNotIn(
+                    list_name,
+                    self.trie.search(addr),
+                    msg=f"{addr} unexpectedly matched {net}",
+                )
+

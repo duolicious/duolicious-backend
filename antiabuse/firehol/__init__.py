@@ -16,7 +16,7 @@ import time
 import traceback
 from datetime import timedelta
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple, Union
+from typing import Dict, Iterable, Tuple, Union
 from urllib.request import urlopen
 import threading
 
@@ -48,10 +48,10 @@ def _blocklist_url(name: ListName) -> str:
 
 def _parse_blocklist(
     text: str,
-) -> Tuple[List[ipaddress.IPv4Network], List[ipaddress.IPv6Network]]:
+) -> Tuple[list[ipaddress.IPv4Network], list[ipaddress.IPv6Network]]:
     """Convert raw *netset* text to IPv4 and IPv6 network lists."""
-    v4: List[ipaddress.IPv4Network] = []
-    v6: List[ipaddress.IPv6Network] = []
+    v4: list[ipaddress.IPv4Network] = []
+    v6: list[ipaddress.IPv6Network] = []
 
     for line in text.splitlines():
         # Skip comments / blank lines quickly
@@ -112,7 +112,7 @@ class _Trie:
         node.lists.add(list_name)
 
     # walk the bits of an address, collecting all matching lists
-    def search(self, addr: IPvXAddress) -> List[ListName]:
+    def search(self, addr: IPvXAddress) -> list[ListName]:
         node, found = self.root, set()
         for bit in range(addr.max_prefixlen):
             if node.lists:
@@ -146,8 +146,8 @@ class Firehol:
     """
 
     _lock: threading.RLock                                    # protects _data
-    _data: Dict[ListName, Tuple[List[ipaddress.IPv4Network],  # name → nets
-                                List[ipaddress.IPv6Network]]]
+    _data: Dict[ListName, Tuple[list[ipaddress.IPv4Network],  # name → nets
+                                list[ipaddress.IPv6Network]]]
 
     # ---------------------------------------------------------------------
 
@@ -158,7 +158,7 @@ class Firehol:
         update_interval: timedelta | None = None,
         start_updater: bool = True,
     ) -> None:
-        self.lists: List[ListName] = list(lists)
+        self.lists: list[ListName] = list(lists)
         if not self.lists:
             raise ValueError("At least one FireHOL list must be supplied.")
 
@@ -263,11 +263,11 @@ class Firehol:
             time.sleep(self.update_interval.total_seconds())
 
     def _collect_data_once(self) -> Dict[ListName, Tuple[
-            List[ipaddress.IPv4Network], List[ipaddress.IPv6Network]
+            list[ipaddress.IPv4Network], list[ipaddress.IPv6Network]
             ]]:
         """Download / load every configured list, return dict(name → nets)."""
         fresh_data: Dict[ListName, Tuple[
-            List[ipaddress.IPv4Network], List[ipaddress.IPv6Network]
+            list[ipaddress.IPv4Network], list[ipaddress.IPv6Network]
         ]] = {}
 
         for name in self.lists:
