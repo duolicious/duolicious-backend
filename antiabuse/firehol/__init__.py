@@ -140,7 +140,7 @@ class Firehol:
         The short *netset* names, e.g. ``"firehol_level1"``.  See the full list
         at <https://github.com/firehol/blocklist-ipsets>.
     update_interval
-        How often to fetch fresh lists.  Defaults to every 1 hour.
+        How often to fetch fresh lists.
     start_updater
         Whether to start the background refresh thread automatically.
     """
@@ -162,11 +162,11 @@ class Firehol:
         if not self.lists:
             raise ValueError("At least one FireHOL list must be supplied.")
 
-        self.update_interval = update_interval or timedelta(hours=1)
+        self.update_interval = update_interval or timedelta(hours=4)
         if self.update_interval.total_seconds() <= 0:
             raise ValueError("update_interval must be positive.")
 
-        self._jitter = random.uniform(0.0, 1.0)
+        self._jitter = random.uniform(0.0, 10.0)
         self._lock = threading.RLock()
         self._data = {}
         self._v4_trie = _Trie()

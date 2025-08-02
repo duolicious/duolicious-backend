@@ -79,7 +79,7 @@ class PatchedFireholMixin(unittest.TestCase):
             update_interval=timedelta(hours=1),   # long enough to avoid re-fetch
             start_updater=True,
         )
-        ok = fh.wait_until_loaded(timeout=5.0)    # jitter ≤ 1 s, so 5 s is ample
+        ok = fh.wait_until_loaded(timeout=11.0)
         if not ok:
             self.fail("Firehol worker did not deliver data within 5 s")
 
