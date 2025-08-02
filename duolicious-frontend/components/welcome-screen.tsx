@@ -414,9 +414,10 @@ const WelcomeScreen_ = ({navigation, route}) => {
       );
     } else {
       setLoginStatus(
+        response.status === 400 ? 'We don’t support that email provider' :
+        response.status === 403 ? 'Your account is banned' :
         response.status === 429 ? 'You’re doing that too much' :
-        response.status === 403 ? 'Your account has been banned' :
-        response.clientError ? 'We don’t support that email provider' :
+        response.status === 460 ? 'Your IP address is blocked' :
         'We couldn’t connect to Duolicious'
       );
     }
