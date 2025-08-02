@@ -127,29 +127,141 @@ class _Trie:
 
 
 # ---------------------------------------------------------------------------
-# Main class
+# Worker-side helpers (download / parse / build tries)
 # ---------------------------------------------------------------------------
 
+def _download_or_load(name: ListName, update_interval: timedelta) -> str:
+    """Return the raw list text (downloaded or cached), protected by a lock."""
+    path = cache_dir / name
+    lock_path = cache_dir / f"{name}.lock"
+
+    with _exclusive_lock(lock_path):
+        # Cache fast‑path
+        if path.exists():
+            age = time.time() - path.stat().st_mtime
+            if age < update_interval.total_seconds():
+                print(f'Loading from disk {path}')
+                return path.read_text(encoding="utf-8", errors="ignore")
+
+        # Cache miss or stale – download
+        url = _blocklist_url(name)
+        print(f'Downloading {url}')
+        with urlopen(url, timeout=30) as resp:
+            raw_bytes = resp.read()
+        print(f'Finished downloading {url}')
+        text = raw_bytes.decode("utf-8", errors="ignore")
+
+        # Atomic write: write to tmp → replace
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(text, encoding="utf-8")
+        os.replace(tmp, path)  # atomic on POSIX
+
+        return text
+
+
+def _collect_all(lists: Iterable[ListName],
+                 update_interval: timedelta
+                 ) -> Dict[ListName, Tuple[
+                     list[ipaddress.IPv4Network], list[ipaddress.IPv6Network]
+                 ]]:
+    """Download / load every configured list, return dict(name → nets)."""
+    fresh: Dict[ListName, Tuple[
+        list[ipaddress.IPv4Network], list[ipaddress.IPv6Network]
+    ]] = {}
+
+    for name in lists:
+        raw = _download_or_load(name, update_interval)
+        v4, v6 = _parse_blocklist(raw)
+        if not v4 and not v6:
+            raise ValueError(f"FireHOL list '{name}' appears to be empty.")
+        fresh[name] = (v4, v6)
+
+    return fresh
+
+
+def _build_tries(data: Dict[ListName, Tuple[
+        list[ipaddress.IPv4Network], list[ipaddress.IPv6Network]
+        ]]) -> tuple[_Trie, _Trie]:
+    v4_trie = _Trie()
+    v6_trie = _Trie()
+    for name, (v4, v6) in data.items():
+        for v4net in v4:
+            v4_trie.insert(v4net, name)
+        for v6net in v6:
+            v6_trie.insert(v6net, name)
+    return v4_trie, v6_trie
+
+
+# ---------------------------------------------------------------------------
+# Worker process
+# ---------------------------------------------------------------------------
+
+def _worker_main(conn: mp.connection.Connection,
+                 lists: list[ListName],
+                 update_interval: timedelta) -> None:
+    """Run in a dedicated process: refresh lists & answer match queries."""
+    jitter = random.uniform(0.0, 10.0)
+    next_refresh = 0.0
+    tries: tuple[_Trie, _Trie] | None = None
+    refreshing = False # at most one refresh at a time
+
+    def _async_refresh():
+        nonlocal tries, refreshing, next_refresh
+
+        print(f'Waiting for {jitter} seconds before collecting FireHOL list(s)')
+        time.sleep(jitter)
+
+        try:
+            data = _collect_all(lists, update_interval)
+            tries = _build_tries(data)
+            next_refresh = time.time() + update_interval.total_seconds()
+        finally:
+            refreshing = False  # allow future refreshes
+
+    while True:
+        now = time.time()
+
+        # ------------------------------------------------------------------
+        # Kick off a background refresh if it's time and none is running
+        # ------------------------------------------------------------------
+        if not refreshing and now >= next_refresh:
+            refreshing = True
+            threading.Thread(target=_async_refresh, daemon=True).start()
+
+        # ------------------------------------------------------------------
+        # Check for incoming commands
+        # ------------------------------------------------------------------
+        if not conn.poll(0.1):                          # 100 ms tick
+            continue
+
+        try:
+            cmd, payload = conn.recv()
+        except EOFError:                                # parent is gone
+            break
+
+        # ------------------- command handlers -----------------------------
+        if cmd == "query":
+            if not tries:
+                conn.send(None)                         # not yet loaded
+                continue
+            addr = ipaddress.ip_address(payload)
+            v4_trie, v6_trie = tries
+            trie = v4_trie if addr.version == 4 else v6_trie
+            conn.send(trie.search(addr))
+        elif cmd == "ready":
+            conn.send(tries is not None)
+        elif cmd == "shutdown":
+            break
+
+    conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Main façade class (lives inside the web worker)
+# ---------------------------------------------------------------------------
 
 class Firehol:
-    """Check IP addresses against selected FireHOL block lists.
-
-    Parameters
-    ----------
-    lists
-        The short *netset* names, e.g. ``"firehol_level1"``.  See the full list
-        at <https://github.com/firehol/blocklist-ipsets>.
-    update_interval
-        How often to fetch fresh lists.
-    start_updater
-        Whether to start the background refresh thread automatically.
-    """
-
-    _lock: threading.RLock                                    # protects _data
-    _data: Dict[ListName, Tuple[list[ipaddress.IPv4Network],  # name → nets
-                                list[ipaddress.IPv6Network]]]
-
-    # ---------------------------------------------------------------------
+    """Check IP addresses against selected FireHOL block lists."""
 
     def __init__(
         self,
@@ -161,156 +273,106 @@ class Firehol:
         self.lists: list[ListName] = list(lists)
         if not self.lists:
             raise ValueError("At least one FireHOL list must be supplied.")
-
         self.update_interval = update_interval or timedelta(hours=4)
         if self.update_interval.total_seconds() <= 0:
             raise ValueError("update_interval must be positive.")
 
-        self._jitter = random.uniform(0.0, 10.0)
-        self._lock = threading.RLock()
-        self._data = {}
-        self._v4_trie = _Trie()
-        self._v6_trie = _Trie()
-        self._ready = threading.Event()
+        self._conn_lock = threading.Lock()
 
-        # -----------------------------------------------------------------
-        # Background process that fetches the lists and pushes them back through
-        # a one-way pipe.
-        # -----------------------------------------------------------------
         self._parent_conn = None
         self._proc = None
 
         if start_updater:
-            parent_conn, child_conn = mp.Pipe(duplex=False)
-            self._parent_conn = parent_conn
+            self._parent_conn, child_conn = mp.Pipe(duplex=True)
             self._proc = mp.Process(
-                target=self._updater_process,
-                args=(child_conn,),
+                target=_worker_main,
+                args=(child_conn, self.lists, self.update_interval),
                 daemon=True,
             )
             self._proc.start()
 
     # ---------------------------------------------------------------------
+    # Internal RPC helper
+    # ---------------------------------------------------------------------
+    def _rpc(self, cmd, payload, *, timeout: float = 0.2):
+        if not self._parent_conn:
+            print(f"Warning: No FireHOL RPC connection. ({cmd}, {payload})")
+            return None
+
+        with self._conn_lock:
+            # Drain stale data first
+            while self._parent_conn.poll():
+                self._parent_conn.recv()
+
+            self._parent_conn.send((cmd, payload))
+
+            if self._parent_conn.poll(timeout):    # nothing yet → give up
+                return self._parent_conn.recv()
+            else:
+                return None
+
+    # ---------------------------------------------------------------------
     # Public API
     # ---------------------------------------------------------------------
-
     def matches(self, ip: IPAddress) -> list[ListName]:
-        # Opportunistically fold in any fresh data the worker sent.
-        self._process_incoming()
+        """Return the FireHOL lists the address belongs to (or [])."""
+        response = self._rpc(cmd="query", payload=str(ip))
 
-        if not self._ready.is_set():
-            print(f"Warning: FireHOL block lists not yet loaded while checking {ip}")
+        if response is None or response is False:
+            print(f"Warning: FireHOL lists not yet loaded while checking {ip}")
             return []
 
-        addr = ipaddress.ip_address(ip)
-        trie = self._v4_trie if addr.version == 4 else self._v6_trie
-        return trie.search(addr)
+        return response
 
     def wait_until_loaded(self, timeout: float | None = None) -> bool:
         """Block until the first refresh finishes (same semantics)."""
         start = time.time()
         while True:
-            self._process_incoming()
-            if self._ready.is_set():
+            if self._rpc("ready", None):
                 return True
             if timeout is not None and (time.time() - start) >= timeout:
                 return False
             time.sleep(0.05)
 
-    # ---------------------------------------------------------------------
-    # Internal helpers – parent side
-    # ---------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # Graceful shutdown helpers
+    # ------------------------------------------------------------------
 
-    def _process_incoming(self) -> None:
-        """Drain the pipe; apply the *latest* update, keep at most one."""
+    def close(self, *, timeout: float = 1.0) -> None:
+        """Tell the worker to exit, then join it (idempotent)."""
+        if self._proc is None:           # nothing to do / already closed
+            return
         if self._parent_conn is None:
             return
 
-        latest_data = None
-        while self._parent_conn.poll():
-            latest_data = self._parent_conn.recv()
+        try:
+            with self._conn_lock:
+                try:
+                    self._parent_conn.send(("shutdown", None))
+                except (BrokenPipeError, OSError):
+                    pass  # parent/child already dead
 
-        if latest_data is None:
-            return  # no new payload
+            self._parent_conn.close()
 
-        v4_trie, v6_trie = _Trie(), _Trie()
-        for name, (v4, v6) in latest_data.items():
-            for net in v4:
-                v4_trie.insert(net, name)
-            for net in v6:
-                v6_trie.insert(net, name)
+            self._proc.join(timeout)
+            if self._proc.is_alive():     # still hanging around → stick
+                self._proc.terminate()
+                self._proc.join(0.1)
+        finally:
+            self._proc = None
+            self._parent_conn = None
 
-        with self._lock:
-            self._data = latest_data
-            self._v4_trie = v4_trie
-            self._v6_trie = v6_trie
-        self._ready.set()
+    # GC fallback – best-effort only!
+    def __del__(self):
+        try:
+            self.close()
+        except:
+            print(traceback.format_exc())
 
-    # ---------------------------------------------------------------------
-    # Worker process logic
-    # ---------------------------------------------------------------------
 
-    def _updater_process(self, conn: mp.connection.Connection) -> None:
-        """Process entry-point: repeatedly fetch & push fresh data."""
-        # NB: we’re in a forked/child copy of `self` here.
-        while True:
-            time.sleep(self._jitter)
-            try:
-                fresh_data = self._collect_data_once()
-                conn.send(fresh_data)                     # one-way push
-            except Exception:
-                print("[Firehol worker]\n" + traceback.format_exc())
-            time.sleep(self.update_interval.total_seconds())
-
-    def _collect_data_once(self) -> Dict[ListName, Tuple[
-            list[ipaddress.IPv4Network], list[ipaddress.IPv6Network]
-            ]]:
-        """Download / load every configured list, return dict(name → nets)."""
-        fresh_data: Dict[ListName, Tuple[
-            list[ipaddress.IPv4Network], list[ipaddress.IPv6Network]
-        ]] = {}
-
-        for name in self.lists:
-            print(f'Downloading or loading {name}')
-            raw = self._download_or_load(name)
-            print(f'Finished downloading or loading {name}')
-            print(f'Parsing {name}')
-            v4, v6 = _parse_blocklist(raw)
-            print(f'Finished parsing {name}')
-            if not v4 and not v6:
-                raise ValueError(f"FireHOL list '{name}' appears to be empty.")
-            fresh_data[name] = (v4, v6)
-
-        return fresh_data
-
-    def _download_or_load(self, name: ListName) -> str:
-        """Return the raw list text (downloaded or cached), protected by a lock."""
-        path = cache_dir / name
-        lock_path = cache_dir / f"{name}.lock"
-
-        with _exclusive_lock(lock_path):
-            # Cache fast‑path
-            if path.exists():
-                age = time.time() - path.stat().st_mtime
-                if age < self.update_interval.total_seconds():
-                    print(f'Loading from disk {path}')
-                    return path.read_text(encoding="utf-8", errors="ignore")
-
-            # Cache miss or stale – download
-            url = _blocklist_url(name)
-            print(f'Downloading {url}')
-            with urlopen(url, timeout=30) as resp:
-                raw_bytes = resp.read()
-            print(f'Finished downloading {url}')
-            text = raw_bytes.decode("utf-8", errors="ignore")
-
-            # Atomic write: write to tmp → replace
-            tmp = path.with_suffix(".tmp")
-            tmp.write_text(text, encoding="utf-8")
-            os.replace(tmp, path)  # atomic on POSIX
-
-            return text
-
+# ---------------------------------------------------------------------------
+# Convenience singleton
+# ---------------------------------------------------------------------------
 
 firehol = Firehol(
     lists=[

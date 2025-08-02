@@ -289,8 +289,12 @@ def get_search(s: t.SessionInfo):
     else:
         return search.get_search(s=s, n=n, o=o, club=club)
 
+# TODO
+from antiabuse.firehol import firehol
 @get('/health', limiter=limiter.exempt)
 def get_health():
+    # TODO
+    print(firehol.matches('45.137.70.158'))
     return 'status: ok'
 
 @aget('/me')
