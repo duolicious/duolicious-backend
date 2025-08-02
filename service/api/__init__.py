@@ -78,7 +78,7 @@ def migrate_unnormalized_emails():
     ]
     print('Done computing normalized emails')
 
-    with api_tx() as tx:
+    with api_tx('read committed') as tx:
         q = """
         UPDATE person SET
         normalized_email = %(normalized_email)s
@@ -89,7 +89,6 @@ def migrate_unnormalized_emails():
         tx.executemany(q, params_seq)
         print('Done updating normalized emails in `person` table')
 
-    with api_tx() as tx:
         q = """
         UPDATE banned_person bp
         SET
@@ -108,7 +107,6 @@ def migrate_unnormalized_emails():
         )
         """
         print('Updating normalized emails in `banned_person` table')
-        tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
         tx.executemany(q, params_seq)
         print('Done updating normalized emails in `banned_person` table')
 
