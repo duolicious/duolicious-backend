@@ -27,6 +27,7 @@ from antiabuse.antispam.signupemail import (
 from antiabuse.lodgereport import (
     skip_by_uuid,
 )
+from antiabuse.firehol import firehol
 import blurhash
 import numpy
 import erlastic
@@ -265,6 +266,9 @@ def _send_otp(email: str, otp: str):
     )
 
 def post_request_otp(req: t.PostRequestOtp):
+    if not request.remote_addr or firehol.matches(request.remote_addr):
+        return 'IP address blocked', 460
+
     if not check_and_update_bad_domains(req.email):
         return 'Disposable email', 400
 
@@ -277,7 +281,7 @@ def post_request_otp(req: t.PostRequestOtp):
         pending_club_name=req.pending_club_name,
         is_dev=DUO_ENV == 'dev',
         session_token_hash=session_token_hash,
-        ip_address=request.remote_addr or "127.0.0.1",
+        ip_address=request.remote_addr,
     )
 
     with api_tx() as tx:
@@ -294,12 +298,15 @@ def post_request_otp(req: t.PostRequestOtp):
     return dict(session_token=session_token)
 
 def post_resend_otp(s: t.SessionInfo):
+    if not request.remote_addr or firehol.matches(request.remote_addr):
+        return 'IP address blocked', 460
+
     params = dict(
         email=s.email,
         normalized_email=normalize_email(s.email),
         is_dev=DUO_ENV == 'dev',
         session_token_hash=s.session_token_hash,
-        ip_address=request.remote_addr or "127.0.0.1",
+        ip_address=request.remote_addr,
     )
 
     with api_tx() as tx:
@@ -314,6 +321,9 @@ def post_resend_otp(s: t.SessionInfo):
     _send_otp(s.email, otp)
 
 def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
+    if not request.remote_addr or firehol.matches(request.remote_addr):
+        return 'IP address blocked', 460
+
     params = dict(
         otp=req.otp,
         session_token_hash=s.session_token_hash,
