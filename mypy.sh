@@ -27,6 +27,7 @@ then
   python3 -m mypy "${1}"
 else
   python3 -m mypy \
+    antiabuse/firehol \
     service/chat \
     service/api/__init__.py \
     service/search/__init__.py \
