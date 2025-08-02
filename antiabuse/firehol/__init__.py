@@ -20,7 +20,7 @@ Key design points
 
 Example
 -------
->>> checker = Firehol(["firehol_level1", "firehol_level2"])
+>>> checker = Firehol(["firehol_level1.ipset", "firehol_level2.netset"])
 >>> checker.matches("1.2.3.4")
 ['firehol_level1']
 """
