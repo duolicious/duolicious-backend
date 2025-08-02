@@ -195,6 +195,7 @@ class Firehol:
     # ---------------------------------------------------------------------
 
     def matches(self, ip: IPAddress) -> list[ListName]:
+        print(f'checking {ip}')
         # Opportunistically fold in any fresh data the worker sent.
         self._process_incoming()
 
