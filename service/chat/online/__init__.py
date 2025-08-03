@@ -19,7 +19,7 @@ from util import truncate_text
 
 LAST_UPDATE_INTERVAL_SECONDS = 4 * 60  # 4 minutes
 
-LIKELIHOOD_OF_LAST_EVENT_UPDATE = 0.30  # 30 percent
+LIKELIHOOD_OF_LAST_EVENT_UPDATE = 0.50
 
 FMT_KEY = 'online-{username}'
 
