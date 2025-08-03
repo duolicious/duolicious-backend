@@ -190,14 +190,13 @@ class Firehol:
             )
             self._proc.start()
 
+            self._start_apply_thread()
+
     # ---------------------------------------------------------------------
     # Public API
     # ---------------------------------------------------------------------
 
     def matches(self, ip: IPAddress) -> list[ListName]:
-        # Opportunistically fold in any fresh data the worker sent.
-        self._process_incoming()
-
         if not self._ready.is_set():
             print(f"Warning: FireHOL block lists not yet loaded while checking {ip}")
             return []
@@ -207,44 +206,8 @@ class Firehol:
         return trie.search(addr)
 
     def wait_until_loaded(self, timeout: float | None = None) -> bool:
-        """Block until the first refresh finishes (same semantics)."""
-        start = time.time()
-        while True:
-            self._process_incoming()
-            if self._ready.is_set():
-                return True
-            if timeout is not None and (time.time() - start) >= timeout:
-                return False
-            time.sleep(0.05)
-
-    # ---------------------------------------------------------------------
-    # Internal helpers – parent side
-    # ---------------------------------------------------------------------
-
-    def _process_incoming(self) -> None:
-        """Drain the pipe; apply the *latest* update, keep at most one."""
-        if self._parent_conn is None:
-            return
-
-        latest_data = None
-        while self._parent_conn.poll():
-            latest_data = self._parent_conn.recv()
-
-        if latest_data is None:
-            return  # no new payload
-
-        v4_trie, v6_trie = _Trie(), _Trie()
-        for name, (v4, v6) in latest_data.items():
-            for net in v4:
-                v4_trie.insert(net, name)
-            for net in v6:
-                v6_trie.insert(net, name)
-
-        with self._lock:
-            self._data = latest_data
-            self._v4_trie = v4_trie
-            self._v6_trie = v6_trie
-        self._ready.set()
+        """Block until the first refresh finishes."""
+        return self._ready.wait(timeout)
 
     # ---------------------------------------------------------------------
     # Worker process logic
@@ -310,6 +273,39 @@ class Firehol:
             os.replace(tmp, path)  # atomic on POSIX
 
             return text
+
+    # ---------------------------------------------------------------------
+    # Thread to apply updates
+    # ---------------------------------------------------------------------
+    def _build_tries(
+        self,
+        data: Dict[ListName, Tuple[list[ipaddress.IPv4Network],
+                                   list[ipaddress.IPv6Network]]]
+    ) -> tuple[_Trie, _Trie]:
+        v4_trie, v6_trie = _Trie(), _Trie()
+
+        for name, (v4_nets, v6_nets) in data.items():
+            for v4net in v4_nets:
+                v4_trie.insert(v4net, name)
+            for v6net in v6_nets:
+                v6_trie.insert(v6net, name)
+
+        return v4_trie, v6_trie
+
+    def _start_apply_thread(self):
+        t = threading.Thread(target=self._apply_updates_loop,
+                             daemon=True)
+        t.start()
+
+    def _apply_updates_loop(self):
+        while True:
+            latest = self._parent_conn.recv()
+            v4_trie, v6_trie = self._build_tries(latest)
+            with self._lock:
+                self._data = latest
+                self._v4_trie = v4_trie
+                self._v6_trie = v6_trie
+            self._ready.set()
 
 
 firehol = Firehol(
