@@ -999,7 +999,9 @@ WITH searcher AS (
     -- Decrease users' odds of appearing in the feed as the age gap between them
     -- and the searcher grows
     AND random() < 1.0 / (
-        1.0 + 0.5 * ABS(searcher.date_of_birth - prospect.date_of_birth) / 365.0
+        1.0 +
+        2.0 * -- Higher values of this coefficient increase selectivity
+        ABS(searcher.date_of_birth - prospect.date_of_birth) / 365.0
     )
     -- The searcher meets the prospect's gender preference
     AND EXISTS (
