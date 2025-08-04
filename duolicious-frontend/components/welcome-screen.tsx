@@ -413,12 +413,8 @@ const WelcomeScreen_ = ({navigation, route}) => {
         },
       );
     } else {
-      // TODO: Remove the 403 error code from this list. It can cause users to
-      // falsely receive a message that they were banned if, for example,
-      // Cloudflare determines that the traffic seems suspicious
       setLoginStatus(
         response.status === 400 ? 'We don’t support that email provider' :
-        response.status === 403 ? 'Your account is banned' :
         response.status === 429 ? 'You’re doing that too much' :
         response.status === 460 ? 'Network blocked. Are you using a VPN?' :
         response.status === 461 ? 'Your account is banned' :
