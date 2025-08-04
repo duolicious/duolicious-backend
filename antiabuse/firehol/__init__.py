@@ -1,8 +1,17 @@
 """
 FireHOL block-list helper that refreshes in a *separate process*
-instead of a background thread.
+instead of a background thread. This is required to avoid Python's GIL freezing
+the app whenever the definitions are updated. Actually, pauses can still happen
+during this implementation's RPC calls. But at least with a
+multiprocessing-based implementation, we can set a timeout for those pauses, and
+have them only occur for only some HTTP endpoints. With the threading-based
+alternative, *all* HTTP endpoints freeze while the definitions update.
 
-Public API, caching behaviour and call semantics are unchanged.
+This module was was mostly vibe-coded. (Highly self-contained modules with very
+small public-facing interfaces like this one are fun to write with LLMs.) Tbh,
+I didn't check the correctness of the trie implementation but the logic LGTM
+otherwise.
+
 """
 
 import contextlib
