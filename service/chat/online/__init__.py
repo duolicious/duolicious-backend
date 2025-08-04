@@ -19,8 +19,6 @@ from util import truncate_text
 
 LAST_UPDATE_INTERVAL_SECONDS = 4 * 60  # 4 minutes
 
-LIKELIHOOD_OF_LAST_EVENT_UPDATE = 0.50
-
 FMT_KEY = 'online-{username}'
 
 FMT_ONLINE_EVENT = '<duo_online_event uuid="{username}" status="{status}" />'
@@ -208,7 +206,6 @@ def process_batch(jobs: list[UpdateLastJob]):
         job.session_username
         for job in jobs
         if job.do_update_last_event
-        and random.random() < LIKELIHOOD_OF_LAST_EVENT_UPDATE
     ]
 
     upsert_last_params_seq = [
