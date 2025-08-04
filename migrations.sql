@@ -1,3 +1,20 @@
-ALTER TABLE IF EXISTS verification_job
-    ALTER COLUMN expires_at
-    SET DEFAULT (NOW() + INTERVAL '3 days');
+CREATE OR REPLACE FUNCTION age_gap_acceptability_odds(
+    a double precision,
+    b double precision
+)
+RETURNS double precision
+LANGUAGE SQL
+IMMUTABLE
+STRICT
+AS $$
+  SELECT exp(-6.0 * d * d)
+  FROM (
+        SELECT
+          1.0 - CASE
+                  WHEN a > b
+                       THEN (b - 13)::float8 / (a - 13)
+                       ELSE (a - 13)::float8 / (b - 13)
+                END
+          AS d
+       ) AS s;
+$$;
