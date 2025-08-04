@@ -452,7 +452,7 @@ CREATE TABLE IF NOT EXISTS verification_job (
     message TEXT NOT NULL DEFAULT 'Verifying',
     photo_uuid TEXT NOT NULL,
     raw_json TEXT NOT NULL DEFAULT '',
-    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '1 day')
+    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '3 days')
 );
 
 CREATE TABLE IF NOT EXISTS verification_photo_hash (
