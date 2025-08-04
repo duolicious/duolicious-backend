@@ -291,7 +291,7 @@ def post_request_otp(req: t.PostRequestOtp):
         row, *_ = rows
         otp = row['otp']
     except:
-        return 'Banned', 403
+        return 'Banned', 461
 
     _send_otp(req.email, otp)
 
@@ -316,7 +316,7 @@ def post_resend_otp(s: t.SessionInfo):
         row, *_ = rows
         otp = row['otp']
     except:
-        return 'Banned', 403
+        return 'Banned', 461
 
     _send_otp(s.email, otp)
 
