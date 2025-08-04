@@ -907,7 +907,12 @@ WITH searcher AS (
     AND
         activated
     AND NOT (
-            last_event_name = 'was-recently-online'
+            last_event_name IN (
+                'was-recently-online'::person_event,
+                'recently-online-with-photo'::person_event,
+                'recently-online-with-voice-bio'::person_event,
+                'recently-online-with-bio'::person_event
+            )
         AND
             last_event_time < now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
     )
