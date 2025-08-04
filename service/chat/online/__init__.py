@@ -12,7 +12,6 @@ from service.chat.session import Session
 from database import api_tx
 import asyncio
 import traceback
-import random
 from dataclasses import dataclass
 from constants import ONLINE_RECENTLY_SECONDS
 from util import truncate_text
