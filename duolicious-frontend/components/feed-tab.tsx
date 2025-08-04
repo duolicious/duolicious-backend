@@ -86,13 +86,6 @@ const DataItemUpdatedBioSchema = UpdatedBioFieldsSchema.extend({
   type: z.literal('updated-bio'),
 });
 
-const DataItemWasRecentlyOnlineSchema = DataItemBaseSchema.extend({
-  type: z.literal('was-recently-online'),
-  text: z.string(),
-  background_color: z.string(),
-  body_color: z.string(),
-});
-
 const DataItemWasRecentlyOnlineWithBioSchema = UpdatedBioFieldsSchema.extend({
   type: z.literal('recently-online-with-bio'),
 });
@@ -107,7 +100,6 @@ const DataItemWasRecentlyOnlineWithVoiceBioSchema = AddedVoiceBioFieldsSchema.ex
 
 const DataItemSchema = z.discriminatedUnion('type', [
   DataItemJoinedSchema,
-  DataItemWasRecentlyOnlineSchema,
   DataItemWasRecentlyOnlineWithBioSchema,
   DataItemWasRecentlyOnlineWithPhotoSchema,
   DataItemWasRecentlyOnlineWithVoiceBioSchema,
@@ -117,7 +109,6 @@ const DataItemSchema = z.discriminatedUnion('type', [
 ]);
 
 type DataItem = z.infer<typeof DataItemSchema>;
-type DataItemWasRecentlyOnline = z.infer<typeof DataItemWasRecentlyOnlineSchema>;
 type DataItemWasRecentlyOnlineWithBio = z.infer<typeof DataItemWasRecentlyOnlineWithBioSchema>;
 type DataItemWasRecentlyOnlineWithPhoto = z.infer<typeof DataItemWasRecentlyOnlineWithPhotoSchema>;
 type DataItemWasRecentlyOnlineWithVoiceBio = z.infer<typeof DataItemWasRecentlyOnlineWithVoiceBioSchema>;
@@ -370,99 +361,15 @@ const FeedItemJoined = ({ fields }: { fields: JoinedFields }) => {
   );
 };
 
-const DeprecatedFeedItemWasRecentlyOnline = ({ dataItem }: { dataItem: DataItemWasRecentlyOnline }) => {
-  const onPress = useNavigationToProfile(
-    dataItem.person_uuid,
-    dataItem.photo_blurhash,
-  );
-
-  const onPressReply = useNavigationToConversation(
-    dataItem.person_uuid,
-    dataItem.name,
-    dataItem.photo_uuid,
-    dataItem.photo_blurhash,
-    dataItem.text,
-  );
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={styles.cardBorders}
-    >
-      {dataItem.photo_uuid &&
-        <Avatar
-          percentage={dataItem.match_percentage}
-          personUuid={dataItem.person_uuid}
-          photoUuid={dataItem.photo_uuid}
-          photoBlurhash={dataItem.photo_blurhash}
-          doUseOnline={!!dataItem.photo_uuid}
-        />
-      }
-      <View style={{ flex: 1, gap: isMobile() ? 8 : 10 }}>
-        <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
-          <NameActionTime
-            personUuid={dataItem.person_uuid}
-            name={dataItem.name}
-            isVerified={dataItem.is_verified}
-            action="recently online"
-            time={new Date(dataItem.time)}
-            doUseOnline={!dataItem.photo_uuid}
-            style={{
-              paddingHorizontal: 10,
-            }}
-          />
-          <DefaultText
-            style={{
-              backgroundColor: dataItem.background_color,
-              color: dataItem.body_color,
-              borderRadius: 10,
-              padding: 10,
-            }}
-          >
-            {dataItem.text}
-          </DefaultText>
-        </View>
-        <View style={{ alignItems: 'flex-end' }} >
-          <Pressable
-            style={{
-              flexDirection: 'row',
-              gap: 6,
-              paddingRight: 5,
-            }}
-            hitSlop={20}
-            onPress={onPressReply}
-          >
-            <DefaultText style={{ fontWeight: 700 }}>
-              Reply
-            </DefaultText>
-            <FontAwesomeIcon
-              icon={faReply}
-              size={16}
-              color="black"
-              style={{
-                /* @ts-ignore */
-                outline: 'none',
-              }}
-            />
-          </Pressable>
-        </View>
-      </View>
-    </Pressable>
-  );
-};
-
 const FeedItemWasRecentlyOnline = ({
   dataItem
 }: {
   dataItem:
-    | DataItemWasRecentlyOnline
     | DataItemWasRecentlyOnlineWithBio
     | DataItemWasRecentlyOnlineWithPhoto
     | DataItemWasRecentlyOnlineWithVoiceBio
 }) => {
   switch (dataItem.type) {
-    case 'was-recently-online':
-      return <DeprecatedFeedItemWasRecentlyOnline dataItem={dataItem} />;
     case 'recently-online-with-bio':
       return <FeedItemUpdatedBio fields={dataItem} action="recently online" />;
     case 'recently-online-with-photo':
@@ -674,7 +581,6 @@ const FeedItem = ({ dataItem }: { dataItem: DataItem }) => {
   switch (dataItem.type) {
     case 'joined':
       return <FeedItemJoined fields={dataItem} />;
-    case 'was-recently-online':
     case 'recently-online-with-bio':
     case 'recently-online-with-photo':
     case 'recently-online-with-voice-bio':
