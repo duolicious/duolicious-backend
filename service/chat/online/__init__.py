@@ -61,17 +61,26 @@ SET
         WHEN last_event_name = 'updated-bio'
         THEN 'recently-online-with-bio'
 
+        WHEN last_event_name IN (
+            'recently-online-with-photo'::person_event,
+            'recently-online-with-voice-bio'::person_event,
+            'recently-online-with-bio'::person_event
+        )
+        THEN last_event_name
+
         ELSE 'recently-online-with-bio'
     END::person_event,
 
     last_event_data = CASE
-        WHEN (
-                last_event_name = 'added-photo'
-            OR
-                last_event_name = 'added-voice-bio'
-            OR
-                last_event_name = 'updated-bio'
-        ) THEN
+        WHEN last_event_name IN (
+            'added-photo'::person_event,
+            'added-voice-bio'::person_event,
+            'updated-bio'::person_event,
+            'recently-online-with-photo'::person_event,
+            'recently-online-with-voice-bio'::person_event,
+            'recently-online-with-bio'::person_event
+        )
+        THEN
             last_event_data
 
         ELSE
