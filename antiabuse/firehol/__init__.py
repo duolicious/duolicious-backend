@@ -386,6 +386,6 @@ class Firehol:
 firehol = Firehol(
     lists=[
         "firehol_anonymous.netset",
-        "firehol_abusers_1d.netset",
+        "firehol_abusers_30d.netset",
     ]
 )
