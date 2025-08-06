@@ -80,7 +80,7 @@ LANGUAGE SQL
 IMMUTABLE
 STRICT
 AS $$
-  SELECT exp(-6.0 * d * d)
+  SELECT exp(-8.0 * d * d)
   FROM (
         SELECT
           1.0 - CASE
