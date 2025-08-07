@@ -158,7 +158,7 @@ def init_db():
 @post('/request-otp', limiter=shared_otp_limit)
 @validate(t.PostRequestOtp)
 def post_request_otp(req: t.PostRequestOtp):
-    limit = "50 per day"
+    limit = "40 per day"
     scope = "request_otp"
 
     with (
@@ -190,7 +190,7 @@ def post_resend_otp(s: t.SessionInfo):
 )
 @validate(t.PostCheckOtp)
 def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
-    limit = "50 per day"
+    limit = "40 per day"
     scope = "check_otp"
 
     with (
