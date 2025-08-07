@@ -302,8 +302,13 @@ class Firehol:
 
     # ---------------------------------------------------------------------
     # Internal RPC helper
+    #
+    # On my development machine, the RPC typically completes in 0.0003 once
+    # the definitions are loaded. So a timeout of 0.005 (which is more than
+    # 20 x 0.0003) seems generous. For comparison, running `SELECT 1` on
+    # the DB takes about 0.6 ms = 0.0006 seconds.
     # ---------------------------------------------------------------------
-    def _rpc(self, cmd, payload, *, timeout: float = 0.2):
+    def _rpc(self, cmd, payload, *, timeout: float = 0.005):
         if not self._parent_conn:
             print(f"Warning: No FireHOL RPC connection. ({cmd}, {payload})")
             return None
@@ -318,6 +323,10 @@ class Firehol:
             if self._parent_conn.poll(timeout):    # nothing yet → give up
                 return self._parent_conn.recv()
             else:
+                print(
+                    f"Warning: Timed out while waiting for FireHOL "
+                    f"response ({cmd}, {payload})"
+                )
                 return None
 
     # ---------------------------------------------------------------------
@@ -328,7 +337,6 @@ class Firehol:
         response = self._rpc(cmd="query", payload=str(ip))
 
         if response is None or response is False:
-            print(f"Warning: FireHOL lists not yet loaded while checking {ip}")
             return []
 
         return response
