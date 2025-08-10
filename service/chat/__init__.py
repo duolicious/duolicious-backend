@@ -11,7 +11,7 @@ from async_lru_cache import AsyncLruCache
 import random
 from typing import Any, Tuple, Callable, Tuple, Iterable
 from datetime import datetime
-from service.chat.insertintrohash import insert_intro_hash
+from service.chat.robot9000 import Q_SELECT_INTRO_HASH, upsert_intro_hash
 from service.chat.mayberegister import maybe_register
 from service.chat.rude import (is_rude_message, store_rude_message)
 from service.chat.spam import is_spam_message
@@ -80,15 +80,6 @@ REDIS_WORKER_CLIENT: redis.Redis = redis.Redis(
 InputMiddleware = Callable[[str], etree._Element | None]
 OutputMiddleware = Callable[[str], str]
 Middleware = Tuple[InputMiddleware, OutputMiddleware]
-
-Q_SELECT_INTRO_HASH = """
-SELECT
-    1
-FROM
-    intro_hash
-WHERE
-    hash = %(hash)s
-"""
 
 Q_HAS_MESSAGE = """
 SELECT
@@ -275,14 +266,11 @@ async def is_unique_message(message: Message):
 
     async with api_tx('read committed') as tx:
         cursor = await tx.execute(Q_SELECT_INTRO_HASH, params)
-        rows = await cursor.fetchall()
+        row = await cursor.fetchone()
 
-    is_unique = not bool(rows)
+    upsert_intro_hash(hashed)
 
-    if is_unique:
-        insert_intro_hash(hashed)
-
-    return is_unique
+    return row is None
 
 @AsyncLruCache(cache_condition=lambda x: not x)
 async def fetch_is_intro(from_id: int, to_id: int) -> bool:
