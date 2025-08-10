@@ -329,7 +329,7 @@ const App = () => {
   const fetchServerStatusState = useCallback(async () => {
     let response: Response | null = null
     try {
-      response = await fetch(STATUS_URL, {cache: 'no-cache'});
+      response = await fetch(STATUS_URL, { cache: 'no-store' });
     } catch (_) {};
 
     if (response === null || !response.ok) {
