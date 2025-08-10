@@ -1630,7 +1630,8 @@ CREATE INDEX IF NOT EXISTS
     ON inbox(luser, box);
 
 CREATE TABLE IF NOT EXISTS intro_hash (
-    hash TEXT PRIMARY KEY
+    hash TEXT PRIMARY KEY,
+    last_used_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS duo_last_notification (

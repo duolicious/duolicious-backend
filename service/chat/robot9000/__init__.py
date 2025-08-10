@@ -3,11 +3,26 @@ from typing import List
 from batcher import Batcher
 
 
-Q_INSERT_INTRO_HASH = """
-INSERT INTO
-    intro_hash (hash)
-VALUES (%(hash)s)
-ON CONFLICT DO NOTHING
+Q_SELECT_INTRO_HASH = """
+SELECT
+    1
+FROM
+    intro_hash
+WHERE
+    hash = %(hash)s
+"""
+
+
+Q_UPSERT_INTRO_HASH = """
+INSERT INTO intro_hash (
+    hash,
+    last_used_at
+) VALUES (
+    %(hash)s,
+    now()
+)
+ON CONFLICT (hash) DO UPDATE SET
+    last_used_at = now()
 """
 
 
@@ -17,7 +32,7 @@ def process_batch(batch: List[str]):
     params_seq = [dict(hash=hash) for hash in distinct_hashes]
 
     with api_tx('read committed') as tx:
-        tx.executemany(Q_INSERT_INTRO_HASH, params_seq)
+        tx.executemany(Q_UPSERT_INTRO_HASH, params_seq)
 
 
 _batcher = Batcher[str](
@@ -32,5 +47,5 @@ _batcher = Batcher[str](
 _batcher.start()
 
 
-def insert_intro_hash(hashed: str):
+def upsert_intro_hash(hashed: str):
     _batcher.enqueue(hashed)
