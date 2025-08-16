@@ -27,7 +27,7 @@ import { ProfileTab } from './components/profile-tab';
 import { InboxTab } from './components/inbox-tab';
 import { FeedTab } from './components/feed-tab';
 import { ConversationScreen } from './components/conversation-screen/conversation-screen';
-import { ServerStatus, UtilityScreen, useHasDonations } from './components/utility-screen';
+import { ServerStatus, UtilityScreen } from './components/utility-screen';
 import { ProspectProfileScreen } from './components/prospect-profile-screen';
 import { InviteScreen, WelcomeScreen } from './components/welcome-screen';
 import { sessionToken, sessionPersonUuid } from './kv-storage/session-token';
@@ -40,7 +40,6 @@ import { useInboxStats } from './chat/application-layer/hooks/inbox-stats';
 import { STATUS_URL } from './env/env';
 import { delay, parseUrl } from './util/util';
 import { ColorPickerModal } from './components/modal/color-picker-modal/color-picker-modal';
-import { DonationNagModal } from './components/modal/donation-nag-modal';
 import { GifPickerModal } from './components/modal/gif-picker-modal';
 import { ReportModal } from './components/modal/report-modal';
 import { ImageCropper } from './components/image-cropper';
@@ -141,7 +140,6 @@ type SignedInUser = {
   units: 'Metric' | 'Imperial'
   sessionToken: string
   pendingClub: ClubItem | null
-  doShowDonationNag: boolean
   estimatedEndDate: Date
   name: string | null
 };
@@ -160,7 +158,6 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
   [signedInUser, setSignedInUser] = useState<SignedInUser | undefined>();
-  const hasDonations = useHasDonations(signedInUser?.estimatedEndDate);
 
   const loadFonts = useCallback(async () => {
     await Font.loadAsync({
@@ -265,7 +262,6 @@ const App = () => {
       units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
       sessionToken: existingSessionToken,
       pendingClub: pendingClub,
-      doShowDonationNag: response?.json?.do_show_donation_nag,
       estimatedEndDate: new Date(response?.json?.estimated_end_date),
       name: response?.json?.name,
     });
@@ -463,18 +459,8 @@ const App = () => {
 
   useScrollbarStyle();
 
-  // I realize this is a verbose way to write it, but TypeScript's type
-  // narrowing couldn't figure out the types were correct otherwise.
   if (serverStatus !== "ok") {
-    return <UtilityScreen
-      serverStatus={serverStatus}
-      hasDonations={hasDonations}
-    />
-  } else if (hasDonations === false && Platform.OS === 'web') {
-    return <UtilityScreen
-      serverStatus={serverStatus}
-      hasDonations={hasDonations}
-    />
+    return <UtilityScreen serverStatus={serverStatus} />
   }
 
   return (
@@ -532,11 +518,6 @@ const App = () => {
             </NavigationContainer>
           }
           <TooltipListener/>
-          <DonationNagModal
-            name={signedInUser?.name}
-            estimatedEndDate={signedInUser?.estimatedEndDate}
-            visible={signedInUser?.doShowDonationNag}
-          />
           <ReportModal/>
           <ImageCropper/>
           <ColorPickerModal/>
