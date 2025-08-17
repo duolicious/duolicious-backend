@@ -10,6 +10,8 @@ FROM
     intro_hash
 WHERE
     hash = %(hash)s
+AND
+    last_used_at > now() - interval '7 days'
 """
 
 
