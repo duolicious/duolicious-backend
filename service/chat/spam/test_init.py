@@ -10,14 +10,6 @@ class TestIsOffensive(unittest.TestCase):
         self.assertFalse(
                 is_spam("https://media.tenor.com/dxsHgu0_-QAAAAAMx/meganleigh-megaxn.gif"))
 
-        # because it contains gibberish
-        self.assertTrue(
-                is_spam("look at this https://media.tenor.com/dxsHgu0_-QAAAAAMx/meganleigh-megaxn.gif"))
-
-        # because it also contains gibberish
-        self.assertTrue(
-                is_spam("/dxsHgu0_-QAAAAAMx/"))
-
         # Because the domain isn't considered safe
         self.assertTrue(
                 is_spam("look at this https://mycoolsite.com"))

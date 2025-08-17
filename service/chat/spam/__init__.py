@@ -1,5 +1,4 @@
 from antiabuse.antispam.urldetector import has_url, UrlType
-from antiabuse.antispam.gibberishdetector import has_gibberish
 from service.chat.message import (
     Message,
     ChatMessage,
@@ -12,7 +11,7 @@ def is_spam(text: str):
     if result == [(UrlType.VERY_SAFE, text)]:
         return False
     else:
-        return has_url(text) or has_gibberish(text)
+        return has_url(text)
 
 
 def is_spam_message(message: Message):
