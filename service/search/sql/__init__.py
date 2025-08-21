@@ -859,7 +859,18 @@ WITH searcher AS (
         gender_id,
         date_of_birth,
         personality,
-        verification_level_id
+        verification_level_id,
+        (
+            SELECT
+                COALESCE(
+                    array_agg(club_name ORDER BY club_name),
+                    ARRAY[]::TEXT[]
+                )
+            FROM
+                person_club
+            WHERE
+                person_club.person_id = person.id
+        ) AS clubs
     FROM
         person
     WHERE
@@ -880,7 +891,19 @@ WITH searcher AS (
             100 * (
                 1 - (prospect.personality <#> searcher.personality)
             ) / 2
-        )::SMALLINT AS match_percentage
+        )::SMALLINT AS match_percentage,
+        (
+            SELECT
+                COALESCE(
+                    array_agg(club_name ORDER BY club_name),
+                    ARRAY[]::TEXT[]
+                )
+            FROM
+                person_club
+            WHERE
+                person_club.person_id = prospect.id
+        ) AS clubs,
+        last_event_time
     FROM
         person AS prospect
     LEFT JOIN LATERAL (
@@ -1083,6 +1106,24 @@ WITH searcher AS (
         last_event_time DESC
     LIMIT
         50
+), filtered_by_club AS (
+    SELECT
+        *
+    FROM
+        person_data,
+        searcher
+    ORDER BY
+        cardinality(
+            ARRAY(
+                SELECT v FROM unnest(person_data.clubs) AS t(v)
+                INTERSECT
+                SELECT v FROM unnest(searcher.clubs) AS t(v)
+            )
+        ),
+        match_percentage,
+        last_event_time DESC
+    LIMIT
+        (SELECT round(count(*) * 0.5) FROM person_data)
 )
 SELECT
     jsonb_build_object(
@@ -1096,5 +1137,7 @@ SELECT
         'match_percentage', match_percentage
     ) || last_event_data AS j
 FROM
-    person_data
+    filtered_by_club
+ORDER BY
+    last_event_time DESC
 """
