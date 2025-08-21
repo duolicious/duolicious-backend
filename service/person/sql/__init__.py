@@ -1,5 +1,5 @@
 import constants
-from commonsql import Q_IS_ALLOWED_CLUB_NAME
+from commonsql import Q_IS_ALLOWED_CLUB_NAME, Q_COMPUTED_FLAIR
 
 MAX_CLUB_SEARCH_RESULTS = 20
 
@@ -1017,28 +1017,7 @@ WITH prospect AS (
     FROM clubs
     WHERE NOT is_mutual
 ), flair AS (
-    SELECT
-        array_agg(DISTINCT e ORDER BY e) AS computed_flair
-    FROM (
-        SELECT
-            unnest(flair) AS e
-        FROM
-            prospect
-        UNION
-            SELECT 'gold'          FROM prospect WHERE has_gold
-        UNION
-            SELECT 'q-and-a-100'   FROM prospect WHERE count_answers >= 100
-        UNION
-            SELECT 'one-week'      FROM prospect WHERE sign_up_time <= now() - interval '1 week'
-        UNION
-            SELECT 'one-month'     FROM prospect WHERE sign_up_time <= now() - interval '1 month'
-        UNION
-            SELECT 'one-year'      FROM prospect WHERE sign_up_time <= now() - interval '1 year'
-        UNION
-            SELECT 'long-bio'      FROM prospect WHERE length(about) >= 500
-        UNION
-            SELECT 'early-adopter' FROM prospect WHERE sign_up_time <= '2024-08-26 01:05:49'
-    ) t
+    {Q_COMPUTED_FLAIR.format(table='prospect')}
 )
 SELECT
     json_build_object(

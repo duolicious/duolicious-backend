@@ -94,3 +94,28 @@ SELECT
             (name ~ '[A-Za-z]{3}' OR name ~ '[^ ] [^ ]')
     ) AS is_allowed_club_name
 """
+
+Q_COMPUTED_FLAIR = """
+    SELECT
+        array_agg(DISTINCT e ORDER BY e) AS computed_flair
+    FROM (
+        SELECT
+            unnest(flair) AS e
+        FROM
+            {table}
+        UNION
+            SELECT 'gold'          FROM {table} WHERE has_gold
+        UNION
+            SELECT 'q-and-a-100'   FROM {table} WHERE count_answers >= 100
+        UNION
+            SELECT 'one-week'      FROM {table} WHERE sign_up_time <= now() - interval '1 week'
+        UNION
+            SELECT 'one-month'     FROM {table} WHERE sign_up_time <= now() - interval '1 month'
+        UNION
+            SELECT 'one-year'      FROM {table} WHERE sign_up_time <= now() - interval '1 year'
+        UNION
+            SELECT 'long-bio'      FROM {table} WHERE length(about) >= 500
+        UNION
+            SELECT 'early-adopter' FROM {table} WHERE sign_up_time <= '2024-08-26 01:05:49'
+    ) t
+"""
