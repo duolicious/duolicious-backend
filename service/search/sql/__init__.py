@@ -1105,7 +1105,7 @@ WITH searcher AS (
     ORDER BY
         last_event_time DESC
     LIMIT
-        50
+        100
 ), filtered_by_club AS (
     SELECT
         *
@@ -1119,8 +1119,8 @@ WITH searcher AS (
                 INTERSECT
                 SELECT v FROM unnest(searcher.clubs) AS t(v)
             )
-        ),
-        match_percentage,
+        ) DESC,
+        match_percentage DESC,
         last_event_time DESC
     LIMIT
         (SELECT round(count(*) * 0.5) FROM person_data)
