@@ -1077,6 +1077,7 @@ WITH searcher AS (
     --   * They've customized their account's color scheme
     --   * They've got an audio bio
     --   * They've got an otherwise well-completed profile
+    --   * They've got Gold
     AND (
             prospect.verification_level_id > 1
 
@@ -1101,6 +1102,9 @@ WITH searcher AS (
         AND EXISTS (
             SELECT 1 FROM person_club WHERE person_id = prospect.id
         )
+
+        OR
+            prospect.has_gold
     )
     ORDER BY
         last_event_time DESC
