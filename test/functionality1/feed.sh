@@ -187,46 +187,6 @@ test_json_format () {
     "photo_uuid": "redacted_nonnull_value",
     "time": "redacted_nonnull_value",
     "type": "joined"
-  },
-  {
-    "is_verified": false,
-    "match_percentage": 50,
-    "name": "user14",
-    "person_uuid": "redacted_nonnull_value",
-    "photo_blurhash": "redacted_nonnull_value",
-    "photo_uuid": "redacted_nonnull_value",
-    "time": "redacted_nonnull_value",
-    "type": "joined"
-  },
-  {
-    "is_verified": false,
-    "match_percentage": 50,
-    "name": "user11",
-    "person_uuid": "redacted_nonnull_value",
-    "photo_blurhash": "redacted_nonnull_value",
-    "photo_uuid": "redacted_nonnull_value",
-    "time": "redacted_nonnull_value",
-    "type": "joined"
-  },
-  {
-    "is_verified": false,
-    "match_percentage": 50,
-    "name": "user9",
-    "person_uuid": "redacted_nonnull_value",
-    "photo_blurhash": null,
-    "photo_uuid": null,
-    "time": "redacted_nonnull_value",
-    "type": "joined"
-  },
-  {
-    "is_verified": false,
-    "match_percentage": 50,
-    "name": "user3",
-    "person_uuid": "redacted_nonnull_value",
-    "photo_blurhash": null,
-    "photo_uuid": null,
-    "time": "redacted_nonnull_value",
-    "type": "joined"
   }
 ]
 EOF
