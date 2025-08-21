@@ -1,5 +1,12 @@
-import * as React from 'react';
-import { Animated, Easing } from 'react-native';
+import { useEffect, useRef, useMemo } from 'react';
+import Animated, {
+  Easing,
+  cancelAnimation,
+  useAnimatedProps,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { G, Rect } from 'react-native-svg';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
@@ -50,74 +57,99 @@ const Logo16 = ({
   fadeInDelay?: number,
   doAnimate?: boolean,
 }) => {
-  // Create an array of Animated.Values, one per Rect.
-  const animatedValues = React.useRef(
-    logo16RectCoordinates.map(() => new Animated.Value(doAnimate ? 0 : 1))
-  ).current;
+  // ---- One shared "clock" per Logo16 ----
+  const progress = useRef(useSharedValue(0)).current;
 
-  // Ref to store the animation instance
-  const animationRef = React.useRef<Animated.CompositeAnimation | null>(null);
+  // Precompute the timeline constants once per render
+  const timeline = useMemo(() => {
+    const COUNT = logo16RectCoordinates.length;
+    const STAGGER = 40;
+    const FADE = 400;
+    const IN_WINDOW = (COUNT - 1) * STAGGER + FADE;
+    const T1 = IN_WINDOW;
+    const T2 = T1 + fadeOutDelay;
+    const T3 = T2 + IN_WINDOW;
+    const T4 = T3 + fadeInDelay; // total duration
+    return { COUNT, STAGGER, FADE, T1, T2, T3, T4 };
+  }, [fadeOutDelay, fadeInDelay]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!doAnimate) {
+      cancelAnimation(progress);
       return;
     }
 
-    // Create the animation sequence
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.stagger(
-          40,
-          animatedValues.map(animVal =>
-            Animated.timing(animVal, {
-              toValue: 1,
-              duration: 400,
-              easing: Easing.poly(5),
-              useNativeDriver: true,
-            })
-          )
-        ),
-        Animated.delay(fadeOutDelay),
-        Animated.stagger(
-          40,
-          animatedValues.map(animVal =>
-            Animated.timing(animVal, {
-              toValue: 0,
-              duration: 400,
-              easing: Easing.poly(5),
-              useNativeDriver: true,
-            })
-          )
-        ),
-        Animated.delay(fadeInDelay),
-      ])
+    progress.value = 0;
+    progress.value = withRepeat(
+      withTiming(timeline.T4, { duration: timeline.T4, easing: Easing.linear }),
+      -1,
+      false
     );
 
-    // Store the animation reference and start it
-    animationRef.current = animation;
-    animation.start();
-
-    // Cleanup function to stop the animation
     return () => {
-      if (animationRef.current) {
-        animationRef.current.stop();
-      }
+      cancelAnimation(progress);
     };
-  }, [animatedValues, doAnimate, fadeOutDelay, fadeInDelay]);
+  }, [doAnimate, progress, timeline.T4]);
+
+  // Child component so we can use hooks without breaking the Rules of Hooks
+  const AnimatedLogoRect = ({
+    coord,
+    index,
+  }: {
+    coord: { x: number; y: number };
+    index: number;
+  }) => {
+    const animatedProps = useAnimatedProps(() => {
+      // When animation is disabled, keep all rects visible
+      if (!doAnimate) {
+        return { opacity: 1 as number };
+      }
+
+      // Single timeline ("clock") drives all rects
+      const t = progress.value % timeline.T4;
+
+      const inStart = index * timeline.STAGGER;
+      const inEnd = inStart + timeline.FADE;
+
+      const outStart = timeline.T2 + index * timeline.STAGGER;
+      const outEnd = outStart + timeline.FADE;
+
+      // piecewise opacity curve with Easing.poly(5)
+      let opacity = 0;
+
+      if (t >= inStart && t <= inEnd) {
+        const p = (t - inStart) / timeline.FADE;
+        opacity = Easing.poly(5)(p); // 0 -> 1
+      } else if (t > inEnd && t < outStart) {
+        opacity = 1;
+      } else if (t >= outStart && t <= outEnd) {
+        const p = (t - outStart) / timeline.FADE;
+        opacity = 1 - Easing.poly(5)(p); // 1 -> 0
+      } else {
+        opacity = 0;
+      }
+
+      return { opacity: opacity as number };
+    });
+
+    return (
+      <AnimatedRect
+        width={rectSize}
+        height={rectSize}
+        x={coord.x}
+        y={coord.y}
+        fill={color}
+        // animatedProps uses the single shared clock
+        animatedProps={animatedProps}
+      />
+    );
+  };
 
   return (
     <Svg width={size} height={size} viewBox="0 0 4.2333331 4.2333332">
       <G>
         {logo16RectCoordinates.map((coord, index) => (
-          <AnimatedRect
-            key={index}
-            width={rectSize}
-            height={rectSize}
-            x={coord.x}
-            y={coord.y}
-            fill={color}
-            opacity={animatedValues[index]}
-          />
+          <AnimatedLogoRect key={index} coord={coord} index={index} />
         ))}
       </G>
     </Svg>
@@ -345,4 +377,3 @@ export {
   Logo16,
   Logo14,
 };
-

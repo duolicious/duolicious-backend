@@ -1,10 +1,10 @@
-import { useCallback, useRef, useMemo } from 'react';
+import { useMemo } from 'react';
 import { View, PixelRatio } from 'react-native';
 import { friendlyOnlineStatus, useOnline } from '../chat/application-layer/hooks/online';
 import { ONLINE_COLOR } from '../constants/constants';
 import { assertNever } from '../util/util';
 import * as _ from 'lodash';
-import { TooltipState, setTooltip } from './tooltip';
+import { useTooltip } from './tooltip';
 
 /**
  * Renders a small circular presence indicator.
@@ -37,7 +37,7 @@ const OnlineIndicator = ({
   style?: object,
 }) => {
   const onlineStatus = useOnline(personUuid);
-  const viewRef = useRef<View>(null);
+  const { viewRef, props } = useTooltip(friendlyOnlineStatus(onlineStatus));
 
   /**
    * Snap all dimensions to the physical pixel‑grid.
@@ -57,20 +57,6 @@ const OnlineIndicator = ({
     return { outerD: outer, innerD: inner, coreD: core };
   }, [size, borderWidth, innerSize]);
 
-  const showTooltip = useCallback(() => {
-    viewRef.current?.measureInWindow((x, y, width, height) => {
-      // Position the tooltip at the center of the icon
-      const state: TooltipState = {
-        left: x + width / 2,
-        top: y + height / 2,
-        padding: Math.max(width, height) / 2 + 1,
-        text: friendlyOnlineStatus(onlineStatus),
-      };
-
-      setTooltip(state);
-    });
-  }, [onlineStatus]);
-
   if (onlineStatus === 'online' || onlineStatus === 'online-recently') {
     return (
       <View
@@ -86,10 +72,7 @@ const OnlineIndicator = ({
           alignItems: 'center',
           ...style,
         }}
-        // @ts-ignore
-        onMouseEnter={
-          showTooltip
-        }
+        {...props}
       >
         <View
           style={{

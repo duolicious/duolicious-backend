@@ -28,7 +28,7 @@ import { setQuote } from './conversation-screen/quote';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
 import { OnlineIndicator } from './online-indicator';
-
+import { Flair } from './badges';
 
 const NAME_ACTION_TIME_GAP_VERTICAL = 16;
 
@@ -50,6 +50,7 @@ const DataItemBaseSchema = z.object({
   photo_blurhash: z.string().nullable(),
   is_verified: z.boolean(),
   match_percentage: z.number(),
+  flair: z.array(z.string()),
 });
 
 const AddedPhotoFieldsSchema = DataItemBaseSchema.extend({
@@ -240,6 +241,7 @@ const NameActionTime = ({
   action,
   time,
   doUseOnline,
+  flair,
   style,
 }: {
   personUuid: string
@@ -248,6 +250,7 @@ const NameActionTime = ({
   action: Action
   time: Date
   doUseOnline: boolean
+  flair: string[]
   style?: any
 }) => {
   const onPress = useCallback((event: GestureResponderEvent) => {
@@ -313,6 +316,7 @@ const NameActionTime = ({
         >
           {action} • {getShortElapsedTime(time)}
         </DefaultText>
+        <Flair flair={flair} />
       </View>
       <Flag
         hitSlop={20}
@@ -356,6 +360,7 @@ const FeedItemJoined = ({ fields }: { fields: JoinedFields }) => {
         action="joined"
         time={new Date(fields.time)}
         doUseOnline={!fields.photo_uuid}
+        flair={fields.flair}
       />
     </Pressable>
   );
@@ -417,6 +422,7 @@ const FeedItemAddedPhoto = ({
           action={action}
           time={new Date(fields.time)}
           doUseOnline={!fields.photo_uuid}
+          flair={fields.flair}
         />
         <EnlargeablePhoto
           onPress={onPressPhoto}
@@ -469,6 +475,7 @@ const FeedItemAddedVoiceBio = ({
           action={action}
           time={new Date(fields.time)}
           doUseOnline={!fields.photo_uuid}
+          flair={fields.flair}
         />
         <AudioPlayer
           uuid={fields.added_audio_uuid}
@@ -527,6 +534,7 @@ const FeedItemUpdatedBio = ({
             }
             time={new Date(fields.time)}
             doUseOnline={!fields.photo_uuid}
+            flair={fields.flair}
             style={{
               paddingHorizontal: 10,
             }}

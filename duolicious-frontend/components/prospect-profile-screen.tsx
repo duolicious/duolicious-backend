@@ -13,6 +13,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import {
+  Fragment,
   useCallback,
   useEffect,
   useMemo,
@@ -68,6 +69,7 @@ import { EnlargeablePhoto } from './enlargeable-image';
 import { commonStyles } from '../styles';
 import { useSkipped, setSkipped } from '../hide-and-block/hide-and-block';
 import { OnlineIndicator } from './online-indicator';
+import { Flair } from './badges';
 
 const Stack = createNativeStackNavigator();
 
@@ -583,6 +585,8 @@ type UserData = {
     background_color: string,
   }
 
+  flair: string[]
+
   // Stats
   count_answers: number | null,
   seconds_since_last_online: number | null,
@@ -797,6 +801,7 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
                   matchPercentage={data?.match_percentage}
                   userLocation={data?.location}
                   textColor={data?.theme?.title_color}
+                  flair={data?.flair ?? []}
                 />
                 <Body
                   navigation={navigation}
@@ -869,6 +874,7 @@ const ProspectUserDetails = ({
   matchPercentage,
   userLocation,
   textColor,
+  flair,
 }) => {
   const onPressDonutChart = useCallback(() => {
     if (personId === undefined) return;
@@ -942,6 +948,8 @@ const ProspectUserDetails = ({
           {'\u2002'}
           {userLocation === null ? 'Private location' : userLocation}
         </DefaultText>
+
+        <Flair flair={flair} />
       </View>
       <DonutChart
         percentage={matchPercentage}
