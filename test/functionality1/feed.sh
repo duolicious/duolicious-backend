@@ -143,6 +143,9 @@ test_json_format () {
 [
   {
     "added_audio_uuid": "redacted_nonnull_value",
+    "flair": [
+      "gold"
+    ],
     "is_verified": false,
     "match_percentage": 50,
     "name": "user10",
@@ -156,6 +159,9 @@ test_json_format () {
     "added_photo_blurhash": "redacted_nonnull_value",
     "added_photo_extra_exts": [],
     "added_photo_uuid": "redacted_nonnull_value",
+    "flair": [
+      "gold"
+    ],
     "is_verified": false,
     "match_percentage": 50,
     "name": "user8",
@@ -169,6 +175,9 @@ test_json_format () {
     "added_text": "You just lost the game",
     "background_color": "#aaaaaa",
     "body_color": "#000000",
+    "flair": [
+      "gold"
+    ],
     "is_verified": false,
     "match_percentage": 50,
     "name": "user7",
@@ -179,6 +188,9 @@ test_json_format () {
     "type": "updated-bio"
   },
   {
+    "flair": [
+      "gold"
+    ],
     "is_verified": true,
     "match_percentage": 50,
     "name": "user16",

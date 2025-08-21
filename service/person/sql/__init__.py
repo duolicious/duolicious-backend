@@ -793,7 +793,7 @@ FROM
     new_person
 """
 
-Q_SELECT_PROSPECT_PROFILE = """
+Q_SELECT_PROSPECT_PROFILE = f"""
 WITH prospect AS (
     SELECT
         *,
@@ -1017,7 +1017,10 @@ WITH prospect AS (
     FROM clubs
     WHERE NOT is_mutual
 ), flair AS (
-    {Q_COMPUTED_FLAIR.format(table='prospect')}
+    SELECT
+        ({Q_COMPUTED_FLAIR}) AS computed_flair
+    FROM
+        prospect
 )
 SELECT
     json_build_object(

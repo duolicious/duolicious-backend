@@ -97,25 +97,32 @@ SELECT
 
 Q_COMPUTED_FLAIR = """
     SELECT
-        array_agg(DISTINCT e ORDER BY e) AS computed_flair
+        COALESCE(
+            array_agg(DISTINCT e ORDER BY e),
+            ARRAY[]::TEXT[]
+        ) AS computed_flair
     FROM (
         SELECT
             unnest(flair) AS e
-        FROM
-            {table}
         UNION
-            SELECT 'gold'          FROM {table} WHERE has_gold
+            SELECT 'gold'          WHERE has_gold
         UNION
-            SELECT 'q-and-a-100'   FROM {table} WHERE count_answers >= 100
+            SELECT CASE
+                WHEN count_answers >= 1000 THEN 'q-and-a-1000'
+                WHEN count_answers >=  500 THEN 'q-and-a-500'
+                WHEN count_answers >=  200 THEN 'q-and-a-200'
+            END
         UNION
-            SELECT 'one-week'      FROM {table} WHERE sign_up_time <= now() - interval '1 week'
+            SELECT CASE
+                WHEN sign_up_time <= now() - interval '1 year'  THEN 'one-year'
+                WHEN sign_up_time <= now() - interval '1 month' THEN 'one-month'
+                WHEN sign_up_time <= now() - interval '1 week'  THEN 'one-week'
+            END
         UNION
-            SELECT 'one-month'     FROM {table} WHERE sign_up_time <= now() - interval '1 month'
+            SELECT 'long-bio'      WHERE length(about) >= 500
         UNION
-            SELECT 'one-year'      FROM {table} WHERE sign_up_time <= now() - interval '1 year'
-        UNION
-            SELECT 'long-bio'      FROM {table} WHERE length(about) >= 500
-        UNION
-            SELECT 'early-adopter' FROM {table} WHERE sign_up_time <= '2024-08-26 01:05:49'
+            SELECT 'early-adopter' WHERE sign_up_time <= '2024-08-26 01:05:49'
     ) t
+    WHERE
+        e IS NOT NULL
 """

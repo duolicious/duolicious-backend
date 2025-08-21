@@ -1,4 +1,5 @@
 from constants import ONLINE_RECENTLY_SECONDS
+from commonsql import Q_COMPUTED_FLAIR
 
 Q_UPSERT_SEARCH_PREFERENCE_CLUB = """
 INSERT INTO search_preference_club (
@@ -903,7 +904,12 @@ WITH searcher AS (
             WHERE
                 person_club.person_id = prospect.id
         ) AS clubs,
-        last_event_time
+        last_event_time,
+        flair,
+        has_gold,
+        sign_up_time,
+        count_answers,
+        about
     FROM
         person AS prospect
     LEFT JOIN LATERAL (
@@ -1112,7 +1118,17 @@ WITH searcher AS (
         100
 ), filtered_by_club AS (
     SELECT
-        *
+        person_uuid,
+        name,
+        photo_uuid,
+        photo_blurhash,
+        is_verified,
+        time,
+        type,
+        match_percentage,
+        last_event_data,
+        last_event_time,
+        ({Q_COMPUTED_FLAIR}) AS flair
     FROM
         person_data,
         searcher
@@ -1138,7 +1154,8 @@ SELECT
         'is_verified', is_verified,
         'time', time,
         'type', type,
-        'match_percentage', match_percentage
+        'match_percentage', match_percentage,
+        'flair', flair
     ) || last_event_data AS j
 FROM
     filtered_by_club
