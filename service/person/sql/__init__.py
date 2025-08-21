@@ -496,8 +496,8 @@ WITH onboardee_country AS (
             new_person
     ), unbounded_age_preference AS (
         SELECT
-            round(age - 5 - (age - 18) / 5.0) AS min_age,
-            round(age + 5 + (age - 18) / 5.0) AS max_age
+            round(age - 2 - (age - 18) / 5.0) AS min_age,
+            round(age + 2 + (age - 18) / 5.0) AS max_age
         FROM
             new_person_age
     )
