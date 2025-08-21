@@ -1,7 +1,10 @@
 import constants
-from commonsql import Q_IS_ALLOWED_CLUB_NAME
+from commonsql import Q_IS_ALLOWED_CLUB_NAME, Q_COMPUTED_FLAIR
 
 MAX_CLUB_SEARCH_RESULTS = 20
+
+CLUB_QUOTA_GOLD = 100
+CLUB_QUOTA_FREE = 50
 
 # How often the user should be nagged to donate, in days. The frequency
 # increases as funds run out.
@@ -345,7 +348,8 @@ WITH valid_session AS (
         person.name,
         person.last_nag_time,
         person.sign_up_time,
-        person.count_answers
+        person.count_answers,
+        person.has_gold
 ), new_onboardee AS (
     INSERT INTO onboardee (
         email
@@ -383,6 +387,7 @@ WITH valid_session AS (
 SELECT
     person_id,
     person_uuid,
+    has_gold,
     (SELECT name FROM unit WHERE id = existing_person.unit_id) AS units,
     {_Q_DO_SHOW_DONATION_NAG.format(table='existing_person')},
     {_Q_ESTIMATED_END_DATE},
@@ -788,7 +793,7 @@ FROM
     new_person
 """
 
-Q_SELECT_PROSPECT_PROFILE = """
+Q_SELECT_PROSPECT_PROFILE = f"""
 WITH prospect AS (
     SELECT
         *,
@@ -1011,6 +1016,11 @@ WITH prospect AS (
     ) AS j
     FROM clubs
     WHERE NOT is_mutual
+), flair AS (
+    SELECT
+        ({Q_COMPUTED_FLAIR}) AS computed_flair
+    FROM
+        prospect
 )
 SELECT
     json_build_object(
@@ -1029,7 +1039,7 @@ SELECT
         'is_skipped',                (SELECT j                         FROM is_skipped),
         'seconds_since_last_online', (SELECT seconds_since_last_online FROM prospect),
         'seconds_since_sign_up',     (SELECT seconds_since_sign_up     FROM prospect),
-        'flair',                     (SELECT flair                     FROM prospect),
+        'flair',                     (SELECT computed_flair            FROM flair),
 
         -- Basics
         'occupation',             (SELECT occupation    FROM prospect),
@@ -1985,9 +1995,20 @@ ORDER BY
 Q_JOIN_CLUB = f"""
 WITH is_allowed_club_name AS (
     {Q_IS_ALLOWED_CLUB_NAME.replace('%()s', '%(club_name)s')}
+), quota AS (
+  SELECT
+      CASE
+          WHEN person.has_gold
+          THEN {CLUB_QUOTA_GOLD}
+          ELSE {CLUB_QUOTA_FREE}
+      END as quota
+  FROM
+      person
+  WHERE
+      id = %(person_id)s
 ), will_be_within_club_quota AS (
     SELECT
-        COUNT(*) < 100 AS x
+        COUNT(*) < (SELECT quota FROM quota) AS x
     FROM
         person_club
     WHERE
@@ -2794,4 +2815,13 @@ FROM
     days_per_month
 WHERE
     token_hash = %(token_hash)s
+"""
+
+Q_HAS_GOLD = """
+SELECT
+    has_gold
+FROM
+    person
+WHERE
+    id = %(person_id)s
 """

@@ -328,6 +328,9 @@ CREATE TABLE IF NOT EXISTS person (
     flair TEXT[] NOT NULL DEFAULT '{}',
     roles TEXT[] NOT NULL DEFAULT '{}',
 
+    -- Subscriptions
+    has_gold BOOLEAN NOT NULL DEFAULT TRUE,
+
     -- Primary keys and constraints
     UNIQUE (email),
     PRIMARY KEY (id)

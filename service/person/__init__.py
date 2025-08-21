@@ -221,6 +221,13 @@ def put_image_in_object_store(
         for future in as_completed(futures):
             future.result()
 
+def _has_gold(person_id: int) -> bool:
+    with api_tx() as tx:
+        tx.execute(Q_HAS_GOLD, dict(person_id=person_id))
+        row = tx.fetchone()
+    return row.get('has_gold', False)
+
+
 def post_answer(req: t.PostAnswer, s: t.SessionInfo):
     params_add_yes_no_count = dict(
         question_id=req.question_id,
@@ -1091,6 +1098,9 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             person_id = %(person_id)s
         """
     elif field_name == 'name':
+        if not _has_gold(person_id=s.person_id):
+            return 'Requires gold', 403
+
         q1 = """
         UPDATE person
         SET name = %(field_value)s
@@ -1282,6 +1292,9 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         WHERE id = %(person_id)s
         """
     elif field_name == 'theme':
+        if not _has_gold(person_id=s.person_id):
+            return 'Requires gold', 403
+
         try:
             title_color = field_value['title_color']
             body_color = field_value['body_color']

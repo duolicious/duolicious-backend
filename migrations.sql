@@ -1,6 +1,6 @@
 ALTER TABLE
-    intro_hash
+    person
 ADD COLUMN IF NOT EXISTS
-    last_used_at
-TIMESTAMP NOT NULL DEFAULT NOW()
+    has_gold
+BOOLEAN NOT NULL DEFAULT TRUE
 ;
