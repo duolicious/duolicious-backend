@@ -93,9 +93,7 @@ const Gold = () => {
       }}
       {...props}
     >
-      <WithDeferredMount
-        randomDelay={{ min: 2000, max: 3000 }}
-      >
+      <WithDeferredMount randomDelay={{ min: 2000, max: 3000 }}>
         <Logo16
           size={16}
           color="#ffd700"
@@ -177,18 +175,17 @@ const QAndA = ({
       {...props}
     >
       <QAndADevice
-        color={color1}
-        height={(size / 3) * 2}
-        backgroundColor={color2}
+        color={color2}
+        height={size * 0.7}
+        backgroundColor="transparent"
         isBold
       />
       <DefaultText
         style={{
-          marginTop: -2,
+          marginTop: -3,
           fontSize: 7,
           backgroundColor: color2,
           color: color1,
-          zIndex: -1,
           borderRadius: 999,
           width: '100%',
           fontWeight: 700,
@@ -450,7 +447,7 @@ const VoiceBio = () => {
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 999,
-        backgroundColor: 'crimson',
+        backgroundColor: '#d10000',
       }}
       {...props}
     >
@@ -459,8 +456,9 @@ const VoiceBio = () => {
         style={{
           fontSize: size - 6,
           color: 'white',
+          marginRight: -2,
         }}
-        name="mic"
+        name="play"
       />
     </View>
   );
@@ -471,9 +469,7 @@ const Gif = () => {
 
   return (
     <View style={{ height: size, width: size }}>
-      <WithDeferredMount
-        randomDelay={{ min: 1000, max: 2000 }}
-      >
+      <WithDeferredMount randomDelay={{ min: 500, max: 1500 }}>
         <Animated.View
           ref={viewRef}
           style={{
