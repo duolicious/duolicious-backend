@@ -9,12 +9,13 @@ import { faSeedling } from '@fortawesome/free-solid-svg-icons/faSeedling'
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSequence,
-  withRepeat,
   Easing,
+  PinwheelIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
 } from 'react-native-reanimated';
 import { useTooltip } from '../tooltip';
 import { WithDeferredMount } from '../with-deferred-mount';
@@ -99,6 +100,7 @@ const Gold = () => {
           size={16}
           color="#ffd700"
           doAnimate={true}
+          doLoop={false}
         />
       </WithDeferredMount>
     </View>
@@ -436,6 +438,71 @@ const EarlyAdopter = () => {
   );
 };
 
+const VoiceBio = () => {
+  const { viewRef, props } = useTooltip(`Has a voice bio`);
+
+  return (
+    <View
+      ref={viewRef}
+      style={{
+        height: size,
+        width: size,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 999,
+        backgroundColor: 'crimson',
+      }}
+      {...props}
+    >
+      <Ionicons
+        disabled={true}
+        style={{
+          fontSize: size - 6,
+          color: 'white',
+        }}
+        name="mic"
+      />
+    </View>
+  );
+};
+
+const Gif = () => {
+  const { viewRef, props } = useTooltip(`Has an animated profile pic`);
+
+  return (
+    <View style={{ height: size, width: size }}>
+      <WithDeferredMount
+        randomDelay={{ min: 1000, max: 2000 }}
+      >
+        <Animated.View
+          ref={viewRef}
+          style={{
+            height: size,
+            width: size,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 2,
+            backgroundColor: '#28afff',
+          }}
+          entering={PinwheelIn}
+          {...props}
+        >
+          <DefaultText
+            style={{
+              fontSize: 9,
+              fontWeight: 600,
+              textAlign: 'center',
+              color: '#dff2ff',
+            }}
+          >
+            GIF
+          </DefaultText>
+        </Animated.View>
+      </WithDeferredMount>
+    </View>
+  );
+};
+
 const Flair = ({
   flair
 }: {
@@ -466,6 +533,8 @@ const Flair = ({
           {f === 'one-year'      && <OneYear />}
           {f === 'long-bio'      && <LongBio />}
           {f === 'early-adopter' && <EarlyAdopter />}
+          {f === 'voice-bio'     && <VoiceBio />}
+          {f === 'gif'           && <Gif />}
         </Fragment>
       )}
     </View>

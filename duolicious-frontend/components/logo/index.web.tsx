@@ -1,46 +1,80 @@
-import { useEffect, useRef, useMemo } from 'react';
+import {
+  memo,
+  useEffect,
+  useMemo,
+} from 'react';
 import Animated, {
-  Easing,
   cancelAnimation,
+  Easing,
+  SharedValue,
   useAnimatedProps,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { G, Rect } from 'react-native-svg';
+import {
+  LOGO_16_RECT_COORDINATES,
+  Logo14Props,
+  Logo16Props,
+} from './common';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
-const logo16RectCoordinates = [
-  { x: 1.5875,     y: 1.5875    },
-  { x: 1.3229166,  y: 1.5875    },
-  { x: 1.0583335,  y: 1.8520836 },
-  { x: 0.79375011, y: 1.5875    },
-  { x: 0.52916676, y: 1.5875    },
-  { x: 0.26458347, y: 1.8520836 },
-  { x: 0.26458347, y: 2.1166666 },
-  { x: 0.52916676, y: 2.3812499 },
-  { x: 0.79375011, y: 2.6458333 },
-  { x: 1.0583335,  y: 2.9104166 },
-  { x: 1.3229166,  y: 2.6458333 },
-  { x: 1.5875,     y: 2.3812499 },
-  { x: 1.8520833,  y: 2.1166666 },
-  { x: 1.8520833,  y: 1.8520836 },
-  { x: 2.1166666,  y: 1.5875    },
-  { x: 2.1166666,  y: 1.3229166 },
-  { x: 2.3812499,  y: 1.0583333 },
-  { x: 2.6458333,  y: 1.0583333 },
-  { x: 2.9104166,  y: 1.3229166 },
-  { x: 3.175,      y: 1.0583333 },
-  { x: 3.4395833,  y: 1.0583333 },
-  { x: 3.7041664,  y: 1.3229166 },
-  { x: 3.7041664,  y: 1.5875    },
-  { x: 3.4395833,  y: 1.8520833 },
-  { x: 3.175,      y: 2.1166666 },
-  { x: 2.9104166,  y: 2.3812499 },
-  { x: 2.6458333,  y: 2.1166666 },
-  { x: 2.3812499,  y: 1.8520833 },
-];
+const easingPoly5 = Easing.poly(5);
+
+const AnimatedLogoRect = memo(({
+  index,
+  coord,
+  rectSize,
+  color,
+  doAnimate,
+  progress,                 // <— pass this
+  timeline,                 // <— pass the scalar timings (numbers)
+}: {
+  index: number;
+  coord: { x: number; y: number };
+  rectSize: number;
+  color: string;
+  doAnimate: boolean;
+  progress: SharedValue<number>;
+  timeline: { STAGGER: number; FADE: number; T2: number; T4: number };
+}) => {
+  const { STAGGER, FADE, T2, T4 } = timeline;
+
+  const animatedProps = useAnimatedProps(() => {
+    'worklet';
+    if (!doAnimate) return { opacity: 1 };
+
+    const time = progress.value % T4;
+    const inStart = index * STAGGER;
+    const inEnd = inStart + FADE;
+    const outStart = T2 + index * STAGGER;
+    const outEnd = outStart + FADE;
+    const invFade = 1 / FADE;
+
+    let o = 0;
+    if (time >= inStart && time <= inEnd) {
+      o = easingPoly5((time - inStart) * invFade);
+    } else if (time > inEnd && time < outStart) {
+      o = 1;
+    } else if (time >= outStart && time <= outEnd) {
+      o = 1 - easingPoly5((time - outStart) * invFade);
+    }
+    return { opacity: o };    // use element opacity (cheaper composite) instead of fillOpacity
+  });
+
+  return (
+    <AnimatedRect
+      width={rectSize}
+      height={rectSize}
+      x={coord.x}
+      y={coord.y}
+      fill={color}
+      animatedProps={animatedProps}
+    />
+  );
+});
 
 const Logo16 = ({
   size = 48,
@@ -49,107 +83,51 @@ const Logo16 = ({
   fadeOutDelay = 5000,
   fadeInDelay = 500,
   doAnimate = false,
-}: {
-  size?: number,
-  color?: string,
-  rectSize?: number,
-  fadeOutDelay?: number,
-  fadeInDelay?: number,
-  doAnimate?: boolean,
-}) => {
-  // ---- One shared "clock" per Logo16 ----
-  const progress = useRef(useSharedValue(0)).current;
+  doLoop = true,
+}: Logo16Props) => {
+  const progress = useSharedValue(0);
 
-  // Precompute the timeline constants once per render
   const timeline = useMemo(() => {
-    const COUNT = logo16RectCoordinates.length;
+    const COUNT = LOGO_16_RECT_COORDINATES.length;
     const STAGGER = 40;
     const FADE = 400;
     const IN_WINDOW = (COUNT - 1) * STAGGER + FADE;
     const T1 = IN_WINDOW;
     const T2 = T1 + fadeOutDelay;
     const T3 = T2 + IN_WINDOW;
-    const T4 = T3 + fadeInDelay; // total duration
+    const T4 = T3 + fadeInDelay;
     return { COUNT, STAGGER, FADE, T1, T2, T3, T4 };
   }, [fadeOutDelay, fadeInDelay]);
 
   useEffect(() => {
     if (!doAnimate) {
       cancelAnimation(progress);
+      progress.value = 0;
       return;
     }
-
+    cancelAnimation(progress);
     progress.value = 0;
-    progress.value = withRepeat(
-      withTiming(timeline.T4, { duration: timeline.T4, easing: Easing.linear }),
-      -1,
-      false
-    );
+    progress.value = doLoop
+      ? withRepeat(withTiming(timeline.T4, { duration: timeline.T4, easing: Easing.linear }), -1, false)
+      : withTiming(timeline.T1, { duration: timeline.T1, easing: Easing.linear });
 
-    return () => {
-      cancelAnimation(progress);
-    };
-  }, [doAnimate, progress, timeline.T4]);
-
-  // Child component so we can use hooks without breaking the Rules of Hooks
-  const AnimatedLogoRect = ({
-    coord,
-    index,
-  }: {
-    coord: { x: number; y: number };
-    index: number;
-  }) => {
-    const animatedProps = useAnimatedProps(() => {
-      // When animation is disabled, keep all rects visible
-      if (!doAnimate) {
-        return { opacity: 1 as number };
-      }
-
-      // Single timeline ("clock") drives all rects
-      const t = progress.value % timeline.T4;
-
-      const inStart = index * timeline.STAGGER;
-      const inEnd = inStart + timeline.FADE;
-
-      const outStart = timeline.T2 + index * timeline.STAGGER;
-      const outEnd = outStart + timeline.FADE;
-
-      // piecewise opacity curve with Easing.poly(5)
-      let opacity = 0;
-
-      if (t >= inStart && t <= inEnd) {
-        const p = (t - inStart) / timeline.FADE;
-        opacity = Easing.poly(5)(p); // 0 -> 1
-      } else if (t > inEnd && t < outStart) {
-        opacity = 1;
-      } else if (t >= outStart && t <= outEnd) {
-        const p = (t - outStart) / timeline.FADE;
-        opacity = 1 - Easing.poly(5)(p); // 1 -> 0
-      } else {
-        opacity = 0;
-      }
-
-      return { opacity: opacity as number };
-    });
-
-    return (
-      <AnimatedRect
-        width={rectSize}
-        height={rectSize}
-        x={coord.x}
-        y={coord.y}
-        fill={color}
-        // animatedProps uses the single shared clock
-        animatedProps={animatedProps}
-      />
-    );
-  };
+    return () => cancelAnimation(progress);
+  }, [doAnimate, doLoop, timeline.T1, timeline.T4]);
 
   return (
     <Svg width={size} height={size} viewBox="0 0 4.2333331 4.2333332">
-      <G>
-        {logo16RectCoordinates.map((coord, index) => (
-          <AnimatedLogoRect key={index} coord={coord} index={index} />
+      <G pointerEvents="none">
+        {LOGO_16_RECT_COORDINATES.map((coord, index) => (
+          <AnimatedLogoRect
+            key={index}
+            index={index}
+            coord={coord}
+            rectSize={rectSize}
+            color={color}
+            doAnimate={doAnimate}
+            progress={progress}                     // <—
+            timeline={{ STAGGER: timeline.STAGGER, FADE: timeline.FADE, T2: timeline.T2, T4: timeline.T4 }} // <—
+          />
         ))}
       </G>
     </Svg>
@@ -160,11 +138,7 @@ const Logo14 = ({
   size = 42,
   color = 'white',
   rectSize = 0.26458332
-}: {
-  size?: number,
-  color?: string,
-  rectSize?: number,
-}) => {
+}: Logo14Props) => {
   return (
     <Svg
        width={size}

@@ -51,9 +51,15 @@ const WithDeferredMount = (props: WithDeferredMountProps) => {
     return null;
   }
 
-  return typeof props.children === 'function'
-    ? props.children()
-    : props.children;
+  return (
+    <>
+      {
+        typeof props.children === 'function'
+          ? props.children()
+          : props.children
+      }
+    </>
+  );
 };
 
 export { WithDeferredMount };
