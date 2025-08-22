@@ -144,7 +144,8 @@ test_json_format () {
   {
     "added_audio_uuid": "redacted_nonnull_value",
     "flair": [
-      "gold"
+      "gold",
+      "voice-bio"
     ],
     "is_verified": false,
     "match_percentage": 50,
