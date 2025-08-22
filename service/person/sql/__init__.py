@@ -1083,6 +1083,7 @@ WHERE
 Q_CHECK_SESSION_TOKEN = f"""
 SELECT
     name,
+    has_gold,
     {_Q_DO_SHOW_DONATION_NAG.format(table='person')},
     {_Q_ESTIMATED_END_DATE},
     (SELECT name FROM unit WHERE unit.id = person.unit_id) AS units
