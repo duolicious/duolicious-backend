@@ -105,7 +105,7 @@ Q_COMPUTED_FLAIR = """
         SELECT
             unnest(flair) AS e
         UNION
-            SELECT 'gold'          WHERE has_gold
+            SELECT 'gold' WHERE has_gold
         UNION
             SELECT CASE
                 WHEN count_answers >= 1000 THEN 'q-and-a-1000'
@@ -119,9 +119,29 @@ Q_COMPUTED_FLAIR = """
                 WHEN sign_up_time <= now() - interval '1 week'  THEN 'one-week'
             END
         UNION
-            SELECT 'long-bio'      WHERE length(about) >= 500
+            SELECT 'long-bio' WHERE length(about) >= 500
         UNION
             SELECT 'early-adopter' WHERE sign_up_time <= '2024-08-26 01:05:49'
+        UNION
+            SELECT 'gif' WHERE EXISTS (
+                SELECT
+                    1
+                FROM
+                    photo
+                WHERE
+                    photo.person_id = id
+                AND
+                    'gif' = ANY(photo.extra_exts)
+            )
+        UNION
+            SELECT 'voice-bio' WHERE EXISTS (
+                SELECT
+                    1
+                FROM
+                    audio
+                WHERE
+                    audio.person_id = id
+            )
     ) t
     WHERE
         e IS NOT NULL

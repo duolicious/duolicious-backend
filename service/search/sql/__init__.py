@@ -878,6 +878,7 @@ WITH searcher AS (
         person.id = %(searcher_person_id)s
 ), person_data AS (
     SELECT
+        id,
         prospect.uuid AS person_uuid,
         prospect.name,
         photo_data.blurhash AS photo_blurhash,
@@ -1118,6 +1119,7 @@ WITH searcher AS (
         100
 ), filtered_by_club AS (
     SELECT
+        id,
         person_uuid,
         name,
         photo_uuid,
