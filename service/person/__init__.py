@@ -2010,9 +2010,87 @@ def post_kofi_donation(req: t.PostKofiData):
         return
 
     params = dict(
-        token_hash=sha512(req.verification_token),
+        token_hash_kofi=sha512(req.verification_token),
         amount=req.amount,
     )
 
     with api_tx() as tx:
         tx.execute(Q_KOFI_DONATION, params)
+
+def post_revenuecat(req: t.PostRevenuecat):
+    def get_has_gold() -> Tuple[list[str], list[str]]:
+        match req.event:
+            case t.InitialPurchaseEvent(app_user_id=app_user_id):
+                return [], [app_user_id]
+            case t.RenewalEvent(app_user_id=app_user_id):
+                return [], [app_user_id]
+            case t.ExpirationEvent(app_user_id=app_user_id):
+                return [app_user_id], []
+            case t.TransferEvent(
+                    transferred_to=transferred_to,
+                    transferred_from=transferred_from):
+                return transferred_from, transferred_to
+
+        return [], []
+
+
+    def get_has_gold_params_seq():
+        has_no_gold_uuids, has_gold_uuids = get_has_gold()
+
+        has_no_gold_params_seq = [
+            dict(
+                person_uuid=person_uuid,
+                has_gold=False,
+            )
+            for person_uuid in has_no_gold_uuids
+        ]
+
+        has_gold_params_seq = [
+            dict(
+                person_uuid=person_uuid,
+                has_gold=True
+            )
+            for person_uuid in has_gold_uuids
+        ]
+
+        return (
+            has_no_gold_params_seq +
+            has_gold_params_seq)
+
+
+    try:
+        auth_header = request.headers.get("Authorization", "")
+        bearer, revenuecat_token = auth_header.split()
+        if bearer.lower() != 'bearer':
+            raise Exception()
+    except:
+        return 'Missing or malformed authorization header', 400
+
+    has_gold_params_seq = get_has_gold_params_seq()
+
+    with api_tx() as tx:
+        tx.execute(
+            Q_SELECT_REVENUECAT_AUTHORIZED,
+            dict(token_hash_revenuecat=sha512(revenuecat_token)),
+        )
+        if not tx.fetchone():
+            return 'Unauthorized', 401
+
+        if not has_gold_params_seq:
+            return 'Payload ignored because of its format', 200
+
+        tx.executemany(
+            Q_UPDATE_GOLD_FROM_REVENUECAT,
+            has_gold_params_seq,
+            returning=True
+        )
+
+        all_uuids = set(str(x['person_uuid']) for x in has_gold_params_seq)
+        updated_uuids = set(str(x['person_uuid']) for x in fetchall_sets(tx))
+        ignored_uuids = all_uuids - updated_uuids
+
+        return dict(
+            all_uuids=sorted(all_uuids),
+            updated_uuids=sorted(updated_uuids),
+            ignored_uuids=sorted(ignored_uuids),
+        )

@@ -2815,7 +2815,7 @@ SET
 FROM
     days_per_month
 WHERE
-    token_hash = %(token_hash)s
+    token_hash_kofi = %(token_hash_kofi)s
 """
 
 Q_HAS_GOLD = """
@@ -2825,4 +2825,94 @@ FROM
     person
 WHERE
     id = %(person_id)s
+"""
+
+Q_SELECT_REVENUECAT_AUTHORIZED = """
+SELECT
+    1
+FROM
+    funding
+WHERE
+    token_hash_revenuecat = %(token_hash_revenuecat)s
+"""
+
+Q_UPDATE_GOLD_FROM_REVENUECAT = f"""
+WITH updated_person_with_gold AS (
+    UPDATE
+        person
+    SET
+        has_gold = TRUE
+    WHERE
+        person.uuid = uuid_or_null(%(person_uuid)s::TEXT)
+    AND
+        %(has_gold)s = TRUE
+    RETURNING
+        person.uuid
+), updated_person_without_gold AS (
+    UPDATE
+        person
+    SET
+        has_gold = FALSE,
+
+        title_color = DEFAULT,
+        body_color = DEFAULT,
+        background_color = DEFAULT
+    WHERE
+        person.uuid = uuid_or_null(%(person_uuid)s::TEXT)
+    AND
+        %(has_gold)s = FALSE
+    RETURNING
+        person.uuid
+), updated_person AS (
+    SELECT uuid FROM updated_person_with_gold
+    UNION
+    SELECT uuid FROM updated_person_without_gold
+), ranked_person_club AS (
+    SELECT
+        person_club.person_id,
+        person_club.club_name,
+        ROW_NUMBER() OVER (ORDER BY club.count_members ASC, club.name ASC) AS rn
+    FROM
+        person_club
+    JOIN
+        club
+    ON
+        club.name = person_club.club_name
+    JOIN
+        person
+    ON
+        person.id = person_club.person_id
+    WHERE
+        person.uuid = uuid_or_null(%(person_uuid)s::TEXT)
+), deleted_person_club AS (
+    DELETE FROM
+        person_club
+    USING
+        ranked_person_club
+    WHERE
+        person_club.person_id = ranked_person_club.person_id
+    AND
+        person_club.club_name = ranked_person_club.club_name
+    AND
+        ranked_person_club.rn > CASE
+            WHEN %(has_gold)s
+            THEN {CLUB_QUOTA_GOLD}
+            ELSE {CLUB_QUOTA_FREE}
+        END
+    RETURNING
+        person_club.club_name
+), updated_club AS (
+    UPDATE
+        club
+    SET
+        count_members = club.count_members - 1
+    FROM
+        deleted_person_club
+    WHERE
+        club.name = deleted_person_club.club_name
+)
+SELECT
+    uuid as person_uuid
+FROM
+    updated_person
 """

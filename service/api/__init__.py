@@ -532,3 +532,8 @@ def post_kofi_donation():
     except:
         return '', 401
     return person.post_kofi_donation(req=req)
+
+@post('/revenuecat')
+@validate(t.PostRevenuecat)
+def post_revenuecat(req: t.PostRevenuecat):
+    return person.post_revenuecat(req)

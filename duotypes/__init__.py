@@ -1,14 +1,22 @@
-from typing import Any, DefaultDict, Dict, List, Optional
+from typing import (
+    Any, ClassVar,
+    DefaultDict, Dict, List, Optional,
+    Annotated, Literal, Union,
+)
 from pydantic import (
     BaseModel,
-    EmailStr,
-    Extra,
-    RootModel,
+    ConfigDict,
     conint,
     conlist,
     constr,
+    EmailStr,
+    Extra,
+    Field,
     field_validator,
     model_validator,
+    RootModel,
+    ValidationError,
+    TypeAdapter,
 )
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
@@ -547,3 +555,55 @@ class ValidDatetime(BaseModel):
             return datetime.fromisoformat(v.replace('Z', '+00:00'))
         except ValueError:
             raise ValueError('`datetime` must be an ISO-8601 datetime')
+
+class RevenuecatBase(BaseModel):
+    model_config = ConfigDict(extra='ignore')
+
+class InitialPurchaseEvent(RevenuecatBase):
+    type: Literal['INITIAL_PURCHASE']
+    app_user_id: str
+
+class RenewalEvent(RevenuecatBase):
+    type: Literal['RENEWAL']
+    app_user_id: str
+
+class ExpirationEvent(RevenuecatBase):
+    type: Literal['EXPIRATION']
+    app_user_id: str
+
+class TransferEvent(RevenuecatBase):
+    type: Literal['TRANSFER']
+    transferred_to: List[str]
+    transferred_from: List[str]
+
+RevenuecatEvent = Annotated[
+    Union[InitialPurchaseEvent, RenewalEvent, ExpirationEvent, TransferEvent],
+    Field(discriminator='type'),
+]
+
+class PostRevenuecat(BaseModel):
+    model_config = ConfigDict(extra='ignore')
+
+    api_version: Optional[str] = None
+    event: Optional[RevenuecatEvent] = None
+    # keep the raw payload for unknown types (or failed parses)
+    raw_event: Optional[Dict[str, Any]] = None
+    raw_event_error: Optional[str] = None
+
+    # one adapter reused for all validations
+    _EVENT_ADAPTER: ClassVar[TypeAdapter] = TypeAdapter(RevenuecatEvent)
+
+    @model_validator(mode='before')
+    @classmethod
+    def _coerce_event(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        ev = values.get('event')
+        if isinstance(ev, dict):
+            try:
+                # Try to parse into one of the known discriminated variants
+                values['event'] = cls._EVENT_ADAPTER.validate_python(ev)
+            except ValidationError as e:
+                # Unknown type or bad payload → stash and null out event
+                values['raw_event'] = ev
+                values['raw_event_error'] = str(e)
+                values['event'] = None
+        return values
