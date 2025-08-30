@@ -1,8 +1,12 @@
+# Print a high-contrast banner line to make logs readable.
+# Example: say "References to audio files are stored in MAM"
 say () {
   local text="$1"
   echo -e "\033[1;30;47m${text}\033[0m"
 }
 
+# Wrap text in escape codes for a highlighted prompt (used by PS4 below).
+# Example: export PS4="$(highlight '${BASH_SOURCE}'):$(highlight '${LINENO}'): "
 highlight() {
   local text="$1"
   echo -e "\[\033[1;30;47m\]${text}\[\033[0m\]"
@@ -22,6 +26,8 @@ printf 1 > ../../test/input/enable-mocking
 printf 1 > ../../test/input/disable-ip-rate-limit
 printf 1 > ../../test/input/disable-account-rate-limit
 
+# Read from stdin and strip leading and trailing spaces. Useful for psql output.
+# Example: echo '  value  ' | trim  # => 'value'
 trim () {
   local trimmed=$(cat)
 
@@ -37,6 +43,12 @@ trim () {
   printf "$trimmed"
 }
 
+# HTTP client wrapper around curl.
+# - Adds Authorization header from SESSION_TOKEN if present
+# - Defaults base URL to http://localhost:5000 for relative endpoints
+# - Prints response body to stdout; exit status is 0 for 2xx, non-zero otherwise
+# Example: response=$(c GET '/stats')
+# Example (expect failure): ! c GET '/search?n=1&o=0' || exit 1
 c () {
   local method=$1
   local endpoint=$2
@@ -79,8 +91,14 @@ c () {
   [ "$status_code" -ge 200 -a "$status_code" -lt 300 ]
 }
 
+# JSON HTTP client. Same as c() but sets Content-Type: application/json.
+# Example: jc POST /request-otp -d '{ "email": "user1@example.com" }'
 jc () { c "$@" --header "Content-Type: application/json"; }
 
+# Execute a SQL command against Postgres and trim whitespace.
+# Defaults: DB=duo_api, host=localhost, port=5432, user=postgres (override with env vars)
+# Example: q "select count(*) from person"
+# Example (different DB): q 'select 1' postgres
 q () {
   PGPASSWORD="${DUO_DB_PASS:-password}" psql \
     -U "${DUO_DB_USER:-postgres}" \
@@ -93,6 +111,8 @@ q () {
     | trim
 }
 
+# Dump the duo_api database to a compressed fixture file under test/fixtures/.
+# Example: qdump baseline   # writes ../fixtures/duo_api-baseline.zstd
 qdump () {
   PGPASSWORD="${DUO_DB_PASS:-password}" pg_dump \
     -U "${DUO_DB_USER:-postgres}" \
@@ -103,6 +123,8 @@ qdump () {
     > "../fixtures/duo_api-$1.zstd"
 }
 
+# Restore the duo_api database from a compressed fixture created by qdump.
+# Example: qrestore baseline
 qrestore () {
   q 'drop database duo_api with (force)' postgres
 
@@ -116,22 +138,35 @@ qrestore () {
       -p "${DUO_DB_PORT:-5432}"
 }
 
+# Assert a JSON array has the expected length.
+# Example: j_assert_length "$response" 2
 j_assert_length () {
   [[ "$(echo "$1" | jq length)" -eq "$2" ]]
 }
 
+# Generate a random base64-encoded PNG image (WxH) for testing.
+# Example: img=$(rand_image)
 rand_image () {
   ./rand-image.sh 100 100 | base64 -w 0
 }
 
+# Generate a short random base64-encoded AAC audio clip for testing.
+# Example: snd=$(rand_sound)
 rand_sound () {
   ./rand-sound.sh 3 | base64 -w 0
 }
 
+# Return a deterministic base64-encoded audio clip from fixtures.
+# Example: snd=$(const_sound)
 const_sound () {
   cat '../fixtures/audio-bio.mp4' | base64 -w 0
 }
 
+# Sign in as a user and export SESSION_TOKEN, USER_UUID, PERSON_ID.
+# Accepts a username (adds @example.com) or a full email. Uses OTP flow.
+# Returns non-zero if the user is not onboarded yet.
+# Example: assume_role user1
+# Example: assume_role 'reporter@gmail.com'
 assume_role () {
   local username_or_email=$1
   local email
@@ -181,22 +216,32 @@ assume_role () {
   fi
 }
 
+# Lookup an internal numeric person id by email.
+# Example: user1id=$(get_id 'user1@example.com')
 get_id () {
   q "select id from person where email = '$1'"
 }
 
+# Lookup a person's UUID by email.
+# Example: user1uuid=$(get_uuid 'user1@example.com')
 get_uuid () {
   q "select uuid::text from person where email = '$1'"
 }
 
+# Delete all messages from the test SMTP server (MailHog).
+# Example: delete_emails
 delete_emails () {
   curl -s -X DELETE 'http://localhost:8025/api/v1/messages'
 }
 
+# Return success if the MailHog inbox is empty.
+# Example: is_inbox_empty || echo "mail remains"
 is_inbox_empty () {
   [[ $(curl -s 'http://localhost:8025/api/v1/messages') == '[]' ]]
 }
 
+# Pretty-print the latest messages from MailHog (To, From, Subject, Body).
+# Example: get_emails | grep "Subject:"
 get_emails () {
   (
     set +x
@@ -233,6 +278,9 @@ get_emails () {
   )
 }
 
+# Ensure that photos for a UUID are downloadable from the mock S3 server.
+# Accepts optional size list; defaults to original, 900, 450.
+# Example: assert_photos_downloadable_by_uuid "$uuid" 900 450
 assert_photos_downloadable_by_uuid () {
   local uuid=$1
   shift
@@ -248,6 +296,8 @@ assert_photos_downloadable_by_uuid () {
   done
 }
 
+# Poll until photos for a UUID disappear from the mock S3 server (<= 5s).
+# Example: wait_for_deletion_by_uuid "$uuid" 900 450
 wait_for_deletion_by_uuid () {
   local elapsed=0
 
@@ -266,6 +316,8 @@ wait_for_deletion_by_uuid () {
   return 1
 }
 
+# Poll until photos for a UUID appear on the mock S3 server (<= 5s).
+# Example: wait_for_creation_by_uuid "$uuid" original 900 450
 wait_for_creation_by_uuid () {
   local elapsed=0
 
@@ -284,6 +336,8 @@ wait_for_creation_by_uuid () {
   return 1
 }
 
+# Ensure that an audio file for a UUID is downloadable from the mock S3 server.
+# Example: assert_audios_downloadable_by_uuid "$audio_uuid"
 assert_audios_downloadable_by_uuid () {
   local uuid=$1
 
@@ -296,6 +350,8 @@ assert_audios_downloadable_by_uuid () {
   [[ ${download_length} -ne 0 && ${rc} -eq 0 ]]
 }
 
+# Poll until an audio file disappears from the mock S3 server (<= 5s).
+# Example: wait_for_audio_deletion_by_uuid "$audio_uuid"
 wait_for_audio_deletion_by_uuid () {
   local elapsed=0
 
@@ -314,6 +370,8 @@ wait_for_audio_deletion_by_uuid () {
   return 1
 }
 
+# Poll until an audio file appears on the mock S3 server (<= 5s).
+# Example: wait_for_audio_creation_by_uuid "$audio_uuid"
 wait_for_audio_creation_by_uuid () {
   local elapsed=0
 
@@ -333,6 +391,9 @@ wait_for_audio_creation_by_uuid () {
 }
 
 
+# Authenticate to the XMPP websocket test server using UUID and token.
+# Posts config, then a SASL PLAIN auth stanza encoded in base64.
+# Example: chat_auth "$userUuid" "$userToken"
 chat_auth () {
   local fromUuid=$1
   local fromToken=$2
@@ -362,6 +423,8 @@ EOF
     -d "$authJson"
 }
 
+# Upload N random photos to the profile via /profile-info.
+# Example: add_photos 3
 add_photos () {
   for i in $(seq 1 $1)
   do

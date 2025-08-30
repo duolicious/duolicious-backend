@@ -1,5 +1,20 @@
 #!/usr/bin/env bash
 
+# Create and onboard a test user via the HTTP API.
+# - Requests an OTP for the provided username or email and confirms it
+# - Populates onboarding info (name, DOB, location, gender, photos)
+# - Answers a number of profile questions
+# - Optionally uploads an audio bio
+#
+# Usage:
+#   ./create-user.sh <username_or_email> [num_questions=100] [num_photos=0] [do_add_audio=false]
+# Examples:
+#   ./create-user.sh alice 50 2 true
+#   ./create-user.sh bob@example.com
+#
+# Requires:
+# - Sourced test/util/setup.sh which provides jc, c, q, rand_image, rand_sound
+# - Backend/API running and reachable by the test helpers
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 

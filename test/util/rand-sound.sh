@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# Usage: ./rand-sound.sh [DURATION_SECONDS=3] > output.wav
 # Generate a small, random .wav file in bash
 
 # Set parameters

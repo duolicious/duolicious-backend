@@ -1,3 +1,6 @@
+# Usage: ./rand-image.sh WIDTH HEIGHT > out.bmp
+# Generates a 24-bit BMP of random pixels to stdout.
+
 raw_rand_bmp () {
   local width=$1
   local height=$2
