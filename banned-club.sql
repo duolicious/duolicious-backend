@@ -2437,6 +2437,8 @@ VALUES
     ('nigger rapist'),
     ('niggers'),
     ('niggers hater'),
+    ('"niggerz"'),
+    ('niggerz'),
     ('niggger'),
     ('niggot'),
     ('niggress'),

@@ -103,6 +103,9 @@ _closed_class_slang_words = {
         "fuc",
         "fuk",
     ],
+    "dick": [
+        "dik"
+    ],
 }
 
 

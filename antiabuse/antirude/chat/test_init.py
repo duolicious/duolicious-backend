@@ -147,6 +147,8 @@ class TestIsOffensive(unittest.TestCase):
 
         self.assertTrue(is_rude("Small dick energy"))
 
+        self.assertTrue(is_rude("Small dik energy"))
+
         self.assertTrue(is_rude("Would you like to purchase viagra?"))
 
         # whore is rude even if followed by an emoji without space between
