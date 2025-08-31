@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypeVar
 import os
 import psycopg
 import random
@@ -95,8 +95,10 @@ class api_tx:
 
         _api_conn_lock.release()
 
-def fetchall_sets(tx: psycopg.Cursor[Any]):
-    result = []
+RowT = TypeVar('RowT')
+
+def fetchall_sets(tx: psycopg.Cursor[RowT]) -> list[RowT]:
+    result: list[RowT] = []
     while True:
         result.extend(tx.fetchall())
         nextset = tx.nextset()

@@ -16,7 +16,7 @@ update
   funding
 set
   estimated_end_date = '2024-09-17 15:02:10.866',
-  token_hash = '$(printf 'valid-token' | sha512sum | cut -d' ' -f1)',
+  token_hash_kofi = '$(printf 'valid-token' | sha512sum | cut -d' ' -f1)',
   cost_per_month_usd = 100.0
 "
 
