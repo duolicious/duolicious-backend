@@ -240,6 +240,10 @@ test_theme () {
 EOF
 )
 
+  jc PATCH /profile-info -d "$value" && exit 1
+
+  q "update person set has_gold = true"
+
   jc PATCH /profile-info -d "$value"
 
   local new_field_value=$(

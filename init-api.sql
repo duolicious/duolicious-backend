@@ -329,7 +329,7 @@ CREATE TABLE IF NOT EXISTS person (
     roles TEXT[] NOT NULL DEFAULT '{}',
 
     -- Subscriptions
-    has_gold BOOLEAN NOT NULL DEFAULT TRUE,
+    has_gold BOOLEAN NOT NULL DEFAULT FALSE,
 
     -- Primary keys and constraints
     UNIQUE (email),
