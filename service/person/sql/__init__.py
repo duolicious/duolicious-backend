@@ -2801,23 +2801,6 @@ FROM
     absolute_numbers
 """
 
-Q_KOFI_DONATION = """
-WITH days_per_month AS (
-    SELECT (date_trunc('month', current_date) + interval '1 month')
-         -  date_trunc('month', current_date) AS dpm
-)
-UPDATE
-    funding
-SET
-    estimated_end_date
-        = estimated_end_date
-        + dpm * %(amount)s / cost_per_month_usd
-FROM
-    days_per_month
-WHERE
-    token_hash_kofi = %(token_hash_kofi)s
-"""
-
 Q_HAS_GOLD = """
 SELECT
     has_gold

@@ -2005,18 +2005,6 @@ def get_export_data(token: str):
         download_name='export.json',
     )
 
-def post_kofi_donation(req: t.PostKofiData):
-    if req.currency.lower() != 'usd':
-        return
-
-    params = dict(
-        token_hash_kofi=sha512(req.verification_token),
-        amount=req.amount,
-    )
-
-    with api_tx() as tx:
-        tx.execute(Q_KOFI_DONATION, params)
-
 def post_revenuecat(req: t.PostRevenuecat):
     def get_has_gold() -> Tuple[list[str], list[str]]:
         match req.event:

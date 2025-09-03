@@ -523,16 +523,6 @@ def get_export_data_token(s: t.SessionInfo):
 def get_export_data(token: str):
     return person.get_export_data(token=token)
 
-@post('/kofi-donation')
-def post_kofi_donation():
-    try:
-        data = request.form.get('data')
-        j = json.loads(data)
-        req = t.PostKofiData(**j)
-    except:
-        return '', 401
-    return person.post_kofi_donation(req=req)
-
 @post('/revenuecat')
 @validate(t.PostRevenuecat)
 def post_revenuecat(req: t.PostRevenuecat):

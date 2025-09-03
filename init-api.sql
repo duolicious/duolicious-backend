@@ -541,7 +541,6 @@ CREATE TABLE IF NOT EXISTS funding (
     estimated_end_date TIMESTAMP NOT NULL,
     cost_per_month_usd FLOAT NOT NULL,
 
-    token_hash_kofi TEXT NOT NULL DEFAULT '',
     token_hash_revenuecat TEXT NOT NULL DEFAULT '',
 
     CONSTRAINT id CHECK (id = 1)
