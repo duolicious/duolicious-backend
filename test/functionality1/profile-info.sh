@@ -28,6 +28,9 @@ assume_role user1
 test_set () {
   local field_name=$1
   local field_value=$2
+  local has_gold_value=${3:-true}
+
+  q "update person set has_gold = ${has_gold_value}"
 
   jc PATCH /profile-info -d '{ "'"$field_name"'": "'"$field_value"'" }'
   new_field_value=$(
@@ -229,6 +232,10 @@ test_audio () {
 }
 
 test_theme () {
+  local has_gold_value=${1:-true}
+
+  q "update person set has_gold = ${has_gold_value}"
+
   local value=$(cat << EOF
 {
   "theme": {
@@ -387,7 +394,9 @@ test_verification_required () {
   [[ "$(q "select COUNT(*) from person where verification_required")" -eq 1 ]]
 }
 
-test_set name "Jeff"
+
+test_set name "Jeff" false && exit 1
+test_set name "Jeff" true
 test_set about "I'm a bad ass motherfuckin' DJ / This is why I walk and talk this way"
 test_set gender Woman
 test_set orientation Asexual
@@ -423,7 +432,8 @@ test_photo_assignments
 
 test_audio
 
-test_theme
+test_theme false && exit 1
+test_theme true
 
 test_verification_loss_gender
 test_verification_loss_ethnicity

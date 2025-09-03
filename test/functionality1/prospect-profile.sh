@@ -45,9 +45,7 @@ expected=$(jq -r . << EOF
   "education": null,
   "ethnicity": null,
   "exercise": null,
-  "flair": [
-    "gold"
-  ],
+  "flair": [],
   "gender": "Other",
   "gets_reply_percentage": null,
   "gives_reply_percentage": null,
@@ -119,9 +117,7 @@ expected=$(jq -r . << EOF
   "education": null,
   "ethnicity": null,
   "exercise": null,
-  "flair": [
-    "gold"
-  ],
+  "flair": [],
   "gender": "Other",
   "gets_reply_percentage": null,
   "gives_reply_percentage": null,

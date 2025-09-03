@@ -531,15 +531,6 @@ class PostVerificationSelfie(BaseModel):
     base64_file: Base64File
 
 
-class PostKofiData(BaseModel):
-    verification_token: str
-    amount: int
-    currency: str
-
-    class Config:
-        extra = Extra.allow
-
-
 class ValidDatetime(BaseModel):
     datetime: datetime
 

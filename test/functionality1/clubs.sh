@@ -32,8 +32,8 @@ club_idempotence () {
   [[ "$results" == "$expected" ]]
 }
 
-club_quota () {
-  echo 'You can join no more than 100 clubs'
+club_quota_without_gold () {
+  echo 'You can join no more than 50 clubs without gold'
 
   q "delete from person"
   q "delete from person_club"
@@ -41,6 +41,29 @@ club_quota () {
 
   ../util/create-user.sh user1 0 0
   ../util/create-user.sh user2 0 0
+
+  assume_role user1
+  for i in {1..50}
+  do
+    jc POST /join-club -d '{ "name": "my-club-'$i'" }'
+  done
+  ! jc POST /join-club -d '{ "name": "my-club-101" }' || exit 1
+
+  assume_role user2
+  jc POST /join-club -d '{ "name": "my-club-1" }'
+}
+
+club_quota_with_gold () {
+  echo 'You can join no more than 100 clubs with gold'
+
+  q "delete from person"
+  q "delete from person_club"
+  q "delete from club"
+
+  ../util/create-user.sh user1 0 0
+  ../util/create-user.sh user2 0 0
+
+  q "update person set has_gold = true"
 
   assume_role user1
   for i in {1..100}
@@ -285,7 +308,8 @@ public_club_search () {
 public_club_search
 empty_club_search_string
 club_idempotence
-club_quota
+club_quota_without_gold
+club_quota_with_gold
 club_count_when_deleted
 club_count_when_activated_or_deactivated
 banned_clubs
