@@ -33,23 +33,19 @@ const ButtonWithCenteredText = (props) => {
   const animatedOpacity = useRef(new Animated.Value(1)).current;
 
   const fade = (callback?: () => void) => {
-    animatedOpacity.stopAnimation(() =>
-      Animated.timing(animatedOpacity, {
-        toValue: opacityLo,
-        duration: 0,
-        useNativeDriver: true,
-      }).start((result) => result.finished && callback?.())
-    );
+    Animated.timing(animatedOpacity, {
+      toValue: opacityLo,
+      duration: 0,
+      useNativeDriver: true,
+    }).start((result) => result.finished && callback?.())
   };
 
   const unfade = (callback?: () => void) => {
-    animatedOpacity.stopAnimation(() =>
-      Animated.timing(animatedOpacity, {
-        toValue: opacityHi,
-        duration: 1000,
-        useNativeDriver: true,
-      }).start((result) => result.finished && callback?.())
-    );
+    Animated.timing(animatedOpacity, {
+      toValue: opacityHi,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start((result) => result.finished && callback?.())
   };
 
   class Api {

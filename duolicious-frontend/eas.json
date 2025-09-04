@@ -27,7 +27,13 @@
       },
       "android": {
         "credentialsSource": "local"
-      },
+      }
+    },
+    "ios-simulator": {
+      "extends": "development",
+      "ios": {
+        "simulator": true
+      }
     }
   },
   "submit": {

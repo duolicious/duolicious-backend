@@ -26,7 +26,7 @@ import { sessionToken } from '../kv-storage/session-token';
 import { Logo16 } from './logo';
 import { KeyboardDismissingView } from './keyboard-dismissing-view';
 import { otpDestination } from '../App';
-import { signedInUser } from '../App';
+import { useSignedInUser } from '../events/signed-in-user';
 import { joinClub } from '../club/club';
 import { isMobile } from '../util/util';
 
@@ -128,6 +128,7 @@ const WelcomeScreen = () => {
 
 const InviteScreen = ({navigation, route}) => {
   const [loading, setLoading] = useState(false);
+  const [signedInUser] = useSignedInUser();
 
   const clubName = route.params?.clubName as string | undefined;
   const [numUsers, setNumUsers] = useState<number | undefined>(undefined);

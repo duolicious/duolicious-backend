@@ -1,8 +1,15 @@
 import { japi } from '../api/api';
 import { notify, lastEvent } from '../events/events';
 import { searchQueue } from '../api/queue';
+import { getSignedInUser } from '../events/signed-in-user';
 
-const CLUB_QUOTA = 100;
+const clubQuota = () => {
+  if (getSignedInUser()?.hasGold) {
+    return 100;
+  } else {
+    return 50;
+  }
+};
 
 type ClubItem = {
   name: string,
@@ -32,7 +39,7 @@ const joinClub = (
 ): boolean => {
   const existingClubs = lastEvent<ClubItem[]>('updated-clubs') ?? [];
 
-  if (existingClubs.length >= CLUB_QUOTA) {
+  if (existingClubs.length >= clubQuota()) {
     return false;
   }
 
@@ -73,7 +80,7 @@ const leaveClub = (name: string): void => {
 };
 
 export {
-  CLUB_QUOTA,
+  clubQuota,
   ClubItem,
   joinClub,
   leaveClub,

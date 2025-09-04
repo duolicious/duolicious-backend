@@ -16,7 +16,7 @@ import { api } from '../api/api';
 import { StatusBarSpacer } from './status-bar-spacer';
 import { FloatingBackButton } from './prospect-profile-screen';
 import { CardState } from './quiz-card';
-import { signedInUser } from '../App';
+import { useSignedInUser } from '../events/signed-in-user';
 
 const sideMargins = {
   marginLeft: 10,
@@ -203,6 +203,7 @@ const InDepthScreen = (navigationRef) => {
 }
 
 const InDepthItem = ({personId, item}) => {
+  const [signedInUser] = useSignedInUser();
   const isViewingSelf = personId === signedInUser?.personId;
 
   const [, triggerRender] = useState({});

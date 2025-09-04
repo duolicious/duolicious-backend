@@ -18,6 +18,7 @@ type ApiResponse = {
   ok: boolean
   clientError: boolean
   json: any,
+  text: string | undefined,
   status: number
   validationErrors: string[] | null
 };
@@ -52,7 +53,9 @@ const api = async (
     retryOnServerError,
   } = config;
 
-  let response, json;
+  let response: Response | undefined;
+  let json: any;
+  let text: string | undefined;
   let numRetries = 0;
 
   while (maxRetries === undefined || numRetries <= maxRetries) {
@@ -112,7 +115,8 @@ const api = async (
     }
   }
 
-  try { json = await response.json(); } catch {}
+  try { text = await response?.text(); } catch {}
+  try { json = JSON.parse(text ?? ''); } catch {}
 
   const clientError = response && response.status >= 400 && response.status < 500;
 
@@ -126,8 +130,9 @@ const api = async (
 
   return {
     ok: response?.ok ?? false,
-    clientError: clientError,
-    json: json,
+    clientError: clientError ?? false,
+    json,
+    text,
     status: response?.status ?? 0,
     validationErrors: validationErrors,
   }

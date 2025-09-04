@@ -34,7 +34,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { setQuote, parseMarkdown, QuoteBlock, TextBlock } from './quote';
 import * as Haptics from 'expo-haptics';
-import { signedInUser } from '../../App';
+import { useSignedInUser } from '../../events/signed-in-user';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
 import { useNavigation } from '@react-navigation/native';
@@ -285,6 +285,7 @@ const SpeechBubble = ({
   const [doShowTimestamp, setDoShowTimestamp] = useState(false);
   const [speechBubbleImageError, setSpeechBubbleImageError] = useState(false);
   const message = useMessage(messageId);
+  const [signedInUser] = useSignedInUser();
 
   const doRenderUrlAsImage = (
     message &&
@@ -340,7 +341,7 @@ const SpeechBubble = ({
     if (attribution) {
       setQuote({ text, attribution })
     }
-  }, [message])
+  }, [message, signedInUser?.name, name])
 
   const pan = Gesture
     .Pan()

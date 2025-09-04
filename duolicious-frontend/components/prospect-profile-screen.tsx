@@ -29,7 +29,7 @@ import { InDepthScreen } from './in-depth-screen';
 import { ButtonWithCenteredText } from './button/centered-text';
 import { api } from '../api/api';
 import { cmToFeetInchesStr } from '../units/units';
-import { signedInUser } from '../App';
+import { useSignedInUser } from '../events/signed-in-user';
 import { postSkipped } from '../hide-and-block/hide-and-block';
 import { Pinchy } from './pinchy';
 import { Basic, Basics } from './basic';
@@ -985,6 +985,7 @@ const Body = ({
   personUuid: string,
   data: UserData | undefined,
 }) => {
+  const [signedInUser] = useSignedInUser();
   const isOnline = useOnline(personUuid);
 
   const photoUuid1 = data?.photo_uuids && data?.photo_uuids[1];

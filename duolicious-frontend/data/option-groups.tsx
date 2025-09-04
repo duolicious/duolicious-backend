@@ -1,6 +1,7 @@
 import * as _ from "lodash";
 import { japi, ApiResponse } from '../api/api';
-import { setSignedInUser, navigationContainerRef } from '../App';
+import { navigationContainerRef } from '../App';
+import { setSignedInUser } from '../events/signed-in-user';
 import { sessionToken, sessionPersonUuid } from '../kv-storage/session-token';
 import { X } from "react-native-feather";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
@@ -25,7 +26,6 @@ import { ClubItem } from '../club/club';
 import { DefaultText } from '../components/default-text';
 import {
   Linking,
-  Platform,
   StyleSheet,
   View,
 } from 'react-native';
@@ -514,18 +514,6 @@ const DeletionDescription = () => (
       immediately log you out.
     </DefaultText> {}
     If you’re sure, type “delete” to confirm.
-    {Platform.OS === 'web' &&
-      <DefaultText>
-        {'\n\n'}
-        Please consider donating before leaving by pressing {}
-        <DefaultText
-          onPress={() => Linking.openURL('https://ko-fi.com/duolicious')}
-          style={{ fontWeight: '700' }}
-        >
-          here{'\xa0'}💕
-        </DefaultText>
-      </DefaultText>
-    }
   </DefaultText>
 );
 
@@ -537,18 +525,6 @@ const DeactivationDescription = () => (
     </DefaultText> {}
     The next time you sign in, your account will be reactivated. Press
     “continue” to deactivate your account.
-    {Platform.OS === 'web' &&
-      <DefaultText>
-        {'\n\n'}
-        Please consider donating before leaving by pressing {}
-        <DefaultText
-          onPress={() => Linking.openURL('https://ko-fi.com/duolicious')}
-          style={{ fontWeight: '700' }}
-        >
-          here{'\xa0'}💕
-        </DefaultText>
-      </DefaultText>
-    }
   </DefaultText>
 );
 
@@ -1105,6 +1081,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
             pendingClub: pendingClub,
             estimatedEndDate: new Date(response?.json?.estimated_end_date),
             name: response?.json?.name,
+            hasGold: response?.json?.has_gold,
           });
 
           await sessionPersonUuid(personUuid);
@@ -1260,6 +1237,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
             pendingClub: pendingClub,
             estimatedEndDate: new Date(response?.json?.estimated_end_date),
             name: response?.json?.name,
+            hasGold: response?.json?.has_gold,
           }));
 
           await sessionPersonUuid(response?.json?.person_uuid);

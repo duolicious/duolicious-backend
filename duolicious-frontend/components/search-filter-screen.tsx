@@ -35,7 +35,7 @@ import { DefaultTextInput } from './default-text-input';
 import { SearchQuizCard } from './quiz-card';
 import { api } from '../api/api';
 import * as _ from "lodash";
-import { signedInUser } from '../App';
+import { useSignedInUser, getSignedInUser } from '../events/signed-in-user';
 import { cmToFeetInchesStr, kmToMilesStr } from '../units/units';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { QAndADevice } from './q-and-a-device';
@@ -44,6 +44,7 @@ const getCurrentValueAsLabel = (og: OptionGroup<OptionGroupInputs> | undefined) 
   if (!og) return undefined;
 
   const currentValue = getCurrentValue(og.input);
+  const signedInUser = getSignedInUser();
 
   if (
     isOptionGroupCheckChips(og.input) &&
@@ -143,6 +144,8 @@ const SearchFilterScreen = () => {
 };
 
 const SearchFilterScreen_ = ({navigation, route}) => {
+  const [signedInUser] = useSignedInUser();
+
   const onPressRefresh = route?.params?.onPressRefresh;
 
   const [, _triggerRender] = useState({});

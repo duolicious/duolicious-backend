@@ -61,6 +61,8 @@ import { ErrorBoundary } from './components/error-boundary';
 import { TooltipListener } from './components/tooltip';
 import { VerificationCameraModal } from './components/verification-camera';
 import { notify } from './events/events';
+import { PointOfSaleModal } from './components/modal/point-of-sale-modal';
+import { setSignedInUser, useSignedInUser } from './events/signed-in-user';
 
 verificationWatcher();
 
@@ -134,20 +136,6 @@ const WebSplashScreen = ({loading}) => {
   }
 };
 
-type SignedInUser = {
-  personId: number
-  personUuid: string,
-  units: 'Metric' | 'Imperial'
-  sessionToken: string
-  pendingClub: ClubItem | null
-  estimatedEndDate: Date
-  name: string | null
-};
-
-
-let signedInUser: SignedInUser | undefined;
-let setSignedInUser: React.Dispatch<React.SetStateAction<typeof signedInUser>>;
-
 const otpDestination = { value: '' };
 const isImagePickerOpen = { value: false };
 
@@ -157,7 +145,7 @@ const App = () => {
   const [initialState, setInitialState] = useState<any>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
-  [signedInUser, setSignedInUser] = useState<SignedInUser | undefined>();
+  const [signedInUser] = useSignedInUser();
 
   const loadFonts = useCallback(async () => {
     await Font.loadAsync({
@@ -264,6 +252,7 @@ const App = () => {
       pendingClub: pendingClub,
       estimatedEndDate: new Date(response?.json?.estimated_end_date),
       name: response?.json?.name,
+      hasGold: response?.json?.has_gold,
     });
 
     notify<ClubItem[]>('updated-clubs', clubs);
@@ -466,8 +455,8 @@ const App = () => {
   return (
     <ErrorBoundary onError={onError}>
       <SafeAreaProvider>
-        <GestureHandlerRootView>
-          {!isLoading && initialState !== undefined &&
+        {!isLoading && initialState !== undefined &&
+          <GestureHandlerRootView>
             <NavigationContainer
               ref={navigationContainerRef}
               initialState={
@@ -516,15 +505,16 @@ const App = () => {
                   component={InviteScreen} />
               </Stack.Navigator>
             </NavigationContainer>
-          }
-          <TooltipListener/>
-          <ReportModal/>
-          <ImageCropper/>
-          <ColorPickerModal/>
-          <GifPickerModal/>
-          <Toast/>
-          <VerificationCameraModal/>
-        </GestureHandlerRootView>
+            <TooltipListener/>
+            <ReportModal/>
+            <ImageCropper/>
+            <ColorPickerModal/>
+            <GifPickerModal/>
+            <Toast/>
+            <PointOfSaleModal/>
+            <VerificationCameraModal/>
+          </GestureHandlerRootView>
+        }
         <WebSplashScreen loading={isLoading}/>
       </SafeAreaProvider>
     </ErrorBoundary>
@@ -536,6 +526,4 @@ export {
   isImagePickerOpen,
   navigationContainerRef,
   otpDestination,
-  setSignedInUser,
-  signedInUser,
 };

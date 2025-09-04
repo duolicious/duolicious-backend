@@ -164,6 +164,14 @@ const possessive = (s: string) => {
   return s + possessiveMarker;
 };
 
+const pluralize = (s: string, n: number) => {
+  if (n === 1) {
+    return s;
+  } else {
+    return s + 's';
+  }
+};
+
 const secToMinSec = (sec: number): [string, string] => {
   const minutes = String(Math.floor(sec / 60));
   const seconds = String(sec % 60).padStart(2, '0');
@@ -228,4 +236,5 @@ export {
   secToMinSec,
   truncateText,
   withTimeout,
+  pluralize,
 };

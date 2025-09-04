@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const QAndADevice = ({
@@ -40,7 +40,16 @@ const QAndADevice = ({
           left: 0,
         }}
       >
-        <Ionicons style={{color: color, fontSize: height }} name={noIcon} />
+        <Ionicons
+          style={{
+            color: color,
+            fontSize: height,
+            height,
+            width: height,
+            marginTop: (Platform.OS === 'ios' ? 0 : -2) * height / 26,
+          }}
+          name={noIcon}
+        />
       </View>
       <View
         style={{
@@ -55,7 +64,16 @@ const QAndADevice = ({
           right: 0,
         }}
       >
-        <Ionicons style={{ color: color, fontSize: height }} name={yesIcon} />
+        <Ionicons
+          style={{
+            color: color,
+            fontSize: height,
+            height,
+            width: height,
+            marginTop: (Platform.OS === 'ios' ? 0 : -2) * height / 26,
+          }}
+          name={yesIcon}
+        />
       </View>
     </View>
   );

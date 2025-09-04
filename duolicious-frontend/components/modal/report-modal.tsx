@@ -1,5 +1,4 @@
 import {
-  Pressable,
   View,
 } from 'react-native';
 import {
@@ -11,15 +10,15 @@ import { DefaultText } from './../default-text';
 import { Title } from './../title';
 import { DefaultLongTextInput } from './../default-long-text-input';
 import { ButtonWithCenteredText } from './../button/centered-text';
-import { X } from "react-native-feather";
 import { listen } from '../../events/events';
 import { postSkipped } from '../../hide-and-block/hide-and-block';
 import { KeyboardDismissingView } from '../keyboard-dismissing-view';
-import { DefaultModal } from './deafult-modal';
+import { DefaultModal } from './default-modal';
 import {
   backgroundColors,
 } from './background-colors';
 import { useSkipped } from '../../hide-and-block/hide-and-block';
+import { Close } from '../button/close';
 
 type ReportModalInitialData = {
   name: string
@@ -140,14 +139,10 @@ const ReportModal = () => {
               justifyContent: 'flex-end',
             }}
           >
-            <Pressable onPress={close}>
-              <X
-                stroke="black"
-                strokeWidth={3}
-                height={24}
-                width={24}
-              />
-            </Pressable>
+            <Close
+              onPress={close}
+              style={null}
+            />
           </View>
           <Title style={{
             marginTop: 0,

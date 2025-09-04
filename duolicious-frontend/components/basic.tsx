@@ -8,6 +8,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { useShake } from '../animation/animation';
+import { showPointOfSale } from './modal/point-of-sale-modal';
+import { useSignedInUser } from '../events/signed-in-user';
 
 const isIconDefinition = (x: any): x is IconDefinition => {
   return x.iconName !== undefined;
@@ -44,6 +46,7 @@ const Basic = ({children, ...rest}) => {
   } = rest;
 
   const [shakeAnimation, startShake] = useShake();
+  const [signedInUser] = useSignedInUser();
 
   return (
     <Animated.View
@@ -68,8 +71,12 @@ const Basic = ({children, ...rest}) => {
               return;
             }
 
-            if (onPress() === false) {
+            const success = onPress();
+            if (success === false && signedInUser?.hasGold) {
               startShake();
+            } else if (success === false && !signedInUser?.hasGold) {
+              startShake();
+              showPointOfSale('blocked');
             }
           }
         }
