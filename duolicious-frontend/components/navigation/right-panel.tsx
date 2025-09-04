@@ -62,11 +62,11 @@ const RightPanel = () => {
             wrong app! But at least you can get barely-any-good-messages in
             comfort and style, with {}
             <DefaultText style={{ fontWeight: 700 }}>
-              Duolicious GOLD
+              Duolicious Gold
             </DefaultText>
             .
             {'\n\n'}
-            That’s right! With Duolicious GOLD, you get a bunch of perks for a
+            That’s right! With Duolicious Gold, you get a bunch of perks for a
             price so low our payment processor almost wouldn’t let us charge it!
             Plus it gives us the money to keep this Sisyphean shit show on the
             road!
@@ -86,6 +86,7 @@ const RightPanel = () => {
             containerStyle={{
               marginTop: 0,
               marginBottom: 0,
+              width: '100%',
             }}
             secondary={true}
           >
