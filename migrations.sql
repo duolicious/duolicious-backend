@@ -1,2 +1,2 @@
-ALTER TABLE funding
-DROP COLUMN IF EXISTS token_hash_kofi;
+ALTER TABLE person
+ALTER COLUMN has_gold SET DEFAULT FALSE;
