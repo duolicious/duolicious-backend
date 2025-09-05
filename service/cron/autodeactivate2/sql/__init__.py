@@ -1,40 +1,31 @@
-Q_INACTIVE = """
-SELECT DISTINCT
-    username AS person_id
-FROM
-    last
-WHERE
-    seconds < EXTRACT(EPOCH FROM NOW() - INTERVAL '30 days')
-AND
-    seconds > EXTRACT(EPOCH FROM NOW() - INTERVAL '50 days')
-"""
-
 Q_DEACTIVATE = """
-WITH unnested_ids AS (
-    SELECT unnest(%(ids)s::TEXT[]) AS id
-), valid_uuid AS (
+WITH to_deactivate AS (
     SELECT
-        uuid_or_null(id) AS uuid
+        id,
+        email
     FROM
-        unnested_ids
+        person
     WHERE
-        uuid_or_null(id) IS NOT NULL
+        last_online_time < NOW() - INTERVAL '30 days'
+    AND
+        last_online_time > NOW() - INTERVAL '50 days'
+    AND
+        activated
+    AND
+        sign_in_time < NOW() - INTERVAL '10 minutes'
 ), updated_person AS (
     UPDATE
         person
     SET
         activated = FALSE
+    FROM
+        to_deactivate
     WHERE
-        activated = TRUE
-    AND
-        uuid IN (SELECT uuid FROM valid_uuid)
-    AND
-        sign_in_time < NOW() - INTERVAL '10 minutes'
+        to_deactivate.id = person.id
     AND
         NOT %(dry_run)s
     RETURNING
-        id,
-        email
+        person.id
 ), decrement_club AS (
     UPDATE
         club
@@ -58,5 +49,5 @@ SELECT
     id,
     email
 FROM
-    updated_person
+    to_deactivate
 """

@@ -14,7 +14,6 @@ q "delete from banned_person"
 q "delete from banned_person_admin_token"
 q "delete from duo_session"
 q "delete from mam_message"
-q "delete from last"
 q "delete from inbox"
 q "delete from duo_last_notification"
 q "delete from duo_push_token"
@@ -45,8 +44,8 @@ ban_token=$(
 
 
 
-echo '`last` is updated upon logging in'
-q "delete from last"
+echo '`last_online_time` is updated upon logging in'
+q "update person set last_online_time = to_timestamp(0)"
 
 
 sleep 3
@@ -61,7 +60,7 @@ curl -X POST http://localhost:3000/config -H "Content-Type: application/json" -d
 
 sleep 3
 
-[[ "$(q "select count(*) from last where username = '$user1uuid'")" = 1 ]]
+[[ "$(q "select count(*) from person where last_online_time <> to_timestamp(0) and uuid = '$user1uuid'")" = 1 ]]
 
 
 

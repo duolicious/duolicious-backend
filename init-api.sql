@@ -315,6 +315,7 @@ CREATE TABLE IF NOT EXISTS person (
     sign_in_count INT NOT NULL DEFAULT 1,
     sign_in_time TIMESTAMP NOT NULL DEFAULT NOW(),
     last_nag_time TIMESTAMP DEFAULT to_timestamp(0),
+    last_online_time TIMESTAMP NOT NULL DEFAULT NOW(),
 
     -- Whether the account was deactivated via the settings or automatically
     activated BOOLEAN NOT NULL DEFAULT TRUE,
@@ -1572,12 +1573,6 @@ FOR EACH ROW EXECUTE FUNCTION
 -- of the app.
 --------------------------------------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS last (
-    username varchar(250),
-    seconds integer NOT NULL,
-    PRIMARY KEY (username)
-);
-
 DO $$ BEGIN
 CREATE TYPE mam_direction AS ENUM('I','O');
 EXCEPTION
@@ -1665,9 +1660,6 @@ CREATE INDEX IF NOT EXISTS duo_idx__inbox__timestamp__unread_count
 ON inbox(timestamp, unread_count)
 WHERE unread_count > 0;
 
-CREATE INDEX IF NOT EXISTS duo_idx__last__seconds
-ON last(seconds);
-
 CREATE INDEX IF NOT EXISTS duo_idx__mam_message__remote_bare_jid__id
 ON mam_message(remote_bare_jid, id)
 WHERE direction = 'I';
@@ -1679,3 +1671,6 @@ CREATE INDEX IF NOT EXISTS
 CREATE INDEX IF NOT EXISTS
     idx__inbox__luser__box
     ON inbox(luser, box);
+
+CREATE INDEX IF NOT EXISTS idx__person__last_online_time
+    ON person(last_online_time);

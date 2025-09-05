@@ -39,16 +39,13 @@ WHERE
     id = %(person_id)s
 """
 
-Q_UPSERT_LAST = """
-INSERT INTO
-    last (username, seconds)
-SELECT
-    %(person_uuid)s::text,
-    EXTRACT(EPOCH FROM NOW())::BIGINT
+Q_UPDATE_LAST = """
+UPDATE
+    person
+SET
+    last_online_time = NOW()
 WHERE
-    %(person_uuid)s IS NOT NULL
-ON CONFLICT (username) DO UPDATE SET
-    seconds = EXCLUDED.seconds
+    uuid = %(person_uuid)s
 """
 
 Q_UPSERT_LAST_INTRO_NOTIFICATION_TIME = """

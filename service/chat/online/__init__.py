@@ -6,7 +6,7 @@ from service.chat.chatutil import (
     fetch_id_from_username,
 )
 from enum import Enum
-from commonsql import Q_UPSERT_LAST
+from commonsql import Q_UPDATE_LAST
 from batcher import Batcher
 from service.chat.session import Session
 from database import api_tx
@@ -216,7 +216,7 @@ def process_batch(jobs: list[UpdateLastJob]):
         if job.do_update_last_event
     ]
 
-    upsert_last_params_seq = [
+    update_last_params_seq = [
         dict(person_uuid=job.session_username)
         for job in jobs
     ]
@@ -237,8 +237,8 @@ def process_batch(jobs: list[UpdateLastJob]):
         ]
         tx.executemany(Q_UPDATE_LAST_EVENT, update_last_event_params_seq)
 
-        # Always perform the UPSERT for last_seen regardless.
-        tx.executemany(Q_UPSERT_LAST, upsert_last_params_seq)
+        # Always perform the UPDATE for last_seen regardless.
+        tx.executemany(Q_UPDATE_LAST, update_last_params_seq)
 
 
 def update_last_once(session_username: str, do_update_last_event: bool):

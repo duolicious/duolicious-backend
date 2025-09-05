@@ -17,7 +17,6 @@ sleep 3 # Allow services to flush startup tasks
 # ---------------------------------------------------------------------------
 q "delete from person"
 q "delete from club"
-q "delete from last"
 q "delete from duo_session"
 
 ../util/create-user.sh viewer 0 0   # User that will view the profile
@@ -29,8 +28,12 @@ assume_role target ; target_token=$SESSION_TOKEN
 target_uuid=$(get_uuid 'target@example.com')
 
 sleep 2
-q "update person set sign_in_time = now() - interval '2 hours' where uuid     = '${target_uuid}'"
-q "update last   set seconds      = 0                          where username = '${target_uuid}'"
+q "
+update person
+set
+  sign_in_time = now() - interval '2 hours',
+  last_online_time = to_timestamp(0)
+where uuid     = '${target_uuid}'"
 
 # ---------------------------------------------------------------------------
 # 1) Query profile before new login – expect a large value (≈7200 seconds)

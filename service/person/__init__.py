@@ -360,10 +360,7 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
 
         clubs = tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone()
 
-    params = dict(person_uuid=row['person_uuid'])
-
-    with api_tx('read committed') as tx:
-        tx.execute(Q_UPSERT_LAST, params)
+        tx.execute(Q_UPDATE_LAST, dict(person_uuid=row['person_uuid']))
 
     return dict(
         onboarded=row['person_id'] is not None,
@@ -612,9 +609,6 @@ def post_finish_onboarding(s: t.SessionInfo):
         person_uuid=row['person_uuid'],
     )
 
-    with api_tx('read committed') as tx:
-        tx.execute(Q_UPSERT_LAST, params=chat_params)
-
     return dict(**row, **clubs)
 
 def get_me(
@@ -678,18 +672,6 @@ def get_prospect_profile(s: t.SessionInfo, prospect_uuid):
             gets_reply_percentage=None,
             gives_reply_percentage=None,
         )
-
-    with api_tx('READ COMMITTED') as tx:
-        chat_row = tx.execute(Q_LAST_ONLINE, params).fetchone()
-
-    # Sometimes the chat service might not register a last online time. In that
-    # case, we fall back to the less-accurate recording given by the API
-    # database.
-    profile['seconds_since_last_online'] = int(
-        chat_row.get('seconds_since_last_online')
-        or
-        profile['seconds_since_last_online']
-    )
 
     profile.update(message_stats)
 

@@ -47,11 +47,11 @@ WITH ten_days_ago AS (
             AND
                 -- only notify users about messages sent after their last
                 -- activity
-                COALESCE(last.seconds, 0) < inbox_first_pass.last_intro_seconds
+                extract(epoch from person.last_online_time) < inbox_first_pass.last_intro_seconds
             AND
                 -- only notify users whose last activity was longer than ten
                 -- minutes ago
-                COALESCE(last.seconds, 0) <
+                extract(epoch from person.last_online_time) <
                     (SELECT seconds FROM ten_minutes_ago)
         ) AS has_intro,
         (
@@ -68,19 +68,20 @@ WITH ten_days_ago AS (
             AND
                 -- only notify users about messages sent after their last
                 -- activity
-                COALESCE(last.seconds, 0) < inbox_first_pass.last_chat_seconds
+                extract(epoch from person.last_online_time) < inbox_first_pass.last_chat_seconds
             AND
                 -- only notify users whose last activity was longer than ten
                 -- minutes ago
-                COALESCE(last.seconds, 0) <
+                extract(epoch from person.last_online_time) <
                     (SELECT seconds FROM ten_minutes_ago)
         ) AS has_chat,
-        last.seconds AS last_seconds
-    FROM inbox_first_pass
+        extract(epoch from person.last_online_time) AS last_seconds
+    FROM
+        inbox_first_pass
     LEFT JOIN
-        last
+        person
     ON
-        last.username = inbox_first_pass.username
+        person.uuid = uuid_or_null(inbox_first_pass.username)
     LEFT JOIN
         duo_last_notification
     ON

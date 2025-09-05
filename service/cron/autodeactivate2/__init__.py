@@ -33,14 +33,7 @@ def maybe_send_email(email: str):
     aws_smtp.send(**send_args)
 
 async def autodeactivate2_once():
-    params = dict(polling_interval_seconds=AUTODEACTIVATE2_POLL_SECONDS)
-
-    async with api_tx() as tx:
-        cur_inactive = await tx.execute(Q_INACTIVE, params)
-        rows_inactive = await cur_inactive.fetchall()
-
     params = dict(
-        ids=[r['person_id'] for r in rows_inactive],
         dry_run=DRY_RUN,
     )
 

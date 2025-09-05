@@ -24,7 +24,6 @@ test_rate_limit () {
   q "delete from banned_person_admin_token"
   q "delete from duo_session"
   q "delete from mam_message"
-  q "delete from last"
   q "delete from inbox"
   q "delete from duo_last_notification"
   q "delete from duo_push_token"
