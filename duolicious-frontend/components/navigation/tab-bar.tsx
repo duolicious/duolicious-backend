@@ -11,9 +11,7 @@ import {
 import { DefaultText } from '../default-text';
 import { useInboxStats } from '../../chat/application-layer/hooks/inbox-stats';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  LabelToIcon,
-} from './util';
+import { LabelToIcon } from './util';
 
 const Tab = ({ navigation, state, route, descriptors, index, unreadIndicatorOpacity }) => {
   const animated = useRef(new Animated.Value(1)).current;

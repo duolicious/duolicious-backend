@@ -13,6 +13,7 @@ const RightPanel = () => {
 
   const [signedInUser] = useSignedInUser();
 
+  const isEarly = (signedInUser?.personId ?? 1e6) <= 300_000;
   const hasGold = !!signedInUser?.hasGold;
 
   return (
@@ -46,9 +47,21 @@ const RightPanel = () => {
           }
         </DefaultText>
 
-        {hasGold ? (
+        {hasGold ? <>
           <Logo14 size={140} />
-        ) : (
+          <DefaultText
+            style={{
+              color: 'white',
+              textAlign: 'center',
+            }}
+          >
+            Members with Gold get extra features!
+            {isEarly ? (
+              '\n\nGold isn’t usually free, but we gave it to you anyway ' +
+              'because you’re one of Duolicious’ first users. Thanks, fren.'
+            ) : ''}
+          </DefaultText>
+        </> : (
           <DefaultText
             style={{
               color: 'white',

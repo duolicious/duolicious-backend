@@ -3,7 +3,10 @@ import {
   View,
 } from 'react-native';
 import { QAndADevice } from '../q-and-a-device';
+import { Gold } from '../badges';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useSignedInUser } from '../../events/signed-in-user';
+
 
 const LabelToIcon = ({
   label,
@@ -22,6 +25,8 @@ const LabelToIcon = ({
   fontSize?: number
   unreadIndicatorColor?: string
 }) => {
+  const [signedInUser] = useSignedInUser();
+
   const searchIcon =
     isFocused ? 'search' : 'search-outline';
   const inboxIcon =
@@ -73,7 +78,21 @@ const LabelToIcon = ({
         </View>
       }
       {label === 'Profile' &&
-        <Ionicons style={{...iconStyle}} name={profileIcon}/>
+        <View>
+          {!!signedInUser?.hasGold &&
+            <Gold
+              style={{
+                position: 'absolute',
+                top: -4,
+                right: -14,
+                backgroundColor,
+              }}
+              color={color}
+              doAnimate={false}
+            />
+          }
+          <Ionicons style={{...iconStyle}} name={profileIcon}/>
+        </View>
       }
     </>
   );

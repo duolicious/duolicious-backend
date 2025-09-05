@@ -159,6 +159,7 @@ const ClubSelector = ({navigation}) => {
 
   const [searchText, setSearchText] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [signedInUser] = useSignedInUser();
 
   const clearSearchText = useCallback(() => setSearchText(""), []);
 
@@ -336,7 +337,9 @@ const ClubSelector = ({navigation}) => {
                 key={String(i)}
                 clubItem={a}
                 onPress={onSelectClub}
-                isAtQuota={selectedClubs.length >= clubQuota()}
+                isAtQuota={
+                  selectedClubs.length >= clubQuota() && !!signedInUser?.hasGold
+                }
               />
             )}
             <DefaultText style={{

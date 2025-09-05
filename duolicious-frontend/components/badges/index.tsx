@@ -77,7 +77,12 @@ const Bot = () => <Staff label="bot" tip="Duolicious bot" />;
 
 const Mod = () => <Staff label="mod" tip="Duolicious moderator" color="black" />;
 
-const Gold = () => {
+const Gold = ({
+  style = {},
+  doAnimate = true,
+  color = "#ffd700",
+  rectSize = undefined,
+}) => {
   const { viewRef, props } = useTooltip(`Has Gold membership`);
 
   return (
@@ -90,14 +95,16 @@ const Gold = () => {
         justifyContent: 'center',
         width: size,
         height: size,
+        ...style,
       }}
       {...props}
     >
       <WithDeferredMount randomDelay={{ min: 2000, max: 3000 }}>
         <Logo16
           size={16}
-          color="#ffd700"
-          doAnimate={true}
+          rectSize={rectSize}
+          color={color}
+          doAnimate={doAnimate}
           doLoop={false}
         />
       </WithDeferredMount>
@@ -113,17 +120,20 @@ const QAndA = ({
   pauseMs = 3000,    // pause at target before looping
   color1 = "#004467",
   color2 = "#45ddc0",
+  numLoops = Infinity,
 }) => {
   const { viewRef, props } = useTooltip(`Answered ${target} Q&A`);
 
   const [count, setCount] = useState(startAt);
   const timerRef = useRef<NodeJS.Timeout>(null);
   const countRef = useRef(startAt);
+  const loopsRef = useRef(0);
 
   useEffect(() => {
     // Ensure we start from startAt each time props change
     setCount(startAt);
     countRef.current = startAt;
+    loopsRef.current = 0;
 
     const schedule = (delay, fn) => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -135,12 +145,18 @@ const QAndA = ({
       const next = current + step;
 
       if (next >= target) {
-        // Step to target (if not already there), then pause, then reset and continue
+        // Step to target (if not already there), then maybe loop or stop
         if (current < target) {
           setCount(target);
           countRef.current = target;
+          loopsRef.current += 1;
         }
-        // Pause at 100, then reset to startAt and continue after the normal interval
+
+        if (Number.isFinite(numLoops) && loopsRef.current >= numLoops) {
+          return; // stop at target; do not schedule further ticks
+        }
+
+        // Pause at target, then reset to startAt and continue
         schedule(pauseMs, () => {
           setCount(startAt);
           countRef.current = startAt;
@@ -160,7 +176,7 @@ const QAndA = ({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [startAt, step, target, intervalMs, pauseMs]);
+  }, [startAt, step, target, intervalMs, pauseMs, numLoops]);
 
   return (
     <View
@@ -198,9 +214,14 @@ const QAndA = ({
   );
 };
 
-const QAndA200  = () => <QAndA target={200}  step={100} />
-const QAndA500  = () => <QAndA target={500}  step={250} color2="orange" />
-const QAndA1000 = () => <QAndA target={1000} step={500} color2="black" color1="white" />
+const QAndA200  = () =>
+  <QAndA numLoops={3} target={200}  step={100} />
+
+const QAndA500  = () =>
+  <QAndA numLoops={3} target={500}  step={250} color2="orange" />
+
+const QAndA1000 = () =>
+  <QAndA numLoops={3} target={1000} step={500} color2="black" color1="white" />
 
 const OneWeek = () => {
   const { viewRef, props } = useTooltip(`Member for a week`);
@@ -315,7 +336,7 @@ const OneYear = ({
   );
 };
 
-const LongBio = () => {
+const BaseLongBio = ({ numLoops = Infinity }) => {
   const { viewRef, props } = useTooltip(`Has a long bio`);
 
   const iconSize = 14;
@@ -339,34 +360,30 @@ const LongBio = () => {
   ];
 
   useEffect(() => {
-    // Move along the path, then loop
+    const reps = Number.isFinite(numLoops) ? numLoops : -1;
+
+    // Move along the path, then repeat
     x.value = withRepeat(
       withSequence(
-        ...path.map(
-          p => withTiming(
-            p.x,
-            { duration: stepDuration, easing: Easing.inOut(Easing.quad) }
-          )
+        ...path.map(p =>
+          withTiming(p.x, { duration: stepDuration, easing: Easing.inOut(Easing.quad) })
         )
       ),
-      -1,
+      reps,
       true,
     );
 
     // Subtle “write” tilt: tip forward, back past center a bit, then settle
     rot.value = withRepeat(
       withSequence(
-        ...path.map(
-          path => withTiming(
-            path.rot,
-            { duration: stepDuration, easing: Easing.inOut(Easing.quad) }
-          )
+        ...path.map(p =>
+          withTiming(p.rot, { duration: stepDuration, easing: Easing.inOut(Easing.quad) })
         )
       ),
-      -1,
+      reps,
       true,
     );
-  }, [x, rot]);
+  }, [x, rot, path, stepDuration, numLoops]);
 
   const penStyle = useAnimatedStyle(() => ({
     transform: [
@@ -410,6 +427,8 @@ const LongBio = () => {
     </View>
   );
 };
+
+const LongBio = () => <BaseLongBio numLoops={3} />;
 
 const EarlyAdopter = () => {
   const { viewRef, props } = useTooltip(
@@ -513,6 +532,7 @@ const Flair = ({
       style={{
         flexDirection: 'row',
         gap: 3,
+        flexWrap: 'wrap',
       }}
     >
       {flair.map((f) =>
@@ -539,4 +559,5 @@ const Flair = ({
 
 export {
   Flair,
+  Gold,
 };
