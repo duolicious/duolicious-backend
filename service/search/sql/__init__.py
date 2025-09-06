@@ -857,6 +857,7 @@ ON
 Q_FEED = f"""
 WITH searcher AS (
     SELECT
+        id as searcher_id,
         gender_id,
         date_of_birth,
         personality,
@@ -910,21 +911,13 @@ WITH searcher AS (
     )
 ), person_data AS (
     SELECT
-        id,
+        prospect.id,
         prospect.uuid AS person_uuid,
         prospect.name,
         photo_data.blurhash AS photo_blurhash,
         photo_data.uuid AS photo_uuid,
         prospect.verification_level_id > 1 AS is_verified,
-        CASE
-            WHEN
-                prospect.last_event_time
-                > now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
-            THEN
-                prospect.last_online_time
-            ELSE
-                prospect.last_event_time
-        END AS last_online_time_if_recent,
+        last_online_time_if_recent,
         COALESCE(
             (
                 SELECT
@@ -971,9 +964,25 @@ WITH searcher AS (
     ) AS photo_data
     ON
         true
+    LEFT JOIN LATERAL (
+        SELECT
+            CASE
+                WHEN
+                    prospect.last_event_time
+                    > now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
+                THEN
+                    prospect.last_online_time
+                ELSE
+                    prospect.last_event_time
+            END AS last_online_time_if_recent
+    ) AS last_online_time_if_recent
+    ON
+        true
     CROSS JOIN
         searcher
     WHERE
+        last_online_time_if_recent < %(before)s
+    AND
         last_event_time > now() - interval '1 month'
     AND
         activated
@@ -1144,13 +1153,15 @@ WITH searcher AS (
         OR
             prospect.has_gold
     )
+    -- Exclude the searcher from their own feed results
+    AND
+        searcher_id <> prospect.id
     ORDER BY
         last_online_time_if_recent DESC
     LIMIT
         100
 ), filtered_by_club AS (
     SELECT
-        id,
         person_uuid,
         name,
         photo_uuid,
