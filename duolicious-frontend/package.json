@@ -1,6 +1,6 @@
 {
   "name": "duolicious",
-  "version": "30.6.1",
+  "version": "31.1.0",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -29,7 +29,7 @@
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/native-stack": "^7.2.0",
     "@shopify/flash-list": "1.7.6",
-    "@shopify/react-native-skia": "^2.0.0-next.4",
+    "@shopify/react-native-skia": "^2.2.10",
     "date-fns": "^2.30.0",
     "expo": "~53.0.22",
     "expo-av": "~15.1.7",
@@ -60,11 +60,12 @@
     "react-native-gesture-handler": "~2.24.0",
     "react-native-get-random-values": "^1.11.0",
     "react-native-purchases": "^9.2.2",
-    "react-native-reanimated": "~3.17.4",
+    "react-native-reanimated": "^4.1.0",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-svg": "15.11.2",
     "react-native-web": "^0.20.0",
+    "react-native-worklets": "^0.5.0",
     "zod": "^3.24.3"
   },
   "devDependencies": {

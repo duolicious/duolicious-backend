@@ -30,12 +30,11 @@ import
   Animated,
   {
     SharedValue,
-    runOnJS,
-    runOnUI,
     useAnimatedStyle,
     useSharedValue,
     withTiming,
   } from 'react-native-reanimated';
+import { scheduleOnRN, scheduleOnUI } from 'react-native-worklets';
 import {
   Gesture,
   GestureDetector,
@@ -592,7 +591,6 @@ const MoveableImage = ({
   }, [absolutePosition?.height, absolutePosition?.width]);
 
   const [zIndex, setZIndex] = useState<number>(0);
-  const resetZIndex = () => runOnJS(setZIndex)(0);
 
   const initialBorderRadius = getBorderRadius(initialFileNumber);
 
@@ -627,7 +625,7 @@ const MoveableImage = ({
     const from = fileNumber.value;
     const to = nearestSlot;
 
-    runOnJS(debouncedSlotRequest)({ from, to, pressed });
+    scheduleOnRN(debouncedSlotRequest, { from, to, pressed });
   };
 
   const addImageOnStart =
@@ -642,8 +640,8 @@ const MoveableImage = ({
     .activateAfterLongPress(200)
     .onStart(() => {
       scale.value = withTiming(1.1, { duration: 50 });
-      runOnJS(setZIndex)(1);
-      runOnJS(hapticsSelection)();
+      scheduleOnRN(setZIndex, 1);
+      scheduleOnRN(hapticsSelection);
     })
     .onChange((event) => {
       translateX.value += event.changeX;
@@ -660,7 +658,7 @@ const MoveableImage = ({
     .Tap()
     .requireExternalGestureToFail(pan)
     .onStart(() => {
-      runOnJS(addImageOnStart)();
+      scheduleOnRN(addImageOnStart);
     })
 
   const composedGesture = uriState && moveable
@@ -675,39 +673,41 @@ const MoveableImage = ({
         return;
       }
 
-      runOnJS(removeImageOnTap)();
+      scheduleOnRN(removeImageOnTap);
     });
 
   const onSlotAssignmentStart = useCallback(
-    runOnUI((data: SlotAssignmentStart | undefined) => {
-      'worklet';
+    (data: SlotAssignmentStart | undefined) => {
+      scheduleOnUI(
+        (data) => {
+          'worklet';
 
-      if (!data) {
-        return;
-      }
-      if (fileNumber.value !== data.from) {
-        return;
-      }
-      if (isSlotAssignmentUnfinished.value) {
-        return;
-      }
+          if (!data) {
+            return;
+          }
+          if (fileNumber.value !== data.from) {
+            return;
+          }
+          if (isSlotAssignmentUnfinished.value) {
+            return;
+          }
 
-      if (fileNumber.value !== data.pressed) {
-        translateX.value = withTiming(_slots.value[data.to].origin.x);
-        translateY.value = withTiming(_slots.value[data.to].origin.y);
-        scale.value = withTiming(
-          1,
-          undefined,
-          resetZIndex,
-        );
-      }
-      borderRadius.value = withTiming(getBorderRadius(data.to));
+          if (fileNumber.value !== data.pressed) {
+            translateX.value = withTiming(_slots.value[data.to].origin.x);
+            translateY.value = withTiming(_slots.value[data.to].origin.y);
+            scale.value = withTiming(1);
+            scheduleOnRN(setZIndex, 0)
+          }
+          borderRadius.value = withTiming(getBorderRadius(data.to));
 
-      if (data.pressed === null) {
-        isSlotAssignmentUnfinished.value = true;
-        fileNumber.value = data.to;
-      }
-    }),
+          if (data.pressed === null) {
+            isSlotAssignmentUnfinished.value = true;
+            fileNumber.value = data.to;
+          }
+        },
+        data
+      );
+    },
     [getBorderRadius]
   );
 

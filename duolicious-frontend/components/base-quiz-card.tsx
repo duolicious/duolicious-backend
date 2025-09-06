@@ -24,8 +24,9 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withSpring,
-  runOnJS,
+  SharedValue,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 type Direction = 'left' | 'right' | 'up' | 'down' | 'none'
 type SwipeHandler = (direction: Direction) => void
@@ -213,9 +214,9 @@ const getSwipeDirection = (
  * - `onResolve` is called at the end of the animation.
  */
 function createSpringStarter(
-  xSV: Animated.SharedValue<number>,
-  ySV: Animated.SharedValue<number>,
-  rotSV: Animated.SharedValue<number>
+  xSV: SharedValue<number>,
+  ySV: SharedValue<number>,
+  rotSV: SharedValue<number>
 ) {
   return (params: {
     x?: number;
@@ -231,14 +232,14 @@ function createSpringStarter(
 
     const runAnimation = (
       val: number | undefined,
-      sharedVal: Animated.SharedValue<number>
+      sharedVal: SharedValue<number>
     ) => {
       if (val === undefined) return;
       if (immediate) {
         // update instantly
         sharedVal.value = val;
         if (onResolve) {
-          runOnJS(onResolve)();
+          scheduleOnRN(onResolve);
         }
         return;
       }
@@ -249,20 +250,18 @@ function createSpringStarter(
           { duration: config.duration },
           (isFinished) => {
             if (isFinished && onResolve) {
-              runOnJS(onResolve)();
+              scheduleOnRN(onResolve);
             }
           }
         );
       } else {
         // approximate friction/tension with reanimated's damping/stiffness
-        const damping = config?.friction ?? 20;
-        const stiffness = config?.tension ?? 200;
         sharedVal.value = withSpring(
           val,
-          { damping, stiffness },
+          { duration: 750, dampingRatio: 0.7 },
           (isFinished) => {
             if (isFinished && onResolve) {
-              runOnJS(onResolve)();
+              scheduleOnRN(onResolve);
             }
           }
         );
