@@ -16,8 +16,8 @@ WITH ten_days_ago AS (
         luser AS username,
         MAX(CASE WHEN box = 'inbox' THEN timestamp ELSE 0 END) / 1000000 AS last_intro_seconds,
         MAX(CASE WHEN box = 'chats' THEN timestamp ELSE 0 END) / 1000000 AS last_chat_seconds,
-        BOOL_OR(CASE WHEN box = 'inbox' THEN TRUE ELSE FALSE END) AS has_intro,
-        BOOL_OR(CASE WHEN box = 'chats' THEN TRUE ELSE FALSE END) AS has_chat
+        BOOL_OR(box = 'inbox')  AS has_intro,
+        BOOL_OR(box = 'chats')  AS has_chat
     FROM
         inbox
     WHERE
@@ -75,7 +75,26 @@ WITH ten_days_ago AS (
                 extract(epoch from person.last_online_time) <
                     (SELECT seconds FROM ten_minutes_ago)
         ) AS has_chat,
-        extract(epoch from person.last_online_time) AS last_seconds
+        extract(epoch from person.last_online_time) AS last_seconds,
+        person.name,
+        person.email,
+        person.activated,
+        CASE
+            WHEN im_chats.name = 'Immediately'  THEN 0
+            WHEN im_chats.name = 'Daily'        THEN 86400
+            WHEN im_chats.name = 'Every 3 days' THEN 259200
+            WHEN im_chats.name = 'Weekly'       THEN 604800
+            WHEN im_chats.name = 'Never'        THEN -1
+            ELSE                                     0
+        END AS chats_drift_seconds,
+        CASE
+            WHEN im_intros.name = 'Immediately'  THEN 0
+            WHEN im_intros.name = 'Daily'        THEN 86400
+            WHEN im_intros.name = 'Every 3 days' THEN 259200
+            WHEN im_intros.name = 'Weekly'       THEN 604800
+            WHEN im_intros.name = 'Never'        THEN -1
+            ELSE                                      0
+        END AS intros_drift_seconds
     FROM
         inbox_first_pass
     LEFT JOIN
@@ -86,6 +105,14 @@ WITH ten_days_ago AS (
         duo_last_notification
     ON
         duo_last_notification.username = inbox_first_pass.username
+    LEFT JOIN
+        immediacy AS im_chats
+    ON
+        im_chats.id = person.chats_notification
+    LEFT JOIN
+        immediacy AS im_intros
+    ON
+        im_intros.id = person.intros_notification
 )
 SELECT
     inbox_second_pass.person_uuid,
@@ -95,7 +122,11 @@ SELECT
     last_chat_notification_seconds,
     has_intro,
     has_chat,
-    token
+    token,
+    name,
+    email,
+    chats_drift_seconds,
+    intros_drift_seconds
 FROM
     inbox_second_pass
 LEFT JOIN
@@ -106,53 +137,7 @@ AND
     inbox_second_pass.last_seconds
         > EXTRACT(EPOCH FROM NOW() - INTERVAL '8 days')
 WHERE
-    has_intro
-OR
-    has_chat
-"""
-
-Q_NOTIFICATION_SETTINGS = """
-WITH unnested_ids AS (
-    SELECT unnest(%(ids)s::TEXT[]) AS id
-), valid_uuid AS (
-    SELECT uuid_or_null(id) AS uuid
-    FROM unnested_ids
-    WHERE uuid_or_null(id) IS NOT NULL
-)
-SELECT
-    person.uuid::text AS person_uuid,
-    person.name,
-    person.email,
-    (
-        SELECT
-            CASE
-            WHEN name = 'Immediately'  THEN 0
-            WHEN name = 'Daily'        THEN 86400
-            WHEN name = 'Every 3 days' THEN 259200
-            WHEN name = 'Weekly'       THEN 604800
-            WHEN name = 'Never'        THEN -1
-            ELSE                            0
-            END AS chats_drift_seconds
-        FROM immediacy WHERE immediacy.id = person.chats_notification
-    ),
-    (
-        SELECT
-            CASE
-            WHEN name = 'Immediately'  THEN 0
-            WHEN name = 'Daily'        THEN 86400
-            WHEN name = 'Every 3 days' THEN 259200
-            WHEN name = 'Weekly'       THEN 604800
-            WHEN name = 'Never'        THEN -1
-            ELSE                            0
-            END AS intros_drift_seconds
-        FROM immediacy WHERE immediacy.id = person.intros_notification
-    )
-FROM
-    person
-JOIN
-    valid_uuid
-ON
-    valid_uuid.uuid = person.uuid
+    (has_intro OR has_chat)
 AND
     activated
 """

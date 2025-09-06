@@ -1,7 +1,6 @@
 from database.asyncdatabase import api_tx
 from dataclasses import dataclass
 from service.cron.notifications.sql import (
-    Q_NOTIFICATION_SETTINGS,
     Q_UNREAD_INBOX,
     Q_DELETE_MOBILE_TOKEN,
 )
@@ -11,7 +10,6 @@ from service.cron.notifications.template import (
 )
 from service.cron.cronutil import (
     MAX_RANDOM_START_DELAY,
-    join_lists_of_dicts,
     print_stacktrace,
 )
 from commonsql import (
@@ -151,22 +149,10 @@ async def maybe_send_notification(row: PersonNotification):
 async def send_notifications_once():
     async with api_tx('read committed') as tx:
         await tx.execute('SET LOCAL statement_timeout = 15000') # 15 seconds
-        cur_unread_inbox = await tx.execute(Q_UNREAD_INBOX)
-        rows_unread_inbox = await cur_unread_inbox.fetchall()
+        cur = await tx.execute(Q_UNREAD_INBOX)
+        rows = await cur.fetchall()
 
-    async with api_tx('read committed') as tx:
-        cur_notification_settings = await tx.execute(
-            Q_NOTIFICATION_SETTINGS,
-            params=dict(ids=[r['person_uuid'] for r in rows_unread_inbox])
-        )
-        rows_notification_settings = await cur_notification_settings.fetchall()
-
-    joined = join_lists_of_dicts(
-        rows_unread_inbox,
-        rows_notification_settings,
-        'person_uuid',
-    )
-    person_notifications = [PersonNotification(**j) for j in joined]
+    person_notifications = [PersonNotification(**j) for j in rows]
 
     for row in person_notifications:
         await maybe_send_notification(row)
