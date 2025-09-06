@@ -29,72 +29,6 @@ FMT_UNSUB_OK  = '<duo_unsubscribe_successful uuid="{username}" />'
 FMT_UNSUB_BAD = '<duo_unsubscribe_unsuccessful uuid="{username}" />'
 
 
-# Fetch `about` text for candidates whose last_event_time is old enough.
-Q_SELECT_LAST_EVENT = f"""
-SELECT
-    uuid,
-    about
-FROM
-    person
-WHERE
-    uuid = ANY(%(person_uuids)s)
-AND
-    about <> ''
-AND
-    last_event_time < now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
-"""
-
-
-Q_UPDATE_LAST_EVENT = f"""
-UPDATE
-    person
-SET
-    last_event_time = now(),
-
-    last_event_name = CASE
-        WHEN last_event_name = 'added-photo'
-        THEN 'recently-online-with-photo'
-
-        WHEN last_event_name = 'added-voice-bio'
-        THEN 'recently-online-with-voice-bio'
-
-        WHEN last_event_name = 'updated-bio'
-        THEN 'recently-online-with-bio'
-
-        WHEN last_event_name IN (
-            'recently-online-with-photo'::person_event,
-            'recently-online-with-voice-bio'::person_event,
-            'recently-online-with-bio'::person_event
-        )
-        THEN last_event_name
-
-        ELSE 'recently-online-with-bio'
-    END::person_event,
-
-    last_event_data = CASE
-        WHEN last_event_name IN (
-            'added-photo'::person_event,
-            'added-voice-bio'::person_event,
-            'updated-bio'::person_event,
-            'recently-online-with-photo'::person_event,
-            'recently-online-with-voice-bio'::person_event,
-            'recently-online-with-bio'::person_event
-        )
-        THEN
-            last_event_data
-
-        ELSE
-            jsonb_build_object(
-                'added_text', %(about_text)s::TEXT,
-                'body_color', body_color,
-                'background_color', background_color
-            )
-    END
-WHERE
-    uuid = %(person_uuid)s
-"""
-
-
 class OnlineStatus(Enum):
     ONLINE = 'online'
     ONLINE_RECENTLY = 'online-recently'
@@ -210,34 +144,12 @@ async def maybe_redis_unsubscribe_online(
 
 
 def process_batch(jobs: list[UpdateLastJob]):
-    select_last_event_params_seq = [
-        job.session_username
-        for job in jobs
-        if job.do_update_last_event
-    ]
-
     update_last_params_seq = [
         dict(person_uuid=job.session_username)
         for job in jobs
     ]
 
     with api_tx('read committed') as tx:
-        # Update `about` text for the selected users.
-        tx.execute(
-            Q_SELECT_LAST_EVENT,
-            dict(person_uuids=select_last_event_params_seq)
-        )
-        rows = tx.fetchall()
-        update_last_event_params_seq = [
-            dict(
-                person_uuid=row['uuid'],
-                about_text=truncate_text(row['about'])
-            )
-            for row in rows
-        ]
-        tx.executemany(Q_UPDATE_LAST_EVENT, update_last_event_params_seq)
-
-        # Always perform the UPDATE for last_seen regardless.
         tx.executemany(Q_UPDATE_LAST, update_last_params_seq)
 
 

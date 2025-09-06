@@ -876,6 +876,21 @@ WITH searcher AS (
         person
     WHERE
         person.id = %(searcher_person_id)s
+), mapped_event_name AS (
+    SELECT
+        recently_online,
+        from_person_event::person_event,
+        to_person_event::person_event
+    FROM (
+        VALUES
+            (true,  'added-photo',                    'recently-online-with-photo'),
+            (true,  'added-voice-bio',                'recently-online-with-voice-bio'),
+            (true,  'updated-bio',                    'recently-online-with-bio'),
+
+            (false, 'recently-online-with-photo',     'photo'),
+            (false, 'recently-online-with-voice-bio', 'voice-bio'),
+            (false, 'recently-online-with-bio',       'updated-bio')
+    ) AS t (recently_online, from_person_event, to_person_event)
 ), person_data AS (
     SELECT
         id,
@@ -885,7 +900,22 @@ WITH searcher AS (
         photo_data.uuid AS photo_uuid,
         prospect.verification_level_id > 1 AS is_verified,
         iso8601_utc(prospect.last_event_time) AS time,
-        prospect.last_event_name AS type,
+        COALESCE(
+            (
+                SELECT
+                    to_person_event
+                FROM
+                    mapped_event_name
+                WHERE
+                    mapped_event_name.from_person_event = prospect.last_event_name
+                AND
+                    mapped_event_name.recently_online = (
+                        prospect.last_event_time
+                        > now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
+                    )
+            ),
+            prospect.last_event_name
+        ) as type,
         prospect.last_event_data,
         CLAMP(
             0,
@@ -936,16 +966,6 @@ WITH searcher AS (
         last_event_time > now() - interval '1 month'
     AND
         activated
-    AND NOT (
-            last_event_name IN (
-                'was-recently-online'::person_event,
-                'recently-online-with-photo'::person_event,
-                'recently-online-with-voice-bio'::person_event,
-                'recently-online-with-bio'::person_event
-            )
-        AND
-            last_event_time < now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
-    )
     AND
         -- The searcher meets the prospects privacy_verification_level_id
         -- requirement
@@ -1135,14 +1155,21 @@ WITH searcher AS (
         person_data,
         searcher
     ORDER BY
-        cardinality(
-            ARRAY(
-                SELECT v FROM unnest(person_data.clubs) AS t(v)
-                INTERSECT
-                SELECT v FROM unnest(searcher.clubs) AS t(v)
+        1.0 - 1.0 / (
+            cardinality(
+                ARRAY(
+                    SELECT v FROM unnest(person_data.clubs) AS t(v)
+                    INTERSECT
+                    SELECT v FROM unnest(searcher.clubs) AS t(v)
+                )
             )
-        ) DESC,
-        match_percentage DESC,
+            +
+            1.0
+        )
+        +
+        match_percentage
+        DESC,
+
         last_event_time DESC
     LIMIT
         (SELECT round(count(*) * 0.5) FROM person_data)

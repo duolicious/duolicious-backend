@@ -153,7 +153,7 @@ test_json_format () {
     "photo_blurhash": "redacted_nonnull_value",
     "photo_uuid": "redacted_nonnull_value",
     "time": "redacted_nonnull_value",
-    "type": "added-voice-bio"
+    "type": "recently-online-with-voice-bio"
   },
   {
     "added_photo_blurhash": "redacted_nonnull_value",
@@ -167,7 +167,7 @@ test_json_format () {
     "photo_blurhash": "redacted_nonnull_value",
     "photo_uuid": "redacted_nonnull_value",
     "time": "redacted_nonnull_value",
-    "type": "added-photo"
+    "type": "recently-online-with-photo"
   },
   {
     "added_text": "You just lost the game",
@@ -181,7 +181,7 @@ test_json_format () {
     "photo_blurhash": "redacted_nonnull_value",
     "photo_uuid": "redacted_nonnull_value",
     "time": "redacted_nonnull_value",
-    "type": "updated-bio"
+    "type": "recently-online-with-bio"
   },
   {
     "flair": [],
