@@ -11,7 +11,7 @@ BEGIN
         UPDATE
             person
         SET
-            person.last_online_time = COALESCE(
+            last_online_time = COALESCE(
                 (
                     SELECT
                         to_timestamp(last.seconds)
