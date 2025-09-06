@@ -860,22 +860,54 @@ WITH searcher AS (
         gender_id,
         date_of_birth,
         personality,
-        verification_level_id,
-        (
-            SELECT
-                COALESCE(
-                    array_agg(club_name ORDER BY club_name),
-                    ARRAY[]::TEXT[]
-                )
-            FROM
-                person_club
-            WHERE
-                person_club.person_id = person.id
-        ) AS clubs
+        verification_level_id
     FROM
         person
     WHERE
         person.id = %(searcher_person_id)s
+), mapped_event_name AS (
+    SELECT
+        recently_online,
+        from_person_event::person_event,
+        to_person_event::person_event
+    FROM (
+        VALUES
+            (true,  'added-photo',                    'recently-online-with-photo'),
+            (true,  'added-voice-bio',                'recently-online-with-voice-bio'),
+            (true,  'updated-bio',                    'recently-online-with-bio'),
+
+            (false, 'recently-online-with-photo',     'added-photo'),
+            (false, 'recently-online-with-voice-bio', 'added-voice-bio'),
+            (false, 'recently-online-with-bio',       'updated-bio')
+    ) AS t (recently_online, from_person_event, to_person_event)
+), recent_person AS (
+    (
+        SELECT
+            *
+        FROM
+            person
+        WHERE
+            last_online_time < %(before)s
+        ORDER BY
+            last_online_time DESC
+        LIMIT
+            1000
+    )
+
+    UNION DISTINCT
+
+    (
+        SELECT
+            *
+        FROM
+            person
+        WHERE
+            last_event_time < %(before)s
+        ORDER BY
+            last_event_time DESC
+        LIMIT
+            1000
+    )
 ), person_data AS (
     SELECT
         id,
@@ -884,8 +916,31 @@ WITH searcher AS (
         photo_data.blurhash AS photo_blurhash,
         photo_data.uuid AS photo_uuid,
         prospect.verification_level_id > 1 AS is_verified,
-        iso8601_utc(prospect.last_event_time) AS time,
-        prospect.last_event_name AS type,
+        CASE
+            WHEN
+                prospect.last_event_time
+                > now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
+            THEN
+                prospect.last_online_time
+            ELSE
+                prospect.last_event_time
+        END AS last_online_time_if_recent,
+        COALESCE(
+            (
+                SELECT
+                    to_person_event
+                FROM
+                    mapped_event_name
+                WHERE
+                    mapped_event_name.from_person_event = prospect.last_event_name
+                AND
+                    mapped_event_name.recently_online = (
+                        prospect.last_event_time
+                        > now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
+                    )
+            ),
+            prospect.last_event_name
+        ) as type,
         prospect.last_event_data,
         CLAMP(
             0,
@@ -894,25 +949,13 @@ WITH searcher AS (
                 1 - (prospect.personality <#> searcher.personality)
             ) / 2
         )::SMALLINT AS match_percentage,
-        (
-            SELECT
-                COALESCE(
-                    array_agg(club_name ORDER BY club_name),
-                    ARRAY[]::TEXT[]
-                )
-            FROM
-                person_club
-            WHERE
-                person_club.person_id = prospect.id
-        ) AS clubs,
-        last_event_time,
         flair,
         has_gold,
         sign_up_time,
         count_answers,
         about
     FROM
-        person AS prospect
+        recent_person AS prospect
     LEFT JOIN LATERAL (
         SELECT
             photo.uuid,
@@ -931,21 +974,9 @@ WITH searcher AS (
     CROSS JOIN
         searcher
     WHERE
-        last_event_time < %(before)s
-    AND
         last_event_time > now() - interval '1 month'
     AND
         activated
-    AND NOT (
-            last_event_name IN (
-                'was-recently-online'::person_event,
-                'recently-online-with-photo'::person_event,
-                'recently-online-with-voice-bio'::person_event,
-                'recently-online-with-bio'::person_event
-            )
-        AND
-            last_event_time < now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
-    )
     AND
         -- The searcher meets the prospects privacy_verification_level_id
         -- requirement
@@ -1114,7 +1145,7 @@ WITH searcher AS (
             prospect.has_gold
     )
     ORDER BY
-        last_event_time DESC
+        last_online_time_if_recent DESC
     LIMIT
         100
 ), filtered_by_club AS (
@@ -1125,25 +1156,18 @@ WITH searcher AS (
         photo_uuid,
         photo_blurhash,
         is_verified,
-        time,
+        iso8601_utc(last_online_time_if_recent) AS time,
         type,
         match_percentage,
         last_event_data,
-        last_event_time,
+        last_online_time_if_recent AS last_event_time,
         ({Q_COMPUTED_FLAIR}) AS flair
     FROM
         person_data,
         searcher
     ORDER BY
-        cardinality(
-            ARRAY(
-                SELECT v FROM unnest(person_data.clubs) AS t(v)
-                INTERSECT
-                SELECT v FROM unnest(searcher.clubs) AS t(v)
-            )
-        ) DESC,
         match_percentage DESC,
-        last_event_time DESC
+        last_online_time_if_recent DESC
     LIMIT
         (SELECT round(count(*) * 0.5) FROM person_data)
 )

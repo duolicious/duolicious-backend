@@ -142,6 +142,28 @@ test_json_format () {
   expected=$(jq -r . << EOF
 [
   {
+    "flair": [],
+    "is_verified": false,
+    "match_percentage": 50,
+    "name": "user14",
+    "person_uuid": "redacted_nonnull_value",
+    "photo_blurhash": "redacted_nonnull_value",
+    "photo_uuid": "redacted_nonnull_value",
+    "time": "redacted_nonnull_value",
+    "type": "joined"
+  },
+  {
+    "flair": [],
+    "is_verified": false,
+    "match_percentage": 50,
+    "name": "user11",
+    "person_uuid": "redacted_nonnull_value",
+    "photo_blurhash": "redacted_nonnull_value",
+    "photo_uuid": "redacted_nonnull_value",
+    "time": "redacted_nonnull_value",
+    "type": "joined"
+  },
+  {
     "added_audio_uuid": "redacted_nonnull_value",
     "flair": [
       "voice-bio"
@@ -153,44 +175,16 @@ test_json_format () {
     "photo_blurhash": "redacted_nonnull_value",
     "photo_uuid": "redacted_nonnull_value",
     "time": "redacted_nonnull_value",
-    "type": "added-voice-bio"
+    "type": "recently-online-with-voice-bio"
   },
   {
-    "added_photo_blurhash": "redacted_nonnull_value",
-    "added_photo_extra_exts": [],
-    "added_photo_uuid": "redacted_nonnull_value",
     "flair": [],
     "is_verified": false,
     "match_percentage": 50,
-    "name": "user8",
+    "name": "user9",
     "person_uuid": "redacted_nonnull_value",
-    "photo_blurhash": "redacted_nonnull_value",
-    "photo_uuid": "redacted_nonnull_value",
-    "time": "redacted_nonnull_value",
-    "type": "added-photo"
-  },
-  {
-    "added_text": "You just lost the game",
-    "background_color": "#aaaaaa",
-    "body_color": "#000000",
-    "flair": [],
-    "is_verified": false,
-    "match_percentage": 50,
-    "name": "user7",
-    "person_uuid": "redacted_nonnull_value",
-    "photo_blurhash": "redacted_nonnull_value",
-    "photo_uuid": "redacted_nonnull_value",
-    "time": "redacted_nonnull_value",
-    "type": "updated-bio"
-  },
-  {
-    "flair": [],
-    "is_verified": true,
-    "match_percentage": 50,
-    "name": "user16",
-    "person_uuid": "redacted_nonnull_value",
-    "photo_blurhash": "redacted_nonnull_value",
-    "photo_uuid": "redacted_nonnull_value",
+    "photo_blurhash": null,
+    "photo_uuid": null,
     "time": "redacted_nonnull_value",
     "type": "joined"
   }

@@ -7,41 +7,9 @@ source ../util/setup.sh
 
 set -ex
 
-################################################################################
-#
-# duo_api=# select * from last;
-#  username |  seconds
-# ----------+------------
-#  2        | 1693678400
-# (1 row)
-#
-################################################################################
-#
-# duo_api=# select * from inbox;
-#  luser | remote_bare_jid  |                  msg_id                  |  box  | content |    timestamp     | unread_count
-# -------+------------------+------------------------------------------+-------+---------+------------------+--------------
-#  2     | 1@duolicious.app | Fv2SDTePaYDhaIANaCeqG8wDFFxHrQp6vTlGXB1Y | inbox |         | 1693678421648540 |            1
-#  1     | 2@duolicious.app | Fv2SDTePaYDhaIANaCeqG8wDFFxHrQp6vTlGXB1Y | chats |         | 1693678421648540 |            0
-# (2 rows)
-#
-################################################################################
-#
-# duo_api=# select id AS person_id, name, email, chats_drift_seconds, intros_drift_seconds from person;
-# ...
-# (? rows)
-################################################################################
-# duo_api=# select * from duo_last_notification;
-#  username | intro_seconds | chat_seconds
-# ----------+---------------+--------------
-#  67       |    1693776210 |   1693778611
-# (1 row)
-#
-################################################################################
-
 setup () {
   q "delete from inbox"
   q "delete from person"
-  q "delete from last"
   q "delete from duo_last_notification"
   q "delete from duo_push_token"
 
@@ -60,16 +28,9 @@ setup () {
   user2id=$(q "select uuid from person where email = 'user2@duolicious.app'")
   user3id=$(q "select uuid from person where email = 'user3@duolicious.app'")
 
-  q "
-  insert into last (username, seconds)
-  values
-    ('$user1id', 0),
-    ('$user2id', 0),
-    ('$user3id', 0)
-  ON CONFLICT (username) DO UPDATE SET
-    username = EXCLUDED.username,
-    seconds  = EXCLUDED.seconds
-  "
+  q "update person set last_online_time = to_timestamp(0) where uuid = '$user1id'"
+  q "update person set last_online_time = to_timestamp(0) where uuid = '$user2id'"
+  q "update person set last_online_time = to_timestamp(0) where uuid = '$user3id'"
 }
 
 db_now () {
@@ -265,19 +226,11 @@ test_sad_still_online_at_poll_time () {
   setup
 
   local t1=$(db_now as-microseconds '- 11 minutes')
-  local t2=$(db_now as-seconds      '-  9 minutes')
 
   [[ "$(q "select count(*) from duo_last_notification")" = 0 ]]
 
-  q "
-  insert into last
-  values
-    ('$user1id', $t2),
-    ('$user2id', $t2)
-  ON CONFLICT (username) DO UPDATE SET
-    username = EXCLUDED.username,
-    seconds  = EXCLUDED.seconds
-  "
+  q "update person set last_online_time = now() - interval '9 minutes' where uuid = '$user1id'"
+  q "update person set last_online_time = now() - interval '9 minutes' where uuid = '$user2id'"
 
   q "
   insert into inbox
@@ -298,19 +251,11 @@ test_sad_still_online_after_message_time () {
   setup
 
   local t1=$(db_now as-microseconds '- 13 minutes')
-  local t2=$(db_now as-seconds      '- 11 minutes')
 
   [[ "$(q "select count(*) from duo_last_notification")" = 0 ]]
 
-  q "
-  insert into last
-  values
-    ('$user1id', $t2),
-    ('$user2id', $t2)
-  ON CONFLICT (username) DO UPDATE SET
-    username = EXCLUDED.username,
-    seconds  = EXCLUDED.seconds
-  "
+  q "update person set last_online_time = now() - interval '11 minutes' where uuid = '$user1id'"
+  q "update person set last_online_time = now() - interval '11 minutes' where uuid = '$user2id'"
 
   q "
   insert into inbox
@@ -502,19 +447,8 @@ test_low_active_users_notified_via_email () {
 
   [[ "$(q "select count(*) from duo_last_notification")" = 0 ]]
 
-  local t1=$(db_now as-seconds '- 7 days')
-  local t2=$(db_now as-seconds '- 9 days')
-
-  q "
-  INSERT INTO
-    last
-  VALUES
-    ('$user1id', $t1),
-    ('$user2id', $t2)
-  ON CONFLICT (username) DO UPDATE SET
-    username = EXCLUDED.username,
-    seconds  = EXCLUDED.seconds
-  "
+  q "update person set last_online_time = now() - interval '7 days' where uuid = '$user1id'"
+  q "update person set last_online_time = now() - interval '9 days' where uuid = '$user2id'"
 
   q "
   INSERT INTO

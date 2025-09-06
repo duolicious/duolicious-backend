@@ -812,11 +812,11 @@ WITH prospect AS (
         ) AS location,
 
         (
-            EXTRACT(EPOCH FROM NOW() - sign_in_time)
+            ROUND(EXTRACT(EPOCH FROM NOW() - last_online_time))
         ) AS seconds_since_last_online,
 
         (
-            EXTRACT(EPOCH FROM NOW() - sign_up_time)
+            ROUND(EXTRACT(EPOCH FROM NOW() - sign_up_time))
         ) AS seconds_since_sign_up
     FROM
         person AS prospect
@@ -1359,10 +1359,7 @@ ORDER BY
 """
 
 Q_DELETE_ACCOUNT = """
-WITH deleted_last AS (
-    DELETE FROM last
-    WHERE username = %(person_uuid)s
-), deleted_inbox AS (
+WITH deleted_inbox AS (
     DELETE FROM inbox
     WHERE luser = %(person_uuid)s
 ), deleted_duo_last_notification AS (
@@ -2701,19 +2698,6 @@ SELECT
             %(pending_club_name)s::TEXT IS NOT NULL
     ) AS pending_club
 """
-
-Q_LAST_ONLINE = """
-SELECT
-    COALESCE(
-        (
-            SELECT EXTRACT(EPOCH FROM NOW()) - seconds
-            FROM last
-            WHERE username = %(prospect_uuid)s
-        ),
-        NULL
-    ) AS seconds_since_last_online
-"""
-
 
 Q_MESSAGE_STATS = """
 WITH message_sent AS (
