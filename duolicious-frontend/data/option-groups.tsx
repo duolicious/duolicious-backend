@@ -33,6 +33,7 @@ import { FC } from 'react';
 import { onboardingQueue } from '../api/queue';
 import { showVerificationCamera } from '../components/verification-camera';
 import { notifyUpdatedVerification } from '../verification/verification';
+import { searchQueue } from '../api/queue';
 
 const noneFontSize = 16;
 
@@ -1269,11 +1270,20 @@ const searchTwoWayBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           ...yourPartnersGenderOptionGroup.input.checkChips.values,
         ],
         submit: async function(gender: string[]) {
-          const ok = (await japi('post', '/search-filter', { gender })).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, gender);
+          const go = async () => {
+            const ok = (await japi('post', '/search-filter', { gender })).ok;
+            if (ok) {
+              this.values = newCheckChipValues(this.values, gender);
+            }
+            return ok;
+          };
+
+          if (gender.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
         }
       }
     },
@@ -1298,15 +1308,19 @@ const searchTwoWayBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         addPlusAtMax: true,
         scale: LOGARITHMIC_SCALE,
         submit: async function(furthestDistance: number | null) {
-          const ok = (
-            await japi(
-              'post',
-              '/search-filter',
-              { furthest_distance: furthestDistance }
-            )
-          ).ok;
-          if (ok) this.currentValue = furthestDistance;
-          return ok;
+          const go = async () => {
+            const ok = (
+              await japi(
+                'post',
+                '/search-filter',
+                { furthest_distance: furthestDistance }
+              )
+            ).ok;
+            if (ok) this.currentValue = furthestDistance;
+            return ok;
+          };
+          searchQueue.addTask(go);
+          return true;
         },
       },
     },
@@ -1327,23 +1341,27 @@ const searchTwoWayBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         sliderMax: 99,
         unitsLabel: 'years',
         submit: async function(sliderMin: number | null, sliderMax: number | null) {
-          const ok = (
-            await japi(
-              'post',
-              '/search-filter',
-              {
-                age: {
-                  min_age: sliderMin,
-                  max_age: sliderMax,
+          const go = async () => {
+            const ok = (
+              await japi(
+                'post',
+                '/search-filter',
+                {
+                  age: {
+                    min_age: sliderMin,
+                    max_age: sliderMax,
+                  }
                 }
-              }
-            )
-          ).ok;
-          if (ok) {
-            this.currentMin = sliderMin;
-            this.currentMax = sliderMax;
-          }
-          return ok;
+              )
+            ).ok;
+            if (ok) {
+              this.currentMin = sliderMin;
+              this.currentMax = sliderMax;
+            }
+            return ok;
+          };
+          searchQueue.addTask(go);
+          return true;
         },
       }
     },
@@ -1362,12 +1380,18 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Unanswered'},
         ],
         submit: async function(orientation: string[]) {
-          const ok = (await japi('post', '/search-filter', { orientation })).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, orientation);
+          const go = async () => {
+            const ok = (await japi('post', '/search-filter', { orientation })).ok;
+            if (ok) this.values = newCheckChipValues(this.values, orientation);
+            return ok;
+          };
+          if (orientation.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
-        }
+        },
       }
     },
   },
@@ -1382,11 +1406,18 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Unanswered'},
         ],
         submit: async function(ethnicity: string[]) {
-          const ok = (await japi('post', '/search-filter', { ethnicity })).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, ethnicity);
+          const go = async () => {
+            const ok = (await japi('post', '/search-filter', { ethnicity })).ok;
+            if (ok) this.values = newCheckChipValues(this.values, ethnicity);
+            return ok;
+          };
+
+          if (ethnicity.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
         }
       }
     },
@@ -1407,23 +1438,27 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         sliderMax: 220,
         unitsLabel: 'cm',
         submit: async function(sliderMin: number | null, sliderMax: number | null) {
-          const ok = (
-            await japi(
-              'post',
-              '/search-filter',
-              {
-                height: {
-                  min_height_cm: sliderMin,
-                  max_height_cm: sliderMax,
+          const go = async () => {
+            const ok = (
+              await japi(
+                'post',
+                '/search-filter',
+                {
+                  height: {
+                    min_height_cm: sliderMin,
+                    max_height_cm: sliderMax,
+                  }
                 }
-              }
-            )
-          ).ok;
-          if (ok) {
-            this.currentMin = sliderMin;
-            this.currentMax = sliderMax;
-          }
-          return ok;
+              )
+            ).ok;
+            if (ok) {
+              this.currentMin = sliderMin;
+              this.currentMax = sliderMax;
+            }
+            return ok;
+          };
+          searchQueue.addTask(go);
+          return true;
         },
       },
     },
@@ -1444,15 +1479,21 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           ...yesNo.map((x) => ({checked: true, label: x})),
         ],
         submit: async function(hasAProfilePicture: string[]) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { has_a_profile_picture: hasAProfilePicture }
-          )).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, hasAProfilePicture);
+          const go = async () => {
+            const ok = (await japi(
+              'post',
+              '/search-filter',
+              { has_a_profile_picture: hasAProfilePicture }
+            )).ok;
+            if (ok) this.values = newCheckChipValues(this.values, hasAProfilePicture);
+            return ok;
+          };
+          if (hasAProfilePicture.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
         }
       }
     },
@@ -1468,15 +1509,21 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Unanswered'},
         ],
         submit: async function(lookingFor: string[]) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { looking_for: lookingFor }
-          )).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, lookingFor);
+          const go = async () => {
+            const ok = (await japi(
+              'post',
+              '/search-filter',
+              { looking_for: lookingFor }
+            )).ok;
+            if (ok) this.values = newCheckChipValues(this.values, lookingFor);
+            return ok;
+          };
+          if (lookingFor.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
         }
       }
     },
@@ -1498,15 +1545,21 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Unanswered'}
         ],
         submit: async function(smoking: string[]) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { smoking }
-          )).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, smoking);
+          const go = async () => {
+            const ok = (await japi(
+              'post',
+              '/search-filter',
+              { smoking }
+            )).ok;
+            if (ok) this.values = newCheckChipValues(this.values, smoking);
+            return ok;
+          };
+          if (smoking.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
         }
       }
     },
@@ -1522,15 +1575,21 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Unanswered'}
         ],
         submit: async function(drinking: string[]) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { drinking }
-          )).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, drinking);
+          const go = async () => {
+            const ok = (await japi(
+              'post',
+              '/search-filter',
+              { drinking }
+            )).ok;
+            if (ok) this.values = newCheckChipValues(this.values, drinking);
+            return ok;
+          };
+          if (drinking.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
         }
       }
     },
@@ -1552,15 +1611,21 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Unanswered'}
         ],
         submit: async function(drugs: string[]) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { drugs }
-          )).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, drugs);
+          const go = async () => {
+            const ok = (await japi(
+              'post',
+              '/search-filter',
+              { drugs }
+            )).ok;
+            if (ok) this.values = newCheckChipValues(this.values, drugs);
+            return ok;
+          };
+          if (drugs.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
         }
       }
     },
@@ -1576,15 +1641,21 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Unanswered'}
         ],
         submit: async function(longDistance: string[]) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { long_distance: longDistance }
-          )).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, longDistance);
+          const go = async () => {
+            const ok = (await japi(
+              'post',
+              '/search-filter',
+              { long_distance: longDistance }
+            )).ok;
+            if (ok) this.values = newCheckChipValues(this.values, longDistance);
+            return ok;
+          };
+          if (longDistance.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
         }
       }
     },
@@ -1600,15 +1671,21 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Unanswered'},
         ],
         submit: async function(relationshipStatus: string[]) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { relationship_status: relationshipStatus }
-          )).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, relationshipStatus);
+          const go = async () => {
+            const ok = (await japi(
+              'post',
+              '/search-filter',
+              { relationship_status: relationshipStatus }
+            )).ok;
+            if (ok) this.values = newCheckChipValues(this.values, relationshipStatus);
+            return ok;
+          };
+          if (relationshipStatus.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
         }
       }
     },
@@ -1624,15 +1701,21 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Unanswered'}
         ],
         submit: async function(hasKids: string[]) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { has_kids: hasKids }
-          )).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, hasKids);
+          const go = async () => {
+            const ok = (await japi(
+              'post',
+              '/search-filter',
+              { has_kids: hasKids }
+            )).ok;
+            if (ok) this.values = newCheckChipValues(this.values, hasKids);
+            return ok;
+          };
+          if (hasKids.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
         }
       }
     },
@@ -1648,15 +1731,21 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Unanswered'}
         ],
         submit: async function(wantsKids: string[]) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { wants_kids: wantsKids }
-          )).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, wantsKids);
+          const go = async () => {
+            const ok = (await japi(
+              'post',
+              '/search-filter',
+              { wants_kids: wantsKids }
+            )).ok;
+            if (ok) this.values = newCheckChipValues(this.values, wantsKids);
+            return ok;
+          };
+          if (wantsKids.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
         }
       }
     },
@@ -1672,15 +1761,21 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Unanswered'},
         ],
         submit: async function(exercise: string[]) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { exercise }
-          )).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, exercise);
+          const go = async () => {
+            const ok = (await japi(
+              'post',
+              '/search-filter',
+              { exercise }
+            )).ok;
+            if (ok) this.values = newCheckChipValues(this.values, exercise);
+            return ok;
+          };
+          if (exercise.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
         }
       }
     },
@@ -1702,15 +1797,21 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Unanswered'},
         ],
         submit: async function(religion: string[]) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { religion }
-          )).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, religion);
+          const go = async () => {
+            const ok = (await japi(
+              'post',
+              '/search-filter',
+              { religion }
+            )).ok;
+            if (ok) this.values = newCheckChipValues(this.values, religion);
+            return ok;
+          };
+          if (religion.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
         }
       }
     },
@@ -1726,15 +1827,21 @@ const searchOtherBasicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           {checked: true, label: 'Unanswered'},
         ],
         submit: async function(starSign: string[]) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { star_sign: starSign }
-          )).ok;
-          if (ok) {
-            this.values = newCheckChipValues(this.values, starSign);
+          const go = async () => {
+            const ok = (await japi(
+              'post',
+              '/search-filter',
+              { star_sign: starSign }
+            )).ok;
+            if (ok) this.values = newCheckChipValues(this.values, starSign);
+            return ok;
+          };
+          if (starSign.length) {
+            searchQueue.addTask(go);
+            return true;
+          } else {
+            return await searchQueue.addTask(go);
           }
-          return ok;
         }
       }
     },
@@ -1756,13 +1863,17 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       buttons: {
         values: yesNo,
         submit: async function(peopleMessaged: string) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { people_you_messaged: peopleMessaged }
-          )).ok;
-          if (ok) this.currentValue = peopleMessaged;
-          return ok;
+          const go = async () => {
+            const ok = (await japi(
+              'post',
+              '/search-filter',
+              { people_you_messaged: peopleMessaged }
+            )).ok;
+            if (ok) this.currentValue = peopleMessaged;
+            return ok;
+          };
+          searchQueue.addTask(go);
+          return true;
         }
       }
     },
@@ -1782,13 +1893,17 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       buttons: {
         values: yesNo,
         submit: async function(peopleSkipped: string) {
-          const ok = (await japi(
-            'post',
-            '/search-filter',
-            { people_you_skipped: peopleSkipped }
-          )).ok;
-          if (ok) this.currentValue = peopleSkipped;
-          return ok;
+          const go = async () => {
+            const ok = (await japi(
+              'post',
+              '/search-filter',
+              { people_you_skipped: peopleSkipped }
+            )).ok;
+            if (ok) this.currentValue = peopleSkipped;
+            return ok;
+          };
+          searchQueue.addTask(go);
+          return true;
         }
       }
     },
