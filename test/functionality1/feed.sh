@@ -184,15 +184,18 @@ test_json_format () {
     "type": "recently-online-with-voice-bio"
   },
   {
+    "added_photo_blurhash": "redacted_nonnull_value",
+    "added_photo_extra_exts": [],
+    "added_photo_uuid": "redacted_nonnull_value",
     "flair": [],
     "is_verified": false,
     "match_percentage": 50,
-    "name": "user9",
+    "name": "user8",
     "person_uuid": "redacted_nonnull_value",
-    "photo_blurhash": null,
-    "photo_uuid": null,
+    "photo_blurhash": "redacted_nonnull_value",
+    "photo_uuid": "redacted_nonnull_value",
     "time": "redacted_nonnull_value",
-    "type": "joined"
+    "type": "recently-online-with-photo"
   }
 ]
 EOF
