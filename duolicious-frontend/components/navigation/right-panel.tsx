@@ -1,21 +1,7 @@
-import { useCallback } from 'react';
 import { View } from 'react-native';
 import { DefaultText } from '../default-text';
-import { ButtonWithCenteredText } from '../button/centered-text';
-import { showPointOfSale } from '../modal/point-of-sale-modal';
-import { useSignedInUser } from '../../events/signed-in-user';
-import { Logo14 } from '../logo';
 
 const RightPanel = () => {
-  const onPress = useCallback(() => {
-    showPointOfSale('inquiry');
-  }, []);
-
-  const [signedInUser] = useSignedInUser();
-
-  const isEarly = (signedInUser?.personId ?? 1e6) <= 300_000;
-  const hasGold = !!signedInUser?.hasGold;
-
   return (
     <View
       style={{
@@ -41,71 +27,35 @@ const RightPanel = () => {
             textAlign: 'center',
           }}
         >
-          {hasGold
-            ? 'You’ve got Gold!'
-            : 'Support Duolicious'
-          }
+          Your Social Group Here
         </DefaultText>
 
-        {hasGold ? <>
-          <Logo14 size={140} />
+        <DefaultText
+          style={{
+            color: 'white',
+            textAlign: 'center',
+            backgroundColor: 'black',
+            borderRadius: 10,
+            padding: 14,
+          }}
+        >
+          Do you have a Discord server, Reddit sub, or other social group you
+          want to promote? You can do it here, for free!
+          {'\n\n'}
+          What’s the catch? You’ll have to promote Duolicious back. (Plus your
+          group should be something Duolicious members would like.)
+          {'\n\n'}
+          Enquiries: {}
           <DefaultText
             style={{
-              color: 'white',
-              textAlign: 'center',
+              fontWeight: '700'
             }}
+            // @ts-ignore
+            href="mailto:admin@duolicious.app"
           >
-            Members with Gold get extra features!
-            {isEarly ? (
-              '\n\nGold isn’t usually free, but we gave it to you anyway ' +
-              'because you’re one of Duolicious’ first users. Thanks, fren.'
-            ) : ''}
+            admin@duolicious.app
           </DefaultText>
-        </> : (
-          <DefaultText
-            style={{
-              color: 'white',
-              textAlign: 'center',
-              backgroundColor: 'black',
-              borderRadius: 10,
-              padding: 10,
-            }}
-          >
-            Want more messages from more attractive people?? Well, you’re on the
-            wrong app! But at least you can get barely-any-good-messages in
-            comfort and style, with {}
-            <DefaultText style={{ fontWeight: 700 }}>
-              Duolicious Gold
-            </DefaultText>
-            .
-            {'\n\n'}
-            That’s right! With Duolicious Gold, you get a bunch of perks for a
-            price so low our payment processor almost wouldn’t let us charge it!
-            Plus it gives us the money to keep this Sisyphean shit show on the
-            road!
-            {'\n\n'}
-            (Please. We need money. They're gonna take our thumbs.)
-            {'\n\n'}
-            Kisses! 🤗
-          </DefaultText>
-        )}
-
-        {!hasGold &&
-          <ButtonWithCenteredText
-            onPress={onPress}
-            textStyle={{
-              fontWeight: '700',
-            }}
-            containerStyle={{
-              marginTop: 0,
-              marginBottom: 0,
-              width: '100%',
-            }}
-            secondary={true}
-          >
-            Get GOLD
-          </ButtonWithCenteredText>
-        }
+        </DefaultText>
       </View>
     </View>
   );
