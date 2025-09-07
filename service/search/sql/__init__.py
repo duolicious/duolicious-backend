@@ -946,7 +946,7 @@ WITH searcher AS (
         ORDER BY
             '{{}}'::TEXT[] = extra_exts,
             photo.uuid = photo_data.uuid,
-            photo.position
+            random()
         LIMIT 1
     ) AS online_photo_data
     ON TRUE
