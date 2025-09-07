@@ -866,21 +866,6 @@ WITH searcher AS (
         person
     WHERE
         person.id = %(searcher_person_id)s
-), mapped_event_name AS (
-    SELECT
-        recently_online,
-        from_person_event::person_event,
-        to_person_event::person_event
-    FROM (
-        VALUES
-            (true,  'added-photo',                    'recently-online-with-photo'),
-            (true,  'added-voice-bio',                'recently-online-with-voice-bio'),
-            (true,  'updated-bio',                    'recently-online-with-bio'),
-
-            (false, 'recently-online-with-photo',     'added-photo'),
-            (false, 'recently-online-with-voice-bio', 'added-voice-bio'),
-            (false, 'recently-online-with-bio',       'updated-bio')
-    ) AS t (recently_online, from_person_event, to_person_event)
 ), recent_person AS (
     (
         SELECT
@@ -960,7 +945,8 @@ WITH searcher AS (
             photo.person_id = prospect.id
         ORDER BY
             '{{}}'::TEXT[] = extra_exts,
-            photo.position DESC
+            photo.uuid = photo_data.uuid,
+            photo.position
         LIMIT 1
     ) AS online_photo_data
     ON TRUE
@@ -970,18 +956,6 @@ WITH searcher AS (
             > now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
             AS was_recently_online
     )
-    ON TRUE
-    LEFT JOIN LATERAL (
-        SELECT
-            CASE
-                WHEN
-                    was_recently_online
-                THEN
-                    prospect.last_online_time
-                ELSE
-                    prospect.last_event_time
-            END AS mapped_last_online_time
-    ) AS mapped_last_online_time
     ON TRUE
     LEFT JOIN LATERAL (
         SELECT
@@ -1012,6 +986,18 @@ WITH searcher AS (
 
             END::person_event AS mapped_last_event_name
     ) AS mapped_last_event_name
+    ON TRUE
+    LEFT JOIN LATERAL (
+        SELECT
+            CASE
+                WHEN
+                    was_recently_online AND mapped_last_event_name <> 'joined'
+                THEN
+                    prospect.last_online_time
+                ELSE
+                    prospect.last_event_time
+            END AS mapped_last_online_time
+    ) AS mapped_last_online_time
     ON TRUE
     LEFT JOIN LATERAL (
         SELECT
