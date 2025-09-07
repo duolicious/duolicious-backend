@@ -892,7 +892,7 @@ WITH searcher AS (
         ORDER BY
             last_online_time DESC
         LIMIT
-            1000
+            5000
     )
 
     UNION DISTINCT
@@ -907,7 +907,7 @@ WITH searcher AS (
         ORDER BY
             last_event_time DESC
         LIMIT
-            1000
+            5000
     )
 ), person_data AS (
     SELECT
@@ -917,24 +917,9 @@ WITH searcher AS (
         photo_data.blurhash AS photo_blurhash,
         photo_data.uuid AS photo_uuid,
         prospect.verification_level_id > 1 AS is_verified,
-        last_online_time_if_recent,
-        COALESCE(
-            (
-                SELECT
-                    to_person_event
-                FROM
-                    mapped_event_name
-                WHERE
-                    mapped_event_name.from_person_event = prospect.last_event_name
-                AND
-                    mapped_event_name.recently_online = (
-                        prospect.last_event_time
-                        > now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
-                    )
-            ),
-            prospect.last_event_name
-        ) as type,
-        prospect.last_event_data,
+        mapped_last_online_time,
+        mapped_last_event_name,
+        mapped_last_event_data,
         CLAMP(
             0,
             99,
@@ -962,26 +947,101 @@ WITH searcher AS (
             photo.position
         LIMIT 1
     ) AS photo_data
-    ON
-        true
+    ON TRUE
+    LEFT JOIN LATERAL (
+        SELECT
+            photo.uuid,
+            photo.blurhash,
+            photo.nsfw_score,
+            photo.extra_exts
+        FROM
+            photo
+        WHERE
+            photo.person_id = prospect.id
+        ORDER BY
+            '{{}}'::TEXT[] = extra_exts,
+            photo.position DESC
+        LIMIT 1
+    ) AS online_photo_data
+    ON TRUE
+    LEFT JOIN LATERAL (
+        SELECT
+            prospect.last_online_time
+            > now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
+            AS was_recently_online
+    )
+    ON TRUE
     LEFT JOIN LATERAL (
         SELECT
             CASE
                 WHEN
-                    prospect.last_event_time
-                    > now() - interval '{ONLINE_RECENTLY_SECONDS} seconds'
+                    was_recently_online
                 THEN
                     prospect.last_online_time
                 ELSE
                     prospect.last_event_time
-            END AS last_online_time_if_recent
-    ) AS last_online_time_if_recent
-    ON
-        true
+            END AS mapped_last_online_time
+    ) AS mapped_last_online_time
+    ON TRUE
+    LEFT JOIN LATERAL (
+        SELECT
+            CASE
+
+            WHEN was_recently_online AND last_event_name = 'added-photo'
+            THEN 'recently-online-with-photo'
+
+            WHEN was_recently_online AND last_event_name = 'added-voice-bio'
+            THEN 'recently-online-with-voice-bio'
+
+            WHEN was_recently_online AND last_event_name = 'updated-bio'
+            THEN 'recently-online-with-bio'
+
+            WHEN was_recently_online AND online_photo_data.uuid IS NOT NULL
+            THEN 'recently-online-with-photo'
+
+            WHEN last_event_name = 'recently-online-with-photo'
+            THEN 'added-photo'
+
+            WHEN last_event_name = 'recently-online-with-voice-bio'
+            THEN 'added-voice-bio'
+
+            WHEN last_event_name = 'recently-online-with-bio'
+            THEN 'updated-bio'
+
+            ELSE last_event_name
+
+            END::person_event AS mapped_last_event_name
+    ) AS mapped_last_event_name
+    ON TRUE
+    LEFT JOIN LATERAL (
+        SELECT
+            CASE
+
+            WHEN was_recently_online AND last_event_name = 'added-photo'
+            THEN last_event_data
+
+            WHEN was_recently_online AND last_event_name = 'added-voice-bio'
+            THEN last_event_data
+
+            WHEN was_recently_online AND last_event_name = 'updated-bio'
+            THEN last_event_data
+
+            WHEN was_recently_online AND online_photo_data.uuid IS NOT NULL
+            THEN jsonb_build_object(
+                'added_photo_uuid', online_photo_data.uuid,
+                'added_photo_blurhash', online_photo_data.blurhash,
+                'added_photo_extra_exts', online_photo_data.extra_exts
+            )
+
+            ELSE last_event_data
+
+            END::JSONB AS mapped_last_event_data
+    ) AS mapped_last_event_data
+    ON TRUE
     CROSS JOIN
         searcher
     WHERE
-        last_online_time_if_recent < %(before)s
+        mapped_last_online_time < %(before)s
     AND
         last_event_time > now() - interval '1 month'
     AND
@@ -1095,9 +1155,9 @@ WITH searcher AS (
         FROM
             photo
         WHERE
-            uuid = last_event_data->>'added_photo_uuid'
+            uuid = mapped_last_event_data->>'added_photo_uuid'
         AND
-            nsfw_score > 0.2
+            photo.nsfw_score > 0.2
     )
     -- Exclude users who were reported two or more times in the past day
     AND (
@@ -1157,7 +1217,7 @@ WITH searcher AS (
     AND
         searcher_id <> prospect.id
     ORDER BY
-        last_online_time_if_recent DESC
+        mapped_last_online_time DESC
     LIMIT
         100
 ), filtered_by_club AS (
@@ -1167,18 +1227,18 @@ WITH searcher AS (
         photo_uuid,
         photo_blurhash,
         is_verified,
-        iso8601_utc(last_online_time_if_recent) AS time,
-        type,
         match_percentage,
-        last_event_data,
-        last_online_time_if_recent AS last_event_time,
+        mapped_last_event_name AS type,
+        iso8601_utc(mapped_last_online_time) AS time,
+        mapped_last_online_time AS last_event_time,
+        mapped_last_event_data,
         ({Q_COMPUTED_FLAIR}) AS flair
     FROM
         person_data,
         searcher
     ORDER BY
         match_percentage DESC,
-        last_online_time_if_recent DESC
+        mapped_last_online_time DESC
     LIMIT
         (SELECT round(count(*) * 0.5) FROM person_data)
 )
@@ -1193,7 +1253,7 @@ SELECT
         'type', type,
         'match_percentage', match_percentage,
         'flair', flair
-    ) || last_event_data AS j
+    ) || mapped_last_event_data AS j
 FROM
     filtered_by_club
 ORDER BY

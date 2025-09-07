@@ -142,6 +142,9 @@ test_json_format () {
   expected=$(jq -r . << EOF
 [
   {
+    "added_photo_blurhash": "redacted_nonnull_value",
+    "added_photo_extra_exts": [],
+    "added_photo_uuid": "redacted_nonnull_value",
     "flair": [],
     "is_verified": false,
     "match_percentage": 50,
@@ -150,9 +153,12 @@ test_json_format () {
     "photo_blurhash": "redacted_nonnull_value",
     "photo_uuid": "redacted_nonnull_value",
     "time": "redacted_nonnull_value",
-    "type": "joined"
+    "type": "recently-online-with-photo"
   },
   {
+    "added_photo_blurhash": "redacted_nonnull_value",
+    "added_photo_extra_exts": [],
+    "added_photo_uuid": "redacted_nonnull_value",
     "flair": [],
     "is_verified": false,
     "match_percentage": 50,
@@ -161,7 +167,7 @@ test_json_format () {
     "photo_blurhash": "redacted_nonnull_value",
     "photo_uuid": "redacted_nonnull_value",
     "time": "redacted_nonnull_value",
-    "type": "joined"
+    "type": "recently-online-with-photo"
   },
   {
     "added_audio_uuid": "redacted_nonnull_value",
