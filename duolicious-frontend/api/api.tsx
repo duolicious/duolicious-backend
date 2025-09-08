@@ -8,10 +8,10 @@ import { notify } from '../events/events';
 import { ValidationErrorToast, SOMETHING_WENT_WRONG } from '../components/toast';
 
 const SUPPORTED_API_VERSIONS = [
-  6,
-  600_000,
   7,
   700_000,
+  8,
+  800_000,
 ];
 
 type ApiResponse = {
