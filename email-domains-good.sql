@@ -1842,6 +1842,7 @@ INSERT INTO good_email_domain (domain) VALUES
     ('du.se'),
     ('dubai.rit.edu'),
     ('duc.edu.iq'),
+    ('duck.com'),
     ('duep.edu'),
     ('duet.ac.bd'),
     ('duf.hu'),
