@@ -19,6 +19,9 @@ export const STATUS_URL = Constants.expoConfig?.extra?.statusUrl
 export const INVITE_URL = Constants.expoConfig?.extra?.inviteUrl
   ?? 'https://duolicious.gg';
 
+export const PARTNER_URL = Constants.expoConfig?.extra?.partnerUrl
+  ?? 'https://partner.duolicious.app'
+
 export const WEB_VERSION = Constants.expoConfig?.extra?.webVersion
   ?? '000000';
 
