@@ -82,8 +82,11 @@ const Gold = ({
   doAnimate = true,
   color = "#ffd700",
   rectSize = undefined,
+  enableTooltip = true,
 }) => {
-  const { viewRef, props } = useTooltip(`Has Gold membership`);
+  const tooltip = useTooltip(`Has Gold membership`);
+
+  const { viewRef = null, props = { } } = enableTooltip ? tooltip : { };
 
   return (
     <View

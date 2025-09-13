@@ -6,6 +6,7 @@ import { QAndADevice } from '../q-and-a-device';
 import { Gold } from '../badges';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSignedInUser } from '../../events/signed-in-user';
+import { isMobile } from '../../util/util';
 
 
 const LabelToIcon = ({
@@ -89,6 +90,7 @@ const LabelToIcon = ({
               }}
               color={color}
               doAnimate={false}
+              enableTooltip={!isMobile()}
             />
           }
           <Ionicons style={{...iconStyle}} name={profileIcon}/>
