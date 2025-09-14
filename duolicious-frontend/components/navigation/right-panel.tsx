@@ -14,6 +14,7 @@ const partners: Partner[] = [
   { name: 'SFDating', file: 'sfdating.jpg', link: 'https://discord.gg/REbbHqzD9p'},
   { name: 'duo3k',    file: 'duo3k.webp',   link: 'https://discord.gg/duo3k'},
   { name: 'Tiblur',   file: 'tiblur.jpg',   link: 'https://tiblur.com/register' },
+  { name: 'gg/redux', file: 'redux.png',    link: 'https://discord.gg/EA3QYF9apJ' },
 ];
 
 const DuoliciousRightPanelContent = () => {
