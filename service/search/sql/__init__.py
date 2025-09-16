@@ -1,6 +1,14 @@
 from constants import ONLINE_RECENTLY_SECONDS
 from commonsql import Q_COMPUTED_FLAIR
 
+# How many feed results to send to the client per request
+FEED_RESULTS_PER_PAGE = 50
+
+# The inverse of the proportion of feed results to discard.
+FEED_SELECTIVITY = 2
+
+
+
 Q_UPSERT_SEARCH_PREFERENCE_CLUB = """
 INSERT INTO search_preference_club (
     person_id,
@@ -899,6 +907,7 @@ WITH searcher AS (
         prospect.id,
         prospect.uuid AS person_uuid,
         prospect.name,
+        prospect.gender_id,
         photo_data.blurhash AS photo_blurhash,
         photo_data.uuid AS photo_uuid,
         prospect.verification_level_id > 1 AS is_verified,
@@ -1205,7 +1214,7 @@ WITH searcher AS (
     ORDER BY
         mapped_last_online_time DESC
     LIMIT
-        100
+        {FEED_RESULTS_PER_PAGE * FEED_SELECTIVITY}
 ), filtered_by_club AS (
     SELECT
         person_uuid,
@@ -1223,10 +1232,20 @@ WITH searcher AS (
         person_data,
         searcher
     ORDER BY
+        EXISTS (
+            SELECT
+                1
+            FROM
+                search_preference_gender AS preference
+            WHERE
+                preference.person_id = searcher_id
+            AND
+                preference.gender_id = person_data.gender_id
+        ) DESC,
         match_percentage DESC,
         mapped_last_online_time DESC
     LIMIT
-        (SELECT round(count(*) * 0.5) FROM person_data)
+        (SELECT round(count(*)::real / {FEED_SELECTIVITY}) FROM person_data)
 )
 SELECT
     jsonb_build_object(
