@@ -454,10 +454,10 @@ const Options = ({ navigation, data }) => {
               }
             }
           } : {},
-          isOptionGroupButtons(og.input) && og.title === 'App Theme' ? {
+          isOptionGroupButtons(og.input) && og.title === 'Dark Mode' ? {
             input: {
               buttons: {
-                currentValue: appThemeName === 'dark' ? 'Dark' : 'Light',
+                currentValue: appThemeName === 'dark' ? 'On' : 'Off',
               }
             }
           } : {},

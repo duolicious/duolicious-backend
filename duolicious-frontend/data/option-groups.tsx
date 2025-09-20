@@ -415,9 +415,9 @@ const verificationLevel = [
   'Photos',
 ];
 
-const appThemeName = [
-  'Light',
-  'Dark',
+const offOn = [
+  'Off',
+  'On',
 ];
 
 const verificationDescription = `
@@ -896,7 +896,7 @@ const themePickerOptionGroups: OptionGroup<OptionGroupThemePicker>[] = [
         style={{ color }}
       />
     ),
-    description: "Customize your profile’s appearance",
+    description: "Customize how your profile appears to other members",
     input: {
       themePicker: {
         submit: async function (titleColor, bodyColor, backgroundColor) {
@@ -921,7 +921,7 @@ const themePickerOptionGroups: OptionGroup<OptionGroupThemePicker>[] = [
 
 const appThemePickerOptionGroups: OptionGroup<OptionGroupButtons>[] = [
   {
-    title: 'App Theme',
+    title: 'Dark Mode',
     Icon: ({ color = 'black' }) => (
       <FontAwesomeIcon
         icon={faPalette}
@@ -930,14 +930,14 @@ const appThemePickerOptionGroups: OptionGroup<OptionGroupButtons>[] = [
       />
     ),
     description: (
-      "Customize the app’s appearance. (Other users’ customized profiles " +
-      "might appear darker than they intended when you’re in dark mode.)"
+      "Customize your app’s appearance. (Other users’ profile themes might " +
+      "appear darker than they intended when you’re in dark mode.)"
     ),
     input: {
       buttons: {
-        values: appThemeName,
-        submit: async function(input: 'Light' | 'Dark') {
-          if (input === 'Dark') {
+        values: offOn,
+        submit: async function(input: 'On' | 'Off') {
+          if (input === 'On') {
             setAppThemeName('dark');
           } else {
             setAppThemeName('light');
