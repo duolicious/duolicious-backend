@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 import { DefaultText } from './default-text';
+import { useAppTheme } from '../app-theme/app-theme';
 
 type VerticalButtonGroupProps = {
   buttons: string[];
@@ -16,11 +17,14 @@ const VerticalButtonGroup: React.FC<VerticalButtonGroupProps> = ({
   containerStyle,
   disabled = false,
 }) => {
+  const { appTheme } = useAppTheme();
+
   return (
     <View
       style={[
         styles.baseContainer,
         containerStyle,
+        { borderColor: appTheme.interactiveBorderColor },
         { opacity: disabled ? 0.3 : 1 },
       ]}
       pointerEvents={disabled ? 'none' : 'auto'}
@@ -35,15 +39,16 @@ const VerticalButtonGroup: React.FC<VerticalButtonGroupProps> = ({
             style={[
               styles.button,
               {
+                borderBottomColor: appTheme.interactiveBorderColor,
                 borderBottomWidth: isLast ? 0 : 1,
-                backgroundColor: isSelected ? '#70f' : 'white',
+                backgroundColor: isSelected ? '#70f' : appTheme.primaryColor,
               },
             ]}
           >
             <DefaultText
               style={{
                 fontWeight: '500',
-                color: isSelected ? 'white' : 'black',
+                color: isSelected ? 'white' : appTheme.secondaryColor,
               }}
             >
               {label}
@@ -60,7 +65,6 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#ddd',
   },
   baseIndicator: {
     position: 'absolute',

@@ -1,5 +1,6 @@
 import { Pressable } from 'react-native';
 import { X } from "react-native-feather";
+import { useAppTheme } from '../../app-theme/app-theme';
 
 const Close = ({
   onPress,
@@ -8,6 +9,8 @@ const Close = ({
   onPress: () => void,
   style?: any,
 }) => {
+  const { appTheme } = useAppTheme();
+
   return (
     <Pressable
       onPress={onPress}
@@ -17,7 +20,7 @@ const Close = ({
       }}
     >
       <X
-        stroke="black"
+        stroke={appTheme.secondaryColor}
         strokeWidth={3}
         height={24}
         width={24}

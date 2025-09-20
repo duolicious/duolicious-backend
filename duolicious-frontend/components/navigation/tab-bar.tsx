@@ -12,17 +12,20 @@ import { DefaultText } from '../default-text';
 import { useInboxStats } from '../../chat/application-layer/hooks/inbox-stats';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LabelToIcon } from './util';
+import { useAppTheme } from '../../app-theme/app-theme';
 
 const Tab = ({ navigation, state, route, descriptors, index, unreadIndicatorOpacity }) => {
+  const { appThemeName } = useAppTheme();
+
   const animated = useRef(new Animated.Value(1)).current;
 
   const backgroundColor = animated.interpolate({
     inputRange: [0, 1],
-    outputRange: ['rgba(0, 0, 0, 0.1)', 'transparent'],
+    outputRange: ['rgba(0, 0, 0, 1)', 'transparent'],
     extrapolate: 'clamp',
   });
 
-  const fadeIn = () => {
+  const fadeOut = () => {
     Animated.timing(animated, {
       toValue: 1,
       duration: 500,
@@ -30,9 +33,7 @@ const Tab = ({ navigation, state, route, descriptors, index, unreadIndicatorOpac
     }).start();
   };
 
-  const fadeOut = () => {
-    animated.setValue(0);
-  };
+  const fadeIn = () => animated.setValue(appThemeName === 'dark' ? 0 : 0.9);
 
   const { options } = descriptors[route.key];
   const label =
@@ -64,8 +65,8 @@ const Tab = ({ navigation, state, route, descriptors, index, unreadIndicatorOpac
     <Pressable
       key={route.key}
       onPress={onPress}
-      onPressIn={fadeOut}
-      onPressOut={fadeIn}
+      onPressIn={fadeIn}
+      onPressOut={fadeOut}
       style={{
         flex: 1,
         height: '100%',

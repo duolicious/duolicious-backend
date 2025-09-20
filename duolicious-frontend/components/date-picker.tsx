@@ -104,8 +104,7 @@ const DatePicker = forwardRef((
       fontFamily: 'MontserratRegular',
     },
     style: {
-      borderWidth: 1,
-      borderColor: '#ccc',
+      borderWidth: 0,
     },
     dropDownContainerStyle: {
       borderWidth: 1,

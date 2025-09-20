@@ -326,6 +326,7 @@ const InviteScreen = ({navigation, route}) => {
               >
                 By joining you agree to our {}
                 <DefaultText
+                  disableTheme
                   style={{
                     fontWeight: '600',
                   }}
@@ -335,6 +336,7 @@ const InviteScreen = ({navigation, route}) => {
                 </DefaultText>
                 {}, {}
                 <DefaultText
+                  disableTheme
                   style={{ fontWeight: '600' }}
                   onPress={() => Linking.openURL('https://duolicious.app/privacy')}
                 >
@@ -342,6 +344,7 @@ const InviteScreen = ({navigation, route}) => {
                 </DefaultText>
                 {} and {}
                 <DefaultText
+                  disableTheme
                   style={{ fontWeight: '600' }}
                   onPress={() => Linking.openURL('https://duolicious.app/guidelines')}
                 >
@@ -409,8 +412,8 @@ const WelcomeScreen_ = ({navigation, route}) => {
           showCloseButton: false,
           showBackButton: true,
           buttonBorderWidth: 0,
-          backgroundColor: '#70f',
-          color: 'white',
+          backgroundColor: '#7700ff',
+          color: '#ffffff',
         },
       );
     } else {
@@ -614,6 +617,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
           >
             By signing up you agree to our {}
             <DefaultText
+              disableTheme
               style={{
                 fontWeight: '600',
               }}
@@ -623,6 +627,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
             </DefaultText>
             {}, {}
             <DefaultText
+              disableTheme
               style={{ fontWeight: '600' }}
               onPress={() => Linking.openURL('https://duolicious.app/privacy')}
             >
@@ -630,6 +635,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
             </DefaultText>
             {} and {}
             <DefaultText
+              disableTheme
               style={{ fontWeight: '600' }}
               onPress={() => Linking.openURL('https://duolicious.app/guidelines')}
             >

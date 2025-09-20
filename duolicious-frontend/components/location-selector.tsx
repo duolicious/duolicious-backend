@@ -13,8 +13,10 @@ import { DefaultText } from './default-text';
 import { DefaultTextInput } from './default-text-input';
 import { japi } from '../api/api';
 import * as _ from "lodash";
+import { useAppTheme } from '../app-theme/app-theme';
 
 const LocationSelector = ({onChangeText, ...rest}) => {
+  const { appTheme } = useAppTheme();
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<string[] | null>(null);
   const [text, setText] = useState(rest.currentValue ?? "");
@@ -80,20 +82,20 @@ const LocationSelector = ({onChangeText, ...rest}) => {
               width: '100%',
               top: 0,
               borderRadius: 10,
-              backgroundColor: 'white',
+              backgroundColor: appTheme.primaryColor,
               maxHeight: Dimensions.get('screen').height * 0.25,
-              shadowOffset: {
-                width: 0,
-                height: 2,
-              },
-              shadowOpacity: 0.4,
-              shadowRadius: 6,
-              elevation: 8,
+              borderWidth: 1,
+              borderColor: appTheme.interactiveBorderColor,
+              zIndex: 999,
             }}
           >
             <ScrollView showsVerticalScrollIndicator={!loading}>
               {loading &&
-                <ActivityIndicator size="large" color="#70f" style={{ padding: 5 }}/>
+                <ActivityIndicator
+                  size="large"
+                  color={appTheme.brandColor}
+                  style={{ padding: 5 }}
+                />
               }
               {!loading && items &&
                 items.map((item) => <Item key={item} text={item}/>)

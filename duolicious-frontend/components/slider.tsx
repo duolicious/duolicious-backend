@@ -11,6 +11,7 @@ import {
   Animated,
   LayoutChangeEvent,
 } from 'react-native';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const thumbRadius = 16;
 
@@ -26,6 +27,7 @@ export interface SliderHandle {
 }
 
 const Slider = forwardRef<SliderHandle, SliderProps>((props, ref) => {
+  const { appTheme } = useAppTheme();
   const { initialValue, minimumValue, maximumValue, onValueChange } = props;
 
   const panX = useRef(new Animated.Value(0)).current;
@@ -114,7 +116,14 @@ const Slider = forwardRef<SliderHandle, SliderProps>((props, ref) => {
 
   return (
     <View style={styles.container} onLayout={onLayout}>
-      <View style={styles.track} />
+      <View
+        style={{
+          height: 4,
+          borderRadius: 2,
+          marginHorizontal: thumbRadius,
+          backgroundColor: appTheme.interactiveBorderColor,
+        }}
+      />
       <Animated.View
         style={[
           styles.thumb,
@@ -132,12 +141,6 @@ const styles = StyleSheet.create({
   container: {
     height: 40,
     justifyContent: 'center',
-  },
-  track: {
-    height: 4,
-    backgroundColor: '#ddd',
-    borderRadius: 2,
-    marginHorizontal: thumbRadius,
   },
   thumb: {
     position: 'absolute',

@@ -32,9 +32,7 @@ import {
 import { LayoutChangeEvent } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {
-  DefaultText,
-} from '../default-text';
+import { DefaultText } from '../default-text';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane';
 import { styles as defaultTextInputStyles } from '../default-text-input';
@@ -54,6 +52,7 @@ import {
   useQuote,
 } from './quote';
 import { Tooltip } from '../tooltip';
+import { useAppTheme } from '../../app-theme/app-theme';
 
 // ────────────────────────────────────────────────────────────────
 // Behaviour-tuning constants – change these to tweak UX quickly
@@ -260,6 +259,8 @@ const AutoResizingTextInput = (props) => {
 };
 
 const QuotePreview = ({ quote }: { quote: QuoteType | null }) => {
+  const { appTheme } = useAppTheme();
+
   if (!quote) {
     return null;
   };
@@ -277,7 +278,7 @@ const QuotePreview = ({ quote }: { quote: QuoteType | null }) => {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
-        backgroundColor: 'white',
+        backgroundColor: appTheme.primaryColor,
       }}
     >
       <View style={{ flex: 1 }}>
@@ -290,6 +291,7 @@ const QuotePreview = ({ quote }: { quote: QuoteType | null }) => {
         onPress={() => setQuote(null)}
         hitSlop={10}
         strokeWidth={3}
+        stroke={appTheme.secondaryColor}
         height={26}
         width={26}
       />
@@ -317,13 +319,27 @@ const CancelOverlay = ({
   duration: number;
   formatTime: (s: number) => string;
 }) => {
+  const { appTheme } = useAppTheme();
+
   if (!isRecording) return null;
 
   return (
     <View style={styles.cancelOverlay}>
-      <Animated.View style={[styles.timerStyle, animatedTimerStyle]}>
+      <Animated.View
+        style={[
+          {
+            flexDirection: 'row',
+            gap: 10,
+            zIndex: 999,
+            height: '100%',
+            alignItems: 'center',
+            backgroundColor: appTheme.primaryColor,
+          },
+          animatedTimerStyle
+        ]}
+      >
         <Animated.View style={animatedCancelMicrophoneStyle}>
-          <Ionicons name="mic" style={{ fontSize: 28, color: 'crimson' }} />
+          <Ionicons name="mic" style={styles.cancelMicrophoneStyle} />
         </Animated.View>
         <DefaultText style={[styles.recordingText, styles.recordingTimer]}>
           {formatTime(duration)}
@@ -353,35 +369,40 @@ const IconBar = ({
   animatedRecordingStyle: any;
   textHasContent: boolean;
   handleSendPress: () => void;
-}) => (
-  <View style={styles.iconContainer}>
-    {showHint && (
-      <View style={styles.hintContainer}>
-        <Tooltip style={styles.hintText}>Hold to record, release to send</Tooltip>
-      </View>
-    )}
+}) => {
+  const { appTheme } = useAppTheme();
 
-    <GestureDetector gesture={finalGesture}>
-      <Animated.View style={[styles.microphoneIcon, animatedRecordingStyle]}>
-        <Ionicons name="mic" style={{ fontSize: 28, color: 'black' }} />
-      </Animated.View>
-    </GestureDetector>
+  return (
+    <View style={styles.iconContainer}>
+      {showHint && (
+        <View style={styles.hintContainer}>
+          <Tooltip style={styles.hintText}>Hold to record, release to send</Tooltip>
+        </View>
+      )}
 
-    {textHasContent && (
-      <Pressable onPress={handleSendPress} style={styles.sendPressable}>
-        <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.sendAnimated}>
-          <FontAwesomeIcon
-            icon={faPaperPlane}
-            size={20}
-            color="#70f"
-            // @ts-ignore – 'outline' is a web-only style prop
-            style={{ marginRight: 5, marginBottom: 5, outline: 'none' }}
-          />
+      <GestureDetector gesture={finalGesture}>
+        <Animated.View style={[styles.microphoneIcon, animatedRecordingStyle]}>
+          <Ionicons name="mic" style={{ fontSize: 28, color: appTheme.secondaryColor }} />
         </Animated.View>
-      </Pressable>
-    )}
-  </View>
-);
+      </GestureDetector>
+
+      {textHasContent && (
+        <Pressable onPress={handleSendPress} style={styles.sendPressable}>
+          <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.sendAnimated}>
+            <FontAwesomeIcon
+              icon={faPaperPlane}
+              size={20}
+              color="#70f"
+              // @ts-ignore – 'outline' is a web-only style prop
+              style={{ marginRight: 5, marginBottom: 5, outline: 'none' }}
+            />
+          </Animated.View>
+        </Pressable>
+      )}
+    </View>
+  );
+};
+
 // ────────────────────────────────────────────────────────────────────────────────
 // <Input /> component – this is the heart of the chat composer.
 // ────────────────────────────────────────────────────────────────────────────────
@@ -436,6 +457,8 @@ const Input = ({
   onAudioComplete: (audioBase64: string) => void
   onFocus: () => void,
 }) => {
+  const { appTheme } = useAppTheme();
+
   const quote = useQuote();
 
   const [text, setText] = useState(initialValue ?? '');
@@ -742,7 +765,19 @@ const Input = ({
       <View style={styles.container} onLayout={onLayout}>
         {/* Input wrapper: position relative so we can overlay the cancel overlay */}
         <View style={styles.inputWrapper}>
-          <Animated.View style={[styles.inputContainer, animatedInputStyle]}>
+          <Animated.View
+            style={[
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                borderRadius: 10,
+                paddingHorizontal: Platform.OS === 'web' ? 10 : 8,
+                paddingVertical: Platform.OS === 'web' ? 10 : 6,
+                backgroundColor: appTheme.inputColor,
+              },
+              animatedInputStyle
+            ]}
+          >
             <AutoResizingTextInput
               style={styles.textInput}
               multiline={true}
@@ -753,7 +788,20 @@ const Input = ({
               onFocus={onFocus}
             />
             <Pressable onPress={onPressGif} hitSlop={10}>
-              <Animated.View style={[styles.gifContainer, animatedGifStyle]}>
+              <Animated.View
+                style={[
+                  {
+                    height: 28,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    overflow: 'hidden',
+                    borderRadius: 5,
+                    borderWidth: 3,
+                    borderColor: appTheme.secondaryColor,
+                  },
+                  animatedGifStyle,
+                ]}
+              >
                 <DefaultText
                   style={styles.gifText}
                   numberOfLines={1}
@@ -800,14 +848,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#eee',
-    borderRadius: 10,
-    paddingHorizontal: Platform.OS === 'web' ? 10 : 8,
-    paddingVertical: Platform.OS === 'web' ? 10 : 6,
-  },
   textInput: {
     backgroundColor: undefined,
     paddingTop: 0,
@@ -850,14 +890,6 @@ const styles = StyleSheet.create({
   recordingTimer: {
     width: 50,
   },
-  timerStyle: {
-    flexDirection: 'row',
-    gap: 10,
-    zIndex: 999,
-    height: '100%',
-    alignItems: 'center',
-    backgroundColor: 'white',
-  },
   cancelTextStyle: {
     flexDirection: 'row',
     height: '100%',
@@ -865,12 +897,10 @@ const styles = StyleSheet.create({
   },
   recordingText: {
     fontSize: 16,
-    color: 'black',
   },
   arrowText: {
     marginLeft: 20,
     fontSize: 18,
-    color: 'gray',
   },
   iconContainer: {
     width: 40,
@@ -919,6 +949,10 @@ const styles = StyleSheet.create({
     color: 'white',
     flexShrink: 1,
     alignSelf: 'flex-end',
+  },
+  cancelMicrophoneStyle: {
+    fontSize: 28,
+    color: 'crimson',
   },
 });
 

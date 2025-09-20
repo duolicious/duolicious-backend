@@ -5,6 +5,7 @@ import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEYS = [
+  'app_theme_name',
   'inbox_order',
   'inbox_section',
   'last_version',

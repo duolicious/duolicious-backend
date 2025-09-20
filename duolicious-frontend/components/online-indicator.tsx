@@ -5,6 +5,7 @@ import { ONLINE_COLOR } from '../constants/constants';
 import { assertNever } from '../util/util';
 import * as _ from 'lodash';
 import { useTooltip } from './tooltip';
+import { useAppTheme } from '../app-theme/app-theme';
 
 /**
  * Renders a small circular presence indicator.
@@ -36,6 +37,7 @@ const OnlineIndicator = ({
   /** Extra container styles. */
   style?: object,
 }) => {
+  const { appTheme } = useAppTheme();
   const onlineStatus = useOnline(personUuid);
   const { viewRef, props } = useTooltip(friendlyOnlineStatus(onlineStatus));
 
@@ -64,7 +66,7 @@ const OnlineIndicator = ({
         // Using explicit width/height instead of "aspectRatio: 1" makes the
         // PixelRatio rounding above actually take effect in layout.
         style={{
-          backgroundColor: 'white',
+          backgroundColor: appTheme.primaryColor,
           borderRadius: 999,
           width: outerD,
           height: outerD,
@@ -87,7 +89,7 @@ const OnlineIndicator = ({
           {onlineStatus === 'online-recently' &&
             <View
               style={{
-                backgroundColor: 'white',
+                backgroundColor: appTheme.primaryColor,
                 borderRadius: 999,
                 width: coreD,
                 height: coreD,

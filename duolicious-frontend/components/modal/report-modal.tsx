@@ -19,6 +19,7 @@ import {
 } from './background-colors';
 import { useSkipped } from '../../hide-and-block/hide-and-block';
 import { Close } from '../button/close';
+import { useAppTheme } from '../../app-theme/app-theme';
 
 type ReportModalInitialData = {
   name: string
@@ -27,6 +28,7 @@ type ReportModalInitialData = {
 };
 
 const ReportModal = () => {
+  const { appThemeName, appTheme } = useAppTheme();
   const [name, setName] = useState("");
   const [personUuid, setPersonUuid] = useState('');
   const [context, setContext] = useState("");
@@ -118,7 +120,11 @@ const ReportModal = () => {
           justifyContent: 'center',
           alignItems: 'center',
           flexDirection: 'row',
-          ...backgroundColors.light,
+          ...(
+            appThemeName === 'dark'
+              ? backgroundColors.dark
+              : backgroundColors.light
+          ),
         }}
       >
         <View
@@ -126,7 +132,7 @@ const ReportModal = () => {
             flex: 1,
             maxWidth: 600,
             margin: 10,
-            backgroundColor: 'white',
+            backgroundColor: appTheme.primaryColor,
             borderRadius: 5,
             padding: 10,
             flexDirection: 'column',
@@ -167,8 +173,6 @@ const ReportModal = () => {
               onChangeText={onChangeReportText}
               numberOfLines={6}
               style={{
-                backgroundColor: '#eee',
-                borderWidth: 0,
                 height: 200,
               }}
             />
@@ -193,7 +197,7 @@ const ReportModal = () => {
             <ButtonWithCenteredText
               onPress={close}
               containerStyle={{flex: 1}}
-              backgroundColor="white"
+              backgroundColor={appTheme.primaryColor}
               textStyle={{
                 color: '#555',
                 fontWeight: '700',

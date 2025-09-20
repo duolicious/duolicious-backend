@@ -90,6 +90,7 @@ import {
 } from './verification-camera';
 import { notifyUpdatedVerification } from '../verification/verification';
 import { useNavigation } from '@react-navigation/native';
+import { useAppTheme } from '../app-theme/app-theme';
 
 type InputProps<T extends OptionGroupInputs> = {
   input: T,
@@ -136,7 +137,6 @@ const Buttons = forwardRef((props: InputProps<OptionGroupButtons>, ref) => {
           marginRight: 20,
           marginBottom: 0,
           borderRadius: 10,
-          backgroundColor: 'white',
         }}
       />
       {props.showSkipButton &&
@@ -1262,7 +1262,6 @@ const None = forwardRef((props: InputProps<OptionGroupNone>, ref) => {
   const Description = props.input.none.description;
 
   const style = {
-    color: props.theme !== 'light' ? 'white' : 'black',
     textAlign: props.input.none.textAlign ?? 'center',
     paddingHorizontal: 20,
     fontSize: noneFontSize,
@@ -1325,17 +1324,18 @@ const OptionScreen = ({navigation, route}) => {
   const [isBottom, setIsBottom] = useState(true);
   const [contentHeight, setContentHeight] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
+  const { appTheme } = useAppTheme();
 
   const optionGroups: OptionGroup<OptionGroupInputs>[] = route?.params?.optionGroups ?? [];
   const showSkipButton: boolean = route?.params?.showSkipButton ?? true;
   const showCloseButton: boolean = route?.params?.showCloseButton ?? true;
   const showBackButton: boolean = route?.params?.showBackButton ?? false;
-  const backgroundColor: string = route?.params?.backgroundColor ?? 'white';
-  const color: string | undefined = route?.params?.color;
   const onSubmitSuccess: any | undefined = route?.params?.onSubmitSuccess;
-  const theme: any | undefined = route?.params?.theme;
 
-  const transparentBackgroundColor = backgroundColor === 'white' ? '#ffffff00' : '#7700ff00';
+  const backgroundColor = route?.params?.backgroundColor ?? appTheme.primaryColor;
+  const color = route?.params?.color ?? appTheme.secondaryColor;
+
+  const transparentBackgroundColor = `${backgroundColor}00`;
 
   const thisOptionGroup = optionGroups[0];
 
@@ -1449,6 +1449,7 @@ const OptionScreen = ({navigation, route}) => {
                   marginTop: 10,
                   marginLeft: 10,
                   fontSize: 30,
+                  color: appTheme.secondaryColor,
                 }}
                 name="close"
               />
@@ -1471,6 +1472,7 @@ const OptionScreen = ({navigation, route}) => {
             </Pressable>
           }
           <DefaultText
+            disableTheme
             style={{
               textAlign: 'center',
               fontWeight: '700',
@@ -1483,9 +1485,10 @@ const OptionScreen = ({navigation, route}) => {
             {title}
           </DefaultText>
           {typeof Description === 'string' && <DefaultText
+            disableTheme
             style={{
               ...descriptionStyle.style,
-              color: color || descriptionStyle.style.color
+              color: color ?? descriptionStyle.style.color
             }}
           >
             {Description}
@@ -1509,7 +1512,6 @@ const OptionScreen = ({navigation, route}) => {
               onSubmitSuccess={_onSubmitSuccess}
               title={title}
               showSkipButton={showSkipButton}
-              theme={theme}
             />
           }
           {scrollView !== false && <>
@@ -1533,7 +1535,6 @@ const OptionScreen = ({navigation, route}) => {
                   onSubmitSuccess={_onSubmitSuccess}
                   title={title}
                   showSkipButton={showSkipButton}
-                  theme={theme}
                 />
                 <View style={{height: 20}}/>
               </ScrollView>
@@ -1575,7 +1576,7 @@ const OptionScreen = ({navigation, route}) => {
           }}
         >
           <ButtonWithCenteredText
-            secondary={theme !== 'light'}
+            secondary={backgroundColor !== '#ff00ff'}
             onPress={showSkipButton ? onPressSkip : onPressContinue}
             loading={isLoading}
             containerStyle={{

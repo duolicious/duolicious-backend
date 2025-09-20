@@ -21,11 +21,6 @@ const commonStyles = StyleSheet.create({
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderBottomWidth: 3,
-
-    borderTopColor: '#eee',
-    borderLeftColor: '#ddd',
-    borderRightColor: '#ddd',
-    borderBottomColor: '#ddd',
   },
 });
 

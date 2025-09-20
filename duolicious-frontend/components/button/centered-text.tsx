@@ -7,6 +7,7 @@ import {
   useRef,
 } from 'react';
 import { DefaultText } from '../default-text';
+import { useAppTheme } from '../../app-theme/app-theme';
 
 const ButtonWithCenteredText = (props) => {
   const {
@@ -25,6 +26,7 @@ const ButtonWithCenteredText = (props) => {
     loading = false,
   } = props;
 
+  const { appTheme } = useAppTheme();
   const isEnabledRef = useRef(true);
 
   const opacityLo = 0.2;
@@ -93,19 +95,19 @@ const ButtonWithCenteredText = (props) => {
           borderRadius: 999,
           borderColor: borderColor === undefined ? 'black' : borderColor,
           borderWidth: borderWidth === undefined ? (secondary ? 1 : 0) : borderWidth,
-          backgroundColor: backgroundColor || (secondary ? 'white' : '#70f'),
+          backgroundColor: backgroundColor || (secondary ? appTheme.primaryColor : '#70f'),
           opacity: animatedOpacity,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
         {loading &&
-          <ActivityIndicator size="large" color={secondary ? "#70f" : 'white'} />
+          <ActivityIndicator size="large" color={secondary ? "#70f" : appTheme.primaryColor} />
         }
         {!loading && children &&
           <DefaultText
             style={{
-              color: textColor || (secondary ? 'black' : 'white'),
+              color: textColor || (secondary ? appTheme.secondaryColor : 'white'),
               fontSize: fontSize || 16,
               textAlign: 'center',
               ...textStyle,

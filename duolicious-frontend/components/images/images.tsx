@@ -46,6 +46,7 @@ import { remap } from './logic';
 import { photoQueue } from '../../api/queue';
 import { japi } from '../../api/api';
 import * as _ from "lodash";
+import { useAppTheme } from '../../app-theme/app-theme';
 
 // TODO: Image picker is shit and lets you upload any file type on web
 
@@ -509,6 +510,8 @@ const FileNumber = ({
   left: number
   top: number
 }) => {
+  const { appTheme } = useAppTheme();
+
   if (fileNumber < 1) {
     return null;
   }
@@ -527,9 +530,10 @@ const FileNumber = ({
           position: 'absolute',
           bottom: 0,
           left: 0,
-          backgroundColor: 'white',
+          color: appTheme.secondaryColor,
+          backgroundColor: appTheme.primaryColor,
           borderWidth: 1,
-          borderColor: 'black',
+          borderColor: appTheme.secondaryColor,
           paddingHorizontal: 8,
           paddingVertical: 1,
           borderRadius: 999,
@@ -572,6 +576,7 @@ const MoveableImage = ({
     input.photos.getBlurhash(String(initialFileNumber)) :
     null;
 
+  const { appTheme } = useAppTheme();
   const fileNumber = useSharedValue(initialFileNumber);
   const _slots = useSharedValue(slots);
   const isSlotAssignmentUnfinished = useSharedValue(false);
@@ -806,7 +811,7 @@ const MoveableImage = ({
               style={{
                 height: '100%',
                 width: '100%',
-                borderColor: '#eee',
+                borderColor: appTheme.inputColor,
               }}
               contentFit="contain"
             />
@@ -861,6 +866,7 @@ const Slot = ({
   fileNumber?: number
   round?: boolean
 }) => {
+  const { appTheme } = useAppTheme();
   const viewRef = useRef<View>(null);
   const measurementRef = useRef([0, 0, 0, 0]);
 
@@ -910,7 +916,7 @@ const Slot = ({
       ref={viewRef}
       style={{
         borderRadius: round ? 999 : 5,
-        backgroundColor: '#eee',
+        backgroundColor: appTheme.inputColor,
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'visible',

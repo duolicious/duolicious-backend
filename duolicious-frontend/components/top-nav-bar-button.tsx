@@ -9,6 +9,7 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { isMobile } from '../util/util';
 import { DefaultText } from '../components/default-text';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const TopNavBarButton = ({
   onPress,
@@ -26,6 +27,8 @@ const TopNavBarButton = ({
   style?: any,
 }) => {
   const opacity = useRef(new Animated.Value(1)).current;
+
+  const { appTheme } = useAppTheme();
 
   const onPressIn = useCallback(() => {
     opacity.setValue(0.2);
@@ -59,7 +62,7 @@ const TopNavBarButton = ({
     >
       <Animated.View style={{
         opacity: opacity,
-        borderColor: secondary || isMobile() ? undefined : 'black',
+        borderColor: secondary || isMobile() ? undefined : appTheme.interactiveBorderColor,
         borderWidth: secondary || isMobile() ? undefined : 1,
         borderRadius: 7,
         padding: secondary || isMobile() ? undefined : 4,
@@ -72,7 +75,7 @@ const TopNavBarButton = ({
       }}>
         <Ionicons
           style={{
-            color: 'black',
+            color: appTheme.secondaryColor,
             fontSize: secondary || isMobile() ? 28 : 22,
           }}
           name={iconName}

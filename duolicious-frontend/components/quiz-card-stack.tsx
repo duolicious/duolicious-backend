@@ -10,6 +10,7 @@ import {
   memo,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -28,6 +29,7 @@ import { api, japi } from '../api/api';
 import { quizQueue } from '../api/queue';
 import * as _ from "lodash";
 import { useSkipped } from '../hide-and-block/hide-and-block';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const styles = StyleSheet.create({
   stackContainerStyle: {
@@ -38,12 +40,6 @@ const styles = StyleSheet.create({
     // @ts-ignore
     touchAction: 'none',
   },
-  dcStyle: {
-    width: 90,
-    height: 90,
-    backgroundColor: 'white',
-    borderRadius: 999,
-  }
 });
 
 
@@ -393,6 +389,43 @@ const Prospect = ({
   </Animated.View>
 };
 
+const ProspectDonutPercentage = ({ donutOpacity, matchPercentage }) => {
+  const { appTheme } = useAppTheme();
+
+  return (
+    <Animated.View
+      style={{
+        position: 'absolute',
+        left: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '33.333%',
+        opacity: donutOpacity,
+      }}
+    >
+      <DonutChart
+        style={{
+          width: 90,
+          height: 90,
+          backgroundColor: appTheme.primaryColor,
+          borderRadius: 999,
+        }}
+        percentage={matchPercentage}
+      >
+        <DefaultText
+          style={{
+            paddingBottom: 7,
+            fontWeight: '500',
+            fontSize: 9,
+          }}
+        >
+          Best Match
+        </DefaultText>
+      </DonutChart>
+    </Animated.View>
+  );
+};
+
 const Prospects = ({
   navigation,
   topCardIndex,
@@ -408,6 +441,8 @@ const Prospects = ({
   prospect3: ProspectState | undefined,
   prospect4: ProspectState | undefined,
 }) => {
+  const { appTheme } = useAppTheme();
+
   const animatedTranslateY = useRef(new Animated.Value(0)).current;
 
   const translateY = animatedTranslateY.interpolate({
@@ -416,16 +451,18 @@ const Prospects = ({
     extrapolate: 'clamp',
   });
 
-  const lgColors = useRef<readonly [string, string, string]>([
-    'rgb(255, 255, 255)',
-    'rgba(255, 255, 255, 0.75)',
-    'rgba(255, 255, 255, 0)',
-  ]).current;
+  const lgColors = useMemo<readonly [string, string, string]>(() => [
+    `${appTheme.primaryColor}ff`,
+    `${appTheme.primaryColor}bf`,
+    `${appTheme.primaryColor}00`,
+  ], [appTheme.primaryColor]);
+
   const lgLocations = useRef<readonly [number, number, number]>([
     0.0,
     0.75,
     1.0,
   ]).current;
+
   const lgStyle = useRef<StyleProp<ViewStyle>>({
     width: '100%',
     zIndex: 999,
@@ -450,39 +487,6 @@ const Prospects = ({
     justifyContent: 'center',
     width: '33.333%',
   }).current;
-
-  const ProspectDonutPercentage = useCallback(({donutOpacity, matchPercentage}) => (
-    <Animated.View
-      style={{
-        position: 'absolute',
-        left: 0,
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '33.333%',
-        opacity: donutOpacity,
-      }}
-    >
-      <DonutChart
-        style={{
-          width: 90,
-          height: 90,
-          backgroundColor: 'white',
-          borderRadius: 999,
-        }}
-        percentage={matchPercentage}
-      >
-        <DefaultText
-          style={{
-            paddingBottom: 7,
-            fontWeight: '500',
-            fontSize: 9,
-          }}
-        >
-          Best Match
-        </DefaultText>
-      </DonutChart>
-    </Animated.View>
-  ), []);
 
   const bestProspects = [
     prospect1,
@@ -531,7 +535,15 @@ const Prospects = ({
           )
         }
         <View style={dcViewStyle}>
-          <DonutChart style={styles.dcStyle} percentage={undefined}/>
+          <DonutChart
+            style={{
+              width: 90,
+              height: 90,
+              backgroundColor: appTheme.primaryColor,
+              borderRadius: 999,
+            }}
+            percentage={undefined}
+          />
         </View>
         {
           bestProspects.map((prospect, i) =>

@@ -61,7 +61,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { ClubItem, joinClub, leaveClub } from '../club/club';
 import * as _ from 'lodash';
-import { friendlyTimeAgo, possessive } from '../util/util';
+import { friendlyTimeAgo, possessive, bestTextOn, capLuminance } from '../util/util';
 import { useOnline } from '../chat/application-layer/hooks/online';
 import { HeartBackground } from './heart-background';
 import { AudioPlayer } from './audio-player';
@@ -70,6 +70,7 @@ import { commonStyles } from '../styles';
 import { useSkipped, setSkipped } from '../hide-and-block/hide-and-block';
 import { OnlineIndicator } from './online-indicator';
 import { Flair } from './badges';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const Stack = createNativeStackNavigator();
 
@@ -119,6 +120,8 @@ const FloatingBackButton = (props) => {
     safeAreaView = true,
   } = props;
 
+  const { appTheme } = useAppTheme();
+
   const RootElement = useCallback(({children}) => {
     if (safeAreaView) {
       return (
@@ -141,11 +144,11 @@ const FloatingBackButton = (props) => {
           marginTop: 0,
           width: 45,
           height: 45,
-          backgroundColor: 'white',
+          backgroundColor: appTheme.primaryColor,
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: 1,
-          borderColor: 'black',
+          borderColor: appTheme.secondaryColor,
         }}
         onPress={onPress ?? (navigationRef?.current || navigation).goBack}
       >
@@ -153,6 +156,7 @@ const FloatingBackButton = (props) => {
           icon={faArrowLeft}
           size={24}
           style={{
+            color: appTheme.secondaryColor,
             // @ts-ignore
             outline: 'none',
           }}
@@ -167,6 +171,8 @@ const FloatingProfileInteractionButton = ({
   onPress,
   backgroundColor,
 }) => {
+  const { appTheme } = useAppTheme();
+
   const opacity = useRef(new Animated.Value(1)).current;
 
   const fadeOut = useCallback(() => {
@@ -212,7 +218,7 @@ const FloatingProfileInteractionButton = ({
           opacity: opacity,
           flexDirection: 'row',
           borderWidth: 1,
-          borderColor: 'black',
+          borderColor: appTheme.secondaryColor,
           height: 60,
           width: 60,
         }}
@@ -225,6 +231,7 @@ const FloatingProfileInteractionButton = ({
 
 const FloatingSkipButton = ({personUuid}) => {
   const { isSkipped, isLoading, isPosting } = useSkipped(personUuid);
+  const { appTheme } = useAppTheme();
 
   const onPress = useCallback(async () => {
     if (personUuid === undefined) return;
@@ -238,20 +245,20 @@ const FloatingSkipButton = ({personUuid}) => {
   return (
     <FloatingProfileInteractionButton
       onPress={onPress}
-      backgroundColor="white"
+      backgroundColor={appTheme.primaryColor}
     >
       {isPosting &&
-        <ActivityIndicator size="large" color="#70f"/>
+        <ActivityIndicator size="large" color={appTheme.brandColor} />
       }
       {!isLoading && isSkipped === true && <RotateCcw
-          stroke="#70f"
+          stroke={appTheme.brandColor}
           strokeWidth={3}
           height={24}
           width={24}
         />
       }
       {!isLoading && isSkipped === false && <X
-          stroke="#70f"
+          stroke={appTheme.brandColor}
           strokeWidth={3}
           height={24}
           width={24}
@@ -268,6 +275,8 @@ const FloatingSendIntroButton = ({
   photoUuid,
   photoBlurhash,
 }) => {
+  const { appTheme } = useAppTheme();
+
   const onPress = useCallback(() => {
     if (name === undefined) return;
 
@@ -280,14 +289,14 @@ const FloatingSendIntroButton = ({
   return (
     <FloatingProfileInteractionButton
       onPress={onPress}
-      backgroundColor="#70f"
+      backgroundColor={appTheme.brandColor}
     >
       {personUuid !== undefined && name !== undefined &&
         <FontAwesomeIcon
           icon={faPaperPlane}
           size={24}
           style={{
-            color: 'white',
+            color: appTheme.primaryColor,
             // @ts-ignore
             outline: 'none',
           }}
@@ -662,6 +671,7 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
   const showBottomButtons = route.params.showBottomButtons ?? true;
   const photoBlurhashParam = route.params.photoBlurhash;
 
+  const { appThemeName, appTheme } = useAppTheme();
   const [data, setData] = useState<UserData | undefined>(undefined);
   const [notFound, setNotFound] = useState(false);
   useSkipped(personUuid, () => navigation.popToTop());
@@ -736,9 +746,17 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
 
   const imageVerification0 = imageVerifications && imageVerifications[0];
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    backgroundColor: withTiming(data?.theme?.background_color ?? '#ffffff'),
-  }));
+  const uncappedBackgroundColor = data?.theme?.background_color
+      ?? appTheme.primaryColor;
+
+  const backgroundColor = appThemeName === 'dark'
+    ? capLuminance(uncappedBackgroundColor)
+    : uncappedBackgroundColor;
+
+  const animatedStyle = useAnimatedStyle(
+    () => ({ backgroundColor: withTiming(backgroundColor) }),
+    [backgroundColor]
+  );
 
   return (
     <>
@@ -755,7 +773,7 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
             style={{
               fontWeight: '900',
               fontSize: 26,
-              color: 'white',
+              color: appTheme.primaryColor,
             }}
           >
             Profile not found
@@ -763,7 +781,7 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
         </View>
       }
       {!notFound && <>
-        <ScrollView style={{ backgroundColor: data?.theme?.background_color }}>
+        <ScrollView style={{ backgroundColor }}>
           <Reanimated.View style={animatedStyle}>
             <HeartBackground
               style={{
@@ -800,7 +818,10 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
                   verified={verificationLevelId(data) > 1}
                   matchPercentage={data?.match_percentage}
                   userLocation={data?.location}
-                  textColor={data?.theme?.title_color}
+                  textColor={
+                    data?.theme?.title_color
+                      ?? appTheme.secondaryColor
+                  }
                   flair={data?.flair ?? []}
                 />
                 <Body
@@ -985,6 +1006,7 @@ const Body = ({
   personUuid: string,
   data: UserData | undefined,
 }) => {
+  const { appThemeName, appTheme } = useAppTheme();
   const [signedInUser] = useSignedInUser();
   const isOnline = useOnline(personUuid);
 
@@ -1017,6 +1039,13 @@ const Body = ({
   const imageVerification6 = data?.photo_verifications && data?.photo_verifications[6] || false;
 
   const isViewingSelf = personId === signedInUser?.personId;
+
+  const uncappedBackgroundColor = data?.theme?.background_color
+      ?? appTheme.primaryColor;
+
+  const backgroundColor = appThemeName === 'dark'
+    ? capLuminance(uncappedBackgroundColor)
+    : uncappedBackgroundColor;
 
   const basicsTheme = {
     textStyle: {
@@ -1138,26 +1167,17 @@ const Body = ({
               marginBottom: 5,
             }}
           />
-          <View
+          <DefaultText
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.3)',
-              borderRadius: 3,
-              overflow: 'hidden',
+              color: bestTextOn(backgroundColor),
+              opacity: 0.5,
               marginBottom: 10,
             }}
           >
-            <DefaultText
-              style={{
-                color: 'rgba(0, 0, 0, 0.5)',
-                padding: 2,
-              }}
-            >
-              Verification is based on selfies analyzed by our AI. Verified
-              photos are most accurate.
-            </DefaultText>
-          </View>
-          </>
-        }
+            Verification is based on selfies analyzed by our AI. Verified
+            photos are most accurate.
+          </DefaultText>
+        </>}
 
         <EnlargeablePhoto
           photoUuid={photoUuid1}
@@ -1244,9 +1264,7 @@ const Body = ({
           <Stats>
             {data?.seconds_since_last_online !== null &&
               <Stat {...statsTheme}>
-                <DefaultText
-                  style={{ fontWeight: '700' }}
-                >
+                <DefaultText disableTheme style={{ fontWeight: '700' }}>
                   Last Online: {}
                 </DefaultText>
                 {
@@ -1260,9 +1278,7 @@ const Body = ({
             }
             {data?.count_answers !== null &&
               <Stat {...statsTheme}>
-                <DefaultText
-                  style={{ fontWeight: '700' }}
-                >
+                <DefaultText disableTheme style={{ fontWeight: '700' }}>
                   Q&A Answers: {}
                 </DefaultText>
                 {data?.count_answers ?? 'Loading...'}
@@ -1270,9 +1286,7 @@ const Body = ({
             }
             {data && !_.isNil(data.gives_reply_percentage) &&
               <Stat {...statsTheme}>
-                <DefaultText
-                  style={{ fontWeight: '700' }}
-                >
+                <DefaultText disableTheme style={{ fontWeight: '700' }}>
                   Gives Replies To: {}
                 </DefaultText>
                 {Math.round(data.gives_reply_percentage)}% of intros
@@ -1280,9 +1294,7 @@ const Body = ({
             }
             {data && !_.isNil(data.gets_reply_percentage) &&
               <Stat {...statsTheme}>
-                <DefaultText
-                  style={{ fontWeight: '700' }}
-                >
+                <DefaultText disableTheme style={{ fontWeight: '700' }}>
                   Gets Replies To: {}
                 </DefaultText>
                 {Math.round(data.gets_reply_percentage)}% of intros
@@ -1290,9 +1302,7 @@ const Body = ({
             }
             {data?.seconds_since_sign_up !== null &&
               <Stat {...statsTheme}>
-                <DefaultText
-                  style={{ fontWeight: '700' }}
-                >
+                <DefaultText disableTheme style={{ fontWeight: '700' }}>
                   Account Age: {}
                 </DefaultText>
                 {

@@ -5,13 +5,13 @@ import {
 } from 'react-native';
 import {
   useCallback,
-  useRef,
 } from 'react';
 import { DefaultText } from './default-text';
 import { Avatar } from './avatar';
 import { useNavigation } from '@react-navigation/native';
 import { friendlyTimestamp } from '../util/util';
 import { VerificationBadge } from './verification-badge';
+import { usePressableAnimation } from '../animation/animation';
 
 const IntrosItem = ({
   wasRead,
@@ -35,29 +35,7 @@ const IntrosItem = ({
 }) => {
   const navigation = useNavigation<any>();
 
-  const animated = useRef(new Animated.Value(1)).current;
-
-  const backgroundColor = animated.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['rgba(222,222,222, 1)', 'rgba(255,255,255, 0)'],
-    extrapolate: 'clamp',
-  });
-
-  const fadeIn = () => {
-    Animated.timing(animated, {
-      toValue: 0,
-      duration: 50,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const fadeOut = () => {
-    Animated.timing(animated, {
-      toValue: 1,
-      duration: 100,
-      useNativeDriver: false,
-    }).start();
-  };
+  const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
 
   const onPress = useCallback(() => navigation.navigate(
     'Prospect Profile Screen',
@@ -69,8 +47,8 @@ const IntrosItem = ({
 
   return (
     <Pressable
-      onPressIn={fadeIn}
-      onPressOut={fadeOut}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
       onPress={onPress}
     >
       <Animated.View
@@ -129,7 +107,7 @@ const IntrosItem = ({
             numberOfLines={1}
             style={{
               fontWeight: wasRead ? '400' : '600',
-              color: wasRead ? 'grey' : 'black',
+              color: wasRead ? 'grey' : undefined,
             }}
           >
             Wants to chat
@@ -165,29 +143,7 @@ const ChatsItem = ({
 }) => {
   const navigation = useNavigation<any>();
 
-  const animated = useRef(new Animated.Value(1)).current;
-
-  const backgroundColor = animated.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['rgba(222,222,222, 1)', 'rgba(255,255,255, 0)'],
-    extrapolate: 'clamp',
-  });
-
-  const fadeIn = () => {
-    Animated.timing(animated, {
-      toValue: 0,
-      duration: 50,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const fadeOut = () => {
-    Animated.timing(animated, {
-      toValue: 1,
-      duration: 100,
-      useNativeDriver: false,
-    }).start();
-  };
+  const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
 
   const onPress = useCallback(() => navigation.navigate(
     'Conversation Screen',
@@ -196,8 +152,8 @@ const ChatsItem = ({
 
   return (
     <Pressable
-      onPressIn={fadeIn}
-      onPressOut={fadeOut}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
       onPress={onPress}
     >
       <Animated.View
@@ -271,7 +227,7 @@ const ChatsItem = ({
             numberOfLines={1}
             style={{
               fontWeight: wasRead ? '400' : '600',
-              color: wasRead ? 'grey' : 'black',
+              color: wasRead ? 'grey' : undefined,
             }}
           >
             {lastMessage}

@@ -3,12 +3,11 @@ import {
   Animated,
   Pressable,
 } from 'react-native';
-import {
-  useCallback,
-  useRef,
-} from 'react';
+import { useCallback } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultText } from '../default-text';
+import { useAppTheme } from '../../app-theme/app-theme';
+import { usePressableAnimation } from '../../animation/animation';
 
 const ButtonForOption = (props) => {
   const {
@@ -41,23 +40,8 @@ const ButtonForOption = (props) => {
   const Icon_ = icon ?? (optionGroups ? optionGroups[0]?.Icon : undefined);
   const label_ = label ?? optionGroups[0].title
 
-  const opacity = useRef(new Animated.Value(1)).current;
-
-  const fadeIn = useCallback(() => {
-    Animated.timing(opacity, {
-      toValue: 0.5,
-      duration: 0,
-      useNativeDriver: false,
-    }).start();
-  }, []);
-
-  const fadeOut = useCallback(() => {
-    Animated.timing(opacity, {
-      toValue: 1,
-      duration: 150,
-      useNativeDriver: false,
-    }).start();
-  }, []);
+  const { appTheme } = useAppTheme();
+  const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
 
   const onPress_ = useCallback(onPress ?? (() => {
     navigation.navigate(
@@ -78,28 +62,28 @@ const ButtonForOption = (props) => {
         marginBottom: 5,
         height: 40,
       }}
-      onPressIn={fadeIn}
-      onPressOut={fadeOut}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
       onPress={onPress_}
     >
       <Animated.View
         style={{
           width: '100%',
           height: '100%',
-          borderColor: '#999',
+          backgroundColor,
+          borderColor: appTheme.interactiveBorderColor,
           borderWidth: 1,
           borderBottomWidth: 2,
           borderRadius: 999,
           paddingLeft: 10,
           paddingRight: 20,
-          opacity: opacity,
           alignItems: 'center',
           flexDirection: 'row',
           justifyContent: 'space-between',
         }}
       >
         {Icon_ &&
-          <Icon_/>
+          <Icon_ color={appTheme.secondaryColor} />
         }
         <DefaultText
           style={{
@@ -113,7 +97,7 @@ const ButtonForOption = (props) => {
           style={{
             paddingLeft: 20,
             paddingRight: 10,
-            color: (setting ?? noSettingText) === noSettingText ? '#888' : 'black',
+            color: (setting ?? noSettingText) === noSettingText ? '#888' : undefined,
             fontStyle: (setting ?? noSettingText) === noSettingText ? 'italic' : 'normal',
             textAlign: 'right',
             flex: 1,
@@ -129,7 +113,7 @@ const ButtonForOption = (props) => {
               right: 15,
             }}
             size="small"
-            color="#70f"
+            color={appTheme.brandColor}
           />
         }
         {!loading &&
@@ -138,6 +122,7 @@ const ButtonForOption = (props) => {
               position: 'absolute',
               right: 5,
               fontSize: 20,
+              color: appTheme.secondaryColor,
             }}
             name="chevron-forward"
           />

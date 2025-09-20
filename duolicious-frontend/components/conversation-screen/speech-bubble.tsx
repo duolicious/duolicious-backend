@@ -39,8 +39,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
 import { useNavigation } from '@react-navigation/native';
 import { assertNever } from '../../util/util';
-
-const otherUserBackgroundColor = '#eee';
+import { useAppTheme } from '../../app-theme/app-theme';
 
 const currentUserBackgroundColor = '#70f';
 
@@ -91,6 +90,7 @@ const FormattedQuoteBlock = ({
       {block.type === "quote" && block?.attribution &&
         <DefaultText
           style={{
+            color: 'black',
             fontWeight: '700',
           }}
         >
@@ -276,6 +276,7 @@ const SpeechBubble = ({
   name: string
   avatarUuid: string | null | undefined
 }) => {
+  const { appTheme } = useAppTheme();
   const opacity = useSharedValue(0);
 
   const translateX = useSharedValue(0);
@@ -306,7 +307,7 @@ const SpeechBubble = ({
     } else if (message.message.fromCurrentUser) {
       return currentUserBackgroundColor;
     } else {
-      return otherUserBackgroundColor;
+      return appTheme.speechBubbleOtherUserBackgroundColor;
     }
   })();
 
@@ -315,7 +316,7 @@ const SpeechBubble = ({
     message.message.type === 'chat-text' &&
     message.message.fromCurrentUser
     ? 'white'
-    : defaultTextColor;
+    : appTheme.speechBubbleOtherUserColor;
 
   const showTimestamp = useCallback(() => {
     setDoShowTimestamp(t => !t);
@@ -557,6 +558,8 @@ const TypingSpeechBubble = ({
   personUuid: string
   avatarUuid: string
 }) => {
+  const { appTheme } = useAppTheme();
+
   const opacity = useSharedValue(0.0);
   const progress = useSharedValue(0);
 
@@ -606,7 +609,13 @@ const TypingSpeechBubble = ({
     const animatedStyle = useAnimatedStyle(() => ({
       opacity: 0.5 + 0.5 * Math.sin(2 * Math.PI * (phaseOffset - progress.value))
     }));
-    return <Animated.View style={[styles.dot, animatedStyle]} />;
+    return <Animated.View
+      style={[
+        styles.dot,
+        { backgroundColor: appTheme.speechBubbleOtherUserColor },
+        animatedStyle
+      ]}
+    />;
   };
 
   return (
@@ -633,7 +642,7 @@ const TypingSpeechBubble = ({
         <View
           style={{
             borderRadius: 10,
-            backgroundColor: otherUserBackgroundColor,
+            backgroundColor: appTheme.speechBubbleOtherUserBackgroundColor,
             gap: 5,
             paddingVertical: 14,
             paddingHorizontal: 12,
@@ -663,7 +672,6 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 999,
-    backgroundColor: '#333',
   },
   hyperlink: {
     textDecorationLine: 'underline',

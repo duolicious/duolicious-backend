@@ -17,6 +17,7 @@ import { notify } from '../events/events';
 import {
   AUDIO_URL,
 } from '../env/env';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const AudioBio = ({
   initialSavedRecordingUuid,
@@ -36,6 +37,8 @@ const AudioBio = ({
     | 'Stopped'
     | 'Playing'
     | 'Recording';
+
+  const { appTheme } = useAppTheme();
 
   const [savedRecordingUri, setSavedRecordingUri] = useState(
     initialSavedRecordingUuid ?
@@ -311,7 +314,7 @@ const AudioBio = ({
         width: '100%',
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#999',
+        borderColor: appTheme.interactiveBorderColor,
         padding: 10,
         gap: 15,
       }}
@@ -386,6 +389,7 @@ const AudioBio = ({
                 flexShrink: 1,
                 fontSize: 52,
                 opacity: playButtonEnabled ? 1 : 0.2,
+                color: appTheme.secondaryColor,
               }}
               name={
                 playingState === 'Playing' ? 'stop-circle' : 'play-circle'}

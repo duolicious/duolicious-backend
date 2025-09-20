@@ -24,7 +24,7 @@ import { TopNavBarButton } from './top-nav-bar-button';
 import { inboxOrder, inboxSection } from '../kv-storage/inbox';
 import { listen } from '../events/events';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
-
+import { useAppTheme } from '../app-theme/app-theme';
 
 const IntrosItemMemo = memo(IntrosItem);
 const ChatsItemMemo = memo(ChatsItem);
@@ -69,6 +69,8 @@ const renderItem = ({ item }: ListRenderItemInfo<string>) =>
 const keyExtractor = (id: string) => id;
 
 const InboxTab = () => {
+  const { appTheme } = useAppTheme();
+
   const {
     conversations,
     sectionIndex,
@@ -161,7 +163,7 @@ const InboxTab = () => {
       />
       {conversations === null &&
         <View style={{height: '100%', justifyContent: 'center', alignItems: 'center'}}>
-          <ActivityIndicator size="large" color="#70f" />
+          <ActivityIndicator size="large" color={appTheme.brandColor} />
         </View>
       }
       {conversations !== null &&
@@ -225,6 +227,7 @@ const InboxTabNavBar = ({
   showArchive,
   onPressArchiveButton,
 }) => {
+  const { appTheme } = useAppTheme();
   const [isOnline, setIsOnline] = useState(false);
 
   useLayoutEffect(() => {
@@ -249,7 +252,7 @@ const InboxTabNavBar = ({
         {!isOnline &&
           <ActivityIndicator
             size="small"
-            color="#70f"
+            color={appTheme.brandColor}
             style={{
               position: 'absolute',
               right: -40,
@@ -290,7 +293,6 @@ const styles = StyleSheet.create({
   },
   endText: {
     fontFamily: 'TruenoBold',
-    color: '#000',
     fontSize: 16,
     textAlign: 'center',
     alignSelf: 'center',

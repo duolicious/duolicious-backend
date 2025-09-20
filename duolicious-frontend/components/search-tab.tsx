@@ -31,6 +31,7 @@ import { listen, lastEvent } from '../events/events';
 import { searchQueue } from '../api/queue';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
 import { onPressInvite } from '../components/invite';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const styles = StyleSheet.create({
   safeAreaView: {
@@ -46,18 +47,6 @@ const styles = StyleSheet.create({
   },
   clubsScrollViewContainer: {
     alignItems: 'center',
-  },
-  clubsContentContainer: {
-    width: '100%',
-    alignItems: 'stretch',
-    alignSelf: 'center',
-    paddingTop: 10,
-    paddingBottom: 5,
-    paddingHorizontal: 5,
-    overflow: 'hidden',
-    zIndex: 9999,
-    opacity: 0.9,
-    backgroundColor: 'white',
   },
   clubsContentContainerContainer: {
     borderRadius: 5,
@@ -81,21 +70,6 @@ const styles = StyleSheet.create({
   clubContainer: {
     borderRadius: 5,
     overflow: 'hidden',
-  },
-  selectedClubText: {
-    fontSize: 16,
-    fontFamily: 'Trueno',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    color: 'white',
-    backgroundColor: 'black',
-  },
-  unselectedClubText: {
-    fontSize: 16,
-    fontFamily: 'Trueno',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    color: 'black',
   },
 });
 
@@ -179,6 +153,8 @@ type ClubSelectorProps = {
 };
 
 const LeftContinuation = ({scrollLeft}) => {
+  const { appTheme } = useAppTheme();
+
   if (isMobile()) {
     return (
       <LinearGradient
@@ -217,9 +193,9 @@ const LeftContinuation = ({scrollLeft}) => {
           end={{x: 1, y: 0 }}
           locations={[0.0, 0.8, 1.0]}
           colors={[
-            'rgba(255, 255, 255, 1.0)',
-            'rgba(255, 255, 255, 0.9)',
-            'rgba(255, 255, 255, 0.0)',
+            `${appTheme.primaryColor}ff`,
+            `${appTheme.primaryColor}e5`,
+            `${appTheme.primaryColor}00`,
           ]}
           style={{
             height: '100%',
@@ -231,6 +207,7 @@ const LeftContinuation = ({scrollLeft}) => {
           <Ionicons
             style={{
               fontSize: 26,
+              color: appTheme.secondaryColor,
             }}
             name="chevron-back"
           />
@@ -241,6 +218,8 @@ const LeftContinuation = ({scrollLeft}) => {
 };
 
 const RightContinuation = ({scrollRight}) => {
+  const { appTheme } = useAppTheme();
+
   if (isMobile()) {
     return (
       <LinearGradient
@@ -279,9 +258,9 @@ const RightContinuation = ({scrollRight}) => {
           end={{x: 1, y: 0 }}
           locations={[0.0, 0.2, 1.0]}
           colors={[
-            'rgba(255, 255, 255, 0.0)',
-            'rgba(255, 255, 255, 0.9)',
-            'rgba(255, 255, 255, 1.0)',
+            `${appTheme.primaryColor}00`,
+            `${appTheme.primaryColor}e5`,
+            `${appTheme.primaryColor}ff`,
           ]}
           style={{
             height: '100%',
@@ -293,6 +272,7 @@ const RightContinuation = ({scrollRight}) => {
           <Ionicons
             style={{
               fontSize: 26,
+              color: appTheme.secondaryColor,
             }}
             name="chevron-forward"
           />
@@ -303,6 +283,8 @@ const RightContinuation = ({scrollRight}) => {
 };
 
 const ClubSelector = (props: ClubSelectorProps) => {
+  const { appTheme } = useAppTheme();
+
   const scrollJumpSize = 150;
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -410,12 +392,43 @@ const ClubSelector = (props: ClubSelectorProps) => {
     }
   }, [props.selectedClub, JSON.stringify(clubs)]);
 
+  const dynamicStyles = StyleSheet.create({
+    selectedClubText: {
+      fontSize: 16,
+      fontFamily: 'Trueno',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      color: appTheme.primaryColor,
+      backgroundColor: appTheme.secondaryColor,
+    },
+    unselectedClubText: {
+      fontSize: 16,
+      fontFamily: 'Trueno',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      color: appTheme.secondaryColor,
+    },
+  });
+
   if (!clubs || !clubs.length) {
     return null;
   }
 
   return (
-    <View style={styles.clubsContentContainer}>
+    <View
+      style={{
+        width: '100%',
+        alignItems: 'stretch',
+        alignSelf: 'center',
+        paddingTop: 10,
+        paddingBottom: 5,
+        paddingHorizontal: 5,
+        overflow: 'hidden',
+        zIndex: 9999,
+        opacity: 0.9,
+        backgroundColor: appTheme.primaryColor,
+      }}
+    >
       <View style={styles.clubsContentContainerContainer}>
         <ScrollView
           ref={scrollViewRef}
@@ -426,7 +439,7 @@ const ClubSelector = (props: ClubSelectorProps) => {
           onContentSizeChange={onContentSizeChange}
           onLayout={onScrollViewLayout}
         >
-          <DefaultText style={styles.clubTitle} >
+          <DefaultText style={styles.clubTitle}>
             CLUBS
           </DefaultText>
 
@@ -437,8 +450,8 @@ const ClubSelector = (props: ClubSelectorProps) => {
             <DefaultText
               style={
                 props.selectedClub === null ?
-                  styles.selectedClubText :
-                  styles.unselectedClubText
+                  dynamicStyles.selectedClubText :
+                  dynamicStyles.unselectedClubText
               }
             >
               Everyone
@@ -459,8 +472,8 @@ const ClubSelector = (props: ClubSelectorProps) => {
               <DefaultText
                 style={
                   props.selectedClub === club.name ?
-                    styles.selectedClubText :
-                    styles.unselectedClubText
+                    dynamicStyles.selectedClubText :
+                    dynamicStyles.unselectedClubText
                 }
               >
                 {club.name}
@@ -482,6 +495,8 @@ const ListHeaderComponent = ({
   selectedClub,
   setSelectedClub,
 }) => {
+  const { appTheme } = useAppTheme();
+
   if (hasClubs) {
     return <ClubSelector
       selectedClub={selectedClub}
@@ -496,12 +511,12 @@ const ListHeaderComponent = ({
         marginTop: 10,
       }}
     >
-      <DefaultText style={{color: '#70f'}} >
+      <DefaultText style={{ color: appTheme.brandColor }}>
         Get better matches by playing Q&A{' '}
       </DefaultText>
       <QAndADevice
-        color="#70f"
-        backgroundColor="#f1e5ff"
+        color={appTheme.brandColor}
+        backgroundColor={appTheme.avatarBackgroundColor}
       />
     </Notice>
   );

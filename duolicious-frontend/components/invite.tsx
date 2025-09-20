@@ -29,6 +29,7 @@ import { faLink } from '@fortawesome/free-solid-svg-icons/faLink'
 import * as Clipboard from 'expo-clipboard';
 import { ToastContainer } from './toast';
 import { INVITE_URL } from '../env/env';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const LinkCopiedToast = () => {
   return (
@@ -159,6 +160,8 @@ const InvitePicker = ({navigation}) => {
 };
 
 const InviteEntrypoint = ({navigation}) => {
+  const { appTheme } = useAppTheme();
+
   const opacityLo = 0.2;
   const opacityHi = 1.0;
 
@@ -207,7 +210,7 @@ const InviteEntrypoint = ({navigation}) => {
         </DefaultText>
         <FontAwesomeIcon
           icon={faUserPlus}
-          color="black"
+          color={appTheme.secondaryColor}
           size={24}
         />
       </Animated.View>

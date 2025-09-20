@@ -5,12 +5,15 @@ import {
 import {
   createElement
 } from 'react';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const Notice = ({children, ...rest}) => {
   const {
     onPress,
     style,
   } = rest;
+
+  const { appTheme } = useAppTheme();
 
   return (
     createElement(
@@ -24,7 +27,7 @@ const Notice = ({children, ...rest}) => {
       <View
         style={[
           {
-            backgroundColor: '#f1e5ff',
+            backgroundColor: appTheme.avatarBackgroundColor,
             padding: 15,
             borderRadius: 10,
             flexDirection: 'row',

@@ -63,6 +63,7 @@ import { VerificationCameraModal } from './components/verification-camera';
 import { notify } from './events/events';
 import { PointOfSaleModal } from './components/modal/point-of-sale-modal';
 import { setSignedInUser, useSignedInUser } from './events/signed-in-user';
+import { loadAppTheme, useAppTheme } from './app-theme/app-theme';
 
 verificationWatcher();
 
@@ -146,6 +147,7 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
   const [signedInUser] = useSignedInUser();
+  const { appTheme } = useAppTheme();
 
   const loadFonts = useCallback(async () => {
     await Font.loadAsync({
@@ -355,6 +357,7 @@ const App = () => {
       lockScreenOrientation(),
       restoreSessionAndNavigate(),
       fetchServerStatusState(),
+      loadAppTheme(),
     ]);
 
     setIsLoading(false);
@@ -469,7 +472,7 @@ const App = () => {
                 ...DefaultTheme,
                 colors: {
                   ...DefaultTheme.colors,
-                  background: 'white',
+                  background: appTheme.primaryColor,
                 },
               }}
               documentTitle={{

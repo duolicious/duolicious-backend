@@ -24,6 +24,7 @@ import { japi } from '../api/api';
 import { quizQueue } from '../api/queue';
 import { IndeterminateProgressBar } from './indeterminate-progress-bar';
 import { Logo14 } from './logo';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const cardBorders = {
   borderRadius: 10,
@@ -240,6 +241,8 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
     showTutorial = false,
   } = props;
 
+  const { appTheme } = useAppTheme();
+
   const adjustedFontSize = (() => {
     const defaultFontSize = 26;
 
@@ -281,7 +284,7 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
         style={{
           overflow: 'visible',
           flexGrow: 1,
-          backgroundColor: 'white',
+          backgroundColor: appTheme.quizCardBackgroundColor,
           ...cardBorders,
         }}
       >
@@ -313,11 +316,16 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
               <DefaultText
                 style={{
                   flex: 1,
-                  color: '#70f',
+                  color: appTheme.quizCardColor,
                   textAlign: 'left',
                 }}
               >
-                <DefaultText style={{fontWeight: '600'}}>
+                <DefaultText
+                  style={{
+                    fontWeight: '600',
+                    color: appTheme.quizCardColor,
+                  }}
+                >
                   Q
                 </DefaultText>
                 {questionNumber} | {topic}
@@ -337,13 +345,17 @@ const NonInteractiveQuizCard = ({children, ...props}) => {
                   style={{
                     fontFamily: 'TruenoBold',
                     fontSize: 16,
-                    color: '#70f',
+                    color: appTheme.quizCardColor,
                     textAlign: 'right',
                   }}
                 >
                   Duolicious
                 </DefaultText>
-                <Logo14 size={14 * 2} color="#70f" rectSize={0.3} />
+                <Logo14
+                  size={14 * 2}
+                  color={appTheme.quizCardColor}
+                  rectSize={0.3}
+                />
               </View>
             }
           </View>
@@ -485,15 +497,17 @@ const AnswerIcon = ({
   enabled: boolean,
   onPress?: any
 }) => {
+  const { appThemeName } = useAppTheme();
+
   const backgroundColor = (() => {
-    if (selected === false) return 'white';
+    if (selected === false) return appThemeName === 'dark' ? 'black' : 'white';
     if (enabled) return '#70f';
     return '#cabcff';
   })();
 
   const checkColor = (() => {
     if (selected) return 'white';
-    if (enabled) return 'black';
+    if (enabled) return appThemeName === 'dark' ? 'white' : 'black';
     return '#bcbcbc';
   })();
 

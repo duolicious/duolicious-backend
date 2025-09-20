@@ -5,12 +5,15 @@ import { StatusBarSpacer } from './status-bar-spacer';
 import { DefaultText } from './default-text';
 import { Logo16 } from './logo';
 import { isMobile } from '../util/util';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const TopNavBar = (props) => {
+  const { appTheme } = useAppTheme();
+
   return (
     <View
       style={{
-        backgroundColor: 'white',
+        backgroundColor: appTheme.primaryColor,
         zIndex: 999,
         width: '100%',
         overflow: 'visible',
@@ -43,6 +46,8 @@ const DuoliciousTopNavBar = (props) => {
     children,
   } = props;
 
+  const { appTheme } = useAppTheme();
+
   if (!isMobile() && !children) {
     return <View style={{ height: 10 }} />;
   }
@@ -59,11 +64,15 @@ const DuoliciousTopNavBar = (props) => {
       backgroundColor={backgroundColor}
     >
       {isMobile() && <>
-        <Logo16 size={16 * 2} color="#70f" rectSize={0.35} />
+        <Logo16
+          size={16 * 2}
+          color={appTheme.brandColor}
+          rectSize={0.35}
+        />
         <DefaultText
           style={{
             fontFamily: 'TruenoBold',
-            color: textColor || '#70f',
+            color: textColor ?? appTheme.brandColor,
             fontSize: 22,
           }}
         >

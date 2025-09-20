@@ -13,12 +13,9 @@ import { listen, notify } from '../../events/events';
 import { backgroundColors } from './background-colors';
 import { DefaultTextInput } from '../default-text-input';
 import { AutoResizingGif } from '../auto-resizing-gif';
-import {
-  TENOR_API_KEY,
-} from '../../env/env';
-import {
-  isMobile,
-} from '../../util/util';
+import { TENOR_API_KEY } from '../../env/env';
+import { isMobile } from '../../util/util';
+import { useAppTheme } from '../../app-theme/app-theme';
 
 type GifPickedEvent = string;
 
@@ -69,6 +66,7 @@ const RenderGifItem = ({
 };
 
 const GifPickerModal: React.FC = () => {
+  const { appTheme } = useAppTheme();
   const [isShowing, setIsShowing] = useState(false);
   const [selectedGif, setSelectedGif] = useState<null | string>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -144,7 +142,18 @@ const GifPickerModal: React.FC = () => {
       entering={fadeIn}
       exiting={fadeOut}
     >
-      <View style={styles.container}>
+      <View
+        style={{
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          maxWidth: 600,
+          height: '80%',
+          backgroundColor: appTheme.primaryColor,
+          borderRadius: 10,
+          overflow: 'hidden',
+        }}
+      >
         <View style={styles.gifGalleryContainer}>
           <DefaultTextInput
             style={styles.searchInput}
@@ -206,16 +215,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     ...backgroundColors.dark,
   },
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    maxWidth: 600,
-    height: '80%',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
   buttonContainer: {
     width: '100%',
     justifyContent: 'center',
@@ -231,7 +230,6 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   searchInput: {
-    backgroundColor: '#eee',
     borderWidth: 0,
     marginLeft: 0,
     marginRight: 0,

@@ -7,6 +7,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import { useAppTheme } from '../app-theme/app-theme';
 
 type SkeletonProps = {
   width?: string | number
@@ -20,6 +21,8 @@ const Skeleton: React.FC<SkeletonProps> = ({
 }: {
   style?: StyleProp<ViewStyle>
 }) => {
+  const { appThemeName, appTheme } = useAppTheme();
+
   const containerOpacity = useSharedValue(0);
   const throbberProgress = useSharedValue(0);
 
@@ -40,7 +43,9 @@ const Skeleton: React.FC<SkeletonProps> = ({
     backgroundColor: interpolateColor(
       throbberProgress.value,
       [0, 1],
-      ['#fafafa', '#e4e4eb'],
+      appThemeName === 'dark'
+        ? [appTheme.quizCardBackgroundColor, appTheme.quizCardBackgroundColor]
+        : ['#fafafa', '#e4e4eb'],
     ),
   }));
 

@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faCircleCheck } from '@fortawesome/free-solid-svg-icons/faCircleCheck'
 import { faCheck } from '@fortawesome/free-solid-svg-icons/faCheck'
 import { faXmark } from '@fortawesome/free-solid-svg-icons/faXmark'
+import { bestTextOn } from '../util/util';
 
 const VerificationBadge = ({
   size = 20,
@@ -32,7 +33,7 @@ const VerificationBadge = ({
           bottom: 1,
           left: 1,
           right: 1,
-          backgroundColor: 'white',
+          backgroundColor: bestTextOn(color, 0.5),
           borderRadius: 999,
           zIndex: 999,
         }}

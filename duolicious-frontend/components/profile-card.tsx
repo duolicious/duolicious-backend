@@ -29,6 +29,7 @@ import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
 import { useOnline } from '../chat/application-layer/hooks/online';
 import { useSkipped } from '../hide-and-block/hide-and-block';
 import { OnlineIndicator } from './online-indicator';
+import { useAppTheme } from '../app-theme/app-theme';
 
 // This component wouldn't need to exist if expo-image (and expo itself (and the
 // JS eco system generally)) wasn't buggy trash. This fixes an issue on
@@ -93,6 +94,8 @@ const PhotoOrSkeleton_ = ({
     showGradient = true,
   } = rest;
 
+  const { appTheme } = useAppTheme();
+
   const uriPrefix = photoExtraExts?.length ? '' : `${resolution}-`;
 
   const ext = (photoExtraExts && photoExtraExts[0]) ?? 'jpg';
@@ -126,7 +129,7 @@ const PhotoOrSkeleton_ = ({
       style={{
           width: '100%',
           aspectRatio: 1,
-          backgroundColor: photoUuid ? undefined : '#ccc',
+          backgroundColor: photoUuid ? undefined : appTheme.avatarBackgroundColor,
       }}
       contentFit="contain"
       placeholderContentFit="contain"
@@ -154,7 +157,7 @@ const PhotoOrSkeleton_ = ({
       >
         {photoUuid === null && photoBlurhash === null &&
           <Ionicons
-            style={{fontSize: 100, color: '#eee'}}
+            style={{ fontSize: 100, color: appTheme.avatarColor }}
             name={'person'}
           />
         }

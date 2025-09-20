@@ -9,12 +9,14 @@ import {
   useState,
 } from 'react';
 import { DefaultText } from './default-text';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const CheckChip = ({label, ...props}) => {
   const {
     onChange = () => {}
   } = props;
 
+  const { appTheme } = useAppTheme();
   const [checked, setChecked] = useState(props.initialCheckedState ?? false);
 
   const checkedContainerStyle = {
@@ -51,7 +53,7 @@ const CheckChip = ({label, ...props}) => {
         margin: 5,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'white',
+        backgroundColor: appTheme.primaryColor,
           ...(checked ? checkedContainerStyle : {})
       }}
       onPress={onPress_}

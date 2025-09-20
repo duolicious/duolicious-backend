@@ -295,6 +295,7 @@ const Offering = ({
             }}
           >
             <DefaultText
+              disableTheme
               style={{
                 fontWeight: 700,
               }}

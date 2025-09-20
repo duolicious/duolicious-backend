@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
 } from 'react';
 import {
   Animated,
@@ -24,6 +25,7 @@ import {
 } from './util';
 import { useInboxStats } from '../../chat/application-layer/hooks/inbox-stats';
 import { WebBarFooter } from './web-bar-footer/web-bar-footer';
+import { useAppTheme } from '../../app-theme/app-theme';
 
 const Logo = () => {
   return (
@@ -59,6 +61,10 @@ const Logo = () => {
 };
 
 const NavigationItems = ({state, navigation, descriptors}) => {
+  const { appThemeName } = useAppTheme();
+
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+
   const unreadIndicatorOpacity = useRef(new Animated.Value(0)).current;
 
   const hideIndicator = useCallback(() => {
@@ -102,6 +108,25 @@ const NavigationItems = ({state, navigation, descriptors}) => {
 
         const isFocused = state.index === index;
 
+        const iconBackgroundColor = (() => {
+          if (appThemeName === 'dark') {
+            return isFocused ?  '#ffffff' : '#000000';
+          } else {
+            return isFocused ?  '#ffffff' : '#7700ff';
+          }
+        })();
+
+        const backgroundColor = (() => {
+          if (isFocused) {
+            return '#ffffff';
+          }
+          if (hoveredKey === route.key) {
+            return '#ffffff4d';
+          }
+
+          return appThemeName === 'dark' ? '#000000' : '#7700ff';
+        })();
+
         return (
           <Pressable
             key={route.key}
@@ -123,13 +148,22 @@ const NavigationItems = ({state, navigation, descriptors}) => {
                 });
               }
             }}
+            onHoverIn={() => {
+              if (isFocused) return;
+              setHoveredKey(route.key);
+            }}
+            onHoverOut={() => {
+              if (isFocused) return;
+              setHoveredKey(current => (current === route.key ? null : current));
+            }}
             style={{
               padding: 12,
               margin: 4,
               flexDirection: 'row',
               gap: 6,
               borderRadius: 999,
-              backgroundColor: isFocused ? 'white' : 'transparent',
+              position: 'relative',
+              backgroundColor: backgroundColor
             }}
           >
             <View
@@ -143,7 +177,7 @@ const NavigationItems = ({state, navigation, descriptors}) => {
                 isFocused={isFocused}
                 unreadIndicatorOpacity={unreadIndicatorOpacity}
                 color={isFocused ? "black" : "white"}
-                backgroundColor={isFocused ? "white" : "#70f"}
+                backgroundColor={iconBackgroundColor}
                 unreadIndicatorColor={isFocused ? '#70f' : 'white'}
                 fontSize={26}
               />
@@ -165,11 +199,13 @@ const NavigationItems = ({state, navigation, descriptors}) => {
 };
 
 const WebBar = ({state, navigation, tabBarStyle, descriptors}) => {
+  const { appThemeName } = useAppTheme();
+
   return (
     <ScrollView
       style={{
         height: '100%',
-        backgroundColor: '#70f',
+        backgroundColor: appThemeName === 'dark' ? 'black' : '#70f',
         borderRightWidth: 5,
         borderColor: 'black',
       }}

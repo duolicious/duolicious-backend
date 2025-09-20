@@ -18,6 +18,7 @@ import {
 import { DefaultText } from './default-text';
 import { RenderedHoc } from './rendered-hoc';
 import { FlashList, FlashListProps } from '@shopify/flash-list';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const styles = StyleSheet.create({
   activityIndicator: {
@@ -36,7 +37,6 @@ const styles = StyleSheet.create({
   },
   endText: {
     fontFamily: 'TruenoBold',
-    color: '#000',
     fontSize: 16,
     textAlign: 'center',
     alignSelf: 'center',
@@ -206,9 +206,11 @@ type DefaultFlashListProps<ItemT> =
   >;
 
 const ActivityIndicator_ = memo(() => {
+  const { appTheme } = useAppTheme();
+
   return (
     <View style={styles.activityIndicator}>
-      <ActivityIndicator size="large" color="#70f" />
+      <ActivityIndicator size="large" color={appTheme.brandColor} />
     </View>
   );
 });
@@ -286,9 +288,11 @@ const EndTextNotice = ({
 }: {
   endText: string | undefined
 }) => {
+  const { appTheme } = useAppTheme();
+
   if (endText) {
     return (
-      <DefaultText style={styles.endText}>
+      <DefaultText style={[{ color: appTheme.secondaryColor }, styles.endText]}>
         {endText}
       </DefaultText>
     );

@@ -7,7 +7,6 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  Text,
   TextStyle,
   View,
   ViewStyle,
@@ -54,6 +53,7 @@ import { useDraftMessage } from '../../chat/application-layer/hooks/draft-messag
 import { GifPickedEvent } from '../../components/modal/gif-picker-modal';
 import { useSkipped } from '../../hide-and-block/hide-and-block';
 import { OnlineIndicator } from '../online-indicator';
+import { useAppTheme } from '../../app-theme/app-theme';
 
 const firstMamId = (messageIds: string[] | null): string => {
   if (!messageIds) {
@@ -92,6 +92,7 @@ const maybeRequestReview = async (delayMs: number = 0) => {
 const Menu = ({navigation, name, personUuid, closeFn}) => {
   const [isSkipped, setIsSkipped] = useState<boolean | undefined>();
   const [isUpdating, setIsUpdating] = useState(false);
+  const { appTheme } = useAppTheme();
 
   const isLoading = (
     isSkipped === undefined ||
@@ -168,7 +169,7 @@ const Menu = ({navigation, name, personUuid, closeFn}) => {
     borderRadius: 3,
   };
 
-  const iconStroke = isLoading ? "transparent" : "black";
+  const iconStroke = isLoading ? "transparent" : appTheme.secondaryColor;
 
   const borderRadius = 10;
 
@@ -181,7 +182,7 @@ const Menu = ({navigation, name, personUuid, closeFn}) => {
         padding: 25,
         gap: 40,
         flexDirection: 'column',
-        backgroundColor: 'white',
+        backgroundColor: appTheme.primaryColor,
         borderRadius: borderRadius,
         borderWidth: 1,
         borderColor: '#999',
@@ -257,11 +258,11 @@ const Menu = ({navigation, name, personUuid, closeFn}) => {
             right: 0,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: 'white',
+            backgroundColor: appTheme.primaryColor,
             borderRadius: 10,
           }}
         >
-          <ActivityIndicator size="large" color="#70f" />
+          <ActivityIndicator size="large" color={appTheme.brandColor} />
         </View>
       }
     </View>
@@ -277,6 +278,7 @@ const ConversationScreenNavBar = ({
   name,
   isOnline,
 }) => {
+  const { appTheme } = useAppTheme();
   const [showMenu, setShowMenu] = useState(false);
 
   const onPressName = useCallback(() => {
@@ -332,7 +334,7 @@ const ConversationScreenNavBar = ({
               width: 30,
               height: 30,
               borderRadius: 9999,
-              backgroundColor: photoUuid ? 'white' : '#f1e5ff',
+              backgroundColor: photoUuid ? 'white' : appTheme.avatarBackgroundColor,
               justifyContent: 'center',
               alignItems: 'center',
               overflow: 'hidden',
@@ -340,7 +342,10 @@ const ConversationScreenNavBar = ({
           >
             {!photoUuid &&
               <Ionicons
-                style={{fontSize: 14, color: 'rgba(119, 0, 255, 0.2)'}}
+                style={{
+                  fontSize: 14,
+                  color: appTheme.avatarColor,
+                }}
                 name={'person'}
               />
             }
@@ -367,7 +372,7 @@ const ConversationScreenNavBar = ({
         </DefaultText>
         <ActivityIndicator
           size="small"
-          color="#70f"
+          color={appTheme.brandColor}
           style={{
             opacity: isOnline ? 0 : 1,
           }}
@@ -394,6 +399,7 @@ const ConversationScreenNavBar = ({
 };
 
 const ConversationScreen = ({navigation, route}) => {
+  const { appTheme } = useAppTheme();
   const [isActive, setIsActive] = useState(AppState.currentState === 'active');
   const [isOnline, setIsOnline] = useState(false);
 
@@ -665,7 +671,7 @@ const ConversationScreen = ({navigation, route}) => {
       />
       {messageIds === null &&
         <View style={{flexGrow: 1, justifyContent: 'center', alignItems: 'center'}}>
-          <ActivityIndicator size="large" color="#70f" />
+          <ActivityIndicator size="large" color={appTheme.brandColor} />
         </View>
       }
       {messageIds !== null &&
@@ -716,7 +722,7 @@ const ConversationScreen = ({navigation, route}) => {
                   margin: 2,
                   borderRadius: 999,
                   borderColor: 'white',
-                  backgroundColor: photoUuid ? 'white' : '#f1e5ff',
+                  backgroundColor: photoUuid ? 'white' : appTheme.avatarBackgroundColor,
                   overflow: 'hidden',
                   justifyContent: 'center',
                   alignItems: 'center',
@@ -725,12 +731,15 @@ const ConversationScreen = ({navigation, route}) => {
               >
                 {!photoUuid &&
                   <Ionicons
-                    style={{fontSize: 40, color: 'rgba(119, 0, 255, 0.2)'}}
+                    style={{
+                      fontSize: 40,
+                      color: appTheme.avatarColor,
+                    }}
                     name={'person'}
                   />
                 }
               </ImageBackground>
-              <Text
+              <DefaultText
                 style={{
                   marginTop: 20,
                   marginBottom: 10,
@@ -741,7 +750,7 @@ const ConversationScreen = ({navigation, route}) => {
                 }}
               >
                 This is the start of your conversation with {name}
-              </Text>
+              </DefaultText>
               <DefaultText
                 style={{
                   textAlign: 'center',
@@ -801,7 +810,7 @@ const ConversationScreen = ({navigation, route}) => {
             padding: 5,
             paddingTop: 10,
             paddingBottom: 10,
-            backgroundColor: '#eee',
+            backgroundColor: appTheme.interactiveBorderColor,
             fontFamily: 'Trueno',
           }}
         >

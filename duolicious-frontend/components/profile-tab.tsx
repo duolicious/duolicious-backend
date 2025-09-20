@@ -37,6 +37,7 @@ import {
   notificationSettingsOptionGroups,
   privacySettingsOptionGroups,
   themePickerOptionGroups,
+  appThemePickerOptionGroups,
   verificationOptionGroups,
 } from '../data/option-groups';
 import { Images } from './images/images';
@@ -68,6 +69,7 @@ import { useScrollbar } from './navigation/scroll-bar-hooks';
 import { WEB_VERSION } from '../env/env';
 import { photoQueue } from '../api/queue';
 import { showPointOfSale } from './modal/point-of-sale-modal';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const formatHeight = (og: OptionGroup<OptionGroupInputs>): string | undefined => {
   if (!isOptionGroupSlider(og.input)) return '';
@@ -174,7 +176,7 @@ const Images_ = ({data}) => {
 
   return (
     <>
-      <Images input={input} style={{zIndex: 999}}/>
+      <Images input={input} style={{ zIndex: 999 }}/>
       <DefaultText
         style={{
           color: '#999',
@@ -190,6 +192,7 @@ const Images_ = ({data}) => {
 };
 
 const ProfileTab_ = ({navigation}) => {
+  const { appTheme } = useAppTheme();
   const [data, setData] = useState<any>(null);
 
   useEffect(() => {
@@ -247,7 +250,7 @@ const ProfileTab_ = ({navigation}) => {
             flexGrow: 1,
           }}
         >
-          <ActivityIndicator size="large" color="#70f"/>
+          <ActivityIndicator size="large" color={appTheme.brandColor} />
         </View>
       }
     </SafeAreaView>
@@ -361,7 +364,6 @@ const DisplayNameAndAboutPerson = ({data}) => {
         defaultValue={data?.name ?? ''}
         onChangeText={onChangeNameText}
         style={{
-          backgroundColor: '#eee',
           borderWidth: 0,
           marginLeft: 0,
           marginRight: 0,
@@ -389,7 +391,6 @@ const DisplayNameAndAboutPerson = ({data}) => {
         onChangeText={onChangeAboutText}
         numberOfLines={8}
         style={{
-          backgroundColor: '#eee',
           borderWidth: 0,
           height: 200,
         }}
@@ -405,6 +406,7 @@ const Options = ({ navigation, data }) => {
     'error' | 'loading' | 'ok'
   >('ok');
   const [signedInUser] = useSignedInUser();
+  const { appThemeName } = useAppTheme();
 
   const addCurrentValue = (optionGroups: OptionGroup<OptionGroupInputs>[]) =>
     optionGroups.map(
@@ -452,6 +454,13 @@ const Options = ({ navigation, data }) => {
               }
             }
           } : {},
+          isOptionGroupButtons(og.input) && og.title === 'App Theme' ? {
+            input: {
+              buttons: {
+                currentValue: appThemeName === 'dark' ? 'Dark' : 'Light',
+              }
+            }
+          } : {},
         )
     );
 
@@ -461,6 +470,7 @@ const Options = ({ navigation, data }) => {
     _notificationSettingsOptionGroups,
     _privacySettingsOptionGroups,
     _themePickerOptionGroups,
+    _appThemePickerOptionGroups,
   ] = useMemo(
     () => [
       addCurrentValue(basicsOptionGroups),
@@ -468,8 +478,9 @@ const Options = ({ navigation, data }) => {
       addCurrentValue(notificationSettingsOptionGroups),
       addCurrentValue(privacySettingsOptionGroups),
       addCurrentValue(themePickerOptionGroups),
+      addCurrentValue(appThemePickerOptionGroups),
     ],
-    [data]
+    [data, appThemeName]
   );
 
   useEffect(() => {
@@ -649,7 +660,7 @@ const Options = ({ navigation, data }) => {
       />
       <InviteEntrypoint navigation={navigation}/>
 
-      <Title>Theme</Title>
+      <Title>Themes</Title>
       {signedInUser?.hasGold ? (
         <Button_
           setting=""
@@ -662,6 +673,22 @@ const Options = ({ navigation, data }) => {
           onPress={() => showPointOfSale('blocked')}
           label={_themePickerOptionGroups.at(0)?.title}
           icon={_themePickerOptionGroups.at(0)?.Icon}
+          setting=""
+        />
+      )}
+
+      {signedInUser?.hasGold ? (
+        <Button_
+          setting={getCurrentValue(_appThemePickerOptionGroups[0].input)}
+          optionGroups={_appThemePickerOptionGroups}
+          showSkipButton={false}
+          theme="light"
+        />
+      ) : (
+        <ButtonForOption
+          onPress={() => showPointOfSale('blocked')}
+          label={_appThemePickerOptionGroups.at(0)?.title}
+          icon={_appThemePickerOptionGroups.at(0)?.Icon}
           setting=""
         />
       )}

@@ -17,6 +17,7 @@ import { ImageBackground } from "expo-image";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
 import { OnlineIndicator } from './online-indicator';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const Avatar = ({
   percentage,
@@ -40,6 +41,8 @@ const Avatar = ({
   doUseOnline?: boolean
 }) => {
   const Element = navigation ? Pressable : View;
+
+  const { appTheme } = useAppTheme();
 
   const onPress = useCallback((e) => {
     e.preventDefault();
@@ -71,9 +74,19 @@ const Avatar = ({
       {...link}
     >
       {!Boolean(photoUuid || photoBlurhash) &&
-        <View style={styles.imageStyle}>
+        <View
+          style={[
+            styles.imageStyle,
+            {
+              backgroundColor: appTheme.avatarBackgroundColor,
+            },
+          ]}
+        >
           <Ionicons
-            style={{fontSize: 40, color: 'rgba(119, 0, 255, 0.2)'}}
+            style={{
+              fontSize: 40,
+              color: appTheme.avatarColor,
+            }}
             name={'person'}
           />
         </View>
@@ -124,7 +137,7 @@ const Avatar = ({
             height: 30,
             width: 30,
             borderRadius: 999,
-            borderColor: 'white',
+            borderColor: appTheme.primaryColor,
             borderWidth: 2,
             backgroundColor: '#70f',
             alignItems: 'center',
@@ -218,7 +231,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     margin: 4,
-    backgroundColor: '#f1e5ff',
   },
 });
 
