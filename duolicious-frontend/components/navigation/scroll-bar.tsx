@@ -2,15 +2,20 @@ import {
   useEffect,
   useRef,
   useState,
+  useCallback,
 } from 'react';
 import {
-  Animated,
-  PanResponder,
   Platform,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { listen } from '../../events/events';
 
 type ScrollViewData = {
@@ -54,13 +59,11 @@ const Scrollbar = () => {
   // mostly so we can store the onThumbDrag callback.
   const scrollViewDataRef = useRef<ScrollViewData>({ controller: null });
 
-  // The current Animated thumb position
-  const thumbPosition = useRef(new Animated.Value(0)).current;
-  // The numeric value of the thumb position (faster reads inside PanResponder)
-  const thumbPositionValue = useRef(0);
+  // The current Reanimated thumb position
+  const thumbPosition = useSharedValue(0);
 
   // Where the thumb was when the user first put their finger down
-  const gestureStartY = useRef(0);
+  const gestureStartY = useSharedValue(0);
 
   // Optional: track if user is dragging right now
   const isDragging = useRef(false);
@@ -93,6 +96,11 @@ const Scrollbar = () => {
   const scrollHeightRef = useRef(scrollViewValues.scrollViewHeight);
   const maxThumbOffsetRef = useRef(trackHeight - thumbHeight);
 
+  // Shared versions for worklet usage
+  const contentHeightShared = useSharedValue(scrollViewValues.contentHeight);
+  const scrollHeightShared = useSharedValue(scrollViewValues.scrollViewHeight);
+  const maxThumbOffsetShared = useSharedValue(trackHeight - thumbHeight);
+
   /**
    * Immediately sets the thumb position based on a given scrollY.
    */
@@ -101,12 +109,12 @@ const Scrollbar = () => {
       contentHeightRef.current - scrollHeightRef.current;
     if (maxScroll <= 0) {
       // No scrolling possible => put thumb at top
-      thumbPosition.setValue(0);
+      thumbPosition.value = 0;
       return;
     }
     const ratio = scrollY / maxScroll;
     const newThumbOffset = ratio * maxThumbOffsetRef.current;
-    thumbPosition.setValue(newThumbOffset);
+    thumbPosition.value = newThumbOffset;
   };
 
   /**
@@ -143,66 +151,50 @@ const Scrollbar = () => {
     return scrollViewDataRef.current.controller === data.controller;
   };
 
+  // JS callback helpers for worklets
+  const setIsDraggingJS = useCallback((value: boolean) => {
+    isDragging.current = value;
+  }, []);
+  const callOnThumbDrag = useCallback((y: number) => {
+    scrollViewDataRef.current.onThumbDrag?.(y);
+  }, []);
+
   /**
-   * PanResponder to handle drag events on the thumb.
+   * Gesture handler to handle drag events on the thumb.
    */
-  const panResponderRef = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-
-      onPanResponderGrant: (evt) => {
-        if (Platform.OS === 'web') {
-          evt.preventDefault?.();
-        }
-        isDragging.current = true; // user started drag
-        gestureStartY.current = thumbPositionValue.current;
-      },
-
-      onPanResponderMove: (evt, gestureState) => {
-        if (Platform.OS === 'web') {
-          evt.preventDefault?.();
-        }
-        const { dy } = gestureState;
-        const currentMaxThumbOffset = maxThumbOffsetRef.current;
-
-        // Proposed new thumb offset (clamp top/bottom)
-        let newOffset = gestureStartY.current + dy;
-        newOffset = Math.max(0, Math.min(newOffset, currentMaxThumbOffset));
-
-        // Convert thumb offset -> content scroll offset
-        const maxScroll =
-          contentHeightRef.current - scrollHeightRef.current;
-        const newScrollY =
-          maxScroll <= 0 ? 0 : (newOffset / currentMaxThumbOffset) * maxScroll;
-
-        // Notify parent to scroll
-        scrollViewDataRef.current.onThumbDrag?.(newScrollY);
-
-        // Update the thumb immediately
-        thumbPosition.setValue(newOffset);
-      },
-
-      onPanResponderRelease: () => {
-        isDragging.current = false; // user finished drag
-      },
-      onPanResponderTerminate: () => {
-        isDragging.current = false; // user stopped
-      },
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      // touchAction: 'none' in styles prevents default on web
+      scheduleOnRN(() => setIsDraggingJS(true));
+      gestureStartY.value = thumbPosition.value;
     })
-  );
+    .onChange((evt) => {
+      const dy = evt.translationY;
+      const currentMaxThumbOffset = maxThumbOffsetShared.value;
+
+      // Proposed new thumb offset (clamp top/bottom)
+      let newOffset = gestureStartY.value + dy;
+      newOffset = Math.max(0, Math.min(newOffset, currentMaxThumbOffset));
+
+      // Convert thumb offset -> content scroll offset
+      const maxScroll = contentHeightShared.value - scrollHeightShared.value;
+      const newScrollY =
+        maxScroll <= 0 ? 0 : (newOffset / currentMaxThumbOffset) * maxScroll;
+
+      // Notify parent to scroll and update the thumb immediately
+      scheduleOnRN(() => callOnThumbDrag(newScrollY));
+      thumbPosition.value = newOffset;
+    })
+    .onFinalize(() => {
+      scheduleOnRN(() => setIsDraggingJS(false));
+    });
 
   /**
-   * Keep thumbPositionValue in sync with the Animated.Value.
+   * Animated style for the thumb translateY
    */
-  useEffect(() => {
-    const listenerId = thumbPosition.addListener(({ value }) => {
-      thumbPositionValue.current = value;
-    });
-    return () => {
-      thumbPosition.removeListener(listenerId);
-    };
-  }, [thumbPosition]);
+  const animatedThumbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: thumbPosition.value }],
+  }));
 
   /**
    * 1) Whenever scrollViewValues (contentHeight, scrollViewHeight, offset) changes,
@@ -213,6 +205,11 @@ const Scrollbar = () => {
     contentHeightRef.current = scrollViewValues.contentHeight;
     scrollHeightRef.current = scrollViewValues.scrollViewHeight;
     maxThumbOffsetRef.current = trackHeight - thumbHeight;
+
+    // keep shared mirrors in sync for worklets
+    contentHeightShared.value = scrollViewValues.contentHeight;
+    scrollHeightShared.value = scrollViewValues.scrollViewHeight;
+    maxThumbOffsetShared.value = trackHeight - thumbHeight;
 
     if (!isDragging.current) {
       updateThumbPosition(scrollViewValues.offset);
@@ -244,18 +241,13 @@ const Scrollbar = () => {
       return;
     }
 
-    // The current thumb offset => oldScrollY in px
+    // The current ScrollView offset in px (use state offset)
     const oldMaxScroll = oldContentHeight - scrollViewValues.scrollViewHeight;
     const newMaxScroll =
       scrollViewValues.contentHeight - scrollViewValues.scrollViewHeight;
 
-    let oldScrollY = 0;
-    if (oldMaxScroll > 0 && maxThumbOffsetRef.current > 0) {
-      oldScrollY =
-        (thumbPositionValue.current / maxThumbOffsetRef.current) * oldMaxScroll;
-    }
-
     // Keep same absolute offset, but clamp if new content is smaller
+    const oldScrollY = Math.max(0, Math.min(oldMaxScroll, scrollViewValues.offset));
     const newScrollY = Math.max(0, Math.min(newMaxScroll, oldScrollY));
     updateThumbPosition(newScrollY);
 
@@ -311,14 +303,9 @@ const Scrollbar = () => {
     const delta = e.deltaY; // how much the wheel scrolled
     const maxScroll =
       contentHeightRef.current - scrollHeightRef.current;
-    const currentMaxThumbOffset = maxThumbOffsetRef.current;
 
-    // Convert the current thumb offset => current scroll offset
-    let currentScrollY = 0;
-    if (maxScroll > 0 && currentMaxThumbOffset > 0) {
-      currentScrollY =
-        (thumbPositionValue.current / currentMaxThumbOffset) * maxScroll;
-    }
+    // Use current offset from state
+    let currentScrollY = Math.max(0, Math.min(maxScroll, scrollViewValues.offset));
 
     // Apply the delta. Might need to tune this factor for a better feel
     const newScrollY = Math.min(
@@ -341,16 +328,17 @@ const Scrollbar = () => {
       {...(Platform.OS === 'web' ? { onWheel: handleWheel } : {})}
       style={[styles.scrollbar, { height: trackHeight }]}
     >
-      <Animated.View
-        {...panResponderRef.current.panHandlers}
-        style={[
-          styles.thumb,
-          {
-            height: thumbHeight,
-            transform: [{ translateY: thumbPosition }],
-          },
-        ]}
-      />
+      <GestureDetector gesture={panGesture}>
+        <Animated.View
+          style={[
+            styles.thumb,
+            {
+              height: thumbHeight,
+            },
+            animatedThumbStyle,
+          ]}
+        />
+      </GestureDetector>
     </View>
   );
 };
