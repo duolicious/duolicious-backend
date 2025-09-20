@@ -612,7 +612,6 @@ const Options = ({ navigation, data }) => {
             setting=""
             optionGroups={verificationOptionGroups}
             showSkipButton={false}
-            theme="light"
           />
           <DefaultText
             style={{
@@ -666,7 +665,6 @@ const Options = ({ navigation, data }) => {
           setting=""
           optionGroups={_themePickerOptionGroups}
           showSkipButton={false}
-          theme="light"
         />
       ) : (
         <ButtonForOption
@@ -682,7 +680,6 @@ const Options = ({ navigation, data }) => {
           setting={getCurrentValue(_appThemePickerOptionGroups[0].input)}
           optionGroups={_appThemePickerOptionGroups}
           showSkipButton={false}
-          theme="light"
         />
       ) : (
         <ButtonForOption

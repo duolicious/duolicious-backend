@@ -1576,7 +1576,7 @@ const OptionScreen = ({navigation, route}) => {
           }}
         >
           <ButtonWithCenteredText
-            secondary={backgroundColor !== '#ff00ff'}
+            secondary={showSkipButton || backgroundColor === '#7700ff'}
             onPress={showSkipButton ? onPressSkip : onPressContinue}
             loading={isLoading}
             containerStyle={{

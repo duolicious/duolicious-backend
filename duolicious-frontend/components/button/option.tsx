@@ -22,7 +22,6 @@ const ButtonForOption = (props) => {
     navigationScreen,
     navigation,
     loading = false,
-    theme,
   } = props;
 
   if ((label === undefined) === (optionGroups === undefined)) {
@@ -50,7 +49,6 @@ const ButtonForOption = (props) => {
         optionGroups: optionGroups,
         ...(onSubmitSuccess !== undefined ? {onSubmitSuccess} : {}),
         ...(showSkipButton !== undefined ? {showSkipButton} : {}),
-        ...(theme !== undefined ? {theme} : {}),
       }
     )
   }), []);

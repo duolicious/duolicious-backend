@@ -170,7 +170,6 @@ const SearchFilterScreen_ = ({navigation, route}) => {
       navigation={navigation}
       navigationScreen="Search Filter Option Screen"
       showSkipButton={false}
-      theme="light"
       noSettingText="Any"
       onSubmitSuccess={onSubmitSuccess}
       {...props}
