@@ -467,6 +467,7 @@ const QandQFilterScreen = ({navigation, route}) => {
             style={{
               fontSize: 20,
               color: appTheme.secondaryColor,
+              marginBottom: 10,
             }}
             name="arrow-back"
           />
@@ -478,6 +479,7 @@ const QandQFilterScreen = ({navigation, route}) => {
             marginRight: 50,
             borderWidth: 0,
             height: '100%',
+            marginBottom: 10,
           }}
           value={searchText}
           onChangeText={onChangeTextDebounced}
@@ -502,6 +504,7 @@ const QandQFilterScreen = ({navigation, route}) => {
               style={{
                 fontSize: 20,
                 color: appTheme.secondaryColor,
+                marginBottom: 10,
               }}
               name="close"
             />

@@ -232,6 +232,7 @@ const ClubSelector = ({navigation}) => {
             style={{
               fontSize: 20,
               color: appTheme.secondaryColor,
+              marginBottom: 10,
             }}
             name="arrow-back"
           />
@@ -243,6 +244,7 @@ const ClubSelector = ({navigation}) => {
             marginRight: 50,
             borderWidth: 0,
             height: '100%',
+            marginBottom: 10,
           }}
           value={searchText}
           onChangeText={onChangeTextDebounced}
@@ -267,6 +269,7 @@ const ClubSelector = ({navigation}) => {
               style={{
                 fontSize: 20,
                 color: appTheme.secondaryColor,
+                marginBottom: 10,
               }}
               name="close"
             />
