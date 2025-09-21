@@ -11,17 +11,8 @@ import * as _ from 'lodash';
 import { AppStoreBadges } from '../badges/app-store/app-store';
 import { listen, notify } from '../../events/events';
 import { setSignedInUser } from '../../events/signed-in-user';
-import { ensurePurchasesConfigured } from '../../purchases/purchases';
+import { getCurrentOfferingCached } from '../../purchases/purchases';
 import { pluralize } from '../../util/util';
-
-// TODO: Products should come from revenue cat
-// TODO: On web, Revenuecat only supports Stripe. Redirect web users to mobile app
-// TODO: Features need icons
-// TODO: If users are presented with the modal upon attempting an action, the copy should probably be 'please support duolicious before doing that'
-// TODO: Close button
-// TODO: What if there's more than one offering?
-// TODO: Wire up purchase logic
-
 
 const cardPadding = 20;
 
@@ -129,9 +120,8 @@ const Offering = ({
 
   useEffect(() => {
     (async () => {
-      await ensurePurchasesConfigured();
-      const offerings = await Purchases.getOfferings();
-      setCurrentOffering(offerings.current);
+      const offering = await getCurrentOfferingCached();
+      setCurrentOffering(offering);
     })();
   }, []);
 
