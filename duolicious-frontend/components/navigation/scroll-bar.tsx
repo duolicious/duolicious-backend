@@ -163,6 +163,7 @@ const Scrollbar = () => {
    * Gesture handler to handle drag events on the thumb.
    */
   const panGesture = Gesture.Pan()
+    .minDistance(0)
     .onStart(() => {
       // touchAction: 'none' in styles prevents default on web
       scheduleOnRN(() => setIsDraggingJS(true));
