@@ -734,7 +734,7 @@ const Options = ({ navigation, data }) => {
         )
       }
       <Title>Privacy Settings</Title>
-      {
+      {signedInUser?.hasGold || (signedInUser?.personId ?? 0) < 305200 ? (
         _privacySettingsOptionGroups.map((og, i) =>
           <Button_
             key={i}
@@ -742,7 +742,24 @@ const Options = ({ navigation, data }) => {
             optionGroups={_privacySettingsOptionGroups.slice(i)}
           />
         )
-      }
+      ) : (
+        _privacySettingsOptionGroups.map((og, i) => {
+          if (i === 0) {
+            return <Button_
+              key={i}
+              setting={getCurrentValue(og.input)}
+              optionGroups={_privacySettingsOptionGroups.slice(i, i+1)}
+            />
+          } else {
+            return <ButtonForOption
+              onPress={() => showPointOfSale('blocked')}
+              label={og.title}
+              icon={og.Icon}
+              setting={getCurrentValue(og.input)}
+            />
+          }
+        })
+      )}
       <Title>General Settings</Title>
       {
         _generalSettingsOptionGroups.map((og, i) =>
