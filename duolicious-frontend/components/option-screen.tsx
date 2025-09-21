@@ -792,6 +792,7 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
     | 'success'
     | 'failure'
   >('uploading-photo');
+  const { appTheme } = useAppTheme();
   const [message, setMessage] = useState('Loading...');
   const [numChecks, setNumChecks] = useState(3);
   const [verifiedThings, setVerifiedThings] = useState<string[]>([]);
@@ -909,9 +910,9 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
         {verified.length > 0 &&
           <DefaultText
             style={{
-              color: '#333',
               fontSize: 16,
               width: '100%',
+              textAlign: 'center',
             }}
           >
             We were able to verify your {}
@@ -919,7 +920,7 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
               <Fragment key={index}>
                 {index > 0 && index < verified.length - 1 && ', '}
                 {index === verified.length - 1 && ' and '}
-                <DefaultText key={index} style={{ fontWeight: '700' }}>
+                <DefaultText disableTheme key={index} style={{ fontWeight: '700' }}>
                   {item}
                 </DefaultText>
               </Fragment>
@@ -930,9 +931,9 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
         {unverified.length > 0 &&
           <DefaultText
             style={{
-              color: '#333',
               fontSize: 16,
               width: '100%',
+              textAlign: 'center',
             }}
           >
             You can verify your {}
@@ -940,7 +941,7 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
               <Fragment key={index}>
                 {index > 0 && index < verified.length - 1 && ', '}
                 {index === verified.length - 1 && ' and '}
-                <DefaultText style={{ fontWeight: '700' }}>
+                <DefaultText disableTheme style={{ fontWeight: '700' }}>
                   {item}
                 </DefaultText>
               </Fragment>
@@ -957,7 +958,7 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
       {isDone &&
         <View
           style={{
-            backgroundColor: '#eee',
+            backgroundColor: appTheme.inputColor,
             borderRadius: 10,
             flex: 1,
             marginLeft: 10,
@@ -982,7 +983,6 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
                 <VerificationBadge size={40}/>
                 <DefaultText
                   style={{
-                    color: '#333',
                     fontWeight: 700,
                     fontSize: 22,
                   }}
@@ -1014,7 +1014,6 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
                 />
                 <DefaultText
                   style={{
-                    color: '#333',
                     fontWeight: 700,
                     fontSize: 22,
                   }}
@@ -1025,9 +1024,9 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
               <View style={{ gap: 15, flex: 1, width: '100%' }}>
                 <DefaultText
                   style={{
-                    color: '#333',
                     fontSize: 16,
                     width: '100%',
+                    textAlign: 'center',
                   }}
                 >
                   {message}
@@ -1035,9 +1034,9 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
 
                 <DefaultText
                   style={{
-                    color: '#333',
                     fontSize: 16,
                     width: '100%',
+                    textAlign: 'center',
                   }}
                 >
                   Not to worry! You can try up to {maxDailySelfies} times per day.
@@ -1050,12 +1049,8 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
       {!isDone &&
         <DefaultText
           style={{
-            color: 'black',
             fontSize: 22,
             padding: 20,
-            borderColor: 'white',
-            borderWidth: 3,
-            borderRadius: 10,
             textAlign: 'center',
             width: '100%',
           }}
