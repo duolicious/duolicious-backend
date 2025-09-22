@@ -95,8 +95,11 @@ const ButtonForOption = (props) => {
           style={{
             paddingLeft: 20,
             paddingRight: 10,
-            color: (setting ?? noSettingText) === noSettingText ? '#888' : undefined,
-            fontStyle: (setting ?? noSettingText) === noSettingText ? 'italic' : 'normal',
+            ...((setting ?? noSettingText) === noSettingText ? {
+              color: '#888888',
+              fontStyle: 'italic',
+            } : {
+            }),
             textAlign: 'right',
             flex: 1,
           }}

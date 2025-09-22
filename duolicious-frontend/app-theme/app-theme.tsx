@@ -1,7 +1,9 @@
+import { StatusBar } from 'react-native';
 import { useLayoutEffect, useState } from 'react';
 import { listen, notify, lastEvent } from '../events/events';
 import { appThemeName as kvAppThemeName } from '../kv-storage/app-theme';
 import { useSignedInUser } from '../events/signed-in-user';
+import { assertNever } from '../util/util';
 
 type AppThemeName = 'light' | 'dark';
 
@@ -70,9 +72,22 @@ const APP_THEME: AppThemes = {
 
 const EVENT_KEY = 'updated-theme';
 
+const setAppBarStyle = (appThemeName: AppThemeName) => {
+  if (appThemeName === 'dark') {
+    StatusBar.setBarStyle('light-content');
+  } else if (appThemeName === 'light') {
+    StatusBar.setBarStyle('dark-content');
+  } else {
+    assertNever(appThemeName);
+  }
+};
+
 const setAppThemeName = (appThemeName: AppThemeName) => {
   notify<AppThemeName>(EVENT_KEY, appThemeName);
+
   kvAppThemeName(appThemeName);
+
+  setAppBarStyle(appThemeName);
 };
 
 // React hook for components to subscribe to changes
@@ -103,7 +118,11 @@ const useAppTheme = (): { appThemeName: AppThemeName, appTheme: AppTheme } => {
 };
 
 const loadAppTheme = async () => {
-  notify<AppThemeName>(EVENT_KEY, await kvAppThemeName());
+  const appThemeName = await kvAppThemeName();
+
+  notify<AppThemeName>(EVENT_KEY, appThemeName);
+
+  setAppBarStyle(appThemeName);
 };
 
 
