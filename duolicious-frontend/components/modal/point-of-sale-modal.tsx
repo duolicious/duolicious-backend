@@ -225,15 +225,17 @@ const Offering = ({
               Duolicious
             </DefaultText>
           </View>
-          <DefaultText
-            style={{
-              fontSize: 42,
-              fontWeight: 900,
-              textAlign: 'center',
-            }}
-          >
-            {productName.toUpperCase()}
-          </DefaultText>
+          {!isMobileWeb() &&
+            <DefaultText
+              style={{
+                fontSize: 42,
+                fontWeight: 900,
+                textAlign: 'center',
+              }}
+            >
+              {productName.toUpperCase()}
+            </DefaultText>
+          }
         </View>
         <DefaultText
           style={{
