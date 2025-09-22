@@ -175,7 +175,7 @@ const Avatar = ({
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: 'white',
+            backgroundColor: appTheme.primaryColor,
             justifyContent: 'center',
             alignItems: 'center',
           }}

@@ -186,6 +186,8 @@ const ProfileCard = ({
     verification_required_to_view: verificationRequired,
   } = item;
 
+  const { appTheme } = useAppTheme();
+
   const { isSkipped, wasPostSkipFiredInThisSession } = useSkipped(personUuid);
 
   const isOnline = useOnline(personUuid);
@@ -327,7 +329,7 @@ const ProfileCard = ({
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: 'white',
+            backgroundColor: appTheme.primaryColor,
             justifyContent: 'center',
             alignItems: 'center',
           }}
