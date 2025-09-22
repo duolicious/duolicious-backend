@@ -411,9 +411,9 @@ const App = () => {
   // Only need live updates on web (for browser tab title)
   const stats = useInboxStats(Platform.OS === 'web');
 
-  const numUnreadTitle = stats?.numChats
-    ? stats?.numUnreadChats
-    : stats?.numUnreadIntros;
+  const numUnread =
+    (stats?.numUnreadChats ?? 0) +
+    (stats?.numUnreadIntros ?? 0);
 
   if (Platform.OS === 'web') {
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -477,7 +477,7 @@ const App = () => {
               }}
               documentTitle={{
                 formatter: () =>
-                  (numUnreadTitle ? `(${numUnreadTitle}) ` : '') + 'Duolicious'
+                  (numUnread ? `(${numUnread}) ` : '') + 'Duolicious'
               }}
             >
               <StatusBar

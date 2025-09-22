@@ -1,8 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-} from 'react';
+import { useRef } from 'react';
 import {
   Pressable,
   Animated,
@@ -14,8 +10,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LabelToIcon } from './util';
 import { useAppTheme } from '../../app-theme/app-theme';
 
-const Tab = ({ navigation, state, route, descriptors, index, unreadIndicatorOpacity }) => {
-  const { appThemeName } = useAppTheme();
+const Tab = ({ navigation, state, route, descriptors, index, numUnread }) => {
+  const { appThemeName, appTheme } = useAppTheme();
 
   const animated = useRef(new Animated.Value(1)).current;
 
@@ -92,7 +88,12 @@ const Tab = ({ navigation, state, route, descriptors, index, unreadIndicatorOpac
         <LabelToIcon
           label={label}
           isFocused={isFocused}
-          unreadIndicatorOpacity={unreadIndicatorOpacity}
+          numUnread={numUnread}
+          color={appTheme.secondaryColor}
+          backgroundColor={appTheme.primaryColor}
+          indicatorColor={appTheme.primaryColor}
+          indicatorBackgroundColor={appTheme.brandColor}
+          indicatorBorderColor={appTheme.primaryColor}
         />
         <DefaultText
           style={{
@@ -111,30 +112,9 @@ const TabBar = ({state, descriptors, navigation}) => {
   const insets = useSafeAreaInsets();
 
   const stats = useInboxStats();
-  const numUnread = stats ?
-    (stats.numChats ? stats.numUnreadChats : stats.numUnreadIntros) :
-    0;
-
-  const prevNumUnread = useRef<number>(-1);
-
-  const unreadIndicatorOpacity = useRef(new Animated.Value(0)).current;
-
-  const hideIndicator = useCallback(() => {
-    unreadIndicatorOpacity.setValue(0);
-  }, [unreadIndicatorOpacity]);
-
-  const showIndicator = useCallback(() => {
-    unreadIndicatorOpacity.setValue(1);
-  }, [unreadIndicatorOpacity]);
-
-  useEffect(() => {
-    if (numUnread === 0) {
-      hideIndicator();
-    } else if (numUnread > prevNumUnread.current) {
-      showIndicator();
-    }
-    prevNumUnread.current = numUnread;
-  }, [numUnread, hideIndicator, showIndicator]);
+  const numUnread =
+    (stats?.numUnreadChats ?? 0) +
+    (stats?.numUnreadIntros ?? 0);
 
   return (
     <View
@@ -143,7 +123,7 @@ const TabBar = ({state, descriptors, navigation}) => {
         alignItems: 'center',
         height: 50 + insets.bottom,
         width: '100%',
-        overflow: 'hidden',
+        overflow: 'visible',
       }}
     >
       <View
@@ -152,6 +132,7 @@ const TabBar = ({state, descriptors, navigation}) => {
           height: '100%',
           width: '100%',
           maxWidth: 600,
+          overflow: 'visible',
         }}
       >
         {state.routes.map((route, index) =>
@@ -162,7 +143,7 @@ const TabBar = ({state, descriptors, navigation}) => {
             route={route}
             descriptors={descriptors}
             index={index}
-            unreadIndicatorOpacity={unreadIndicatorOpacity}
+            numUnread={numUnread}
           />
         )}
       </View>

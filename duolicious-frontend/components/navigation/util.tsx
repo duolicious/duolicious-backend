@@ -1,33 +1,36 @@
-import {
-  Animated,
-  View,
-} from 'react-native';
+import { View } from 'react-native';
 import { QAndADevice } from '../q-and-a-device';
 import { Gold } from '../badges';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSignedInUser } from '../../events/signed-in-user';
 import { isMobile } from '../../util/util';
-import { useAppTheme } from '../../app-theme/app-theme';
+import { DefaultText } from '../default-text';
 
 const LabelToIcon = ({
   label,
   isFocused,
-  unreadIndicatorOpacity,
-  color = undefined,
-  backgroundColor = undefined,
+  numUnread,
+  indicatorColor,
+  indicatorBackgroundColor,
+  indicatorBorderColor,
+  color,
+  backgroundColor,
   fontSize = 20,
-  unreadIndicatorColor = '#70f',
 }: {
   label: string
   isFocused: boolean
-  unreadIndicatorOpacity: any,
-  color?: string
-  backgroundColor?: string
+  numUnread: number
+  indicatorColor: string
+  indicatorBackgroundColor: string
+  indicatorBorderColor: string
+  color: string
+  backgroundColor: string
   fontSize?: number
-  unreadIndicatorColor?: string
 }) => {
   const [signedInUser] = useSignedInUser();
-  const { appTheme } = useAppTheme();
+
+  const cappedNumUnread = Math.min(numUnread, 99);
+  const maybePlus = numUnread > 99 ? '+' : '';
 
   const searchIcon =
     isFocused ? 'search' : 'search-outline';
@@ -42,7 +45,7 @@ const LabelToIcon = ({
 
   const iconStyle = {
     fontSize: fontSize,
-    color: color ?? appTheme.secondaryColor,
+    color: color,
     height,
   };
 
@@ -50,10 +53,10 @@ const LabelToIcon = ({
     <>
       {label === 'Q&A' &&
         <QAndADevice
-          color={color ?? appTheme.secondaryColor}
+          color={color}
           height={height}
           isBold={isFocused}
-          backgroundColor={backgroundColor ?? appTheme.primaryColor}
+          backgroundColor={backgroundColor}
         />
       }
       {label === 'Search' &&
@@ -65,18 +68,46 @@ const LabelToIcon = ({
       {label === 'Inbox' &&
         <View>
           <Ionicons style={{...iconStyle}} name={inboxIcon}/>
-          <Animated.View
-            style={{
-              position: 'absolute',
-              top: 0,
-              right: -13,
-              height: 12,
-              width: 12,
-              backgroundColor: unreadIndicatorColor,
-              borderRadius: 999,
-              opacity: unreadIndicatorOpacity,
-            }}
-          />
+          {numUnread > 0 &&
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                left: 0,
+                right: 0,
+                justifyContent: 'flex-start',
+                alignItems: 'flex-end',
+              }}
+            >
+              <View
+                style={{
+                  width: '15%',
+                  height: '100%',
+                  overflow: 'visible',
+                }}
+              >
+                <DefaultText
+                  style={{
+                    position: 'absolute',
+                    top: -2,
+                    left: 0,
+                    fontFamily: 'TruenoBold',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    paddingHorizontal: 4,
+                    paddingVertical: 1,
+                    fontSize: 12,
+                    borderColor: indicatorBorderColor,
+                    backgroundColor: indicatorBackgroundColor,
+                    color: indicatorColor,
+                  }}
+                >
+                  {cappedNumUnread}{maybePlus}
+                </DefaultText>
+              </View>
+            </View>
+          }
         </View>
       }
       {label === 'Profile' &&

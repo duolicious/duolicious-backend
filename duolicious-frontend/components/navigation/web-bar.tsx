@@ -1,28 +1,14 @@
+import { useState } from 'react';
 import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
-import {
-  Animated,
   Pressable,
   Text,
   View,
   ScrollView,
 } from 'react-native';
-import {
-  DefaultText,
-} from '../default-text';
-import {
-  CommonActions,
-} from '@react-navigation/native';
-import {
-  Logo16
-} from '../logo';
-import {
-  LabelToIcon
-} from './util';
+import { DefaultText } from '../default-text';
+import { CommonActions } from '@react-navigation/native';
+import { Logo16 } from '../logo';
+import { LabelToIcon } from './util';
 import { useInboxStats } from '../../chat/application-layer/hooks/inbox-stats';
 import { WebBarFooter } from './web-bar-footer/web-bar-footer';
 import { useAppTheme } from '../../app-theme/app-theme';
@@ -65,31 +51,10 @@ const NavigationItems = ({state, navigation, descriptors}) => {
 
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
-  const unreadIndicatorOpacity = useRef(new Animated.Value(0)).current;
-
-  const hideIndicator = useCallback(() => {
-    unreadIndicatorOpacity.setValue(0);
-  }, [unreadIndicatorOpacity]);
-
-  const showIndicator = useCallback(() => {
-    unreadIndicatorOpacity.setValue(1);
-  }, [unreadIndicatorOpacity]);
-
   const stats = useInboxStats();
-  const numUnread = stats ?
-    (stats.numChats ? stats.numUnreadChats : stats.numUnreadIntros) :
-    0;
-
-  const prevNumUnread = useRef<number>(-1);
-
-  useEffect(() => {
-    if (numUnread === 0) {
-      hideIndicator();
-    } else if (numUnread > prevNumUnread.current) {
-      showIndicator();
-    }
-    prevNumUnread.current = numUnread;
-  }, [numUnread, hideIndicator, showIndicator]);
+  const numUnread =
+    (stats?.numUnreadChats ?? 0) +
+    (stats?.numUnreadIntros ?? 0);
 
   return (
     <View
@@ -175,10 +140,12 @@ const NavigationItems = ({state, navigation, descriptors}) => {
               <LabelToIcon
                 label={label}
                 isFocused={isFocused}
-                unreadIndicatorOpacity={unreadIndicatorOpacity}
+                numUnread={numUnread}
                 color={isFocused ? "black" : "white"}
                 backgroundColor={iconBackgroundColor}
-                unreadIndicatorColor={isFocused ? '#70f' : 'white'}
+                indicatorColor={iconBackgroundColor}
+                indicatorBackgroundColor={isFocused ? "black" : 'white'}
+                indicatorBorderColor={iconBackgroundColor}
                 fontSize={26}
               />
             </View>
