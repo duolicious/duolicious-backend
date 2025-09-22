@@ -12,7 +12,7 @@ import { AppStoreBadges } from '../badges/app-store/app-store';
 import { listen, notify } from '../../events/events';
 import { setSignedInUser } from '../../events/signed-in-user';
 import { getCurrentOfferingCached } from '../../purchases/purchases';
-import { pluralize } from '../../util/util';
+import { pluralize, isMobileWeb } from '../../util/util';
 
 const cardPadding = 20;
 
@@ -98,7 +98,7 @@ const PurchaseButton = ({
         </DefaultText>
         <View
           style={{
-            maxWidth: 250,
+            maxWidth: isMobileWeb() ? 176 : 250,
           }}
         >
           <AppStoreBadges/>
@@ -336,17 +336,19 @@ const Offering = ({
           }
         </View>
 
-        <DefaultText
-          style={{
-            fontSize: 12,
-            color: 'white',
-            backgroundColor: 'black',
-            paddingHorizontal: cardPadding,
-            paddingVertical: cardPadding / 2,
-          }}
-        >
-          Subscription renews automatically. Cancel anytime.
-        </DefaultText>
+        {!isMobileWeb() &&
+          <DefaultText
+            style={{
+              fontSize: 12,
+              color: 'white',
+              backgroundColor: 'black',
+              paddingHorizontal: cardPadding,
+              paddingVertical: cardPadding / 2,
+            }}
+          >
+            Subscription renews automatically. Cancel anytime.
+          </DefaultText>
+        }
       </View>
       <Close onPress={onPressClose} />
     </>
