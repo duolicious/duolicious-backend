@@ -518,7 +518,7 @@ const FeedItemUpdatedBio = ({
   fields: UpdatedBioFields,
   action?: Action,
 }) => {
-  const { appTheme } = useAppTheme();
+  const { appThemeName, appTheme } = useAppTheme();
 
   const onPress = useNavigationToProfile(
     fields.person_uuid,
@@ -571,7 +571,10 @@ const FeedItemUpdatedBio = ({
             />
             <DefaultText
               style={{
-                backgroundColor: capLuminance(fields.background_color),
+                backgroundColor:
+                  appThemeName === 'dark'
+                    ? capLuminance(fields.background_color)
+                    : fields.background_color,
                 color: fields.body_color,
                 borderRadius: 10,
                 padding: 10,
