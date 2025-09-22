@@ -375,7 +375,7 @@ async def real_verification_response(
 ) -> str | None:
     try:
         return (await AsyncOpenAI().chat.completions.create(
-            model="gpt-4.1-2025-04-14",
+            model="gpt-5",
             response_format={"type": "json_object"},
             temperature=0.0,
             frequency_penalty=0.0,
