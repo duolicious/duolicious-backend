@@ -6,7 +6,7 @@ import { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'Duolicious',
   slug: 'duolicious',
-  version: "31.2.0",
+  version: "31.2.1",
   orientation: "portrait",
   icon: './assets/icon.png',
   newArchEnabled: true,

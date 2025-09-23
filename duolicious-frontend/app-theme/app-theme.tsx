@@ -1,5 +1,5 @@
 import { StatusBar } from 'react-native';
-import { useLayoutEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { listen, notify, lastEvent } from '../events/events';
 import { appThemeName as kvAppThemeName } from '../kv-storage/app-theme';
 import { useSignedInUser } from '../events/signed-in-user';
@@ -80,6 +80,8 @@ const setAppBarStyle = (appThemeName: AppThemeName) => {
   } else {
     assertNever(appThemeName);
   }
+  StatusBar.setTranslucent(true);
+  StatusBar.setBackgroundColor('transparent');
 };
 
 const setAppThemeName = (appThemeName: AppThemeName) => {
@@ -99,7 +101,7 @@ const useAppTheme = (): { appThemeName: AppThemeName, appTheme: AppTheme } => {
   );
   const [signedInUser] = useSignedInUser();
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     return listen<AppThemeName>(
       EVENT_KEY,
       (v) => {

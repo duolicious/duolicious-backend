@@ -1,7 +1,6 @@
 import {
   Animated,
   Platform,
-  StatusBar,
   UIManager,
 } from 'react-native';
 import {
@@ -480,15 +479,11 @@ const App = () => {
                   (numUnread ? `(${numUnread}) ` : '') + 'Duolicious'
               }}
             >
-              <StatusBar
-                translucent={true}
-                backgroundColor="transparent"
-                barStyle="dark-content"
-              />
               <Stack.Navigator
                 screenOptions={{
                   headerShown: false,
                   presentation: 'card',
+                  navigationBarColor: appTheme.primaryColor,
                 }}
               >
                 <Tab.Screen

@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { QAndADevice } from '../q-and-a-device';
 import { Gold } from '../badges';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -29,8 +29,10 @@ const LabelToIcon = ({
 }) => {
   const [signedInUser] = useSignedInUser();
 
-  const cappedNumUnread = Math.min(numUnread, 99);
-  const maybePlus = numUnread > 99 ? '+' : '';
+  const unreadCap = 99;
+  const cappedNumUnread = Math.min(numUnread, unreadCap);
+  const isCapped = numUnread > unreadCap;
+  const maybePlus = isCapped ? '+' : '';
 
   const searchIcon =
     isFocused ? 'search' : 'search-outline';
@@ -72,40 +74,35 @@ const LabelToIcon = ({
             <View
               style={{
                 position: 'absolute',
-                top: 0,
-                bottom: 0,
-                left: 0,
-                right: 0,
-                justifyContent: 'flex-start',
-                alignItems: 'flex-end',
+                top: -3,
+                left: Math.round(fontSize * 0.85),
+                flex: 1,
+                flexWrap: 'nowrap',
+                borderRadius: 8,
+                paddingLeft: 6,
+                // Android doesn't center the child DefaultText element properly
+                // for some reason, so here's a hack.
+                paddingRight: Platform.OS === 'android' ? 5 : 6,
+                paddingVertical: 1,
+                borderWidth: 1,
+                borderColor: indicatorBorderColor,
+                backgroundColor: indicatorBackgroundColor,
+                justifyContent: 'center',
+                alignItems: 'center',
               }}
             >
-              <View
+              <DefaultText
                 style={{
-                  width: '15%',
-                  height: '100%',
-                  overflow: 'visible',
+                  textAlign: 'center',
+                  fontFamily: 'TruenoBold',
+                  fontSize: 12,
+                  color: indicatorColor,
                 }}
+                ellipsizeMode="clip"
+                numberOfLines={1}
               >
-                <DefaultText
-                  style={{
-                    position: 'absolute',
-                    top: -2,
-                    left: 0,
-                    fontFamily: 'TruenoBold',
-                    borderWidth: 1,
-                    borderRadius: 6,
-                    paddingHorizontal: 4,
-                    paddingVertical: 1,
-                    fontSize: 12,
-                    borderColor: indicatorBorderColor,
-                    backgroundColor: indicatorBackgroundColor,
-                    color: indicatorColor,
-                  }}
-                >
-                  {cappedNumUnread}{maybePlus}
-                </DefaultText>
-              </View>
+                {`${cappedNumUnread}${maybePlus}`}
+              </DefaultText>
             </View>
           }
         </View>

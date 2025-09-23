@@ -105,9 +105,11 @@ const IntrosItem = ({
           </View>
           <DefaultText
             numberOfLines={1}
-            style={{
-              fontWeight: wasRead ? '400' : '600',
-              color: wasRead ? 'grey' : undefined,
+            style={wasRead ? {
+              fontWeight: '400',
+              color: 'grey',
+            } : {
+              fontWeight: '600',
             }}
           >
             Wants to chat
@@ -225,9 +227,11 @@ const ChatsItem = ({
           </View>
           <DefaultText
             numberOfLines={1}
-            style={{
-              fontWeight: wasRead ? '400' : '600',
-              color: wasRead ? 'grey' : undefined,
+            style={wasRead ? {
+              fontWeight: '400',
+              color: 'grey',
+            } : {
+              fontWeight: '600',
             }}
           >
             {lastMessage}
