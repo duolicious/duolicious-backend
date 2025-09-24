@@ -84,11 +84,11 @@ const UnselectedClub = ({
   const animateOpacity = useCallback(() => {
     // Animate opacity to 0.3 if at quota, otherwise animate back to 1
     Animated.timing(opacityAnimation, {
-      toValue: isAtQuota ? 0.3 : 1,
+      toValue: isAtQuota && signedInUser?.hasGold ? 0.3 : 1,
       duration: 300, // Duration can be adjusted as needed
       useNativeDriver: true
     }).start();
-  }, [isAtQuota]);
+  }, [isAtQuota, signedInUser?.hasGold]);
 
   useEffect(() => {
     animateOpacity();
@@ -288,7 +288,7 @@ const ClubSelector = ({navigation}) => {
       >
         {!_.isEmpty(selectedClubs) &&
           <>
-            <Title>Clubs you’re in ({selectedClubs.length}/{clubQuota()})</Title>
+            <Title>Clubs you’re in ({selectedClubs.length}/{clubQuota(signedInUser?.hasGold)})</Title>
             <View
               style={{
                 flexDirection: 'row',
@@ -350,9 +350,7 @@ const ClubSelector = ({navigation}) => {
                 key={String(i)}
                 clubItem={a}
                 onPress={onSelectClub}
-                isAtQuota={
-                  selectedClubs.length >= clubQuota() && !!signedInUser?.hasGold
-                }
+                isAtQuota={selectedClubs.length >= clubQuota(signedInUser?.hasGold)}
               />
             )}
             <DefaultText style={{

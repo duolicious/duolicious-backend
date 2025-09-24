@@ -3,8 +3,8 @@ import { notify, lastEvent } from '../events/events';
 import { searchQueue } from '../api/queue';
 import { getSignedInUser } from '../events/signed-in-user';
 
-const clubQuota = () => {
-  if (getSignedInUser()?.hasGold) {
+const clubQuota = (hasGold?: boolean) => {
+  if (hasGold ?? getSignedInUser()?.hasGold) {
     return 100;
   } else {
     return 50;
