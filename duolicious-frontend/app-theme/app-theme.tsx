@@ -80,16 +80,10 @@ const setAppBarStyle = (appThemeName: AppThemeName) => {
   } else {
     assertNever(appThemeName);
   }
+
   StatusBar.setTranslucent(true);
+
   StatusBar.setBackgroundColor('transparent');
-};
-
-const setAppThemeName = (appThemeName: AppThemeName) => {
-  notify<AppThemeName>(EVENT_KEY, appThemeName);
-
-  kvAppThemeName(appThemeName);
-
-  setAppBarStyle(appThemeName);
 };
 
 // React hook for components to subscribe to changes
@@ -99,7 +93,6 @@ const useAppTheme = (): { appThemeName: AppThemeName, appTheme: AppTheme } => {
   const [appThemeName, setAppThemeName] = useState<AppThemeName>(
     initialAppThemeName
   );
-  const [signedInUser] = useSignedInUser();
 
   useEffect(() => {
     return listen<AppThemeName>(
@@ -112,19 +105,32 @@ const useAppTheme = (): { appThemeName: AppThemeName, appTheme: AppTheme } => {
     );
   }, []);
 
-  if (!signedInUser || !signedInUser.hasGold) {
-    return { appThemeName: 'light', appTheme: APP_THEME['light'] };
-  } else {
-    return { appThemeName, appTheme: APP_THEME[appThemeName] };
-  }
+  return { appThemeName, appTheme: APP_THEME[appThemeName] };
 };
 
-const loadAppTheme = async () => {
-  const appThemeName = await kvAppThemeName();
+const setAppThemeName = (appThemeName: AppThemeName) => {
+  kvAppThemeName(appThemeName);
 
   notify<AppThemeName>(EVENT_KEY, appThemeName);
 
   setAppBarStyle(appThemeName);
+};
+
+const loadAppTheme = async (hasGold: boolean) => {
+  const appThemeName = hasGold ? await kvAppThemeName() : 'light';
+
+  notify<AppThemeName>(EVENT_KEY, appThemeName);
+
+  setAppBarStyle(appThemeName);
+};
+
+const useAppThemeLoader = () => {
+  const [signedInUser] = useSignedInUser();
+
+  useEffect(() => {
+    loadAppTheme(signedInUser?.hasGold ?? false);
+  }, [signedInUser?.hasGold]);
+
 };
 
 
@@ -132,7 +138,7 @@ export {
   AppTheme,
   AppThemeName,
   AppThemes,
-  loadAppTheme,
+  useAppThemeLoader,
   setAppThemeName,
   useAppTheme,
 };

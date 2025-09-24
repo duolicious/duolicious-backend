@@ -17,7 +17,7 @@ import {
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Font from 'expo-font';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import * as SplashScreen from 'expo-splash-screen';
+import * as ExpoSplashScreen from 'expo-splash-screen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabBar } from './components/navigation/tab-bar';
 import { SearchTab } from './components/search-tab';
@@ -62,11 +62,11 @@ import { VerificationCameraModal } from './components/verification-camera';
 import { notify } from './events/events';
 import { PointOfSaleModal } from './components/modal/point-of-sale-modal';
 import { setSignedInUser, useSignedInUser } from './events/signed-in-user';
-import { loadAppTheme, useAppTheme } from './app-theme/app-theme';
+import { useAppThemeLoader, useAppTheme } from './app-theme/app-theme';
 
 verificationWatcher();
 
-SplashScreen.preventAutoHideAsync();
+ExpoSplashScreen.preventAutoHideAsync();
 
 const Stack = createNativeStackNavigator();
 const Tab = isMobile() ? createBottomTabNavigator() : createWebNavigator();
@@ -111,7 +111,7 @@ const WebSplashScreen = ({loading}) => {
     }
   }, [loading]);
 
-  if (Platform.OS !== 'web' || isFaded) {
+  if (isFaded) {
     return null;
   } else {
     return (
@@ -136,6 +136,14 @@ const WebSplashScreen = ({loading}) => {
   }
 };
 
+const SplashScreen = ({loading}) => {
+  if (Platform.OS === 'web') {
+    return <WebSplashScreen loading={loading} />;
+  } else {
+    return null;
+  }
+};
+
 const otpDestination = { value: '' };
 const isImagePickerOpen = { value: false };
 
@@ -146,6 +154,7 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
   const [signedInUser] = useSignedInUser();
+  useAppThemeLoader();
   const { appTheme } = useAppTheme();
 
   const loadFonts = useCallback(async () => {
@@ -356,7 +365,6 @@ const App = () => {
       lockScreenOrientation(),
       restoreSessionAndNavigate(),
       fetchServerStatusState(),
-      loadAppTheme(),
     ]);
 
     setIsLoading(false);
@@ -443,7 +451,7 @@ const App = () => {
   useEffect(() => {
     (async () => {
       if (!isLoading) {
-        await SplashScreen.hideAsync();
+        await ExpoSplashScreen.hideAsync();
       }
     })();
   }, [isLoading]);
@@ -513,7 +521,7 @@ const App = () => {
             <VerificationCameraModal/>
           </GestureHandlerRootView>
         }
-        <WebSplashScreen loading={isLoading}/>
+        <SplashScreen loading={isLoading} />
       </SafeAreaProvider>
     </ErrorBoundary>
   );
