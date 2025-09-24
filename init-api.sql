@@ -316,6 +316,7 @@ CREATE TABLE IF NOT EXISTS person (
     sign_in_time TIMESTAMP NOT NULL DEFAULT NOW(),
     last_nag_time TIMESTAMP DEFAULT to_timestamp(0),
     last_online_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    last_visitor_check_time TIMESTAMP NOT NULL DEFAULT NOW(),
 
     -- Whether the account was deactivated via the settings or automatically
     activated BOOLEAN NOT NULL DEFAULT TRUE,
@@ -705,6 +706,14 @@ CREATE TABLE IF NOT EXISTS skipped (
     PRIMARY KEY (subject_person_id, object_person_id)
 );
 
+CREATE TABLE IF NOT EXISTS visited (
+    subject_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    object_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY (subject_person_id, object_person_id)
+);
+
 --------------------------------------------------------------------------------
 -- TABLES TO SPEED UP SEARCHING
 --------------------------------------------------------------------------------
@@ -805,10 +814,6 @@ CREATE INDEX IF NOT EXISTS idx__bad_email_domain__domain
 CREATE INDEX IF NOT EXISTS idx__good_email_domain__domain
     ON good_email_domain(domain);
 
-CREATE INDEX IF NOT EXISTS idx__skipped__object_person_id__created_at__reported
-    ON skipped(object_person_id, created_at)
-    WHERE reported;
-
 CREATE INDEX IF NOT EXISTS idx__verification_job__status
     ON verification_job(status);
 
@@ -818,6 +823,12 @@ CREATE INDEX IF NOT EXISTS idx__verification_job__person_id
 CREATE INDEX IF NOT EXISTS idx__verification_job__expires_at
     ON verification_job(expires_at);
 
+CREATE INDEX IF NOT EXISTS idx__skipped__object_person_id__created_at__reported
+    ON skipped(object_person_id, created_at)
+    WHERE reported;
+
+CREATE INDEX IF NOT EXISTS idx__skipped__object_person_id__subject_person_id
+    ON skipped(object_person_id, subject_person_id);
 
 CREATE INDEX IF NOT EXISTS idx__messaged__object_person_id__subject_person_id__created_at
     ON messaged(object_person_id, subject_person_id, created_at);
@@ -825,9 +836,8 @@ CREATE INDEX IF NOT EXISTS idx__messaged__object_person_id__subject_person_id__c
 CREATE INDEX IF NOT EXISTS idx__messaged__object_person_id__created_at
     ON messaged(object_person_id, created_at);
 
-
-CREATE INDEX IF NOT EXISTS idx__skipped__object_person_id__subject_person_id
-    ON skipped(object_person_id, subject_person_id);
+CREATE INDEX IF NOT EXISTS idx__visited__object_person_id
+    ON visited(object_person_id);
 
 
 --------------------------------------------------------------------------------
