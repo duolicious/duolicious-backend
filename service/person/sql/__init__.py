@@ -869,6 +869,20 @@ WITH prospect AS (
         uuid = uuid_or_null(%(prospect_uuid)s::TEXT)
     AND
         prospect.id = %(person_id)s
+), updated_visited AS (
+    INSERT INTO visited (
+        subject_person_id,
+        object_person_id,
+        updated_at
+    )
+    SELECT
+        %(person_id)s AS subject_person_id,
+        prospect.id AS object_person_id,
+        now() AS updated_at
+    FROM
+        prospect
+    ON CONFLICT (subject_person_id, object_person_id) DO UPDATE SET
+        updated_at = now()
 ), negative_dot_prod AS (
     SELECT (
         SELECT personality FROM person WHERE id = %(person_id)s
