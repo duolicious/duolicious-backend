@@ -2923,7 +2923,11 @@ WITH checker AS (
 
         prospect.name AS name,
 
-        EXTRACT(YEAR FROM AGE(prospect.date_of_birth)) AS age,
+        CASE
+            WHEN prospect.show_my_age
+            THEN EXTRACT(YEAR FROM AGE(prospect.date_of_birth))
+            ELSE NULL
+        END AS age,
 
         gender.name AS gender,
 
