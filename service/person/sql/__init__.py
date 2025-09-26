@@ -2897,3 +2897,229 @@ SELECT
 FROM
     updated_person
 """
+
+Q_VISITORS = """
+WITH checker AS (
+    SELECT
+        id,
+        personality,
+        last_visitor_check_time,
+        verification_level_id
+    FROM
+        person
+    WHERE
+        id = %(person_id)s
+), either_visited AS (
+    SELECT
+        direction.kind AS direction_kind,
+
+        prospect.uuid AS person_uuid,
+
+        visitor_photo.blurhash AS photo_blurhash,
+
+        visitor_photo.uuid AS photo_uuid,
+
+        iso8601_utc(visited.updated_at) AS time,
+
+        prospect.name AS name,
+
+        CASE
+            WHEN prospect.show_my_age
+            THEN EXTRACT(YEAR FROM AGE(prospect.date_of_birth))
+            ELSE NULL
+        END AS age,
+
+        gender.name AS gender,
+
+        (
+            SELECT short_friendly
+            FROM location
+            WHERE prospect.show_my_location
+            ORDER BY location.coordinates <-> prospect.coordinates
+            LIMIT 1
+        ) AS location,
+
+        prospect.verification_level_id > 1 AS is_verified,
+
+        CLAMP(
+            0,
+            99,
+            100 * (1 - (prospect.personality <#> checker.personality)) / 2
+        )::SMALLINT AS match_percentage,
+
+        CASE
+            WHEN direction.kind = 'visited_you'
+            THEN visited.updated_at > checker.last_visitor_check_time
+            ELSE FALSE
+        END AS is_new,
+
+        verification_required_to_view,
+
+        visited.updated_at AS order_time
+    FROM
+        checker
+    CROSS JOIN
+        visited
+    JOIN
+        person AS prospect
+    ON
+        (
+            visited.subject_person_id = prospect.id
+        AND
+            visited.object_person_id = checker.id
+        )
+    OR
+        (
+            visited.subject_person_id = checker.id
+        AND
+            visited.object_person_id = prospect.id
+        )
+    LEFT JOIN LATERAL (
+        SELECT
+            CASE
+                WHEN visited.subject_person_id = checker.id
+                THEN 'you_visited'
+                ELSE 'visited_you'
+            END AS kind
+        FROM
+            checker
+    ) AS direction
+    ON
+        TRUE
+    JOIN
+        gender
+    ON
+        gender.id = prospect.gender_id
+    LEFT JOIN LATERAL (
+        SELECT
+            CASE
+                WHEN
+                    checker.verification_level_id >=
+                    prospect.privacy_verification_level_id
+                THEN NULL
+                WHEN
+                    prospect.privacy_verification_level_id = 2
+                THEN 'basics'
+                WHEN
+                    prospect.privacy_verification_level_id = 3
+                THEN 'photos'
+            END AS verification_required_to_view
+        FROM
+            checker
+    ) AS verification_required_to_view
+    ON
+        TRUE
+    LEFT JOIN LATERAL (
+        SELECT
+            CASE
+                WHEN verification_required_to_view IS NULL
+                THEN photo.uuid
+                ELSE NULL
+            END AS uuid,
+            photo.blurhash
+        FROM
+            photo
+        WHERE
+            photo.person_id = prospect.id
+        ORDER BY
+            photo.position
+        LIMIT 1
+    ) AS visitor_photo
+    ON
+        TRUE
+    WHERE
+        visited.updated_at > now() - interval '1 week'
+    AND
+        prospect.activated
+    AND
+        -- The prospect did not skip the checker
+        prospect.id NOT IN (
+            SELECT
+                subject_person_id
+            FROM
+                skipped
+            WHERE
+                object_person_id = %(person_id)s
+        )
+    AND
+        -- The checker did not skip the prospect, or wishes to view skipped prospects
+        (
+            prospect.id NOT IN (
+                SELECT
+                    object_person_id
+                FROM
+                    skipped
+                WHERE
+                    subject_person_id = %(person_id)s
+            )
+        OR
+            1 IN (
+                SELECT
+                    skipped_id
+                FROM
+                    search_preference_skipped
+                WHERE
+                    person_id = %(person_id)s
+            )
+        )
+    AND (
+        prospect.id IN (
+            SELECT
+                subject_person_id
+            FROM
+                messaged
+            WHERE
+                object_person_id = %(person_id)s
+        )
+    OR
+        NOT prospect.hide_me_from_strangers
+    )
+)
+SELECT
+    json_build_object(
+        'visited_you',
+        COALESCE(
+            (
+                SELECT jsonb_agg(
+                    to_jsonb(either_visited)
+                    - 'order_time'
+                    - 'direction_kind'
+                    ORDER BY
+                        either_visited.order_time DESC
+                )
+                FROM
+                    either_visited
+                WHERE
+                    either_visited.direction_kind = 'visited_you'
+            ),
+            '[]'::jsonb
+        ),
+
+        'you_visited',
+        COALESCE(
+            (
+                SELECT jsonb_agg(
+                    to_jsonb(either_visited)
+                    - 'order_time'
+                    - 'direction_kind'
+                    ORDER BY
+                        either_visited.order_time DESC
+                )
+                FROM
+                    either_visited
+                WHERE
+                    either_visited.direction_kind = 'you_visited'
+            ),
+            '[]'::jsonb
+        )
+    ) AS j
+"""
+
+Q_MARK_VISITORS_CHECKED = """
+UPDATE
+    person
+SET
+    last_visitor_check_time = now()
+WHERE
+    id = %(person_id)s
+"""

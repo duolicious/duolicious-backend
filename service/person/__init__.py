@@ -2064,3 +2064,12 @@ def post_revenuecat(req: t.PostRevenuecat):
             updated_uuids=sorted(updated_uuids),
             ignored_uuids=sorted(ignored_uuids),
         )
+
+def get_visitors(s: t.SessionInfo):
+    with api_tx() as tx:
+        tx.execute(Q_VISITORS, dict(person_id=s.person_id))
+        return tx.fetchone()['j']
+
+def post_mark_visitors_checked(s: t.SessionInfo):
+    with api_tx() as tx:
+        tx.execute(Q_MARK_VISITORS_CHECKED, dict(person_id=s.person_id))

@@ -527,3 +527,11 @@ def get_export_data(token: str):
 @validate(t.PostRevenuecat)
 def post_revenuecat(req: t.PostRevenuecat):
     return person.post_revenuecat(req)
+
+@aget('/visitors')
+def get_visitors(s: t.SessionInfo):
+    return person.get_visitors(s=s)
+
+@apost('/mark-visitors-checked')
+def post_mark_visitors_checked(s: t.SessionInfo):
+    return person.post_mark_visitors_checked(s=s)
