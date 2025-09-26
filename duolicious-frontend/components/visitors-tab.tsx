@@ -429,14 +429,14 @@ const VisitorsTab = () => {
   const keys = useVisitorKeys(sectionFromIndex(sectionIndex));
 
   const emptyText = sectionIndex === 0 ? (
-    "Nobody’s visited yet. Try answering more Q&A questions or " +
-    "updating your profile."
+    "Nobody’s visited your profile yet. Try answering more Q&A questions or " +
+    "updating your profile"
   ) : (
-    "You haven’t visited anybody lately"
+    "You haven’t visited anybody’s profile lately"
   );
 
   const endText = sectionIndex === 0 ? (
-    "That’s everybody who’s visited you for now"
+    "That’s everybody who’s visited you recently"
   ) : (
     "That’s everybody you’ve visited recently"
   );

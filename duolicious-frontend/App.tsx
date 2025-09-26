@@ -409,7 +409,7 @@ const App = () => {
     })();
 
     return () => { doBreak = true; };
-  }, [signedInUser]);
+  }, [signedInUser?.personUuid]);
 
   const onError = useCallback(async () => {
     await clearAllKv();
