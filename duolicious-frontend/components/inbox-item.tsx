@@ -20,6 +20,7 @@ const IntrosItem = ({
   photoUuid,
   photoBlurhash,
   matchPercentage,
+  lastMessageTimestamp,
   isVerified,
 }: {
   wasRead: boolean
@@ -82,26 +83,41 @@ const IntrosItem = ({
           <View
             style={{
               flexDirection: 'row',
-              flexShrink: 1,
+              justifyContent: 'space-between',
               gap: 5,
-              alignItems: 'center',
-              paddingBottom: 5,
             }}
           >
-            <DefaultText
+            <View
               style={{
-                fontSize: 16,
-                fontWeight: '700',
-                overflow: 'hidden',
-                flexWrap: 'wrap',
+                flexDirection: 'row',
                 flexShrink: 1,
+                gap: 5,
+                alignItems: 'center',
+                paddingBottom: 5,
               }}
             >
-              {name}
+              <DefaultText
+                style={{
+                  fontSize: 16,
+                  fontWeight: '700',
+                  overflow: 'hidden',
+                  flexWrap: 'wrap',
+                  flexShrink: 1,
+                }}
+              >
+                {name}
+              </DefaultText>
+              {isVerified &&
+                <VerificationBadge size={18} />
+              }
+            </View>
+            <DefaultText
+              style={{
+                color: 'grey',
+              }}
+            >
+              {friendlyTimestamp(lastMessageTimestamp)}
             </DefaultText>
-            {isVerified &&
-              <VerificationBadge size={18} />
-            }
           </View>
           <DefaultText
             numberOfLines={1}

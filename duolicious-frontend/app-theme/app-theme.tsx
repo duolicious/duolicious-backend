@@ -10,6 +10,7 @@ type AppThemeName = 'light' | 'dark';
 type AppTheme = {
   primaryColor: string
   secondaryColor: string
+  hintColor: string
   inputColor: string
   card: {
     borderTopColor: string
@@ -33,6 +34,7 @@ const APP_THEME: AppThemes = {
   light: {
     primaryColor: '#ffffff',
     secondaryColor: '#000000',
+    hintColor: '#999999',
     inputColor: '#eeeeee',
     card: {
       borderTopColor: '#eeeeee',
@@ -52,6 +54,7 @@ const APP_THEME: AppThemes = {
   dark: {
     primaryColor: '#1a1a1e',
     secondaryColor: '#ffffff',
+    hintColor: '#999999',
     inputColor: '#222327',
     card: {
       borderTopColor: '#000000',

@@ -5,6 +5,53 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSignedInUser } from '../../events/signed-in-user';
 import { isMobile } from '../../util/util';
 import { DefaultText } from '../default-text';
+import { useNumVisitors } from '../visitors-tab';
+
+const NumberBadge = ({ num, left, borderColor, backgroundColor, color, cap = 99 }) => {
+  const cappedNum = Math.min(num, cap);
+  const isCapped = cap > cap;
+  const maybePlus = isCapped ? '+' : '';
+
+  if (num <= 0) {
+    return null;
+  }
+
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        top: -3,
+        left,
+        flex: 1,
+        flexWrap: 'nowrap',
+        borderRadius: 8,
+        paddingLeft: 6,
+        // Android doesn't center the child DefaultText element properly
+        // for some reason, so here's a hack.
+        paddingRight: Platform.OS === 'android' ? 5 : 6,
+        paddingVertical: 1,
+        borderWidth: 1,
+        borderColor,
+        backgroundColor,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <DefaultText
+        style={{
+          textAlign: 'center',
+          fontFamily: 'TruenoBold',
+          fontSize: 12,
+          color,
+        }}
+        ellipsizeMode="clip"
+        numberOfLines={1}
+      >
+        {`${cappedNum}${maybePlus}`}
+      </DefaultText>
+    </View>
+  );
+};
 
 const LabelToIcon = ({
   label,
@@ -28,16 +75,14 @@ const LabelToIcon = ({
   fontSize?: number
 }) => {
   const [signedInUser] = useSignedInUser();
-
-  const unreadCap = 99;
-  const cappedNumUnread = Math.min(numUnread, unreadCap);
-  const isCapped = numUnread > unreadCap;
-  const maybePlus = isCapped ? '+' : '';
+  const numVisitors = useNumVisitors();
 
   const searchIcon =
     isFocused ? 'search' : 'search-outline';
   const inboxIcon =
     isFocused ? 'chatbubbles' : 'chatbubbles-outline';
+  const visitorsIcon =
+    isFocused ? 'people' : 'people-outline';
   const feedIcon =
     isFocused ? 'planet' : 'planet-outline';
   const profileIcon =
@@ -64,47 +109,31 @@ const LabelToIcon = ({
       {label === 'Search' &&
         <Ionicons style={{...iconStyle}} name={searchIcon}/>
       }
+      {label === 'Visitors' &&
+        <View>
+          <Ionicons style={{...iconStyle}} name={visitorsIcon}/>
+          <NumberBadge
+            num={numVisitors}
+            left={Math.round(fontSize * 0.85)}
+            borderColor={indicatorBorderColor}
+            backgroundColor={indicatorBackgroundColor}
+            color={indicatorColor}
+          />
+        </View>
+      }
       {label === 'Feed' &&
         <Ionicons style={{...iconStyle}} name={feedIcon}/>
       }
       {label === 'Inbox' &&
         <View>
           <Ionicons style={{...iconStyle}} name={inboxIcon}/>
-          {numUnread > 0 &&
-            <View
-              style={{
-                position: 'absolute',
-                top: -3,
-                left: Math.round(fontSize * 0.85),
-                flex: 1,
-                flexWrap: 'nowrap',
-                borderRadius: 8,
-                paddingLeft: 6,
-                // Android doesn't center the child DefaultText element properly
-                // for some reason, so here's a hack.
-                paddingRight: Platform.OS === 'android' ? 5 : 6,
-                paddingVertical: 1,
-                borderWidth: 1,
-                borderColor: indicatorBorderColor,
-                backgroundColor: indicatorBackgroundColor,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <DefaultText
-                style={{
-                  textAlign: 'center',
-                  fontFamily: 'TruenoBold',
-                  fontSize: 12,
-                  color: indicatorColor,
-                }}
-                ellipsizeMode="clip"
-                numberOfLines={1}
-              >
-                {`${cappedNumUnread}${maybePlus}`}
-              </DefaultText>
-            </View>
-          }
+          <NumberBadge
+            num={numUnread}
+            left={Math.round(fontSize * 0.85)}
+            borderColor={indicatorBorderColor}
+            backgroundColor={indicatorBackgroundColor}
+            color={indicatorColor}
+          />
         </View>
       }
       {label === 'Profile' &&

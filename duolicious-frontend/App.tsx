@@ -25,6 +25,7 @@ import { QuizTab } from './components/quiz-tab';
 import { ProfileTab } from './components/profile-tab';
 import { InboxTab } from './components/inbox-tab';
 import { FeedTab } from './components/feed-tab';
+import { VisitorsTab, fetchVisitors } from './components/visitors-tab';
 import { ConversationScreen } from './components/conversation-screen/conversation-screen';
 import { ServerStatus, UtilityScreen } from './components/utility-screen';
 import { ProspectProfileScreen } from './components/prospect-profile-screen';
@@ -92,6 +93,7 @@ const HomeTabs = () => {
       <Tab.Screen name="Search" component={SearchTab} />
       <Tab.Screen name="Feed" component={FeedTab} />
       <Tab.Screen name="Inbox" component={InboxTab} />
+      <Tab.Screen name="Visitors" component={VisitorsTab} />
       <Tab.Screen name="Profile" component={ProfileTab} />
     </Tab.Navigator>
   );
@@ -390,6 +392,24 @@ const App = () => {
 
     return () => { doBreak = true; };
   }, [fetchServerStatusState]);
+
+  useEffect(() => {
+    if (!signedInUser) {
+      return;
+    }
+
+    let doBreak = false;
+
+    (async () => {
+      while (true) {
+        await fetchVisitors();
+        await delay(60_000);
+        if (doBreak) break;
+      }
+    })();
+
+    return () => { doBreak = true; };
+  }, [signedInUser]);
 
   const onError = useCallback(async () => {
     await clearAllKv();

@@ -972,7 +972,7 @@ const NoMoreCards = () => {
           padding: '20%',
         }}
       >
-        Those are all the questions we've got for now
+        Those are all the questions we’ve got for now
       </DefaultText>
     </View>
   );

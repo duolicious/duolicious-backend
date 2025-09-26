@@ -313,7 +313,7 @@ const NameActionTime = ({
         </View>
         <DefaultText
           style={{
-            color: '#999',
+            color: appTheme.hintColor,
             width: '100%',
           }}
         >
@@ -348,6 +348,7 @@ const FeedItemJoined = ({ fields }: { fields: JoinedFields }) => {
 
   return (
     <Pressable
+      style={styles.pressableStyle}
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       onPress={onPress}
@@ -416,6 +417,7 @@ const FeedItemAddedPhoto = ({
 
   return (
     <Pressable
+      style={styles.pressableStyle}
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       onPress={onPress}
@@ -476,6 +478,7 @@ const FeedItemAddedVoiceBio = ({
 
   return (
     <Pressable
+      style={styles.pressableStyle}
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       onPress={onPress}
@@ -537,6 +540,7 @@ const FeedItemUpdatedBio = ({
 
   return (
     <Pressable
+      style={styles.pressableStyle}
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       onPress={onPress}
@@ -712,6 +716,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     padding: 10,
+  },
+  pressableStyle: {
     marginBottom: 20,
   },
 });
