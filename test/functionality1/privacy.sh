@@ -107,7 +107,7 @@ hide_me_from_strangers () {
 
   # User 1 can no longer get user 2's profile
   assume_role user1
-  ! c GET "/prospect-profile/${user2uuid}" || exit 1
+  c GET "/prospect-profile/${user2uuid}" && exit 1
 
   # User 2 messages user 1
   q "

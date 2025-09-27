@@ -820,21 +820,29 @@ WITH prospect AS (
         ) AS seconds_since_sign_up
     FROM
         person AS prospect
+    LEFT JOIN LATERAL (
+        SELECT
+            EXISTS (
+                SELECT
+                    1
+                FROM
+                    messaged
+                WHERE
+                    messaged.subject_person_id = prospect.id
+                AND
+                    messaged.object_person_id = %(person_id)s
+            ) AS prospect_has_messaged_person
+    ) AS prospect_has_messaged_person
+    ON
+        TRUE
     WHERE
         uuid = uuid_or_null(%(prospect_uuid)s::TEXT)
     AND
         activated
     AND (
-            NOT hide_me_from_strangers
+            NOT prospect.hide_me_from_strangers
         OR
-            EXISTS (
-                SELECT 1
-                FROM messaged
-                WHERE
-                    messaged.subject_person_id = prospect.id
-                AND
-                    messaged.object_person_id = %(person_id)s
-            )
+            prospect_has_messaged_person
     )
     AND (
         prospect.privacy_verification_level_id <= (
@@ -873,16 +881,28 @@ WITH prospect AS (
     INSERT INTO visited (
         subject_person_id,
         object_person_id,
-        updated_at
+        updated_at,
+        invisible
     )
     SELECT
         %(person_id)s AS subject_person_id,
         prospect.id AS object_person_id,
-        now() AS updated_at
+        now() AS updated_at,
+        (
+            SELECT
+                person.browse_invisibly OR
+                person.hide_me_from_strangers AND
+                NOT prospect_has_messaged_person
+            FROM
+                person
+            WHERE
+                id = %(person_id)s
+        ) AS invisible
     FROM
         prospect
     ON CONFLICT (subject_person_id, object_person_id) DO UPDATE SET
-        updated_at = now()
+        updated_at = now(),
+        invisible = EXCLUDED.invisible
 ), negative_dot_prod AS (
     SELECT (
         SELECT personality FROM person WHERE id = %(person_id)s
@@ -1647,6 +1667,11 @@ WITH photo_ AS (
         CASE WHEN hide_me_from_strangers THEN 'Yes' ELSE 'No' END AS j
     FROM person
     WHERE id = %(person_id)s
+), browse_invisibly AS (
+    SELECT
+        CASE WHEN browse_invisibly THEN 'Yes' ELSE 'No' END AS j
+    FROM person
+    WHERE id = %(person_id)s
 ), verified_gender AS (
     SELECT verified_gender AS j FROM person WHERE id = %(person_id)s
 ), verified_age AS (
@@ -1700,6 +1725,7 @@ SELECT
         'show my location',       (SELECT j FROM show_my_location),
         'show my age',            (SELECT j FROM show_my_age),
         'hide me from strangers', (SELECT j FROM hide_me_from_strangers),
+        'browse invisibly',       (SELECT j FROM browse_invisibly),
 
         'verified_gender',        (SELECT j FROM verified_gender),
         'verified_age',           (SELECT j FROM verified_age),
@@ -2904,7 +2930,9 @@ WITH checker AS (
         id,
         personality,
         last_visitor_check_time,
-        verification_level_id
+        verification_level_id,
+        hide_me_from_strangers,
+        browse_invisibly
     FROM
         person
     WHERE
@@ -2955,7 +2983,9 @@ WITH checker AS (
 
         verification_required_to_view,
 
-        visited.updated_at AS order_time
+        visited.updated_at AS order_time,
+
+        visited.invisible AS was_invisible
     FROM
         checker
     CROSS JOIN
@@ -3062,18 +3092,12 @@ WITH checker AS (
                     person_id = %(person_id)s
             )
         )
-    AND (
-        prospect.id IN (
-            SELECT
-                subject_person_id
-            FROM
-                messaged
-            WHERE
-                object_person_id = %(person_id)s
+    AND
+        (
+            direction.kind = 'you_visited'
+        OR
+            direction.kind = 'visited_you' AND NOT visited.invisible
         )
-    OR
-        NOT prospect.hide_me_from_strangers
-    )
 )
 SELECT
     json_build_object(

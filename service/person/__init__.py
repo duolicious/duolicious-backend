@@ -1273,6 +1273,13 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             CASE WHEN %(field_value)s = 'Yes' THEN TRUE ELSE FALSE END)
         WHERE id = %(person_id)s
         """
+    elif field_name == 'browse_invisibly':
+        q1 = """
+        UPDATE person
+        SET browse_invisibly = (
+            CASE WHEN %(field_value)s = 'Yes' THEN TRUE ELSE FALSE END)
+        WHERE id = %(person_id)s
+        """
     elif field_name == 'theme':
         if not _has_gold(person_id=s.person_id):
             return 'Requires gold', 403

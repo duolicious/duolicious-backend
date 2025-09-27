@@ -364,6 +364,7 @@ class PatchProfileInfo(BaseModel):
     show_my_location: Optional[str] = None
     show_my_age: Optional[str] = None
     hide_me_from_strangers: Optional[str] = None
+    browse_invisibly: Optional[str] = None
     theme: Optional[Theme] = None
 
     @model_validator(mode='after')
