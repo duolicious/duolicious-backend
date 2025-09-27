@@ -499,7 +499,7 @@ const VisitorsTab = () => {
                     marginRight: 20,
                   }}
                 />
-                {!signedInUser?.hasGold &&
+                {!(signedInUser?.hasGold || (signedInUser?.personId ?? 0) < 305200) &&
                   <Notice
                     onPress={() => showPointOfSale('inquiry')}
                     style={{
