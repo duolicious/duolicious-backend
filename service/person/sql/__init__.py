@@ -2863,9 +2863,7 @@ WITH updated_person_with_gold AS (
 
         title_color = DEFAULT,
         body_color = DEFAULT,
-        background_color = DEFAULT,
-
-        browse_invisibly = DEFAULT
+        background_color = DEFAULT
     WHERE
         person.uuid = uuid_or_null(%(person_uuid)s::TEXT)
     AND

@@ -275,10 +275,67 @@ expiration_resets_settings_for_lt_305200() {
   [[ "$(q "select show_my_location from person where uuid = '$useruuid'::uuid")" == f ]]
   [[ "$(q "select show_my_age from person where uuid = '$useruuid'::uuid")" == f ]]
   [[ "$(q "select hide_me_from_strangers from person where uuid = '$useruuid'::uuid")" == t ]]
-  # This should reset to default
-  [[ "$(q "select browse_invisibly from person where uuid = '$useruuid'::uuid")" == f ]]
+  [[ "$(q "select browse_invisibly from person where uuid = '$useruuid'::uuid")" == t ]]
+}
+
+premium_features_require_gold_ge_305200() {
+  say "Reset core tables to a clean state"
+  q "delete from person"
+  q "delete from club"
+  q "delete from banned_person"
+
+  say "Force next person.id to be >= 305200"
+  q "select setval(pg_get_serial_sequence('person','id'), 305199, true)"
+
+  say "Create user with id >= 305200 (no gold)"
+  ../util/create-user.sh rcuser5 0 0
+
+  say "Sign in as user"
+  assume_role rcuser5
+
+  say "Premium features must return 403 without gold (>=305200)"
+  jc PATCH /profile-info -d '{ "theme": { "title_color": "#123456", "body_color": "#234567", "background_color": "#345678" } }' && exit 1
+  jc PATCH /profile-info -d '{ "browse_invisibly": "Yes" }' && exit 1
+  jc PATCH /profile-info -d '{ "show_my_location": "No" }' && exit 1
+  jc PATCH /profile-info -d '{ "show_my_age": "No" }' && exit 1
+  jc PATCH /profile-info -d '{ "hide_me_from_strangers": "Yes" }' && exit 1
+
+  return 0
+}
+
+premium_features_require_gold_lt_305200() {
+  say "Reset core tables to a clean state"
+  q "delete from person"
+  q "delete from club"
+  q "delete from banned_person"
+
+  say "Force next person.id to be < 305200"
+  q "select setval(pg_get_serial_sequence('person','id'), 305000, true)"
+
+  say "Create user with id < 305200 (no gold)"
+  ../util/create-user.sh rcuser6 0 0
+
+  say "Sign in as user"
+  assume_role rcuser6
+
+  say "Premium features must return 403 without gold (<305200)"
+  jc PATCH /profile-info -d '{ "theme": { "title_color": "#123456", "body_color": "#234567", "background_color": "#345678" } }' && exit 1
+  jc PATCH /profile-info -d '{ "browse_invisibly": "Yes" }' || exit 1
+  jc PATCH /profile-info -d '{ "show_my_location": "No" }' || exit 1
+  jc PATCH /profile-info -d '{ "show_my_age": "No" }' || exit 1
+  jc PATCH /profile-info -d '{ "hide_me_from_strangers": "Yes" }' || exit 1
+
+  return 0
+}
+
+clean_up () {
+  q "select setval(pg_get_serial_sequence('person','id'), 1, true)"
 }
 
 has_gold_is_set_by_webhook
 expiration_resets_settings_for_ge_305200
 expiration_resets_settings_for_lt_305200
+premium_features_require_gold_ge_305200
+premium_features_require_gold_lt_305200
+
+clean_up
