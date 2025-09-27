@@ -2907,7 +2907,9 @@ WITH checker AS (
         id,
         personality,
         last_visitor_check_time,
-        verification_level_id
+        verification_level_id,
+        hide_me_from_strangers,
+        browse_invisibly
     FROM
         person
     WHERE
@@ -2960,7 +2962,15 @@ WITH checker AS (
 
         visited.updated_at AS order_time,
 
-        visited.invisible AS was_invisible
+        (
+                visited.invisible
+            -- TODO: These two checks can be removed after this change has been
+            --       in the wild for a week or so
+            OR
+                checker.hide_me_from_strangers
+            OR
+                checker.browse_invisibly
+        ) AS was_invisible
     FROM
         checker
     CROSS JOIN
@@ -3067,6 +3077,8 @@ WITH checker AS (
                     person_id = %(person_id)s
             )
         )
+    -- TODO: The hide_me_from_strangers check can be removed after this change
+    --       has been in the wild for a week or so
     AND (
         prospect.id IN (
             SELECT
