@@ -99,6 +99,7 @@ const Tab = ({ navigation, state, route, descriptors, index, numUnread }) => {
           style={{
             textAlign: 'center',
             fontFamily: isFocused ? 'MontserratBold' : 'MontserratRegular',
+            fontSize: 12,
           }}
         >
           {label}
