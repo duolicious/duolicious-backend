@@ -2855,7 +2855,7 @@ WITH updated_person_with_gold AS (
         %(has_gold)s = TRUE
     RETURNING
         person.uuid
-), updated_person_without_gold AS (
+), updated_person_without_gold_lt_305200 AS (
     UPDATE
         person
     SET
@@ -2863,17 +2863,45 @@ WITH updated_person_with_gold AS (
 
         title_color = DEFAULT,
         body_color = DEFAULT,
-        background_color = DEFAULT
+        background_color = DEFAULT,
+
+        browse_invisibly = DEFAULT
     WHERE
         person.uuid = uuid_or_null(%(person_uuid)s::TEXT)
     AND
         %(has_gold)s = FALSE
+    AND
+        person.id < 305200
+    RETURNING
+        person.uuid
+), updated_person_without_gold_ge_305200 AS (
+    UPDATE
+        person
+    SET
+        has_gold = FALSE,
+
+        title_color = DEFAULT,
+        body_color = DEFAULT,
+        background_color = DEFAULT,
+
+        show_my_location = DEFAULT,
+        show_my_age = DEFAULT,
+        hide_me_from_strangers = DEFAULT,
+        browse_invisibly = DEFAULT
+    WHERE
+        person.uuid = uuid_or_null(%(person_uuid)s::TEXT)
+    AND
+        %(has_gold)s = FALSE
+    AND
+        person.id >= 305200
     RETURNING
         person.uuid
 ), updated_person AS (
     SELECT uuid FROM updated_person_with_gold
     UNION
-    SELECT uuid FROM updated_person_without_gold
+    SELECT uuid FROM updated_person_without_gold_lt_305200
+    UNION
+    SELECT uuid FROM updated_person_without_gold_ge_305200
 ), ranked_person_club AS (
     SELECT
         person_club.person_id,
