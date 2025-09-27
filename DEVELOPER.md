@@ -1,5 +1,93 @@
 # Developer instructions
 
+## Local development
+
+You can run everything with Docker, or run the Python services locally with hot reload against Dockerized infrastructure.
+
+### Option A: Everything in Docker (easiest)
+
+```bash
+docker compose up -d
+# Health check
+curl -sf http://localhost:5000/health && echo API OK
+```
+
+### Option B: Run API/Chat from source with hot reload
+
+1. Start infra-only services in Docker:
+
+```bash
+docker compose up -d postgres s3mock smtp redis status pgadmin
+```
+
+2. In one terminal, run the API:
+
+```bash
+export DUO_ENV=dev
+export DUO_DB_HOST=localhost
+export DUO_DB_PORT=5432
+export DUO_DB_USER=postgres
+export DUO_DB_PASS=password
+export DUO_CORS_ORIGINS='*'
+export DUO_R2_BUCKET_NAME=s3-mock-bucket
+export DUO_R2_AUDIO_BUCKET_NAME=s3-mock-audio-bucket
+export DUO_R2_ACCT_ID=dev
+export DUO_R2_ACCESS_KEY_ID=s3-mock-access-key-id
+export DUO_R2_ACCESS_KEY_SECRET=s3-mock-secret-access-key-secret
+export DUO_BOTO_ENDPOINT_URL=http://localhost:9090
+export DUO_SMTP_HOST=localhost
+export DUO_SMTP_PORT=1025
+./api.main.sh
+```
+
+3. In another terminal, run the Chat service:
+
+```bash
+export DUO_ENV=dev
+export DUO_DB_HOST=localhost
+export DUO_DB_PORT=5432
+export DUO_DB_USER=postgres
+export DUO_DB_PASS=password
+export DUO_R2_AUDIO_BUCKET_NAME=s3-mock-audio-bucket
+export DUO_R2_ACCT_ID=dev
+export DUO_R2_ACCESS_KEY_ID=s3-mock-access-key-id
+export DUO_R2_ACCESS_KEY_SECRET=s3-mock-secret-access-key-secret
+export DUO_BOTO_ENDPOINT_URL=http://localhost:9090
+export DUO_CHAT_PORTS=5443
+./chat.main.sh
+```
+
+Notes:
+- OTPs are `000000` for `@example.com` emails in `dev`.
+- Redis must be reachable at `redis://redis:6379`. The default Docker Compose `redis` service exposes this.
+
+### Seed data and test helpers
+
+- Create a test user (on a running API):
+
+```bash
+./test/util/create-user.sh alice 30 1 true
+```
+
+- Run a single functionality test:
+
+```bash
+./test/util/with-container.sh ./test/functionality1/status.sh
+```
+
+- Run a whole suite:
+
+```bash
+./test/util/with-container.sh ./test/functionality.sh 1
+```
+
+### Type checking
+
+```bash
+./mypy.sh           # check core modules
+./mypy.sh path.py   # check a specific file or directory
+```
+
 ## Production deployments
 
 ### Environment variables
@@ -127,7 +215,7 @@ docker compose up
 
 ```bash
 # Where ${n} is the test you want to run
-DUO_DB_PORT=5433 ./test/functionality${n}.sh
+DUO_DB_PORT=5432 ./test/functionality${n}.sh
 ```
 
 ## Using pg_stat_statements:
@@ -159,11 +247,11 @@ Terminal B:
 pg_dump -h ${DB_HOST} -U postgres -d duo_chat -f /tmp/duo_chat.sql
 pg_dump -h ${DB_HOST} -U postgres -d duo_api  -f /tmp/duo_api.sql
 
-PGPASSWORD=password psql -U postgres -h localhost -p 5433 -c 'create database duo_api;'
-PGPASSWORD=password psql -U postgres -h localhost -p 5433 -c 'create database duo_chat;'
+PGPASSWORD=password psql -U postgres -h localhost -p 5432 -c 'create database duo_api;'
+PGPASSWORD=password psql -U postgres -h localhost -p 5432 -c 'create database duo_chat;'
 
-PGPASSWORD=password psql -U postgres -d duo_api  -h localhost -p 5433 < /tmp/duo_api.sql
-PGPASSWORD=password psql -U postgres -d duo_chat -h localhost -p 5433 < /tmp/duo_chat.sql
+PGPASSWORD=password psql -U postgres -d duo_api  -h localhost -p 5432 < /tmp/duo_api.sql
+PGPASSWORD=password psql -U postgres -d duo_chat -h localhost -p 5432 < /tmp/duo_chat.sql
 ```
 
 Terminal A:

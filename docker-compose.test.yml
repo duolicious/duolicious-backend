@@ -15,7 +15,7 @@ services:
       -c shared_preload_libraries=pg_stat_statements
       -c pg_stat_statements.track=all
     ports:
-      - "5433:5432"
+      - "5432:5432"
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_USER: postgres

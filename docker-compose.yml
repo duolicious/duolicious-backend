@@ -19,7 +19,7 @@ services:
       -c pg_stat_statements.track=all
       -c wal_level=logical
     ports:
-      - "5433:5432"
+      - "5432:5432"
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_USER: postgres
