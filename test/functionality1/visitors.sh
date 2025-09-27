@@ -207,8 +207,46 @@ show_my_location_respected () {
   [[ "$(echo "$response" | jq -r '.you_visited[0].location')" == "null" ]]
 }
 
+browse_invisibly_respected () {
+  setup_fresh_users
+
+  # user2 enables browse invisibly
+  assume_role user2
+  jc PATCH /profile-info -d '{ "browse_invisibly": "Yes" }'
+
+  user1_uuid=$(q "select uuid from person where name = 'user1'")
+  user2_uuid=$(q "select uuid from person where name = 'user2'")
+  user1_id=$(q "select id from person where name = 'user1'")
+  user2_id=$(q "select id from person where name = 'user2'")
+
+  # user2 visits user1 (creates visited: user2 -> user1)
+  assume_role user2
+  c GET "/prospect-profile/${user1_uuid}" > /dev/null
+
+  # From user1's perspective, browse_invisibly user2 should NOT appear in visited_you
+  assume_role user1
+  response=$(c GET "/visitors")
+  [[ "$(echo "$response" | jq '.visited_you | length')" -eq 0 ]]
+
+  # user1 visits user2 (creates visited: user1 -> user2)
+  assume_role user1
+  c GET "/prospect-profile/${user2_uuid}" > /dev/null
+
+  # From user2's perspective, even with browse_invisibly, they should see who they visited
+  assume_role user2
+  response=$(c GET "/visitors")
+  [[ "$(echo "$response" | jq '.you_visited | length')" -ge 1 ]]
+  [[ "$(echo "$response" | jq -r '.you_visited[0].person_uuid')" == "$user1_uuid" ]]
+
+  # From user1's perspective, user2 should still not appear (no visited_you entry)
+  assume_role user1
+  response=$(c GET "/visitors")
+  [[ "$(echo "$response" | jq '.visited_you | length')" -eq 0 ]]
+}
+
 happy_path_visitors
 hide_me_from_strangers_respected
 skip_respected
 show_my_age_respected
 show_my_location_respected
+browse_invisibly_respected

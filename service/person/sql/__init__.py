@@ -3074,6 +3074,12 @@ WITH checker AS (
     OR
         NOT prospect.hide_me_from_strangers
     )
+    AND
+        (
+            direction.kind = 'you_visited'
+        OR
+            direction.kind = 'visited_you' AND NOT prospect.browse_invisibly
+        )
 )
 SELECT
     json_build_object(
