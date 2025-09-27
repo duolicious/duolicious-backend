@@ -820,21 +820,29 @@ WITH prospect AS (
         ) AS seconds_since_sign_up
     FROM
         person AS prospect
+    LEFT JOIN LATERAL (
+        SELECT
+            EXISTS (
+                SELECT
+                    1
+                FROM
+                    messaged
+                WHERE
+                    messaged.subject_person_id = prospect.id
+                AND
+                    messaged.object_person_id = %(person_id)s
+            ) AS prospect_has_messaged_person
+    ) AS prospect_has_messaged_person
+    ON
+        TRUE
     WHERE
         uuid = uuid_or_null(%(prospect_uuid)s::TEXT)
     AND
         activated
     AND (
-            NOT hide_me_from_strangers
+            NOT prospect.hide_me_from_strangers
         OR
-            EXISTS (
-                SELECT 1
-                FROM messaged
-                WHERE
-                    messaged.subject_person_id = prospect.id
-                AND
-                    messaged.object_person_id = %(person_id)s
-            )
+            prospect_has_messaged_person
     )
     AND (
         prospect.privacy_verification_level_id <= (
@@ -880,7 +888,16 @@ WITH prospect AS (
         %(person_id)s AS subject_person_id,
         prospect.id AS object_person_id,
         now() AS updated_at,
-        (SELECT browse_invisibly FROM person WHERE id = %(person_id)s) AS invisible
+        (
+            SELECT
+                person.browse_invisibly OR
+                person.hide_me_from_strangers AND
+                NOT prospect_has_messaged_person
+            FROM
+                person
+            WHERE
+                id = %(person_id)s
+        ) AS invisible
     FROM
         prospect
     ON CONFLICT (subject_person_id, object_person_id) DO UPDATE SET
@@ -2962,15 +2979,7 @@ WITH checker AS (
 
         visited.updated_at AS order_time,
 
-        (
-                visited.invisible
-            -- TODO: These two checks can be removed after this change has been
-            --       in the wild for a week or so
-            OR
-                checker.hide_me_from_strangers
-            OR
-                checker.browse_invisibly
-        ) AS was_invisible
+        visited.invisible AS was_invisible
     FROM
         checker
     CROSS JOIN
@@ -3077,25 +3086,11 @@ WITH checker AS (
                     person_id = %(person_id)s
             )
         )
-    -- TODO: The hide_me_from_strangers check can be removed after this change
-    --       has been in the wild for a week or so
-    AND (
-        prospect.id IN (
-            SELECT
-                subject_person_id
-            FROM
-                messaged
-            WHERE
-                object_person_id = %(person_id)s
-        )
-    OR
-        NOT prospect.hide_me_from_strangers
-    )
     AND
         (
             direction.kind = 'you_visited'
         OR
-            (direction.kind = 'visited_you' AND NOT visited.invisible)
+            direction.kind = 'visited_you' AND NOT visited.invisible
         )
 )
 SELECT

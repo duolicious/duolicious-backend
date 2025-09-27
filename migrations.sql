@@ -10,3 +10,13 @@ ALTER TABLE
 ADD COLUMN IF NOT EXISTS
     invisible BOOLEAN NOT NULL DEFAULT FALSE
 ;
+
+UPDATE
+    visited
+SET
+    invisible = person.hide_me_from_strangers
+FROM
+    person
+WHERE
+    person.id = visited.subject_person_id
+;
