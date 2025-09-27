@@ -711,6 +711,7 @@ CREATE TABLE IF NOT EXISTS visited (
     subject_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     object_person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    invisible BOOLEAN NOT NULL DEFAULT FALSE,
 
     PRIMARY KEY (subject_person_id, object_person_id)
 );

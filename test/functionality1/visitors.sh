@@ -219,7 +219,7 @@ browse_invisibly_respected () {
   user1_id=$(q "select id from person where name = 'user1'")
   user2_id=$(q "select id from person where name = 'user2'")
 
-  # user2 visits user1 (creates visited: user2 -> user1)
+  # user2 visits user1 (creates visited: user2 -> user1 with invisible=true)
   assume_role user2
   c GET "/prospect-profile/${user1_uuid}" > /dev/null
 
@@ -237,8 +237,12 @@ browse_invisibly_respected () {
   response=$(c GET "/visitors")
   [[ "$(echo "$response" | jq '.you_visited | length')" -ge 1 ]]
   [[ "$(echo "$response" | jq -r '.you_visited[0].person_uuid')" == "$user1_uuid" ]]
+  [[ "$(echo "$response" | jq -r '.you_visited[0].was_invisible')" == "true" ]]
 
-  # From user1's perspective, user2 should still not appear (no visited_you entry)
+  # Disable browse invisibly now; past invisible visit should remain invisible to user1
+  assume_role user2
+  jc PATCH /profile-info -d '{ "browse_invisibly": "No" }'
+
   assume_role user1
   response=$(c GET "/visitors")
   [[ "$(echo "$response" | jq '.visited_you | length')" -eq 0 ]]

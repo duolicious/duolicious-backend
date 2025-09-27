@@ -873,16 +873,19 @@ WITH prospect AS (
     INSERT INTO visited (
         subject_person_id,
         object_person_id,
-        updated_at
+        updated_at,
+        invisible
     )
     SELECT
         %(person_id)s AS subject_person_id,
         prospect.id AS object_person_id,
-        now() AS updated_at
+        now() AS updated_at,
+        (SELECT browse_invisibly FROM person WHERE id = %(person_id)s) AS invisible
     FROM
         prospect
     ON CONFLICT (subject_person_id, object_person_id) DO UPDATE SET
-        updated_at = now()
+        updated_at = now(),
+        invisible = EXCLUDED.invisible
 ), negative_dot_prod AS (
     SELECT (
         SELECT personality FROM person WHERE id = %(person_id)s
@@ -2955,7 +2958,9 @@ WITH checker AS (
 
         verification_required_to_view,
 
-        visited.updated_at AS order_time
+        visited.updated_at AS order_time,
+
+        visited.invisible AS was_invisible
     FROM
         checker
     CROSS JOIN
@@ -3078,7 +3083,7 @@ WITH checker AS (
         (
             direction.kind = 'you_visited'
         OR
-            direction.kind = 'visited_you' AND NOT prospect.browse_invisibly
+            (direction.kind = 'visited_you' AND NOT visited.invisible)
         )
 )
 SELECT
