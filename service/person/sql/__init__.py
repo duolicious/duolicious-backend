@@ -1667,6 +1667,11 @@ WITH photo_ AS (
         CASE WHEN hide_me_from_strangers THEN 'Yes' ELSE 'No' END AS j
     FROM person
     WHERE id = %(person_id)s
+), browse_invisibly AS (
+    SELECT
+        CASE WHEN browse_invisibly THEN 'Yes' ELSE 'No' END AS j
+    FROM person
+    WHERE id = %(person_id)s
 ), verified_gender AS (
     SELECT verified_gender AS j FROM person WHERE id = %(person_id)s
 ), verified_age AS (
@@ -1720,6 +1725,7 @@ SELECT
         'show my location',       (SELECT j FROM show_my_location),
         'show my age',            (SELECT j FROM show_my_age),
         'hide me from strangers', (SELECT j FROM hide_me_from_strangers),
+        'browse invisibly',       (SELECT j FROM browse_invisibly),
 
         'verified_gender',        (SELECT j FROM verified_gender),
         'verified_age',           (SELECT j FROM verified_age),
