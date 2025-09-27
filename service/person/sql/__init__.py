@@ -3122,7 +3122,13 @@ WITH checker AS (
         (
             direction.kind = 'you_visited'
         OR
-            direction.kind = 'visited_you' AND NOT visited.invisible
+            NOT visited.invisible
+        )
+    AND
+        (
+            NOT prospect.verification_required
+        OR
+            prospect.verification_level_id > 1
         )
 )
 SELECT
