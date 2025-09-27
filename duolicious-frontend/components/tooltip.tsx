@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { DefaultText } from './default-text';
 import { listen, notify } from '../events/events';
 import { isMobile } from '../util/util';
 
 type TooltipState = {
   text: string
-  paddingLeft: number
-  paddingTop: number
-  top: number
-  left: number
+  measurement: {
+    x: number
+    y: number
+    width: number
+    height: number
+    pageX: number
+    pageY: number
+  },
 } | null | undefined;
 
 const EVENT_KEY = 'tooltip';
@@ -46,6 +50,7 @@ const Tooltip = ({
 
 const TooltipListener = () => {
   const [state, setState] = useState<TooltipState>(null);
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
   useEffect(() => {
     listen<TooltipState>(EVENT_KEY, setState);
@@ -54,8 +59,6 @@ const TooltipListener = () => {
   if (!state) {
     return null;
   }
-
-  const { paddingLeft, paddingTop } = state;
 
   const props = isMobile() ? {
     onStartShouldSetResponder: () => true,
@@ -67,6 +70,16 @@ const TooltipListener = () => {
       }
     }
   };
+
+  const horizontalDirection: 'left' | 'right' =
+    state.measurement.pageX > windowWidth / 2
+    ? 'left'
+    : 'right';
+
+  const verticalDirection: 'up' | 'down' =
+    state.measurement.pageY > windowHeight / 2
+    ? 'up'
+    : 'down';
 
   return (
     <View
@@ -82,11 +95,22 @@ const TooltipListener = () => {
       <View
         style={{
           position: 'absolute',
-          top: state.top === undefined ? undefined : state.top,
-          left: state.left === undefined ? undefined : state.left,
 
-          paddingTop: state.top === undefined ? undefined : paddingTop,
-          paddingLeft: state.left === undefined ? undefined : paddingLeft,
+          ...(horizontalDirection === 'right' ? {
+            left: state.measurement.pageX,
+            paddingLeft: Math.max(0, state.measurement.width - 4),
+          } : {
+            right: windowWidth - state.measurement.pageX - state.measurement.width,
+            paddingRight: Math.max(0, state.measurement.width - 4),
+          }),
+
+          ...(verticalDirection === 'down' ? {
+            top: state.measurement.pageY,
+            paddingTop: Math.max(0, state.measurement.height - 4),
+          } : {
+            bottom: windowHeight - state.measurement.pageY - state.measurement.height,
+            paddingBottom: Math.max(0, state.measurement.height - 4),
+          }),
         }}
       >
         <Tooltip>{state.text}</Tooltip>
@@ -99,17 +123,18 @@ const useTooltip = (text: string) => {
   const viewRef = useRef<View>(null);
 
   const showTooltip = useCallback(() => {
-    viewRef.current?.measureInWindow((x, y, width, height) => {
-      // Position the tooltip at the center of the icon
-      const state: TooltipState = {
-        left: x,
-        top: y,
-        paddingLeft: Math.max(0, width - 4),
-        paddingTop: Math.max(0, height - 4),
+    viewRef.current?.measure((x, y, width, height, pageX, pageY) => {
+      setTooltip({
         text,
-      };
-
-      setTooltip(state);
+        measurement: {
+          x,
+          y,
+          width,
+          height,
+          pageX,
+          pageY,
+        }
+      });
     });
   }, [text]);
 

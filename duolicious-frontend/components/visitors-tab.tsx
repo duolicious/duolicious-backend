@@ -25,7 +25,6 @@ import { z } from 'zod';
 import { listen, notify, lastEvent } from '../events/events';
 import {
   format,
-  isThisWeek,
   isThisYear,
   isToday,
   isYesterday,
@@ -33,6 +32,13 @@ import {
 import { GestureResponderEvent } from 'react-native';
 import { ReportModalInitialData } from './modal/report-modal';
 import { Flag } from "react-native-feather";
+import { Notice } from './notice';
+import { showPointOfSale } from './modal/point-of-sale-modal';
+import { useSignedInUser } from '../events/signed-in-user';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faGhost } from '@fortawesome/free-solid-svg-icons/faGhost';
+import { useTooltip } from './tooltip';
+import { happenedInLast7Days } from '../util/util';
 
 const friendlyTimestamp = (date: Date): string => {
   if (isToday(date)) {
@@ -41,7 +47,7 @@ const friendlyTimestamp = (date: Date): string => {
   } else if (isYesterday(date)) {
     // Format as 'hh:mm'
     return 'Yesterday, ' + format(date, 'h:mm aaa')
-  } else if (isThisWeek(date)) {
+  } else if (happenedInLast7Days(date)) {
     // Format as 'eeee' (day of the week)
     return format(date, 'eeee, h:mm aaa')
   } else if (isThisYear(date)) {
@@ -96,6 +102,7 @@ const DataItemSchema = z.object({
     z.null(),
   ]),
   is_new: z.boolean(),
+  was_invisible: z.boolean(),
 });
 
 const DataSchema = z.object({
@@ -291,6 +298,7 @@ const VisitorsItem = ({ itemKey }: { itemKey: string }) => {
     dataItem.photo_blurhash,
     dataItem.verification_required_to_view !== null,
   );
+  const { viewRef, props } = useTooltip('You were invisible');
 
   const onPressReport = useCallback((event: GestureResponderEvent) => {
     event.preventDefault();
@@ -380,6 +388,18 @@ const VisitorsItem = ({ itemKey }: { itemKey: string }) => {
               }}
             />
           }
+          {dataItem.was_invisible &&
+            <View
+              ref={viewRef}
+              {...props}
+            >
+              <FontAwesomeIcon
+                icon={faGhost}
+                size={22}
+                style={{ color: appTheme.brandColor }}
+              />
+            </View>
+          }
         </View>
         <Flag
           hitSlop={20}
@@ -409,6 +429,7 @@ const keyExtractor = (id: string) => id;
 
 const VisitorsTab = () => {
   const { appTheme } = useAppTheme();
+  const [signedInUser] = useSignedInUser();
   const {
     onLayout,
     onContentSizeChange,
@@ -432,7 +453,7 @@ const VisitorsTab = () => {
     "Nobody’s visited your profile yet. Try answering more Q&A questions or " +
     "updating your profile"
   ) : (
-    "You haven’t visited anybody’s profile lately"
+    "You haven’t visited anybody’s profile recently"
   );
 
   const endText = sectionIndex === 0 ? (
@@ -464,19 +485,43 @@ const VisitorsTab = () => {
             ref={observeListRef}
             data={keys}
             ListHeaderComponent={
-              <ButtonGroup
-                buttons={[
-                  'Visited You',
-                  'You Visited',
-                ]}
-                selectedIndex={sectionIndex}
-                onPress={setSectionIndex}
-                containerStyle={{
-                  marginTop: 5,
-                  marginLeft: 20,
-                  marginRight: 20,
-                }}
-              />
+              <>
+                <ButtonGroup
+                  buttons={[
+                    'Visited You',
+                    'You Visited',
+                  ]}
+                  selectedIndex={sectionIndex}
+                  onPress={setSectionIndex}
+                  containerStyle={{
+                    marginTop: 5,
+                    marginLeft: 20,
+                    marginRight: 20,
+                  }}
+                />
+                {!signedInUser?.hasGold &&
+                  <Notice
+                    onPress={() => showPointOfSale('inquiry')}
+                    style={{
+                      marginTop: 10,
+                    }}
+                  >
+                    <FontAwesomeIcon
+                      icon={faGhost}
+                      size={22}
+                      style={{ color: appTheme.brandColor }}
+                    />
+                    <DefaultText
+                      style={{
+                        marginLeft: 8,
+                        color: appTheme.brandColor,
+                      }}
+                    >
+                      Browse invisibly by supporting Duolicious
+                    </DefaultText>
+                  </Notice>
+                }
+              </>
             }
             ListEmptyComponent={
               <DefaultText style={styles.emptyText}>

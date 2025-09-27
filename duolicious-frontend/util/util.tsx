@@ -12,6 +12,8 @@ import {
   isToday,
   isYesterday,
   subSeconds,
+  subDays,
+  isWithinInterval,
 } from 'date-fns'
 import * as _ from 'lodash';
 
@@ -159,6 +161,11 @@ const friendlyTimeAgo = (secondsAgo: number): string => {
   const lastOnlineDate = subSeconds(new Date(), secondsAgo);
 
   return _.capitalize(formatDistanceToNow(lastOnlineDate));
+}
+
+const happenedInLast7Days = (date: Date, now = new Date()): boolean => {
+  const start = subDays(now, 7);
+  return isWithinInterval(date, { start, end: now }); // inclusive of start & end
 }
 
 const possessive = (s: string) => {
@@ -356,4 +363,5 @@ export {
   getLuminance,
   bestTextOn,
   capLuminance,
+  happenedInLast7Days,
 };

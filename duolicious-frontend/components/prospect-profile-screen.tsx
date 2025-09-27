@@ -71,6 +71,8 @@ import { useSkipped, setSkipped } from '../hide-and-block/hide-and-block';
 import { OnlineIndicator } from './online-indicator';
 import { Flair } from './badges';
 import { useAppTheme } from '../app-theme/app-theme';
+import { faChild } from '@fortawesome/free-solid-svg-icons/faChild'
+import { faChildren } from '@fortawesome/free-solid-svg-icons/faChildren'
 
 const Stack = createNativeStackNavigator();
 
@@ -1109,16 +1111,16 @@ const Body = ({
             <Basic {...basicsTheme} icon="school">{data.education}</Basic>}
 
           {data?.has_kids === 'Yes' &&
-            <Basic {...basicsTheme} icon="people">Has kids</Basic>}
+            <Basic {...basicsTheme} icon={faChild}>Has kids</Basic>}
           {data?.has_kids === 'No' &&
-            <Basic {...basicsTheme} icon="people">Doesn't have kids</Basic>}
+            <Basic {...basicsTheme} icon={faChild}>Doesn’t have kids</Basic>}
 
           {data?.wants_kids === 'Yes' &&
-            <Basic {...basicsTheme} icon="people">Wants kids</Basic>}
+            <Basic {...basicsTheme} icon={faChildren}>Wants kids</Basic>}
           {data?.wants_kids === 'No' &&
-            <Basic {...basicsTheme} icon="people">Doesn't want kids</Basic>}
+            <Basic {...basicsTheme} icon={faChildren}>Doesn’t want kids</Basic>}
           {data?.wants_kids === 'Maybe' &&
-            <Basic {...basicsTheme} icon="people">Maybe wants kids</Basic>}
+            <Basic {...basicsTheme} icon={faChildren}>Maybe wants kids</Basic>}
 
           {data?.looking_for &&
             <Basic {...basicsTheme} icon="eye">Looking for {data.looking_for.toLowerCase()}</Basic>}
@@ -1126,7 +1128,7 @@ const Body = ({
           {data?.smoking === 'Yes' &&
             <Basic {...basicsTheme} icon={faSmoking}>Smokes</Basic>}
           {data?.smoking === 'No' &&
-            <Basic {...basicsTheme} icon={faSmoking}>Doesn't smoke</Basic>}
+            <Basic {...basicsTheme} icon={faSmoking}>Doesn’t smoke</Basic>}
 
           {data?.drinking &&
             <Basic {...basicsTheme} icon="wine">{data.drinking} drinks</Basic>}
@@ -1134,7 +1136,7 @@ const Body = ({
           {data?.drugs === 'Yes' &&
             <Basic {...basicsTheme} icon={faPills}>Does drugs</Basic>}
           {data?.drugs === 'No' &&
-            <Basic {...basicsTheme} icon={faPills}>Doesn't do drugs</Basic>}
+            <Basic {...basicsTheme} icon={faPills}>Doesn’t do drugs</Basic>}
 
           {data?.religion &&
             <Basic {...basicsTheme} icon={faHandsPraying}>{data.religion}</Basic>}

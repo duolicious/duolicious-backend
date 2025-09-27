@@ -70,6 +70,10 @@ import { WEB_VERSION } from '../env/env';
 import { photoQueue } from '../api/queue';
 import { showPointOfSale } from './modal/point-of-sale-modal';
 import { useAppTheme } from '../app-theme/app-theme';
+import { faRightFromBracket } from '@fortawesome/free-solid-svg-icons/faRightFromBracket'
+import { faDownload } from '@fortawesome/free-solid-svg-icons/faDownload'
+import { faUserGroup } from '@fortawesome/free-solid-svg-icons/faUserGroup'
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 
 const formatHeight = (og: OptionGroup<OptionGroupInputs>): string | undefined => {
   if (!isOptionGroupSlider(og.input)) return '';
@@ -656,6 +660,15 @@ const Options = ({ navigation, data }) => {
         label="Clubs"
         setting={clubsSetting}
         noSettingText="None"
+        icon={
+          ({ color = 'black' }) => (
+            <FontAwesomeIcon
+              icon={faUserGroup}
+              size={14}
+              style={{ color }}
+            />
+          )
+        }
       />
       <InviteEntrypoint navigation={navigation}/>
 
@@ -777,6 +790,15 @@ const Options = ({ navigation, data }) => {
         label="Sign Out"
         setting=""
         loading={isLoadingSignOut}
+        icon={
+          ({ color = 'black' }) => (
+            <FontAwesomeIcon
+              icon={faRightFromBracket}
+              size={14}
+              style={{ color }}
+            />
+          )
+        }
       />
 
       <Title style={{ marginTop: 70 }}>Deactivate My Account</Title>
@@ -791,6 +813,15 @@ const Options = ({ navigation, data }) => {
         label="Export My Data"
         setting={dataExportStatus === 'error' ? 'Try again later' : ''}
         loading={dataExportStatus === 'loading'}
+        icon={
+          ({ color = 'black' }) => (
+            <FontAwesomeIcon
+              icon={faDownload}
+              size={14}
+              style={{ color }}
+            />
+          )
+        }
       />
     </View>
   );
