@@ -58,8 +58,8 @@ const usePressableAnimation = () => {
   const onPressIn = useCallback(() => {
     Animated.timing(animatedBackgroundColor, {
       toValue: 1,
-      duration: 100,
-      useNativeDriver: false,
+      duration: 0,
+      useNativeDriver: true,
     }).start();
   }, []);
 
@@ -67,7 +67,7 @@ const usePressableAnimation = () => {
     Animated.timing(animatedBackgroundColor, {
       toValue: 0,
       duration: 150,
-      useNativeDriver: false,
+      useNativeDriver: true,
     }).start();
   }, []);
 

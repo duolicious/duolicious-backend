@@ -25,7 +25,7 @@ const Tab = ({ navigation, state, route, descriptors, index, numUnread }) => {
     Animated.timing(animated, {
       toValue: 1,
       duration: 500,
-      useNativeDriver: false,
+      useNativeDriver: true,
     }).start();
   };
 
