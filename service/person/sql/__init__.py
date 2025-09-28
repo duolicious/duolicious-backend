@@ -2963,7 +2963,26 @@ WITH checker AS (
         person
     WHERE
         id = %(person_id)s
-), either_visited AS (
+), visited_pass_1 AS (
+    -- A simple query to suggest to the query planner to use the index
+    SELECT
+        *,
+        CASE
+            WHEN subject_person_id = %(person_id)s
+            THEN object_person_id
+            ELSE subject_person_id
+        END AS other_person_id
+    FROM
+        visited
+    WHERE
+        subject_person_id = %(person_id)s
+    AND
+        visited.updated_at > now() - interval '1 week'
+    OR
+        object_person_id = %(person_id)s
+    AND
+        visited.updated_at > now() - interval '1 week'
+), visited_pass_2 AS (
     SELECT
         direction.kind AS direction_kind,
 
@@ -2973,7 +2992,7 @@ WITH checker AS (
 
         visitor_photo.uuid AS photo_uuid,
 
-        iso8601_utc(visited.updated_at) AS time,
+        iso8601_utc(visited_pass_1.updated_at) AS time,
 
         prospect.name AS name,
 
@@ -3003,49 +3022,39 @@ WITH checker AS (
 
         CASE
             WHEN direction.kind = 'visited_you'
-            THEN visited.updated_at > checker.last_visitor_check_time
+            THEN visited_pass_1.updated_at > checker.last_visitor_check_time
             ELSE FALSE
         END AS is_new,
 
         verification_required_to_view,
 
-        visited.updated_at AS order_time,
+        visited_pass_1.updated_at AS order_time,
 
-        visited.invisible AS was_invisible
+        visited_pass_1.invisible AS was_invisible
     FROM
-        checker
-    CROSS JOIN
-        visited
+        visited_pass_1
     JOIN
         person AS prospect
     ON
-        (
-            visited.subject_person_id = prospect.id
-        AND
-            visited.object_person_id = checker.id
-        )
-    OR
-        (
-            visited.subject_person_id = checker.id
-        AND
-            visited.object_person_id = prospect.id
-        )
-    LEFT JOIN LATERAL (
-        SELECT
-            CASE
-                WHEN visited.subject_person_id = checker.id
-                THEN 'you_visited'
-                ELSE 'visited_you'
-            END AS kind
-        FROM
-            checker
-    ) AS direction
-    ON
-        TRUE
-    JOIN
+        prospect.id = visited_pass_1.other_person_id
+    LEFT JOIN
         gender
     ON
         gender.id = prospect.gender_id
+    LEFT JOIN
+        checker
+    ON
+        TRUE
+    LEFT JOIN LATERAL (
+        SELECT
+            CASE
+                WHEN visited_pass_1.subject_person_id = %(person_id)s
+                THEN 'you_visited'
+                ELSE 'visited_you'
+            END AS kind
+    ) AS direction
+    ON
+        TRUE
     LEFT JOIN LATERAL (
         SELECT
             CASE
@@ -3084,9 +3093,9 @@ WITH checker AS (
     ON
         TRUE
     WHERE
-        visited.updated_at > now() - interval '1 week'
-    AND
         prospect.activated
+    AND
+        prospect.id <> %(person_id)s
     AND
         -- The prospect did not skip the checker
         prospect.id NOT IN (
@@ -3122,7 +3131,7 @@ WITH checker AS (
         (
             direction.kind = 'you_visited'
         OR
-            NOT visited.invisible
+            NOT visited_pass_1.invisible
         )
     AND
         (
@@ -3137,16 +3146,16 @@ SELECT
         COALESCE(
             (
                 SELECT jsonb_agg(
-                    to_jsonb(either_visited)
+                    to_jsonb(visited_pass_2)
                     - 'order_time'
                     - 'direction_kind'
                     ORDER BY
-                        either_visited.order_time DESC
+                        visited_pass_2.order_time DESC
                 )
                 FROM
-                    either_visited
+                    visited_pass_2
                 WHERE
-                    either_visited.direction_kind = 'visited_you'
+                    visited_pass_2.direction_kind = 'visited_you'
             ),
             '[]'::jsonb
         ),
@@ -3155,16 +3164,16 @@ SELECT
         COALESCE(
             (
                 SELECT jsonb_agg(
-                    to_jsonb(either_visited)
+                    to_jsonb(visited_pass_2)
                     - 'order_time'
                     - 'direction_kind'
                     ORDER BY
-                        either_visited.order_time DESC
+                        visited_pass_2.order_time DESC
                 )
                 FROM
-                    either_visited
+                    visited_pass_2
                 WHERE
-                    either_visited.direction_kind = 'you_visited'
+                    visited_pass_2.direction_kind = 'you_visited'
             ),
             '[]'::jsonb
         )
