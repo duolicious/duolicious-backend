@@ -232,12 +232,26 @@ def lodge_report(subject_uuid: str, object_uuid: str, reason: str):
     ).start()
 
 
+def is_bot_report(reason: str):
+    detection_pattern = re.compile(
+        r'\b(fake|(cat\s*fish(ing)?)|scam|scammer|bot)\b',
+        re.I
+    )
+
+    cleaning_pattern = re.compile('[^0-9a-zA-Z]+')
+
+    clean_reason = ' '.join(cleaning_pattern.sub(' ', reason).split())
+
+    return bool(re.search(detection_pattern, clean_reason))
+
+
 def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str):
     params = dict(
         subject_uuid=subject_uuid,
         object_uuid=object_uuid,
         reported=bool(reason),
         report_reason=reason or '',
+        is_bot_report=is_bot_report(reason),
     )
 
     with api_tx() as tx:
