@@ -258,8 +258,8 @@ CREATE TABLE IF NOT EXISTS person (
     about TEXT NOT NULL,
 
     -- Denormalized location names
-    location_short TEXT NOT NULL DEFAULT '',
-    location_long  TEXT NOT NULL DEFAULT '',
+    location_short_friendly TEXT NOT NULL,
+    location_long_friendly TEXT NOT NULL,
 
     -- TODO: CREATE INDEX ON person USING ivfflat (personality2 vector_ip_ops) WITH (lists = 100);
     -- There's 46 `trait`s. In principle, it's possible for someone to have a
@@ -770,10 +770,6 @@ CREATE INDEX IF NOT EXISTS idx__person__last_event_time
 CREATE INDEX IF NOT EXISTS idx__person__roles
     ON person
     USING GIN (roles);
-
--- Indexes for denormalized location names
-CREATE INDEX IF NOT EXISTS idx__person__location_short ON person(location_short);
-CREATE INDEX IF NOT EXISTS idx__person__location_long  ON person(location_long);
 
 CREATE INDEX IF NOT EXISTS idx__search_cache__searcher_person_id__position ON search_cache(searcher_person_id, position);
 

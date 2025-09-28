@@ -97,11 +97,7 @@ SELECT
     END AS role,
     id,
     uuid::TEXT,
-    (
-        SELECT location_long
-        FROM person
-        WHERE id = p.id
-    ) AS location,
+    location_long_friendly AS location,
     split_part(email, '@', 2) AS email_domain,
     ARRAY(
         SELECT DISTINCT
