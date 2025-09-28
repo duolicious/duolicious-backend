@@ -464,12 +464,14 @@ WITH searcher AS (
     AND
         -- The prospect wants to be shown to strangers or isn't a stranger
         (
-            prospect.id IN (
+            EXISTS (
                 SELECT
-                    subject_person_id
+                    1
                 FROM
                     messaged
                 WHERE
+                    subject_person_id = prospect.id
+                AND
                     object_person_id = %(searcher_person_id)s
             )
         OR
@@ -477,56 +479,66 @@ WITH searcher AS (
         )
     AND
         -- The prospect did not skip the searcher
-        prospect.id NOT IN (
+        NOT EXISTS (
             SELECT
-                subject_person_id
+                1
             FROM
                 skipped
             WHERE
+                subject_person_id = prospect.id
+            AND
                 object_person_id = %(searcher_person_id)s
         )
     AND
         -- The searcher did not skip the prospect, or the searcher wishes to
         -- view skipped prospects
         (
-            prospect.id NOT IN (
+            NOT EXISTS (
                 SELECT
-                    object_person_id
+                    1
                 FROM
                     skipped
                 WHERE
                     subject_person_id = %(searcher_person_id)s
+                AND
+                    object_person_id = prospect.id
             )
         OR
-            1 IN (
+            EXISTS (
                 SELECT
                     skipped_id
                 FROM
                     search_preference_skipped
                 WHERE
                     person_id = %(searcher_person_id)s
+                AND
+                    skipped_id = 1
             )
         )
     AND
         -- The searcher did not message the prospect, or the searcher wishes to
         -- view messaged prospects
         (
-            prospect.id NOT IN (
+            NOT EXISTS (
                 SELECT
-                    object_person_id
+                    1
                 FROM
                     messaged
                 WHERE
                     subject_person_id = %(searcher_person_id)s
+                AND
+                    object_person_id = prospect.id
             )
         OR
-            1 IN (
+            EXISTS (
                 SELECT
                     messaged_id
                 FROM
                     search_preference_messaged
                 WHERE
                     person_id = %(searcher_person_id)s
+                AND
+                    messaged_id = 1
             )
         )
     AND
@@ -1049,12 +1061,14 @@ WITH searcher AS (
     AND
         -- The prospect wants to be shown to strangers or isn't a stranger
         (
-            prospect.id IN (
+            EXISTS (
                 SELECT
-                    subject_person_id
+                    1
                 FROM
                     messaged
                 WHERE
+                    subject_person_id = prospect.id
+                AND
                     object_person_id = %(searcher_person_id)s
             )
         OR
@@ -1062,56 +1076,66 @@ WITH searcher AS (
         )
     AND
         -- The prospect did not skip the searcher
-        prospect.id NOT IN (
+        NOT EXISTS (
             SELECT
-                subject_person_id
+                1
             FROM
                 skipped
             WHERE
+                subject_person_id = prospect.id
+            AND
                 object_person_id = %(searcher_person_id)s
         )
     AND
         -- The searcher did not skip the prospect, or the searcher wishes to
         -- view skipped prospects
         (
-            prospect.id NOT IN (
+            NOT EXISTS (
                 SELECT
-                    object_person_id
+                    1
                 FROM
                     skipped
                 WHERE
                     subject_person_id = %(searcher_person_id)s
+                AND
+                    object_person_id = prospect.id
             )
         OR
-            1 IN (
+            EXISTS (
                 SELECT
                     skipped_id
                 FROM
                     search_preference_skipped
                 WHERE
                     person_id = %(searcher_person_id)s
+                AND
+                    skipped_id = 1
             )
         )
     AND
         -- The searcher did not message the prospect, or the searcher wishes to
         -- view messaged prospects
         (
-            prospect.id NOT IN (
+            NOT EXISTS (
                 SELECT
-                    object_person_id
+                    1
                 FROM
                     messaged
                 WHERE
                     subject_person_id = %(searcher_person_id)s
+                AND
+                    object_person_id = prospect.id
             )
         OR
-            1 IN (
+            EXISTS (
                 SELECT
                     messaged_id
                 FROM
                     search_preference_messaged
                 WHERE
                     person_id = %(searcher_person_id)s
+                AND
+                    messaged_id = 1
             )
         )
     -- Decrease users' odds of appearing in the feed if they're already getting
