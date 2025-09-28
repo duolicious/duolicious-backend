@@ -425,8 +425,10 @@ WHERE session_token_hash = %(session_token_hash)s
 """
 
 Q_FINISH_ONBOARDING = f"""
-WITH onboardee_country AS (
+WITH onboardee_location AS (
     SELECT
+        short_friendly,
+        long_friendly,
         country,
         verification_required
     FROM
@@ -450,7 +452,9 @@ WITH onboardee_country AS (
         unit_id,
         intros_notification,
         privacy_verification_level_id,
-        verification_required
+        verification_required,
+        location_short_friendly,
+        location_long_friendly
     ) SELECT
         email,
         %(normalized_email)s,
@@ -480,10 +484,12 @@ WITH onboardee_country AS (
             WHEN RANDOM() < 0.5 THEN 1
             ELSE 3
         END AS privacy_verification_level_id,
-        verification_required
+        verification_required,
+        short_friendly,
+        long_friendly
     FROM
         onboardee,
-        onboardee_country
+        onboardee_location
     WHERE email = %(email)s
     RETURNING
         id,
@@ -804,11 +810,8 @@ WITH prospect AS (
         ) AS age,
 
         (
-            SELECT short_friendly
-            FROM location
+            SELECT prospect.location_short_friendly
             WHERE prospect.show_my_location
-            ORDER BY location.coordinates <-> prospect.coordinates
-            LIMIT 1
         ) AS location,
 
         (
@@ -1558,12 +1561,9 @@ WITH photo_ AS (
     FROM ethnicity JOIN person ON ethnicity_id = ethnicity.id
     WHERE person.id = %(person_id)s
 ), location AS (
-    SELECT long_friendly AS j
-    FROM location
-    ORDER BY coordinates <-> (
-        SELECT coordinates FROM person WHERE id = %(person_id)s
-    )
-    LIMIT 1
+    SELECT location_long_friendly AS j
+    FROM person
+    WHERE id = %(person_id)s
 ), occupation AS (
     SELECT occupation AS j FROM person WHERE id = %(person_id)s
 ), education AS (
@@ -2996,20 +2996,16 @@ WITH checker AS (
 
         prospect.name AS name,
 
-        CASE
-            WHEN prospect.show_my_age
-            THEN EXTRACT(YEAR FROM AGE(prospect.date_of_birth))
-            ELSE NULL
-        END AS age,
+        (
+            SELECT EXTRACT(YEAR FROM AGE(prospect.date_of_birth))
+            WHERE prospect.show_my_age
+        ) AS age,
 
         gender.name AS gender,
 
         (
-            SELECT short_friendly
-            FROM location
+            SELECT prospect.location_short_friendly
             WHERE prospect.show_my_location
-            ORDER BY location.coordinates <-> prospect.coordinates
-            LIMIT 1
         ) AS location,
 
         prospect.verification_level_id > 1 AS is_verified,

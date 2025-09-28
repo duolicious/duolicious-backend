@@ -97,12 +97,7 @@ SELECT
     END AS role,
     id,
     uuid::TEXT,
-    (
-        SELECT long_friendly
-        FROM location
-        ORDER BY location.coordinates <-> p.coordinates
-        LIMIT 1
-    ) AS location,
+    location_long_friendly AS location,
     split_part(email, '@', 2) AS email_domain,
     ARRAY(
         SELECT DISTINCT
