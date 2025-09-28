@@ -50,7 +50,7 @@ const Tooltip = ({
 
 const TooltipListener = () => {
   const [state, setState] = useState<TooltipState>(null);
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const { width: windowWidth } = useWindowDimensions();
 
   useEffect(() => {
     listen<TooltipState>(EVENT_KEY, setState);
@@ -76,11 +76,6 @@ const TooltipListener = () => {
     ? 'left'
     : 'right';
 
-  const verticalDirection: 'up' | 'down' =
-    state.measurement.pageY > windowHeight / 2
-    ? 'up'
-    : 'down';
-
   return (
     <View
       style={{
@@ -104,13 +99,8 @@ const TooltipListener = () => {
             paddingRight: Math.max(0, state.measurement.width - 4),
           }),
 
-          ...(verticalDirection === 'down' ? {
-            top: state.measurement.pageY,
-            paddingTop: Math.max(0, state.measurement.height - 4),
-          } : {
-            bottom: windowHeight - state.measurement.pageY - state.measurement.height,
-            paddingBottom: Math.max(0, state.measurement.height - 4),
-          }),
+          top: state.measurement.pageY,
+          paddingTop: Math.max(0, state.measurement.height - 4),
         }}
       >
         <Tooltip>{state.text}</Tooltip>
