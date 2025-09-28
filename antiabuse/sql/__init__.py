@@ -98,10 +98,9 @@ SELECT
     id,
     uuid::TEXT,
     (
-        SELECT long_friendly
-        FROM location
-        ORDER BY location.coordinates <-> p.coordinates
-        LIMIT 1
+        SELECT location_long
+        FROM person
+        WHERE id = p.id
     ) AS location,
     split_part(email, '@', 2) AS email_domain,
     ARRAY(

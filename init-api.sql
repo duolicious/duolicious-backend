@@ -257,6 +257,10 @@ CREATE TABLE IF NOT EXISTS person (
     gender_id SMALLINT REFERENCES gender(id) NOT NULL,
     about TEXT NOT NULL,
 
+    -- Denormalized location names
+    location_short TEXT NOT NULL DEFAULT '',
+    location_long  TEXT NOT NULL DEFAULT '',
+
     -- TODO: CREATE INDEX ON person USING ivfflat (personality2 vector_ip_ops) WITH (lists = 100);
     -- There's 46 `trait`s. In principle, it's possible for someone to have a
     -- score of 0 for each trait. We add an extra, constant, non-zero dimension
@@ -766,6 +770,10 @@ CREATE INDEX IF NOT EXISTS idx__person__last_event_time
 CREATE INDEX IF NOT EXISTS idx__person__roles
     ON person
     USING GIN (roles);
+
+-- Indexes for denormalized location names
+CREATE INDEX IF NOT EXISTS idx__person__location_short ON person(location_short);
+CREATE INDEX IF NOT EXISTS idx__person__location_long  ON person(location_long);
 
 CREATE INDEX IF NOT EXISTS idx__search_cache__searcher_person_id__position ON search_cache(searcher_person_id, position);
 

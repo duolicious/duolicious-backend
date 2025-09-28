@@ -437,6 +437,17 @@ WITH onboardee_country AS (
         WHERE email = %(email)s
     )
     LIMIT 1
+), nearest_location AS (
+    SELECT
+        short_friendly AS location_short,
+        long_friendly  AS location_long
+    FROM location
+    ORDER BY coordinates <-> (
+        SELECT coordinates
+        FROM onboardee
+        WHERE email = %(email)s
+    )
+    LIMIT 1
 ), new_person AS (
     INSERT INTO person (
         email,
@@ -450,7 +461,9 @@ WITH onboardee_country AS (
         unit_id,
         intros_notification,
         privacy_verification_level_id,
-        verification_required
+        verification_required,
+        location_short,
+        location_long
     ) SELECT
         email,
         %(normalized_email)s,
@@ -480,7 +493,9 @@ WITH onboardee_country AS (
             WHEN RANDOM() < 0.5 THEN 1
             ELSE 3
         END AS privacy_verification_level_id,
-        verification_required
+        verification_required,
+        (SELECT location_short FROM nearest_location),
+        (SELECT location_long  FROM nearest_location)
     FROM
         onboardee,
         onboardee_country
@@ -804,11 +819,8 @@ WITH prospect AS (
         ) AS age,
 
         (
-            SELECT short_friendly
-            FROM location
+            SELECT prospect.location_short
             WHERE prospect.show_my_location
-            ORDER BY location.coordinates <-> prospect.coordinates
-            LIMIT 1
         ) AS location,
 
         (
@@ -1558,12 +1570,9 @@ WITH photo_ AS (
     FROM ethnicity JOIN person ON ethnicity_id = ethnicity.id
     WHERE person.id = %(person_id)s
 ), location AS (
-    SELECT long_friendly AS j
-    FROM location
-    ORDER BY coordinates <-> (
-        SELECT coordinates FROM person WHERE id = %(person_id)s
-    )
-    LIMIT 1
+    SELECT location_long AS j
+    FROM person
+    WHERE id = %(person_id)s
 ), occupation AS (
     SELECT occupation AS j FROM person WHERE id = %(person_id)s
 ), education AS (
@@ -3005,11 +3014,8 @@ WITH checker AS (
         gender.name AS gender,
 
         (
-            SELECT short_friendly
-            FROM location
+            SELECT prospect.location_short
             WHERE prospect.show_my_location
-            ORDER BY location.coordinates <-> prospect.coordinates
-            LIMIT 1
         ) AS location,
 
         prospect.verification_level_id > 1 AS is_verified,

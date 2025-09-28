@@ -1126,7 +1126,9 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             coordinates
                 = location.coordinates,
             verification_required
-                = location.verification_required OR person.verification_required
+                = location.verification_required OR person.verification_required,
+            location_short = location.short_friendly,
+            location_long  = location.long_friendly
         FROM location
         WHERE person.id = %(person_id)s
         AND long_friendly = %(field_value)s
