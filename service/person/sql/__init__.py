@@ -3094,39 +3094,33 @@ WITH checker AS (
         prospect.id <> %(person_id)s
     AND
         -- The prospect did not skip the checker
-        NOT EXISTS (
+        prospect.id NOT IN (
             SELECT
-                1
+                subject_person_id
             FROM
                 skipped
             WHERE
-                subject_person_id = prospect.id
-            AND
                 object_person_id = %(person_id)s
         )
     AND
         -- The checker did not skip the prospect, or wishes to view skipped prospects
         (
-            NOT EXISTS (
+            prospect.id NOT IN (
                 SELECT
-                    1
+                    object_person_id
                 FROM
                     skipped
                 WHERE
                     subject_person_id = %(person_id)s
-                AND
-                    object_person_id = prospect.id
             )
         OR
-            EXISTS (
+            1 IN (
                 SELECT
                     skipped_id
                 FROM
                     search_preference_skipped
                 WHERE
                     person_id = %(person_id)s
-                AND
-                    skipped_id = 1
             )
         )
     AND
