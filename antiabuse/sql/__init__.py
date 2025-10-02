@@ -197,14 +197,29 @@ WITH subject_person_id AS (
     FROM
         person
     WHERE
-        uuid = %(subject_uuid)s
+        uuid = uuid_or_null(%(subject_uuid)s::TEXT)
 ), object_person_id AS (
     SELECT
         id
     FROM
         person
     WHERE
-        uuid = %(object_uuid)s
+        uuid = uuid_or_null(%(object_uuid)s::TEXT)
+), bot_report AS (
+    SELECT
+        (
+            reporter.sign_up_time < now() - interval '1 month'
+        AND
+            reporter.verification_level_id >= 3
+        OR
+            reporter.roles && ARRAY['admin', 'mod']
+        ) AS is_trustworthy
+    FROM
+        person AS reporter
+    WHERE
+        reporter.uuid = uuid_or_null(%(subject_uuid)s::TEXT)
+    AND
+        %(is_bot_report)s
 ), q1 AS (
     INSERT INTO skipped (
         subject_person_id,
@@ -225,6 +240,21 @@ WITH subject_person_id AS (
     OR
         searcher_person_id = (SELECT id FROM object_person_id) AND
         prospect_person_id = (SELECT id FROM subject_person_id)
+), q3 AS (
+    UPDATE
+        person
+    SET
+        verification_required = TRUE
+    FROM
+        bot_report
+    WHERE
+        bot_report.is_trustworthy
+    AND
+        person.uuid = uuid_or_null(%(object_uuid)s::TEXT)
+    RETURNING
+        1
 )
-SELECT 1
+SELECT EXISTS (
+    SELECT * FROM q3
+) AS is_automoded_bot
 """
