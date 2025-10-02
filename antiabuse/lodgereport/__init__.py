@@ -80,7 +80,7 @@ def _photo_links_to_html(photo_links):
 def report_template(
     report_obj,
     reason: str,
-    last_messages: list[dict]
+    last_messages: list[dict],
 ):
     reporter_token = report_obj[0]['token']
     accused_token = report_obj[1]['token']
@@ -188,16 +188,19 @@ def _send_report_email(
     reason: str,
     report_obj: Any,
     last_messages: list[dict],
-    **kwargs: Any,
+    is_automoded_bot: bool,
 ):
     subject_person_id = report_obj[0]['id']
     object_person_id  = report_obj[1]['id']
 
     report_email = _sample_email_addresses(REPORT_EMAILS)
 
+    subject = f"Report: {subject_person_id} - {object_person_id}"
+    subject += ' [automoded]' if is_automoded_bot else ''
+
     try:
         aws_smtp.send(
-            subject=f"Report: {subject_person_id} - {object_person_id}",
+            subject=subject,
             body=report_template(
                 report_obj=report_obj,
                 reason=reason,
@@ -210,7 +213,12 @@ def _send_report_email(
         print(traceback.format_exc())
 
 
-def lodge_report(subject_uuid: str, object_uuid: str, reason: str):
+def lodge_report(
+    subject_uuid: str,
+    object_uuid: str,
+    reason: str,
+    is_automoded_bot: bool
+):
     params = dict(
         subject_uuid=subject_uuid,
         object_uuid=object_uuid,
@@ -228,6 +236,7 @@ def lodge_report(subject_uuid: str, object_uuid: str, reason: str):
             report_obj=report_obj,
             reason=reason,
             last_messages=last_messages,
+            is_automoded_bot=is_automoded_bot,
         )
     ).start()
 
@@ -256,10 +265,12 @@ def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str):
 
     with api_tx() as tx:
         tx.execute(Q_INSERT_SKIPPED, params=params)
+        row = tx.fetchone()
 
     if reason:
         lodge_report(
             subject_uuid=subject_uuid,
             object_uuid=object_uuid,
-            reason=reason
+            reason=reason,
+            is_automoded_bot=row['is_automoded_bot'],
         )

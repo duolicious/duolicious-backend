@@ -251,6 +251,10 @@ WITH subject_person_id AS (
         bot_report.is_trustworthy
     AND
         person.uuid = uuid_or_null(%(object_uuid)s::TEXT)
+    RETURNING
+        1
 )
-SELECT 1
+SELECT EXISTS (
+    SELECT * FROM q3
+) AS is_automoded_bot
 """
