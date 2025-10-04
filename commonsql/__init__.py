@@ -49,17 +49,21 @@ WHERE
 """
 
 Q_UPSERT_LAST_INTRO_NOTIFICATION_TIME = """
-INSERT INTO duo_last_notification (username, intro_seconds)
-VALUES (%(username)s, extract(epoch from now() + INTERVAL '5 seconds')::int)
-ON CONFLICT (username) DO UPDATE SET
-    intro_seconds = EXCLUDED.intro_seconds
+UPDATE
+    person
+SET
+    intro_seconds = extract(epoch from now() + INTERVAL '5 seconds')::int
+WHERE
+    uuid = uuid_or_null(%(username)s)
 """
 
 Q_UPSERT_LAST_CHAT_NOTIFICATION_TIME = """
-INSERT INTO duo_last_notification (username, chat_seconds)
-VALUES (%(username)s, extract(epoch from now() + INTERVAL '5 seconds')::int)
-ON CONFLICT (username) DO UPDATE SET
-    chat_seconds = EXCLUDED.chat_seconds
+UPDATE
+    person
+SET
+    chat_seconds = extract(epoch from now() + INTERVAL '5 seconds')::int
+WHERE
+    uuid = uuid_or_null(%(username)s)
 """
 
 Q_IS_ALLOWED_CLUB_NAME = """

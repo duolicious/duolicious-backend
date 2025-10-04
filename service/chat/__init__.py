@@ -141,11 +141,11 @@ Q_IMMEDIATE_CHAT_DATA = Q_IMMEDIATE_DATA.replace('[[type]]', 'chats')
 
 Q_SELECT_PUSH_TOKEN = """
 SELECT
-    token
+    push_token AS token
 FROM
-    duo_push_token
+    person
 WHERE
-    username = %(username)s::TEXT
+    uuid = uuid_or_null(%(username)s)
 """
 
 MAX_MESSAGE_LEN = 5000

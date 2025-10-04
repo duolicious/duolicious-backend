@@ -5,22 +5,12 @@ from batcher import Batcher
 
 
 Q_SET_TOKEN = """
-INSERT INTO duo_push_token (username, token)
-VALUES (
-    %(username)s,
-    %(token)s
-)
-ON CONFLICT (username)
-DO UPDATE SET
-    token = EXCLUDED.token
+UPDATE person SET push_token = %(token)s WHERE uuid = uuid_or_null(%(username)s)
 """
 
 
 Q_DELETE_TOKEN = """
-DELETE FROM
-    duo_push_token
-WHERE
-    username = %(username)s
+UPDATE person SET push_token = NULL WHERE uuid = uuid_or_null(%(username)s)
 """
 
 
