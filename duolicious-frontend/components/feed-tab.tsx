@@ -10,6 +10,7 @@ import { DuoliciousTopNavBar } from './top-nav-bar';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
 import { Avatar } from './avatar';
 import { getShortElapsedTime, isMobile, assertNever, capLuminance } from '../util/util';
+import { makeLinkProps } from '../util/navigation';
 import { GestureResponderEvent, Pressable, Animated } from 'react-native';
 import { EnlargeablePhoto } from './enlargeable-image';
 import { commonStyles } from '../styles';
@@ -28,7 +29,6 @@ import { setQuote } from './conversation-screen/quote';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
 import { OnlineIndicator } from './online-indicator';
-import { Flair } from './badges';
 import { useAppTheme } from '../app-theme/app-theme';
 import { usePressableAnimation } from '../animation/animation';
 
@@ -37,12 +37,12 @@ const NAME_ACTION_TIME_GAP_VERTICAL = 16;
 const DefaultList = Platform.OS === 'web' ? DefaultFlatList : DefaultFlashList;
 
 type Action =
-  | "added a photo"
-  | "added a voice bio"
-  | "erased their bio"
-  | "joined"
-  | "recently online"
-  | "updated their bio"
+  | "Added a photo"
+  | "Added a voice bio"
+  | "Erased their bio"
+  | "Joined"
+  | "Recently online"
+  | "Updated their bio"
 
 const DataItemBaseSchema = z.object({
   time: z.string(),
@@ -52,7 +52,9 @@ const DataItemBaseSchema = z.object({
   photo_blurhash: z.string().nullable(),
   is_verified: z.boolean(),
   match_percentage: z.number(),
-  flair: z.array(z.string()),
+  age: z.number().nullable(),
+  gender: z.string(),
+  location: z.string().nullable(),
 });
 
 const AddedPhotoFieldsSchema = DataItemBaseSchema.extend({
@@ -187,7 +189,9 @@ const useNavigationToProfile = (
 ) => {
   const navigation = useNavigation<any>();
 
-  return useCallback(() => {
+  return useCallback((e) => {
+    e.preventDefault();
+
     navigation.navigate(
       'Prospect Profile Screen',
       {
@@ -221,7 +225,9 @@ const useNavigationToConversation = (
 ) => {
   const navigation = useNavigation<any>();
 
-  return useCallback(() => {
+  return useCallback((e) => {
+    e.preventDefault();
+
     setQuote({ text: quote, attribution: name });
 
     navigation.navigate(
@@ -236,28 +242,28 @@ const useNavigationToConversation = (
   }, [personUuid, name, photoUuid, photoBlurhash, quote]);
 };
 
-const NameActionTime = ({
+const AgeGenderLocation = ({
   personUuid,
   name,
   isVerified,
-  action,
-  time,
+  age,
+  gender,
+  userLocation,
   doUseOnline,
-  flair,
   style,
 }: {
   personUuid: string
   name: string
   isVerified: boolean
-  action: Action
-  time: Date
+  age: number | null
+  gender: string
+  userLocation: string | null
   doUseOnline: boolean
-  flair: string[]
   style?: any
 }) => {
   const { appTheme } = useAppTheme();
 
-  const onPress = useCallback((event: GestureResponderEvent) => {
+  const onPressReport = useCallback((event: GestureResponderEvent) => {
     event.stopPropagation();
 
     const data: ReportModalInitialData = {
@@ -267,6 +273,13 @@ const NameActionTime = ({
     };
     notify('open-report-modal', data);
   }, [notify, name, personUuid]);
+
+  const onPress = useNavigationToProfile(
+    personUuid,
+    null
+  );
+
+  const link = makeLinkProps(`/profile/${personUuid}`);
 
   return (
     <View
@@ -284,13 +297,15 @@ const NameActionTime = ({
           ...style,
         }}
       >
-        <View
+        <Pressable
           style={{
             width: '100%',
             flexDirection: 'row',
             gap: 5,
             alignItems: 'center',
           }}
+          onPress={onPress}
+          {...link}
         >
           {doUseOnline &&
             <OnlineIndicator
@@ -310,20 +325,26 @@ const NameActionTime = ({
           {isVerified &&
             <VerificationBadge size={14} />
           }
-        </View>
-        <DefaultText
-          style={{
-            color: appTheme.hintColor,
-            width: '100%',
-          }}
-        >
-          {action} • {getShortElapsedTime(time)}
+        </Pressable>
+        <DefaultText style={{ color: appTheme.hintColor }}>
+          {
+            [
+              age,
+              gender,
+            ]
+              .filter(Boolean)
+              .join(' • ')
+          }
         </DefaultText>
-        <Flair flair={flair} />
+        {userLocation &&
+          <DefaultText style={{ color: appTheme.hintColor }}>
+            {userLocation}
+          </DefaultText>
+        }
       </View>
       <Flag
         hitSlop={20}
-        onPress={onPress}
+        onPress={onPressReport}
         stroke={`${appTheme.secondaryColor}80`}
         strokeWidth={2}
         height={18}
@@ -332,6 +353,47 @@ const NameActionTime = ({
           marginLeft: 10,
         }}
       />
+    </View>
+  );
+};
+
+const ActionTime = ({
+  action,
+  time,
+  style,
+}: {
+  action: Action
+  time: Date
+  style?: any
+}) => {
+  const { appTheme } = useAppTheme();
+
+  return (
+    <View
+      style={{
+        marginTop: 10,
+        alignItems: 'center',
+        width: '100%',
+        flexDirection: 'row',
+        ...style,
+      }}
+    >
+      <DefaultText
+        style={{
+          color: appTheme.secondaryColor,
+          fontWeight: '700',
+          fontSize: 18,
+        }}
+      >
+        {action}
+      </DefaultText>
+      <DefaultText
+        style={{
+          color: appTheme.hintColor,
+        }}
+      >
+        {' '}• {getShortElapsedTime(time)}
+      </DefaultText>
     </View>
   );
 };
@@ -346,13 +408,16 @@ const FeedItemJoined = ({ fields }: { fields: JoinedFields }) => {
 
   const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
 
+  const props = isMobile() ? {
+    onPress,
+    onPressIn,
+    onPressOut,
+  } : {
+    disabled: true,
+  };
+
   return (
-    <Pressable
-      style={styles.pressableStyle}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
-      onPress={onPress}
-    >
+    <Pressable style={styles.pressableStyle} {...props}>
       <Animated.View style={[styles.cardBorders, appTheme.card, { backgroundColor }]}>
         {fields.photo_uuid &&
           <Avatar
@@ -363,15 +428,18 @@ const FeedItemJoined = ({ fields }: { fields: JoinedFields }) => {
             doUseOnline={!!fields.photo_uuid}
           />
         }
-        <NameActionTime
-          personUuid={fields.person_uuid}
-          name={fields.name}
-          isVerified={fields.is_verified}
-          action="joined"
-          time={new Date(fields.time)}
-          doUseOnline={!fields.photo_uuid}
-          flair={fields.flair}
-        />
+        <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
+          <AgeGenderLocation
+            personUuid={fields.person_uuid}
+            name={fields.name}
+            isVerified={fields.is_verified}
+            age={fields.age}
+            gender={fields.gender}
+            userLocation={fields.location}
+            doUseOnline={!fields.photo_uuid}
+          />
+          <ActionTime action="Joined" time={new Date(fields.time)} />
+        </View>
       </Animated.View>
     </Pressable>
   );
@@ -387,11 +455,11 @@ const FeedItemWasRecentlyOnline = ({
 }) => {
   switch (dataItem.type) {
     case 'recently-online-with-bio':
-      return <FeedItemUpdatedBio fields={dataItem} action="recently online" />;
+      return <FeedItemUpdatedBio fields={dataItem} action="Recently online" />;
     case 'recently-online-with-photo':
-      return <FeedItemAddedPhoto fields={dataItem} action="recently online" />;
+      return <FeedItemAddedPhoto fields={dataItem} action="Recently online" />;
     case 'recently-online-with-voice-bio':
-      return <FeedItemAddedVoiceBio fields={dataItem} action="recently online" />;
+      return <FeedItemAddedVoiceBio fields={dataItem} action="Recently online" />;
     default:
       return assertNever(dataItem);
   }
@@ -399,7 +467,7 @@ const FeedItemWasRecentlyOnline = ({
 
 const FeedItemAddedPhoto = ({
   fields,
-  action = "added a photo",
+  action = "Added a photo",
 }: {
   fields: AddedPhotoFields,
   action?: Action,
@@ -415,13 +483,16 @@ const FeedItemAddedPhoto = ({
 
   const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
 
+  const props = isMobile() ? {
+    onPress,
+    onPressIn,
+    onPressOut,
+  } : {
+    disabled: true,
+  };
+
   return (
-    <Pressable
-      style={styles.pressableStyle}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
-      onPress={onPress}
-    >
+    <Pressable style={styles.pressableStyle} {...props}>
       <Animated.View style={[styles.cardBorders, appTheme.card, { backgroundColor }]}>
         {fields.photo_uuid &&
           <Avatar
@@ -433,15 +504,16 @@ const FeedItemAddedPhoto = ({
           />
         }
         <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
-          <NameActionTime
+          <AgeGenderLocation
             personUuid={fields.person_uuid}
             name={fields.name}
             isVerified={fields.is_verified}
-            action={action}
-            time={new Date(fields.time)}
+            age={fields.age}
+            gender={fields.gender}
+            userLocation={fields.location}
             doUseOnline={!fields.photo_uuid}
-            flair={fields.flair}
           />
+          <ActionTime action={action} time={new Date(fields.time)} />
           <EnlargeablePhoto
             onPress={onPressPhoto}
             photoUuid={fields.added_photo_uuid}
@@ -462,7 +534,7 @@ const FeedItemAddedPhoto = ({
 
 const FeedItemAddedVoiceBio = ({
   fields,
-  action = "added a voice bio"
+  action = "Added a voice bio"
 }: {
   fields: AddedVoiceBioFields
   action?: Action
@@ -476,13 +548,16 @@ const FeedItemAddedVoiceBio = ({
 
   const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
 
+  const props = isMobile() ? {
+    onPress,
+    onPressIn,
+    onPressOut,
+  } : {
+    disabled: true,
+  };
+
   return (
-    <Pressable
-      style={styles.pressableStyle}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
-      onPress={onPress}
-    >
+    <Pressable style={styles.pressableStyle} {...props}>
       <Animated.View style={[styles.cardBorders, appTheme.card, { backgroundColor }]}>
         {fields.photo_uuid &&
           <Avatar
@@ -494,15 +569,16 @@ const FeedItemAddedVoiceBio = ({
           />
         }
         <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
-          <NameActionTime
+          <AgeGenderLocation
             personUuid={fields.person_uuid}
             name={fields.name}
             isVerified={fields.is_verified}
-            action={action}
-            time={new Date(fields.time)}
+            age={fields.age}
+            gender={fields.gender}
+            userLocation={fields.location}
             doUseOnline={!fields.photo_uuid}
-            flair={fields.flair}
           />
+          <ActionTime action={action} time={new Date(fields.time)} />
           <AudioPlayer
             uuid={fields.added_audio_uuid}
             presentation="feed"
@@ -516,7 +592,7 @@ const FeedItemAddedVoiceBio = ({
 
 const FeedItemUpdatedBio = ({
   fields,
-  action = "updated their bio"
+  action = "Updated their bio"
 }: {
   fields: UpdatedBioFields,
   action?: Action,
@@ -538,13 +614,16 @@ const FeedItemUpdatedBio = ({
 
   const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
 
+  const props = isMobile() ? {
+    onPress,
+    onPressIn,
+    onPressOut,
+  } : {
+    disabled: true,
+  };
+
   return (
-    <Pressable
-      style={styles.pressableStyle}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
-      onPress={onPress}
-    >
+    <Pressable style={styles.pressableStyle} {...props}>
       <Animated.View style={[styles.cardBorders, appTheme.card, { backgroundColor }]}>
         {fields.photo_uuid &&
           <Avatar
@@ -557,21 +636,22 @@ const FeedItemUpdatedBio = ({
         }
         <View style={{ flex: 1, gap: isMobile() ? 8 : 10 }}>
           <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
-            <NameActionTime
+            <AgeGenderLocation
               personUuid={fields.person_uuid}
               name={fields.name}
               isVerified={fields.is_verified}
-              action={
-                fields.added_text.trim()
-                  ? action
-                  : "erased their bio"
-              }
-              time={new Date(fields.time)}
+              age={fields.age}
+              gender={fields.gender}
+              userLocation={fields.location}
               doUseOnline={!fields.photo_uuid}
-              flair={fields.flair}
               style={{
                 paddingHorizontal: 10,
               }}
+            />
+            <ActionTime
+              action={action}
+              time={new Date(fields.time)}
+              style={{ paddingHorizontal: 10 }}
             />
             <DefaultText
               style={{

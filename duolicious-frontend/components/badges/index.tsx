@@ -526,16 +526,13 @@ const Flair = ({
 }: {
   flair: string[]
 }) => {
-  if (!flair.length) {
-    return <></>;
-  }
-
   return (
     <View
       style={{
         flexDirection: 'row',
         gap: 3,
         flexWrap: 'wrap',
+        minHeight: size,
       }}
     >
       {flair.map((f) =>

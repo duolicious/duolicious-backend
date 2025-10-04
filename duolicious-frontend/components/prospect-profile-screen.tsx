@@ -48,7 +48,6 @@ import { faRulerVertical } from '@fortawesome/free-solid-svg-icons/faRulerVertic
 import { faHandsPraying } from '@fortawesome/free-solid-svg-icons/faHandsPraying'
 import { faPills } from '@fortawesome/free-solid-svg-icons/faPills'
 import { faSmoking } from '@fortawesome/free-solid-svg-icons/faSmoking'
-import { faVenusMars } from '@fortawesome/free-solid-svg-icons/faVenusMars'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
 import { RotateCcw, Flag, X } from "react-native-feather";
@@ -817,14 +816,12 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
                   personUuid={personUuid}
                   name={data?.name}
                   age={data?.age}
+                  gender={data?.gender}
+                  userLocation={data?.location}
                   verified={verificationLevelId(data) > 1}
                   matchPercentage={data?.match_percentage}
-                  userLocation={data?.location}
-                  textColor={
-                    data?.theme?.title_color
-                      ?? appTheme.secondaryColor
-                  }
-                  flair={data?.flair ?? []}
+                  titleColor={data?.theme?.title_color}
+                  bodyColor={data?.theme?.body_color}
                 />
                 <Body
                   navigation={navigation}
@@ -893,11 +890,12 @@ const ProspectUserDetails = ({
   personUuid,
   name,
   age,
+  gender,
+  userLocation,
   verified,
   matchPercentage,
-  userLocation,
-  textColor,
-  flair,
+  titleColor,
+  bodyColor,
 }) => {
   const onPressDonutChart = useCallback(() => {
     if (personId === undefined) return;
@@ -937,48 +935,60 @@ const ProspectUserDetails = ({
           />
           <DefaultText
             style={{
-              fontWeight: '700',
+              fontWeight: 900,
               fontSize: 24,
               flexShrink: 1,
-              color: textColor,
+              color: titleColor,
             }}
           >
-            {[
-              // The non-breaking space prevents the UI from jumping around too
-              // much while the content loads
-              name ?? '\u00A0',
-
-              age,
-            ].filter(Boolean).join(', ')}
+            {/* The non-breaking space prevents the UI from jumping around too */}
+            {/* much while the content loads */}
+            {name ?? '\u00A0'}
           </DefaultText>
           {verified &&
             <VerificationBadge/>
           }
         </View>
-        <DefaultText
-          style={{
-            textAlign: 'left',
-            color: textColor,
-          }}
-        >
-          <FontAwesomeIcon
-            icon={faLocationDot}
+        <View>
+          <DefaultText
             style={{
-              transform: [ { translateY: 2 } ],
+              textAlign: 'left',
+              fontSize: 16,
+              fontWeight: 700,
+              color: bodyColor,
             }}
-            color={textColor}
-          />
-          {'\u2002'}
-          {userLocation === null ? 'Private location' : userLocation}
-        </DefaultText>
-
-        <Flair flair={flair} />
+          >
+            {[
+              age,
+              gender,
+            ].filter(Boolean).join(' • ')}
+            {'\u2002'}
+          </DefaultText>
+          <DefaultText
+            style={{
+              textAlign: 'left',
+              fontSize: 16,
+              fontWeight: 700,
+              color: bodyColor,
+            }}
+          >
+            <FontAwesomeIcon
+              icon={faLocationDot}
+              style={{
+                transform: [ { translateY: 2 } ],
+              }}
+              color={bodyColor}
+            />
+            {'\u2002'}
+            {userLocation === null ? 'Private location' : userLocation}
+          </DefaultText>
+        </View>
       </View>
       <DonutChart
         percentage={matchPercentage}
         onPress={onPressDonutChart}
         textStyle={{
-          color: textColor,
+          color: titleColor,
         }}
       >
         <DefaultText
@@ -987,7 +997,7 @@ const ProspectUserDetails = ({
             fontWeight: '500',
             fontSize: 10,
             opacity: matchPercentage === undefined ? 0 : 1,
-            color: textColor,
+            color: titleColor,
           }}
         >
           See Why ›
@@ -1078,11 +1088,13 @@ const Body = ({
     <>
       <View
         style={{
+          paddingTop: 10,
           paddingLeft: 10,
           paddingRight: 10,
           marginBottom: 20,
         }}
       >
+        <Flair flair={data?.flair ?? []} />
         {data?.audio_bio_uuid &&
           <AudioPlayer
             name={data?.name}
@@ -1092,9 +1104,6 @@ const Body = ({
         }
         <Title style={{color: data?.theme?.title_color}}>Basics</Title>
         <Basics>
-          {data?.gender &&
-            <Basic {...basicsTheme} icon={faVenusMars}>{data.gender}</Basic>}
-
           {data?.orientation &&
             <Basic {...basicsTheme} icon="person">{data.orientation}</Basic>}
 

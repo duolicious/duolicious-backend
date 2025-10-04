@@ -330,6 +330,7 @@ const VisitorsItem = ({ itemKey }: { itemKey: string }) => {
           photoUuid={dataItem.photo_uuid}
           photoBlurhash={dataItem.photo_blurhash}
           verificationRequired={dataItem.verification_required_to_view}
+          disableProfileNavigation={true}
         />
         <View style={{ flexShrink: 1, gap: 2 }} >
           <View

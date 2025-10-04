@@ -70,6 +70,7 @@ const IntrosItem = ({
           photoUuid={photoUuid}
           photoBlurhash={photoBlurhash}
           personUuid={personUuid}
+          disableProfileNavigation={true}
         />
         <View
           style={{
@@ -192,6 +193,7 @@ const ChatsItem = ({
           photoUuid={photoUuid}
           photoBlurhash={photoBlurhash}
           personUuid={personUuid}
+          disableProfileNavigation={true}
         />
         <View
           style={{

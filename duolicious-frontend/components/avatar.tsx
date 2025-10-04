@@ -18,6 +18,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
 import { OnlineIndicator } from './online-indicator';
 import { useAppTheme } from '../app-theme/app-theme';
+import { useNavigation } from '@react-navigation/native';
 
 const Avatar = ({
   percentage,
@@ -25,24 +26,24 @@ const Avatar = ({
   photoUuid,
   photoBlurhash,
   personId,
-  navigation,
   isSkipped = false,
   verificationRequired = null,
   doUseOnline = true,
+  disableProfileNavigation = false,
 }: {
   percentage: number
   personUuid: string
   photoUuid: string | null
   photoBlurhash: string | null
   personId?: number
-  navigation?: any
   isSkipped?: boolean
   verificationRequired?: 'basics' | 'photos' | null
   doUseOnline?: boolean
+  disableProfileNavigation?: boolean
 }) => {
-  const Element = navigation ? Pressable : View;
-
   const { appTheme } = useAppTheme();
+
+  const navigation = useNavigation<any>();
 
   const onPress = useCallback((e) => {
     e.preventDefault();
@@ -64,13 +65,18 @@ const Avatar = ({
     }
   }, [navigation, personId, verificationRequired]);
 
-  const link = navigation && !verificationRequired && personUuid ? makeLinkProps(`/profile/${personUuid}`)
-                                                                 : {};
+  const isLinkToProfile = navigation && !verificationRequired && personUuid && !disableProfileNavigation;
+
+  const link =
+    isLinkToProfile
+      ? makeLinkProps(`/profile/${personUuid}`)
+      : {};
 
   return (
-    <Element
+    <Pressable
       onPress={onPress}
       style={styles.elementStyle}
+      disabled={!isLinkToProfile}
       {...link}
     >
       {!Boolean(photoUuid || photoBlurhash) &&
@@ -214,7 +220,7 @@ const Avatar = ({
           </DefaultText>
         </View>
       }
-    </Element>
+    </Pressable>
   )
 };
 

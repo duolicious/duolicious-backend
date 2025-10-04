@@ -15,7 +15,7 @@ import {
   X,
 } from "react-native-feather";
 
-const QuizTab = ({navigation}) => {
+const QuizTab = () => {
   const stackRef = useRef<any>(undefined);
 
   const inputElementsRef = useRef<any>(undefined);
@@ -52,7 +52,6 @@ const QuizTab = ({navigation}) => {
           innerRef={stackRef}
           onTopCardChanged={onTopCardChanged}
           onSwipe={onSwipe}
-          navigation={navigation}
         />
         <UndoNoYesSkip
           innerRef={inputElementsRef}

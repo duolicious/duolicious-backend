@@ -356,7 +356,6 @@ const getBestProspects = (prospects: ProspectState[]) => {
 };
 
 const Prospect = ({
-  navigation,
   style,
   personId,
   personUuid,
@@ -377,7 +376,6 @@ const Prospect = ({
     }}
   >
     <Avatar
-      navigation={navigation}
       personId={personId}
       personUuid={personUuid}
       photoUuid={photoUuid}
@@ -427,14 +425,12 @@ const ProspectDonutPercentage = ({ donutOpacity, matchPercentage }) => {
 };
 
 const Prospects = ({
-  navigation,
   topCardIndex,
   prospect1,
   prospect2,
   prospect3,
   prospect4,
 }: {
-  navigation: any,
   topCardIndex: number,
   prospect1: ProspectState | undefined,
   prospect2: ProspectState | undefined,
@@ -524,7 +520,6 @@ const Prospects = ({
           bestProspects.map((prospect, i) =>
             <Prospect
               key={String(topCardIndex - i)}
-              navigation={navigation}
               style={prospect.style}
               personId={prospect.personId}
               personUuid={prospect.personUuid}
@@ -641,7 +636,6 @@ const QuizCardStack = (props) => {
     innerRef,
     onTopCardChanged,
     onSwipe,
-    navigation,
   } = props;
 
   const stateRef = useRef<StackState>(initialState()).current;
@@ -791,7 +785,6 @@ const QuizCardStack = (props) => {
   return (
     <>
       <ProspectsMemo
-        navigation={navigation}
         topCardIndex={stateRef.prospects.length - 1}
         prospect1={stateRef.prospects[stateRef.prospects.length - 1]}
         prospect2={stateRef.prospects[stateRef.prospects.length - 2]}
