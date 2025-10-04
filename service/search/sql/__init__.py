@@ -960,8 +960,7 @@ WITH searcher AS (
             photo.uuid,
             photo.blurhash,
             photo.nsfw_score,
-            photo.extra_exts,
-            photo.verified AS is_verified
+            photo.extra_exts
         FROM
             photo
         WHERE
@@ -1039,8 +1038,7 @@ WITH searcher AS (
             THEN jsonb_build_object(
                 'added_photo_uuid', added_photo_data.uuid,
                 'added_photo_blurhash', added_photo_data.blurhash,
-                'added_photo_extra_exts', added_photo_data.extra_exts,
-                'added_photo_is_verified', added_photo_data.is_verified
+                'added_photo_extra_exts', added_photo_data.extra_exts
             )
 
             ELSE last_event_data
