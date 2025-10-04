@@ -17,8 +17,6 @@ q "delete from banned_person_admin_token"
 q "delete from duo_session"
 q "delete from mam_message"
 q "delete from inbox"
-q "delete from duo_last_notification"
-q "delete from duo_push_token"
 q "delete from intro_hash"
 
 ../util/create-user.sh user1 0 0

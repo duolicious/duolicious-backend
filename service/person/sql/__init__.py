@@ -1399,12 +1399,6 @@ Q_DELETE_ACCOUNT = """
 WITH deleted_inbox AS (
     DELETE FROM inbox
     WHERE luser = %(person_uuid)s
-), deleted_duo_last_notification AS (
-    DELETE FROM duo_last_notification
-    WHERE username = %(person_uuid)s
-), deleted_duo_push_token AS (
-    DELETE FROM duo_push_token
-    WHERE username = %(person_uuid)s
 ), deleted_mam_message AS (
     DELETE FROM mam_message
     WHERE person_id = %(person_id)s

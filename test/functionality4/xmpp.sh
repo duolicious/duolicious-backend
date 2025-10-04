@@ -15,8 +15,6 @@ q "delete from banned_person_admin_token"
 q "delete from duo_session"
 q "delete from mam_message"
 q "delete from inbox"
-q "delete from duo_last_notification"
-q "delete from duo_push_token"
 q "delete from intro_hash"
 
 ../util/create-user.sh user1 0 0
@@ -161,9 +159,9 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 sleep 1.5
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful />'
-[[ "$(q "select count(*) from duo_push_token \
-    where username = '$user1uuid' \
-    and token = 'user-x-token'")" = 1 ]]
+[[ "$(q "select count(*) from person \
+    where uuid::text = '$user1uuid' \
+    and push_token = 'user-x-token'")" = 1 ]]
 
 
 
@@ -176,9 +174,9 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 sleep 1.5
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful />'
-[[ "$(q "select count(*) from duo_push_token \
-    where username = '$user1uuid' \
-    and token = 'user-x-token'")" = 0 ]]
+[[ "$(q "select count(*) from person \
+    where uuid::text = '$user1uuid' \
+    and push_token = 'user-x-token'")" = 0 ]]
 
 
 
@@ -191,9 +189,9 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 sleep 0.5
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful />'
-[[ "$(q "select count(*) from duo_push_token \
-    where username = '$user1uuid' \
-    and token = 'user-1-token'")" = 1 ]]
+[[ "$(q "select count(*) from person \
+    where uuid::text = '$user1uuid' \
+    and push_token = 'user-1-token'")" = 1 ]]
 
 
 
@@ -218,14 +216,14 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_not_unique id="i
 [[ "$(q "select count(*) from mam_message where \
     search_body = 'hello user 2'")" = 2 ]]
 
-[[ "$(q "select count(*) from duo_last_notification")" = 0 ]]
+[[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
 
 
 
 echo 'User 1 can message user 3 and notification is sent'
 
-q "insert into duo_push_token values ('$user2uuid', 'user-2-token')"
-q "insert into duo_push_token values ('$user3uuid', 'user-3-token')"
+q "update person set push_token = 'user-2-token' where uuid::text = '$user2uuid'"
+q "update person set push_token = 'user-3-token' where uuid::text = '$user3uuid'"
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 <message
@@ -255,9 +253,9 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 
 [[ "$(q " \
   select count(*) \
-  from duo_last_notification \
+  from person \
   where \
-  username = '$user3uuid' and \
+  uuid::text = '$user3uuid' and \
   chat_seconds = 0 and \
   intro_seconds > 0")" = 1 ]]
 
@@ -297,17 +295,17 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 
 [[ "$(q " \
   select count(*) \
-  from duo_last_notification \
+  from person \
   where \
-  username = '$user3uuid' and \
+  uuid::text = '$user3uuid' and \
   chat_seconds = 0 and \
   intro_seconds > 0")" = 1 ]]
 
 [[ "$(q " \
   select count(*) \
-  from duo_last_notification \
+  from person \
   where \
-  username = '$user1uuid' and \
+  uuid::text = '$user1uuid' and \
   chat_seconds > 0 and \
   intro_seconds = 0")" = 1 ]]
 
@@ -318,7 +316,7 @@ echo "User 1 can stop getting immediate notifications by updating their preferen
 q "update person set chats_notification = 2 where id = $user1id"
 sleep 10 # Wait for ttl cache to expire
 
-q "delete from duo_last_notification"
+q "update person set intro_seconds = 0, chat_seconds = 0"
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 <message
@@ -340,7 +338,7 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id
 [[ "$(q "select count(*) from mam_message where \
     search_body = 'message will be sent with no notification'")" = 2 ]]
 
-[[ "$(q "select count(*) from duo_last_notification")" = 0 ]]
+[[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
 
 
 
@@ -393,8 +391,8 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<body>hello user 2</body>'
 echo user1\'s records are no longer on the server
 
 [[ "$(q "select count(*) from inbox where luser = '$user1uuid'")" = 0 ]]
-[[ "$(q "select count(*) from duo_last_notification where username = '$user1uuid'")" = 0 ]]
-[[ "$(q "select count(*) from duo_push_token where username = '$user1uuid'")" = 0 ]]
+[[ "$(q "select count(*) from person where uuid::text = '$user1uuid' and (intro_seconds > 0 or chat_seconds > 0)")" = 0 ]]
+[[ "$(q "select count(*) from person where uuid::text = '$user1uuid' and push_token is not null")" = 0 ]]
 
 
 
@@ -403,11 +401,11 @@ echo 'Banning user2 deletes them from the XMPP server (but not accessing the ban
 c GET "/admin/ban-link/${ban_token}"
 
 [[ "$(q "select count(*) from inbox where luser = '$user2uuid'")" = 1 ]]
-[[ "$(q "select count(*) from duo_last_notification where username = '$user2uuid'")" = 0 ]]
-[[ "$(q "select count(*) from duo_push_token where username = '$user2uuid'")" = 1 ]]
+[[ "$(q "select count(*) from person where uuid::text = '$user2uuid' and (intro_seconds > 0 or chat_seconds > 0)")" = 0 ]]
+[[ "$(q "select count(*) from person where uuid::text = '$user2uuid' and push_token is not null")" = 1 ]]
 
 c GET "/admin/ban/${ban_token}"
 
 [[ "$(q "select count(*) from inbox where luser = '$user2uuid'")" = 0 ]]
-[[ "$(q "select count(*) from duo_last_notification where username = '$user2uuid'")" = 0 ]]
-[[ "$(q "select count(*) from duo_push_token where username = '$user2uuid'")" = 0 ]]
+[[ "$(q "select count(*) from person where uuid::text = '$user2uuid' and (intro_seconds > 0 or chat_seconds > 0)")" = 0 ]]
+[[ "$(q "select count(*) from person where uuid::text = '$user2uuid' and push_token is not null")" = 0 ]]

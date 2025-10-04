@@ -31,14 +31,14 @@ WITH ten_days_ago AS (
         inbox_first_pass.username AS person_uuid,
         inbox_first_pass.last_intro_seconds,
         inbox_first_pass.last_chat_seconds,
-        COALESCE(duo_last_notification.intro_seconds, 0) AS last_intro_notification_seconds,
-        COALESCE(duo_last_notification.chat_seconds, 0) AS last_chat_notification_seconds,
+        COALESCE(person.intro_seconds, 0) AS last_intro_notification_seconds,
+        COALESCE(person.chat_seconds, 0) AS last_chat_notification_seconds,
         (
                 inbox_first_pass.has_intro
             AND
                 -- only notify users we haven't already notified
                 inbox_first_pass.last_intro_seconds >
-                    COALESCE(duo_last_notification.intro_seconds, 0)
+                    COALESCE(person.intro_seconds, 0)
             AND
                 -- only notify users about messages sent longer than ten minutes
                 -- ago
@@ -59,7 +59,7 @@ WITH ten_days_ago AS (
             AND
                 -- only notify users we haven't already notified
                 inbox_first_pass.last_chat_seconds >
-                    COALESCE(duo_last_notification.chat_seconds, 0)
+                    COALESCE(person.chat_seconds, 0)
             AND
                 -- only notify users about messages sent longer than ten minutes
                 -- ago
@@ -79,6 +79,12 @@ WITH ten_days_ago AS (
         person.name,
         person.email,
         person.activated,
+        CASE
+            WHEN extract(epoch from person.last_online_time)
+                > EXTRACT(EPOCH FROM NOW() - INTERVAL '8 days')
+            THEN person.push_token
+            ELSE NULL
+        END AS token,
         CASE
             WHEN im_chats.name = 'Immediately'  THEN 0
             WHEN im_chats.name = 'Daily'        THEN 86400
@@ -101,10 +107,6 @@ WITH ten_days_ago AS (
         person
     ON
         person.uuid = uuid_or_null(inbox_first_pass.username)
-    LEFT JOIN
-        duo_last_notification
-    ON
-        duo_last_notification.username = inbox_first_pass.username
     LEFT JOIN
         immediacy AS im_chats
     ON
@@ -129,13 +131,6 @@ SELECT
     intros_drift_seconds
 FROM
     inbox_second_pass
-LEFT JOIN
-    duo_push_token
-ON
-    duo_push_token.username = inbox_second_pass.person_uuid
-AND
-    inbox_second_pass.last_seconds
-        > EXTRACT(EPOCH FROM NOW() - INTERVAL '8 days')
 WHERE
     (has_intro OR has_chat)
 AND
@@ -143,5 +138,10 @@ AND
 """
 
 Q_DELETE_MOBILE_TOKEN = """
-DELETE FROM duo_push_token WHERE username = %(username)s
+UPDATE
+    person
+SET
+    push_token = NULL
+WHERE
+    uuid = uuid_or_null(%(username)s)
 """
