@@ -925,9 +925,22 @@ WITH searcher AS (
         has_gold,
         sign_up_time,
         count_answers,
-        about
+        about,
+        (
+            SELECT EXTRACT(YEAR FROM AGE(prospect.date_of_birth))
+            WHERE prospect.show_my_age
+        ) AS age,
+        gender.name AS gender,
+        (
+            SELECT prospect.location_short_friendly
+            WHERE prospect.show_my_location
+        ) AS location
     FROM
         recent_person AS prospect
+    JOIN
+        gender
+    ON
+        gender.id = prospect.gender_id
     LEFT JOIN LATERAL (
         SELECT
             photo.uuid,
@@ -947,7 +960,8 @@ WITH searcher AS (
             photo.uuid,
             photo.blurhash,
             photo.nsfw_score,
-            photo.extra_exts
+            photo.extra_exts,
+            photo.verified AS is_verified
         FROM
             photo
         WHERE
@@ -957,7 +971,7 @@ WITH searcher AS (
             photo.uuid = photo_data.uuid,
             random()
         LIMIT 1
-    ) AS online_photo_data
+    ) AS added_photo_data
     ON TRUE
     LEFT JOIN LATERAL (
         SELECT
@@ -979,7 +993,7 @@ WITH searcher AS (
             WHEN was_recently_online AND last_event_name = 'updated-bio'
             THEN 'recently-online-with-bio'
 
-            WHEN was_recently_online AND online_photo_data.uuid IS NOT NULL
+            WHEN was_recently_online AND added_photo_data.uuid IS NOT NULL
             THEN 'recently-online-with-photo'
 
             WHEN last_event_name = 'recently-online-with-photo'
@@ -1021,11 +1035,12 @@ WITH searcher AS (
             WHEN was_recently_online AND last_event_name = 'updated-bio'
             THEN last_event_data
 
-            WHEN was_recently_online AND online_photo_data.uuid IS NOT NULL
+            WHEN was_recently_online AND added_photo_data.uuid IS NOT NULL
             THEN jsonb_build_object(
-                'added_photo_uuid', online_photo_data.uuid,
-                'added_photo_blurhash', online_photo_data.blurhash,
-                'added_photo_extra_exts', online_photo_data.extra_exts
+                'added_photo_uuid', added_photo_data.uuid,
+                'added_photo_blurhash', added_photo_data.blurhash,
+                'added_photo_extra_exts', added_photo_data.extra_exts,
+                'added_photo_is_verified', added_photo_data.is_verified
             )
 
             ELSE last_event_data
@@ -1227,7 +1242,10 @@ WITH searcher AS (
         iso8601_utc(mapped_last_online_time) AS time,
         mapped_last_online_time AS last_event_time,
         mapped_last_event_data,
-        ({Q_COMPUTED_FLAIR}) AS flair
+        ({Q_COMPUTED_FLAIR}) AS flair,
+        age,
+        gender,
+        location
     FROM
         person_data,
         searcher
@@ -1257,7 +1275,10 @@ SELECT
         'time', time,
         'type', type,
         'match_percentage', match_percentage,
-        'flair', flair
+        'flair', flair,
+        'age', age,
+        'gender', gender,
+        'location', location
     ) || mapped_last_event_data AS j
 FROM
     filtered_by_club
