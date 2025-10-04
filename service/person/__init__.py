@@ -2092,10 +2092,10 @@ def post_revenuecat(req: t.PostRevenuecat):
         )
 
 def get_visitors(s: t.SessionInfo):
-    with api_tx() as tx:
+    with api_tx('READ COMMITTED') as tx:
         tx.execute(Q_VISITORS, dict(person_id=s.person_id))
         return tx.fetchone()['j']
 
 def post_mark_visitors_checked(s: t.SessionInfo):
-    with api_tx() as tx:
+    with api_tx('READ COMMITTED') as tx:
         tx.execute(Q_MARK_VISITORS_CHECKED, dict(person_id=s.person_id))
