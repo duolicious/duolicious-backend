@@ -338,6 +338,11 @@ CREATE TABLE IF NOT EXISTS person (
     -- Subscriptions
     has_gold BOOLEAN NOT NULL DEFAULT FALSE,
 
+    -- Notifications
+    intro_seconds INT NOT NULL DEFAULT 0,
+    chat_seconds INT NOT NULL DEFAULT 0,
+    push_token TEXT,
+
     -- Primary keys and constraints
     UNIQUE (email),
     PRIMARY KEY (id)
