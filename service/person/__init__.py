@@ -1961,6 +1961,7 @@ def get_export_data(token: str):
         return 'Invalid token. Link might have expired.', 401
 
     with api_tx('read committed') as tx:
+        tx.execute('SET LOCAL statement_timeout = 30000') # 30 seconds
         raw_data = tx.execute(Q_EXPORT_API_DATA, params).fetchone()['j']
 
     person_id = params['person_id']

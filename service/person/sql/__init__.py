@@ -2677,6 +2677,15 @@ SELECT json_build_object(
             mam_message
         WHERE
             person_id = %(person_id)s
+    ),
+
+    'presence_histogram', (
+        SELECT
+            json_agg(row_to_json(presence_histogram))
+        FROM
+            presence_histogram
+        WHERE
+            person_id = %(person_id)s
     )
 
 ) AS j

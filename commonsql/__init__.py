@@ -40,12 +40,36 @@ WHERE
 """
 
 Q_UPDATE_LAST = """
-UPDATE
-    person
-SET
-    last_online_time = NOW()
+WITH updated_person AS (
+    UPDATE
+        person
+    SET
+        last_online_time = NOW()
+    WHERE
+        uuid = %(person_uuid)s
+    RETURNING
+        id
+)
+INSERT INTO presence_histogram (
+    person_id,
+    dow,
+    hour,
+    score,
+    updated_at
+)
+SELECT
+    id,
+    EXTRACT(DOW  FROM (now() AT TIME ZONE 'UTC'))::smallint AS dow,
+    EXTRACT(HOUR FROM (now() AT TIME ZONE 'UTC'))::smallint AS hour,
+    1::FLOAT4 AS score,
+    now() AS updated_at
+FROM
+    updated_person
+ON CONFLICT (person_id, dow, hour) DO UPDATE SET
+    score = presence_histogram.score + EXCLUDED.score,
+    updated_at = EXCLUDED.updated_at
 WHERE
-    uuid = %(person_uuid)s
+    presence_histogram.updated_at < EXCLUDED.updated_at - INTERVAL '1 hour'
 """
 
 Q_UPSERT_LAST_INTRO_NOTIFICATION_TIME = """
