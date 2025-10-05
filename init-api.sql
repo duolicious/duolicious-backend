@@ -848,10 +848,10 @@ CREATE INDEX IF NOT EXISTS idx__messaged__object_person_id__created_at
     ON messaged(object_person_id, created_at);
 
 CREATE INDEX IF NOT EXISTS idx__visited__object_person_id__updated_at
-    ON visited(object_person_id, updated_at);
+    ON visited(object_person_id, updated_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx__visited__subject_person_id__updated_at
-    ON visited(subject_person_id, updated_at);
+    ON visited(subject_person_id, updated_at DESC);
 
 
 --------------------------------------------------------------------------------

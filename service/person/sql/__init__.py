@@ -2965,8 +2965,6 @@ WITH checker AS (
             visited
         WHERE
             subject_person_id = %(person_id)s
-        AND
-            updated_at > now() - interval '14 days'
         ORDER BY
             updated_at DESC
         LIMIT
@@ -2980,8 +2978,6 @@ WITH checker AS (
             visited
         WHERE
             object_person_id = %(person_id)s
-        AND
-            updated_at > now() - interval '14 days'
         ORDER BY
             updated_at DESC
         LIMIT
