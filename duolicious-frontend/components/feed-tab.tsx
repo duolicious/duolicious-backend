@@ -297,15 +297,13 @@ const AgeGenderLocation = ({
           ...style,
         }}
       >
-        <Pressable
+        <View
           style={{
             width: '100%',
             flexDirection: 'row',
             gap: 5,
             alignItems: 'center',
           }}
-          onPress={onPress}
-          {...link}
         >
           {doUseOnline &&
             <OnlineIndicator
@@ -314,18 +312,24 @@ const AgeGenderLocation = ({
               borderWidth={0}
             />
           }
-          <DefaultText
-            style={{
-              fontWeight: '700',
-              flexShrink: 1,
-            }}
+          <Pressable
+            style={{ flexShrink: 1 }}
+            onPress={onPress}
+            {...link}
           >
-            {name}
-          </DefaultText>
+            <DefaultText
+              style={{
+                fontWeight: '700',
+                flexShrink: 1,
+              }}
+            >
+              {name}
+            </DefaultText>
+          </Pressable>
           {isVerified &&
             <VerificationBadge size={14} />
           }
-        </Pressable>
+        </View>
         <DefaultText style={{ color: appTheme.hintColor }}>
           {
             [
@@ -351,6 +355,7 @@ const AgeGenderLocation = ({
         width={18}
         style={{
           marginLeft: 10,
+          cursor: 'pointer',
         }}
       />
     </View>
