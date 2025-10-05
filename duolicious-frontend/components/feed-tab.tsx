@@ -371,7 +371,6 @@ const ActionTime = ({
   return (
     <View
       style={{
-        marginTop: 10,
         alignItems: 'center',
         width: '100%',
         flexDirection: 'row',
