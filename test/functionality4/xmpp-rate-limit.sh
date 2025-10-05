@@ -25,8 +25,6 @@ test_rate_limit () {
   q "delete from duo_session"
   q "delete from mam_message"
   q "delete from inbox"
-  q "delete from duo_last_notification"
-  q "delete from duo_push_token"
   q "delete from intro_hash"
 
   ../util/create-user.sh sender1 0 0

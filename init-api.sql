@@ -338,6 +338,11 @@ CREATE TABLE IF NOT EXISTS person (
     -- Subscriptions
     has_gold BOOLEAN NOT NULL DEFAULT FALSE,
 
+    -- Notifications
+    intro_seconds INT NOT NULL DEFAULT 0,
+    chat_seconds INT NOT NULL DEFAULT 0,
+    push_token TEXT,
+
     -- Primary keys and constraints
     UNIQUE (email),
     PRIMARY KEY (id)
@@ -1650,21 +1655,6 @@ CREATE INDEX IF NOT EXISTS
 CREATE TABLE IF NOT EXISTS intro_hash (
     hash TEXT PRIMARY KEY,
     last_used_at TIMESTAMP NOT NULL DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS duo_last_notification (
-    username TEXT NOT NULL,
-    intro_seconds INT NOT NULL DEFAULT 0,
-    chat_seconds INT NOT NULL DEFAULT 0,
-
-    PRIMARY KEY (username)
-);
-
-CREATE TABLE IF NOT EXISTS duo_push_token (
-    username TEXT NOT NULL,
-    token TEXT,
-
-    PRIMARY KEY (username)
 );
 
 CREATE TABLE IF NOT EXISTS rude_message (
