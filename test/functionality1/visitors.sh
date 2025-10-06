@@ -81,48 +81,63 @@ hide_me_from_strangers_respected () {
   user1_id=$(q "select id from person where name = 'user1'")
   user2_id=$(q "select id from person where name = 'user2'")
 
-  # user2 enables browse invisibly
+  # user2 disables hide me from strangers
   assume_role user2
-  jc PATCH /profile-info -d '{ "hide_me_from_strangers": "Yes" }'
+  jc PATCH /profile-info -d '{ "hide_me_from_strangers": "No" }'
 
-  # user2 visits user1 (creates visited: user2 -> user1 with invisible=true)
+  # user2 visits user1 with hide_me_from_strangers: No
+  # (creates visited: user2 -> user1 with invisible=false)
   assume_role user2
   c GET "/prospect-profile/${user1_uuid}" > /dev/null
 
-  # From user1's perspective, browse_invisibly user2 should NOT appear in visited_you
+  # From user2's perspective, they should see who they visited
+  assume_role user2
+  response=$(c GET "/visitors")
+  [[ "$(echo "$response" | jq '.you_visited | length')" -ge 1 ]]
+  [[ "$(echo "$response" | jq -r '.you_visited[0].person_uuid')" == "$user1_uuid" ]]
+  [[ "$(echo "$response" | jq -r '.you_visited[0].was_invisible')" == "false" ]]
+
+  # From user1's perspective, user2 should appear in visited_you
+  assume_role user1
+  response=$(c GET "/visitors")
+  [[ "$(echo "$response" | jq '.visited_you | length')" -eq 1 ]]
+
+  # user2 enables hide me from strangers
+  assume_role user2
+  jc PATCH /profile-info -d '{ "hide_me_from_strangers": "Yes" }'
+
+  # From user2's perspective, they should still see who they visited.
+  # was_invisible should be false even though they'll stop seeing user2's
+  # visit because user1 might have seen user2's visit before user2 hid themselves
+  # from strangers
+  assume_role user2
+  response=$(c GET "/visitors")
+  [[ "$(echo "$response" | jq '.you_visited | length')" -ge 1 ]]
+  [[ "$(echo "$response" | jq -r '.you_visited[0].person_uuid')" == "$user1_uuid" ]]
+  [[ "$(echo "$response" | jq -r '.you_visited[0].was_invisible')" == "false" ]]
+
+  # From user1's perspective, user2 should appear NOT appear in visited_you
   assume_role user1
   response=$(c GET "/visitors")
   [[ "$(echo "$response" | jq '.visited_you | length')" -eq 0 ]]
 
-  # From user2's perspective, even with browse_invisibly, they should see who they visited
+  # user2 visits user1 with hide_me_from_strangers: Yes
+  # (creates visited: user2 -> user1 with invisible=true)
   assume_role user2
+  c GET "/prospect-profile/${user1_uuid}" > /dev/null
   response=$(c GET "/visitors")
   [[ "$(echo "$response" | jq '.you_visited | length')" -ge 1 ]]
   [[ "$(echo "$response" | jq -r '.you_visited[0].person_uuid')" == "$user1_uuid" ]]
   [[ "$(echo "$response" | jq -r '.you_visited[0].was_invisible')" == "true" ]]
 
-  # user2 disables browse invisibly
+  # user2 disables hide me from strangers
   assume_role user2
   jc PATCH /profile-info -d '{ "hide_me_from_strangers": "No" }'
 
-  # From user1's perspective, browse_invisibly user2 should still NOT appear in visited_you
+  # From user1's perspective, user2 should still NOT appear in visited_you
   assume_role user1
   response=$(c GET "/visitors")
   [[ "$(echo "$response" | jq '.visited_you | length')" -eq 0 ]]
-
-  # user2 re-enables browse invisibly
-  assume_role user2
-  jc PATCH /profile-info -d '{ "hide_me_from_strangers": "Yes" }'
-
-  # Once user1 messages user2, user1's future visits will become visible to user2
-  q "insert into messaged (subject_person_id, object_person_id) values (${user1_id}, ${user2_id})"
-  assume_role user2
-  c GET "/prospect-profile/${user1_uuid}" > /dev/null
-
-  # From user1's perspective, browse_invisibly user2 should appear in visited_you
-  assume_role user1
-  response=$(c GET "/visitors")
-  [[ "$(echo "$response" | jq '.visited_you | length')" -eq 1 ]]
 }
 
 skip_respected () {

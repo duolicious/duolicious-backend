@@ -2959,9 +2959,7 @@ WITH checker AS (
         id,
         personality,
         last_visitor_check_time,
-        verification_level_id,
-        hide_me_from_strangers,
-        browse_invisibly
+        verification_level_id
     FROM
         person
     WHERE
@@ -3146,6 +3144,22 @@ WITH checker AS (
                 WHERE
                     person_id = %(person_id)s
             )
+        )
+    AND
+        -- The prospect wants to be shown to strangers or isn't a stranger
+        (
+            EXISTS (
+                SELECT
+                    subject_person_id
+                FROM
+                    messaged
+                WHERE
+                    subject_person_id = prospect.id
+                AND
+                    object_person_id = %(person_id)s
+            )
+        OR
+            NOT prospect.hide_me_from_strangers
         )
     AND
         (
