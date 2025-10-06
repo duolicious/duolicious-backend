@@ -3038,7 +3038,7 @@ WITH checker AS (
 
         CASE
             WHEN direction.kind = 'visited_you'
-            THEN visited_pass_2.updated_at >= checker.last_visitor_check_time
+            THEN visited_pass_2.updated_at > checker.last_visitor_check_time
             ELSE FALSE
         END AS is_new,
 
