@@ -6,7 +6,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState, useRef } from 'react';
 import { DefaultText } from './default-text';
 import { TopNavBar } from './top-nav-bar';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
@@ -62,6 +62,8 @@ const friendlyTimestamp = (date: Date): string => {
 // Event keys
 const EVENT_NUM_VISITORS = 'num-visitors';
 
+const EVENT_VISITORS_LAST_VISITED_AT = 'visitors-last-visited-at';
+
 // Keep public setter for badge count
 const setNumVisitors = (num: number) => {
   notify<number>(EVENT_NUM_VISITORS, num);
@@ -108,6 +110,7 @@ const DataItemSchema = z.object({
 const DataSchema = z.object({
   visited_you: z.array(DataItemSchema),
   you_visited: z.array(DataItemSchema),
+  last_visited_at: z.string().nullable(),
 });
 
 type DataItem = z.infer<typeof DataItemSchema>;
@@ -130,6 +133,31 @@ const sectionFromIndex = (sectionIndex: number): SectionKey =>
 
 const setVisitorKeys = (sectionKey: SectionKey, visitorKeys: string[]) => {
   notify<string[]>(sectionKey, visitorKeys);
+};
+
+const setLastVisitedAt = (lastVisitedAt: string | null) => {
+  notify<string | null>(EVENT_VISITORS_LAST_VISITED_AT, lastVisitedAt);
+};
+
+const useLastVisitedAt = (): string | null => {
+  const initial = lastEvent<string>(EVENT_VISITORS_LAST_VISITED_AT) ?? null;
+
+  const [lastVisitedAt, setLastVisitedAt] = useState(initial);
+
+  useEffect(() => {
+    return listen<string>(
+      EVENT_VISITORS_LAST_VISITED_AT,
+      (x) => {
+        if (x === undefined) {
+          return;
+        }
+
+        setLastVisitedAt(x);
+      },
+    );
+  }, []);
+
+  return lastVisitedAt;
 };
 
 const useVisitorKeys = (sectionKey: SectionKey): string[] | null => {
@@ -217,6 +245,8 @@ const setData = (data: Data) => {
     data.you_visited.map(d => `you_visited-${d.person_uuid}`)
   );
 
+  setLastVisitedAt(data.last_visited_at);
+
   setNumVisitors(data.visited_you.filter(d => d.is_new).length);
 };
 
@@ -234,13 +264,13 @@ const fetchVisitors = async (): Promise<void> => {
   setData(response.json);
 };
 
-const markVisitorsCheckedAsync = async () => {
-  await japi('post', '/mark-visitors-checked');
+const markVisitorsCheckedAsync = async (time: string) => {
+  await japi('post', '/mark-visitors-checked', { time });
   setNumVisitors(0);
 };
 
-const markVisitorsChecked = () => {
-  markVisitorsCheckedAsync();
+const markVisitorsChecked = (time: string) => {
+  markVisitorsCheckedAsync(time);
 };
 
 const markVisitorChecked = (personUuid: string) => {
@@ -441,14 +471,31 @@ const VisitorsTab = () => {
 
   const [sectionIndex, setSectionIndex] = useState(0);
 
-  useFocusEffect(
-    useCallback(() => {
-      markVisitorsChecked();
-      return markVisitorsChecked;
-    }, [])
-  );
-
   const keys = useVisitorKeys(sectionFromIndex(sectionIndex));
+  const lastVisitedAt = useLastVisitedAt();
+  const lastMarkedCheckAt = useRef<string>(null);
+
+  const maybeMarkVisitorsChecked = useCallback(() => {
+    if (!lastVisitedAt) {
+      return;
+    }
+
+    if (lastVisitedAt === lastMarkedCheckAt.current) {
+      return;
+    }
+
+    markVisitorsChecked(lastVisitedAt);
+
+    lastMarkedCheckAt.current = lastVisitedAt;
+  }, [lastVisitedAt]);
+
+  const focusEffect = useCallback(() => {
+    maybeMarkVisitorsChecked();
+
+    return maybeMarkVisitorsChecked
+  }, [maybeMarkVisitorsChecked])
+
+  useFocusEffect(focusEffect);
 
   const emptyText = sectionIndex === 0 ? (
     "Nobody’s visited your profile yet. Try answering more Q&A questions or " +
