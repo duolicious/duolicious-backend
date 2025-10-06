@@ -314,6 +314,20 @@ mark_visitors_checked_respects_custom_time () {
   [[ "${actual_check_after_future}" < "${now_after_future}" || "${actual_check_after_future}" == "${now_after_future}" ]]
 }
 
+empty_visitors_returns_iso8601_last_visited_at () {
+  setup_fresh_users
+
+  # From user1's perspective, there should be no visitors yet
+  assume_role user1
+  response=$(c GET "/visitors")
+
+  # Both lists should be empty
+  [[ "$(echo "$response" | jq '.visited_you | length')" -eq 0 ]]
+  [[ "$(echo "$response" | jq '.you_visited | length')" -eq 0 ]]
+  [[ "$(echo "$response" | jq 'has("last_visited_at")')" = true ]]
+}
+
+empty_visitors_returns_iso8601_last_visited_at
 mark_visitors_checked_respects_custom_time
 happy_path_visitors
 hide_me_from_strangers_respected
