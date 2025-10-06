@@ -1,11 +1,5 @@
 Q_UNREAD_INBOX = """
-WITH ten_days_ago AS (
-    SELECT
-        EXTRACT(EPOCH FROM (
-            NOW() - INTERVAL '10 days'))::bigint AS seconds,
-        EXTRACT(EPOCH FROM (
-            NOW() - INTERVAL '10 days'))::bigint * 1000000 AS microseconds
-), ten_minutes_ago AS (
+WITH ten_minutes_ago AS (
     SELECT
         EXTRACT(EPOCH FROM (
             NOW() - INTERVAL '10 minutes'))::bigint AS seconds,
@@ -23,7 +17,9 @@ WITH ten_days_ago AS (
     WHERE
         unread_count > 0
     AND
-        timestamp > (SELECT microseconds FROM ten_days_ago)
+        timestamp >
+            -- ten days ago as microseconds
+            EXTRACT(EPOCH FROM (NOW() - INTERVAL '10 days'))::bigint * 1000000
     GROUP BY
         luser
 ), inbox_second_pass AS (
