@@ -599,3 +599,7 @@ class PostRevenuecat(BaseModel):
                 values['raw_event_error'] = str(e)
                 values['event'] = None
         return values
+
+
+class PostMarkVisitorsChecked(BaseModel):
+    time: Optional[datetime] = None

@@ -2097,6 +2097,13 @@ def get_visitors(s: t.SessionInfo):
         tx.execute(Q_VISITORS, dict(person_id=s.person_id))
         return tx.fetchone()['j']
 
-def post_mark_visitors_checked(s: t.SessionInfo):
+def post_mark_visitors_checked(
+    req: t.PostMarkVisitorsChecked,
+    s: t.SessionInfo
+):
+    params = dict(
+        person_id=s.person_id,
+        when=req.time,
+    )
     with api_tx('READ COMMITTED') as tx:
-        tx.execute(Q_MARK_VISITORS_CHECKED, dict(person_id=s.person_id))
+        tx.execute(Q_MARK_VISITORS_CHECKED, params)

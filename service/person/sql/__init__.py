@@ -3193,7 +3193,7 @@ Q_MARK_VISITORS_CHECKED = """
 UPDATE
     person
 SET
-    last_visitor_check_time = now()
+    last_visitor_check_time = COALESCE(%(when)s::timestamp, now())
 WHERE
     id = %(person_id)s
 """
