@@ -267,6 +267,54 @@ browse_invisibly_respected () {
   [[ "$(echo "$response" | jq '.visited_you | length')" -eq 0 ]]
 }
 
+mark_visitors_checked_respects_custom_time () {
+  setup_fresh_users
+
+  user1_uuid=$(q "select uuid from person where name = 'user1'")
+  user2_uuid=$(q "select uuid from person where name = 'user2'")
+  user1_id=$(q "select id from person where name = 'user1'")
+  user2_id=$(q "select id from person where name = 'user2'")
+
+  # user2 visits user1 (creates visited: user2 -> user1)
+  assume_role user2
+  c GET "/prospect-profile/${user1_uuid}" > /dev/null
+
+  # From user1's perspective, the visitor should be marked new initially
+  assume_role user1
+  response=$(c GET "/visitors")
+  [[ "$(echo "$response" | jq -r '.visited_you | length')" -eq 1 ]]
+  [[ "$(echo "$response" | jq -r '.visited_you[0].is_new')" == "true" ]]
+
+  # Force last_visitor_check_time into the past to open a safe window
+  q "update person set last_visitor_check_time = now() - interval '2 hours' where id = ${user1_id}"
+  prev_check=$(q "select iso8601_utc(last_visitor_check_time::timestamp) from person where id = ${user1_id}")
+
+  # Choose a time strictly between previous value and now()
+  between_time=$(q "select iso8601_utc((now() - interval '1 hour')::timestamp)")
+  jc POST /mark-visitors-checked -d '{ "time": "'""${between_time}""'" }' > /dev/null
+
+  # DB should reflect exactly the provided time (proves time is not ignored)
+  actual_check=$(q "select iso8601_utc(last_visitor_check_time::timestamp) from person where id = ${user1_id}")
+  [[ "${actual_check}" == "${between_time}" ]]
+
+  # Sending an older timestamp should not regress last_visitor_check_time
+  old_time=$(q "select iso8601_utc((now() - interval '1 day')::timestamp)")
+  jc POST /mark-visitors-checked -d '{ "time": "'""${old_time}""'" }' > /dev/null
+  actual_check_after_old=$(q "select iso8601_utc(last_visitor_check_time) from person where id = ${user1_id}")
+  [[ "${actual_check_after_old}" == "${between_time}" ]]
+
+  # Sending a future timestamp should clamp to now() (not the future value)
+  future_time=$(q "select iso8601_utc((now() + interval '1 day')::timestamp)")
+  jc POST /mark-visitors-checked -d '{ "time": "'""${future_time}""'" }' > /dev/null
+  actual_check_after_future=$(q "select iso8601_utc(last_visitor_check_time) from person where id = ${user1_id}")
+  now_after_future=$(q "select iso8601_utc(now()::timestamp)")
+  # It should advance from between_time, must not equal the future_time, and must be <= now
+  [[ "${actual_check_after_future}" != "${future_time}" ]]
+  [[ "${actual_check_after_future}" > "${between_time}" ]]
+  [[ "${actual_check_after_future}" < "${now_after_future}" || "${actual_check_after_future}" == "${now_after_future}" ]]
+}
+
+mark_visitors_checked_respects_custom_time
 happy_path_visitors
 hide_me_from_strangers_respected
 skip_respected
