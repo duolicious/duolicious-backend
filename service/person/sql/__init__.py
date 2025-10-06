@@ -3186,8 +3186,8 @@ SELECT
             '[]'::jsonb
         ),
 
-        'checked_at',
-        iso8601_utc(now()::timestamp)
+        'last_visited_at',
+        iso8601_utc(MAX(visited_pass_3.order_time))
     ) AS j
 FROM
     visited_pass_3
