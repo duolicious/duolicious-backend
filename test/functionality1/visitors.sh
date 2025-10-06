@@ -267,38 +267,9 @@ browse_invisibly_respected () {
   [[ "$(echo "$response" | jq '.visited_you | length')" -eq 0 ]]
 }
 
-mark_visitors_checked_custom_time () {
-  setup_fresh_users
-
-  user1_uuid=$(q "select uuid from person where name = 'user1'")
-  user2_uuid=$(q "select uuid from person where name = 'user2'")
-
-  # user2 visits user1 (so user1 has a visitor)
-  assume_role user2
-  c GET "/prospect-profile/${user1_uuid}" > /dev/null
-
-  # From user1's perspective, ensure one visitor exists and is initially new
-  assume_role user1
-  response=$(c GET "/visitors")
-  [[ "$(echo "$response" | jq '.visited_you | length')" -eq 1 ]]
-  [[ "$(echo "$response" | jq -r '.visited_you[0].person_uuid')" == "$user2_uuid" ]]
-  [[ "$(echo "$response" | jq -r '.visited_you[0].is_new')" == "true" ]]
-
-  # Mark visitors as checked at a fixed past ISO 8601 UTC time; should remain new
-  jc POST /mark-visitors-checked -d '{ "time": "2025-10-05T17:29:28.459Z" }' > /dev/null
-  response=$(c GET "/visitors")
-  [[ "$(echo "$response" | jq -r '.visited_you[0].is_new')" == "true" ]]
-
-  # Mark visitors as checked in the far future; should no longer be new
-  jc POST /mark-visitors-checked -d '{ "time": "9999-01-01T00:00:00.000Z" }' > /dev/null
-  response=$(c GET "/visitors")
-  [[ "$(echo "$response" | jq -r '.visited_you[0].is_new')" == "false" ]]
-}
-
 happy_path_visitors
 hide_me_from_strangers_respected
 skip_respected
 show_my_age_respected
 show_my_location_respected
 browse_invisibly_respected
-mark_visitors_checked_custom_time

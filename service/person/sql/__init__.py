@@ -3193,7 +3193,13 @@ Q_MARK_VISITORS_CHECKED = """
 UPDATE
     person
 SET
-    last_visitor_check_time = COALESCE(%(when)s::timestamp, now())
+    last_visitor_check_time = GREATEST(
+        LEAST(
+            COALESCE(%(when)s::timestamp, NOW()),
+            NOW()
+        ),
+        last_visitor_check_time
+    )
 WHERE
     id = %(person_id)s
 """
