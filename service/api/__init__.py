@@ -533,5 +533,6 @@ def get_visitors(s: t.SessionInfo):
     return person.get_visitors(s=s)
 
 @apost('/mark-visitors-checked')
-def post_mark_visitors_checked(s: t.SessionInfo):
-    return person.post_mark_visitors_checked(s=s)
+@validate(t.PostMarkVisitorsChecked)
+def post_mark_visitors_checked(req: t.PostMarkVisitorsChecked, s: t.SessionInfo):
+    return person.post_mark_visitors_checked(req=req, s=s)

@@ -3173,6 +3173,7 @@ SELECT
             ) FILTER (WHERE direction_kind = 'visited_you'),
             '[]'::jsonb
         ),
+
         'you_visited',
         COALESCE(
             jsonb_agg(
@@ -3183,7 +3184,10 @@ SELECT
                 ) ORDER BY visited_pass_3.order_time DESC
             ) FILTER (WHERE direction_kind = 'you_visited'),
             '[]'::jsonb
-        )
+        ),
+
+        'checked_at',
+        iso8601_utc(now()::timestamp)
     ) AS j
 FROM
     visited_pass_3
@@ -3193,7 +3197,13 @@ Q_MARK_VISITORS_CHECKED = """
 UPDATE
     person
 SET
-    last_visitor_check_time = now()
+    last_visitor_check_time = GREATEST(
+        LEAST(
+            COALESCE(%(when)s::timestamp, NOW()),
+            NOW()
+        ),
+        last_visitor_check_time
+    )
 WHERE
     id = %(person_id)s
 """
