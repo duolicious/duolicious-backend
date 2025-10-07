@@ -1203,9 +1203,9 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     title: 'Step 4 of 5: Birth Date',
     description: (
-      "Get better matches and unlock features for age-verified users by " +
-      "setting this accurately. It can’t be changed easily, so make sure " +
-      "it’s correct."
+      "The age on your profile, who you’re matched with, and a bunch of " +
+      "other important stuff all depend on this. It can’t be changed easily " +
+      "after signup, so make sure it’s right!"
     ),
     input: {
       date: {
