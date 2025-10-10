@@ -145,7 +145,7 @@ has_gold_is_set_by_webhook() {
   [[ "$pre2" == "$post2" ]]
 }
 
-expiration_resets_settings_for_ge_305200() {
+expiration_resets_settings() {
   say "Configure RevenueCat auth token"
   q "\
   update
@@ -159,15 +159,10 @@ expiration_resets_settings_for_ge_305200() {
   q "delete from club"
   q "delete from banned_person"
 
-  say "Force next person.id to be >= 305200"
-  q "select setval(pg_get_serial_sequence('person','id'), 305199, true)"
-
-  say "Create user with id >= 305200"
+  say "Create user"
   ../util/create-user.sh rcuser3 0 0
 
   useruuid=$(get_uuid 'rcuser3@example.com')
-  userid=$(get_id 'rcuser3@example.com')
-  [[ "$userid" -ge 305200 ]]
 
   say "Grant gold via INITIAL_PURCHASE so theme can be customized"
   export SESSION_TOKEN=""
@@ -194,7 +189,7 @@ expiration_resets_settings_for_ge_305200() {
   [[ "$(q "select hide_me_from_strangers from person where uuid = '$useruuid'::uuid")" == t ]]
   [[ "$(q "select browse_invisibly from person where uuid = '$useruuid'::uuid")" == t ]]
 
-  say "EXPIRATION resets settings back to defaults for id >= 305200"
+  say "EXPIRATION resets settings back to defaults"
   export SESSION_TOKEN=""
   c POST /revenuecat \
     --header "Authorization: Bearer valid-revenuecat-token" \
@@ -211,89 +206,20 @@ expiration_resets_settings_for_ge_305200() {
   [[ "$(q "select browse_invisibly from person where uuid = '$useruuid'::uuid")" == f ]]
 }
 
-expiration_resets_settings_for_lt_305200() {
-  say "Configure RevenueCat auth token"
-  q "\
-  update
-    funding
-  set
-    token_hash_revenuecat = '$(printf 'valid-revenuecat-token' | sha512sum | cut -d' ' -f1)'
-  "
-
+premium_features_require_gold() {
   say "Reset core tables to a clean state"
   q "delete from person"
   q "delete from club"
   q "delete from banned_person"
 
-  say "Force next person.id to be < 305200"
-  q "select setval(pg_get_serial_sequence('person','id'), 305000, true)"
-
-  say "Create user with id < 305200"
-  ../util/create-user.sh rcuser4 0 0
-
-  useruuid=$(get_uuid 'rcuser4@example.com')
-  userid=$(get_id 'rcuser4@example.com')
-  [[ "$userid" -lt 305200 ]]
-
-  say "Grant gold via INITIAL_PURCHASE so theme can be customized"
-  export SESSION_TOKEN=""
-  c POST /revenuecat \
-    --header "Authorization: Bearer valid-revenuecat-token" \
-    --header "Content-Type: application/json" \
-    -d '{ "event": { "type": "INITIAL_PURCHASE", "app_user_id": "'"$useruuid"'" } }' > /dev/null
-
-  say "Sign in as user to update profile settings"
-  assume_role rcuser4
-
-  say "Set non-default theme and privacy settings"
-  jc PATCH /profile-info -d '{ "theme": { "title_color": "#111111", "body_color": "#222222", "background_color": "#333333" } }'
-  jc PATCH /profile-info -d '{ "show_my_location": "No" }'
-  jc PATCH /profile-info -d '{ "show_my_age": "No" }'
-  jc PATCH /profile-info -d '{ "hide_me_from_strangers": "Yes" }'
-  jc PATCH /profile-info -d '{ "browse_invisibly": "Yes" }'
-
-  [[ "$(q "select title_color from person where uuid = '$useruuid'::uuid")" == "#111111" ]]
-  [[ "$(q "select body_color from person where uuid = '$useruuid'::uuid")" == "#222222" ]]
-  [[ "$(q "select background_color from person where uuid = '$useruuid'::uuid")" == "#333333" ]]
-  [[ "$(q "select show_my_location from person where uuid = '$useruuid'::uuid")" == f ]]
-  [[ "$(q "select show_my_age from person where uuid = '$useruuid'::uuid")" == f ]]
-  [[ "$(q "select hide_me_from_strangers from person where uuid = '$useruuid'::uuid")" == t ]]
-  [[ "$(q "select browse_invisibly from person where uuid = '$useruuid'::uuid")" == t ]]
-
-  say "EXPIRATION resets colors and invisibility only for id < 305200"
-  export SESSION_TOKEN=""
-  c POST /revenuecat \
-    --header "Authorization: Bearer valid-revenuecat-token" \
-    --header "Content-Type: application/json" \
-    -d '{ "event": { "type": "EXPIRATION", "app_user_id": "'"$useruuid"'" } }' > /dev/null
-
-  [[ "$(q "select has_gold from person where uuid = '$useruuid'::uuid")" == f ]]
-  [[ "$(q "select title_color from person where uuid = '$useruuid'::uuid")" == "#000000" ]]
-  [[ "$(q "select body_color from person where uuid = '$useruuid'::uuid")" == "#000000" ]]
-  [[ "$(q "select background_color from person where uuid = '$useruuid'::uuid")" == "#ffffff" ]]
-  # These should remain as previously set (not reset to defaults)
-  [[ "$(q "select show_my_location from person where uuid = '$useruuid'::uuid")" == f ]]
-  [[ "$(q "select show_my_age from person where uuid = '$useruuid'::uuid")" == f ]]
-  [[ "$(q "select hide_me_from_strangers from person where uuid = '$useruuid'::uuid")" == t ]]
-  [[ "$(q "select browse_invisibly from person where uuid = '$useruuid'::uuid")" == t ]]
-}
-
-premium_features_require_gold_ge_305200() {
-  say "Reset core tables to a clean state"
-  q "delete from person"
-  q "delete from club"
-  q "delete from banned_person"
-
-  say "Force next person.id to be >= 305200"
-  q "select setval(pg_get_serial_sequence('person','id'), 305199, true)"
-
-  say "Create user with id >= 305200 (no gold)"
+  say "Create user (no gold)"
   ../util/create-user.sh rcuser5 0 0
+  q "update person set has_gold = false where name = 'rcuser5'"
 
   say "Sign in as user"
   assume_role rcuser5
 
-  say "Premium features must return 403 without gold (>=305200)"
+  say "Premium features must return 403 without gold"
   jc PATCH /profile-info -d '{ "theme": { "title_color": "#123456", "body_color": "#234567", "background_color": "#345678" } }' && exit 1
   jc PATCH /profile-info -d '{ "browse_invisibly": "Yes" }' && exit 1
   jc PATCH /profile-info -d '{ "show_my_location": "No" }' && exit 1
@@ -303,39 +229,12 @@ premium_features_require_gold_ge_305200() {
   return 0
 }
 
-premium_features_require_gold_lt_305200() {
-  say "Reset core tables to a clean state"
-  q "delete from person"
-  q "delete from club"
-  q "delete from banned_person"
-
-  say "Force next person.id to be < 305200"
-  q "select setval(pg_get_serial_sequence('person','id'), 305000, true)"
-
-  say "Create user with id < 305200 (no gold)"
-  ../util/create-user.sh rcuser6 0 0
-
-  say "Sign in as user"
-  assume_role rcuser6
-
-  say "Premium features must return 403 without gold (<305200)"
-  jc PATCH /profile-info -d '{ "theme": { "title_color": "#123456", "body_color": "#234567", "background_color": "#345678" } }' && exit 1
-  jc PATCH /profile-info -d '{ "browse_invisibly": "Yes" }' || exit 1
-  jc PATCH /profile-info -d '{ "show_my_location": "No" }' || exit 1
-  jc PATCH /profile-info -d '{ "show_my_age": "No" }' || exit 1
-  jc PATCH /profile-info -d '{ "hide_me_from_strangers": "Yes" }' || exit 1
-
-  return 0
-}
-
 clean_up () {
   q "select setval(pg_get_serial_sequence('person','id'), 1, true)"
 }
 
 has_gold_is_set_by_webhook
-expiration_resets_settings_for_ge_305200
-expiration_resets_settings_for_lt_305200
-premium_features_require_gold_ge_305200
-premium_features_require_gold_lt_305200
+expiration_resets_settings
+premium_features_require_gold
 
 clean_up

@@ -146,7 +146,9 @@ test_json_format () {
     "added_photo_extra_exts": [],
     "added_photo_uuid": "redacted_nonnull_value",
     "age": 26,
-    "flair": [],
+    "flair": [
+      "gold"
+    ],
     "gender": "Other",
     "is_verified": false,
     "location": "New York, New York, United States",
@@ -163,7 +165,9 @@ test_json_format () {
     "added_photo_extra_exts": [],
     "added_photo_uuid": "redacted_nonnull_value",
     "age": 26,
-    "flair": [],
+    "flair": [
+      "gold"
+    ],
     "gender": "Other",
     "is_verified": false,
     "location": "New York, New York, United States",
@@ -179,6 +183,7 @@ test_json_format () {
     "added_audio_uuid": "redacted_nonnull_value",
     "age": 26,
     "flair": [
+      "gold",
       "voice-bio"
     ],
     "gender": "Other",
@@ -197,7 +202,9 @@ test_json_format () {
     "added_photo_extra_exts": [],
     "added_photo_uuid": "redacted_nonnull_value",
     "age": 26,
-    "flair": [],
+    "flair": [
+      "gold"
+    ],
     "gender": "Other",
     "is_verified": false,
     "location": "New York, New York, United States",

@@ -1260,7 +1260,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         verification_level.name = %(field_value)s
         """
     elif field_name == 'show_my_location':
-        if s.person_id >= 305200 and not _has_gold(person_id=s.person_id):
+        if not _has_gold(person_id=s.person_id):
             return 'Requires gold', 403
 
         q1 = """
@@ -1270,7 +1270,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         WHERE id = %(person_id)s
         """
     elif field_name == 'show_my_age':
-        if s.person_id >= 305200 and not _has_gold(person_id=s.person_id):
+        if not _has_gold(person_id=s.person_id):
             return 'Requires gold', 403
 
         q1 = """
@@ -1280,7 +1280,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         WHERE id = %(person_id)s
         """
     elif field_name == 'hide_me_from_strangers':
-        if s.person_id >= 305200 and not _has_gold(person_id=s.person_id):
+        if not _has_gold(person_id=s.person_id):
             return 'Requires gold', 403
 
         q1 = """
@@ -1290,7 +1290,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         WHERE id = %(person_id)s
         """
     elif field_name == 'browse_invisibly':
-        if s.person_id >= 305200 and not _has_gold(person_id=s.person_id):
+        if not _has_gold(person_id=s.person_id):
             return 'Requires gold', 403
 
         q1 = """
