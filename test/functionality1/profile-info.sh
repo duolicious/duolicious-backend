@@ -258,6 +258,18 @@ EOF
   diff <(echo "$new_field_value") <(echo "$formatted_original_value")
 }
 
+test_flair () {
+  local expected_value='{"flair": ["gold", "voice-bio"]}'
+
+  local actual_value=$(
+    set +x
+    c GET /profile-info | jq -r 'with_entries(select(.key == "flair"))'
+  )
+  local formatted_expected_value=$(jq -r <<< "$expected_value")
+
+  diff <(echo "$actual_value") <(echo "$formatted_expected_value")
+}
+
 test_verification_loss_gender () {
   jc PATCH /profile-info -d '{ "gender": "Man" }'
 
@@ -442,3 +454,5 @@ test_verification_loss_photo_changed
 test_verification_loss_photo_removed
 
 test_verification_required
+
+test_flair
