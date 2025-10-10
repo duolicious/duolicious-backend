@@ -1678,6 +1678,8 @@ WITH photo_ AS (
     SELECT body_color AS j FROM person WHERE id = %(person_id)s
 ), background_color AS (
     SELECT background_color AS j FROM person WHERE id = %(person_id)s
+), flair AS (
+    SELECT ({Q_COMPUTED_FLAIR}) AS j FROM person WHERE id = %(person_id)s
 )
 SELECT
     json_build_object(
@@ -1729,7 +1731,10 @@ SELECT
             'title_color',            (SELECT j FROM title_color),
             'body_color',             (SELECT j FROM body_color),
             'background_color',       (SELECT j FROM background_color)
-        )
+        ),
+
+        'flair', (SELECT j FROM flair)
+
     ) AS j
 """
 
