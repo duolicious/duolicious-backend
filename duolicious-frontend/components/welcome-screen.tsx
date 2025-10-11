@@ -367,7 +367,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [loginStatus, setLoginStatus] = useState("")
 
-  const { height } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
   const setEmailSafely = (e: string) => {
     const sanitizedText = e.replace(/\s/g, '');
@@ -469,8 +469,41 @@ const WelcomeScreen_ = ({navigation, route}) => {
         backgroundColor: '#70f',
         width: '100%',
         height: '100%',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        overflow: 'hidden',
       }}
     >
+      {Platform.OS === 'web' && windowWidth >= 800 && <>
+        <img
+          src="https://duolicious.app/assets/landing/left.svg"
+          style={{
+            position: 'absolute',
+            bottom: '0',
+            left: '-75px',
+            width: '500px',
+            height: 'auto',
+            objectFit: 'cover',
+            backfaceVisibility: 'hidden',
+            transition: 'transform 0.5s ease-out',
+          }}
+        >
+        </img>
+        <img
+          src="https://duolicious.app/assets/landing/right.svg"
+          style={{
+            position: 'absolute',
+            bottom: '0',
+            right: '-75px',
+            width: '500px',
+            height: 'auto',
+            objectFit: 'cover',
+            backfaceVisibility: 'hidden',
+            transition: 'transform 0.5s ease-out',
+          }}
+        >
+        </img>
+      </>}
       <KeyboardDismissingView
         style={{
           width: '100%',
@@ -524,7 +557,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
               `Join ${clubName_} on Duolicious` :
               'Cute dates & dank memes await...'}
           </DefaultText>
-          {(Platform.OS === 'web' || height > 500) &&
+          {(Platform.OS === 'web' || windowHeight > 500) &&
             <ActiveMembers
               numActiveMembers={numUsers ?? -1}
               minActiveMembers={0}
@@ -561,7 +594,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
           >
             {loginStatus || '\xa0'}
           </DefaultText>
-          {(Platform.OS === 'web' || height > 500) &&
+          {(Platform.OS === 'web' || windowHeight > 500) &&
             <View
               style={{
                 flexDirection: 'row',
