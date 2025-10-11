@@ -338,6 +338,50 @@ const capLuminance = (hex: string, maxL: number = 0.05): string => {
   return toHex(scaledSRGB);
 };
 
+type Memoized<R, A extends unknown[]> = ((...args: A) => Promise<R>) & {
+  clear: (...args: A) => void;
+};
+
+const memoizeWithTtl = <R, A extends unknown[]>(
+  fn: (...args: A) => Promise<R>,
+  ttlMs: number,
+  keyFn?: (...args: A) => string
+): Memoized<R, A> => {
+  type Entry = { value?: R; expiresAt: number; inFlight?: Promise<R> };
+  const cache = new Map<string, Entry>();
+  const kf = keyFn ?? ((...args: A) => JSON.stringify(args));
+
+  const get: ((...args: A) => Promise<R>) = async (...args: A) => {
+    const key = kf(...args);
+    const now = Date.now();
+    const entry = cache.get(key);
+
+    if (entry && entry.expiresAt > now && entry.value !== undefined) {
+      return entry.value;
+    }
+
+    if (entry?.inFlight) {
+      return entry.inFlight;
+    }
+
+    const inFlight = (async () => {
+      const value = await fn(...args);
+      cache.set(key, { value, expiresAt: Date.now() + ttlMs });
+      return value;
+    })();
+
+    cache.set(key, { expiresAt: now + ttlMs, inFlight });
+
+    return await inFlight;
+  };
+
+  const clear = (...args: A) => {
+    const key = kf(...args);
+    cache.delete(key);
+  };
+
+  return Object.assign(get, { clear });
+};
 
 export {
   assert,
@@ -364,4 +408,5 @@ export {
   bestTextOn,
   capLuminance,
   happenedInLast7Days,
+  memoizeWithTtl,
 };

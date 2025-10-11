@@ -1,7 +1,11 @@
 import * as _ from "lodash";
 import { japi, ApiResponse } from '../api/api';
 import { navigationContainerRef } from '../App';
-import { setSignedInUser } from '../events/signed-in-user';
+import {
+  getSignedInUser,
+  setSignedInUser,
+  useSignedInUser,
+} from '../events/signed-in-user';
 import { sessionToken, sessionPersonUuid } from '../kv-storage/session-token';
 import { X } from "react-native-feather";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
@@ -39,20 +43,12 @@ import { showVerificationCamera } from '../components/verification-camera';
 import { notifyUpdatedVerification } from '../verification/verification';
 import { searchQueue } from '../api/queue';
 import { setAppThemeName } from '../app-theme/app-theme';
+import { showPointOfSale } from '../components/modal/point-of-sale-modal';
+import { descriptionStyle } from '../components/option-screen';
 
 const noneFontSize = 16;
 
 const maxDailySelfies = 'eight';
-
-const descriptionStyle = StyleSheet.create({
-  style: {
-    color: '#777',
-    textAlign: 'center',
-    paddingLeft: 20,
-    paddingRight: 20,
-    paddingTop: 10,
-  }
-});
 
 type OptionGroupButtons = {
   buttons: {
@@ -902,7 +898,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
 ];
 
-const themePickerOptionGroups: OptionGroup<OptionGroupThemePicker>[] = [
+const themePickerOptionGroups: OptionGroup<OptionGroupThemePicker | OptionGroupButtons>[] = [
   {
     title: 'Profile Theme',
     Icon: ({ color = 'black' }) => (
@@ -912,10 +908,26 @@ const themePickerOptionGroups: OptionGroup<OptionGroupThemePicker>[] = [
         style={{ color }}
       />
     ),
-    description: "Customize how your profile appears to other members",
+    description: () => {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const [signedInUser] = useSignedInUser();
+
+      return (
+        <DefaultText style={descriptionStyle.style}>
+          Customize how your profile appears to other members.
+          {!signedInUser?.hasGold && ' Unlock this feature with Gold.'}
+        </DefaultText>
+      )
+    },
     input: {
       themePicker: {
         submit: async function (titleColor, bodyColor, backgroundColor) {
+          const { hasGold = false } = getSignedInUser() ?? {};
+          if (!hasGold) {
+            showPointOfSale('blocked');
+            return false;
+          }
+
           const theme = {
             title_color: titleColor,
             body_color: bodyColor,
@@ -932,10 +944,7 @@ const themePickerOptionGroups: OptionGroup<OptionGroupThemePicker>[] = [
         },
       },
     },
-  }
-];
-
-const appThemePickerOptionGroups: OptionGroup<OptionGroupButtons>[] = [
+  },
   {
     title: 'Dark Mode',
     Icon: ({ color = 'black' }) => (
@@ -945,14 +954,28 @@ const appThemePickerOptionGroups: OptionGroup<OptionGroupButtons>[] = [
         style={{ color }}
       />
     ),
-    description: (
-      "Customize your app’s appearance. (Other users’ profile themes might " +
-      "appear darker than they intended when you’re in dark mode.)"
-    ),
+    description: () => {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const [signedInUser] = useSignedInUser();
+
+      return (
+        <DefaultText style={descriptionStyle.style}>
+          Customize your app’s appearance. (Other users’ profile themes might
+          appear darker than they intended when you’re in dark mode.)
+          {!signedInUser?.hasGold && ' Unlock this feature with Gold.'}
+        </DefaultText>
+      )
+    },
     input: {
       buttons: {
         values: offOn,
         submit: async function(input: 'On' | 'Off') {
+          const { hasGold = false } = getSignedInUser() ?? {};
+          if (!hasGold) {
+            showPointOfSale('blocked');
+            return false;
+          }
+
           if (input === 'On') {
             setAppThemeName('dark');
           } else {
@@ -2021,11 +2044,28 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         style={{ color }}
       />
     ),
-    description: "With this option set to ‘Yes’, people won’t see that you visited their profile.",
+    description: () => {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const [signedInUser] = useSignedInUser();
+
+      return (
+        <DefaultText style={descriptionStyle.style}>
+          With this option set to ‘Yes’, people won’t see that you visited their
+          profile.
+          {!signedInUser?.hasGold && ' Unlock this feature with Gold.'}
+        </DefaultText>
+      )
+    },
     input: {
       buttons: {
         values: yesNo,
         submit: async function(browseInvisibly: string) {
+          const { hasGold = false } = getSignedInUser() ?? {};
+          if (!hasGold) {
+            showPointOfSale('blocked');
+            return false;
+          }
+
           const ok = (
             await japi(
               'patch',
@@ -2051,11 +2091,28 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         name="chatbubble"
       />
     ),
-    description: "With this option set to ‘Yes’, people won’t see you in the feed, search, or anywhere else in Duolicious until you message them first.",
+    description: () => {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const [signedInUser] = useSignedInUser();
+
+      return (
+        <DefaultText style={descriptionStyle.style}>
+          With this option set to ‘Yes’, people won’t see you in the feed,
+          search, or anywhere else in Duolicious until you message them first.
+          {!signedInUser?.hasGold && ' Unlock this feature with Gold.'}
+        </DefaultText>
+      )
+    },
     input: {
       buttons: {
         values: yesNo,
         submit: async function(hideMeFromStrangers: string) {
+          const { hasGold = false } = getSignedInUser() ?? {};
+          if (!hasGold) {
+            showPointOfSale('blocked');
+            return false;
+          }
+
           const ok = (
             await japi(
               'patch',
@@ -2078,11 +2135,29 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         style={{ color }}
       />
     ),
-    description: "Would you like your age to appear on your profile? Note that if you set this option to ‘No’, other people will still be able to filter your profile by age when searching.",
+    description: () => {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const [signedInUser] = useSignedInUser();
+
+      return (
+        <DefaultText style={descriptionStyle.style}>
+          Would you like your age to appear on your profile? Note that if you
+          set this option to ‘No’, other people will still be able to filter
+          your profile by age when searching.
+          {!signedInUser?.hasGold && ' Unlock this feature with Gold.'}
+        </DefaultText>
+      )
+    },
     input: {
       buttons: {
         values: yesNo,
         submit: async function(showMyAge: string) {
+          const { hasGold = false } = getSignedInUser() ?? {};
+          if (!hasGold) {
+            showPointOfSale('blocked');
+            return false;
+          }
+
           const ok = (
             await japi(
               'patch',
@@ -2105,11 +2180,29 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         style={{ color }}
       />
     ),
-    description: "Would you like your location to appear on your profile? Note that if you set this option to ‘No’, other people will still be able to filter your profile by distance when searching.",
+    description: () => {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const [signedInUser] = useSignedInUser();
+
+      return (
+        <DefaultText style={descriptionStyle.style}>
+          Would you like your location to appear on your profile? Note that if
+          you set this option to ‘No’, other people will still be able to filter
+          your profile by distance when searching.
+          {!signedInUser?.hasGold && ' Unlock this feature with Gold.'}
+        </DefaultText>
+      )
+    },
     input: {
       buttons: {
         values: yesNo,
         submit: async function(showMyLocation: string) {
+          const { hasGold = false } = getSignedInUser() ?? {};
+          if (!hasGold) {
+            showPointOfSale('blocked');
+            return false;
+          }
+
           const ok = (
             await japi(
               'patch',
@@ -2196,6 +2289,5 @@ export {
   searchOtherBasicsOptionGroups,
   searchTwoWayBasicsOptionGroups,
   themePickerOptionGroups,
-  appThemePickerOptionGroups,
   verificationOptionGroups,
 };

@@ -1,20 +1,45 @@
 import 'react-native-get-random-values';
 import { Platform } from 'react-native';
 import Purchases, { PurchasesOffering } from 'react-native-purchases';
-import Constants, { ExecutionEnvironment } from "expo-constants";
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { getSignedInUser } from '../events/signed-in-user';
+import { memoizeWithTtl } from '../util/util';
 
-const isExpoGo =
-  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+/* ─────────────────────────────────────────────────────────────────────────────
+   PURE UTILITIES (easy to unit test)
+   ─────────────────────────────────────────────────────────────────────────────
+*/
 
-// Apparently it's safe to hardcode these keys
-const API_KEYS = {
+type ApiKeys = {
+  apple: string;
+  google: string;
+  web: string;
+};
+
+const API_KEYS: ApiKeys = {
   apple: 'appl_kZWpuQifTvzoMWXaHawKZLSyEIf',
   google: 'goog_QNjAZZCsYwDXpCKuefskbAPUyje',
   web: 'rcb_MXlKZzQKIINGfBiYlObkCLZXxzrH',
 };
 
-// Track which user ID Purchases is configured/logged in for within this session
+// 5 minutes
+const FIVE_MINUTES_MS = 5 * 60 * 1000;
+
+const isExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+const selectApiKey = (os: string, expoGo: boolean, keys: ApiKeys): string => {
+  if (expoGo) return keys.web;
+  if (os === 'android') return keys.google;
+  if (os === 'ios') return keys.apple;
+  return keys.web;
+};
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   IMPURE BOUNDARY (side effects / SDK calls kept here)
+   ─────────────────────────────────────────────────────────────────────────────
+*/
+
 let configuredForAppUserId: string | undefined;
 let configureInFlight: Promise<void> | null = null;
 
@@ -28,90 +53,86 @@ const logInForUser = async (personUuid: string) => {
   configuredForAppUserId = personUuid;
 };
 
-const ensurePurchasesConfigured = async () => {
+const startConfigure = (task: () => Promise<void>): Promise<void> => {
+  if (configureInFlight) {
+    return configureInFlight;
+  }
+
+  configureInFlight = (async () => {
+    try {
+      await task();
+    } finally {
+      configureInFlight = null;
+    }
+  })();
+
+  return configureInFlight;
+};
+
+const ensurePurchasesConfigured = async (): Promise<void> => {
   const personUuid = getSignedInUser()?.personUuid;
 
   if (!personUuid) {
     return;
   }
 
-  // Already configured for this user in this session → no-op
   if (configuredForAppUserId === personUuid) {
     return;
   }
 
-  // If Purchases is configured already (for some user), only log in when switching users
-  const isSwitchingUser = !!configuredForAppUserId && configuredForAppUserId !== personUuid;
-  if (isSwitchingUser && !configureInFlight) {
-    configureInFlight = (async () => {
-      try {
-        await logInForUser(personUuid);
-      } finally {
-        configureInFlight = null;
-      }
-    })();
-  }
+  const isSwitchingUser = Boolean(
+    configuredForAppUserId &&
+    configuredForAppUserId !== personUuid
+  );
+
   if (isSwitchingUser) {
-    await (configureInFlight ?? Promise.resolve());
+    await startConfigure(() => logInForUser(personUuid));
     return;
   }
 
   Purchases.setDebugLogsEnabled(isExpoGo);
-
-  const apiKey = (
-    isExpoGo ? API_KEYS.web :
-    Platform.OS === 'android' ? API_KEYS.google :
-    Platform.OS === 'ios' ? API_KEYS.apple :
-    API_KEYS.web
-  );
-
-  if (!configureInFlight) {
-    configureInFlight = (async () => {
-      try {
-        await configureForUser(personUuid, apiKey);
-      } finally {
-        configureInFlight = null;
-      }
-    })();
-  }
-  await (configureInFlight ?? Promise.resolve());
+  const apiKey = selectApiKey(Platform.OS, isExpoGo, API_KEYS);
+  await startConfigure(() => configureForUser(personUuid, apiKey));
 };
 
-// Simple per-user, in-memory cache for the current offering (session-scoped)
-const offeringsByUser: Map<string, PurchasesOffering | null> = new Map();
-const offeringsInFlightByUser: Map<string, Promise<PurchasesOffering | null>> = new Map();
+/* ─────────────────────────────────────────────────────────────────────────────
+   OFFERINGS (5-minute TTL)
+   ─────────────────────────────────────────────────────────────────────────────
+*/
 
-const getCurrentOfferingCached = async (): Promise<PurchasesOffering | null> => {
+const fetchCurrentOfferingForUser = async (
+  _: string
+): Promise<PurchasesOffering | null> => {
+  // Note: personUuid is only used for cache keying; Purchases SDK is already
+  // configured for the active user when this is called.
+  const offerings = await Purchases.getOfferings();
+  return offerings?.current ?? null;
+};
+
+// Memoized per-user by keyFn = personUuid
+const getCurrentOfferingForUserMemoized = memoizeWithTtl<
+  PurchasesOffering | null, [string]
+>(
+  fetchCurrentOfferingForUser,
+  FIVE_MINUTES_MS,
+  (personUuid) => personUuid
+);
+
+const getCurrentOfferingCached = async (): Promise<
+  PurchasesOffering | null
+> => {
   const personUuid = getSignedInUser()?.personUuid;
-
-  if (!personUuid) {
-    return null;
-  }
+  if (!personUuid) return null;
 
   await ensurePurchasesConfigured();
-
-  const cached = offeringsByUser.get(personUuid);
-  if (cached !== undefined) {
-    return cached;
-  }
-
-  let inFlight = offeringsInFlightByUser.get(personUuid);
-  if (!inFlight) {
-    inFlight = (async () => {
-      const offerings = await Purchases.getOfferings();
-      const current = offerings?.current ?? null;
-      offeringsByUser.set(personUuid, current);
-      return current;
-    })()
-      .finally(() => {
-        offeringsInFlightByUser.delete(personUuid);
-      });
-
-    offeringsInFlightByUser.set(personUuid, inFlight);
-  }
-
-  return inFlight;
+  const offering = await getCurrentOfferingForUserMemoized(personUuid);
+  return offering ?? null;
 };
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   EXPORTS
+   ─────────────────────────────────────────────────────────────────────────────
+*/
 
 export {
   ensurePurchasesConfigured,

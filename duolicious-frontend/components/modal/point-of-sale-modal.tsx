@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { ActivityIndicator, Platform, View, useWindowDimensions } from 'react-native';
 import { DefaultText } from '../default-text';
 import { DefaultModal } from './default-modal';
 import { backgroundColors } from './background-colors';
@@ -117,6 +117,7 @@ const Offering = ({
 }) => {
   const [hasError, setHasError] = useState(false);
   const [currentOffering, setCurrentOffering] = useState<PurchasesOffering | null>();
+  const { height: windowHeight } = useWindowDimensions();
 
   useEffect(() => {
     (async () => {
@@ -199,6 +200,8 @@ const Offering = ({
     onPressClose();
   };
 
+  const isCompact = isMobileWeb() && windowHeight < 620;
+
   return (
     <>
       <View
@@ -225,7 +228,7 @@ const Offering = ({
               Duolicious
             </DefaultText>
           </View>
-          {!isMobileWeb() &&
+          {!isCompact &&
             <DefaultText
               style={{
                 fontSize: 42,
@@ -338,7 +341,7 @@ const Offering = ({
           }
         </View>
 
-        {!isMobileWeb() &&
+        {!isCompact &&
           <DefaultText
             style={{
               fontSize: 12,

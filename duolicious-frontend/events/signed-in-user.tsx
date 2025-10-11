@@ -3,7 +3,7 @@ import { listen, notify, lastEvent } from './events';
 import type { ClubItem } from '../club/club';
 
 // Public type used across the app
-export type SignedInUser = {
+type SignedInUser = {
   personId: number
   personUuid: string,
   units: 'Metric' | 'Imperial'
@@ -42,7 +42,8 @@ const useSignedInUser = () => {
 };
 
 export {
-  useSignedInUser,
-  setSignedInUser,
+  SignedInUser,
   getSignedInUser,
+  setSignedInUser,
+  useSignedInUser,
 };

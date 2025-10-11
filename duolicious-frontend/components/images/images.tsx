@@ -47,6 +47,7 @@ import { photoQueue } from '../../api/queue';
 import { japi } from '../../api/api';
 import * as _ from "lodash";
 import { useAppTheme } from '../../app-theme/app-theme';
+import { Flair } from '../../components/badges';
 
 // TODO: Image picker is shit and lets you upload any file type on web
 
@@ -59,6 +60,7 @@ const EV_SLOT_ASSIGNMENT_FINISH = 'slot-assignment-finish';
 const EV_SLOT_ASSIGNMENT_START = 'slot-assignment-start';
 const EV_SLOT_REQUEST = 'slot-request';
 const EV_UPDATED_NAME = 'updated-name';
+const EV_UPDATED_FLAIR = 'updated-flair';
 const EV_UPDATED_VERIFICATION = 'updated-verification';
 
 type Point2D = {
@@ -934,11 +936,11 @@ const FirstSlotRow = ({
 }: {
   firstFileNumber: number
 }) => {
-  const [name, setName] = useState(lastEvent<string>('updated-name'));
+  const [name, setName] = useState(lastEvent<string>(EV_UPDATED_NAME));
+  const [flair, setFlair] = useState(lastEvent<string[]>(EV_UPDATED_FLAIR));
 
-  useEffect(() => {
-    return listen<string>(EV_UPDATED_NAME, setName);
-  }, []);
+  useEffect(() => listen<string>(EV_UPDATED_NAME, setName), []);
+  useEffect(() => listen<string[]>(EV_UPDATED_FLAIR, setFlair), []);
 
   return (
     <View
@@ -956,6 +958,7 @@ const FirstSlotRow = ({
         style={{
           flex: 2,
           justifyContent: 'center',
+          gap: 8,
         }}
       >
         <DefaultText
@@ -967,6 +970,7 @@ const FirstSlotRow = ({
         >
           {name}
         </DefaultText>
+        <Flair flair={flair ?? []} />
       </View>
     </View>
   );
