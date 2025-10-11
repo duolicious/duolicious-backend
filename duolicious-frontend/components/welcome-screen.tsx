@@ -557,7 +557,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
               `Join ${clubName_} on Duolicious` :
               'Cute dates & dank memes await...'}
           </DefaultText>
-          {(Platform.OS === 'web' || windowHeight > 500) &&
+          {windowHeight > 500 &&
             <ActiveMembers
               numActiveMembers={numUsers ?? -1}
               minActiveMembers={0}
@@ -594,7 +594,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
           >
             {loginStatus || '\xa0'}
           </DefaultText>
-          {(Platform.OS === 'web' || windowHeight > 500) &&
+          {windowHeight > 500 &&
             <View
               style={{
                 flexDirection: 'row',
