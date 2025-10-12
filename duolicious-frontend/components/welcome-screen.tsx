@@ -113,16 +113,67 @@ const ActiveMembers = ({
 const Stack = createNativeStackNavigator();
 
 const WelcomeScreen = () => {
+  const { width: windowWidth } = useWindowDimensions();
+
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-        animation: 'slide_from_right',
+    <View
+      style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: '#70f',
+        overflow: 'hidden',
       }}
     >
-      <Stack.Screen name="Welcome Screen" component={WelcomeScreen_} />
-      <Stack.Screen name="Create Account Or Sign In Screen" component={OptionScreen} />
-    </Stack.Navigator>
+      {Platform.OS === 'web' && windowWidth >= 950 && <>
+        <img
+          src="https://duolicious.app/assets/landing/left.svg"
+          style={{
+            position: 'absolute',
+            bottom: '0',
+            left: `-${75 + Math.max(0, (1380 - windowWidth) / 2)}px`,
+            width: '500px',
+            height: 'auto',
+            objectFit: 'cover',
+            backfaceVisibility: 'hidden',
+            transition: 'transform 0.5s ease-out',
+          }}
+        >
+        </img>
+        <img
+          src="https://duolicious.app/assets/landing/right.svg"
+          style={{
+            position: 'absolute',
+            bottom: '0',
+            right: `-${75 + Math.max(0, (1380 - windowWidth) / 2)}px`,
+            width: '500px',
+            height: 'auto',
+            objectFit: 'cover',
+            backfaceVisibility: 'hidden',
+            transition: 'transform 0.5s ease-out',
+          }}
+        >
+        </img>
+      </>}
+      <View
+        style={{
+          height: '100%',
+          width: '100%',
+          maxWidth: 600,
+          alignSelf: 'center',
+          overflow: 'visible',
+        }}
+      >
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        >
+          <Stack.Screen name="Welcome Screen" component={WelcomeScreen_} />
+          <Stack.Screen name="Create Account Or Sign In Screen" component={OptionScreen} />
+        </Stack.Navigator>
+      </View>
+    </View>
   );
 };
 
@@ -367,7 +418,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [loginStatus, setLoginStatus] = useState("")
 
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight } = useWindowDimensions();
 
   const setEmailSafely = (e: string) => {
     const sanitizedText = e.replace(/\s/g, '');
@@ -474,41 +525,10 @@ const WelcomeScreen_ = ({navigation, route}) => {
         overflow: 'hidden',
       }}
     >
-      {Platform.OS === 'web' && windowWidth >= 800 && <>
-        <img
-          src="https://duolicious.app/assets/landing/left.svg"
-          style={{
-            position: 'absolute',
-            bottom: '0',
-            left: '-75px',
-            width: '500px',
-            height: 'auto',
-            objectFit: 'cover',
-            backfaceVisibility: 'hidden',
-            transition: 'transform 0.5s ease-out',
-          }}
-        >
-        </img>
-        <img
-          src="https://duolicious.app/assets/landing/right.svg"
-          style={{
-            position: 'absolute',
-            bottom: '0',
-            right: '-75px',
-            width: '500px',
-            height: 'auto',
-            objectFit: 'cover',
-            backfaceVisibility: 'hidden',
-            transition: 'transform 0.5s ease-out',
-          }}
-        >
-        </img>
-      </>}
       <KeyboardDismissingView
         style={{
           width: '100%',
           height: '100%',
-          maxWidth: 600,
           alignSelf: 'center',
           flexDirection: 'column',
         }}
