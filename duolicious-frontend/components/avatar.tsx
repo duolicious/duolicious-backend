@@ -63,7 +63,7 @@ const Avatar = ({
         }
       );
     }
-  }, [navigation, personId, verificationRequired]);
+  }, [navigation, personId, personUuid, photoBlurhash, verificationRequired]);
 
   const isLinkToProfile = navigation && !verificationRequired && personUuid && !disableProfileNavigation;
 
