@@ -244,6 +244,7 @@ const useNavigationToConversation = (
 
 const AgeGenderLocation = ({
   personUuid,
+  photoBlurhash,
   name,
   isVerified,
   age,
@@ -253,6 +254,7 @@ const AgeGenderLocation = ({
   style,
 }: {
   personUuid: string
+  photoBlurhash: string | null
   name: string
   isVerified: boolean
   age: number | null
@@ -276,7 +278,7 @@ const AgeGenderLocation = ({
 
   const onPress = useNavigationToProfile(
     personUuid,
-    null
+    photoBlurhash,
   );
 
   const link = makeLinkProps(`/profile/${personUuid}`);
@@ -341,7 +343,7 @@ const AgeGenderLocation = ({
           }
         </DefaultText>
         {userLocation &&
-          <DefaultText style={{ color: appTheme.hintColor }}>
+          <DefaultText style={{ color: appTheme.hintColor, width: '100%' }}>
             {userLocation}
           </DefaultText>
         }
@@ -435,6 +437,7 @@ const FeedItemJoined = ({ fields }: { fields: JoinedFields }) => {
         <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
           <AgeGenderLocation
             personUuid={fields.person_uuid}
+            photoBlurhash={fields.photo_blurhash}
             name={fields.name}
             isVerified={fields.is_verified}
             age={fields.age}
@@ -510,6 +513,7 @@ const FeedItemAddedPhoto = ({
         <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
           <AgeGenderLocation
             personUuid={fields.person_uuid}
+            photoBlurhash={fields.photo_blurhash}
             name={fields.name}
             isVerified={fields.is_verified}
             age={fields.age}
@@ -575,6 +579,7 @@ const FeedItemAddedVoiceBio = ({
         <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
           <AgeGenderLocation
             personUuid={fields.person_uuid}
+            photoBlurhash={fields.photo_blurhash}
             name={fields.name}
             isVerified={fields.is_verified}
             age={fields.age}
@@ -642,6 +647,7 @@ const FeedItemUpdatedBio = ({
           <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
             <AgeGenderLocation
               personUuid={fields.person_uuid}
+              photoBlurhash={fields.photo_blurhash}
               name={fields.name}
               isVerified={fields.is_verified}
               age={fields.age}
