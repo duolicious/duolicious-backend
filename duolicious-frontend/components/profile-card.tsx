@@ -50,7 +50,6 @@ const ImageBackground = (props) => {
     transition,
     contentFit,
     onLoad,
-    ...rest
   } = props;
 
   return (
@@ -60,7 +59,6 @@ const ImageBackground = (props) => {
       style={style}
       contentFit={contentFit}
       placeholderContentFit={contentFit}
-      {...rest}
     >
       <RNImageBackground
         source={source}

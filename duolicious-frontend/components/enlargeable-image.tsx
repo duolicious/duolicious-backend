@@ -50,11 +50,13 @@ const EnlargeablePhoto = ({
     const ext = (photoExtraExts && photoExtraExts[0]) || 'jpg';
     const originalUri = `${IMAGES_URL}/original-${photoUuid}.${ext}`;
     InteractionManager.runAfterInteractions(() => {
-      try {
-        ExpoImage.prefetch(originalUri);
-      } catch (e) {
-        console.warn(e);
-      }
+      setTimeout(() => {
+        try {
+          ExpoImage.prefetch(originalUri);
+        } catch (e) {
+          console.warn(e);
+        }
+      }, 500);
     });
   }, [photoUuid, photoExtraExts?.length]);
 
