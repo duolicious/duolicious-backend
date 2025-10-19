@@ -49,6 +49,8 @@ const ImageBackground = (props) => {
     style,
     transition,
     contentFit,
+    onLoad,
+    ...rest
   } = props;
 
   return (
@@ -58,6 +60,7 @@ const ImageBackground = (props) => {
       style={style}
       contentFit={contentFit}
       placeholderContentFit={contentFit}
+      {...rest}
     >
       <RNImageBackground
         source={source}
@@ -67,6 +70,7 @@ const ImageBackground = (props) => {
         }}
         resizeMode={contentFit}
         fadeDuration={transition?.duration ?? transition ?? undefined}
+        onLoad={onLoad}
       >
         {children}
       </RNImageBackground>
@@ -79,6 +83,7 @@ const PhotoOrSkeleton_ = ({
   photoUuid,
   photoBlurhash,
   forceExpoImage = false,
+  onLoad,
   ...rest
 }: {
   resolution: number,
@@ -88,6 +93,7 @@ const PhotoOrSkeleton_ = ({
   showGradient?: boolean,
   forceExpoImage?: boolean,
   style?: any,
+  onLoad?: () => void,
 }) => {
   const {
     photoExtraExts = [],
@@ -133,6 +139,7 @@ const PhotoOrSkeleton_ = ({
       }}
       contentFit="contain"
       placeholderContentFit="contain"
+      onLoad={onLoad}
       recyclingKey={photoUuid}
     >
       <LinearGradient

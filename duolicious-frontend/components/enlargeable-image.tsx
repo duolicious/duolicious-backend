@@ -1,9 +1,11 @@
 import { useCallback } from 'react';
-import { GestureResponderEvent, Pressable } from 'react-native';
+import { GestureResponderEvent, Pressable, InteractionManager } from 'react-native';
 import { PhotoOrSkeleton } from './profile-card';
 import { VerificationBadge } from './verification-badge';
 import * as _ from 'lodash';
 import { useNavigation } from '@react-navigation/native';
+import { Image as ExpoImage } from 'expo-image';
+import { IMAGES_URL } from '../env/env';
 
 const EnlargeablePhoto = ({
   photoUuid,
@@ -43,6 +45,19 @@ const EnlargeablePhoto = ({
   }, [photoUuid]);
 
 
+  const prefetchEnlargedImage = useCallback(() => {
+    if (!photoUuid || !!photoExtraExts?.length) return;
+    const ext = (photoExtraExts && photoExtraExts[0]) || 'jpg';
+    const originalUri = `${IMAGES_URL}/original-${photoUuid}.${ext}`;
+    InteractionManager.runAfterInteractions(() => {
+      try {
+        ExpoImage.prefetch(originalUri);
+      } catch (e) {
+        console.warn(e);
+      }
+    });
+  }, [photoUuid, photoExtraExts?.length]);
+
   if (photoUuid === undefined && !isPrimary) {
     return <></>;
   }
@@ -67,6 +82,7 @@ const EnlargeablePhoto = ({
         showGradient={false}
         style={innerStyle}
         forceExpoImage={true}
+        onLoad={prefetchEnlargedImage}
       />
       {isVerified &&
         <VerificationBadge
