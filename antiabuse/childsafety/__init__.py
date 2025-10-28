@@ -6,23 +6,36 @@ _re_adult_ages_as_numbers = rf'([1-9][0-9]{_re_age_modifier_suffix}?)'
 
 _re_adult_ages_as_words = r'(eighteen|nineteen|twenty)'
 
-_re_adult_ages = rf'({_re_adult_ages_as_numbers}|{_re_adult_ages_as_words})'
+_re_adult_ages_as_words_and_numbers = r'([8-9]teen)'
+
+_re_adult_ages = (
+        rf'({_re_adult_ages_as_numbers}|'
+        rf'{_re_adult_ages_as_words}|'
+        rf'{_re_adult_ages_as_words_and_numbers})')
 
 _re_minor_ages_as_numbers = rf'(1[1-7]{_re_age_modifier_suffix}?)'
 
 _re_minor_ages_as_words = (
     '(eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen)')
 
-_re_minor_ages = rf'({_re_minor_ages_as_numbers}|{_re_minor_ages_as_words})'
+_re_minor_ages_as_words_and_numbers = '([3-7]teen)'
+
+_re_minor_ages = (
+        rf'({_re_minor_ages_as_numbers}|'
+        rf'{_re_minor_ages_as_words}|'
+        rf'{_re_minor_ages_as_words_and_numbers})')
 
 _re_palindomic_minor_ages = rf'([1-7]1)'
 
-_re_palindome_assertion = rf'(backwards|backward|🔄+|⏪️+|⏮️+|🔁+|↩️+|↪️+)'
+_re_palindome_assertion = rf'(switched|backwards|backward|🔄+|⏪️+|⏮️+|🔁+|↩️+|↪️+|🔃)'
+
+_re_future_assertion = rf'(in|soon)'
 
 _re_minor_declarations = (
         rf'((underage)|'
         rf'(under\s+{_re_adult_ages})|'
         rf'(not\s+{_re_adult_ages})|'
+        rf'({_re_adult_ages}\s+{_re_future_assertion})|'
         rf'(minor)|'
         rf'(turn\s+{_re_adult_ages})|'
         rf'(turning\s+{_re_adult_ages})|'
@@ -32,12 +45,15 @@ _re_gooming = r'(groomer|groomed|grooming)'
 
 _re_victim = r'(be\s+a\s+victim)'
 
+_re_aam = r'(aam)'
+
 _re_minor = (
         rf'(\b('
         rf'{_re_minor_ages}|'
         rf'{_re_minor_declarations}|'
         rf'{_re_gooming}|'
-        rf'{_re_victim}'
+        rf'{_re_victim}|'
+        rf'{_re_aam}'
         rf')(\b|\s|$))')
 
 _re_neg_prev = {

@@ -243,6 +243,46 @@ i wanna be a victim
 31🔁
                 """.strip()))
 
+        self.assertTrue(
+                potential_minor("""
+18 in 14 days
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
+not 8teen
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
+18 soon
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
+71 switched
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
+(minor)
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
+17*
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
+i am an aam.
+                """.strip()))
+
+        self.assertTrue(
+                potential_minor("""
+61🔃
+                """.strip()))
+
 
     def test_not_potential_minor(self):
         self.assertFalse(
