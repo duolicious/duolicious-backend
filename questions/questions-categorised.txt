@@ -5253,7 +5253,7 @@
       "category": "interpersonal"
     },
     {
-      "question": "Do you think people who live with serious heritable conditions be prevented from donating sperm or eggs?",
+      "question": "Do you think people who live with serious heritable conditions should be prevented from donating sperm or eggs?",
       "category": "values"
     },
     {
