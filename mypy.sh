@@ -21,27 +21,11 @@ then
   python3 -m pip install -r mypy.requirements.txt
 fi
 
-# TODO: Include more files
 if [ -n "$1" ]
 then
   python3 -m mypy "${1}"
 else
   python3 -m mypy \
-    antiabuse/firehol \
-    async_lru_cache/__init__.py \
-    batcher/__init__.py \
-    constants/__init__.py \
-    database/__init__.py \
-    database/initapi.py \
-    duohash/__init__.py \
-    duotypes/__init__.py \
-    notify/__init__.py \
-    service/api/__init__.py \
-    service/location/__init__.py \
-    service/chat \
-    service/search/__init__.py \
-    smtp/__init__.py \
-    util/timeout/__init__.py \
-    verification/__init__.py \
-    verification/messages.py
+    --exclude 'venv/|antiabuse/normalize/__init__\.py|antiabuse/antiporn/__init__\.py|antiabuse/lodgereport/__init__\.py|duoaudio/__init__\.py|service/cron/cronutil/__init__\.py|service/cron/checkphotos/__init__\.py|service/cron/notifications/test_init\.py|service/cron/verificationjobrunner/__init__\.py|service/person/__init__\.py|service/api/decorators\.py|questions/categorise_questions\.py|questions/archetypeise_questions\.py' \
+    .
 fi
