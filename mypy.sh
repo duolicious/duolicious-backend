@@ -34,6 +34,7 @@ else
     database/initapi.py \
     notify/__init__.py \
     util/timeout/__init__.py \
+    batcher/__init__.py \
     verification/messages.py \
     verification/__init__.py
 fi
