@@ -28,18 +28,18 @@ then
 else
   python3 -m mypy \
     antiabuse/firehol \
-    service/chat \
-    service/api/__init__.py \
-    service/search/__init__.py \
-    database/initapi.py \
-    database/__init__.py \
-    notify/__init__.py \
-    util/timeout/__init__.py \
-    batcher/__init__.py \
-    duohash/__init__.py \
     async_lru_cache/__init__.py \
+    batcher/__init__.py \
     constants/__init__.py \
+    database/__init__.py \
+    database/initapi.py \
+    duohash/__init__.py \
+    notify/__init__.py \
+    service/api/__init__.py \
+    service/chat \
+    service/search/__init__.py \
     smtp/__init__.py \
-    verification/messages.py \
-    verification/__init__.py
+    util/timeout/__init__.py \
+    verification/__init__.py \
+    verification/messages.py
 fi
