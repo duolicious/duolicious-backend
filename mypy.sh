@@ -31,5 +31,6 @@ else
     service/chat \
     service/api/__init__.py \
     service/search/__init__.py \
+    verification/messages.py \
     verification/__init__.py
 fi
