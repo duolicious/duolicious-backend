@@ -32,6 +32,7 @@ else
     service/api/__init__.py \
     service/search/__init__.py \
     database/initapi.py \
+    database/__init__.py \
     notify/__init__.py \
     util/timeout/__init__.py \
     batcher/__init__.py \
