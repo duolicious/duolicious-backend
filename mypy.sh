@@ -36,6 +36,7 @@ else
     util/timeout/__init__.py \
     batcher/__init__.py \
     duohash/__init__.py \
+    async_lru_cache/__init__.py \
     verification/messages.py \
     verification/__init__.py
 fi
