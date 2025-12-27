@@ -1,20 +1,22 @@
 from typing import (
-    Any, ClassVar,
-    DefaultDict, Dict, List, Optional,
-    Annotated, Literal, Union,
+    Any,
+    ClassVar,
+    DefaultDict,
+    Dict,
+    List,
+    Optional,
+    Annotated,
+    Literal,
+    Union,
 )
 from pydantic import (
     BaseModel,
     ConfigDict,
-    conint,
-    conlist,
-    constr,
     EmailStr,
-    Extra,
     Field,
+    RootModel,
     field_validator,
     model_validator,
-    RootModel,
     ValidationError,
     TypeAdapter,
 )
@@ -124,7 +126,7 @@ class Base64AudioFile(BaseModel):
 # Even though this class has a very generic name, it's used exclusively for
 # uploading photos
 class Base64File(BaseModel):
-    position: conint(ge=MIN_PHOTO_POSITION, le=MAX_PHOTO_POSITION)
+    position: int = Field(ge=MIN_PHOTO_POSITION, le=MAX_PHOTO_POSITION)
     base64: str
     bytes: bytes
     image: Image.Image
@@ -183,18 +185,22 @@ class Base64File(BaseModel):
         arbitrary_types_allowed = True
 
 
-class PhotoAssignments(RootModel[Dict[
-    conint(ge=MIN_PHOTO_POSITION, le=MAX_PHOTO_POSITION),
-    conint(ge=MIN_PHOTO_POSITION, le=MAX_PHOTO_POSITION),
-]]):
-    @field_validator('root')
-    def validate(cls, root):
+class PhotoAssignments(RootModel[Dict[int, int]]):
+    @field_validator("root")
+    @classmethod
+    def validate_root(cls, root: Dict[int, int]) -> Dict[int, int]:
         values = list(root.values())
 
         if len(values) != len(set(values)):
             raise ValueError('Many photos were assigned to one position')
 
         for k, v in root.items():
+            # Validate that both keys and values are within the allowed range
+            if not (MIN_PHOTO_POSITION <= k <= MAX_PHOTO_POSITION):
+                raise ValueError('Invalid photo position')
+            if not (MIN_PHOTO_POSITION <= v <= MAX_PHOTO_POSITION):
+                raise ValueError('Invalid photo position')
+
             if k == v:
                 raise ValueError("Item can't be assigned to itself")
 
@@ -203,15 +209,26 @@ class PhotoAssignments(RootModel[Dict[
 
         return root
 
-    def dict(self, *args, **kwargs):
-        """Override to return the dictionary directly."""
-        return super().dict(*args, **kwargs)['__root__']
+    def dict(self, *args, **kwargs) -> Dict[int, int]:  # type: ignore[override]
+        """Return the underlying mapping directly, not wrapped in a root key.
+
+        This preserves the behaviour relied upon by callers such as
+        `patch_profile_info`, which expect a plain `Dict[int, int]`.
+        """
+        data = super().dict(*args, **kwargs)
+        # Support both Pydantic v1 (`__root__`) and v2 (`root`) styles.
+        if 'root' in data:
+            return data['root']
+        if '__root__' in data:
+            return data['__root__']
+        # Fallback – should not normally happen, but keeps a sensible type.
+        return data  # type: ignore[return-value]
 
 
 class Theme(BaseModel):
-    title_color: constr(pattern=HEX_COLOR_PATTERN)
-    body_color: constr(pattern=HEX_COLOR_PATTERN)
-    background_color: constr(pattern=HEX_COLOR_PATTERN)
+    title_color: str = Field(pattern=HEX_COLOR_PATTERN)
+    body_color: str = Field(pattern=HEX_COLOR_PATTERN)
+    background_color: str = Field(pattern=HEX_COLOR_PATTERN)
 
 
 class SessionInfo(BaseModel):
@@ -241,11 +258,12 @@ class DeleteAnswer(BaseModel):
 
 class PostRequestOtp(BaseModel):
     email: EmailStr
-    pending_club_name: Optional[
-        constr(
-            pattern=CLUB_PATTERN,
-            min_length=1,
-            max_length=CLUB_MAX_LEN)] = None
+    pending_club_name: Optional[str] = Field(
+        default=None,
+        pattern=CLUB_PATTERN,
+        min_length=1,
+        max_length=CLUB_MAX_LEN,
+    )
 
     @field_validator('email', mode='before')
     def validate_email(cls, value):
@@ -257,19 +275,40 @@ class PostRequestOtp(BaseModel):
 
 
 class PostCheckOtp(BaseModel):
-    otp: constr(pattern=r'^\d{6}$')
+    otp: str = Field(pattern=r"^\d{6}$")
 
 
 class PatchOnboardeeInfo(BaseModel):
-    name: Optional[constr(
+    name: Optional[str] = Field(
+        default=None,
         min_length=MIN_NAME_LEN,
         max_length=MAX_NAME_LEN,
-        strip_whitespace=True)] = None
+    )
     date_of_birth: Optional[str] = None
-    location: Optional[constr(min_length=1)] = None
-    gender: Optional[constr(min_length=1)] = None
-    other_peoples_genders: Optional[conlist(constr(min_length=1), min_length=1)] = None
+    location: Optional[str] = Field(default=None, min_length=1)
+    gender: Optional[str] = Field(default=None, min_length=1)
+    other_peoples_genders: Optional[List[str]] = Field(default=None, min_length=1)
     base64_file: Optional[Base64File] = None
+
+    @field_validator('name', mode='before')
+    @classmethod
+    def strip_name(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        return value.strip()
+
+    @field_validator('other_peoples_genders')
+    @classmethod
+    def validate_other_peoples_genders(
+        cls,
+        value: Optional[List[str]],
+    ) -> Optional[List[str]]:
+        if value is None:
+            return value
+        for gender in value:
+            if len(gender) < 1:
+                raise ValueError('each gender must be at least 1 character long')
+        return value
 
     @field_validator('date_of_birth')
     def age_must_be_18_or_up(cls, date_of_birth):
@@ -308,43 +347,77 @@ class PatchOnboardeeInfo(BaseModel):
 
 
 class DeleteOnboardeeInfo(BaseModel):
-    files: List[conint(ge=MIN_PHOTO_POSITION, le=MAX_PHOTO_POSITION)]
+    files: List[int]
+
+    @field_validator("files")
+    @classmethod
+    def validate_files(cls, files: List[int]) -> List[int]:
+        for pos in files:
+            if not (MIN_PHOTO_POSITION <= pos <= MAX_PHOTO_POSITION):
+                raise ValueError("Invalid photo position")
+        return files
 
 
 class DeleteProfileInfo(BaseModel):
-    files: Optional[
-        conlist(
-            conint(
-                ge=MIN_PHOTO_POSITION,
-                le=MAX_PHOTO_POSITION
-            ),
-            min_length=1,
-            max_length=MAX_PHOTO_POSITION,
-        )
-    ] = None
+    files: Optional[List[int]] = Field(
+        default=None,
+        min_length=1,
+        max_length=MAX_PHOTO_POSITION,
+    )
 
-    audio_files: Optional[
-        conlist(conint(ge=-1, le=-1), min_length=1, max_length=1)] = None
+    audio_files: Optional[List[int]] = Field(
+        default=None,
+        min_length=1,
+        max_length=1,
+    )
+
+    @field_validator("files")
+    @classmethod
+    def validate_files(
+        cls,
+        files: Optional[List[int]],
+    ) -> Optional[List[int]]:
+        if files is None:
+            return files
+        for pos in files:
+            if not (MIN_PHOTO_POSITION <= pos <= MAX_PHOTO_POSITION):
+                raise ValueError("Invalid photo position")
+        return files
+
+    @field_validator("audio_files")
+    @classmethod
+    def validate_audio_files(
+        cls,
+        audio_files: Optional[List[int]],
+    ) -> Optional[List[int]]:
+        if audio_files is None:
+            return audio_files
+        for value in audio_files:
+            if value != -1:
+                raise ValueError("Audio file positions must be -1")
+        return audio_files
 
 
 class PatchProfileInfo(BaseModel):
     base64_file: Optional[Base64File] = None
     base64_audio_file: Optional[Base64AudioFile] = None
     photo_assignments: Optional[PhotoAssignments] = None
-    name: Optional[constr(
+    name: Optional[str] = Field(
+        default=None,
         min_length=MIN_NAME_LEN,
         max_length=MAX_NAME_LEN,
-        strip_whitespace=True)] = None
-    about: Optional[constr(
+    )
+    about: Optional[str] = Field(
+        default=None,
         min_length=MIN_ABOUT_LEN,
         max_length=MAX_ABOUT_LEN,
-        strip_whitespace=True)] = None
+    )
     gender: Optional[str] = None
     orientation: Optional[str] = None
     ethnicity: Optional[str] = None
     location: Optional[str] = None
-    occupation: Optional[constr(min_length=1, max_length=64)] = None
-    education: Optional[constr(min_length=1, max_length=64)] = None
+    occupation: Optional[str] = Field(default=None, min_length=1, max_length=64)
+    education: Optional[str] = Field(default=None, min_length=1, max_length=64)
     height: Optional[int] = None
     looking_for: Optional[str] = None
     smoking: Optional[str] = None
@@ -443,24 +516,24 @@ class PostSearchFilter(BaseModel):
         min_height_cm: Optional[int]
         max_height_cm: Optional[int]
 
-    gender: Optional[conlist(str, min_length=1)] = None
-    orientation: Optional[conlist(str, min_length=1)] = None
-    ethnicity: Optional[conlist(str, min_length=1)] = None
+    gender: Optional[List[str]] = Field(default=None, min_length=1)
+    orientation: Optional[List[str]] = Field(default=None, min_length=1)
+    ethnicity: Optional[List[str]] = Field(default=None, min_length=1)
     age: Optional[Age] = None
     furthest_distance: Optional[int] = None
     height: Optional[Height] = None
-    has_a_profile_picture: Optional[conlist(str, min_length=1)] = None
-    looking_for: Optional[conlist(str, min_length=1)] = None
-    smoking: Optional[conlist(str, min_length=1)] = None
-    drinking: Optional[conlist(str, min_length=1)] = None
-    drugs: Optional[conlist(str, min_length=1)] = None
-    long_distance: Optional[conlist(str, min_length=1)] = None
-    relationship_status: Optional[conlist(str, min_length=1)] = None
-    has_kids: Optional[conlist(str, min_length=1)] = None
-    wants_kids: Optional[conlist(str, min_length=1)] = None
-    exercise: Optional[conlist(str, min_length=1)] = None
-    religion: Optional[conlist(str, min_length=1)] = None
-    star_sign: Optional[conlist(str, min_length=1)] = None
+    has_a_profile_picture: Optional[List[str]] = Field(default=None, min_length=1)
+    looking_for: Optional[List[str]] = Field(default=None, min_length=1)
+    smoking: Optional[List[str]] = Field(default=None, min_length=1)
+    drinking: Optional[List[str]] = Field(default=None, min_length=1)
+    drugs: Optional[List[str]] = Field(default=None, min_length=1)
+    long_distance: Optional[List[str]] = Field(default=None, min_length=1)
+    relationship_status: Optional[List[str]] = Field(default=None, min_length=1)
+    has_kids: Optional[List[str]] = Field(default=None, min_length=1)
+    wants_kids: Optional[List[str]] = Field(default=None, min_length=1)
+    exercise: Optional[List[str]] = Field(default=None, min_length=1)
+    religion: Optional[List[str]] = Field(default=None, min_length=1)
+    star_sign: Optional[List[str]] = Field(default=None, min_length=1)
 
     people_you_messaged: Optional[str] = None
     people_you_skipped: Optional[str] = None
@@ -495,10 +568,11 @@ class PostInboxInfo(BaseModel):
 
 
 class PostJoinClub(BaseModel):
-    name: constr(
-            pattern=CLUB_PATTERN,
-            min_length=1,
-            max_length=CLUB_MAX_LEN)
+    name: str = Field(
+        pattern=CLUB_PATTERN,
+        min_length=1,
+        max_length=CLUB_MAX_LEN,
+    )
 
     @model_validator(mode='before')
     def validate_name(cls, values):
@@ -517,15 +591,26 @@ class PostJoinClub(BaseModel):
 
 
 class PostLeaveClub(BaseModel):
-    name: constr(
-            pattern=CLUB_PATTERN,
-            min_length=1,
-            max_length=CLUB_MAX_LEN)
+    name: str = Field(
+        pattern=CLUB_PATTERN,
+        min_length=1,
+        max_length=CLUB_MAX_LEN,
+    )
 
 
 class PostSkip(BaseModel):
-    report_reason: Optional[constr(
-        min_length=1, max_length=10000, strip_whitespace=True)] = None
+    report_reason: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=10000,
+    )
+
+    @field_validator('report_reason', mode='before')
+    @classmethod
+    def strip_report_reason(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        return value.strip()
 
 
 class PostVerificationSelfie(BaseModel):

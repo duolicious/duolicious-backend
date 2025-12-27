@@ -34,8 +34,10 @@ else
     database/__init__.py \
     database/initapi.py \
     duohash/__init__.py \
+    duotypes/__init__.py \
     notify/__init__.py \
     service/api/__init__.py \
+    service/location/__init__.py \
     service/chat \
     service/search/__init__.py \
     smtp/__init__.py \
