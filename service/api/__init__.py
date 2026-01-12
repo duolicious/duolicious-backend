@@ -110,6 +110,7 @@ def migrate_unnormalized_emails():
         tx.executemany(q, params_seq)
         print('Done updating normalized emails in `banned_person` table')
 
+
 def maybe_run_init():
     with api_tx() as tx:
         row = tx.execute("SELECT to_regclass('person')").fetchone()
@@ -154,6 +155,17 @@ def init_db():
         tx.execute(banned_club_file)
 
     migrate_unnormalized_emails()
+
+
+@post('/service-login')
+@validate(t.PostServiceLogin)
+def post_service_login(req: t.PostServiceLogin):
+    """
+    Password-based login intended for non-OTP clients (e.g. services, automation).
+
+    Thin wrapper around `service.person.post_service_login`.
+    """
+    return person.post_service_login(req)
 
 @post('/request-otp', limiter=shared_otp_limit)
 @validate(t.PostRequestOtp)

@@ -14,6 +14,7 @@ from antiabuse.antispam.signupemail import normalize_email
 from pydantic import ValidationError
 from functools import lru_cache
 import time
+from typing import Any, Callable
 
 enable_mocking_file = (
     Path(__file__).parent.parent.parent /
@@ -163,7 +164,29 @@ AND
     session_expiry > NOW()
 """
 
-def account_limiter(func, limit=None):
+Q_GET_SERVICE_LOGIN = """
+SELECT
+    person_id
+FROM
+    service_login
+WHERE
+    password_hash = %(password_hash)s
+"""
+
+Q_GET_SERVICE_PERSON = """
+SELECT
+    email,
+    uuid::TEXT AS person_uuid
+FROM
+    person
+WHERE
+    id = %(person_id)s
+"""
+
+def account_limiter(
+    func: Callable[..., Any],
+    limit: str | None = None,
+) -> Callable[..., Any]:
     _account_limiter = limiter.limit(
         limit or default_limits,
         scope="account",
@@ -171,7 +194,7 @@ def account_limiter(func, limit=None):
         exempt_when=disable_account_rate_limit,
     )
 
-    def go1(*args, **kwargs):
+    def go1(*args: Any, **kwargs: Any) -> Any:
         return _account_limiter(func)(*args, **kwargs)
 
     go1.__name__ = func.__name__
@@ -179,16 +202,17 @@ def account_limiter(func, limit=None):
     return go1
 
 
-def return_empty_string(func):
-    def go(*args, **kwargs):
+def return_empty_string(func: Callable[..., Any]) -> Callable[..., Any]:
+    def go(*args: Any, **kwargs: Any) -> Any:
         result = func(*args, **kwargs)
         return result if result is not None else ''
     go.__name__ = func.__name__
     return go
 
-def validate(RequestType):
-    def go2(func):
-        def go1(*args, **kwargs):
+
+def validate(RequestType: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def go2(func: Callable[..., Any]) -> Callable[..., Any]:
+        def go1(*args: Any, **kwargs: Any) -> Any:
             if RequestType is None:
                 return func(*args, **kwargs)
             try:
@@ -220,44 +244,133 @@ def validate(RequestType):
         return go1
     return go2
 
-def require_auth(expected_onboarding_status, expected_sign_in_status):
-    def go2(func):
+
+def _get_session_info_from_service_cookie() -> duotypes.SessionInfo | None:
+    """
+    Attempt to build a SessionInfo from a service/automation cookie.
+
+    Returns a SessionInfo on success or None if the cookie is missing,
+    misconfigured, or invalid.
+    """
+    cookie_value = request.cookies.get(constants.SERVICE_SESSION_COOKIE_NAME)
+    if not cookie_value:
+        return None
+
+    with api_tx('READ COMMITTED') as tx:
+        service_row = tx.execute(
+            Q_GET_SERVICE_LOGIN,
+            dict(password_hash=cookie_value),
+        ).fetchone()
+
+    if not service_row:
+        return None
+
+    person_id = service_row.get('person_id')
+
+    if person_id is None:
+        return None
+
+    with api_tx('READ COMMITTED') as tx:
+        person_row = tx.execute(
+            Q_GET_SERVICE_PERSON, dict(person_id=person_id)
+        ).fetchone()
+
+    if not person_row:
+        return None
+
+    email = person_row.get('email')
+    person_uuid = person_row.get('person_uuid')
+
+    if email is None or person_uuid is None:
+        return None
+
+    session_info = duotypes.SessionInfo(
+        email=email,
+        person_id=person_id,
+        person_uuid=person_uuid,
+        signed_in=True,
+        session_token_hash='',
+        pending_club_name=None,
+    )
+
+    g.normalized_email = normalize_email(email)
+
+    return session_info
+
+
+class _AuthError(Exception):
+    def __init__(self, message: str, status_code: int) -> None:
+        super().__init__(message)
+        self.message = message
+        self.status_code = status_code
+
+
+def _get_session_info_from_authorization_header() -> duotypes.SessionInfo | None:
+    """
+    Return SessionInfo if a valid Authorization header is present.
+
+    - If there is no Authorization header, returns None.
+    - If the header is present but malformed or invalid, raises _AuthError.
+    """
+    auth_header = (request.headers.get('Authorization') or '').lower()
+    if not auth_header:
+        return None
+
+    try:
+        bearer, session_token = auth_header.split()
+        if bearer != 'bearer':
+            raise Exception()
+    except Exception:
+        raise _AuthError('Missing or malformed authorization header', 400)
+
+    session_token_hash = sha512(session_token)
+    params = dict(session_token_hash=session_token_hash)
+    with api_tx('READ COMMITTED') as tx:
+        row = tx.execute(Q_GET_SESSION, params).fetchone()
+
+    if not row:
+        raise _AuthError('Invalid session token', 401)
+
+    email = row['email']
+    person_id = row['person_id']
+    person_uuid = row['person_uuid']
+    signed_in = row['signed_in']
+    pending_club_name = row['pending_club_name']
+
+    session_info = duotypes.SessionInfo(
+        email=email,
+        person_id=person_id,
+        person_uuid=person_uuid,
+        signed_in=signed_in,
+        session_token_hash=session_token_hash,
+        pending_club_name=pending_club_name,
+    )
+
+    g.normalized_email = normalize_email(email)
+
+    return session_info
+
+
+def require_auth(
+    expected_onboarding_status: bool | None,
+    expected_sign_in_status: bool | None,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def go2(func: Callable[..., Any]) -> Callable[..., Any]:
         rate_limited_func = account_limiter(func)
 
-        def go1(*args, **kwargs):
-            auth_header = (request.headers.get('Authorization') or '').lower()
+        def go1(*args: Any, **kwargs: Any) -> Any:
             try:
-                bearer, session_token = auth_header.split()
-                if bearer != 'bearer':
-                    raise Exception()
-            except:
-                return 'Missing or malformed authorization header', 400
+                # Prefer Authorization header if present.
+                session_info = _get_session_info_from_authorization_header()
 
-            session_token_hash = sha512(session_token)
-            params = dict(session_token_hash=session_token_hash)
-            row = None
-            with api_tx('READ COMMITTED') as tx:
-                row = tx.execute(Q_GET_SESSION, params).fetchone()
+                # Fallback to cookie-based service / automation login.
+                if session_info is None:
+                    session_info = _get_session_info_from_service_cookie()
 
-            if row:
-                email=row['email']
-                person_id=row['person_id']
-                person_uuid=row['person_uuid']
-                signed_in=row['signed_in']
-                pending_club_name=row['pending_club_name']
-
-                session_info = duotypes.SessionInfo(
-                    email=email,
-                    person_id=person_id,
-                    person_uuid=person_uuid,
-                    signed_in=signed_in,
-                    session_token_hash=session_token_hash,
-                    pending_club_name=pending_club_name,
-                )
-
-                g.normalized_email = normalize_email(email)
-            else:
-                return 'Invalid session token', 401
+                if session_info is None:
+                    raise _AuthError('Authentication required', 401)
+            except _AuthError as e:
+                return e.message, e.status_code
 
             is_onboarded = session_info.person_id is not None
             is_signed_in = session_info.signed_in
@@ -281,6 +394,7 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
         go1.__name__ = func.__name__
 
         return go1
+
     return go2
 
 def make_decorator(flask_decorator):

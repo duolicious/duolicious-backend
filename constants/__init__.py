@@ -8,3 +8,6 @@ MAX_AUDIO_SECONDS = 120 + 1
 MAX_NOTIFICATION_LENGTH = 128
 
 ONLINE_RECENTLY_SECONDS = 12 * 60 * 60  # 12 hours
+
+# Cookie used for password-based service / automation logins.
+SERVICE_SESSION_COOKIE_NAME = 'duo_service_session'

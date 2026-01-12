@@ -3205,3 +3205,12 @@ SET
 WHERE
     id = %(person_id)s
 """
+
+Q_SELECT_SERVICE_LOGIN = """
+SELECT
+    person_id
+FROM
+    service_login
+WHERE
+    password_hash = %(password_hash)s
+"""

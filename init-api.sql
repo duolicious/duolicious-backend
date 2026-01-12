@@ -398,6 +398,18 @@ CREATE TABLE IF NOT EXISTS duo_session (
     PRIMARY KEY (session_token_hash)
 );
 
+-- Table storing hashes of shared service passwords.
+-- The actual password is never stored in plaintext – only its hash
+-- (e.g. computed with the existing duohash.sha512 helper).
+-- Each row maps a hashed password to the person record a service
+-- should act as when authenticated via cookie.
+CREATE TABLE IF NOT EXISTS service_login (
+    password_hash TEXT NOT NULL,
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+
+    PRIMARY KEY (person_id)
+);
+
 CREATE TABLE IF NOT EXISTS photo (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     position SMALLINT NOT NULL,

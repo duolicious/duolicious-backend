@@ -1,9 +1,6 @@
-CREATE OR REPLACE FUNCTION iso8601_utc(ts timestamp)
-  RETURNS text
-  LANGUAGE sql
-  IMMUTABLE
-  PARALLEL SAFE
-  RETURNS NULL ON NULL INPUT
-AS $$
-    SELECT to_char(ts AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"');
-$$;
+CREATE TABLE IF NOT EXISTS service_login (
+    password_hash TEXT NOT NULL,
+    person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+
+    PRIMARY KEY (person_id)
+);

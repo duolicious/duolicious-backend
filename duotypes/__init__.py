@@ -278,6 +278,12 @@ class PostCheckOtp(BaseModel):
     otp: str = Field(pattern=r"^\d{6}$")
 
 
+class PostServiceLogin(BaseModel):
+    # Plaintext service password that will be hashed server-side and compared
+    # to the stored hash in the `service_login` table.
+    password: str = Field(min_length=8, max_length=512)
+
+
 class PatchOnboardeeInfo(BaseModel):
     name: Optional[str] = Field(
         default=None,

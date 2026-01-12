@@ -16,7 +16,7 @@ from service.person.template import otp_template
 import traceback
 import re
 from smtp import aws_smtp
-from flask import request, send_file
+from flask import request, send_file, jsonify, Response
 from dataclasses import dataclass
 import psycopg
 from functools import lru_cache
@@ -39,6 +39,7 @@ from verification.messages import (
     V_REUSED_SELFIE,
     V_UPLOADING_PHOTO,
 )
+import constants
 
 
 class BytesEncoder(json.JSONEncoder):
@@ -71,6 +72,42 @@ s3 = boto3.resource(
 )
 
 bucket = s3.Bucket(R2_BUCKET_NAME)
+
+
+def post_service_login(req: t.PostServiceLogin) -> Response | tuple[str, int]:
+    """
+    Cookie-based, password-style login intended for non-OTP clients
+    (e.g. services, automation, crawlers).
+
+    - Compares the sha512 hash of the provided password with rows in the
+      `service_login` table.
+    - On success, sets an HttpOnly cookie used for subsequent auth checks.
+    """
+    password_hash = sha512(req.password)
+
+    with api_tx('READ COMMITTED') as tx:
+        tx.execute(Q_SELECT_SERVICE_LOGIN, dict(password_hash=password_hash))
+        row = tx.fetchone()
+
+    if not row:
+        return 'Unauthorized', 401
+
+    person_id = row['person_id']
+
+    resp = jsonify(dict(ok=True))
+
+    resp.set_cookie(
+        constants.SERVICE_SESSION_COOKIE_NAME,
+        password_hash,
+        httponly=True,
+        secure=DUO_ENV != 'dev',
+        samesite='Lax',
+        path='/',
+        max_age=60 * 60 * 24 * 30,  # 30 days
+    )
+
+    return resp
+
 
 def init_db():
     pass
