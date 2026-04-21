@@ -26,7 +26,7 @@ import traceback
 from datetime import timedelta
 from pathlib import Path
 from typing import Dict, Iterable, Tuple, Union
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 import threading
 
 # ---------------------------------------------------------------------------
@@ -155,7 +155,8 @@ def _download_or_load(name: ListName, update_interval: timedelta) -> str:
         # Cache miss or stale – download
         url = _blocklist_url(name)
         print(f'Downloading {url}')
-        with urlopen(url, timeout=30) as resp:
+        request = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urlopen(request, timeout=30) as resp:
             raw_bytes = resp.read()
         print(f'Finished downloading {url}')
         text = raw_bytes.decode("utf-8", errors="ignore")
