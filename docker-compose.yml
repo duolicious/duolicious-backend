@@ -176,16 +176,6 @@ services:
       - "1025:1025"
       - "8025:8025"
 
-  pgadmin:
-    image: dpage/pgadmin4:7.3
-
-    ports:
-      - "8090:80"
-
-    environment:
-      PGADMIN_DEFAULT_EMAIL: user@example.com
-      PGADMIN_DEFAULT_PASSWORD: password
-
   chattest:
     build:
       context: .
