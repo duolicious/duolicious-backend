@@ -17,6 +17,7 @@ Pillow
 pillow-heif
 psycopg[binary]
 pydantic[email]
+pytricia
 PyYAML
 redis
 regex

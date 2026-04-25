@@ -1,24 +1,26 @@
 """
-Tests for antiabuse.firehol – updated for the 2025 refactor that moved all
-download / cache helpers out of the Firehol class and into module-level
-functions.
+Tests for antiabuse.firehol – updated for the pytricia-backed refactor.
+
+The radix-trie implementation has been replaced by `pytricia.PyTricia`, wrapped
+by `_PrefixTrie`. `_parse_blocklist` now yields CIDR-string prefixes (e.g.
+"1.2.3.0/24") rather than `ipaddress.IPvXNetwork` objects, since pytricia
+accepts string keys directly.
 """
 
 import ipaddress
-import multiprocessing as mp
 import random
-import time
 import unittest
 from datetime import timedelta
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, Union
 from unittest.mock import patch
 
 from antiabuse.firehol import (
     Firehol,
     _parse_blocklist,
-    _Trie,
-    IPvXNetwork,
+    _PrefixTrie,
 )
+
+IPvXNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
 
 # ---------------------------------------------------------------------------
 # Fixture data & helpers
@@ -32,7 +34,7 @@ _SAMPLE_NETSET = """
 bad_line_should_be_ignored
 """
 
-def _fake_download(name: str, _update_interval: timedelta) -> str:   # NEW SIG
+def _fake_download(name: str, _update_interval: timedelta) -> str:
     """Stub that replaces antiabuse.firehol._download_or_load – never hits disk."""
     return _SAMPLE_NETSET
 
@@ -90,9 +92,9 @@ class PatchedFireholMixin(unittest.TestCase):
 class ParseBlocklistTests(unittest.TestCase):
     def test_split_v4_and_v6(self):
         v4, v6 = _parse_blocklist(_SAMPLE_NETSET)
-        self.assertIn(ipaddress.ip_network("1.2.3.0/24"), v4)
-        self.assertIn(ipaddress.ip_network("4.4.4.4/32"), v4)
-        self.assertIn(ipaddress.ip_network("2001:db8::/32"), v6)
+        self.assertIn("1.2.3.0/24", v4)
+        self.assertIn("4.4.4.4/32", v4)
+        self.assertIn("2001:db8::/32", v6)
         self.assertEqual((len(v4), len(v6)), (2, 1))
 
 
@@ -127,41 +129,71 @@ class ConstructorGuardTests(unittest.TestCase):
             Firehol([])
 
 
-class TrieTests(unittest.TestCase):
-    trie: _Trie
+class PrefixTrieTests(unittest.TestCase):
+    """Random-network sanity checks for the pytricia-backed `_PrefixTrie`."""
+
+    v4_trie: _PrefixTrie
+    v6_trie: _PrefixTrie
     lookup_table: dict[IPvXNetwork, str]
 
     @classmethod
     def setUpClass(cls):
         random.seed(0xF1EE)
-        cls.trie = _Trie()
+        cls.v4_trie = _PrefixTrie(32)
+        cls.v6_trie = _PrefixTrie(128)
         cls.lookup_table = {}
         for family, count in (("v4", 1000), ("v6", 1000)):
             for _ in range(count):
                 net, name = cls._make_random_network(family)
-                cls.trie.insert(net, name)
+                trie = cls.v4_trie if family == "v4" else cls.v6_trie
+                trie.insert(net.with_prefixlen, name)
                 cls.lookup_table[net] = name
 
     @staticmethod
     def _make_random_network(family: str) -> Tuple[IPvXNetwork, str]:
-        addr: ipaddress.IPv4Address | ipaddress.IPv6Address
         if family == "v4":
-            addr = ipaddress.IPv4Address(random.getrandbits(32))
+            addr_v4 = ipaddress.IPv4Address(random.getrandbits(32))
             prefix = random.randint(8, 32)
+            net: IPvXNetwork = ipaddress.ip_network(
+                (addr_v4, prefix), strict=False
+            )
+            return net, f"list_v4_{addr_v4}_{prefix}"
         else:
-            addr = ipaddress.IPv6Address(random.getrandbits(128))
+            addr_v6 = ipaddress.IPv6Address(random.getrandbits(128))
             prefix = random.randint(16, 128)
-        net = ipaddress.ip_network((addr, prefix), strict=False)
-        return net, f"list_{family}_{addr}_{prefix}"
+            net = ipaddress.ip_network((addr_v6, prefix), strict=False)
+            return net, f"list_v6_{addr_v6}_{prefix}"
+
+    def _trie_for(self, net: IPvXNetwork) -> _PrefixTrie:
+        return self.v4_trie if isinstance(net, ipaddress.IPv4Network) else self.v6_trie
 
     def test_all_positive_matches(self):
         for net, expected in self.lookup_table.items():
+            trie = self._trie_for(net)
             for addr in _sample_addresses(net):
                 with self.subTest(addr=str(addr), net=str(net)):
-                    self.assertIn(expected, self.trie.search(addr))
+                    self.assertIn(expected, trie.search(addr))
 
     def test_no_false_positives(self):
         for net, list_name in self.lookup_table.items():
+            trie = self._trie_for(net)
             addr = _address_outside(net)
             with self.subTest(addr=str(addr), net=str(net)):
-                self.assertNotIn(list_name, self.trie.search(addr))
+                self.assertNotIn(list_name, trie.search(addr))
+
+    def test_multiple_lists_per_prefix(self):
+        """A prefix shared by several lists returns *all* of them."""
+        trie = _PrefixTrie(32)
+        trie.insert("10.0.0.0/8", "list_a")
+        trie.insert("10.0.0.0/8", "list_b")
+        trie.insert("10.1.0.0/16", "list_c")
+        result = sorted(trie.search(ipaddress.IPv4Address("10.1.2.3")))
+        self.assertEqual(result, ["list_a", "list_b", "list_c"])
+
+    def test_empty_trie_returns_empty_list(self):
+        trie = _PrefixTrie(32)
+        self.assertEqual(trie.search(ipaddress.IPv4Address("8.8.8.8")), [])
+
+
+if __name__ == "__main__":
+    unittest.main()

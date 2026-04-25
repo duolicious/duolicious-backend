@@ -7,11 +7,10 @@ multiprocessing-based implementation, we can set a timeout for those pauses, and
 have them only occur for only some HTTP endpoints. With the threading-based
 alternative, *all* HTTP endpoints freeze while the definitions update.
 
-This module was was mostly vibe-coded. (Highly self-contained modules with very
-small public-facing interfaces like this one are fun to write with LLMs.) Tbh,
-I didn't check the correctness of the trie implementation but the logic LGTM
-otherwise.
-
+Prefix lookups are backed by `pytricia`, a C-implemented Patricia trie. Each
+prefix in the trie maps to a `frozenset` of FireHOL list names that contain it,
+and `matches()` walks the parent chain so that *every* covering prefix
+contributes its list names (not just the longest match).
 """
 
 import contextlib
@@ -26,8 +25,10 @@ import traceback
 from datetime import timedelta
 from pathlib import Path
 from typing import Dict, Iterable, Tuple, Union
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 import threading
+
+import pytricia
 
 # ---------------------------------------------------------------------------
 # Type aliases
@@ -35,7 +36,6 @@ import threading
 
 ListName = str
 IPAddress = Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address]
-IPvXNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
 IPvXAddress = Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
 
 # ---------------------------------------------------------------------------
@@ -55,12 +55,10 @@ def _blocklist_url(name: ListName) -> str:
     return f"https://iplists.firehol.org/files/{name}"
 
 
-def _parse_blocklist(
-    text: str,
-) -> Tuple[list[ipaddress.IPv4Network], list[ipaddress.IPv6Network]]:
-    """Convert raw *netset* text to IPv4 and IPv6 network lists."""
-    v4: list[ipaddress.IPv4Network] = []
-    v6: list[ipaddress.IPv6Network] = []
+def _parse_blocklist(text: str) -> Tuple[list[str], list[str]]:
+    """Convert raw *netset* text to IPv4 and IPv6 prefix-string lists."""
+    v4: list[str] = []
+    v6: list[str] = []
 
     for line in text.splitlines():
         # Skip comments / blank lines quickly
@@ -75,9 +73,9 @@ def _parse_blocklist(
             continue
 
         if isinstance(net, ipaddress.IPv4Network):
-            v4.append(net)
+            v4.append(net.with_prefixlen)
         elif isinstance(net, ipaddress.IPv6Network):
-            v6.append(net)
+            v6.append(net.with_prefixlen)
 
     return v4, v6
 
@@ -95,43 +93,43 @@ def _exclusive_lock(path: Path):
 
 
 # --------------------------------------------------------------------------
-# Tiny radix-trie for IPv4/IPv6 prefixes
+# Patricia-trie wrapper around `pytricia`
 # --------------------------------------------------------------------------
 
-class _TrieNode:
-    __slots__ = ("child", "lists")
+class _PrefixTrie:
+    """Thin wrapper that maps IP prefixes -> {list_name, ...}.
 
-    def __init__(self) -> None:
-        self.child: list[_TrieNode | None] = [None, None]  # bit 0 / bit 1
-        self.lists: set[ListName] = set()
+    pytricia stores at most one value per prefix, so when several FireHOL lists
+    contain the same prefix we stash the union in a `frozenset`. `search()`
+    walks the longest-match parent chain so every covering prefix contributes
+    its list names (matching the previous radix-trie behaviour).
+    """
 
+    def __init__(self, max_prefixlen: int) -> None:
+        self._pyt = pytricia.PyTricia(max_prefixlen)
 
-class _Trie:
-    def __init__(self):
-        self.root = _TrieNode()
+    def insert(self, prefix: str, list_name: ListName) -> None:
+        existing = self._pyt.get(prefix)
+        if existing is None:
+            self._pyt[prefix] = frozenset((list_name,))
+        elif list_name not in existing:
+            self._pyt[prefix] = existing | {list_name}
 
-    # insert a network and remember which list it came from
-    def insert(self, net: IPvXNetwork, list_name: ListName) -> None:
-        node = self.root
-        for bit in range(net.prefixlen):
-            b = (int(net.network_address) >> (net.max_prefixlen - 1 - bit)) & 1
-            if node.child[b] is None:
-                node.child[b] = _TrieNode()
-            node = node.child[b]
-        node.lists.add(list_name)
-
-    # walk the bits of an address, collecting all matching lists
     def search(self, addr: IPvXAddress) -> list[ListName]:
-        node, found = self.root, set()
-        for bit in range(addr.max_prefixlen):
-            if node.lists:
-                found.update(node.lists)
-            b = (int(addr) >> (addr.max_prefixlen - 1 - bit)) & 1
-            node = node.child[b]
-            if node is None:
-                break
-        if node and node.lists:
-            found.update(node.lists)
+        addr_str = str(addr)
+        try:
+            key = self._pyt.get_key(addr_str)
+        except (KeyError, ValueError):
+            return []
+        if key is None:
+            return []
+
+        found: set[ListName] = set()
+        while key is not None:
+            value = self._pyt.get(key)
+            if value:
+                found.update(value)
+            key = self._pyt.parent(key)
         return list(found)
 
 
@@ -155,7 +153,8 @@ def _download_or_load(name: ListName, update_interval: timedelta) -> str:
         # Cache miss or stale – download
         url = _blocklist_url(name)
         print(f'Downloading {url}')
-        with urlopen(url, timeout=30) as resp:
+        request = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urlopen(request, timeout=30) as resp:
             raw_bytes = resp.read()
         print(f'Finished downloading {url}')
         text = raw_bytes.decode("utf-8", errors="ignore")
@@ -168,15 +167,12 @@ def _download_or_load(name: ListName, update_interval: timedelta) -> str:
         return text
 
 
-def _collect_all(lists: Iterable[ListName],
-                 update_interval: timedelta
-                 ) -> Dict[ListName, Tuple[
-                     list[ipaddress.IPv4Network], list[ipaddress.IPv6Network]
-                 ]]:
-    """Download / load every configured list, return dict(name → nets)."""
-    fresh: Dict[ListName, Tuple[
-        list[ipaddress.IPv4Network], list[ipaddress.IPv6Network]
-    ]] = {}
+def _collect_all(
+    lists: Iterable[ListName],
+    update_interval: timedelta,
+) -> Dict[ListName, Tuple[list[str], list[str]]]:
+    """Download / load every configured list, return dict(name → prefixes)."""
+    fresh: Dict[ListName, Tuple[list[str], list[str]]] = {}
 
     for name in lists:
         raw = _download_or_load(name, update_interval)
@@ -188,16 +184,16 @@ def _collect_all(lists: Iterable[ListName],
     return fresh
 
 
-def _build_tries(data: Dict[ListName, Tuple[
-        list[ipaddress.IPv4Network], list[ipaddress.IPv6Network]
-        ]]) -> tuple[_Trie, _Trie]:
-    v4_trie = _Trie()
-    v6_trie = _Trie()
+def _build_tries(
+    data: Dict[ListName, Tuple[list[str], list[str]]],
+) -> tuple[_PrefixTrie, _PrefixTrie]:
+    v4_trie = _PrefixTrie(32)
+    v6_trie = _PrefixTrie(128)
     for name, (v4, v6) in data.items():
-        for v4net in v4:
-            v4_trie.insert(v4net, name)
-        for v6net in v6:
-            v6_trie.insert(v6net, name)
+        for prefix in v4:
+            v4_trie.insert(prefix, name)
+        for prefix in v6:
+            v6_trie.insert(prefix, name)
     return v4_trie, v6_trie
 
 
@@ -211,7 +207,7 @@ def _worker_main(conn: mp.connection.Connection,
     """Run in a dedicated process: refresh lists & answer match queries."""
     jitter = random.uniform(0.0, 10.0)
     next_refresh = 0.0
-    tries: tuple[_Trie, _Trie] | None = None
+    tries: tuple[_PrefixTrie, _PrefixTrie] | None = None
     refreshing = False # at most one refresh at a time
 
     def _async_refresh():
