@@ -44,9 +44,7 @@ import { notifyUpdatedVerification } from '../verification/verification';
 import { searchQueue } from '../api/queue';
 import { setAppThemeName } from '../app-theme/app-theme';
 import { showPointOfSale } from '../components/modal/point-of-sale-modal';
-import { descriptionStyle } from '../components/option-screen';
-
-const noneFontSize = 16;
+import { descriptionStyle, noneFontSize } from '../components/option-styles';
 
 const maxDailySelfies = 'eight';
 

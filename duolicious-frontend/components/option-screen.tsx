@@ -4,7 +4,6 @@ import {
   Pressable,
   SafeAreaView,
   ScrollView,
-  StyleSheet,
   View,
 } from 'react-native';
 import {
@@ -63,8 +62,8 @@ import {
   isOptionGroupThemePicker,
   isOptionGroupVerificationChecker,
   maxDailySelfies,
-  noneFontSize,
 } from '../data/option-groups';
+import { descriptionStyle, noneFontSize } from './option-styles';
 import {
   MoveableImage,
   Slot,
@@ -93,15 +92,6 @@ import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../app-theme/app-theme';
 import { getSignedInUser } from '../events/signed-in-user';
 import { showPointOfSale } from './modal/point-of-sale-modal';
-
-const descriptionStyle = StyleSheet.create({
-  style: {
-    textAlign: 'center',
-    paddingLeft: 20,
-    paddingRight: 20,
-    paddingTop: 10,
-  }
-});
 
 type InputProps<T extends OptionGroupInputs> = {
   input: T,

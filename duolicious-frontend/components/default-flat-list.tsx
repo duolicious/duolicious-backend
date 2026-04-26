@@ -17,7 +17,7 @@ import {
 } from 'react';
 import { DefaultText } from './default-text';
 import { RenderedHoc } from './rendered-hoc';
-import { FlashList, FlashListProps } from '@shopify/flash-list';
+import { FlashList, FlashListProps, FlashListRef } from '@shopify/flash-list';
 import { useAppTheme } from '../app-theme/app-theme';
 
 const styles = StyleSheet.create({
@@ -479,7 +479,7 @@ const UntypedDefaultFlashList = <ItemT,>(props: DefaultFlashListProps<ItemT>, re
     onContentSizeChange,
     keyExtractor,
     onLayout,
-  } = useList<ItemT, FlashList<ItemT>>(ref, props);
+  } = useList<ItemT, FlashListRef<ItemT>>(ref, props);
 
   return (
     <FlashList
@@ -516,7 +516,7 @@ const UntypedDefaultFlashList = <ItemT,>(props: DefaultFlashListProps<ItemT>, re
       {...props}
       contentContainerStyle={{
         ...styles.flatList,
-        ...props.contentContainerStyle,
+        ...(props.contentContainerStyle as object | undefined),
       }}
       ListHeaderComponent={
         <ListHeaderComponent
@@ -547,7 +547,7 @@ const TypedDefaultFlatList =
 const TypedDefaultFlashList =
   forwardRef(UntypedDefaultFlashList) as <ItemT>(
     props: DefaultFlashListProps<ItemT> &
-           React.RefAttributes<FlashList<ItemT>>
+           React.RefAttributes<FlashListRef<ItemT>>
   ) => React.ReactElement | null;
 
 const DefaultFlatList =
