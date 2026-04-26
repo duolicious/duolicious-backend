@@ -30,6 +30,7 @@ import { useOnline } from '../chat/application-layer/hooks/online';
 import { useSkipped } from '../hide-and-block/hide-and-block';
 import { OnlineIndicator } from './online-indicator';
 import { useAppTheme } from '../app-theme/app-theme';
+import { setProspectHint } from '../navigation/prospect-cache';
 
 // This component wouldn't need to exist if expo-image (and expo itself (and the
 // JS eco system generally)) wasn't buggy trash. This fixes an issue on
@@ -218,15 +219,16 @@ const ProfileCard = ({
     if (verificationRequired) {
       return navigation.navigate('Profile');
     } else if (personUuid) {
+      setProspectHint(personUuid, { photoBlurhash });
       return navigation.navigate(
         'Prospect Profile Screen',
         {
           screen: 'Prospect Profile',
-          params: { personUuid, photoBlurhash },
+          params: { personUuid },
         }
       );
     }
-  }, [navigation, personUuid, verificationRequired]);
+  }, [navigation, personUuid, verificationRequired, photoBlurhash]);
 
   const onMessageFrom = useCallback(
     () => {

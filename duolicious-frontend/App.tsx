@@ -6,6 +6,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -13,6 +14,8 @@ import {
   DefaultTheme,
   NavigationContainer,
   createNavigationContainerRef,
+  getPathFromState as rnGetPathFromState,
+  getStateFromPath as rnGetStateFromPath,
 } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Font from 'expo-font';
@@ -31,14 +34,13 @@ import { ServerStatus, UtilityScreen } from './components/utility-screen';
 import { ProspectProfileScreen } from './components/prospect-profile-screen';
 import { InviteScreen, WelcomeScreen } from './components/welcome-screen';
 import { sessionToken, sessionPersonUuid } from './kv-storage/session-token';
-import { navigationState } from './kv-storage/navigation-state';
+import { lastPath } from './kv-storage/last-path';
 import { clearAllKv } from './kv-storage/kv-storage';
-import { maybeDoUpgrade } from './kv-storage/upgrade';
 import { japi, SUPPORTED_API_VERSIONS } from './api/api';
 import { login, logout } from './chat/application-layer';
 import { useInboxStats } from './chat/application-layer/hooks/inbox-stats';
 import { STATUS_URL } from './env/env';
-import { delay, parseUrl } from './util/util';
+import { delay } from './util/util';
 import { ColorPickerModal } from './components/modal/color-picker-modal/color-picker-modal';
 import { GifPickerModal } from './components/modal/gif-picker-modal';
 import { ReportModal } from './components/modal/report-modal';
@@ -47,7 +49,6 @@ import {
   useNotificationObserverOnMobile,
   getLastNotificationResponseOnMobile,
 } from './notifications/mobile';
-import { getCurrentScreen, getCurrentParams } from './navigation/navigation';
 import { verificationWatcher } from './verification/verification';
 import { ClubItem } from './club/club';
 import { Toast } from './components/toast';
@@ -62,8 +63,10 @@ import { TooltipListener } from './components/tooltip';
 import { VerificationCameraModal } from './components/verification-camera';
 import { notify } from './events/events';
 import { PointOfSaleModal } from './components/modal/point-of-sale-modal';
-import { setSignedInUser, useSignedInUser } from './events/signed-in-user';
+import { setSignedInUser, useSignedInUser, getSignedInUser } from './events/signed-in-user';
 import { useAppThemeLoader, useAppTheme } from './app-theme/app-theme';
+import { computeStartupNavigationState } from './navigation/startup';
+import { resetUserScopedClientState } from './navigation/reset-client-state';
 
 verificationWatcher();
 
@@ -89,12 +92,12 @@ const HomeTabs = () => {
       }}
       tabBar={props => <TabBar {...props} />}
     >
-      <Tab.Screen name="Q&A" component={QuizTab} />
-      <Tab.Screen name="Search" component={SearchTab} />
-      <Tab.Screen name="Feed" component={FeedTab} />
-      <Tab.Screen name="Inbox" component={InboxTab} />
-      <Tab.Screen name="Visitors" component={VisitorsTab} />
-      <Tab.Screen name="Profile" component={ProfileTab} />
+      <Tab.Screen name="Q&A" component={QuizTab} options={{ title: 'Q&A' }} />
+      <Tab.Screen name="Search" component={SearchTab} options={{ title: 'Search' }} />
+      <Tab.Screen name="Feed" component={FeedTab} options={{ title: 'Feed' }} />
+      <Tab.Screen name="Inbox" component={InboxTab} options={{ title: 'Inbox' }} />
+      <Tab.Screen name="Visitors" component={VisitorsTab} options={{ title: 'Visitors' }} />
+      <Tab.Screen name="Profile" component={ProfileTab} options={{ title: 'Profile' }} />
     </Tab.Navigator>
   );
 };
@@ -151,13 +154,175 @@ const isImagePickerOpen = { value: false };
 
 const navigationContainerRef = createNavigationContainerRef<any>();
 
+// Strict UUID v1-v5 shape (8-4-4-4-12 hex). Used in path patterns to
+// disambiguate prospect uuids from sibling static paths (e.g. `/profile/:uuid`
+// vs `/profile/settings`).
+const UUID_REGEX_SOURCE =
+  '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
+
+// Route names that render the generic OptionScreen-driven wizard. These
+// rely on an in-memory payload that's not URL-serializable, so we don't
+// persist their paths in `last_path` (see `onNavigationStateChange`).
+const WIZARD_ROUTE_NAMES = new Set([
+  'Create Account Or Sign In Screen',
+  'Profile Option Screen',
+  'Search Filter Option Screen',
+]);
+
+const focusedRouteIsWizard = (state: any): boolean => {
+  let node: any = state;
+  while (node && Array.isArray(node.routes)) {
+    const idx = typeof node.index === 'number' ? node.index : 0;
+    const route = node.routes[idx];
+    if (!route) return false;
+    if (WIZARD_ROUTE_NAMES.has(route.name)) return true;
+    node = route.state;
+  }
+  return false;
+};
+
 const App = () => {
   const [initialState, setInitialState] = useState<any>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
   const [signedInUser] = useSignedInUser();
+  const pendingPostLoginStateRef = useRef<any | null>(null);
   useAppThemeLoader();
   const { appTheme } = useAppTheme();
+
+  const linking = useMemo(() => {
+    const prefixes =
+      Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin
+        ? [window.location.origin]
+        : [];
+
+    // The URL structure below is the single source of truth for every path
+    // the app exposes. React Navigation handles serialization/deserialization
+    // for us via getPathFromState / getStateFromPath - we don't hand-roll
+    // redirects or strip params manually anywhere else.
+    //
+    // `Welcome` and `Home` both effectively live at the app root, but since
+    // React Navigation forbids two screens sharing a pattern, we hang each
+    // top-level destination off a distinct child path:
+    //   - Logged out: `/` -> Welcome / Welcome Screen
+    //   - Logged in:  `/qa`, `/search`, `/profile`, ... (Home's tabs)
+    // `Home` itself has no `path`, so its tabs' paths are matched directly
+    // at the URL root. This avoids a `Home` vs `Welcome` conflict at `''`.
+    //
+    // OptionScreen-backed routes ("Create Account Or Sign In", profile
+    // settings, search filter editor) are transient wizards driven by an
+    // in-memory payload that doesn't survive a hard refresh. We still give
+    // each wizard a clean URL so back/forward and copy-paste behave normally
+    // mid-flow, but we set `initialRouteName` on every nested navigator so
+    // that a hard refresh or bookmark on a wizard URL hydrates the parent
+    // screen *underneath* the wizard. When the wizard then sees no payload
+    // and calls `navigation.popToTop()`, the user lands on the parent
+    // (welcome, profile tab, filter list) instead of a blank screen.
+    const config = {
+      screens: {
+        Welcome: {
+          path: '',
+          initialRouteName: 'Welcome Screen',
+          screens: {
+            'Welcome Screen': '',
+            'Create Account Or Sign In Screen': 'sign-in',
+          },
+        },
+        Home: {
+          screens: {
+            'Q&A': 'qa',
+            Search: {
+              path: 'search',
+              initialRouteName: 'Search Screen',
+              screens: {
+                'Search Screen': '',
+                'Search Filter Screen': {
+                  path: 'filters',
+                  initialRouteName: 'Search Filter Tab',
+                  screens: {
+                    'Search Filter Tab': '',
+                    'Search Filter Option Screen': 'edit',
+                    'Q&A Filter Screen': 'qa',
+                  },
+                },
+              },
+            },
+            Feed: 'feed',
+            Inbox: 'inbox',
+            Visitors: 'visitors',
+            Profile: {
+              path: 'profile',
+              initialRouteName: 'Profile Tab',
+              screens: {
+                'Profile Tab': '',
+                'Profile Option Screen': 'settings',
+                'Club Selector': 'clubs',
+                'Invite Picker': 'invites',
+              },
+            },
+          },
+        },
+        'Conversation Screen': `chat/:personUuid(${UUID_REGEX_SOURCE})`,
+        'Prospect Profile Screen': {
+          // NOTE: No `path` here. If we set `path: 'profile'`, it conflicts with
+          // the Profile tab's `/profile` route (React Navigation requires unique patterns).
+          // We deliberately do NOT set `initialRouteName: 'Prospect Profile'`
+          // either, because every child route here is parameterised by the
+          // same `personUuid` and there's no way to forward that param down
+          // to the synthesised parent. A direct deep-link to `/in-depth/:uuid`
+          // therefore mounts In-Depth alone, and back navigation falls
+          // through to the synthesised `Home/Search` set up by
+          // `withHomeBackStack` in `navigation/startup.ts`.
+          screens: {
+            // Avoid conflicts with `/profile/settings` etc
+            'Prospect Profile': `profile/:personUuid(${UUID_REGEX_SOURCE})`,
+            'Gallery Screen': 'gallery/:photoUuid',
+            'In-Depth': `in-depth/:personUuid(${UUID_REGEX_SOURCE})`,
+          },
+        },
+        'Invite Screen': 'invite/:clubName',
+      },
+    };
+
+    return {
+      prefixes,
+      config,
+      // Pure path-to-state resolver. URL-bar normalization (sign-out, legacy
+      // redirects, unauthorized deep-links) lives in `onNavigationStateChange`
+      // below, which fires after RN's linking integration has already had its
+      // say on the URL. Keeping this function free of `window.history` side
+      // effects makes it predictable and easy to reason about in isolation.
+      getStateFromPath: (path: string, options: any) => {
+        // `/me` and `/welcome` previously served different purposes than any
+        // current screen. Per the routing brief these legacy URLs shouldn't
+        // quietly land users on something unexpected, so we drop them at the
+        // app root.
+        let normalized = path;
+        if (normalized === '/me' || normalized.startsWith('/me/')) normalized = '/';
+        if (normalized === '/welcome' || normalized.startsWith('/welcome/')) normalized = '/';
+
+        // The app root `/` is shared between the logged-out Welcome screen
+        // and the logged-in Home tabs. We want `/` to land on the default
+        // Q&A tab for signed-in users rather than `{ routes: [{ name: 'Home' }] }`,
+        // which would let the bottom-tab navigator keep whichever tab was
+        // previously focused. Delegate to React Navigation's resolver so
+        // this stays in sync with whatever path the Q&A tab is mapped to.
+        const pathname = normalized.split('?')[0].replace(/\/$/, '') || '/';
+        if (pathname === '/' && getSignedInUser()) {
+          return rnGetStateFromPath('/qa', options);
+        }
+
+        // For anything we don't recognise, fall back to the app root rather
+        // than returning `undefined` (which would render a blank screen).
+        const state = rnGetStateFromPath(normalized, options);
+        if (state) return state;
+        return getSignedInUser()
+          ? rnGetStateFromPath('/qa', options)
+          : { routes: [{ name: 'Welcome' }] };
+      },
+      getPathFromState: rnGetPathFromState,
+    };
+  }, []);
 
   const loadFonts = useCallback(async () => {
     await Font.loadAsync({
@@ -189,35 +354,37 @@ const App = () => {
   const restoreSessionAndNavigate = useCallback(async () => {
     const existingPersonUuid = await sessionPersonUuid();
     const existingSessionToken = await sessionToken();
-    const existingNavigationState = await navigationState();
-    const parsedUrl = await parseUrl();
     const notification = await getLastNotificationResponseOnMobile();
 
-    if (!parsedUrl) {
-      ;
-    } else if (parsedUrl.left === 'invite') {
-      setInitialState({
-        routes: [
-          {
-            name: "Invite Screen",
-            params: {
-              clubName: decodeURIComponent(parsedUrl.right),
-            }
-          }
-        ]
+    // `computeStartupNavigationState` owns every routing decision at startup:
+    // URL deep-links, public-vs-protected screens, push notifications, the
+    // pending-club flow, and persisted last-path restoration. The only thing
+    // we still do here is the auth side-effects (token check, logout, set
+    // signed-in user) and pass the resulting auth state in.
+    const applyStartupNav = async (
+      isAuthenticated: boolean,
+      pendingClub: ClubItem | null = null,
+    ) => {
+      const result = await computeStartupNavigationState({
+        linking,
+        isAuthenticated,
+        notification,
+        pendingClub,
       });
-    }
+      if (result.postLoginRedirectState) {
+        pendingPostLoginStateRef.current = result.postLoginRedirectState;
+      }
+      setInitialState(result.initialState);
+    };
 
     if (!existingPersonUuid || !existingSessionToken) {
       await sessionPersonUuid(null);
       await sessionToken(null);
+      await lastPath(null);
+      resetUserScopedClientState();
       setSignedInUser(undefined);
       logout();
-
-      if (!parsedUrl) {
-        setInitialState({ routes: [ { name: 'Welcome' } ]});
-      }
-
+      await applyStartupNav(false);
       return;
     }
 
@@ -238,22 +405,17 @@ const App = () => {
     if (response.clientError || response?.json?.onboarded === false) {
       await sessionPersonUuid(null);
       await sessionToken(null);
+      await lastPath(null);
+      resetUserScopedClientState();
       setSignedInUser(undefined);
       logout();
-
-      if (!parsedUrl) {
-        setInitialState({ routes: [ { name: 'Welcome' } ]});
-      }
-
+      await applyStartupNav(false);
       return;
     }
 
     const clubs: ClubItem[] = response?.json?.clubs;
-
     const personId = response?.json?.person_id as number;
-
     const personUuid = response?.json?.person_uuid as string;
-
     const pendingClub = response?.json?.pending_club as ClubItem | null;
 
     setSignedInUser({
@@ -269,59 +431,58 @@ const App = () => {
 
     notify<ClubItem[]>('updated-clubs', clubs);
 
-    if (parsedUrl?.left === 'profile') {
-      setInitialState({
-        index: 1,
+    await applyStartupNav(true, pendingClub);
+  }, [linking]);
+
+  // Centralised post-sign-in redirect. Runs both when `signedInUser` changes
+  // (the post-OTP-flow case) and when the NavigationContainer reports ready
+  // (the cold-start-with-existing-session case, where `signedInUser` may
+  // have been populated *before* the container mounted, so the effect's
+  // ref-lookup would have early-returned).
+  //
+  // Two responsibilities:
+  //   1. If a protected URL was deep-linked while logged-out, restore it
+  //      after the user signs in (`pendingPostLoginStateRef`).
+  //   2. Otherwise, if the user is parked on the logged-out Welcome stack
+  //      (just completed OTP, or typed `/sign-in`/`/welcome` while already
+  //      signed in), forward them to the canonical landing tab so they
+  //      aren't stranded on the sign-in form.
+  const applyPostSignInRedirect = useCallback(() => {
+    if (!getSignedInUser()) return;
+
+    const navigationContainer = navigationContainerRef.current;
+    if (!navigationContainer) return;
+
+    const pending = pendingPostLoginStateRef.current;
+    pendingPostLoginStateRef.current = null;
+
+    if (pending) {
+      navigationContainer.reset(pending);
+      return;
+    }
+
+    const rootState: any = navigationContainer.getRootState?.();
+    const topRouteName: string | undefined =
+      rootState?.routes?.[rootState?.index ?? 0]?.name;
+    if (topRouteName === 'Welcome') {
+      navigationContainer.reset({
         routes: [
-          { name: "Home" },
-          {
-            name: "Prospect Profile Screen",
-            state: {
-              routes: [
-                {
-                  name: "Prospect Profile",
-                  params: {
-                    personUuid: decodeURIComponent(parsedUrl.right)
-                  }
-                }
-              ]
-            }
-          }
-        ]
+          { name: 'Home', state: { routes: [{ name: 'Q&A' }] } },
+        ],
       });
-    } else if (parsedUrl) {
-      // Navigation was already handled before logging in; Do nothing.
-      ;
-    } else if (notification) {
-      setInitialState({
-        index: 1,
-        routes: [
-          { name: "Home" },
-          { name: notification.screen, params: notification.params },
-        ]
-      });
-    } else if (pendingClub) {
-      // Navigate to search
-      setInitialState({
-        routes: [
-          {
-            name: "Home",
-            state: {
-              routes: [
-                {
-                  name: "Search"
-                }
-              ]
-            }
-          }
-        ]
-      });
-    } else if (existingNavigationState) {
-      setInitialState(existingNavigationState);
-    } else {
-      setInitialState({ routes: [ { name: "Home" } ] });
     }
   }, []);
+
+  useEffect(() => {
+    // On sign-out drop any remaining pending state so a stale entry from
+    // this session can't latch onto a subsequent sign-in as a different
+    // user on the same browser.
+    if (!signedInUser) {
+      pendingPostLoginStateRef.current = null;
+      return;
+    }
+    applyPostSignInRedirect();
+  }, [signedInUser?.personUuid, applyPostSignInRedirect]);
 
   const fetchServerStatusState = useCallback(async () => {
     let response: Response | null = null
@@ -360,8 +521,6 @@ const App = () => {
   }, [serverStatus]);
 
   const loadApp = useCallback(async () => {
-    await maybeDoUpgrade();
-
     await Promise.all([
       loadFonts(),
       lockScreenOrientation(),
@@ -418,22 +577,57 @@ const App = () => {
   }, []);
 
   const onNavigationStateChange = useCallback(async (state) => {
-    if (Platform.OS !== 'web') {
-      ; // Only update the URL bar on web
-    } else if (getCurrentScreen(state) === 'Prospect Profile Screen/Prospect Profile') {
-      const uri = `/profile/${getCurrentParams(state).personUuid}`;
-      history.pushState((history?.state ?? 0) + 1, "", uri);
-    } else {
-      const uri = "/#";
-      history.pushState((history?.state ?? 0) + 1, "", uri);
-    }
-
     if (!state) return;
 
-    if (signedInUser) {
-      await navigationState(state);
+    // URL-bar sync is left entirely to React Navigation's linking integration.
+    // Doing a `window.history.replaceState` here in addition to RN's own
+    // pushState corrupts the browser history stack: our handler runs
+    // synchronously from the state-change emit, while RN's pushState is
+    // queued as a microtask, so our replace overwrites the URL of the
+    // *previous* browser entry before RN appends a new one - effectively
+    // collapsing two history entries into one and breaking the back button.
+
+    // Read auth synchronously rather than closing over `signedInUser`. During
+    // sign-out we clear the user before triggering the navigation reset, and
+    // a stale closure would persist the post-logout path under the previous
+    // identity (or vice versa).
+    if (!getSignedInUser()) return;
+
+    // Don't persist transient wizard URLs. OptionScreen-backed routes
+    // (`Profile Option Screen`, `Search Filter Option Screen`,
+    // `Create Account Or Sign In Screen`) depend on an in-memory payload
+    // that doesn't survive a hard refresh. If we persisted the wizard URL,
+    // the next cold-start would hydrate the wizard with no payload and
+    // immediately `popToTop` to the parent screen — a visible flicker.
+    // Walking the focused route chain lets us detect this regardless of how
+    // deeply nested the wizard is.
+    if (focusedRouteIsWizard(state)) return;
+
+    // Persist just the canonical path - not the full navigation tree - so we
+    // can restore the user's last place on next startup. We let React
+    // Navigation's `getPathFromState` do the serialization so this stays in
+    // lock-step with whatever URL structure the linking config exposes.
+    try {
+      // The `as any` is unfortunate but unavoidable: React Navigation's
+      // PathConfig types insist every `screens`-bearing entry also declare
+      // its own `path`, but our `Home` deliberately doesn't have one (its
+      // children inherit the empty root). The runtime invariant being relied
+      // on here is that `Home` is always the implicit root of the path tree,
+      // so any path produced by getPathFromState round-trips back to a
+      // valid state via getStateFromPath.
+      const path = rnGetPathFromState(state, linking.config as any);
+      if (typeof path === 'string') {
+        await lastPath(path.startsWith('/') ? path : `/${path}`);
+      }
+    } catch (e) {
+      // Some transient navigation states aren't representable as URLs (e.g.
+      // mid-transition or screens not in the linking config). Skip those
+      // and warn so misconfiguration doesn't silently break last-path
+      // restoration in production - but use `warn` rather than `error`
+      // because intermittent failures on transient states are expected.
+      console.warn('Failed to persist last navigation path', e);
     }
-  }, [signedInUser]);
+  }, [linking]);
 
   // Only need live updates on web (for browser tab title)
   const stats = useInboxStats(Platform.OS === 'web');
@@ -441,23 +635,6 @@ const App = () => {
   const numUnread =
     (stats?.numUnreadChats ?? 0) +
     (stats?.numUnreadIntros ?? 0);
-
-  if (Platform.OS === 'web') {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useEffect(() => {
-      const handlePopstate = (ev) => {
-        ev.preventDefault();
-
-        const navigationContainer = navigationContainerRef.current;
-
-        if (navigationContainer) {
-          navigationContainer.goBack();
-        }
-      };
-
-      window.addEventListener('popstate', handlePopstate);
-    }, []);
-  }
 
   useNotificationObserverOnMobile((screen: string, params: any) => {
     const navigationContainer = navigationContainerRef.current;
@@ -489,11 +666,13 @@ const App = () => {
           <GestureHandlerRootView>
             <NavigationContainer
               ref={navigationContainerRef}
+              linking={linking}
               initialState={
                 initialState ?
                 { ...initialState, stale: true } :
                 undefined
               }
+              onReady={applyPostSignInRedirect}
               onStateChange={onNavigationStateChange}
               theme={{
                 ...DefaultTheme,
@@ -503,8 +682,18 @@ const App = () => {
                 },
               }}
               documentTitle={{
-                formatter: () =>
-                  (numUnread ? `(${numUnread}) ` : '') + 'Duolicious'
+                // The focused screen can set its own `title` option (e.g. the
+                // prospect profile sets it to the prospect's name once the
+                // API resolves) and we splice it in front of "Duolicious".
+                // Screens that don't set a title fall through to the bare
+                // app name.
+                formatter: (options) => {
+                  const prefix = numUnread ? `(${numUnread}) ` : '';
+                  const screenTitle = options?.title;
+                  return prefix + (
+                    screenTitle ? `${screenTitle} - Duolicious` : 'Duolicious'
+                  );
+                },
               }}
             >
               <Stack.Navigator
@@ -514,21 +703,22 @@ const App = () => {
                   navigationBarColor: appTheme.primaryColor,
                 }}
               >
-                <Tab.Screen
+                <Stack.Screen
                   name="Welcome"
                   component={WelcomeScreen} />
-                <Tab.Screen
+                <Stack.Screen
                   name="Home"
                   component={HomeTabs} />
-                <Tab.Screen
+                <Stack.Screen
                   name="Conversation Screen"
                   component={ConversationScreen} />
-                <Tab.Screen
+                <Stack.Screen
                   name="Prospect Profile Screen"
                   component={ProspectProfileScreen} />
-                <Tab.Screen
+                <Stack.Screen
                   name="Invite Screen"
-                  component={InviteScreen} />
+                  component={InviteScreen}
+                  options={{ title: 'Invitation' }} />
               </Stack.Navigator>
             </NavigationContainer>
             <TooltipListener/>

@@ -40,6 +40,12 @@ import { cmToFeetInchesStr, kmToMilesStr } from '../units/units';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { QAndADevice } from './q-and-a-device';
 import { useAppTheme } from '../app-theme/app-theme';
+import { listen, notify } from '../events/events';
+import {
+  SearchFilterAnswer,
+  setSearchFilterAnswers,
+  getSearchFilterAnswers,
+} from '../navigation/search-filter-state';
 
 const getCurrentValueAsLabel = (og: OptionGroup<OptionGroupInputs> | undefined) => {
   if (!og) return undefined;
@@ -106,13 +112,7 @@ const getCurrentValueAsLabel = (og: OptionGroup<OptionGroupInputs> | undefined) 
 const optionGroupToDataKey = (og: OptionGroup<OptionGroupInputs>) =>
   og.title.toLowerCase().replaceAll(' ', '_');
 
-type AnswerItem = {
-  question_id: number,
-  question: string,
-  topic: string,
-  answer: boolean | null,
-  accept_unanswered: boolean,
-};
+type AnswerItem = SearchFilterAnswer;
 
 const fetchQuestionSearch = async (q: string): Promise<AnswerItem[]> => {
   const resultsPerPage = 25;
@@ -137,18 +137,28 @@ const SearchFilterScreen = () => {
         animation: 'slide_from_right',
       }}
     >
-      <Stack.Screen name="Search Filter Tab" component={SearchFilterScreen_} />
-      <Stack.Screen name="Search Filter Option Screen" component={OptionScreen} />
-      <Stack.Screen name="Q&A Filter Screen" component={QandQFilterScreen} />
+      <Stack.Screen
+        name="Search Filter Tab"
+        component={SearchFilterScreen_}
+        options={{ title: 'Search filters' }}
+      />
+      <Stack.Screen
+        name="Search Filter Option Screen"
+        component={OptionScreen}
+        options={{ title: 'Edit search filter' }}
+      />
+      <Stack.Screen
+        name="Q&A Filter Screen"
+        component={QandQFilterScreen}
+        options={{ title: 'Q&A filters' }}
+      />
     </Stack.Navigator>
   );
 };
 
-const SearchFilterScreen_ = ({navigation, route}) => {
+const SearchFilterScreen_ = ({navigation}) => {
   const { appTheme } = useAppTheme();
   const [signedInUser] = useSignedInUser();
-
-  const onPressRefresh = route?.params?.onPressRefresh;
 
   const [, _triggerRender] = useState({});
   const triggerRender = useCallback(() => _triggerRender({}), [_triggerRender]);
@@ -162,8 +172,18 @@ const SearchFilterScreen_ = ({navigation, route}) => {
   }, [triggerRender]);
 
   const onPressQAndAAnswers = useCallback(() => {
-    return navigation.navigate("Q&A Filter Screen", {answers, triggerRender})
+    setSearchFilterAnswers(answers);
+    navigation.navigate("Q&A Filter Screen");
   }, [navigation, answers]);
+
+  useEffect(() => {
+    return listen<AnswerItem[]>('search-filter-answers-updated', (next) => {
+      if (!next) return;
+      // Replace `data` (rather than mutating `data.answer`) so memoized
+      // derivations keyed on `data` re-run with the updated reference.
+      setData((prev: any) => prev ? { ...prev, answer: next } : prev);
+    });
+  }, []);
 
   const Button_ = useCallback((props) => {
     return <ButtonForOption
@@ -288,9 +308,9 @@ const SearchFilterScreen_ = ({navigation, route}) => {
   ]);
 
   const goBack = useCallback(() => {
-    onPressRefresh && onPressRefresh();
+    notify('search-refresh-requested');
     navigation.goBack();
-  }, [navigation, onPressRefresh]);
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.safeAreaView}>
@@ -411,10 +431,31 @@ const SearchFilterScreen_ = ({navigation, route}) => {
   );
 };
 
-const QandQFilterScreen = ({navigation, route}) => {
+const QandQFilterScreen = ({navigation}) => {
   const { appTheme } = useAppTheme();
-  const answers: AnswerItem[] = route?.params?.answers;
-  const triggerRender = route?.params?.triggerRender;
+
+  // Source of truth for the current filter answers lives in a module-level
+  // store so this screen doesn't need a mutable object handed through
+  // route.params.
+  const [answers, setLocalAnswers] = useState<AnswerItem[]>(
+    () => getSearchFilterAnswers());
+
+  // Cold-start cases (direct deep link / page refresh) bypass the parent
+  // `Search Filter Tab` and therefore the module-level store is empty.
+  // Fetch the saved answers once on mount when that's the case so the screen
+  // isn't permanently blank.
+  useEffect(() => {
+    if (getSearchFilterAnswers().length > 0) return;
+    let cancelled = false;
+    (async () => {
+      const response = await api('get', '/search-filters');
+      const fetched: AnswerItem[] = response?.json?.answer ?? [];
+      if (cancelled || fetched.length === 0) return;
+      setSearchFilterAnswers(fetched);
+      setLocalAnswers(fetched);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const [searchText, setSearchText] = useState("");
   const [searchResults, setSearchResults] = useState<AnswerItem[] | null>();
@@ -437,10 +478,9 @@ const QandQFilterScreen = ({navigation, route}) => {
   }, [_fetchQuestionSearch]);
 
   const onAnswerChange = useCallback((newAnswers: AnswerItem[]) => {
-    answers.length = 0;
-    answers.push(...newAnswers);
-    triggerRender();
-  }, [answers]);
+    setSearchFilterAnswers(newAnswers);
+    setLocalAnswers([...newAnswers]);
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeAreaView}>

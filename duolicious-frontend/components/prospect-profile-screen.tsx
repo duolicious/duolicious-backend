@@ -16,6 +16,7 @@ import {
   Fragment,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -37,6 +38,7 @@ import { Club, Clubs } from './club';
 import { Stat, Stats } from './stat';
 import { listen, notify } from '../events/events';
 import { ReportModalInitialData } from './modal/report-modal';
+import { getProspectHint, setProspectHint } from '../navigation/prospect-cache';
 import {
   VerificationBadge,
   DetailedVerificationBadges,
@@ -281,11 +283,9 @@ const FloatingSendIntroButton = ({
   const onPress = useCallback(() => {
     if (name === undefined) return;
 
-    navigation.navigate(
-      'Conversation Screen',
-      { personUuid, name, photoUuid, photoBlurhash }
-    );
-  }, [navigation, name, photoUuid]);
+    setProspectHint(personUuid, { name, photoUuid, photoBlurhash });
+    navigation.navigate('Conversation Screen', { personUuid });
+  }, [navigation, personUuid, name, photoUuid, photoBlurhash]);
 
   return (
     <FloatingProfileInteractionButton
@@ -307,7 +307,7 @@ const FloatingSendIntroButton = ({
   );
 };
 
-const SeeQAndAButton = ({navigation, personId, name}) => {
+const SeeQAndAButton = ({navigation, personUuid, name}) => {
   const containerStyle = useRef({
     marginTop: 40,
     marginLeft: 10,
@@ -335,8 +335,8 @@ const SeeQAndAButton = ({navigation, personId, name}) => {
   ).current;
 
   const onPress = useCallback(() => {
-    navigation.navigate('In-Depth', { personId, name });
-  }, [personId, name]);
+    navigation.navigate('In-Depth', { personUuid });
+  }, [personUuid]);
 
   return (
     <ButtonWithCenteredText
@@ -667,15 +667,53 @@ const Content = (navigationRef) =>  {
 const CurriedContent = ({navigationRef, navigation, route}) => {
   navigationRef.current = navigation;
 
-  const personId = route.params.personId;
   const personUuid = route.params.personUuid;
-  const showBottomButtons = route.params.showBottomButtons ?? true;
-  const photoBlurhashParam = route.params.photoBlurhash;
+
+  // `showBottomButtons` and `photoBlurhash` are intentionally NOT route params:
+  // the former is derived from who's signed in (plus an optional one-shot
+  // hint from the caller), the latter is an optimistic rendering hint stashed
+  // in prospect-cache by the navigating caller. This keeps URLs clean
+  // (`/profile/:uuid`) and navigation state serializable.
+  const [signedInUser] = useSignedInUser();
+  const hint = getProspectHint(personUuid);
+  const isViewingSelf =
+    !!signedInUser?.personUuid && signedInUser.personUuid === personUuid;
+  // Consume the `hideBottomButtons` hint when a new uuid lands here so a
+  // later visit from a different context (e.g. tapping the same person's
+  // avatar in search) gets the default behaviour rather than inheriting a
+  // stale conversation hint. Tracked in state because the same screen
+  // instance can be reused with a different `personUuid` without remount.
+  // Initialised lazily from the cache to avoid a one-frame flash of the
+  // bottom buttons before the consuming effect runs.
+  const [hideBottomButtonsHint, setHideBottomButtonsHint] = useState(
+    () => !!getProspectHint(personUuid)?.hideBottomButtons,
+  );
+  useEffect(() => {
+    const h = getProspectHint(personUuid);
+    if (h?.hideBottomButtons) {
+      setHideBottomButtonsHint(true);
+      setProspectHint(personUuid, { hideBottomButtons: false });
+    } else {
+      setHideBottomButtonsHint(false);
+    }
+  }, [personUuid]);
+  const showBottomButtons = !isViewingSelf && !hideBottomButtonsHint;
+  const photoBlurhashParam = hint?.photoBlurhash;
 
   const { appThemeName, appTheme } = useAppTheme();
   const [data, setData] = useState<UserData | undefined>(undefined);
+  const personId = data?.person_id;
   const [notFound, setNotFound] = useState(false);
   useSkipped(personUuid, () => navigation.popToTop());
+
+  // Surface the prospect's name in the browser tab. We prefer the freshly
+  // fetched name but fall back to the optimistic hint while the API is in
+  // flight so the title doesn't briefly read "Duolicious" before snapping
+  // to the name. App.tsx's `documentTitle.formatter` reads `options.title`.
+  const screenTitle = data?.name ?? getProspectHint(personUuid)?.name;
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: screenTitle });
+  }, [navigation, screenTitle]);
 
   const { width } = useWindowDimensions();
 
@@ -694,7 +732,15 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
           networkState: 'settled',
         }
       );
-      route.params.personId = response?.json?.person_id;
+      // Make `personId` / `name` available to sibling screens (e.g. In-Depth)
+      // so they don't have to refetch this endpoint just to resolve the
+      // numeric id required by `/compare-*` APIs.
+      if (response?.json) {
+        setProspectHint(personUuid, {
+          personId: response.json.person_id,
+          name: response.json.name,
+        });
+      }
     })();
   }, [personUuid]);
 
@@ -825,7 +871,6 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
                 />
                 <Body
                   navigation={navigation}
-                  personId={personId}
                   personUuid={personUuid}
                   data={data}
                 />
@@ -901,8 +946,8 @@ const ProspectUserDetails = ({
     if (personId === undefined) return;
     if (name === undefined) return;
 
-    navigation.navigate('In-Depth', { personId, name });
-  }, [personId, name]);
+    navigation.navigate('In-Depth', { personUuid });
+  }, [navigation, personUuid, personId, name]);
 
   return (
     <View
@@ -1009,12 +1054,10 @@ const ProspectUserDetails = ({
 
 const Body = ({
   navigation,
-  personId,
   personUuid,
   data,
 }: {
   navigation: any,
-  personId: number,
   personUuid: string,
   data: UserData | undefined,
 }) => {
@@ -1050,7 +1093,10 @@ const Body = ({
   const imageVerification5 = data?.photo_verifications && data?.photo_verifications[5] || false;
   const imageVerification6 = data?.photo_verifications && data?.photo_verifications[6] || false;
 
-  const isViewingSelf = personId === signedInUser?.personId;
+  // Compare on UUID rather than the numeric `personId` we lift out of `data`,
+  // so the "Block" button doesn't briefly render before the API response lands.
+  const isViewingSelf =
+    !!signedInUser?.personUuid && signedInUser.personUuid === personUuid;
 
   const uncappedBackgroundColor = data?.theme?.background_color
       ?? appTheme.primaryColor;
@@ -1329,7 +1375,7 @@ const Body = ({
         {!!data?.count_answers &&
           <SeeQAndAButton
             navigation={navigation}
-            personId={personId}
+            personUuid={personUuid}
             name={data?.name}
           />}
         {!isViewingSelf &&

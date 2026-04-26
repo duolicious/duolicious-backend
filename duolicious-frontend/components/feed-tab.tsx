@@ -20,6 +20,7 @@ import { japi } from '../api/api';
 import { DefaultFlatList, DefaultFlashList } from './default-flat-list';
 import { z } from 'zod';
 import { notify } from '../events/events';
+import { setProspectHint } from '../navigation/prospect-cache';
 import { ReportModalInitialData } from './modal/report-modal';
 import { Flag } from "react-native-feather";
 import { AudioPlayer } from './audio-player';
@@ -192,11 +193,12 @@ const useNavigationToProfile = (
   return useCallback((e) => {
     e.preventDefault();
 
+    setProspectHint(personUuid, { photoBlurhash });
     navigation.navigate(
       'Prospect Profile Screen',
       {
         screen: 'Prospect Profile',
-        params: { personUuid, photoBlurhash },
+        params: { personUuid },
       }
     );
   }, [personUuid, photoBlurhash]);
@@ -230,15 +232,8 @@ const useNavigationToConversation = (
 
     setQuote({ text: quote, attribution: name });
 
-    navigation.navigate(
-      'Conversation Screen',
-      {
-        personUuid,
-        name,
-        photoUuid,
-        photoBlurhash,
-      }
-    );
+    setProspectHint(personUuid, { name, photoUuid, photoBlurhash });
+    navigation.navigate('Conversation Screen', { personUuid });
   }, [personUuid, name, photoUuid, photoBlurhash, quote]);
 };
 

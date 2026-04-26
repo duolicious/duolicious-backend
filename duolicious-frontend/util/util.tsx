@@ -1,5 +1,4 @@
 import {
-  Linking,
   Platform,
 } from 'react-native';
 import {
@@ -133,28 +132,6 @@ const withTimeout = <T,>(ms: number, promise: Promise<T>): Promise<T | 'timeout'
     setTimeout(() => resolve('timeout'), ms)
   );
   return Promise.race([promise, timeout]);
-};
-
-const parseUrl = async () => {
-  const initialUrl = await Linking.getInitialURL();
-
-  if (!initialUrl) {
-    return null;
-  }
-
-  const url = new URL(initialUrl);
-
-  const match = url.pathname.match(/^\/([^\/]+)\/([^\/]+)$/);
-  const left = match ? match[1] : undefined;
-  const right = match ? match[2] : undefined;
-
-  if (!left)
-    return null
-
-  if (!right)
-    return null;
-
-  return { left, right };
 };
 
 const friendlyTimeAgo = (secondsAgo: number): string => {
@@ -398,7 +375,6 @@ export {
   isMobileWeb,
   jsonParseSilently,
   longFriendlyTimestamp,
-  parseUrl,
   possessive,
   secToMinSec,
   truncateText,

@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { friendlyTimestamp } from '../util/util';
 import { VerificationBadge } from './verification-badge';
 import { usePressableAnimation } from '../animation/animation';
+import { setProspectHint } from '../navigation/prospect-cache';
 
 const IntrosItem = ({
   wasRead,
@@ -38,13 +39,16 @@ const IntrosItem = ({
 
   const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
 
-  const onPress = useCallback(() => navigation.navigate(
-    'Prospect Profile Screen',
-    {
-      screen: 'Prospect Profile',
-      params: { personUuid, photoBlurhash },
-    }
-  ), [personUuid]);
+  const onPress = useCallback(() => {
+    setProspectHint(personUuid, { name, photoUuid, photoBlurhash });
+    navigation.navigate(
+      'Prospect Profile Screen',
+      {
+        screen: 'Prospect Profile',
+        params: { personUuid },
+      }
+    );
+  }, [personUuid, name, photoUuid, photoBlurhash]);
 
   return (
     <Pressable
@@ -164,10 +168,15 @@ const ChatsItem = ({
 
   const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
 
-  const onPress = useCallback(() => navigation.navigate(
-    'Conversation Screen',
-    { personUuid, name, photoUuid, photoBlurhash, isAvailableUser }
-  ), [personUuid, name, photoUuid, photoBlurhash, isAvailableUser]);
+  const onPress = useCallback(() => {
+    setProspectHint(personUuid, {
+      name,
+      photoUuid,
+      photoBlurhash,
+      isAvailableUser,
+    });
+    navigation.navigate('Conversation Screen', { personUuid });
+  }, [personUuid, name, photoUuid, photoBlurhash, isAvailableUser]);
 
   return (
     <Pressable

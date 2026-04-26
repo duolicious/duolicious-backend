@@ -92,6 +92,12 @@ import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../app-theme/app-theme';
 import { getSignedInUser } from '../events/signed-in-user';
 import { showPointOfSale } from './modal/point-of-sale-modal';
+import {
+  clearOptionScreenPayload,
+  getOptionScreenPayload,
+  setOptionScreenPayload,
+  type OptionScreenPayload,
+} from '../navigation/option-screen-store';
 
 type InputProps<T extends OptionGroupInputs> = {
   input: T,
@@ -1328,55 +1334,64 @@ const OptionScreen = ({navigation, route}) => {
   const [containerHeight, setContainerHeight] = useState(0);
   const { appTheme } = useAppTheme();
 
-  const optionGroups: OptionGroup<OptionGroupInputs>[] = route?.params?.optionGroups ?? [];
-  const showSkipButton: boolean = route?.params?.showSkipButton ?? true;
-  const showCloseButton: boolean = route?.params?.showCloseButton ?? true;
-  const showBackButton: boolean = route?.params?.showBackButton ?? false;
-  const onSubmitSuccess: any | undefined = route?.params?.onSubmitSuccess;
+  // Non-serializable state (option-group definitions, callbacks) is handed off
+  // through an in-memory store keyed by route name. We snapshot it on mount
+  // and immediately clear the store entry so the next push (used for
+  // multi-step wizards - see `_onSubmitSuccess`) starts from a clean slot.
+  const [payload] = useState<OptionScreenPayload | undefined>(
+    () => getOptionScreenPayload(route.name));
+  const optionGroups: OptionGroup<OptionGroupInputs>[] = payload?.optionGroups ?? [];
 
-  const backgroundColor = route?.params?.backgroundColor ?? appTheme.primaryColor;
-  const color = route?.params?.color ?? appTheme.secondaryColor;
+  useEffect(() => {
+    clearOptionScreenPayload(route.name);
+  }, [route.name]);
+
+  useEffect(() => {
+    // If the user deep-linked straight to this screen (no payload registered),
+    // there's nothing meaningful to render. Send them to the parent stack's
+    // root - the payload is normally populated synchronously by whichever
+    // button navigated here, so this only fires on hard refresh / cold-start
+    // deep links to wizard URLs (e.g. `/sign-in`, `/profile/settings`,
+    // `/search/filters/edit`). Each parent navigator's `initialRouteName`
+    // ensures `popToTop` lands the user on a sensible parent screen
+    // (Welcome, Profile Tab, Search Filter Tab respectively).
+    if (optionGroups.length === 0) {
+      navigation.popToTop();
+    }
+  }, [optionGroups.length]);
+
+  const showSkipButton: boolean = payload?.showSkipButton ?? true;
+  const showCloseButton: boolean = payload?.showCloseButton ?? true;
+  const showBackButton: boolean = payload?.showBackButton ?? false;
+  const onSubmitSuccess: any | undefined = payload?.onSubmitSuccess;
+
+  const backgroundColor = payload?.backgroundColor ?? appTheme.primaryColor;
+  const color = payload?.color ?? appTheme.secondaryColor;
 
   const transparentBackgroundColor = `${backgroundColor}00`;
 
+  // Each instance of the screen renders one step. To advance, we push another
+  // copy of the same screen onto the stack with a sliced option-groups list.
+  // That keeps the wizard's back button (both the in-screen one and the
+  // browser/system back gesture) working naturally - each step is its own
+  // history entry that you can pop off.
   const thisOptionGroup = optionGroups[0];
 
   const inputRef = useRef<any>(undefined);
 
-  const {
-    title,
-    description: Description,
-    input,
-    scrollView,
-    buttonLabel,
-  } = thisOptionGroup;
-
-  if (!input) {
-    throw Error('Expected input to be defined');
-  }
-
   const _onSubmitSuccess = useCallback(async () => {
     onSubmitSuccess && onSubmitSuccess();
 
-    switch (optionGroups.length) {
-      case 0: {
-        throw Error('Expected there to be some option groups');
-      }
-      case 1: {
-        navigation.popToTop();
-        break;
-      }
-      default: {
-        navigation.push(
-          route.name,
-          {
-            ...route.params,
-            optionGroups: optionGroups.slice(1)
-          }
-        );
-      }
+    if (optionGroups.length <= 1) {
+      navigation.popToTop();
+    } else {
+      setOptionScreenPayload(route.name, {
+        ...(payload as OptionScreenPayload),
+        optionGroups: optionGroups.slice(1),
+      });
+      navigation.push(route.name);
     }
-  }, [inputRef]);
+  }, [optionGroups, payload, onSubmitSuccess, navigation, route.name]);
 
   const onPressContinue = useCallback(() => {
     const submit = inputRef.current?.submit;
@@ -1414,6 +1429,22 @@ const OptionScreen = ({navigation, route}) => {
       setIsBottom(containerHeight >= contentHeight);
     }
   }, [containerHeight, contentHeight]);
+
+  if (!thisOptionGroup) {
+    return null;
+  }
+
+  const {
+    title,
+    description: Description,
+    input,
+    scrollView,
+    buttonLabel,
+  } = thisOptionGroup;
+
+  if (!input) {
+    throw Error('Expected input to be defined');
+  }
 
   return (
     <SafeAreaView

@@ -193,11 +193,16 @@ const FormattedText = ({
 
 const MessageStatusComponent = ({
   messageStatus,
-  name,
+  name: nameRaw,
 }: {
   messageStatus: MessageStatus,
-  name: string,
+  name: string | undefined,
 }) => {
+  // Until the prospect-profile API resolves we may not yet have the recipient's
+  // name; fall back to a neutral placeholder so error/info copy doesn't leak
+  // the literal string "undefined".
+  const name = nameRaw ?? 'them';
+
   const verificationStatuses: MessageStatus[] =  [
     'rate-limited-1day-unverified-basics',
     'rate-limited-1day-unverified-photos',
@@ -273,7 +278,7 @@ const SpeechBubble = ({
   avatarUuid
 }: {
   messageId: string
-  name: string
+  name: string | undefined
   avatarUuid: string | null | undefined
 }) => {
   const { appTheme } = useAppTheme();
@@ -556,7 +561,7 @@ const TypingSpeechBubble = ({
   avatarUuid,
 }: {
   personUuid: string
-  avatarUuid: string
+  avatarUuid: string | null | undefined
 }) => {
   const { appTheme } = useAppTheme();
 

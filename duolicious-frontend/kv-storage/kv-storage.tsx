@@ -8,7 +8,7 @@ const KEYS = [
   'app_theme_name',
   'inbox_order',
   'inbox_section',
-  'last_version',
+  'last_path',
   'navigation_state',
   'draft_messages',
   'person_uuid',

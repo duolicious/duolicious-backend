@@ -40,7 +40,7 @@ import { api } from '../../api/api';
 import { TopNavBarButton } from '../top-nav-bar-button';
 import { RotateCcw, Flag, X } from "react-native-feather";
 import { postSkipped } from '../../hide-and-block/hide-and-block';
-import { delay } from '../../util/util';
+import { delay, possessive } from '../../util/util';
 import { ReportModalInitialData } from '../modal/report-modal';
 import { listen, notify } from '../../events/events';
 import { ImageBackground } from 'expo-image';
@@ -54,6 +54,7 @@ import { GifPickedEvent } from '../../components/modal/gif-picker-modal';
 import { useSkipped } from '../../hide-and-block/hide-and-block';
 import { OnlineIndicator } from '../online-indicator';
 import { useAppTheme } from '../../app-theme/app-theme';
+import { getProspectHint, setProspectHint } from '../../navigation/prospect-cache';
 
 const firstMamId = (messageIds: string[] | null): string => {
   if (!messageIds) {
@@ -89,8 +90,7 @@ const maybeRequestReview = async (delayMs: number = 0) => {
 };
 
 
-const Menu = ({navigation, name, personUuid, closeFn}) => {
-  const [isSkipped, setIsSkipped] = useState<boolean | undefined>();
+const Menu = ({navigation, name, personUuid, isSkipped, setIsSkipped, closeFn}) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const { appTheme } = useAppTheme();
 
@@ -113,7 +113,7 @@ const Menu = ({navigation, name, personUuid, closeFn}) => {
         navigation.popToTop();
       }
     }
-  }, [navigation, isSkipped, closeFn]);
+  }, [navigation, isSkipped, setIsSkipped, closeFn, personUuid]);
 
   const onPressReport = useCallback(async () => {
     closeFn();
@@ -125,16 +125,7 @@ const Menu = ({navigation, name, personUuid, closeFn}) => {
     };
 
     notify('open-report-modal', data);
-  }, [name, closeFn]);
-
-  useEffect(() => {
-    (async () => {
-      const response = await api('get', `/prospect-profile/${personUuid}`);
-      if (response.ok) {
-        setIsSkipped(response.json.is_skipped);
-      }
-    })();
-  }, [personUuid]);
+  }, [name, personUuid, closeFn]);
 
   const pressableStyle: ViewStyle = {
     flexDirection: 'row',
@@ -277,21 +268,30 @@ const ConversationScreenNavBar = ({
   photoBlurhash,
   name,
   isOnline,
+  isSkipped,
+  setIsSkipped,
 }) => {
   const { appTheme } = useAppTheme();
   const [showMenu, setShowMenu] = useState(false);
 
   const onPressName = useCallback(() => {
     if (isAvailableUser) {
+      // The user is already in this conversation, so the prospect's bottom
+      // "send intro" buttons would be redundant.
+      setProspectHint(personUuid, {
+        name,
+        photoBlurhash,
+        hideBottomButtons: true,
+      });
       navigation.navigate(
         'Prospect Profile Screen',
         {
           screen: 'Prospect Profile',
-          params: { personUuid, photoBlurhash, showBottomButtons: false },
+          params: { personUuid },
         }
       );
     }
-  }, [isAvailableUser, name]);
+  }, [isAvailableUser, name, personUuid, photoBlurhash]);
 
   const toggleMenu = useCallback(() => {
     setShowMenu(x => !x);
@@ -391,6 +391,8 @@ const ConversationScreenNavBar = ({
           navigation={navigation}
           name={name}
           personUuid={personUuid}
+          isSkipped={isSkipped}
+          setIsSkipped={setIsSkipped}
           closeFn={() => setShowMenu(false)}
         />
       }
@@ -413,10 +415,85 @@ const ConversationScreen = ({navigation, route}) => {
   const layoutMeasurementRef = useRef({ height: 0 });
 
   const personUuid: string = route?.params?.personUuid;
-  const name: string = route?.params?.name;
-  const photoUuid: string = route?.params?.photoUuid;
-  const photoBlurhash: string = route?.params?.photoBlurhash;
-  const isAvailableUser: boolean = route?.params?.isAvailableUser ?? true;
+
+  // Descriptive details (name, photo, availability, skipped state) are not
+  // passed through route params (URL-safe). They are populated from an
+  // in-memory hint cache for an optimistic render, and confirmed / filled in
+  // via a single `/prospect-profile/:uuid` request shared with the nav bar's
+  // overflow menu.
+  const initialHint = getProspectHint(personUuid) ?? {};
+  const [name, setName] = useState<string | undefined>(initialHint.name);
+  const [photoUuid, setPhotoUuid] = useState<string | null | undefined>(
+    initialHint.photoUuid);
+  const [photoBlurhash, setPhotoBlurhash] = useState<string | null | undefined>(
+    initialHint.photoBlurhash);
+  const [isAvailableUser, setIsAvailableUser] = useState<boolean>(
+    initialHint.isAvailableUser ?? true);
+  const [isSkipped, setIsSkipped] = useState<boolean | undefined>();
+
+  useEffect(() => {
+    if (!personUuid) return;
+    // Re-seed from the (possibly newly populated) hint on every personUuid
+    // change. `useState` initializers only run on first mount, so when the
+    // screen instance is reused with a different uuid we'd otherwise show
+    // the previous prospect's name and photo until the API resolves.
+    const hint = getProspectHint(personUuid) ?? {};
+    setName(hint.name);
+    setPhotoUuid(hint.photoUuid);
+    setPhotoBlurhash(hint.photoBlurhash);
+    setIsAvailableUser(hint.isAvailableUser ?? true);
+    setIsSkipped(undefined);
+
+    let cancelled = false;
+    (async () => {
+      const response = await api('get', `/prospect-profile/${personUuid}`);
+      if (cancelled) return;
+      if (!response.ok) {
+        // Hard-deleted prospects 404 here. Mark them unavailable so the
+        // "this user is no longer reachable" UI renders on a cold-start
+        // deep-link to `/chat/<uuid>` (where there's no inbox-item
+        // hint to seed `isAvailableUser` from).
+        setIsAvailableUser(false);
+        setProspectHint(personUuid, { isAvailableUser: false });
+        return;
+      }
+      const j = response.json ?? {};
+      const photoUuids: (string | null)[] = j.photo_uuids ?? [];
+      const photoBlurhashes: (string | null)[] = j.photo_blurhashes ?? [];
+      const nextName: string | undefined = j.name ?? undefined;
+      const nextPhotoUuid: string | null =
+        photoUuids.length > 0 ? (photoUuids[0] ?? null) : null;
+      const nextPhotoBlurhash: string | null =
+        photoBlurhashes.length > 0 ? (photoBlurhashes[0] ?? null) : null;
+      // A prospect is "available" if they still have an account we can see.
+      // The prospect-profile endpoint 404s / returns without a name for
+      // deleted accounts.
+      const nextIsAvailableUser: boolean = !!j.name;
+      setName(nextName);
+      setPhotoUuid(nextPhotoUuid);
+      setPhotoBlurhash(nextPhotoBlurhash);
+      setIsAvailableUser(nextIsAvailableUser);
+      setIsSkipped(j.is_skipped ?? false);
+      setProspectHint(personUuid, {
+        name: nextName,
+        photoUuid: nextPhotoUuid,
+        photoBlurhash: nextPhotoBlurhash,
+        isAvailableUser: nextIsAvailableUser,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [personUuid]);
+
+  // Surface the other person's name in the browser tab. App.tsx's
+  // `documentTitle.formatter` reads `options.title` from the focused screen
+  // and prepends it to "Duolicious". `name` is already seeded optimistically
+  // from prospect-cache and refined once the API resolves, so we just track
+  // whatever it currently holds.
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: name ? `${possessive(name)} chat` : undefined,
+    });
+  }, [navigation, name]);
 
   // Load & persist draft message for this conversation (after personUuid available)
   const [draft, saveDraft] = useDraftMessage(personUuid);
@@ -668,6 +745,8 @@ const ConversationScreen = ({navigation, route}) => {
         photoBlurhash={photoBlurhash}
         name={name}
         isOnline={isOnline}
+        isSkipped={isSkipped}
+        setIsSkipped={setIsSkipped}
       />
       {messageIds === null &&
         <View style={{flexGrow: 1, justifyContent: 'center', alignItems: 'center'}}>
@@ -739,28 +818,32 @@ const ConversationScreen = ({navigation, route}) => {
                   />
                 }
               </ImageBackground>
-              <DefaultText
-                style={{
-                  marginTop: 20,
-                  marginBottom: 10,
-                  fontFamily: 'Trueno',
-                  textAlign: 'center',
-                  marginLeft: '15%',
-                  marginRight: '15%',
-                }}
-              >
-                This is the start of your conversation with {name}
-              </DefaultText>
-              <DefaultText
-                style={{
-                  textAlign: 'center',
-                  marginLeft: '10%',
-                  marginRight: '10%',
-                }}
-              >
-                Intros on Duolicious have to be totally unique! Try
-                asking {name} about something interesting on their profile...
-              </DefaultText>
+              {name &&
+                <>
+                  <DefaultText
+                    style={{
+                      marginTop: 20,
+                      marginBottom: 10,
+                      fontFamily: 'Trueno',
+                      textAlign: 'center',
+                      marginLeft: '15%',
+                      marginRight: '15%',
+                    }}
+                  >
+                    This is the start of your conversation with {name}
+                  </DefaultText>
+                  <DefaultText
+                    style={{
+                      textAlign: 'center',
+                      marginLeft: '10%',
+                      marginRight: '10%',
+                    }}
+                  >
+                    Intros on Duolicious have to be totally unique! Try
+                    asking {name} about something interesting on their profile...
+                  </DefaultText>
+                </>
+              }
             </>
           }
           {messageIds.length > 0 && [... new Set(messageIds)].map((messageId, i) => {

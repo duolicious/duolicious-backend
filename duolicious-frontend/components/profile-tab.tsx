@@ -42,6 +42,8 @@ import {
 import { Images } from './images/images';
 import { DefaultText } from './default-text';
 import { sessionToken, sessionPersonUuid } from '../kv-storage/session-token';
+import { lastPath } from '../kv-storage/last-path';
+import { resetUserScopedClientState } from '../navigation/reset-client-state';
 import { api, japi, ApiResponse } from '../api/api';
 import { useSignedInUser, setSignedInUser, getSignedInUser } from '../events/signed-in-user';
 import { cmToFeetInchesStr } from '../units/units';
@@ -109,10 +111,26 @@ const ProfileTab = () => {
         animation: 'slide_from_right',
       }}
     >
-      <Stack.Screen name="Profile Tab" component={ProfileTab_} />
-      <Stack.Screen name="Profile Option Screen" component={OptionScreen} />
-      <Stack.Screen name="Club Selector" component={ClubSelector} />
-      <Stack.Screen name="Invite Picker" component={InvitePicker} />
+      <Stack.Screen
+        name="Profile Tab"
+        component={ProfileTab_}
+        options={{ title: 'Profile' }}
+      />
+      <Stack.Screen
+        name="Profile Option Screen"
+        component={OptionScreen}
+        options={{ title: 'Settings' }}
+      />
+      <Stack.Screen
+        name="Club Selector"
+        component={ClubSelector}
+        options={{ title: 'Clubs' }}
+      />
+      <Stack.Screen
+        name="Invite Picker"
+        component={InvitePicker}
+        options={{ title: 'Invite friends' }}
+      />
     </Stack.Navigator>
   );
 };
@@ -557,6 +575,11 @@ const Options = ({ navigation, data }) => {
     if ((await api('post', '/sign-out')).ok) {
       await sessionPersonUuid(null);
       await sessionToken(null);
+      // Drop the persisted route so the next sign-in (potentially as a
+      // different user on the same browser) starts at the default screen
+      // rather than wherever this user happened to be.
+      await lastPath(null);
+      resetUserScopedClientState();
       setSignedInUser(undefined);
       navigation.reset({ routes: [ { name: 'Welcome' } ] });
     }
@@ -581,10 +604,9 @@ const Options = ({ navigation, data }) => {
   }, []);
 
   const goToClubSelector = useCallback(() => {
-    navigation.navigate(
-      "Club Selector",
-      { selectedClubs: data["clubs"] },
-    );
+    // `Club Selector` reads the current clubs from the `updated-clubs` event,
+    // so there's no reason to pass them as (non-serializable) route params.
+    navigation.navigate("Club Selector");
   }, [navigation]);
 
   const clubsSetting = (() => {
@@ -692,11 +714,7 @@ const Options = ({ navigation, data }) => {
           'Prospect Profile Screen',
           {
             screen: 'Prospect Profile',
-            params: {
-              personId:  signedInUser?.personId,
-              personUuid:  signedInUser?.personUuid,
-              showBottomButtons: false
-            },
+            params: { personUuid: signedInUser?.personUuid },
           }
         )}
         containerStyle={{

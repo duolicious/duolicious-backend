@@ -19,13 +19,13 @@ import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
 import { OnlineIndicator } from './online-indicator';
 import { useAppTheme } from '../app-theme/app-theme';
 import { useNavigation } from '@react-navigation/native';
+import { setProspectHint } from '../navigation/prospect-cache';
 
 const Avatar = ({
   percentage,
   personUuid,
   photoUuid,
   photoBlurhash,
-  personId,
   isSkipped = false,
   verificationRequired = null,
   doUseOnline = true,
@@ -35,7 +35,6 @@ const Avatar = ({
   personUuid: string
   photoUuid: string | null
   photoBlurhash: string | null
-  personId?: number
   isSkipped?: boolean
   verificationRequired?: 'basics' | 'photos' | null
   doUseOnline?: boolean
@@ -55,15 +54,16 @@ const Avatar = ({
     if (verificationRequired) {
       return navigation.navigate('Profile');
     } else if (personUuid) {
+      setProspectHint(personUuid, { photoBlurhash });
       return navigation.navigate(
         'Prospect Profile Screen',
         {
           screen: 'Prospect Profile',
-          params: { personId, personUuid, photoBlurhash },
+          params: { personUuid },
         }
       );
     }
-  }, [navigation, personId, personUuid, photoBlurhash, verificationRequired]);
+  }, [navigation, personUuid, photoBlurhash, verificationRequired]);
 
   const isLinkToProfile = navigation && !verificationRequired && personUuid && !disableProfileNavigation;
 

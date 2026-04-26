@@ -1,9 +1,12 @@
 import {
+  ActivityIndicator,
   View,
 } from 'react-native';
 import {
-  useState,
   memo,
+  useEffect,
+  useLayoutEffect,
+  useState,
 } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TopNavBar } from './top-nav-bar';
@@ -17,6 +20,7 @@ import { StatusBarSpacer } from './status-bar-spacer';
 import { FloatingBackButton } from './prospect-profile-screen';
 import { CardState } from './quiz-card';
 import { useSignedInUser } from '../events/signed-in-user';
+import { getProspectHint, setProspectHint } from '../navigation/prospect-cache';
 
 const sideMargins = {
   marginLeft: 10,
@@ -248,8 +252,63 @@ const CurredInDepthScreen = ({navigationRef, navigation, route}) => {
   if (navigationRef)
     navigationRef.current = navigation;
 
-  const personId = route.params.personId;
-  const name = route.params.name ?? '';
+  // Only `personUuid` lives in the URL. Numeric `personId` (used by the
+  // `/compare-*` endpoints) and the prospect's display `name` come from the
+  // prospect-cache hint that the parent profile screen populates after its
+  // own fetch. On a direct deep-link we won't have a hint, so we fall back
+  // to fetching `/prospect-profile/:personUuid` here.
+  const personUuid: string | undefined = route?.params?.personUuid;
+  const initialHint = getProspectHint(personUuid) ?? {};
+
+  const [personId, setPersonId] = useState<number | undefined>(
+    initialHint.personId);
+  const [name, setName] = useState<string>(initialHint.name ?? '');
+  const [fetchFailed, setFetchFailed] = useState(false);
+
+  useEffect(() => {
+    if (!personUuid) return;
+    // Re-seed from the (possibly newly populated) hint on every personUuid
+    // change. `useState` initializers only run on first mount, so without
+    // this we'd briefly show the previous prospect's name/id when the same
+    // screen instance is reused with a different uuid.
+    const hint = getProspectHint(personUuid) ?? {};
+    setPersonId(hint.personId);
+    setName(hint.name ?? '');
+    setFetchFailed(false);
+
+    // Skip the network round-trip if the hint already has everything we
+    // need. The common case is "Prospect Profile -> In-Depth" where the
+    // parent screen has just populated the cache with the same fields the
+    // `/prospect-profile/:uuid` endpoint would return.
+    if (hint.personId !== undefined && hint.name) return;
+
+    let cancelled = false;
+    (async () => {
+      const response = await api('get', `/prospect-profile/${personUuid}`);
+      if (cancelled) return;
+      if (!response.ok) {
+        setFetchFailed(true);
+        return;
+      }
+      const j = response.json ?? {};
+      setPersonId(j.person_id);
+      setName(j.name ?? '');
+      setFetchFailed(false);
+      setProspectHint(personUuid, {
+        personId: j.person_id,
+        name: j.name,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [personUuid]);
+
+  // Surface the prospect's name in the browser tab. App.tsx's
+  // `documentTitle.formatter` reads `options.title` from the focused screen.
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: name ? `You + ${name}` : undefined,
+    });
+  }, [navigation, name]);
 
   const [idx1, setIdx1] = useState(0);
   const [idx2, setIdx2] = useState(0);
@@ -260,44 +319,77 @@ const CurredInDepthScreen = ({navigationRef, navigation, route}) => {
 
   return (
     <>
-      <DefaultFlatList
-        contentContainerStyle={{
-          paddingTop: 0 + insets.top,
-          paddingBottom: 20 + insets.bottom,
-        }}
-        dataKey={
-          idx1 === 1 ? `${idx1}-${idx4}` : `${idx1}-${idx2}-${idx3}`}
-        emptyText={
-          idx1 === 1 ? undefined : "No Q&A answers to show"}
-        endText={
-          idx1 === 1 ? undefined : "No more Q&A answers to show"}
-        fetchPage={
-          idx1 === 1 ?
-          fetchPersonalityPage(personId, idx4) :
-          fetchAnswersPage(
-            personId,
-            ['all', 'agree', 'disagree', 'unanswered'][idx2],
-            ['all', 'values', 'sex', 'interpersonal', 'other'][idx3],
-          )
-        }
-        ListHeaderComponent={
-          <Header
-            name={name}
-            idx1={idx1}
-            idx2={idx2}
-            idx3={idx3}
-            idx4={idx4}
-            onChangeIdx1={setIdx1}
-            onChangeIdx2={setIdx2}
-            onChangeIdx3={setIdx3}
-            onChangeIdx4={setIdx4}
-          />
-        }
-        renderItem={({item}) =>
-          <InDepthItemMemo personId={personId} item={item} />
-        }
-        disableRefresh={true}
-      />
+      {personId === undefined && !fetchFailed &&
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <ActivityIndicator size="large" />
+        </View>
+      }
+      {personId === undefined && fetchFailed &&
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 20,
+          }}
+        >
+          <DefaultText
+            style={{
+              fontSize: 16,
+              color: '#888',
+              textAlign: 'center',
+            }}
+          >
+            Couldn’t load this profile.
+          </DefaultText>
+        </View>
+      }
+      {personId !== undefined &&
+        <DefaultFlatList
+          contentContainerStyle={{
+            paddingTop: 0 + insets.top,
+            paddingBottom: 20 + insets.bottom,
+          }}
+          dataKey={
+            idx1 === 1 ? `${idx1}-${idx4}` : `${idx1}-${idx2}-${idx3}`}
+          emptyText={
+            idx1 === 1 ? undefined : "No Q&A answers to show"}
+          endText={
+            idx1 === 1 ? undefined : "No more Q&A answers to show"}
+          fetchPage={
+            idx1 === 1 ?
+            fetchPersonalityPage(personId, idx4) :
+            fetchAnswersPage(
+              personId,
+              ['all', 'agree', 'disagree', 'unanswered'][idx2],
+              ['all', 'values', 'sex', 'interpersonal', 'other'][idx3],
+            )
+          }
+          ListHeaderComponent={
+            <Header
+              name={name}
+              idx1={idx1}
+              idx2={idx2}
+              idx3={idx3}
+              idx4={idx4}
+              onChangeIdx1={setIdx1}
+              onChangeIdx2={setIdx2}
+              onChangeIdx3={setIdx3}
+              onChangeIdx4={setIdx4}
+            />
+          }
+          renderItem={({item}) =>
+            <InDepthItemMemo personId={personId} item={item} />
+          }
+          disableRefresh={true}
+        />
+      }
       <View
         style={{
           position: 'absolute',

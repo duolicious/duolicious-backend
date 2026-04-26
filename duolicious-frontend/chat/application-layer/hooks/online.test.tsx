@@ -10,10 +10,15 @@ describe('Batching Mechanism and Reference Counting', () => {
   let send;
 
   beforeEach(() => {
-    // Reset modules and import a fresh instance
+    // Reset modules and import a fresh instance. `jest.resetModules()`
+    // operates on the CommonJS require cache, so we deliberately use
+    // `require` here rather than ES `import` (which is hoisted and
+    // wouldn't pick up the reset module instance).
     jest.resetModules();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const online = require('./online');
     subscribe = online.subscribe;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     send = require('../../websocket-layer').send;
     jest.clearAllTimers();
   });

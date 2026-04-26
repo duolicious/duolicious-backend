@@ -8,6 +8,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultText } from '../default-text';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { usePressableAnimation } from '../../animation/animation';
+import { setOptionScreenPayload } from '../../navigation/option-screen-store';
 
 const ButtonForOption = (props) => {
   const {
@@ -43,14 +44,15 @@ const ButtonForOption = (props) => {
   const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
 
   const onPress_ = useCallback(onPress ?? (() => {
-    navigation.navigate(
-      navigationScreen,
-      {
-        optionGroups: optionGroups,
-        ...(onSubmitSuccess !== undefined ? {onSubmitSuccess} : {}),
-        ...(showSkipButton !== undefined ? {showSkipButton} : {}),
-      }
-    )
+    // Stash the non-serializable payload (option-group definitions, callbacks)
+    // in an in-memory store so navigation params stay URL-safe. The target
+    // OptionScreen reads the payload using its own route name as the key.
+    setOptionScreenPayload(navigationScreen, {
+      optionGroups,
+      ...(onSubmitSuccess !== undefined ? { onSubmitSuccess } : {}),
+      ...(showSkipButton !== undefined ? { showSkipButton } : {}),
+    });
+    navigation.navigate(navigationScreen);
   }), []);
 
   return (

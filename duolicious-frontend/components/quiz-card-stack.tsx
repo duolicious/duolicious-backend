@@ -357,7 +357,6 @@ const getBestProspects = (prospects: ProspectState[]) => {
 
 const Prospect = ({
   style,
-  personId,
   personUuid,
   photoUuid,
   photoBlurhash,
@@ -376,7 +375,6 @@ const Prospect = ({
     }}
   >
     <Avatar
-      personId={personId}
       personUuid={personUuid}
       photoUuid={photoUuid}
       photoBlurhash={photoBlurhash}
@@ -521,7 +519,6 @@ const Prospects = ({
             <Prospect
               key={String(topCardIndex - i)}
               style={prospect.style}
-              personId={prospect.personId}
               personUuid={prospect.personUuid}
               photoUuid={prospect.photoUuid}
               photoBlurhash={prospect.photoBlurhash}

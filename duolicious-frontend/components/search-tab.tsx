@@ -99,7 +99,11 @@ const SearchTab = () => {
         presentation: 'card'
       }}
     >
-      <Stack.Screen name="Search Screen" component={SearchScreen_} />
+      <Stack.Screen
+        name="Search Screen"
+        component={SearchScreen_}
+        options={{ title: 'Search' }}
+      />
       <Stack.Screen name="Search Filter Screen" component={SearchFilterScreen} />
     </Stack.Navigator>
   );
@@ -553,10 +557,13 @@ const SearchScreen_ = ({navigation}) => {
     refresh && refresh();
   }, []);
 
+  useEffect(() => {
+    return listen('search-refresh-requested', onPressRefresh);
+  }, [onPressRefresh]);
+
   const onPressOptions = useCallback(() => {
     navigation.navigate('Search Filter Screen', {
       screen: 'Search Filter Tab',
-      params: { onPressRefresh },
     });
   }, [selectedClub]);
 

@@ -7,6 +7,8 @@ import {
   useSignedInUser,
 } from '../events/signed-in-user';
 import { sessionToken, sessionPersonUuid } from '../kv-storage/session-token';
+import { lastPath } from '../kv-storage/last-path';
+import { resetUserScopedClientState } from '../navigation/reset-client-state';
 import { X } from "react-native-feather";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faPalette } from '@fortawesome/free-solid-svg-icons/faPalette'
@@ -1070,6 +1072,8 @@ const deletionOptionGroups: OptionGroup<OptionGroupTextShort>[] = [
 
           await sessionPersonUuid(null);
           await sessionToken(null);
+          await lastPath(null);
+          resetUserScopedClientState();
           setSignedInUser(undefined);
 
           navigationContainerRef.reset({ routes: [ { name: 'Welcome' } ]});
@@ -1093,6 +1097,8 @@ const deactivationOptionGroups: OptionGroup<OptionGroupNone>[] = [
           if (ok) {
             await sessionPersonUuid(null);
             await sessionToken(null);
+            await lastPath(null);
+            resetUserScopedClientState();
             setSignedInUser(undefined);
 
             navigationContainerRef.reset({ routes: [ { name: 'Welcome' } ]});

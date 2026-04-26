@@ -1,45 +1,26 @@
-import { getCurrentScreen } from '../navigation/navigation';
 import { storeKv } from './kv-storage';
 
-// The screens 'Profile Option Screen' and 'Search Filter Option Screen'
-// include parameters which aren't serializable. Those navigation states
-// shouldn't be stored.
-const safeScreens = [
-  "Conversation Screen",
-  "Home/Inbox",
-  "Home/Profile/Profile Tab",
-  "Home/Q&A",
-  "Home/Search/Search Filter Screen/Q&A Filter Screen",
-  "Home/Search/Search Filter Screen/Search Filter Tab",
-  "Home/Search/Search Screen",
-  "Home/Feed",
-  "Home/Visitors",
-  "Prospect Profile Screen/Prospect Profile",
-];
-
-const navigationState = async (value?: any) => {
-  const currentScreen = getCurrentScreen(value);
-  if (currentScreen && !safeScreens.includes(currentScreen))
-    return null;
-
-  const result = await storeKv(
-    "navigation_state",
-    typeof value === "undefined" ? undefined
-      : !value ? null
-      : JSON.stringify(value)
-  );
-
+// One-shot reader for the pre-`last_path` navigation state. We no longer
+// write here - `last_path` is the source of truth - but older app versions
+// stored a full navigation tree under `navigation_state`. Reading it through
+// this helper migrates and discards the legacy blob in a single call so it
+// doesn't sit around in storage forever (it's tens of KB of stale state).
+const consumeLegacyNavigationState = async (): Promise<any | null> => {
+  const result = await storeKv('navigation_state');
   if (!result) return null;
+
+  // Only spend a write if there was actually something to discard. Fresh
+  // installs and users who have already migrated will hit the early return
+  // above and skip the AsyncStorage round-trip entirely.
+  await storeKv('navigation_state', null);
 
   try {
     return JSON.parse(result);
   } catch {
-    // If the navigation state is invalid json, just ignore it. It will be
-    // overwritten with a valid state on the next navigation.
     return null;
   }
 };
 
 export {
-  navigationState,
+  consumeLegacyNavigationState,
 }

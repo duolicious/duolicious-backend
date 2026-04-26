@@ -36,6 +36,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faGhost } from '@fortawesome/free-solid-svg-icons/faGhost';
 import { useTooltip } from './tooltip';
 import { happenedInLast7Days } from '../util/util';
+import { setProspectHint } from '../navigation/prospect-cache';
 
 const friendlyTimestamp = (date: Date): string => {
   if (isToday(date)) {
@@ -297,11 +298,12 @@ const useNavigationToProfile = (
     } else if (personUuid) {
       markVisitorChecked(personUuid);
 
+      setProspectHint(personUuid, { photoBlurhash });
       return navigation.navigate(
         'Prospect Profile Screen',
         {
           screen: 'Prospect Profile',
-          params: { personUuid, photoBlurhash },
+          params: { personUuid },
         }
       );
     }
