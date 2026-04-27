@@ -438,6 +438,7 @@ class PatchProfileInfo(BaseModel):
     show_my_age: Optional[str] = None
     hide_me_from_strangers: Optional[str] = None
     browse_invisibly: Optional[str] = None
+    public_profile: Optional[str] = None
     theme: Optional[Theme] = None
 
     @model_validator(mode='after')

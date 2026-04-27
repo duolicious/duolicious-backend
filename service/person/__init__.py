@@ -646,9 +646,9 @@ def get_me(
     except:
         return '', 404
 
-def get_prospect_profile(s: t.SessionInfo, prospect_uuid):
+def get_prospect_profile(s: Optional[t.SessionInfo], prospect_uuid):
     params = dict(
-        person_id=s.person_id,
+        person_id=s.person_id if s is not None else None,
         prospect_uuid=prospect_uuid,
     )
 
@@ -660,6 +660,15 @@ def get_prospect_profile(s: t.SessionInfo, prospect_uuid):
         profile = api_row.get('j')
         if not profile:
             return '', 404
+
+    if s is None:
+        # Reply-rate stats count replies *to* %(person_id)s, so they're
+        # meaningless for anonymous viewers - return NULL rather than 0%.
+        profile.update(dict(
+            gets_reply_percentage=None,
+            gives_reply_percentage=None,
+        ))
+        return profile
 
     # Timeout in case someone with lots of messages hogs CPU time
     try:
@@ -1296,6 +1305,13 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         q1 = """
         UPDATE person
         SET browse_invisibly = (
+            CASE WHEN %(field_value)s = 'Yes' THEN TRUE ELSE FALSE END)
+        WHERE id = %(person_id)s
+        """
+    elif field_name == 'public_profile':
+        q1 = """
+        UPDATE person
+        SET public_profile = (
             CASE WHEN %(field_value)s = 'Yes' THEN TRUE ELSE FALSE END)
         WHERE id = %(person_id)s
         """

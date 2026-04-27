@@ -220,9 +220,29 @@ def validate(RequestType):
         return go1
     return go2
 
-def require_auth(expected_onboarding_status, expected_sign_in_status):
+def require_auth(expected_onboarding_status, expected_sign_in_status, auth='required'):
+    """
+    Resolve the request's bearer token to a `SessionInfo` and forward it to
+    `func`. With the default `auth='required'`, missing/invalid auth produces
+    a 4xx response and `func` is never called. With `auth='optional'`, those
+    same cases instead invoke `func(None, *args, **kwargs)` so that handlers
+    can serve a degraded response to anonymous callers without ever touching
+    the bearer header themselves - the bulk of the auth logic still lives
+    here in the decorator.
+
+    Handlers that opt in MUST type their first parameter as
+    `Optional[SessionInfo]` so the type checker forces every read of `s` to
+    handle the missing case.
+    """
+    if auth not in ('required', 'optional'):
+        raise ValueError(f'auth must be "required" or "optional", got {auth!r}')
+
     def go2(func):
         rate_limited_func = account_limiter(func)
+
+        def call_anonymous(*args, **kwargs):
+            result = rate_limited_func(None, *args, **kwargs)
+            return result if result is not None else ''
 
         def go1(*args, **kwargs):
             auth_header = (request.headers.get('Authorization') or '').lower()
@@ -231,6 +251,8 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                 if bearer != 'bearer':
                     raise Exception()
             except:
+                if auth == 'optional':
+                    return call_anonymous(*args, **kwargs)
                 return 'Missing or malformed authorization header', 400
 
             session_token_hash = sha512(session_token)
@@ -257,6 +279,8 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
 
                 g.normalized_email = normalize_email(email)
             else:
+                if auth == 'optional':
+                    return call_anonymous(*args, **kwargs)
                 return 'Invalid session token', 401
 
             is_onboarded = session_info.person_id is not None
@@ -276,6 +300,12 @@ def require_auth(expected_onboarding_status, expected_sign_in_status):
                 result = rate_limited_func(session_info, *args, **kwargs)
                 return result if result is not None else ''
             else:
+                # A token that fails the onboarding/sign-in expectations is
+                # treated as no-auth for `auth='optional'` rather than a 401.
+                # Otherwise a half-onboarded user couldn't see public
+                # endpoints they're entitled to, which would be surprising.
+                if auth == 'optional':
+                    return call_anonymous(*args, **kwargs)
                 return 'Unauthorized', 401
 
         go1.__name__ = func.__name__
@@ -310,6 +340,7 @@ def make_auth_decorator(flask_decorator):
             limiter=None,
             expected_onboarding_status=True,
             expected_sign_in_status=True,
+            auth='required',
             **kwargs
     ):
         maybe_limiter = limiter or (lambda x: x)
@@ -323,7 +354,8 @@ def make_auth_decorator(flask_decorator):
                 maybe_limiter(
                     require_auth(
                         expected_onboarding_status,
-                        expected_sign_in_status
+                        expected_sign_in_status,
+                        auth=auth,
                     )(
                         return_empty_string(func)
                     )

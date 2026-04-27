@@ -312,6 +312,10 @@ CREATE TABLE IF NOT EXISTS person (
     show_my_age BOOLEAN NOT NULL DEFAULT TRUE,
     hide_me_from_strangers BOOLEAN NOT NULL DEFAULT FALSE,
     browse_invisibly BOOLEAN NOT NULL DEFAULT FALSE,
+    -- Opt-in: every user (new or existing) starts private and must flip the
+    -- "Public Profile" toggle in privacy settings to expose their profile
+    -- to anonymous viewers.
+    public_profile BOOLEAN NOT NULL DEFAULT FALSE,
     privacy_verification_level_id SMALLINT REFERENCES verification_level(id) NOT NULL DEFAULT 1,
 
     -- Bookkeeping
