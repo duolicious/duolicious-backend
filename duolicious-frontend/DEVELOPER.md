@@ -59,6 +59,7 @@ Runtime configuration is provided to the app through Expo `extra` values (see `a
 - `DUO_AUDIO_URL` – audio CDN/base URL
 - `DUO_PARTNER_URL` – partner portal URL
 - `DUO_INVITE_URL` – invite landing page URL
+- `DUO_WEB_URL` – web app base URL (used to build shareable profile links)
 - `DUO_WEB_VERSION` – web build/version identifier
 - `DUO_TENOR_API_KEY` – Tenor API key for GIFs
 - `NOTIFICATION_ICON_URL` – desktop notification icon URL

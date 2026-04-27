@@ -23,7 +23,15 @@ const isRootPath = (p: string | null | undefined): boolean => {
 // top-level route name directly because `getStateFromPath` returns "stale"
 // partial states without `index` / focused-route metadata, which makes
 // recursive helpers like `getCurrentScreen` return null.
-const PUBLIC_TOP_LEVEL_ROUTES = new Set(['Invite Screen', 'Welcome']);
+//
+// `Prospect Profile Screen` is conditionally public: the screen mounts for
+// everyone, and the backend gates visibility on `public_profile`. The
+// screen renders its own 404 state when access is denied.
+const PUBLIC_TOP_LEVEL_ROUTES = new Set([
+  'Invite Screen',
+  'Prospect Profile Screen',
+  'Welcome',
+]);
 
 const isPublicTopRoute = (state: any): boolean => {
   const topRoute = state?.routes?.[0]?.name;
@@ -43,12 +51,15 @@ const HOME_BACK_TAB_FOR_TOP_ROUTE: Record<string, string> = {
   'Prospect Profile Screen': 'Search',
 };
 
-const withHomeBackStack = (state: any): any => {
+const withHomeBackStack = (state: any, isAuthenticated: boolean = true): any => {
   const routes = state?.routes;
   if (!Array.isArray(routes) || routes.length === 0) return state;
   const topName = routes[0]?.name;
   const backTab = HOME_BACK_TAB_FOR_TOP_ROUTE[topName];
   if (!backTab) return state;
+  // `Home`'s tabs assume an authenticated user. Without one, back from the
+  // prospect profile should drop the user on Welcome, not a broken Q&A tab.
+  if (!isAuthenticated) return state;
 
   // Prepend a synthetic `Home` parent and keep focus on the original top
   // route, which has shifted from index 0 to index 1 (= newRoutes.length - 1).
@@ -170,7 +181,7 @@ export async function computeStartupNavigationState(args: {
   if (urlState) {
     if (isAuthenticated || isPublicTopRoute(urlState)) {
       return {
-        initialState: withHomeBackStack(urlState),
+        initialState: withHomeBackStack(urlState, isAuthenticated),
         postLoginRedirectState: null,
       };
     }

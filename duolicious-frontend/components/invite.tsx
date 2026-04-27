@@ -24,39 +24,17 @@ import { listen, lastEvent } from '../events/events';
 import { SelectedClub } from './club-selector';
 import { ClubItem } from '../club/club';
 import { ButtonWithCenteredText } from './button/centered-text';
-import { notify } from '../events/events';
-import { faLink } from '@fortawesome/free-solid-svg-icons/faLink'
 import * as Clipboard from 'expo-clipboard';
-import { ToastContainer } from './toast';
+import { notifyLinkCopiedToast } from './toast';
 import { INVITE_URL } from '../env/env';
 import { useAppTheme } from '../app-theme/app-theme';
-
-const LinkCopiedToast = () => {
-  return (
-    <ToastContainer>
-      <FontAwesomeIcon
-        icon={faLink}
-        color="black"
-        size={24}
-      />
-      <DefaultText
-        style={{
-          color: 'black',
-          fontWeight: '700',
-        }}
-      >
-        Invite Link Copied!
-      </DefaultText>
-    </ToastContainer>
-  );
-};
 
 const onPressInvite = (clubName: string) => async () => {
   const url = `${INVITE_URL}/${encodeURIComponent(clubName)}`;
 
   await Clipboard.setStringAsync(url);
 
-  notify<React.FC>('toast', LinkCopiedToast)
+  notifyLinkCopiedToast('Invite Link Copied!');
 };
 
 const InvitePicker = ({navigation}) => {

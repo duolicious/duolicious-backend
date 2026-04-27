@@ -19,6 +19,12 @@ export const STATUS_URL = Constants.expoConfig?.extra?.statusUrl
 export const INVITE_URL = Constants.expoConfig?.extra?.inviteUrl
   ?? 'https://duolicious.gg';
 
+// Base URL of the web app. Used to build shareable deep-links (e.g. profile
+// share URLs) that should land in the web app for non-app users. This is
+// distinct from `INVITE_URL`, which points at the club-invite landing page.
+export const WEB_URL = Constants.expoConfig?.extra?.webUrl
+  ?? 'https://web.duolicious.app';
+
 export const PARTNER_URL = Constants.expoConfig?.extra?.partnerUrl
   ?? 'https://partner.duolicious.app'
 

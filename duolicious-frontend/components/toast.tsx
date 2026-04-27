@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { Animated, View } from 'react-native';
-import { listen } from '../events/events';
+import { listen, notify } from '../events/events';
 import { RenderedHoc } from './rendered-hoc';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DefaultText } from './default-text';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faLink } from '@fortawesome/free-solid-svg-icons/faLink';
 
 const SOMETHING_WENT_WRONG = "Something went wrong";
 
@@ -144,10 +146,23 @@ const ValidationErrorToast = ({error}: {error: string}) => {
   );
 };
 
+const notifyLinkCopiedToast = (label: string) => {
+  const Toast: React.FC = () => (
+    <ToastContainer>
+      <FontAwesomeIcon icon={faLink} color="black" size={24} />
+      <DefaultText style={{ color: 'black', fontWeight: '700' }}>
+        {label}
+      </DefaultText>
+    </ToastContainer>
+  );
+  notify<React.FC>('toast', Toast);
+};
+
 export {
   SOMETHING_WENT_WRONG,
   SomethingWentWrongToast,
   Toast,
   ToastContainer,
   ValidationErrorToast,
+  notifyLinkCopiedToast,
 };

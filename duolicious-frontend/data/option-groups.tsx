@@ -24,6 +24,7 @@ import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
 import { faImage } from '@fortawesome/free-solid-svg-icons/faImage'
 import { faCalendar } from '@fortawesome/free-solid-svg-icons/faCalendar'
 import { faGhost } from '@fortawesome/free-solid-svg-icons/faGhost'
+import { faGlobe } from '@fortawesome/free-solid-svg-icons/faGlobe'
 import { faChild } from '@fortawesome/free-solid-svg-icons/faChild'
 import { faChildren } from '@fortawesome/free-solid-svg-icons/faChildren'
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -2015,6 +2016,40 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
 ];
 
 const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
+  {
+    title: 'Public Profile',
+    Icon: ({ color = 'black' }) => (
+      <FontAwesomeIcon
+        icon={faGlobe}
+        size={14}
+        style={{ color }}
+      />
+    ),
+    description: () => (
+      <DefaultText style={descriptionStyle.style}>
+        With this option set to ‘Yes’, people who aren’t signed into Duolicious
+        can view your profile.  Your other privacy settings still apply: if a
+        different setting hides your profile from someone, that takes precedence
+        over this one.
+      </DefaultText>
+    ),
+    input: {
+      buttons: {
+        values: yesNo,
+        submit: async function(publicProfile: string) {
+          const ok = (
+            await japi(
+              'patch',
+              '/profile-info',
+              { public_profile: publicProfile }
+            )
+          ).ok;
+          if (ok) this.currentValue = publicProfile;
+          return ok;
+        },
+      }
+    },
+  },
   {
     title: 'Verification Level',
     Icon: ({ color = 'black' }) => <VerificationBadge

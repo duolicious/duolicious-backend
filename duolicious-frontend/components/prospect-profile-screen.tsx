@@ -52,7 +52,10 @@ import { faPills } from '@fortawesome/free-solid-svg-icons/faPills'
 import { faSmoking } from '@fortawesome/free-solid-svg-icons/faSmoking'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
-import { RotateCcw, Flag, X } from "react-native-feather";
+import * as Clipboard from 'expo-clipboard';
+import { notifyLinkCopiedToast } from './toast';
+import { WEB_URL } from '../env/env';
+import { RotateCcw, Flag, X, Share2 } from "react-native-feather";
 import Reanimated, {
   Easing,
   FadeOut,
@@ -112,6 +115,57 @@ const GalleryScreen = ({navigation, route}) => {
       <StatusBarSpacer/>
       <FloatingBackButton onPress={() => navigation.goBack()}/>
     </>
+  );
+};
+
+// Path here must match the `Prospect Profile` route in App.tsx's linking config.
+const buildShareableProfileUrl = (personUuid: string) =>
+  `${WEB_URL}/profile/${encodeURIComponent(personUuid)}`;
+
+const onPressShareProfile = async (personUuid: string | undefined) => {
+  if (!personUuid) return;
+  await Clipboard.setStringAsync(buildShareableProfileUrl(personUuid));
+  notifyLinkCopiedToast('Profile Link Copied!');
+};
+
+const ShareButton = ({personUuid}: {personUuid: string | undefined}) => {
+  const onPress = useCallback(() => {
+    onPressShareProfile(personUuid);
+  }, [personUuid]);
+
+  const iconStroke = 'rgba(0, 0, 0, 0.5)';
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityLabel="Copy profile link"
+      style={{
+        marginTop: 100,
+        marginBottom: 0,
+        alignSelf: 'center',
+        flexDirection: 'row',
+        gap: 7,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        padding: 8,
+        borderRadius: 5,
+      }}
+    >
+      <Share2
+        stroke={iconStroke}
+        strokeWidth={2}
+        height={18}
+        width={18}
+      />
+      <DefaultText
+        style={{
+          overflow: 'hidden',
+          textAlign: 'center',
+          color: 'rgba(0, 0, 0, 0.5)',
+        }}
+      >
+        Share profile
+      </DefaultText>
+    </Pressable>
   );
 };
 
@@ -307,6 +361,69 @@ const FloatingSendIntroButton = ({
   );
 };
 
+const AnonymousSignInCta = ({navigation, name}) => {
+  const { appTheme } = useAppTheme();
+
+  // Push Welcome (don't `reset`) so the system back button still points at
+  // the profile and the user can bail out of sign-in.
+  // TODO: route the user back to this profile after sign-in.
+  const onPress = useCallback(() => {
+    navigation.navigate('Welcome');
+  }, [navigation]);
+
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        bottom: 0,
+        width: '100%',
+        maxWidth: 600,
+        alignSelf: 'center',
+        zIndex: 999,
+        paddingLeft: 20,
+        paddingRight: 20,
+        paddingBottom: 14,
+        paddingTop: 14,
+      }}
+      pointerEvents="box-none"
+    >
+      <Pressable
+        onPress={onPress}
+        style={{
+          backgroundColor: appTheme.brandColor,
+          borderRadius: 999,
+          paddingVertical: 16,
+          paddingHorizontal: 20,
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'row',
+          gap: 10,
+          borderWidth: 1,
+          borderColor: appTheme.secondaryColor,
+        }}
+      >
+        <FontAwesomeIcon
+          icon={faPaperPlane}
+          size={18}
+          style={{ color: appTheme.primaryColor }}
+        />
+        <DefaultText
+          style={{
+            color: appTheme.primaryColor,
+            fontWeight: '700',
+            fontSize: 16,
+            textAlign: 'center',
+          }}
+        >
+          {name === undefined
+            ? 'Sign up to send a message'
+            : `Sign up to message ${name}`}
+        </DefaultText>
+      </Pressable>
+    </View>
+  );
+};
+
 const SeeQAndAButton = ({navigation, personUuid, name}) => {
   const containerStyle = useRef({
     marginTop: 40,
@@ -451,6 +568,7 @@ const AllClubs = ({
   clubsTheme: any,
   titleColor: any,
 }) => {
+  const [signedInUser] = useSignedInUser();
   const [state, setState] = useState({
     mutualClubs: mutualClubs,
     otherClubs: otherClubs,
@@ -485,6 +603,15 @@ const AllClubs = ({
     return null;
   }
 
+  // join/leave hit authenticated endpoints, so anon viewers see clubs but
+  // can't interact with them.
+  const onPressLeave = signedInUser
+    ? (clubName: string) => leaveClub(clubName)
+    : undefined;
+  const onPressJoin = signedInUser
+    ? (clubName: string) => joinClub(clubName, -1, false)
+    : undefined;
+
   const childData = [
     state.mutualClubs.length > 0 ? {
       kind: 'Title',
@@ -494,7 +621,7 @@ const AllClubs = ({
     ...state.mutualClubs.map((clubName) => ({
         kind: 'Club',
         props: {
-          onPress: () => leaveClub(clubName),
+          onPress: onPressLeave && (() => onPressLeave(clubName)),
           key: clubName,
           name: clubName,
           isMutual: true,
@@ -516,7 +643,7 @@ const AllClubs = ({
       ...state.otherClubs.map((clubName) => ({
         kind: 'Club',
         props: {
-          onPress: () => joinClub(clubName, -1, false),
+          onPress: onPressJoin && (() => onPressJoin(clubName)),
           key: clubName,
           name: clubName,
           isMutual: false,
@@ -558,7 +685,7 @@ type UserData = {
   mutual_clubs: string[],
   other_clubs: string[],
   gender: string,
-  match_percentage: number,
+  match_percentage: number | null,
   photo_uuids: string[],
   photo_extra_exts: string[][],
   photo_blurhashes: string[],
@@ -678,6 +805,7 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
   const hint = getProspectHint(personUuid);
   const isViewingSelf =
     !!signedInUser?.personUuid && signedInUser.personUuid === personUuid;
+  const isAnonymousViewer = !signedInUser;
   // Consume the `hideBottomButtons` hint when a new uuid lands here so a
   // later visit from a different context (e.g. tapping the same person's
   // avatar in search) gets the default behaviour rather than inheriting a
@@ -697,11 +825,16 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
       setHideBottomButtonsHint(false);
     }
   }, [personUuid]);
-  const showBottomButtons = !isViewingSelf && !hideBottomButtonsHint;
+  const showAuthedBottomButtons =
+    !isAnonymousViewer && !isViewingSelf && !hideBottomButtonsHint;
   const photoBlurhashParam = hint?.photoBlurhash;
 
   const { appThemeName, appTheme } = useAppTheme();
   const [data, setData] = useState<UserData | undefined>(undefined);
+  // Wait for `data` to resolve so the CTA doesn't briefly flash before
+  // `notFound` flips on for 404'd profiles.
+  const showAnonymousSignInCta =
+    isAnonymousViewer && !!data && !hideBottomButtonsHint;
   const personId = data?.person_id;
   const [notFound, setNotFound] = useState(false);
   useSkipped(personUuid, () => navigation.popToTop());
@@ -814,17 +947,59 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
             justifyContent: 'center',
             alignItems: 'center',
             backgroundColor: '#70f',
+            paddingHorizontal: 30,
+            gap: 14,
           }}
         >
+          {/* Anon 404s are ambiguous (private OR nonexistent) so we show a
+              sign-in CTA instead of "Profile not found". */}
           <DefaultText
             style={{
               fontWeight: '900',
               fontSize: 26,
               color: appTheme.primaryColor,
+              textAlign: 'center',
             }}
           >
-            Profile not found
+            {isAnonymousViewer
+              ? 'Sign in to view this profile'
+              : 'Profile not found'}
           </DefaultText>
+          {isAnonymousViewer &&
+            <DefaultText
+              style={{
+                fontSize: 16,
+                color: appTheme.primaryColor,
+                opacity: 0.85,
+                textAlign: 'center',
+              }}
+            >
+              This profile is only visible to signed-in users, or it may
+              not exist.
+            </DefaultText>
+          }
+          {isAnonymousViewer &&
+            <ButtonWithCenteredText
+              onPress={() => navigation.navigate('Welcome')}
+              secondary={true}
+              containerStyle={{
+                width: 300,
+              }}
+              extraChildren={
+                <View style={{ flexDirection: 'row' }}>
+                  <DefaultText style={{ fontSize: 16, textAlign: 'center', fontWeight: '700' }}>
+                    Sign Up
+                  </DefaultText>
+                  <DefaultText style={{ fontSize: 16 }}>
+                    {} or {}
+                  </DefaultText>
+                  <DefaultText style={{ fontSize: 16, textAlign: 'center', fontWeight: '700' }}>
+                    Sign In
+                  </DefaultText>
+                </View>
+              }
+            />
+          }
         </View>
       }
       {!notFound && <>
@@ -878,7 +1053,7 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
             </HeartBackground>
           </Reanimated.View>
         </ScrollView>
-        {showBottomButtons &&
+        {showAuthedBottomButtons &&
           <View
             style={{
               position: 'absolute',
@@ -911,20 +1086,28 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
             </View>
           </View>
         }
+        {showAnonymousSignInCta &&
+          <AnonymousSignInCta
+            navigation={navigation}
+            name={data?.name}
+          />
+        }
       </>}
-      <View
-        style={{
-          position: 'absolute',
-          height: 0,
-          width: '100%',
-          maxWidth: 600,
-          alignSelf: 'center',
-          zIndex: 999,
-        }}
-      >
-        <StatusBarSpacer/>
-        <FloatingBackButton navigationRef={navigationRef}/>
-      </View>
+      {!isAnonymousViewer &&
+        <View
+          style={{
+            position: 'absolute',
+            height: 0,
+            width: '100%',
+            maxWidth: 600,
+            alignSelf: 'center',
+            zIndex: 999,
+          }}
+        >
+          <StatusBarSpacer/>
+          <FloatingBackButton navigationRef={navigationRef}/>
+        </View>
+      }
     </>
   );
 };
@@ -1029,25 +1212,29 @@ const ProspectUserDetails = ({
           </DefaultText>
         </View>
       </View>
-      <DonutChart
-        percentage={matchPercentage}
-        onPress={onPressDonutChart}
-        textStyle={{
-          color: titleColor,
-        }}
-      >
-        <DefaultText
-          style={{
-            paddingBottom: 5,
-            fontWeight: '500',
-            fontSize: 10,
-            opacity: matchPercentage === undefined ? 0 : 1,
+      {/* `null` = backend omitted the score (anon viewer); `undefined` =
+          still loading and should render the chart faded. */}
+      {matchPercentage !== null &&
+        <DonutChart
+          percentage={matchPercentage}
+          onPress={onPressDonutChart}
+          textStyle={{
             color: titleColor,
           }}
         >
-          See Why ›
-        </DefaultText>
-      </DonutChart>
+          <DefaultText
+            style={{
+              paddingBottom: 5,
+              fontWeight: '500',
+              fontSize: 10,
+              opacity: matchPercentage === undefined ? 0 : 1,
+              color: titleColor,
+            }}
+          >
+            See Why ›
+          </DefaultText>
+        </DonutChart>
+      }
     </View>
   );
 };
@@ -1372,13 +1559,14 @@ const Body = ({
           </Stats>
         </>}
 
-        {!!data?.count_answers &&
+        {!!data?.count_answers && !!signedInUser &&
           <SeeQAndAButton
             navigation={navigation}
             personUuid={personUuid}
             name={data?.name}
           />}
-        {!isViewingSelf &&
+        <ShareButton personUuid={personUuid}/>
+        {!isViewingSelf && !!signedInUser &&
           <BlockButton
             name={data?.name}
             personUuid={personUuid}
