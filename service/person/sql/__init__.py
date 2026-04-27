@@ -843,43 +843,62 @@ WITH prospect AS (
     AND
         activated
     AND (
-            NOT prospect.hide_me_from_strangers
-        OR
-            prospect_has_messaged_person
-    )
-    AND (
-        prospect.privacy_verification_level_id <= (
-            SELECT
-                verification_level_id
-            FROM
-                person
-            WHERE
-                id = %(person_id)s
+        -- Signed-in viewer: gated by hide_me_from_strangers, verification
+        -- level, and skipped status.
+        (
+            %(person_id)s IS NOT NULL
+        AND (
+                NOT prospect.hide_me_from_strangers
+            OR
+                prospect_has_messaged_person
         )
-        OR
-            EXISTS (
-                SELECT 1
-                FROM messaged
+        AND (
+            prospect.privacy_verification_level_id <= (
+                SELECT
+                    verification_level_id
+                FROM
+                    person
                 WHERE
-                    messaged.subject_person_id = prospect.id
-                AND
-                    messaged.object_person_id = %(person_id)s
+                    id = %(person_id)s
             )
-    )
-    AND
-        NOT EXISTS (
-            SELECT 1
-            FROM skipped
-            WHERE
-                subject_person_id = prospect.id AND
-                object_person_id  = %(person_id)s
+            OR
+                EXISTS (
+                    SELECT 1
+                    FROM messaged
+                    WHERE
+                        messaged.subject_person_id = prospect.id
+                    AND
+                        messaged.object_person_id = %(person_id)s
+                )
         )
-    OR
-
-    -- User is viewing their own profile
-        uuid = uuid_or_null(%(prospect_uuid)s::TEXT)
-    AND
+        AND
+            NOT EXISTS (
+                SELECT 1
+                FROM skipped
+                WHERE
+                    subject_person_id = prospect.id AND
+                    object_person_id  = %(person_id)s
+            )
+        )
+        OR
+        -- Anonymous viewer: only when the prospect has opted in to
+        -- `public_profile` AND the other privacy settings don't restrict
+        -- visibility. An anonymous viewer is treated as an unverified,
+        -- never-messaged stranger, so `hide_me_from_strangers` must be FALSE
+        -- and `privacy_verification_level_id` must be 1.
+        (
+            %(person_id)s IS NULL
+        AND
+            prospect.public_profile
+        AND
+            NOT prospect.hide_me_from_strangers
+        AND
+            prospect.privacy_verification_level_id = 1
+        )
+        OR
+        -- Self-view.
         prospect.id = %(person_id)s
+    )
 ), updated_visited AS (
     INSERT INTO visited (
         subject_person_id,
@@ -903,15 +922,24 @@ WITH prospect AS (
         ) AS invisible
     FROM
         prospect
+    -- `visited.subject_person_id` is NOT NULL, so anonymous viewers can't
+    -- record a visit.
+    WHERE
+        %(person_id)s IS NOT NULL
     ON CONFLICT (subject_person_id, object_person_id) DO UPDATE SET
         updated_at = now(),
         invisible = EXCLUDED.invisible
 ), negative_dot_prod AS (
+    -- Empty for anonymous viewers, so `match_percentage` is NULL and the
+    -- frontend hides the donut. Without the guard, `CLAMP(0, 99, NULL)`
+    -- would coerce to 0 (`GREATEST(0, NULL) = 0`), misrepresenting itself
+    -- as a genuine 0 percent match.
     SELECT (
         SELECT personality FROM person WHERE id = %(person_id)s
     ) <#> (
         SELECT personality FROM prospect
     ) AS negative_dot_prod
+    WHERE %(person_id)s IS NOT NULL
 ), match_percentage AS (
     SELECT
         CLAMP(
@@ -1666,6 +1694,11 @@ WITH photo_ AS (
         CASE WHEN browse_invisibly THEN 'Yes' ELSE 'No' END AS j
     FROM person
     WHERE id = %(person_id)s
+), public_profile AS (
+    SELECT
+        CASE WHEN public_profile THEN 'Yes' ELSE 'No' END AS j
+    FROM person
+    WHERE id = %(person_id)s
 ), verified_gender AS (
     SELECT verified_gender AS j FROM person WHERE id = %(person_id)s
 ), verified_age AS (
@@ -1718,6 +1751,7 @@ SELECT
         'intros',                 (SELECT j FROM intro),
 
         'verification level',     (SELECT j FROM privacy_verification_level),
+        'public profile',         (SELECT j FROM public_profile),
         'show my location',       (SELECT j FROM show_my_location),
         'show my age',            (SELECT j FROM show_my_age),
         'hide me from strangers', (SELECT j FROM hide_me_from_strangers),

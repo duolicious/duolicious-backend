@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 from flask import request
 import duotypes as t
 from service import (
@@ -301,8 +302,11 @@ def get_me_by_session(s: t.SessionInfo):
 def get_me_by_id(person_id: str):
     return person.get_me(person_id_as_str=person_id)
 
-@aget('/prospect-profile/<prospect_uuid>')
-def get_prospect_profile(s: t.SessionInfo, prospect_uuid: int):
+@aget('/prospect-profile/<prospect_uuid>', auth='optional')
+def get_prospect_profile(
+    s: Optional[t.SessionInfo],
+    prospect_uuid: str,
+):
     return person.get_prospect_profile(s, prospect_uuid)
 
 @apost('/skip/by-uuid/<prospect_uuid>')
