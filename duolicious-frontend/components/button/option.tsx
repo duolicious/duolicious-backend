@@ -3,7 +3,6 @@ import {
   Animated,
   Pressable,
 } from 'react-native';
-import { useCallback } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultText } from '../default-text';
 import { useAppTheme } from '../../app-theme/app-theme';
@@ -43,7 +42,10 @@ const ButtonForOption = (props) => {
   const { appTheme } = useAppTheme();
   const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
 
-  const onPress_ = useCallback(onPress ?? (() => {
+  // Built fresh each render so the captured `optionGroups` reflect the latest
+  // store-derived values; memoizing would freeze them at first-render values
+  // and re-clicking a button would push stale data into the OptionScreen.
+  const onPress_ = onPress ?? (() => {
     // Stash the non-serializable payload (option-group definitions, callbacks)
     // in an in-memory store so navigation params stay URL-safe. The target
     // OptionScreen reads the payload using its own route name as the key.
@@ -53,7 +55,7 @@ const ButtonForOption = (props) => {
       ...(showSkipButton !== undefined ? { showSkipButton } : {}),
     });
     navigation.navigate(navigationScreen);
-  }), []);
+  });
 
   return (
     <Pressable

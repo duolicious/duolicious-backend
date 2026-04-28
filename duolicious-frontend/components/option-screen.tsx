@@ -63,6 +63,7 @@ import {
   isOptionGroupVerificationChecker,
   maxDailySelfies,
 } from '../data/option-groups';
+import { getProfileInfo } from '../events/profile-info';
 import { descriptionStyle, noneFontSize } from './option-styles';
 import {
   MoveableImage,
@@ -1382,11 +1383,9 @@ const OptionScreen = ({navigation, route}) => {
   const _onSubmitSuccess = useCallback(async () => {
     onSubmitSuccess && onSubmitSuccess();
 
-    const justSubmitted = optionGroups[0];
-    const publicProfileIsYes =
-      justSubmitted?.title === 'Public Profile' &&
-      isOptionGroupButtons(justSubmitted.input) &&
-      justSubmitted.input.buttons.currentValue === 'Yes';
+    // Successful submits update the profile-info store, so reading from it
+    // here gives us the just-submitted Public Profile value.
+    const publicProfileIsYes = getProfileInfo()?.public_profile === 'Yes';
 
     const nextOptionGroups = optionGroups.slice(1).filter(
       (og) =>

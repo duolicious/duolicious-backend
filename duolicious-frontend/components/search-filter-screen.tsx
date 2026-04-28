@@ -9,7 +9,6 @@ import {
 import {
   useCallback,
   useEffect,
-  useMemo,
   useState,
 } from 'react';
 import { DefaultText } from './default-text';
@@ -25,7 +24,6 @@ import {
   getCurrentValue,
   isOptionGroupCheckChips,
   isOptionGroupRangeSlider,
-  isOptionGroupButtons,
   isOptionGroupSlider,
 } from '../data/option-groups';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -46,6 +44,11 @@ import {
   setSearchFilterAnswers,
   getSearchFilterAnswers,
 } from '../navigation/search-filter-state';
+import {
+  patchSearchFilters,
+  setSearchFilters,
+  useSearchFilters,
+} from '../events/search-filters';
 
 const getCurrentValueAsLabel = (og: OptionGroup<OptionGroupInputs> | undefined) => {
   if (!og) return undefined;
@@ -160,16 +163,9 @@ const SearchFilterScreen_ = ({navigation}) => {
   const { appTheme } = useAppTheme();
   const [signedInUser] = useSignedInUser();
 
-  const [, _triggerRender] = useState({});
-  const triggerRender = useCallback(() => _triggerRender({}), [_triggerRender]);
-
-  const [data, setData] = useState<any>(null);
+  const data = useSearchFilters();
 
   const answers: AnswerItem[] = data?.answer ?? [];
-
-  const onSubmitSuccess = useCallback(() => {
-    triggerRender();
-  }, [triggerRender]);
 
   const onPressQAndAAnswers = useCallback(() => {
     setSearchFilterAnswers(answers);
@@ -179,9 +175,7 @@ const SearchFilterScreen_ = ({navigation}) => {
   useEffect(() => {
     return listen<AnswerItem[]>('search-filter-answers-updated', (next) => {
       if (!next) return;
-      // Replace `data` (rather than mutating `data.answer`) so memoized
-      // derivations keyed on `data` re-run with the updated reference.
-      setData((prev: any) => prev ? { ...prev, answer: next } : prev);
+      patchSearchFilters({ answer: next });
     });
   }, []);
 
@@ -191,121 +185,63 @@ const SearchFilterScreen_ = ({navigation}) => {
       navigationScreen="Search Filter Option Screen"
       showSkipButton={false}
       noSettingText="Any"
-      onSubmitSuccess={onSubmitSuccess}
       {...props}
     />;
   }, []);
 
-  const addCurrentValue = (optionGroups: OptionGroup<OptionGroupInputs>[]) =>
-    optionGroups.map(
-      (
-        og: OptionGroup<OptionGroupInputs>,
-      ): OptionGroup<OptionGroupInputs> =>
-        _.merge(
-          {},
-          og,
-          isOptionGroupCheckChips(og.input) ? {
-            input: {
-              checkChips: {
-                values: og.input.checkChips.values.map((v) => ({
-                  ...v,
-                  checked: (
-                    (data ?? {})[
-                      optionGroupToDataKey(og)
-                    ] ?? ([] as string[])
-                  ).includes(v.label)
-                }))
-              }
-            }
-          } : {},
-          isOptionGroupButtons(og.input) ? {
-            input: {
-              buttons: {
-                currentValue: (data ?? {})[optionGroupToDataKey(og)]
-              }
-            }
-          } : {},
-          isOptionGroupSlider(og.input) ? {
-            input: {
-              slider: {
-                currentValue: (data ?? {})[optionGroupToDataKey(og)]
-              }
-            }
-          } : {},
-          isOptionGroupRangeSlider(og.input) && og.title === 'Age' ? {
-            input: {
-              rangeSlider: {
-                currentMin: (data ?? {})[optionGroupToDataKey(og)]?.min_age,
-                currentMax: (data ?? {})[optionGroupToDataKey(og)]?.max_age,
-              }
-            }
-          } : {},
-          isOptionGroupRangeSlider(og.input) && og.title === 'Height' ? {
-            input: {
-              rangeSlider: {
-                currentMin: (data ?? {})[optionGroupToDataKey(og)]?.min_height_cm,
-                currentMax: (data ?? {})[optionGroupToDataKey(og)]?.max_height_cm,
-              }
-            }
-          } : {},
-        )
-    );
+  const withCurrent = (
+    og: OptionGroup<OptionGroupInputs>,
+  ): OptionGroup<OptionGroupInputs> => {
+    const value = data?.[optionGroupToDataKey(og)];
+    const isImperial = signedInUser?.units === 'Imperial';
+
+    if (isOptionGroupCheckChips(og.input)) {
+      const checked: string[] = value ?? [];
+      return _.merge({}, og, { input: { checkChips: {
+        values: og.input.checkChips.values.map((v) => ({
+          ...v,
+          checked: checked.includes(v.label),
+        })),
+      } } });
+    }
+    if (og.title === 'Furthest Distance' && isOptionGroupSlider(og.input)) {
+      return _.merge({}, og, { input: { slider: {
+        currentValue: value,
+        unitsLabel: isImperial ? "mi." : 'km',
+        valueRewriter: isImperial ? kmToMilesStr : undefined,
+      } } });
+    }
+    if (og.title === 'Age' && isOptionGroupRangeSlider(og.input)) {
+      return _.merge({}, og, { input: { rangeSlider: {
+        currentMin: value?.min_age,
+        currentMax: value?.max_age,
+      } } });
+    }
+    if (og.title === 'Height' && isOptionGroupRangeSlider(og.input)) {
+      return _.merge({}, og, { input: { rangeSlider: {
+        currentMin: value?.min_height_cm,
+        currentMax: value?.max_height_cm,
+        unitsLabel: isImperial ? "ft'in\"" : 'cm',
+        valueRewriter: isImperial ? cmToFeetInchesStr : undefined,
+      } } });
+    }
+    if (value === undefined) return og;
+    const inputKey = Object.keys(og.input)[0];
+    return _.merge({}, og, { input: { [inputKey]: { currentValue: value } } });
+  };
 
   useEffect(() => {
     (async () => {
       const response = await api('get', '/search-filters');
       if (response.json) {
-        setData(response.json);
+        setSearchFilters(response.json);
       }
     })();
   }, []);
 
-  const [
-    _searchTwoWayBasicsOptionGroups,
-    _searchOtherBasicsOptionGroups,
-    _searchInteractionsOptionGroups,
-  ] = useMemo(
-    () => [
-      addCurrentValue(searchTwoWayBasicsOptionGroups),
-      addCurrentValue(searchOtherBasicsOptionGroups),
-      addCurrentValue(searchInteractionsOptionGroups),
-    ],
-    [data]
-  );
-
-  useEffect(() => {
-    _searchTwoWayBasicsOptionGroups.forEach((og: OptionGroup<OptionGroupInputs>) => {
-      if (isOptionGroupSlider(og.input) && og.title === 'Furthest Distance') {
-        og.input.slider.unitsLabel = (
-          signedInUser?.units === 'Imperial' ?
-          "mi." : 'km');
-
-        og.input.slider.valueRewriter = (
-          signedInUser?.units === 'Imperial' ?
-          kmToMilesStr : undefined);
-      }
-    });
-  }, [
-    _searchTwoWayBasicsOptionGroups,
-    signedInUser?.units
-  ]);
-
-  useEffect(() => {
-    _searchOtherBasicsOptionGroups.forEach((og: OptionGroup<OptionGroupInputs>) => {
-      if (isOptionGroupRangeSlider(og.input) && og.title === 'Height') {
-        og.input.rangeSlider.unitsLabel = (
-          signedInUser?.units === 'Imperial' ?
-          "ft'in\"" : 'cm');
-
-        og.input.rangeSlider.valueRewriter = (
-          signedInUser?.units === 'Imperial' ?
-          cmToFeetInchesStr : undefined);
-      }
-    });
-  }, [
-    _searchOtherBasicsOptionGroups,
-    signedInUser?.units
-  ]);
+  const _searchTwoWayBasicsOptionGroups = searchTwoWayBasicsOptionGroups.map(withCurrent);
+  const _searchOtherBasicsOptionGroups = searchOtherBasicsOptionGroups.map(withCurrent);
+  const _searchInteractionsOptionGroups = searchInteractionsOptionGroups.map(withCurrent);
 
   const goBack = useCallback(() => {
     notify('search-refresh-requested');

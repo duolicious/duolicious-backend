@@ -13,6 +13,12 @@ import {
   useMemo,
   useState,
 } from 'react';
+import {
+  getProfileInfo,
+  patchProfileInfo,
+  setProfileInfo,
+  useProfileInfo,
+} from '../events/profile-info';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ButtonForOption } from './button/option';
 import { DuoliciousTopNavBar } from './top-nav-bar';
@@ -30,9 +36,7 @@ import {
   generalSettingsOptionGroups,
   getCurrentValue,
   isOptionGroupButtons,
-  isOptionGroupLocationSelector,
   isOptionGroupSlider,
-  isOptionGroupTextShort,
   isOptionGroupThemePicker,
   notificationSettingsOptionGroups,
   privacySettingsOptionGroups,
@@ -215,7 +219,7 @@ const Images_ = ({data}) => {
 const ProfileTab_ = ({navigation}) => {
   const { appTheme } = useAppTheme();
   const [signedInUser] = useSignedInUser();
-  const [data, setData] = useState<any>(null);
+  const data = useProfileInfo();
 
   useEffect(() => {
     (async () => {
@@ -224,7 +228,7 @@ const ProfileTab_ = ({navigation}) => {
         return;
       }
 
-      setData(response.json);
+      setProfileInfo(response.json);
 
       notifyUpdatedVerification({ photos: response.json.photo_verification });
 
@@ -422,8 +426,10 @@ const DisplayNameAndAboutPerson = ({data}) => {
   );
 };
 
+const optionGroupToDataKey = (og: OptionGroup<OptionGroupInputs>) =>
+  og.title.toLowerCase().replaceAll(' ', '_');
+
 const Options = ({ navigation, data }) => {
-  const [, triggerRender] = useState({});
   const [isLoadingSignOut, setIsLoadingSignOut] = useState(false);
   const [dataExportStatus, setDataExportStatus] = useState<
     'error' | 'loading' | 'ok'
@@ -431,157 +437,85 @@ const Options = ({ navigation, data }) => {
   const [signedInUser] = useSignedInUser();
   const { appThemeName } = useAppTheme();
 
-  const addCurrentValue = (optionGroups: OptionGroup<OptionGroupInputs>[]) =>
-    optionGroups.map(
-      (
-        og: OptionGroup<OptionGroupInputs>,
-        i: number
-      ): OptionGroup<OptionGroupInputs> =>
-        _.merge(
-          {},
-          og,
-          isOptionGroupTextShort(og.input) ? {
-            input: {
-              textShort: {
-                currentValue: (data ?? {})[optionGroups[i].title.toLowerCase()]
-              }
-            }
-          } : {},
-          isOptionGroupButtons(og.input) ? {
-            input: {
-              buttons: {
-                currentValue: (data ?? {})[optionGroups[i].title.toLowerCase()]
-              }
-            }
-          } : {},
-          isOptionGroupLocationSelector(og.input) ? {
-            input: {
-              locationSelector: {
-                currentValue: (data ?? {})[optionGroups[i].title.toLowerCase()]
-              }
-            }
-          } : {},
-          isOptionGroupSlider(og.input) && og.title === 'Height' ? {
-            input: {
-              slider: {
-                currentValue: (data ?? {})[optionGroups[i].title.toLowerCase()]
-              }
-            }
-          } : {},
-          isOptionGroupThemePicker(og.input) ? {
-            input: {
-              themePicker: {
-                currentTitleColor: data?.theme?.title_color,
-                currentBodyColor: data?.theme?.body_color,
-                currentBackgroundColor: data?.theme?.background_color,
-              }
-            }
-          } : {},
-          isOptionGroupButtons(og.input) && og.title === 'Dark Mode' ? {
-            input: {
-              buttons: {
-                currentValue: appThemeName === 'dark' ? 'On' : 'Off',
-              }
-            }
-          } : {},
-        )
-    );
+  const withCurrent = (
+    og: OptionGroup<OptionGroupInputs>,
+  ): OptionGroup<OptionGroupInputs> => {
+    if (isOptionGroupThemePicker(og.input)) {
+      return _.merge({}, og, { input: { themePicker: {
+        currentTitleColor: data?.theme?.title_color,
+        currentBodyColor: data?.theme?.body_color,
+        currentBackgroundColor: data?.theme?.background_color,
+      } } });
+    }
+    if (og.title === 'Dark Mode' && isOptionGroupButtons(og.input)) {
+      return _.merge({}, og, { input: { buttons: {
+        currentValue: appThemeName === 'dark' ? 'On' : 'Off',
+      } } });
+    }
+    if (og.title === 'Height' && isOptionGroupSlider(og.input)) {
+      const isImperial = signedInUser?.units === 'Imperial';
+      return _.merge({}, og, { input: { slider: {
+        currentValue: data?.height,
+        unitsLabel: isImperial ? "ft'in\"" : 'cm',
+        valueRewriter: isImperial ? cmToFeetInchesStr : undefined,
+      } } });
+    }
+    const value = data?.[optionGroupToDataKey(og)];
+    if (value === undefined) return og;
+    const inputKey = Object.keys(og.input)[0];
+    return _.merge({}, og, { input: { [inputKey]: { currentValue: value } } });
+  };
 
-  const [
-    _basicsOptionGroups,
-    _generalSettingsOptionGroups,
-    _notificationSettingsOptionGroups,
-    _privacySettingsOptionGroups,
-    _themePickerOptionGroups,
-  ] = useMemo(
-    () => [
-      addCurrentValue(basicsOptionGroups),
-      addCurrentValue(generalSettingsOptionGroups),
-      addCurrentValue(notificationSettingsOptionGroups),
-      addCurrentValue(privacySettingsOptionGroups),
-      addCurrentValue(themePickerOptionGroups),
-    ],
-    [data, appThemeName]
-  );
+  const _basicsOptionGroups = basicsOptionGroups.map(withCurrent);
+  const _generalSettingsOptionGroups = generalSettingsOptionGroups.map(withCurrent);
+  const _notificationSettingsOptionGroups = notificationSettingsOptionGroups.map(withCurrent);
+  const _privacySettingsOptionGroups = privacySettingsOptionGroups.map(withCurrent);
+  const _themePickerOptionGroups = themePickerOptionGroups.map(withCurrent);
 
-  // Recomputed every render so it picks up the just-submitted Public Profile
-  // value (which is mutated on the option group itself, not on `data`).
-  const _visiblePrivacySettingsOptionGroups = (() => {
-    const publicProfileOg = _privacySettingsOptionGroups.find(
-      (og) => og.title === 'Public Profile'
-    );
-    const publicProfileIsYes =
-      publicProfileOg !== undefined &&
-      getCurrentValue(publicProfileOg.input) === 'Yes';
-    return _privacySettingsOptionGroups.filter(
-      (og) =>
-        !publicProfileIsYes ||
-        (og.title !== 'Verification Level' &&
-          og.title !== 'Hide Me From Strangers')
-    );
-  })();
+  const _visiblePrivacySettingsOptionGroups =
+    data?.public_profile === 'Yes'
+      ? _privacySettingsOptionGroups.filter(
+          (og) =>
+            og.title !== 'Verification Level' &&
+            og.title !== 'Hide Me From Strangers')
+      : _privacySettingsOptionGroups;
 
   useEffect(() => {
-    _basicsOptionGroups.forEach((og: OptionGroup<OptionGroupInputs>) => {
-      if (isOptionGroupSlider(og.input) && og.title === 'Height') {
-        og.input.slider.unitsLabel = (
-          signedInUser?.units === 'Imperial' ?
-          "ft'in\"" : 'cm');
-
-        og.input.slider.valueRewriter = (
-          signedInUser?.units === 'Imperial' ?
-          cmToFeetInchesStr : undefined);
-      }
-    });
-  }, [_basicsOptionGroups, signedInUser?.units]);
-
-  useEffect(() => {
-    return listen(
+    return listen<ClubItem[]>(
       'updated-clubs',
-      (newClubs: ClubItem[]) => {
-        if (data) {
-          data['clubs'] = newClubs;
-          triggerRender({});
-        }
+      (newClubs) => {
+        if (newClubs && getProfileInfo()) patchProfileInfo({ clubs: newClubs });
       },
     );
-  }, [data]);
-
-  const onSubmitSuccess = useCallback(() => {
-    triggerRender({});
-  }, [triggerRender]);
+  }, []);
 
   useEffect(() => {
-    return listenUpdatedVerification(
-      (v) => {
-        if (!v)
-          return;
+    return listenUpdatedVerification((v) => {
+      if (!v) return;
 
-        if (v.photos !== undefined)
-          data.photo_verification = {
-            ...data.photo_verification,
-            ...v.photos,
-          };
+      const prev = getProfileInfo();
+      if (!prev) return;
 
-        if (v.gender !== undefined)
-          data.verified_gender = v.gender;
+      const patch: Record<string, any> = {};
 
-        if (v.age !== undefined)
-          data.verified_age = v.age;
+      if (v.photos !== undefined)
+        patch.photo_verification = {
+          ...prev.photo_verification,
+          ...v.photos,
+        };
 
-        if (v.ethnicity !== undefined)
-          data.verified_ethnicity = v.ethnicity;
+      if (v.gender !== undefined) patch.verified_gender = v.gender;
+      if (v.age !== undefined) patch.verified_age = v.age;
+      if (v.ethnicity !== undefined) patch.verified_ethnicity = v.ethnicity;
 
-        triggerRender({});
-      }
-    );
-  }, [triggerRender, data]);
+      if (Object.keys(patch).length > 0) patchProfileInfo(patch);
+    });
+  }, []);
 
   const Button_ = useCallback((props) => {
     return <ButtonForOption
       navigation={navigation}
       navigationScreen="Profile Option Screen"
-      onSubmitSuccess={onSubmitSuccess}
       {...props}
     />;
   }, [navigation]);
@@ -771,7 +705,13 @@ const Options = ({ navigation, data }) => {
           <Button_
             key={i}
             setting={getCurrentValue(og.input)}
-            optionGroups={_visiblePrivacySettingsOptionGroups.slice(i)}
+            // Pass the FULL privacy list (not the filtered visible one) so the
+            // wizard cascade after submitting Public Profile can include or
+            // skip Verification Level / Hide Me From Strangers based on the
+            // just-submitted value. OptionScreen._onSubmitSuccess does the
+            // conditional filtering at advance time.
+            optionGroups={_privacySettingsOptionGroups.slice(
+              _privacySettingsOptionGroups.indexOf(og))}
           />
         )
       }
