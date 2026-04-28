@@ -451,7 +451,6 @@ WITH onboardee_location AS (
         has_profile_picture_id,
         unit_id,
         intros_notification,
-        privacy_verification_level_id,
         verification_required,
         location_short_friendly,
         location_long_friendly
@@ -480,10 +479,6 @@ WITH onboardee_location AS (
             )
         ) AS unit_id,
         2 AS intros_notification,
-        CASE
-            WHEN RANDOM() < 0.5 THEN 1
-            ELSE 3
-        END AS privacy_verification_level_id,
         verification_required,
         short_friendly,
         long_friendly
