@@ -1382,12 +1382,25 @@ const OptionScreen = ({navigation, route}) => {
   const _onSubmitSuccess = useCallback(async () => {
     onSubmitSuccess && onSubmitSuccess();
 
-    if (optionGroups.length <= 1) {
+    const justSubmitted = optionGroups[0];
+    const publicProfileIsYes =
+      justSubmitted?.title === 'Public Profile' &&
+      isOptionGroupButtons(justSubmitted.input) &&
+      justSubmitted.input.buttons.currentValue === 'Yes';
+
+    const nextOptionGroups = optionGroups.slice(1).filter(
+      (og) =>
+        !publicProfileIsYes ||
+        (og.title !== 'Verification Level' &&
+          og.title !== 'Hide Me From Strangers')
+    );
+
+    if (nextOptionGroups.length === 0) {
       navigation.popToTop();
     } else {
       setOptionScreenPayload(route.name, {
         ...(payload as OptionScreenPayload),
-        optionGroups: optionGroups.slice(1),
+        optionGroups: nextOptionGroups,
       });
       navigation.push(route.name);
     }

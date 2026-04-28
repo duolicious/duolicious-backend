@@ -504,6 +504,23 @@ const Options = ({ navigation, data }) => {
     [data, appThemeName]
   );
 
+  // Recomputed every render so it picks up the just-submitted Public Profile
+  // value (which is mutated on the option group itself, not on `data`).
+  const _visiblePrivacySettingsOptionGroups = (() => {
+    const publicProfileOg = _privacySettingsOptionGroups.find(
+      (og) => og.title === 'Public Profile'
+    );
+    const publicProfileIsYes =
+      publicProfileOg !== undefined &&
+      getCurrentValue(publicProfileOg.input) === 'Yes';
+    return _privacySettingsOptionGroups.filter(
+      (og) =>
+        !publicProfileIsYes ||
+        (og.title !== 'Verification Level' &&
+          og.title !== 'Hide Me From Strangers')
+    );
+  })();
+
   useEffect(() => {
     _basicsOptionGroups.forEach((og: OptionGroup<OptionGroupInputs>) => {
       if (isOptionGroupSlider(og.input) && og.title === 'Height') {
@@ -750,11 +767,11 @@ const Options = ({ navigation, data }) => {
       }
       <Title>Privacy Settings</Title>
       {
-        _privacySettingsOptionGroups.map((og, i) =>
+        _visiblePrivacySettingsOptionGroups.map((og, i) =>
           <Button_
             key={i}
             setting={getCurrentValue(og.input)}
-            optionGroups={_privacySettingsOptionGroups.slice(i)}
+            optionGroups={_visiblePrivacySettingsOptionGroups.slice(i)}
           />
         )
       }

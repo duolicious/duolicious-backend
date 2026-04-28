@@ -2028,9 +2028,9 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     description: () => (
       <DefaultText style={descriptionStyle.style}>
         With this option set to ‘Yes’, people who aren’t signed into Duolicious
-        can view your profile.  Your other privacy settings still apply: if a
-        different setting hides your profile from someone, that takes precedence
-        over this one.
+        can view your profile. While ‘Public Profile’ is ‘Yes’, it overrides
+        ‘Verification Level’ and ‘Hide Me From Strangers’, so those settings
+        won’t apply.
       </DefaultText>
     ),
     input: {
@@ -2069,50 +2069,6 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
             )
           ).ok;
           if (ok) this.currentValue = verificationLevel;
-          return ok;
-        },
-      }
-    },
-  },
-  {
-    title: 'Browse Invisibly',
-    Icon: ({ color = 'black' }) => (
-      <FontAwesomeIcon
-        icon={faGhost}
-        size={14}
-        style={{ color }}
-      />
-    ),
-    description: () => {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const [signedInUser] = useSignedInUser();
-
-      return (
-        <DefaultText style={descriptionStyle.style}>
-          With this option set to ‘Yes’, people won’t see that you visited their
-          profile.
-          {!signedInUser?.hasGold && ' Unlock this feature with Gold.'}
-        </DefaultText>
-      )
-    },
-    input: {
-      buttons: {
-        values: yesNo,
-        submit: async function(browseInvisibly: string) {
-          const { hasGold = false } = getSignedInUser() ?? {};
-          if (!hasGold) {
-            showPointOfSale('blocked');
-            return false;
-          }
-
-          const ok = (
-            await japi(
-              'patch',
-              '/profile-info',
-              { browse_invisibly: browseInvisibly }
-            )
-          ).ok;
-          if (ok) this.currentValue = browseInvisibly;
           return ok;
         },
       }
@@ -2160,6 +2116,50 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
             )
           ).ok;
           if (ok) this.currentValue = hideMeFromStrangers;
+          return ok;
+        },
+      }
+    },
+  },
+  {
+    title: 'Browse Invisibly',
+    Icon: ({ color = 'black' }) => (
+      <FontAwesomeIcon
+        icon={faGhost}
+        size={14}
+        style={{ color }}
+      />
+    ),
+    description: () => {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const [signedInUser] = useSignedInUser();
+
+      return (
+        <DefaultText style={descriptionStyle.style}>
+          With this option set to ‘Yes’, people won’t see that you visited their
+          profile.
+          {!signedInUser?.hasGold && ' Unlock this feature with Gold.'}
+        </DefaultText>
+      )
+    },
+    input: {
+      buttons: {
+        values: yesNo,
+        submit: async function(browseInvisibly: string) {
+          const { hasGold = false } = getSignedInUser() ?? {};
+          if (!hasGold) {
+            showPointOfSale('blocked');
+            return false;
+          }
+
+          const ok = (
+            await japi(
+              'patch',
+              '/profile-info',
+              { browse_invisibly: browseInvisibly }
+            )
+          ).ok;
+          if (ok) this.currentValue = browseInvisibly;
           return ok;
         },
       }
