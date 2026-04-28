@@ -882,18 +882,12 @@ WITH prospect AS (
         )
         OR
         -- Anonymous viewer: only when the prospect has opted in to
-        -- `public_profile` AND the other privacy settings don't restrict
-        -- visibility. An anonymous viewer is treated as an unverified,
-        -- never-messaged stranger, so `hide_me_from_strangers` must be FALSE
-        -- and `privacy_verification_level_id` must be 1.
+        -- `public_profile`. `public_profile` overrides
+        -- `hide_me_from_strangers` and `privacy_verification_level_id`.
         (
             %(person_id)s IS NULL
         AND
             prospect.public_profile
-        AND
-            NOT prospect.hide_me_from_strangers
-        AND
-            prospect.privacy_verification_level_id = 1
         )
         OR
         -- Self-view.

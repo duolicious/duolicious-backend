@@ -162,7 +162,7 @@ public_profile_anonymous_nonexistent_uuid () {
   ! SESSION_TOKEN="" c GET "/prospect-profile/00000000-0000-0000-0000-000000000000" || exit 1
 }
 
-public_profile_other_settings_take_precedence () {
+public_profile_overrides_other_settings () {
   setup
 
   echo "Anonymous baseline: opt user2 into public_profile, then verify reachable"
@@ -170,14 +170,16 @@ public_profile_other_settings_take_precedence () {
   jc PATCH /profile-info -d '{ "public_profile": "Yes" }'
   SESSION_TOKEN="" c GET "/prospect-profile/${user2uuid}" > /dev/null
 
-  echo "hide_me_from_strangers takes precedence: anonymous is always a stranger"
+  echo "public_profile overrides hide_me_from_strangers"
   jc PATCH /profile-info -d '{ "hide_me_from_strangers": "Yes" }'
-  ! SESSION_TOKEN="" c GET "/prospect-profile/${user2uuid}" || exit 1
+  SESSION_TOKEN="" c GET "/prospect-profile/${user2uuid}" > /dev/null
   jc PATCH /profile-info -d '{ "hide_me_from_strangers": "No" }'
 
-  echo "verification_level (Basics only) takes precedence over public_profile"
+  echo "public_profile overrides verification_level (Basics only)"
   jc PATCH /profile-info -d '{ "verification_level": "Basics only" }'
-  ! SESSION_TOKEN="" c GET "/prospect-profile/${user2uuid}" || exit 1
+  SESSION_TOKEN="" c GET "/prospect-profile/${user2uuid}" > /dev/null
+  jc PATCH /profile-info -d '{ "verification_level": "Photos" }'
+  SESSION_TOKEN="" c GET "/prospect-profile/${user2uuid}" > /dev/null
   jc PATCH /profile-info -d '{ "verification_level": "No verification" }'
 
   echo "deactivation takes precedence over public_profile"
@@ -209,5 +211,5 @@ hide_me_from_strangers
 verified_privacy
 public_profile_anonymous_access
 public_profile_anonymous_nonexistent_uuid
-public_profile_other_settings_take_precedence
+public_profile_overrides_other_settings
 public_profile_appears_in_profile_info
