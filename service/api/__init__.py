@@ -309,6 +309,10 @@ def get_prospect_profile(
 ):
     return person.get_prospect_profile(s, prospect_uuid)
 
+@aget('/conversation-prospect/<prospect_uuid>')
+def get_conversation_prospect(s: t.SessionInfo, prospect_uuid: str):
+    return person.get_conversation_prospect(s, prospect_uuid)
+
 @apost('/skip/by-uuid/<prospect_uuid>')
 @validate(t.PostSkip)
 def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):

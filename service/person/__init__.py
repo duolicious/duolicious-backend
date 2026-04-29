@@ -686,6 +686,25 @@ def get_prospect_profile(s: Optional[t.SessionInfo], prospect_uuid):
 
     return profile
 
+def get_conversation_prospect(s: t.SessionInfo, prospect_uuid: str):
+    params = dict(
+        person_id=s.person_id,
+        prospect_uuid=prospect_uuid,
+    )
+
+    with api_tx('READ COMMITTED') as tx:
+        api_row = tx.execute(
+            Q_SELECT_CONVERSATION_PROSPECT, params
+        ).fetchone()
+        if not api_row:
+            return '', 404
+
+        profile = api_row.get('j')
+        if not profile:
+            return '', 404
+
+        return profile
+
 def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
     if not s.person_uuid:
         return 'Authentication required', 401
