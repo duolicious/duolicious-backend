@@ -1134,6 +1134,103 @@ WHERE
     EXISTS (SELECT 1 FROM prospect)
 """
 
+# Slim variant of `Q_SELECT_PROSPECT_PROFILE` for the chat header. Returns just
+# the fields the conversation screen renders (name, primary photo, skipped
+# state) and deliberately does NOT write to `visited` — opening someone's
+# chat is not the same as viewing their profile, so it shouldn't surface them
+# in the prospect's "Visitors" tab.
+Q_SELECT_CONVERSATION_PROSPECT = """
+WITH prospect AS (
+    SELECT
+        person.id,
+        person.name
+    FROM
+        person
+    LEFT JOIN LATERAL (
+        SELECT
+            EXISTS (
+                SELECT 1
+                FROM messaged
+                WHERE
+                    messaged.subject_person_id = person.id
+                AND
+                    messaged.object_person_id = %(person_id)s
+            ) AS prospect_has_messaged_person
+    ) AS m
+    ON
+        TRUE
+    WHERE
+        uuid = uuid_or_null(%(prospect_uuid)s::TEXT)
+    AND
+        activated
+    AND (
+        (
+            (
+                NOT person.hide_me_from_strangers
+            OR
+                m.prospect_has_messaged_person
+            )
+        AND (
+                person.privacy_verification_level_id <= (
+                    SELECT verification_level_id
+                    FROM person AS viewer
+                    WHERE viewer.id = %(person_id)s
+                )
+            OR
+                m.prospect_has_messaged_person
+        )
+        AND
+            NOT EXISTS (
+                SELECT 1
+                FROM skipped
+                WHERE
+                    subject_person_id = person.id AND
+                    object_person_id  = %(person_id)s
+            )
+        )
+        OR
+            person.id = %(person_id)s
+    )
+), primary_photo AS (
+    SELECT
+        photo.uuid AS photo_uuid,
+        photo.blurhash AS photo_blurhash
+    FROM
+        photo
+    JOIN
+        prospect ON prospect.id = photo.person_id
+    ORDER BY
+        photo.position
+    LIMIT 1
+), is_skipped AS (
+    SELECT
+        EXISTS (
+            SELECT 1
+            FROM skipped
+            WHERE
+                subject_person_id = %(person_id)s AND
+                object_person_id  = (SELECT id FROM prospect)
+        ) AS j
+)
+SELECT
+    json_build_object(
+        -- `is_available` is always `true` for a 200 response: the `prospect`
+        -- CTE filters out deactivated, hidden, and prospect-skipped-viewer
+        -- cases, which surface as 404. Returning the field explicitly (rather
+        -- than letting clients infer availability from `name IS NULL`)
+        -- decouples "should the name render?" from "is this conversation
+        -- actionable?" so future cases (e.g. temporarily-deactivated accounts
+        -- where we still want to render the name) can diverge cleanly.
+        'is_available',   true,
+        'name',           (SELECT name           FROM prospect),
+        'photo_uuid',     (SELECT photo_uuid     FROM primary_photo),
+        'photo_blurhash', (SELECT photo_blurhash FROM primary_photo),
+        'is_skipped',     (SELECT j              FROM is_skipped)
+    ) AS j
+WHERE
+    EXISTS (SELECT 1 FROM prospect)
+"""
+
 Q_CHECK_SESSION_TOKEN = f"""
 SELECT
     name,
