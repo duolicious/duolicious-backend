@@ -419,8 +419,10 @@ const ConversationScreen = ({navigation, route}) => {
   // Descriptive details (name, photo, availability, skipped state) are not
   // passed through route params (URL-safe). They are populated from an
   // in-memory hint cache for an optimistic render, and confirmed / filled in
-  // via a single `/prospect-profile/:uuid` request shared with the nav bar's
-  // overflow menu.
+  // via a single `/conversation-prospect/:uuid` request shared with the nav
+  // bar's overflow menu. We use that endpoint rather than `/prospect-profile`
+  // because the latter records the request as a profile visit — opening a
+  // chat shouldn't surface the user in the prospect's "Visitors" tab.
   const initialHint = getProspectHint(personUuid) ?? {};
   const [name, setName] = useState<string | undefined>(initialHint.name);
   const [photoUuid, setPhotoUuid] = useState<string | null | undefined>(
@@ -446,7 +448,7 @@ const ConversationScreen = ({navigation, route}) => {
 
     let cancelled = false;
     (async () => {
-      const response = await api('get', `/prospect-profile/${personUuid}`);
+      const response = await api('get', `/conversation-prospect/${personUuid}`);
       if (cancelled) return;
       if (!response.ok) {
         // Hard-deleted prospects 404 here. Mark them unavailable so the
@@ -458,17 +460,10 @@ const ConversationScreen = ({navigation, route}) => {
         return;
       }
       const j = response.json ?? {};
-      const photoUuids: (string | null)[] = j.photo_uuids ?? [];
-      const photoBlurhashes: (string | null)[] = j.photo_blurhashes ?? [];
       const nextName: string | undefined = j.name ?? undefined;
-      const nextPhotoUuid: string | null =
-        photoUuids.length > 0 ? (photoUuids[0] ?? null) : null;
-      const nextPhotoBlurhash: string | null =
-        photoBlurhashes.length > 0 ? (photoBlurhashes[0] ?? null) : null;
-      // A prospect is "available" if they still have an account we can see.
-      // The prospect-profile endpoint 404s / returns without a name for
-      // deleted accounts.
-      const nextIsAvailableUser: boolean = !!j.name;
+      const nextPhotoUuid: string | null = j.photo_uuid ?? null;
+      const nextPhotoBlurhash: string | null = j.photo_blurhash ?? null;
+      const nextIsAvailableUser: boolean = !!j.is_available;
       setName(nextName);
       setPhotoUuid(nextPhotoUuid);
       setPhotoBlurhash(nextPhotoBlurhash);
