@@ -1671,6 +1671,7 @@ CREATE TABLE IF NOT EXISTS intro_hash (
     last_used_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
+-- TODO: Drop this table
 CREATE TABLE IF NOT EXISTS rude_message (
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),

@@ -13,7 +13,6 @@ from typing import Any, Tuple, Callable, Tuple, Iterable
 from datetime import datetime
 from service.chat.robot9000 import Q_SELECT_INTRO_HASH, upsert_intro_hash
 from service.chat.mayberegister import maybe_register
-from service.chat.rude import (is_rude_message, store_rude_message)
 from service.chat.spam import is_spam_message
 from service.chat.upsertlastnotification import upsert_last_notification
 from service.chat.xmlparse import parse_xml_or_none
@@ -437,16 +436,6 @@ async def process_text(
         ])
 
     is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
-
-    if is_intro and is_rude_message(maybe_message):
-        await store_rude_message(
-            person_id=from_id,
-            message=maybe_message
-        )
-
-        return await redis_publish_many(connection_uuid, [
-            f'<duo_message_blocked id="{stanza_id}" reason="offensive"/>'
-        ])
 
     if \
             is_intro and \
