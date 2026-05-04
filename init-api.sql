@@ -394,13 +394,35 @@ CREATE TABLE IF NOT EXISTS duo_session (
     person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
     email TEXT NOT NULL,
     pending_club_name TEXT,
-    otp TEXT NOT NULL,
+    otp TEXT,
     ip_address inet,
     signed_in BOOLEAN NOT NULL DEFAULT FALSE,
     session_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '6 months'),
     otp_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '10 minutes'),
+    -- For new-user social sign-ins (Google / Apple) where an `onboardee`
+    -- exists but no `person` yet. On `/finish-onboarding`, these get promoted
+    -- to a row in `social_identity` linked to the new person.
+    pending_social_provider TEXT,
+    pending_social_sub TEXT,
     PRIMARY KEY (session_token_hash)
 );
+
+CREATE TABLE IF NOT EXISTS social_identity (
+    -- 'google' | 'apple'
+    provider TEXT NOT NULL,
+    -- Stable, opaque user id from the provider (Google `sub`, Apple `sub`).
+    -- Source of truth for identity; emails can change (esp. Apple relay).
+    provider_sub TEXT NOT NULL,
+    person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    -- Whatever email the provider reported at link time, for diagnostics only.
+    -- May be a `@privaterelay.appleid.com` alias.
+    email TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (provider, provider_sub)
+);
+
+CREATE INDEX IF NOT EXISTS social_identity__person_id__idx
+    ON social_identity (person_id);
 
 CREATE TABLE IF NOT EXISTS photo (
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,

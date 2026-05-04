@@ -278,6 +278,40 @@ class PostCheckOtp(BaseModel):
     otp: str = Field(pattern=r"^\d{6}$")
 
 
+class PostSignInWithGoogle(BaseModel):
+    # Google ID token (a JWT). Verified server-side against Google's JWKS.
+    id_token: str = Field(min_length=1, max_length=4096)
+    pending_club_name: Optional[str] = Field(
+        default=None,
+        pattern=CLUB_PATTERN,
+        min_length=1,
+        max_length=CLUB_MAX_LEN,
+    )
+
+    @field_validator('pending_club_name', mode='before')
+    def validate_pending_club_name(cls, value):
+        if value is None:
+            return value
+        return value.lower().strip()
+
+
+class PostSignInWithApple(BaseModel):
+    # Apple identity token (a JWT). Verified server-side against Apple's JWKS.
+    identity_token: str = Field(min_length=1, max_length=4096)
+    pending_club_name: Optional[str] = Field(
+        default=None,
+        pattern=CLUB_PATTERN,
+        min_length=1,
+        max_length=CLUB_MAX_LEN,
+    )
+
+    @field_validator('pending_club_name', mode='before')
+    def validate_pending_club_name(cls, value):
+        if value is None:
+            return value
+        return value.lower().strip()
+
+
 class PatchOnboardeeInfo(BaseModel):
     name: Optional[str] = Field(
         default=None,

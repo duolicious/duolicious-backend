@@ -180,7 +180,22 @@ ORDER BY
     trait_name ASC
 """
 
-_OTP_CTE = """
+# True when the caller is currently banned, by either normalized email or
+# IP. Shared by the OTP path (where it gates the OTP-issuing CTE) and the
+# social-login path (which checks it explicitly before issuing a session).
+# Requires `%(normalized_email)s` and `%(ip_address)s` query params.
+_BANNED_PERSON_PREDICATE = """
+EXISTS (
+    SELECT 1
+    FROM banned_person
+    WHERE
+        (normalized_email = %(normalized_email)s OR ip_address = %(ip_address)s)
+    AND
+        expires_at > NOW()
+)
+"""
+
+_OTP_CTE = f"""
 WITH random_otp AS (
     SELECT LPAD(FLOOR(RANDOM() * (10e5 + 1))::TEXT, 6, '0') AS otp
 ), zero_otp AS (
@@ -209,20 +224,7 @@ WITH random_otp AS (
             (SELECT otp FROM random_otp)
         END AS otp
     WHERE
-        NOT EXISTS (
-            SELECT
-                1
-            FROM
-                banned_person
-            WHERE
-                normalized_email = %(normalized_email)s
-            AND
-                expires_at > NOW()
-            OR
-                ip_address = %(ip_address)s
-            AND
-                expires_at > NOW()
-        )
+        NOT {_BANNED_PERSON_PREDICATE}
     AND
         NOT EXISTS (
             SELECT
@@ -3324,4 +3326,182 @@ SET
     )
 WHERE
     id = %(person_id)s
+"""
+
+# ---------------------------------------------------------------------------
+# Social login (Google / Apple)
+# ---------------------------------------------------------------------------
+
+# Reuses the same predicate as `_OTP_CTE`'s ban guard. We don't repeat the
+# bad_email_domain check here because Apple/Google already gate disposable
+# providers, and Apple's @privaterelay.appleid.com would otherwise trip an
+# overzealous filter.
+Q_IS_BANNED = f"""
+SELECT 1 WHERE {_BANNED_PERSON_PREDICATE}
+"""
+
+# Look up a linked person by provider sub. Excludes bots — a bot account
+# returning here would bypass the bot check that the OTP path performs.
+Q_LOOKUP_SOCIAL_IDENTITY = """
+SELECT
+    person.id AS person_id
+FROM
+    social_identity
+JOIN
+    person ON person.id = social_identity.person_id
+WHERE
+    social_identity.provider = %(provider)s
+AND
+    social_identity.provider_sub = %(provider_sub)s
+AND
+    NOT 'bot' = ANY(person.roles)
+"""
+
+# Auto-link path: find a person by normalized_email so a verified social
+# email can claim an existing OTP-only account without an OTP round-trip.
+# Matches `Q_INSERT_DUO_SESSION`'s tiebreaker (prefer exact-case email).
+Q_LOOKUP_PERSON_BY_EMAIL = """
+SELECT
+    id AS person_id
+FROM
+    person
+WHERE
+    normalized_email = %(normalized_email)s
+AND
+    NOT 'bot' = ANY(roles)
+ORDER BY
+    email = %(email)s DESC,
+    email
+LIMIT 1
+"""
+
+Q_INSERT_SOCIAL_IDENTITY = """
+INSERT INTO social_identity (
+    provider,
+    provider_sub,
+    person_id,
+    email
+) VALUES (
+    %(provider)s,
+    %(provider_sub)s,
+    %(person_id)s,
+    %(email)s
+)
+ON CONFLICT (provider, provider_sub) DO NOTHING
+"""
+
+# Create the onboardee row for a brand-new social sign-up. The user picks
+# their display name later in the onboarding wizard — we deliberately
+# don't seed it from the provider.
+Q_UPSERT_ONBOARDEE_FOR_SOCIAL = """
+INSERT INTO onboardee (email)
+VALUES (%(email)s)
+ON CONFLICT (email) DO NOTHING
+"""
+
+# Insert an already-signed-in session. `pending_social_*` are non-null only
+# when this session belongs to a brand-new user who still has to complete
+# onboarding — `Q_FINISH_ONBOARDING` drains them into `social_identity`.
+Q_INSERT_DUO_SESSION_SOCIAL = """
+INSERT INTO duo_session (
+    session_token_hash,
+    person_id,
+    email,
+    pending_club_name,
+    ip_address,
+    signed_in,
+    pending_social_provider,
+    pending_social_sub
+) VALUES (
+    %(session_token_hash)s,
+    %(person_id)s,
+    %(email)s,
+    %(pending_club_name)s,
+    %(ip_address)s,
+    TRUE,
+    %(pending_social_provider)s,
+    %(pending_social_sub)s
+)
+"""
+
+# Mirrors the `existing_person` + club-count CTEs from `Q_MAYBE_SIGN_IN` so
+# that a social sign-in to an existing person bumps the same metadata as
+# OTP would, including reactivation-driven club counts.
+Q_AFTER_SOCIAL_SIGN_IN = f"""
+WITH existing_person_before_update AS (
+    SELECT id, activated FROM person WHERE id = %(person_id)s
+), existing_person AS (
+    UPDATE
+        person
+    SET
+        activated = TRUE,
+        sign_in_count = sign_in_count + 1,
+        sign_in_time = NOW()
+    WHERE
+        id = %(person_id)s
+    RETURNING
+        person.id,
+        person.uuid AS person_uuid,
+        person.unit_id,
+        person.name,
+        person.last_nag_time,
+        person.sign_up_time,
+        person.count_answers,
+        person.has_gold
+), club_to_increment AS (
+    SELECT
+        person_club.club_name
+    FROM
+        existing_person
+    LEFT JOIN
+        person_club
+    ON
+        person_club.person_id = existing_person.id
+    JOIN
+        existing_person_before_update
+    ON
+        existing_person_before_update.id = existing_person.id
+    WHERE
+        NOT existing_person_before_update.activated
+), increment_club_count_if_not_activated AS (
+    UPDATE
+        club
+    SET
+        count_members = count_members + 1
+    FROM
+        club_to_increment
+    WHERE
+        club_to_increment.club_name = club.name
+)
+SELECT
+    existing_person.id AS person_id,
+    existing_person.person_uuid::TEXT AS person_uuid,
+    existing_person.has_gold,
+    (SELECT name FROM unit WHERE id = existing_person.unit_id) AS units,
+    {_Q_DO_SHOW_DONATION_NAG.format(table='existing_person')},
+    {_Q_ESTIMATED_END_DATE},
+    existing_person.name AS name
+FROM
+    existing_person
+"""
+
+# After a brand-new user finishes onboarding, drain the pending social
+# identity from `duo_session` into `social_identity`. Run inside the same
+# transaction as `Q_FINISH_ONBOARDING`, after the new `person` row exists.
+Q_PROMOTE_PENDING_SOCIAL_IDENTITY = """
+INSERT INTO social_identity (provider, provider_sub, person_id, email)
+SELECT
+    duo_session.pending_social_provider,
+    duo_session.pending_social_sub,
+    %(person_id)s,
+    duo_session.email
+FROM
+    duo_session
+WHERE
+    duo_session.session_token_hash = %(session_token_hash)s
+AND
+    duo_session.pending_social_provider IS NOT NULL
+AND
+    duo_session.pending_social_sub IS NOT NULL
+ON CONFLICT (provider, provider_sub) DO NOTHING
 """

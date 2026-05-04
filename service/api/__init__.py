@@ -207,6 +207,34 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
     ):
         return person.post_check_otp(req, s)
 
+@post('/sign-in-with-google')
+@validate(t.PostSignInWithGoogle)
+def post_sign_in_with_google(req: t.PostSignInWithGoogle):
+    limit = "40 per day"
+    scope = "social_sign_in"
+
+    with (
+        limiter.limit(
+            limit,
+            scope=scope,
+            exempt_when=disable_ip_rate_limit),
+    ):
+        return person.post_sign_in_with_google(req)
+
+@post('/sign-in-with-apple')
+@validate(t.PostSignInWithApple)
+def post_sign_in_with_apple(req: t.PostSignInWithApple):
+    limit = "40 per day"
+    scope = "social_sign_in"
+
+    with (
+        limiter.limit(
+            limit,
+            scope=scope,
+            exempt_when=disable_ip_rate_limit),
+    ):
+        return person.post_sign_in_with_apple(req)
+
 @apost('/sign-out', expected_onboarding_status=None)
 def post_sign_out(s: t.SessionInfo):
     return person.post_sign_out(s)

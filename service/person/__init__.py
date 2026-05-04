@@ -374,6 +374,169 @@ def post_sign_out(s: t.SessionInfo):
     with api_tx('READ COMMITTED') as tx:
         tx.execute(Q_DELETE_DUO_SESSION, params)
 
+def _sign_in_with_social(
+    provider: str,
+    sub: str,
+    email: str,
+    email_verified: bool,
+    pending_club_name: Optional[str],
+):
+    """
+    Shared logic for /sign-in-with-google and /sign-in-with-apple. The
+    caller is responsible for verifying the provider's JWT and passing
+    canonical claim values.
+    """
+    if not request.remote_addr or firehol.matches(request.remote_addr):
+        return 'IP address blocked', 460
+
+    # Match the OTP path: store emails lowercased; the rest of the system
+    # treats `person.email` as already-lowercased.
+    email = email.lower().strip() if email else ''
+
+    session_token = secrets.token_hex(64)
+    session_token_hash = sha512(session_token)
+    normalized = normalize_email(email) if email else ''
+
+    with api_tx() as tx:
+        # 0. Banned-person guard (mirrors `_OTP_CTE`).
+        if normalized:
+            banned = tx.execute(Q_IS_BANNED, dict(
+                normalized_email=normalized,
+                ip_address=request.remote_addr,
+            )).fetchone()
+            if banned:
+                return 'Banned', 461
+
+        # 1. Resolve to an existing person via (provider, sub) first; on
+        #    miss, fall back to a verified-email match against `person`.
+        row = tx.execute(Q_LOOKUP_SOCIAL_IDENTITY, dict(
+            provider=provider,
+            provider_sub=sub,
+        )).fetchone()
+        person_id = row['person_id'] if row else None
+
+        if person_id is None and email_verified and email:
+            row = tx.execute(Q_LOOKUP_PERSON_BY_EMAIL, dict(
+                normalized_email=normalized,
+                email=email,
+            )).fetchone()
+            if row:
+                person_id = row['person_id']
+                # Auto-link: record the social identity so future sign-ins
+                # hit Q_LOOKUP_SOCIAL_IDENTITY directly.
+                tx.execute(Q_INSERT_SOCIAL_IDENTITY, dict(
+                    provider=provider,
+                    provider_sub=sub,
+                    person_id=person_id,
+                    email=email,
+                ))
+
+        # 2. New user with no email? We can't proceed — Apple should always
+        #    include `email` in the identity token, but if it doesn't and
+        #    there's no existing link, we can't create an onboardee row
+        #    (the table is keyed by email).
+        if person_id is None and not email:
+            return 'Provider did not return an email', 400
+
+        # 3. New user: ensure an onboardee row, then carry the pending
+        #    social identity on the session so /finish-onboarding can
+        #    promote it to `social_identity` once the person row exists.
+        # The user picks their display name in the onboarding wizard;
+        # we deliberately don't seed it from the provider's `name` claim.
+        pending_provider = None
+        pending_sub = None
+        if person_id is None:
+            tx.execute(Q_UPSERT_ONBOARDEE_FOR_SOCIAL, dict(email=email))
+            pending_provider = provider
+            pending_sub = sub
+
+        # 4. Mint the session — already signed in.
+        tx.execute(Q_INSERT_DUO_SESSION_SOCIAL, dict(
+            session_token_hash=session_token_hash,
+            person_id=person_id,
+            email=email,
+            pending_club_name=pending_club_name,
+            ip_address=request.remote_addr,
+            pending_social_provider=pending_provider,
+            pending_social_sub=pending_sub,
+        ))
+
+        # 5. For existing users, bump sign-in metadata + reactivation
+        #    club counts; for new users, return a stub profile.
+        if person_id is not None:
+            profile = tx.execute(Q_AFTER_SOCIAL_SIGN_IN, dict(
+                person_id=person_id,
+            )).fetchone()
+        else:
+            profile = dict(
+                person_id=None,
+                person_uuid=None,
+                has_gold=False,
+                units=None,
+                do_show_donation_nag=False,
+                estimated_end_date=None,
+                name=None,
+            )
+
+        # 6. Same pending-club-join handling as the OTP path.
+        club_params = dict(
+            person_id=person_id,
+            club_name=pending_club_name,
+            pending_club_name=pending_club_name,
+            do_modify=True,
+        )
+        if person_id is not None and pending_club_name is not None:
+            tx.execute(Q_JOIN_CLUB, club_params)
+            tx.execute(Q_UPSERT_SEARCH_PREFERENCE_CLUB, club_params)
+
+        clubs = tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone()
+
+        if profile.get('person_uuid'):
+            tx.execute(Q_UPDATE_LAST, dict(person_uuid=profile['person_uuid']))
+
+    return dict(
+        session_token=session_token,
+        onboarded=person_id is not None,
+        **profile,
+        **clubs,
+    )
+
+def post_sign_in_with_google(req: 't.PostSignInWithGoogle'):
+    from service.auth.social import (
+        SocialAuthError,
+        verify_google_id_token,
+    )
+    try:
+        claims = verify_google_id_token(req.id_token)
+    except SocialAuthError as e:
+        return f'Invalid Google token: {e}', 401
+
+    return _sign_in_with_social(
+        provider='google',
+        sub=claims['sub'],
+        email=claims['email'],
+        email_verified=claims['email_verified'],
+        pending_club_name=req.pending_club_name,
+    )
+
+def post_sign_in_with_apple(req: 't.PostSignInWithApple'):
+    from service.auth.social import (
+        SocialAuthError,
+        verify_apple_identity_token,
+    )
+    try:
+        claims = verify_apple_identity_token(req.identity_token)
+    except SocialAuthError as e:
+        return f'Invalid Apple token: {e}', 401
+
+    return _sign_in_with_social(
+        provider='apple',
+        sub=claims['sub'],
+        email=claims['email'],
+        email_verified=claims['email_verified'],
+        pending_club_name=req.pending_club_name,
+    )
+
 def post_check_session_token(s: t.SessionInfo):
     params = dict(
         person_id=s.person_id,
@@ -588,6 +751,14 @@ def post_finish_onboarding(s: t.SessionInfo):
         tx.execute('SET LOCAL statement_timeout = 15000') # 15 seconds
         tx.execute(Q_FINISH_ONBOARDING, params=api_params)
         row = tx.fetchone()
+
+        # If this user signed up via Google/Apple, drain the pending
+        # provider identity from `duo_session` into `social_identity` now
+        # that the new `person` row exists.
+        tx.execute(Q_PROMOTE_PENDING_SOCIAL_IDENTITY, dict(
+            session_token_hash=s.session_token_hash,
+            person_id=row['person_id'],
+        ))
 
         club_params = dict(
             person_id=row['person_id'],
