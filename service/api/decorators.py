@@ -123,6 +123,13 @@ app.config['MAX_CONTENT_LENGTH'] = constants.MAX_CONTENT_LENGTH;
 
 default_limits = "60 per minute; 12 per second"
 
+# Per-IP cap shared by every unauthenticated auth endpoint
+# (/request-otp, /check-otp, /sign-in-with-*, /auth/apple/callback).
+# Each endpoint scopes the bucket separately so they don't double-bill
+# against the same allowance — change this string to retune them all
+# at once.
+auth_rate_limit = "40 per day"
+
 limiter = Limiter(
     _get_remote_address,
     app=app,
