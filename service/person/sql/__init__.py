@@ -195,6 +195,60 @@ EXISTS (
 )
 """
 
+# Reactivation/sign-in metadata bumps shared by `/check-otp` and the
+# social sign-in flow: marks the user activated, bumps `sign_in_count` /
+# `sign_in_time`, and (only when the user was previously deactivated)
+# increments their clubs' `count_members`.
+#
+# Caller must define `existing_person_before_update` first as a CTE
+# yielding `(id, activated)` with zero or one rows — that anchor lets the
+# club-count branch read the user's *pre-update* activated state.
+_Q_POST_SIGN_IN_CTES = """
+existing_person AS (
+    UPDATE
+        person
+    SET
+        activated = TRUE,
+        sign_in_count = sign_in_count + 1,
+        sign_in_time = NOW()
+    WHERE
+        id = (SELECT id FROM existing_person_before_update)
+    RETURNING
+        person.id,
+        person.uuid AS person_uuid,
+        person.unit_id,
+        person.name,
+        person.last_nag_time,
+        person.sign_up_time,
+        person.count_answers,
+        person.has_gold
+), club_to_increment AS (
+    SELECT
+        person_club.club_name
+    FROM
+        existing_person
+    LEFT JOIN
+        person_club
+    ON
+        person_club.person_id = existing_person.id
+    JOIN
+        existing_person_before_update
+    ON
+        existing_person_before_update.id = existing_person.id
+    WHERE
+        NOT existing_person_before_update.activated
+), increment_club_count_if_not_activated AS (
+    UPDATE
+        club
+    SET
+        count_members = count_members + 1
+    FROM
+        club_to_increment
+    WHERE
+        club_to_increment.club_name = club.name
+)
+"""
+
 _OTP_CTE = f"""
 WITH random_otp AS (
     SELECT LPAD(FLOOR(RANDOM() * (10e5 + 1))::TEXT, 6, '0') AS otp
@@ -332,27 +386,15 @@ WITH valid_session AS (
     RETURNING
         person_id,
         email
-), existing_person AS (
-    UPDATE
-        person
-    SET
-        activated = TRUE,
-        sign_in_count = sign_in_count + 1,
-        sign_in_time = NOW()
+), existing_person_before_update AS (
+    SELECT
+        id,
+        activated
     FROM
-        valid_session
+        person
     WHERE
-        person.id = person_id
-    RETURNING
-        person.id,
-        person.uuid AS person_uuid,
-        person.unit_id,
-        person.name,
-        person.last_nag_time,
-        person.sign_up_time,
-        person.count_answers,
-        person.has_gold
-), new_onboardee AS (
+        id = (SELECT person_id FROM valid_session)
+), {_Q_POST_SIGN_IN_CTES}, new_onboardee AS (
     INSERT INTO onboardee (
         email
     )
@@ -361,30 +403,6 @@ WITH valid_session AS (
     FROM
         valid_session
     WHERE NOT EXISTS (SELECT 1 FROM existing_person)
-), club_to_increment AS (
-    SELECT
-        person_club.club_name
-    FROM
-        existing_person
-    LEFT JOIN
-        person_club
-    ON
-        person_club.person_id = existing_person.id
-    LEFT JOIN
-        person AS existing_person_before_update
-    ON
-        existing_person_before_update.id = existing_person.id
-    WHERE
-        NOT existing_person_before_update.activated
-), increment_club_count_if_not_activated AS (
-    UPDATE
-        club
-    SET
-        count_members = count_members + 1
-    FROM
-        club_to_increment
-    WHERE
-        club_to_increment.club_name = club.name
 )
 SELECT
     person_id,
@@ -3424,58 +3442,19 @@ INSERT INTO duo_session (
 )
 """
 
-# Mirrors the `existing_person` + club-count CTEs from `Q_MAYBE_SIGN_IN` so
-# that a social sign-in to an existing person bumps the same metadata as
-# OTP would, including reactivation-driven club counts.
 Q_AFTER_SOCIAL_SIGN_IN = f"""
 WITH existing_person_before_update AS (
-    SELECT id, activated FROM person WHERE id = %(person_id)s
-), existing_person AS (
-    UPDATE
+    SELECT
+        id,
+        activated
+    FROM
         person
-    SET
-        activated = TRUE,
-        sign_in_count = sign_in_count + 1,
-        sign_in_time = NOW()
     WHERE
         id = %(person_id)s
-    RETURNING
-        person.id,
-        person.uuid AS person_uuid,
-        person.unit_id,
-        person.name,
-        person.last_nag_time,
-        person.sign_up_time,
-        person.count_answers,
-        person.has_gold
-), club_to_increment AS (
-    SELECT
-        person_club.club_name
-    FROM
-        existing_person
-    LEFT JOIN
-        person_club
-    ON
-        person_club.person_id = existing_person.id
-    JOIN
-        existing_person_before_update
-    ON
-        existing_person_before_update.id = existing_person.id
-    WHERE
-        NOT existing_person_before_update.activated
-), increment_club_count_if_not_activated AS (
-    UPDATE
-        club
-    SET
-        count_members = count_members + 1
-    FROM
-        club_to_increment
-    WHERE
-        club_to_increment.club_name = club.name
-)
+), {_Q_POST_SIGN_IN_CTES}
 SELECT
     existing_person.id AS person_id,
-    existing_person.person_uuid::TEXT AS person_uuid,
+    existing_person.person_uuid,
     existing_person.has_gold,
     (SELECT name FROM unit WHERE id = existing_person.unit_id) AS units,
     {_Q_DO_SHOW_DONATION_NAG.format(table='existing_person')},

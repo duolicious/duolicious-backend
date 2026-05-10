@@ -34,6 +34,11 @@ import erlastic
 from datetime import datetime, timezone
 from duoaudio import put_audio_in_object_store
 from service.person.aboutdiff import diff_addition_with_context
+from service.auth.social import (
+    SocialAuthError,
+    verify_apple_identity_token,
+    verify_google_id_token,
+)
 from verification.messages import (
     V_QUEUED,
     V_REUSED_SELFIE,
@@ -408,19 +413,19 @@ def _sign_in_with_social(
                 return 'Banned', 461
 
         # 1. Resolve to an existing person via (provider, sub) first; on
-        #    miss, fall back to a verified-email match against `person`.
+        #    miss, fall back to an email match against `person`.
         row = tx.execute(Q_LOOKUP_SOCIAL_IDENTITY, dict(
             provider=provider,
             provider_sub=sub,
         )).fetchone()
         person_id = row['person_id'] if row else None
 
-        if person_id is None and email_verified and email:
+        if person_id is None and email:
             row = tx.execute(Q_LOOKUP_PERSON_BY_EMAIL, dict(
                 normalized_email=normalized,
                 email=email,
             )).fetchone()
-            if row:
+            if row and email_verified:
                 person_id = row['person_id']
                 # Auto-link: record the social identity so future sign-ins
                 # hit Q_LOOKUP_SOCIAL_IDENTITY directly.
@@ -430,6 +435,18 @@ def _sign_in_with_social(
                     person_id=person_id,
                     email=email,
                 ))
+            elif row:
+                # Existing person with this email but the provider hasn't
+                # marked the email verified, so we can't safely auto-link.
+                # Letting the user proceed would create an onboardee row
+                # and then crash on the `person.email` UNIQUE constraint
+                # at /finish-onboarding. Reject up front instead.
+                return (
+                    'An account already exists for this email. Sign in '
+                    'with the email link to confirm ownership, then try '
+                    'social sign-in again.',
+                    401,
+                )
 
         # 2. New user with no email? We can't proceed — Apple should always
         #    include `email` in the identity token, but if it doesn't and
@@ -502,10 +519,6 @@ def _sign_in_with_social(
     )
 
 def post_sign_in_with_google(req: 't.PostSignInWithGoogle'):
-    from service.auth.social import (
-        SocialAuthError,
-        verify_google_id_token,
-    )
     try:
         claims = verify_google_id_token(req.id_token)
     except SocialAuthError as e:
@@ -520,10 +533,6 @@ def post_sign_in_with_google(req: 't.PostSignInWithGoogle'):
     )
 
 def post_sign_in_with_apple(req: 't.PostSignInWithApple'):
-    from service.auth.social import (
-        SocialAuthError,
-        verify_apple_identity_token,
-    )
     try:
         claims = verify_apple_identity_token(req.identity_token)
     except SocialAuthError as e:

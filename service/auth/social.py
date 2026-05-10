@@ -17,13 +17,19 @@ Env vars:
 
 import os
 import time
-from pathlib import Path
 from typing import TypedDict
 
 import jwt
 from jwt import PyJWKClient
 from google.auth.transport.requests import Request as _GoogleRequest
 from google.oauth2 import id_token as _google_id_token
+
+from service.api.decorators import enable_mocking
+
+
+# Bound on JWKS / certs HTTP fetches. Without this, a slow upstream pins
+# a gunicorn worker indefinitely on the cold-start fetch.
+_PROVIDER_HTTP_TIMEOUT_SECONDS = 5
 
 
 class SocialClaims(TypedDict):
@@ -50,26 +56,33 @@ _APPLE_ISSUER = 'https://appleid.apple.com'
 
 # `PyJWKClient` does its own in-process caching with a 1-hour TTL, so a
 # module-level singleton is fine.
-_apple_jwks_client = PyJWKClient(_APPLE_JWKS_URL, cache_keys=True, lifespan=3600)
-
-# `google-auth` caches its certs on the Request object.
-_google_request = _GoogleRequest()
-
-# Test-mode escape hatch. When the same flag the rest of the test suite
-# uses is set, we skip JWT signature verification and rely on the test
-# providing a structurally-valid, semantically-correct payload (right
-# `iss`, `aud`, `exp`). Lets `test/functionality1/social-login.sh` mint
-# tokens in pure bash without hitting Google's or Apple's JWKS.
-_enable_mocking_file = (
-    Path(__file__).parent.parent.parent / 'test' / 'input' / 'enable-mocking'
+_apple_jwks_client = PyJWKClient(
+    _APPLE_JWKS_URL,
+    cache_keys=True,
+    lifespan=3600,
+    timeout=_PROVIDER_HTTP_TIMEOUT_SECONDS,
 )
 
 
-def _is_mocking_enabled() -> bool:
-    try:
-        return _enable_mocking_file.read_text().strip() == '1'
-    except (FileNotFoundError, NotADirectoryError):
-        return False
+# `google-auth`'s `Request` accepts a per-call timeout via __call__, but
+# `verify_oauth2_token` doesn't expose that. Subclass to set a default.
+class _BoundedTimeoutGoogleRequest(_GoogleRequest):
+    def __call__(
+        self,
+        url,
+        method='GET',
+        body=None,
+        headers=None,
+        timeout=_PROVIDER_HTTP_TIMEOUT_SECONDS,
+        **kwargs,
+    ):
+        return super().__call__(
+            url, method, body, headers, timeout=timeout, **kwargs
+        )
+
+
+# `google-auth` caches its certs on the Request object.
+_google_request = _BoundedTimeoutGoogleRequest()
 
 
 def _decode_unverified(
@@ -81,8 +94,9 @@ def _decode_unverified(
     """
     Decode a JWT *without* signature verification, then enforce the
     same iss/aud/exp/required-claim checks that the real verifiers do.
-    Used only when `_is_mocking_enabled()` is True — in production this
-    path is never reached.
+    Used only when `enable_mocking()` is True — in production this path
+    is never reached because the mocking flag file isn't shipped in the
+    Docker image (`api.Dockerfile` excludes the `test/` directory).
     """
     try:
         claims = jwt.decode(
@@ -120,7 +134,7 @@ def verify_google_id_token(id_token: str) -> SocialClaims:
     if not _GOOGLE_CLIENT_IDS:
         raise SocialAuthError('DUO_GOOGLE_CLIENT_IDS is not configured')
 
-    if _is_mocking_enabled():
+    if enable_mocking():
         claims = _decode_unverified(
             id_token,
             allowed_issuers=_GOOGLE_ISSUERS,
@@ -166,7 +180,7 @@ def verify_apple_identity_token(identity_token: str) -> SocialClaims:
     if not _APPLE_CLIENT_IDS:
         raise SocialAuthError('DUO_APPLE_CLIENT_IDS is not configured')
 
-    if _is_mocking_enabled():
+    if enable_mocking():
         claims = _decode_unverified(
             identity_token,
             allowed_issuers=(_APPLE_ISSUER,),
@@ -198,10 +212,13 @@ def verify_apple_identity_token(identity_token: str) -> SocialClaims:
         email = ''
 
     # Apple's `email_verified` is a string ("true"/"false") and is always
-    # "true" when the field is present (relay or real). Treat absence as
-    # not-verified for safety.
+    # "true" when the field is present (relay or real). When the claim is
+    # absent we trust the issuer: Apple wouldn't include an email it hasn't
+    # verified, so an unset claim alongside a present `email` is treated as
+    # verified. The only false case is an explicit "false" / False.
     raw_verified = claims.get('email_verified')
     email_verified = (
+        raw_verified is None or
         raw_verified is True or
         (isinstance(raw_verified, str) and raw_verified.lower() == 'true')
     )

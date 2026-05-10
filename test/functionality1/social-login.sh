@@ -56,7 +56,10 @@ SESSION_TOKEN=$(jq -r .session_token <<< "$response")
 [[ "$(q "select name is null from onboardee where email = 'new1@example.com'")" = t ]]
 
 # Session is already signed-in and carries the pending social link.
-[[ "$(q "select signed_in from duo_session where session_token_hash = encode(digest('$SESSION_TOKEN'::bytea, 'sha512'), 'hex')")" = t ]]
+# Hash in shell rather than via pgcrypto's `digest()` — the test DB doesn't
+# load that extension. Matches the pattern used in `revenuecat.sh`.
+session_token_hash=$(printf '%s' "$SESSION_TOKEN" | sha512sum | cut -d' ' -f1)
+[[ "$(q "select signed_in from duo_session where session_token_hash = '$session_token_hash'")" = t ]]
 [[ "$(q "select pending_social_provider from duo_session where pending_social_provider is not null")" = google ]]
 [[ "$(q "select pending_social_sub      from duo_session where pending_social_sub is not null")"      = google-sub-1 ]]
 
@@ -124,12 +127,17 @@ SESSION_TOKEN=$(jq -r .session_token <<< "$response")
 [[ "$(q "select count(*) from social_identity where provider = 'google' and provider_sub = 'google-sub-2' and person_id = $linkme_id")" -eq 1 ]]
 
 # ---------------------------------------------------------------------------
-# 4. email_verified:false must NOT auto-link — even if email matches.
+# 4. email_verified:false collides with an existing person → 401. Without
+#    this short-circuit the user would proceed through onboarding and crash
+#    on `person.email`'s UNIQUE constraint at /finish-onboarding.
 # ---------------------------------------------------------------------------
 g_token=$(mint_google_token --sub google-sub-3 --email linkme@example.com --verified false)
-response=$(jc POST /sign-in-with-google -d "{ \"id_token\": \"${g_token}\" }")
-# Treated as a brand-new user: onboarded false, no link inserted.
-[[ "$(jq -r .onboarded <<< "$response")" = false ]]
+status=$(curl -s -o /dev/null -w "%{http_code}" \
+  -X POST http://localhost:5000/sign-in-with-google \
+  -H "Content-Type: application/json" \
+  -d "{ \"id_token\": \"${g_token}\" }")
+[[ "$status" = "401" ]]
+# No onboardee or social_identity row created for the unverified attempt.
 [[ "$(q "select count(*) from social_identity where provider_sub = 'google-sub-3'")" -eq 0 ]]
 
 # ---------------------------------------------------------------------------
