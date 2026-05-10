@@ -8,6 +8,7 @@ from service import (
     question,
     search,
 )
+from service.auth import apple_oauth
 from database import api_tx
 import psycopg
 from service.api.decorators import (
@@ -234,6 +235,27 @@ def post_sign_in_with_apple(req: t.PostSignInWithApple):
             exempt_when=disable_ip_rate_limit),
     ):
         return person.post_sign_in_with_apple(req)
+
+# Apple Sign-In web/Android OAuth callback. Must be a `@post` (not
+# `@apost`) — the request comes from Apple's authorize endpoint as an
+# unauthenticated form_post, with no bearer token. See
+# `service/auth/apple_oauth.py` for the rationale.
+@post('/auth/apple/callback')
+def post_auth_apple_callback():
+    limit = "40 per day"
+    scope = "social_sign_in"
+
+    with (
+        limiter.limit(
+            limit,
+            scope=scope,
+            exempt_when=disable_ip_rate_limit),
+    ):
+        return apple_oauth.handle_callback(
+            id_token=request.form.get('id_token', ''),
+            state=request.form.get('state', ''),
+            error=request.form.get('error'),
+        )
 
 @apost('/sign-out', expected_onboarding_status=None)
 def post_sign_out(s: t.SessionInfo):

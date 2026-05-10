@@ -236,4 +236,49 @@ complete_onboarding_for_current_session
 club_id=$(get_id 'club@example.com')
 [[ "$(q "select count(*) from person_club where person_id = $club_id and club_name = 'some-club'")" -eq 1 ]]
 
+# ---------------------------------------------------------------------------
+# 11. Apple OAuth callback (web/Android flow). The backend converts
+#     Apple's POST into a 302 carrying the id_token in a query param.
+#     `DUO_APPLE_*_REDIRECT_URL` in docker-compose.test.yml define the
+#     allowed targets.
+# ---------------------------------------------------------------------------
+expected_web_redirect="http://test-web.example/"
+expected_android_redirect="http://test-android.example/"
+
+# 11a. Web target: state = "<nonce>.web" → redirects to web URL with
+# id_token + state preserved. We don't trust curl's URL re-encoding for
+# the assertion, so just check the prefix and that both params are present.
+location=$(curl -s -o /dev/null -w "%{redirect_url}" \
+  -X POST http://localhost:5000/auth/apple/callback \
+  -d 'id_token=fake.id.token&state=abc123.web')
+[[ "$location" == "${expected_web_redirect}"* ]]
+[[ "$location" == *apple_id_token=fake.id.token* ]]
+[[ "$location" == *apple_state=abc123.web* ]]
+
+# 11b. Android target.
+location=$(curl -s -o /dev/null -w "%{redirect_url}" \
+  -X POST http://localhost:5000/auth/apple/callback \
+  -d 'id_token=fake.id.token&state=xyz789.android')
+[[ "$location" == "${expected_android_redirect}"* ]]
+[[ "$location" == *apple_id_token=fake.id.token* ]]
+
+# 11c. Unknown target in state → 400 (no open redirect).
+status=$(curl -s -o /dev/null -w "%{http_code}" \
+  -X POST http://localhost:5000/auth/apple/callback \
+  -d 'id_token=fake.id.token&state=abc123.evil')
+[[ "$status" = "400" ]]
+
+# 11d. Apple-reported error is forwarded to the client as a query param.
+location=$(curl -s -o /dev/null -w "%{redirect_url}" \
+  -X POST http://localhost:5000/auth/apple/callback \
+  -d 'state=abc123.web&error=user_cancelled_authorize')
+[[ "$location" == "${expected_web_redirect}"* ]]
+[[ "$location" == *apple_error=user_cancelled_authorize* ]]
+
+# 11e. Missing id_token (and no error) → forwarded as a generic error.
+location=$(curl -s -o /dev/null -w "%{redirect_url}" \
+  -X POST http://localhost:5000/auth/apple/callback \
+  -d 'state=abc123.web')
+[[ "$location" == *apple_error=missing_id_token* ]]
+
 echo "social-login.sh OK"

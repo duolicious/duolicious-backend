@@ -67,6 +67,11 @@ services:
       # which is fine because the functional tests use the OTP flow.
       DUO_GOOGLE_CLIENT_IDS: test-dummy.apps.googleusercontent.com
       DUO_APPLE_CLIENT_IDS: app.duolicious,app.duolicious.web
+      # Where /auth/apple/callback redirects the user after a web/Android
+      # Apple sign-in. Test values can be any URL — the callback test
+      # only asserts on the redirect Location header.
+      DUO_APPLE_WEB_REDIRECT_URL: http://test-web.example/
+      DUO_APPLE_ANDROID_REDIRECT_URL: http://test-android.example/
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
