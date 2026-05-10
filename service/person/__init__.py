@@ -527,32 +527,33 @@ def _sign_in_with_social(
         **clubs,
     )
 
-def post_sign_in_with_google(req: 't.PostSignInWithGoogle'):
+# (provider name, human-readable label, JWT verifier).
+# Adding a new social provider means adding a row here, a Pydantic
+# request type, and a route in `service/api/__init__.py` that dispatches
+# to `post_sign_in_with_provider` — no new business-logic function.
+_SOCIAL_PROVIDERS = {
+    'google': ('Google', verify_google_id_token),
+    'apple':  ('Apple',  verify_apple_identity_token),
+}
+
+def post_sign_in_with_provider(
+    *,
+    provider: str,
+    token: str,
+    pending_club_name: Optional[str],
+):
+    label, verifier = _SOCIAL_PROVIDERS[provider]
     try:
-        claims = verify_google_id_token(req.id_token)
+        claims = verifier(token)
     except SocialAuthError as e:
-        return f'Invalid Google token: {e}', 401
+        return f'Invalid {label} token: {e}', 401
 
     return _sign_in_with_social(
-        provider='google',
+        provider=provider,
         sub=claims['sub'],
         email=claims['email'],
         email_verified=claims['email_verified'],
-        pending_club_name=req.pending_club_name,
-    )
-
-def post_sign_in_with_apple(req: 't.PostSignInWithApple'):
-    try:
-        claims = verify_apple_identity_token(req.identity_token)
-    except SocialAuthError as e:
-        return f'Invalid Apple token: {e}', 401
-
-    return _sign_in_with_social(
-        provider='apple',
-        sub=claims['sub'],
-        email=claims['email'],
-        email_verified=claims['email_verified'],
-        pending_club_name=req.pending_club_name,
+        pending_club_name=pending_club_name,
     )
 
 def post_check_session_token(s: t.SessionInfo):

@@ -11,6 +11,7 @@ from typing import (
 )
 from pydantic import (
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     EmailStr,
     Field,
@@ -44,6 +45,22 @@ register_heif_opener()
 
 CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42
+
+
+def _normalize_pending_club_name(value):
+    if value is None:
+        return value
+    return value.lower().strip()
+
+
+# `pending_club_name` is sent by the client when the user is signing in
+# *into* a pending club invite. Used by /request-otp,
+# /sign-in-with-google, /sign-in-with-apple — all three normalize the
+# name the same way before pydantic's pattern/length validation runs.
+PendingClubName = Annotated[
+    Optional[str],
+    BeforeValidator(_normalize_pending_club_name),
+]
 
 HEX_COLOR_PATTERN = r"^#[0-9a-fA-F]{6}$"
 
@@ -258,7 +275,7 @@ class DeleteAnswer(BaseModel):
 
 class PostRequestOtp(BaseModel):
     email: EmailStr
-    pending_club_name: Optional[str] = Field(
+    pending_club_name: PendingClubName = Field(
         default=None,
         pattern=CLUB_PATTERN,
         min_length=1,
@@ -269,10 +286,6 @@ class PostRequestOtp(BaseModel):
     def validate_email(cls, value):
         return EmailStr._validate(value.lower().strip())
 
-    @field_validator('pending_club_name', mode='before')
-    def validate_pending_club_name(cls, value):
-        return value.lower().strip()
-
 
 class PostCheckOtp(BaseModel):
     otp: str = Field(pattern=r"^\d{6}$")
@@ -281,35 +294,23 @@ class PostCheckOtp(BaseModel):
 class PostSignInWithGoogle(BaseModel):
     # Google ID token (a JWT). Verified server-side against Google's JWKS.
     id_token: str = Field(min_length=1, max_length=4096)
-    pending_club_name: Optional[str] = Field(
+    pending_club_name: PendingClubName = Field(
         default=None,
         pattern=CLUB_PATTERN,
         min_length=1,
         max_length=CLUB_MAX_LEN,
     )
-
-    @field_validator('pending_club_name', mode='before')
-    def validate_pending_club_name(cls, value):
-        if value is None:
-            return value
-        return value.lower().strip()
 
 
 class PostSignInWithApple(BaseModel):
     # Apple identity token (a JWT). Verified server-side against Apple's JWKS.
     identity_token: str = Field(min_length=1, max_length=4096)
-    pending_club_name: Optional[str] = Field(
+    pending_club_name: PendingClubName = Field(
         default=None,
         pattern=CLUB_PATTERN,
         min_length=1,
         max_length=CLUB_MAX_LEN,
     )
-
-    @field_validator('pending_club_name', mode='before')
-    def validate_pending_club_name(cls, value):
-        if value is None:
-            return value
-        return value.lower().strip()
 
 
 class PatchOnboardeeInfo(BaseModel):

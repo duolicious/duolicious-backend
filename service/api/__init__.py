@@ -218,7 +218,11 @@ def post_sign_in_with_google(req: t.PostSignInWithGoogle):
             scope=scope,
             exempt_when=disable_ip_rate_limit),
     ):
-        return person.post_sign_in_with_google(req)
+        return person.post_sign_in_with_provider(
+            provider='google',
+            token=req.id_token,
+            pending_club_name=req.pending_club_name,
+        )
 
 @post('/sign-in-with-apple')
 @validate(t.PostSignInWithApple)
@@ -231,7 +235,11 @@ def post_sign_in_with_apple(req: t.PostSignInWithApple):
             scope=scope,
             exempt_when=disable_ip_rate_limit),
     ):
-        return person.post_sign_in_with_apple(req)
+        return person.post_sign_in_with_provider(
+            provider='apple',
+            token=req.identity_token,
+            pending_club_name=req.pending_club_name,
+        )
 
 # Apple Sign-In web/Android OAuth callback. Must be a `@post` (not
 # `@apost`) — the request comes from Apple's authorize endpoint as an
