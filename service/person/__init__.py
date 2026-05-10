@@ -297,12 +297,19 @@ def post_request_otp(req: t.PostRequestOtp):
     )
 
     with api_tx() as tx:
+        if tx.execute(Q_IS_BANNED, params).fetchone():
+            return 'Banned', 461
         rows = tx.execute(Q_INSERT_DUO_SESSION, params).fetchall()
 
     try:
         row, *_ = rows
         otp = row['otp']
     except:
+        # The ban path is handled above; reaching here means the OTP
+        # CTE returned no rows for some other reason (e.g. the
+        # `bad_email_domain` filter on a new sign-up). Surfacing
+        # 'Banned' is a deliberate vagueness — we don't tell the
+        # caller which guardrail tripped.
         return 'Banned', 461
 
     _send_otp(req.email, otp)
@@ -322,6 +329,8 @@ def post_resend_otp(s: t.SessionInfo):
     )
 
     with api_tx() as tx:
+        if tx.execute(Q_IS_BANNED, params).fetchone():
+            return 'Banned', 461
         rows = tx.execute(Q_UPDATE_OTP, params).fetchall()
 
     try:

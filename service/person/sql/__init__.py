@@ -180,21 +180,6 @@ ORDER BY
     trait_name ASC
 """
 
-# True when the caller is currently banned, by either normalized email or
-# IP. Shared by the OTP path (where it gates the OTP-issuing CTE) and the
-# social-login path (which checks it explicitly before issuing a session).
-# Requires `%(normalized_email)s` and `%(ip_address)s` query params.
-_BANNED_PERSON_PREDICATE = """
-EXISTS (
-    SELECT 1
-    FROM banned_person
-    WHERE
-        (normalized_email = %(normalized_email)s OR ip_address = %(ip_address)s)
-    AND
-        expires_at > NOW()
-)
-"""
-
 # Reactivation/sign-in metadata bumps shared by `/check-otp` and the
 # social sign-in flow: marks the user activated, bumps `sign_in_count` /
 # `sign_in_time`, and (only when the user was previously deactivated)
@@ -249,7 +234,11 @@ existing_person AS (
 )
 """
 
-_OTP_CTE = f"""
+# OTP-issuing CTE chain. The ban check is intentionally NOT here: the
+# OTP and social paths share `Q_IS_BANNED` for that and run it as an
+# explicit step in the same transaction, which keeps both endpoints
+# following the same control flow.
+_OTP_CTE = """
 WITH random_otp AS (
     SELECT LPAD(FLOOR(RANDOM() * (10e5 + 1))::TEXT, 6, '0') AS otp
 ), zero_otp AS (
@@ -278,8 +267,6 @@ WITH random_otp AS (
             (SELECT otp FROM random_otp)
         END AS otp
     WHERE
-        NOT {_BANNED_PERSON_PREDICATE}
-    AND
         NOT EXISTS (
             SELECT
                 1
@@ -3350,12 +3337,25 @@ WHERE
 # Social login (Google / Apple)
 # ---------------------------------------------------------------------------
 
-# Reuses the same predicate as `_OTP_CTE`'s ban guard. We don't repeat the
-# bad_email_domain check here because Apple/Google already gate disposable
-# providers, and Apple's @privaterelay.appleid.com would otherwise trip an
-# overzealous filter.
-Q_IS_BANNED = f"""
-SELECT 1 WHERE {_BANNED_PERSON_PREDICATE}
+# True when the caller is currently banned, by either normalized email
+# or IP. Used by both /request-otp and the social sign-in path as the
+# first statement inside their api_tx() block; the OTP-issuing /
+# session-issuing query then runs against the same snapshot.
+#
+# We don't repeat the bad_email_domain check here because Apple/Google
+# already gate disposable providers, and Apple's
+# @privaterelay.appleid.com would otherwise trip an overzealous filter.
+# The OTP path keeps that filter inside `_OTP_CTE` for new sign-ups.
+Q_IS_BANNED = """
+SELECT 1
+WHERE EXISTS (
+    SELECT 1
+    FROM banned_person
+    WHERE
+        (normalized_email = %(normalized_email)s OR ip_address = %(ip_address)s)
+    AND
+        expires_at > NOW()
+)
 """
 
 # Look up a linked person by provider sub. Excludes bots — a bot account
