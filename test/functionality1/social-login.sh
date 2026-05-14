@@ -13,6 +13,11 @@ source ../util/setup.sh
 
 set -xe
 
+# Default nonce shared by mint_apple_token and the /sign-in-with-apple
+# request bodies. The backend rejects an Apple sign-in whose JWT.nonce
+# doesn't match the nonce supplied alongside the token.
+NONCE="test-nonce-0000000000000000"
+
 reset_db () {
   local future
   future=$(q "select iso8601_utc((now() + interval '20 days')::timestamp)")
@@ -127,18 +132,35 @@ SESSION_TOKEN=$(jq -r .session_token <<< "$response")
 [[ "$(q "select count(*) from social_identity where provider = 'google' and provider_sub = 'google-sub-2' and person_id = $linkme_id")" -eq 1 ]]
 
 # ---------------------------------------------------------------------------
-# 4. email_verified:false collides with an existing person → 401. Without
-#    this short-circuit the user would proceed through onboarding and crash
-#    on `person.email`'s UNIQUE constraint at /finish-onboarding.
+# 4a. email_verified:false collides with an existing person → 409. Without
+#     this short-circuit the user would proceed through onboarding and crash
+#     on `person.email`'s UNIQUE constraint at /finish-onboarding. The 409
+#     status (vs 401) is what tells the client to show the "use email to
+#     confirm ownership" hint rather than a generic auth-failure message.
 # ---------------------------------------------------------------------------
 g_token=$(mint_google_token --sub google-sub-3 --email linkme@example.com --verified false)
 status=$(curl -s -o /dev/null -w "%{http_code}" \
   -X POST http://localhost:5000/sign-in-with-google \
   -H "Content-Type: application/json" \
   -d "{ \"id_token\": \"${g_token}\" }")
-[[ "$status" = "401" ]]
+[[ "$status" = "409" ]]
 # No onboardee or social_identity row created for the unverified attempt.
 [[ "$(q "select count(*) from social_identity where provider_sub = 'google-sub-3'")" -eq 0 ]]
+
+# ---------------------------------------------------------------------------
+# 4b. email_verified:false with no existing person → also 409. Allowing the
+#     sign-up would create an account at an email the provider hasn't
+#     attested to, blocking the rightful owner from later registering via
+#     OTP. Reject up front to keep email ownership in step with verification.
+# ---------------------------------------------------------------------------
+g_token=$(mint_google_token --sub google-sub-4 --email unverified@example.com --verified false)
+status=$(curl -s -o /dev/null -w "%{http_code}" \
+  -X POST http://localhost:5000/sign-in-with-google \
+  -H "Content-Type: application/json" \
+  -d "{ \"id_token\": \"${g_token}\" }")
+[[ "$status" = "409" ]]
+[[ "$(q "select count(*) from onboardee where email = 'unverified@example.com'")" -eq 0 ]]
+[[ "$(q "select count(*) from social_identity where provider_sub = 'google-sub-4'")" -eq 0 ]]
 
 # ---------------------------------------------------------------------------
 # 5. Apple basic sign-up.
@@ -147,7 +169,8 @@ reset_db
 SESSION_TOKEN=""
 
 a_token=$(mint_apple_token --sub apple-sub-1 --email apple1@example.com)
-response=$(jc POST /sign-in-with-apple -d "{ \"identity_token\": \"${a_token}\" }")
+response=$(jc POST /sign-in-with-apple \
+  -d "{ \"identity_token\": \"${a_token}\", \"nonce\": \"${NONCE}\" }")
 
 [[ "$(jq -r .onboarded         <<< "$response")" = false ]]
 [[ "$(jq -r .session_token     <<< "$response")" != null ]]
@@ -173,7 +196,8 @@ real_id=$(get_id 'real@example.com')
 
 SESSION_TOKEN=""
 relay_token=$(mint_apple_token --sub apple-sub-relay --email abc.def@privaterelay.appleid.com)
-response=$(jc POST /sign-in-with-apple -d "{ \"identity_token\": \"${relay_token}\" }")
+response=$(jc POST /sign-in-with-apple \
+  -d "{ \"identity_token\": \"${relay_token}\", \"nonce\": \"${NONCE}\" }")
 
 # Did NOT auto-link to real@example.com.
 [[ "$(jq -r .onboarded <<< "$response")" = false ]]
@@ -217,6 +241,20 @@ status=$(curl -s -o /dev/null -w "%{http_code}" \
   -H "Content-Type: application/json" \
   -d "{ \"id_token\": \"${mismatched}\" }")
 [[ "$status" = "401" ]]
+
+# ---------------------------------------------------------------------------
+# 9b. Apple token whose JWT.nonce doesn't match the nonce the client says
+#     it asked for → 401. Protects against an attacker replaying a stolen
+#     id_token: even with a valid signature, the nonce binding fails.
+# ---------------------------------------------------------------------------
+reset_db
+a_token=$(mint_apple_token --sub apple-nonce-bad --email a@b.com --nonce someone-elses-nonce-aaaaaaaaa)
+status=$(curl -s -o /dev/null -w "%{http_code}" \
+  -X POST http://localhost:5000/sign-in-with-apple \
+  -H "Content-Type: application/json" \
+  -d "{ \"identity_token\": \"${a_token}\", \"nonce\": \"${NONCE}\" }")
+[[ "$status" = "401" ]]
+[[ "$(q "select count(*) from social_identity where provider_sub = 'apple-nonce-bad'")" -eq 0 ]]
 
 # ---------------------------------------------------------------------------
 # 10. Pending club join works on social sign-up.

@@ -218,8 +218,7 @@ def post_sign_in_with_google(req: t.PostSignInWithGoogle):
             scope=scope,
             exempt_when=disable_ip_rate_limit),
     ):
-        return person.post_sign_in_with_provider(
-            provider='google',
+        return person.post_sign_in_with_google(
             token=req.id_token,
             pending_club_name=req.pending_club_name,
         )
@@ -235,9 +234,9 @@ def post_sign_in_with_apple(req: t.PostSignInWithApple):
             scope=scope,
             exempt_when=disable_ip_rate_limit),
     ):
-        return person.post_sign_in_with_provider(
-            provider='apple',
+        return person.post_sign_in_with_apple(
             token=req.identity_token,
+            nonce=req.nonce,
             pending_club_name=req.pending_club_name,
         )
 

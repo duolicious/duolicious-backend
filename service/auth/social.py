@@ -16,6 +16,7 @@ Env vars:
 """
 
 import os
+import secrets
 import time
 from typing import TypedDict
 
@@ -170,10 +171,19 @@ def verify_google_id_token(id_token: str) -> SocialClaims:
     )
 
 
-def verify_apple_identity_token(identity_token: str) -> SocialClaims:
+def verify_apple_identity_token(
+    identity_token: str,
+    *,
+    expected_nonce: str,
+) -> SocialClaims:
     """
     Validate an Apple `identity_token` (the JWT returned to the client by
     Sign In with Apple). Returns the canonical claims.
+
+    `expected_nonce` is the random string the client passed to Apple as the
+    `nonce` (native `signInAsync({ nonce })` on iOS, `&nonce=` URL param on
+    web/Android). Apple echoes it verbatim into the JWT's `nonce` claim; we
+    compare the two to bind the token to the originating client session.
 
     Raises SocialAuthError on any verification failure.
     """
@@ -195,10 +205,19 @@ def verify_apple_identity_token(identity_token: str) -> SocialClaims:
                 algorithms=['RS256'],
                 audience=_APPLE_CLIENT_IDS,
                 issuer=_APPLE_ISSUER,
-                options={'require': ['exp', 'iat', 'sub', 'iss', 'aud']},
+                options={'require': ['exp', 'iat', 'sub', 'iss', 'aud', 'nonce']},
             )
         except (jwt.PyJWTError, jwt.exceptions.PyJWKClientError) as e:
             raise SocialAuthError(f'Invalid Apple token: {e}')
+
+    # Constant-time nonce comparison. An attacker who controls neither the
+    # client nor Apple can't forge a JWT with a known nonce, but failing
+    # closed here protects against bug-class issues if a nonce ever leaks.
+    token_nonce = claims.get('nonce')
+    if not isinstance(token_nonce, str) or not secrets.compare_digest(
+        token_nonce, expected_nonce
+    ):
+        raise SocialAuthError('Apple token nonce did not match the expected value')
 
     sub = claims.get('sub')
     email = claims.get('email')

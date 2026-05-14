@@ -305,6 +305,11 @@ class PostSignInWithGoogle(BaseModel):
 class PostSignInWithApple(BaseModel):
     # Apple identity token (a JWT). Verified server-side against Apple's JWKS.
     identity_token: str = Field(min_length=1, max_length=4096)
+    # Random hex string the client passed to Apple as the `nonce` parameter
+    # (native `signInAsync({ nonce })` on iOS, `&nonce=` URL param on
+    # web/Android). Apple echoes it verbatim into the JWT's `nonce` claim;
+    # the backend compares the two to bind the token to this client session.
+    nonce: str = Field(min_length=16, max_length=128, pattern=r'^[a-zA-Z0-9_-]+$')
     pending_club_name: PendingClubName = Field(
         default=None,
         pattern=CLUB_PATTERN,

@@ -430,11 +430,36 @@ def _sign_in_with_social(
         person_id = row['person_id'] if row else None
 
         if person_id is None and email:
+            # Auto-link / collision check requires a verified email — without
+            # it we'd risk creating an onboardee that later crashes on
+            # `person.email`'s UNIQUE constraint at /finish-onboarding, and
+            # we'd risk handing someone else's account to an unverified
+            # claimant. Reject the whole sign-in up front. 409 (Conflict)
+            # lets the client distinguish this from a bad-token 401 and
+            # surface a clear "verify your email first" message.
+            if not email_verified:
+                row = tx.execute(Q_LOOKUP_PERSON_BY_EMAIL, dict(
+                    normalized_email=normalized,
+                    email=email,
+                )).fetchone()
+                if row:
+                    return (
+                        'An account already exists for this email. Sign in '
+                        'with the email link to confirm ownership, then try '
+                        'social sign-in again.',
+                        409,
+                    )
+                return (
+                    'Your email address is not verified with the sign-in '
+                    'provider. Verify it and try again.',
+                    409,
+                )
+
             row = tx.execute(Q_LOOKUP_PERSON_BY_EMAIL, dict(
                 normalized_email=normalized,
                 email=email,
             )).fetchone()
-            if row and email_verified:
+            if row:
                 person_id = row['person_id']
                 # Auto-link: record the social identity so future sign-ins
                 # hit Q_LOOKUP_SOCIAL_IDENTITY directly.
@@ -444,18 +469,6 @@ def _sign_in_with_social(
                     person_id=person_id,
                     email=email,
                 ))
-            elif row:
-                # Existing person with this email but the provider hasn't
-                # marked the email verified, so we can't safely auto-link.
-                # Letting the user proceed would create an onboardee row
-                # and then crash on the `person.email` UNIQUE constraint
-                # at /finish-onboarding. Reject up front instead.
-                return (
-                    'An account already exists for this email. Sign in '
-                    'with the email link to confirm ownership, then try '
-                    'social sign-in again.',
-                    401,
-                )
 
         # 2. New user with no email? We can't proceed — Apple should always
         #    include `email` in the identity token, but if it doesn't and
@@ -527,29 +540,37 @@ def _sign_in_with_social(
         **clubs,
     )
 
-# (provider name, human-readable label, JWT verifier).
-# Adding a new social provider means adding a row here, a Pydantic
-# request type, and a route in `service/api/__init__.py` that dispatches
-# to `post_sign_in_with_provider` — no new business-logic function.
-_SOCIAL_PROVIDERS = {
-    'google': ('Google', verify_google_id_token),
-    'apple':  ('Apple',  verify_apple_identity_token),
-}
-
-def post_sign_in_with_provider(
+def post_sign_in_with_google(
     *,
-    provider: str,
     token: str,
     pending_club_name: Optional[str],
 ):
-    label, verifier = _SOCIAL_PROVIDERS[provider]
     try:
-        claims = verifier(token)
+        claims = verify_google_id_token(token)
     except SocialAuthError as e:
-        return f'Invalid {label} token: {e}', 401
+        return f'Invalid Google token: {e}', 401
 
     return _sign_in_with_social(
-        provider=provider,
+        provider='google',
+        sub=claims['sub'],
+        email=claims['email'],
+        email_verified=claims['email_verified'],
+        pending_club_name=pending_club_name,
+    )
+
+def post_sign_in_with_apple(
+    *,
+    token: str,
+    nonce: str,
+    pending_club_name: Optional[str],
+):
+    try:
+        claims = verify_apple_identity_token(token, expected_nonce=nonce)
+    except SocialAuthError as e:
+        return f'Invalid Apple token: {e}', 401
+
+    return _sign_in_with_social(
+        provider='apple',
         sub=claims['sub'],
         email=claims['email'],
         email_verified=claims['email_verified'],

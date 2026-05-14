@@ -292,20 +292,25 @@ mint_google_token () {
 #   --email <e>        email (use a privaterelay address to simulate Hide My Email)
 #   --verified <b>     email_verified, defaults true
 #   --aud <a>          audience, defaults to the iOS bundle id
+#   --nonce <n>        nonce echoed into the JWT's nonce claim (defaults to
+#                      "test-nonce-0000000000000000" — matches the nonce
+#                      tests pass in /sign-in-with-apple request bodies)
 # Example:
 #   t=$(mint_apple_token --sub a-1 --email user1@example.com)
 mint_apple_token () {
-  local sub email aud verified
+  local sub email aud verified nonce
   sub=""
   email=""
   aud="app.duolicious"
   verified="true"
+  nonce="test-nonce-0000000000000000"
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --sub)      sub="$2"; shift 2 ;;
       --email)    email="$2"; shift 2 ;;
       --aud)      aud="$2"; shift 2 ;;
       --verified) verified="$2"; shift 2 ;;
+      --nonce)    nonce="$2"; shift 2 ;;
       *) echo "mint_apple_token: unknown arg $1" >&2; return 1 ;;
     esac
   done
@@ -314,8 +319,9 @@ mint_apple_token () {
     --arg sub "$sub" \
     --arg email "$email" \
     --arg aud "$aud" \
+    --arg nonce "$nonce" \
     --argjson verified "$verified" \
-    '{iss:"https://appleid.apple.com",aud:$aud,sub:$sub,email:$email,email_verified:$verified,exp:9999999999,iat:1700000000}')
+    '{iss:"https://appleid.apple.com",aud:$aud,sub:$sub,email:$email,email_verified:$verified,nonce:$nonce,exp:9999999999,iat:1700000000}')
   mint_fake_jwt "$payload"
 }
 
