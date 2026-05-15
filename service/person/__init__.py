@@ -277,15 +277,51 @@ def _send_otp(email: str, otp: str):
         from_addr='noreply-otp@duolicious.app',
     )
 
-def post_request_otp(req: t.PostRequestOtp):
+def _check_ip_blocked():
     if not request.remote_addr or firehol.matches(request.remote_addr):
         return 'IP address blocked', 460
+    return None
+
+def _check_banned(tx, normalized_email: str):
+    banned = tx.execute(Q_IS_BANNED, dict(
+        normalized_email=normalized_email,
+        ip_address=request.remote_addr,
+    )).fetchone()
+    if banned:
+        return 'Banned', 461
+    return None
+
+def _new_session_token():
+    session_token = secrets.token_hex(64)
+    return session_token, sha512(session_token)
+
+def _otp_from_rows(rows):
+    try:
+        row, *_ = rows
+        return row['otp']
+    except:
+        return None
+
+def _handle_pending_club(tx, person_id, pending_club_name):
+    club_params = dict(
+        person_id=person_id,
+        club_name=pending_club_name,
+        pending_club_name=pending_club_name,
+        do_modify=True,
+    )
+    if person_id is not None and pending_club_name is not None:
+        tx.execute(Q_JOIN_CLUB, club_params)
+        tx.execute(Q_UPSERT_SEARCH_PREFERENCE_CLUB, club_params)
+    return tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone()
+
+def post_request_otp(req: t.PostRequestOtp):
+    if blocked := _check_ip_blocked():
+        return blocked
 
     if not check_and_update_bad_domains(req.email):
         return 'Disposable email', 400
 
-    session_token = secrets.token_hex(64)
-    session_token_hash = sha512(session_token)
+    session_token, session_token_hash = _new_session_token()
     normalized = normalize_email(req.email)
 
     params = dict(
@@ -298,19 +334,13 @@ def post_request_otp(req: t.PostRequestOtp):
     )
 
     with api_tx() as tx:
-        banned = tx.execute(Q_IS_BANNED, dict(
-            normalized_email=normalized,
-            ip_address=request.remote_addr,
-        )).fetchone()
-        if banned:
-            return 'Banned', 461
+        if banned := _check_banned(tx, normalized):
+            return banned
 
         rows = tx.execute(Q_INSERT_DUO_SESSION, params).fetchall()
 
-    try:
-        row, *_ = rows
-        otp = row['otp']
-    except:
+    otp = _otp_from_rows(rows)
+    if otp is None:
         # The ban path is handled above; reaching here means the OTP
         # CTE returned no rows for some other reason (e.g. the
         # `bad_email_domain` filter on a new sign-up). Surfacing
@@ -323,33 +353,32 @@ def post_request_otp(req: t.PostRequestOtp):
     return dict(session_token=session_token)
 
 def post_resend_otp(s: t.SessionInfo):
-    if not request.remote_addr or firehol.matches(request.remote_addr):
-        return 'IP address blocked', 460
+    if blocked := _check_ip_blocked():
+        return blocked
 
+    normalized = normalize_email(s.email)
     params = dict(
         email=s.email,
-        normalized_email=normalize_email(s.email),
+        normalized_email=normalized,
         is_dev=DUO_ENV == 'dev',
         session_token_hash=s.session_token_hash,
         ip_address=request.remote_addr,
     )
 
     with api_tx() as tx:
-        if tx.execute(Q_IS_BANNED, params).fetchone():
-            return 'Banned', 461
+        if banned := _check_banned(tx, normalized):
+            return banned
         rows = tx.execute(Q_UPDATE_OTP, params).fetchall()
 
-    try:
-        row, *_ = rows
-        otp = row['otp']
-    except:
+    otp = _otp_from_rows(rows)
+    if otp is None:
         return 'Banned', 461
 
     _send_otp(s.email, otp)
 
 def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
-    if not request.remote_addr or firehol.matches(request.remote_addr):
-        return 'IP address blocked', 460
+    if blocked := _check_ip_blocked():
+        return blocked
 
     params = dict(
         otp=req.otp,
@@ -365,20 +394,7 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
         if not row:
             return 'Invalid OTP', 401
 
-        club_params = dict(
-            person_id=s.person_id,
-            club_name=s.pending_club_name,
-            pending_club_name=s.pending_club_name,
-            do_modify=True,
-        )
-
-        if \
-                club_params['person_id'] is not None and \
-                club_params['club_name'] is not None:
-            tx.execute(Q_JOIN_CLUB, club_params)
-            tx.execute(Q_UPSERT_SEARCH_PREFERENCE_CLUB, club_params)
-
-        clubs = tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone()
+        clubs = _handle_pending_club(tx, s.person_id, s.pending_club_name)
 
         tx.execute(Q_UPDATE_LAST, dict(person_uuid=row['person_uuid']))
 
@@ -406,21 +422,16 @@ def _sign_in_with_social(
     caller is responsible for verifying the provider's JWT and passing
     canonical claim values.
     """
-    if not request.remote_addr or firehol.matches(request.remote_addr):
-        return 'IP address blocked', 460
+    if blocked := _check_ip_blocked():
+        return blocked
 
-    session_token = secrets.token_hex(64)
-    session_token_hash = sha512(session_token)
+    session_token, session_token_hash = _new_session_token()
     normalized = normalize_email(email)
 
     with api_tx() as tx:
         # 0. Banned-person guard (mirrors `_OTP_CTE`).
-        banned = tx.execute(Q_IS_BANNED, dict(
-            normalized_email=normalized,
-            ip_address=request.remote_addr,
-        )).fetchone()
-        if banned:
-            return 'Banned', 461
+        if banned := _check_banned(tx, normalized):
+            return banned
 
         # 1. Resolve to an existing person via (provider, sub) first; on
         #    miss, fall back to an email match against `person`.
@@ -519,17 +530,7 @@ def _sign_in_with_social(
             )
 
         # 6. Same pending-club-join handling as the OTP path.
-        club_params = dict(
-            person_id=person_id,
-            club_name=pending_club_name,
-            pending_club_name=pending_club_name,
-            do_modify=True,
-        )
-        if person_id is not None and pending_club_name is not None:
-            tx.execute(Q_JOIN_CLUB, club_params)
-            tx.execute(Q_UPSERT_SEARCH_PREFERENCE_CLUB, club_params)
-
-        clubs = tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone()
+        clubs = _handle_pending_club(tx, person_id, pending_club_name)
 
         if profile.get('person_uuid'):
             tx.execute(Q_UPDATE_LAST, dict(person_uuid=profile['person_uuid']))
@@ -801,25 +802,7 @@ def post_finish_onboarding(s: t.SessionInfo):
             person_id=row['person_id'],
         ))
 
-        club_params = dict(
-            person_id=row['person_id'],
-            club_name=s.pending_club_name,
-            pending_club_name=s.pending_club_name,
-            do_modify=True,
-        )
-
-        if \
-                club_params['person_id'] is not None and \
-                club_params['club_name'] is not None:
-            tx.execute(Q_JOIN_CLUB, club_params)
-            tx.execute(Q_UPSERT_SEARCH_PREFERENCE_CLUB, club_params)
-
-        clubs = tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone()
-
-    chat_params = dict(
-        person_id=row['person_id'],
-        person_uuid=row['person_uuid'],
-    )
+        clubs = _handle_pending_club(tx, row['person_id'], s.pending_club_name)
 
     return dict(**row, **clubs)
 
