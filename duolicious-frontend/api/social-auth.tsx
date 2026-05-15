@@ -18,34 +18,64 @@ import {
 // pattern documented by Expo.
 WebBrowser.maybeCompleteAuthSession();
 
-// If we're loaded inside the Apple sign-in popup, forward the OAuth
-// result back to the opener via postMessage and close immediately —
-// before React even tries to render the SPA. The parent's
-// `signInWithAppleWeb()` listens for this message and resolves its
-// pending Promise from it.
-//
-// Identified by `window.name === 'apple-signin'` (the value we pass to
-// `window.open`, which is preserved across the navigation from Apple →
-// backend → SPA). `window.opener` confirms we have a parent to talk to.
-(() => {
-  if (typeof window === 'undefined') return;
-  if (!window.opener || window.name !== 'apple-signin') return;
+// Apple's official Sign in with Apple JS SDK. We use it on web so the
+// iOS-native bottom-sheet flow (which iOS WebKit injects on
+// appleid.apple.com) can deliver the credential back to us — that
+// flow uses Apple's internal postMessage protocol and doesn't fire the
+// `response_mode=form_post` redirect, so the raw OAuth + window.open
+// approach silently fails in iOS Chrome.
+const _APPLE_JS_SDK_URL =
+  'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
 
-  const params = new URLSearchParams(window.location.search);
-  const idToken = params.get('apple_id_token');
-  const error = params.get('apple_error');
-  const state = params.get('apple_state');
-  if (!idToken && !error) return;
-
-  try {
-    window.opener.postMessage(
-      { type: 'apple-signin-result', idToken, error, state },
-      window.location.origin,
-    );
-  } finally {
-    window.close();
+declare global {
+  interface Window {
+    AppleID?: {
+      auth: {
+        init: (config: {
+          clientId: string;
+          scope: string;
+          redirectURI: string;
+          state: string;
+          nonce: string;
+          usePopup: boolean;
+        }) => void;
+        signIn: () => Promise<{
+          authorization: { id_token: string; code: string; state: string };
+        }>;
+      };
+    };
   }
-})();
+}
+
+let _appleScriptPromise: Promise<void> | null = null;
+
+const _loadAppleScript = (): Promise<void> => {
+  if (typeof document === 'undefined') {
+    return Promise.reject(new Error('Apple JS SDK can only be loaded on web'));
+  }
+  if (window.AppleID) return Promise.resolve();
+  if (_appleScriptPromise) return _appleScriptPromise;
+
+  _appleScriptPromise = new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = _APPLE_JS_SDK_URL;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => {
+      _appleScriptPromise = null;
+      reject(new Error('Failed to load Apple JS SDK'));
+    };
+    document.head.appendChild(script);
+  });
+  return _appleScriptPromise;
+};
+
+// Eagerly preload on web so the SDK is ready by the time the user
+// taps "Continue with Apple" — keeps the AppleID.auth.signIn() call
+// close enough to the user gesture that the popup isn't blocked.
+if (Platform.OS === 'web') {
+  _loadAppleScript().catch(() => { /* will retry on first use */ });
+}
 
 export type SocialSignInResult =
   | { ok: true; idToken: string }
@@ -198,11 +228,14 @@ const _buildAppleAuthorizeUrl = (params: {
  *
  * - iOS uses the native ASAuthorizationAppleIDProvider via
  *   `expo-apple-authentication`. The token's `aud` is the iOS bundle ID.
- * - Android and web use Apple's OAuth web flow against a Services ID.
- *   Apple POSTs the result to the backend's `/auth/apple/callback`,
- *   which 302s back to the originating client with the id_token in a
- *   query parameter. On Android the in-app browser captures that
- *   redirect; on web it's a full-page navigation.
+ * - Android uses Apple's OAuth web flow against a Services ID inside
+ *   `WebBrowser.openAuthSessionAsync`. Apple POSTs the result to the
+ *   backend's `/auth/apple/callback`, which 302s back to the app's
+ *   universal-link return URL with the id_token in a query parameter.
+ * - Web uses Apple's official JS SDK with `usePopup: true`. The SDK
+ *   opens and owns the popup and receives the credential via its own
+ *   internal postMessage protocol — this is the path that works on
+ *   iOS WebKit's native Sign-in-with-Apple bottom sheet.
  *
  * We deliberately don't request the FULL_NAME scope: the user picks
  * their display name in the onboarding wizard, so asking Apple for it
@@ -287,80 +320,63 @@ const signInWithAppleAndroid = async (): Promise<AppleSignInResult> => {
   return { ok: true, identityToken: idToken, nonce };
 };
 
-// Open Apple's sign-in in a popup and wait for the popup to postMessage
-// the result back. Mirrors the popup-based UX of
-// `expo-auth-session/providers/google` on web: parent never navigates,
-// popup handles the OAuth dance and closes itself when done. The CSRF
-// nonce stays in this closure — no kv-storage round-trip needed since
-// neither end leaves its window.
+// Web sign-in delegates the popup dance to Apple's JS SDK. With
+// `usePopup: true`, the SDK opens a popup it controls and receives the
+// credential via its own internal postMessage protocol — `redirectURI`
+// is still required (and still must be registered against the Services
+// ID) but Apple never actually POSTs to it in the popup path. The
+// backend's `/auth/apple/callback` endpoint therefore only handles the
+// Android flow.
 const signInWithAppleWeb = async (): Promise<AppleSignInResult> => {
-  // See `signInWithAppleAndroid` — same nonce binds the redirect-time
-  // CSRF check and the server-side JWT.nonce verification.
+  // See `signInWithAppleAndroid` — same nonce binds CSRF (state prefix)
+  // and the server-side JWT.nonce verification.
   const nonce = await _generateNonce();
   const state = `${nonce}.web`;
 
-  const authUrl = _buildAppleAuthorizeUrl({
-    clientId: APPLE_WEB_CLIENT_ID,
-    redirectUri: APPLE_REDIRECT_URI,
-    state,
-    nonce,
-  });
-
-  const w = 600;
-  const h = 700;
-  const top = Math.max(0, Math.floor((window.innerHeight - h) / 2 + (window.screenY ?? 0)));
-  const left = Math.max(0, Math.floor((window.innerWidth - w) / 2 + (window.screenX ?? 0)));
-  const popup = window.open(
-    authUrl,
-    'apple-signin',
-    `width=${w},height=${h},top=${top},left=${left},resizable,scrollbars`,
-  );
-
-  if (!popup) {
-    return { ok: false, cancelled: false, reason: 'Apple sign-in popup was blocked' };
+  try {
+    await _loadAppleScript();
+  } catch (e: any) {
+    return { ok: false, cancelled: false, reason: e?.message ?? 'Apple sign-in failed' };
   }
 
-  return new Promise<AppleSignInResult>((resolve) => {
-    let settled = false;
-    const settle = (r: AppleSignInResult) => {
-      if (settled) return;
-      settled = true;
-      window.removeEventListener('message', onMessage);
-      clearInterval(poller);
-      if (!popup.closed) popup.close();
-      resolve(r);
-    };
+  const AppleID = window.AppleID;
+  if (!AppleID) {
+    return { ok: false, cancelled: false, reason: 'Apple JS SDK not available' };
+  }
 
-    const onMessage = (event: MessageEvent) => {
-      // Only trust messages from our own origin (the popup loads the
-      // SPA after the backend's 302, so its origin matches ours).
-      if (event.origin !== window.location.origin) return;
-      const data = event.data;
-      if (!data || data.type !== 'apple-signin-result') return;
-
-      if (data.error) {
-        settle({ ok: false, cancelled: false, reason: `Apple: ${data.error}` });
-        return;
-      }
-      const returnedState = typeof data.state === 'string' ? data.state : '';
-      if (!returnedState.startsWith(`${nonce}.`)) {
-        settle({ ok: false, cancelled: false, reason: 'Apple sign-in: invalid state' });
-        return;
-      }
-      const idToken = data.idToken;
-      if (typeof idToken !== 'string' || !idToken) {
-        settle({ ok: false, cancelled: false, reason: 'Apple sign-in: no id_token in callback' });
-        return;
-      }
-      settle({ ok: true, identityToken: idToken, nonce });
-    };
-    window.addEventListener('message', onMessage);
-
-    // Detect the user dismissing the popup before posting a message.
-    const poller = setInterval(() => {
-      if (popup.closed) settle({ ok: false, cancelled: true });
-    }, 500);
+  AppleID.auth.init({
+    clientId: APPLE_WEB_CLIENT_ID,
+    scope: 'email',
+    redirectURI: APPLE_REDIRECT_URI,
+    state,
+    nonce,
+    usePopup: true,
   });
+
+  try {
+    const data = await AppleID.auth.signIn();
+    const returnedState = data?.authorization?.state ?? '';
+    if (!returnedState.startsWith(`${nonce}.`)) {
+      return { ok: false, cancelled: false, reason: 'Apple sign-in: invalid state' };
+    }
+    const idToken = data?.authorization?.id_token;
+    if (!idToken) {
+      return { ok: false, cancelled: false, reason: 'Apple sign-in: no id_token in response' };
+    }
+    return { ok: true, identityToken: idToken, nonce };
+  } catch (e: any) {
+    // Apple's SDK rejects with a plain object like `{ error: '...' }`
+    // for user-initiated dismissal and other failures.
+    const code = e?.error ?? e?.code;
+    if (code === 'popup_closed_by_user' || code === 'user_cancelled_authorize') {
+      return { ok: false, cancelled: true };
+    }
+    return {
+      ok: false,
+      cancelled: false,
+      reason: code ?? e?.message ?? 'Apple sign-in failed',
+    };
+  }
 };
 
 const _parseQueryParams = (url: string): URLSearchParams => {
