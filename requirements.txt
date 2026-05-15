@@ -6,6 +6,7 @@ fastapi
 Flask
 flask-cors
 Flask-Limiter
+google-auth
 gunicorn
 lxml
 nltk
@@ -17,6 +18,7 @@ Pillow
 pillow-heif
 psycopg[binary]
 pydantic[email]
+PyJWT[crypto]
 pytricia
 PyYAML
 redis

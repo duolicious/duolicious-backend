@@ -8,6 +8,7 @@ from service import (
     question,
     search,
 )
+from service.auth import apple_oauth
 from database import api_tx
 import psycopg
 from service.api.decorators import (
@@ -17,6 +18,7 @@ from service.api.decorators import (
     apatch,
     apost,
     aput,
+    auth_rate_limit,
     delete,
     get,
     patch,
@@ -159,16 +161,15 @@ def init_db():
 @post('/request-otp', limiter=shared_otp_limit)
 @validate(t.PostRequestOtp)
 def post_request_otp(req: t.PostRequestOtp):
-    limit = "40 per day"
     scope = "request_otp"
 
     with (
         limiter.limit(
-            limit,
+            auth_rate_limit,
             scope=scope,
             exempt_when=disable_ip_rate_limit),
         limiter.limit(
-            limit,
+            auth_rate_limit,
             scope=scope,
             key_func=limiter_account,
             exempt_when=disable_account_rate_limit)
@@ -191,21 +192,78 @@ def post_resend_otp(s: t.SessionInfo):
 )
 @validate(t.PostCheckOtp)
 def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
-    limit = "40 per day"
     scope = "check_otp"
 
     with (
         limiter.limit(
-            limit,
+            auth_rate_limit,
             scope=scope,
             exempt_when=disable_ip_rate_limit),
         limiter.limit(
-            limit,
+            auth_rate_limit,
             scope=scope,
             key_func=limiter_account,
             exempt_when=disable_account_rate_limit)
     ):
         return person.post_check_otp(req, s)
+
+@post('/sign-in-with-google')
+@validate(t.PostSignInWithGoogle)
+def post_sign_in_with_google(req: t.PostSignInWithGoogle):
+    scope = "social_sign_in"
+
+    with (
+        limiter.limit(
+            auth_rate_limit,
+            scope=scope,
+            exempt_when=disable_ip_rate_limit),
+    ):
+        return person.post_sign_in_with_google(
+            token=req.id_token,
+            pending_club_name=req.pending_club_name,
+        )
+
+@post('/sign-in-with-apple')
+@validate(t.PostSignInWithApple)
+def post_sign_in_with_apple(req: t.PostSignInWithApple):
+    scope = "social_sign_in"
+
+    with (
+        limiter.limit(
+            auth_rate_limit,
+            scope=scope,
+            exempt_when=disable_ip_rate_limit),
+    ):
+        return person.post_sign_in_with_apple(
+            token=req.identity_token,
+            nonce=req.nonce,
+            pending_club_name=req.pending_club_name,
+        )
+
+# Apple Sign-In web/Android OAuth callback. Must be a `@post` (not
+# `@apost`) — the request comes from Apple's authorize endpoint as an
+# unauthenticated form_post, with no bearer token. See
+# `service/auth/apple_oauth.py` for the rationale.
+#
+# This is on its own scope so it doesn't double-bill against
+# `social_sign_in`: a single web/Android Apple sign-in hits this
+# callback *and* /sign-in-with-apple, and we want the per-day budget
+# to be "one sign-in = one slot" not "two slots".
+@post('/auth/apple/callback')
+def post_auth_apple_callback():
+    scope = "apple_oauth_callback"
+
+    with (
+        limiter.limit(
+            auth_rate_limit,
+            scope=scope,
+            exempt_when=disable_ip_rate_limit),
+    ):
+        return apple_oauth.handle_callback(
+            id_token=request.form.get('id_token', ''),
+            state=request.form.get('state', ''),
+            error=request.form.get('error'),
+        )
 
 @apost('/sign-out', expected_onboarding_status=None)
 def post_sign_out(s: t.SessionInfo):

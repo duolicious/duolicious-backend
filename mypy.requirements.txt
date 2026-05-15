@@ -8,6 +8,7 @@ confusable-homoglyphs
 erlastic
 fastapi
 flask-cors
+google-auth
 gunicorn
 lxml
 lxml-stubs
@@ -20,6 +21,7 @@ openai
 pillow-heif
 psycopg[binary]
 pydantic[email]
+PyJWT[crypto]
 redis
 regex
 types-Pillow

@@ -1,3 +1,14 @@
+def append_query(base: str, params: dict) -> str:
+    from urllib.parse import quote
+    sep = '&' if '?' in base else '?'
+    encoded = '&'.join(
+        f'{quote(k, safe="")}={quote(v, safe="")}'
+        for k, v in params.items()
+        if v is not None
+    )
+    return f'{base}{sep}{encoded}' if encoded else base
+
+
 def human_readable_size_metric(size_bytes):
     # Define suffixes for metric prefixes
     suffixes = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB']

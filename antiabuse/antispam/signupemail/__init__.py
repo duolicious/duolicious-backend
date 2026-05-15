@@ -49,8 +49,13 @@ def check_and_update_bad_domains(email):
     else:
         raise Exception('Unhandled domain status')
 
+
+def normalize_email_case(email: str) -> str:
+    return email.lower()
+
+
 def normalize_email_dots(email: str) -> str:
-    name, domain = email.lower().split('@')
+    name, domain = email.split('@')
 
     if domain not in dot_insignificant_email_domains:
         return email
@@ -59,8 +64,9 @@ def normalize_email_dots(email: str) -> str:
 
     return f'{name}@{domain}'
 
+
 def normalize_email_pluses(email: str) -> str:
-    name, domain = email.lower().split('@')
+    name, domain = email.split('@')
 
     if domain not in plus_address_domains:
         return email
@@ -70,7 +76,7 @@ def normalize_email_pluses(email: str) -> str:
     return f'{name}@{domain}'
 
 def normalize_email_domain(email: str) -> str:
-    name, domain = email.lower().split('@')
+    name, domain = email.split('@')
 
     if domain != 'googlemail.com':
         return email
@@ -79,6 +85,10 @@ def normalize_email_domain(email: str) -> str:
 
 
 def normalize_email(email: str) -> str:
+    if not email:
+        return ''
+
+    email = normalize_email_case(email)
     email = normalize_email_dots(email)
     email = normalize_email_pluses(email)
     email = normalize_email_domain(email)

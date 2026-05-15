@@ -34,6 +34,11 @@ import erlastic
 from datetime import datetime, timezone
 from duoaudio import put_audio_in_object_store
 from service.person.aboutdiff import diff_addition_with_context
+from service.auth.social import (
+    SocialAuthError,
+    verify_apple_identity_token,
+    verify_google_id_token,
+)
 from verification.messages import (
     V_QUEUED,
     V_REUSED_SELFIE,
@@ -272,19 +277,56 @@ def _send_otp(email: str, otp: str):
         from_addr='noreply-otp@duolicious.app',
     )
 
-def post_request_otp(req: t.PostRequestOtp):
+def _check_ip_blocked():
     if not request.remote_addr or firehol.matches(request.remote_addr):
         return 'IP address blocked', 460
+    return None
+
+def _check_banned(tx, normalized_email: str):
+    banned = tx.execute(Q_IS_BANNED, dict(
+        normalized_email=normalized_email,
+        ip_address=request.remote_addr,
+    )).fetchone()
+    if banned:
+        return 'Banned', 461
+    return None
+
+def _new_session_token():
+    session_token = secrets.token_hex(64)
+    return session_token, sha512(session_token)
+
+def _otp_from_rows(rows):
+    try:
+        row, *_ = rows
+        return row['otp']
+    except:
+        return None
+
+def _handle_pending_club(tx, person_id, pending_club_name):
+    club_params = dict(
+        person_id=person_id,
+        club_name=pending_club_name,
+        pending_club_name=pending_club_name,
+        do_modify=True,
+    )
+    if person_id is not None and pending_club_name is not None:
+        tx.execute(Q_JOIN_CLUB, club_params)
+        tx.execute(Q_UPSERT_SEARCH_PREFERENCE_CLUB, club_params)
+    return tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone()
+
+def post_request_otp(req: t.PostRequestOtp):
+    if blocked := _check_ip_blocked():
+        return blocked
 
     if not check_and_update_bad_domains(req.email):
         return 'Disposable email', 400
 
-    session_token = secrets.token_hex(64)
-    session_token_hash = sha512(session_token)
+    session_token, session_token_hash = _new_session_token()
+    normalized = normalize_email(req.email)
 
     params = dict(
         email=req.email,
-        normalized_email=normalize_email(req.email),
+        normalized_email=normalized,
         pending_club_name=req.pending_club_name,
         is_dev=DUO_ENV == 'dev',
         session_token_hash=session_token_hash,
@@ -292,12 +334,18 @@ def post_request_otp(req: t.PostRequestOtp):
     )
 
     with api_tx() as tx:
+        if banned := _check_banned(tx, normalized):
+            return banned
+
         rows = tx.execute(Q_INSERT_DUO_SESSION, params).fetchall()
 
-    try:
-        row, *_ = rows
-        otp = row['otp']
-    except:
+    otp = _otp_from_rows(rows)
+    if otp is None:
+        # The ban path is handled above; reaching here means the OTP
+        # CTE returned no rows for some other reason (e.g. the
+        # `bad_email_domain` filter on a new sign-up). Surfacing
+        # 'Banned' is a deliberate vagueness — we don't tell the
+        # caller which guardrail tripped.
         return 'Banned', 461
 
     _send_otp(req.email, otp)
@@ -305,31 +353,32 @@ def post_request_otp(req: t.PostRequestOtp):
     return dict(session_token=session_token)
 
 def post_resend_otp(s: t.SessionInfo):
-    if not request.remote_addr or firehol.matches(request.remote_addr):
-        return 'IP address blocked', 460
+    if blocked := _check_ip_blocked():
+        return blocked
 
+    normalized = normalize_email(s.email)
     params = dict(
         email=s.email,
-        normalized_email=normalize_email(s.email),
+        normalized_email=normalized,
         is_dev=DUO_ENV == 'dev',
         session_token_hash=s.session_token_hash,
         ip_address=request.remote_addr,
     )
 
     with api_tx() as tx:
+        if banned := _check_banned(tx, normalized):
+            return banned
         rows = tx.execute(Q_UPDATE_OTP, params).fetchall()
 
-    try:
-        row, *_ = rows
-        otp = row['otp']
-    except:
+    otp = _otp_from_rows(rows)
+    if otp is None:
         return 'Banned', 461
 
     _send_otp(s.email, otp)
 
 def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
-    if not request.remote_addr or firehol.matches(request.remote_addr):
-        return 'IP address blocked', 460
+    if blocked := _check_ip_blocked():
+        return blocked
 
     params = dict(
         otp=req.otp,
@@ -345,20 +394,7 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
         if not row:
             return 'Invalid OTP', 401
 
-        club_params = dict(
-            person_id=s.person_id,
-            club_name=s.pending_club_name,
-            pending_club_name=s.pending_club_name,
-            do_modify=True,
-        )
-
-        if \
-                club_params['person_id'] is not None and \
-                club_params['club_name'] is not None:
-            tx.execute(Q_JOIN_CLUB, club_params)
-            tx.execute(Q_UPSERT_SEARCH_PREFERENCE_CLUB, club_params)
-
-        clubs = tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone()
+        clubs = _handle_pending_club(tx, s.person_id, s.pending_club_name)
 
         tx.execute(Q_UPDATE_LAST, dict(person_uuid=row['person_uuid']))
 
@@ -373,6 +409,175 @@ def post_sign_out(s: t.SessionInfo):
 
     with api_tx('READ COMMITTED') as tx:
         tx.execute(Q_DELETE_DUO_SESSION, params)
+
+def _sign_in_with_social(
+    provider: str,
+    sub: str,
+    email: str,
+    email_verified: bool,
+    pending_club_name: Optional[str],
+):
+    """
+    Shared logic for /sign-in-with-google and /sign-in-with-apple. The
+    caller is responsible for verifying the provider's JWT and passing
+    canonical claim values.
+    """
+    if blocked := _check_ip_blocked():
+        return blocked
+
+    session_token, session_token_hash = _new_session_token()
+    normalized = normalize_email(email)
+
+    with api_tx() as tx:
+        # 0. Banned-person guard (mirrors `_OTP_CTE`).
+        if banned := _check_banned(tx, normalized):
+            return banned
+
+        # 1. Resolve to an existing person via (provider, sub) first; on
+        #    miss, fall back to an email match against `person`.
+        row = tx.execute(Q_LOOKUP_SOCIAL_IDENTITY, dict(
+            provider=provider,
+            provider_sub=sub,
+        )).fetchone()
+        person_id = row['person_id'] if row else None
+
+        # Auto-link / collision check requires a verified email — without
+        # it we'd risk creating an onboardee that later crashes on
+        # `person.email`'s UNIQUE constraint at /finish-onboarding, and
+        # we'd risk handing someone else's account to an unverified
+        # claimant. Reject the whole sign-in up front. 409 (Conflict)
+        # lets the client distinguish this from a bad-token 401 and
+        # surface a clear "verify your email first" message.
+        needs_email_match = person_id is None and email
+
+        if needs_email_match and not email_verified:
+            existing = tx.execute(Q_LOOKUP_PERSON_BY_EMAIL, dict(
+                normalized_email=normalized,
+                email=email,
+            )).fetchone()
+            return (
+                'An account already exists for this email. Sign in '
+                'with the email link to confirm ownership, then try '
+                'social sign-in again.'
+                if existing else
+                'Your email address is not verified with the sign-in '
+                'provider. Verify it and try again.',
+                409,
+            )
+
+        # Auto-link: a verified social email matches an existing person.
+        # Record the social identity so future sign-ins hit
+        # Q_LOOKUP_SOCIAL_IDENTITY directly.
+        existing = tx.execute(Q_LOOKUP_PERSON_BY_EMAIL, dict(
+            normalized_email=normalized,
+            email=email,
+        )).fetchone() if needs_email_match else None
+
+        if existing:
+            person_id = existing['person_id']
+            tx.execute(Q_INSERT_SOCIAL_IDENTITY, dict(
+                provider=provider,
+                provider_sub=sub,
+                person_id=person_id,
+                email=email,
+            ))
+
+        # 2. New user with no email? We can't proceed — Apple should always
+        #    include `email` in the identity token, but if it doesn't and
+        #    there's no existing link, we can't create an onboardee row
+        #    (the table is keyed by email).
+        if person_id is None and not email:
+            return 'Provider did not return an email', 400
+
+        # 3. New user: ensure an onboardee row, then carry the pending
+        #    social identity on the session so /finish-onboarding can
+        #    promote it to `social_identity` once the person row exists.
+        # The user picks their display name in the onboarding wizard;
+        # we deliberately don't seed it from the provider's `name` claim.
+        pending_provider = None
+        pending_sub = None
+        if person_id is None:
+            tx.execute(Q_UPSERT_ONBOARDEE_FOR_SOCIAL, dict(email=email))
+            pending_provider = provider
+            pending_sub = sub
+
+        # 4. Mint the session — already signed in.
+        tx.execute(Q_INSERT_DUO_SESSION_SOCIAL, dict(
+            session_token_hash=session_token_hash,
+            person_id=person_id,
+            email=email,
+            pending_club_name=pending_club_name,
+            ip_address=request.remote_addr,
+            pending_social_provider=pending_provider,
+            pending_social_sub=pending_sub,
+        ))
+
+        # 5. For existing users, bump sign-in metadata + reactivation
+        #    club counts; for new users, return a stub profile.
+        if person_id is not None:
+            profile = tx.execute(Q_AFTER_SOCIAL_SIGN_IN, dict(
+                person_id=person_id,
+            )).fetchone()
+        else:
+            profile = dict(
+                person_id=None,
+                person_uuid=None,
+                has_gold=False,
+                units=None,
+                do_show_donation_nag=False,
+                estimated_end_date=None,
+                name=None,
+            )
+
+        # 6. Same pending-club-join handling as the OTP path.
+        clubs = _handle_pending_club(tx, person_id, pending_club_name)
+
+        if profile.get('person_uuid'):
+            tx.execute(Q_UPDATE_LAST, dict(person_uuid=profile['person_uuid']))
+
+    return dict(
+        session_token=session_token,
+        onboarded=person_id is not None,
+        **profile,
+        **clubs,
+    )
+
+def post_sign_in_with_google(
+    *,
+    token: str,
+    pending_club_name: Optional[str],
+):
+    try:
+        claims = verify_google_id_token(token)
+    except SocialAuthError as e:
+        return f'Invalid Google token: {e}', 401
+
+    return _sign_in_with_social(
+        provider='google',
+        sub=claims.sub,
+        email=claims.email,
+        email_verified=claims.email_verified,
+        pending_club_name=pending_club_name,
+    )
+
+def post_sign_in_with_apple(
+    *,
+    token: str,
+    nonce: str,
+    pending_club_name: Optional[str],
+):
+    try:
+        claims = verify_apple_identity_token(token, expected_nonce=nonce)
+    except SocialAuthError as e:
+        return f'Invalid Apple token: {e}', 401
+
+    return _sign_in_with_social(
+        provider='apple',
+        sub=claims.sub,
+        email=claims.email,
+        email_verified=claims.email_verified,
+        pending_club_name=pending_club_name,
+    )
 
 def post_check_session_token(s: t.SessionInfo):
     params = dict(
@@ -589,25 +794,15 @@ def post_finish_onboarding(s: t.SessionInfo):
         tx.execute(Q_FINISH_ONBOARDING, params=api_params)
         row = tx.fetchone()
 
-        club_params = dict(
+        # If this user signed up via Google/Apple, drain the pending
+        # provider identity from `duo_session` into `social_identity` now
+        # that the new `person` row exists.
+        tx.execute(Q_PROMOTE_PENDING_SOCIAL_IDENTITY, dict(
+            session_token_hash=s.session_token_hash,
             person_id=row['person_id'],
-            club_name=s.pending_club_name,
-            pending_club_name=s.pending_club_name,
-            do_modify=True,
-        )
+        ))
 
-        if \
-                club_params['person_id'] is not None and \
-                club_params['club_name'] is not None:
-            tx.execute(Q_JOIN_CLUB, club_params)
-            tx.execute(Q_UPSERT_SEARCH_PREFERENCE_CLUB, club_params)
-
-        clubs = tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone()
-
-    chat_params = dict(
-        person_id=row['person_id'],
-        person_uuid=row['person_uuid'],
-    )
+        clubs = _handle_pending_club(tx, row['person_id'], s.pending_club_name)
 
     return dict(**row, **clubs)
 

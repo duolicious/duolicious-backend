@@ -228,6 +228,103 @@ get_uuid () {
   q "select uuid::text from person where email = '$1'"
 }
 
+# Base64URL-encode stdin (no padding). Used by jwt_b64.
+b64url () {
+  base64 -w 0 | tr '+/' '-_' | tr -d '='
+}
+
+# Mint a fake JWT for the social-login mocking path.
+# Args: $1 = JSON payload string. The header is fixed (HS256/JWT) and the
+# signature is a constant garbage value — when test/input/enable-mocking
+# is '1', service/auth/social.py decodes payloads without verifying the
+# signature, so any non-empty signature works. Issuer / audience / exp
+# are still enforced, so the JSON payload must include them.
+# Example:
+#   t=$(mint_fake_jwt '{"iss":"https://accounts.google.com","aud":"test-dummy.apps.googleusercontent.com","sub":"g-1","email":"a@example.com","email_verified":true,"exp":9999999999}')
+mint_fake_jwt () {
+  local payload="$1"
+  local header_b64
+  local payload_b64
+  local sig_b64
+  header_b64=$(printf '{"alg":"HS256","typ":"JWT"}' | b64url)
+  payload_b64=$(printf '%s' "$payload" | b64url)
+  sig_b64=$(printf 'fake-signature' | b64url)
+  printf '%s.%s.%s' "$header_b64" "$payload_b64" "$sig_b64"
+}
+
+# Mint a fake Google ID token. Defaults match the test docker-compose
+# config and an expiry far in the future.
+# Args:
+#   --sub <s>       Google sub (required)
+#   --email <e>     email (required)
+#   --verified <b>  email_verified, defaults true
+#   --aud <a>       audience, defaults to the test client id
+# Example:
+#   t=$(mint_google_token --sub g-1 --email user1@example.com)
+mint_google_token () {
+  local sub email aud verified
+  sub=""
+  email=""
+  aud="test-dummy.apps.googleusercontent.com"
+  verified="true"
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --sub)      sub="$2"; shift 2 ;;
+      --email)    email="$2"; shift 2 ;;
+      --aud)      aud="$2"; shift 2 ;;
+      --verified) verified="$2"; shift 2 ;;
+      *) echo "mint_google_token: unknown arg $1" >&2; return 1 ;;
+    esac
+  done
+  local payload
+  payload=$(jq -nc \
+    --arg sub "$sub" \
+    --arg email "$email" \
+    --arg aud "$aud" \
+    --argjson verified "$verified" \
+    '{iss:"https://accounts.google.com",aud:$aud,sub:$sub,email:$email,email_verified:$verified,exp:9999999999,iat:1700000000}')
+  mint_fake_jwt "$payload"
+}
+
+# Mint a fake Apple identity token.
+# Args:
+#   --sub <s>          Apple sub (required)
+#   --email <e>        email (use a privaterelay address to simulate Hide My Email)
+#   --verified <b>     email_verified, defaults true
+#   --aud <a>          audience, defaults to the iOS bundle id
+#   --nonce <n>        nonce echoed into the JWT's nonce claim (defaults to
+#                      "test-nonce-0000000000000000" — matches the nonce
+#                      tests pass in /sign-in-with-apple request bodies)
+# Example:
+#   t=$(mint_apple_token --sub a-1 --email user1@example.com)
+mint_apple_token () {
+  local sub email aud verified nonce
+  sub=""
+  email=""
+  aud="app.duolicious"
+  verified="true"
+  nonce="test-nonce-0000000000000000"
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --sub)      sub="$2"; shift 2 ;;
+      --email)    email="$2"; shift 2 ;;
+      --aud)      aud="$2"; shift 2 ;;
+      --verified) verified="$2"; shift 2 ;;
+      --nonce)    nonce="$2"; shift 2 ;;
+      *) echo "mint_apple_token: unknown arg $1" >&2; return 1 ;;
+    esac
+  done
+  local payload
+  payload=$(jq -nc \
+    --arg sub "$sub" \
+    --arg email "$email" \
+    --arg aud "$aud" \
+    --arg nonce "$nonce" \
+    --argjson verified "$verified" \
+    '{iss:"https://appleid.apple.com",aud:$aud,sub:$sub,email:$email,email_verified:$verified,nonce:$nonce,exp:9999999999,iat:1700000000}')
+  mint_fake_jwt "$payload"
+}
+
 # Delete all messages from the test SMTP server (MailHog).
 # Example: delete_emails
 delete_emails () {
