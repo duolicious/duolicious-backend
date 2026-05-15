@@ -70,11 +70,11 @@ services:
       # Console / Apple Developer Portal in production; dummy values let
       # the API boot in dev without crashing on missing config. Any
       # actual /sign-in-with-* call will fail token verification.
-      DUO_GOOGLE_CLIENT_IDS: dev-dummy.apps.googleusercontent.com
+      DUO_GOOGLE_CLIENT_IDS: 443037492722-n1lcbdqe2u49ev56b1tv6m087a9muhsd.apps.googleusercontent.com
       DUO_APPLE_CLIENT_IDS: app.duolicious,app.duolicious.web
       # Where /auth/apple/callback redirects the user after a web/Android
       # Apple sign-in. See service/auth/apple_oauth.py.
-      DUO_APPLE_WEB_REDIRECT_URL: http://localhost:19006/
+      DUO_APPLE_WEB_REDIRECT_URL: http://localhost:8081/
       DUO_APPLE_ANDROID_REDIRECT_URL: https://get.duolicious.app/
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]

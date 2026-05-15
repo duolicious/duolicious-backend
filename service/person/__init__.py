@@ -286,10 +286,11 @@ def post_request_otp(req: t.PostRequestOtp):
 
     session_token = secrets.token_hex(64)
     session_token_hash = sha512(session_token)
+    normalized = normalize_email(req.email)
 
     params = dict(
         email=req.email,
-        normalized_email=normalize_email(req.email),
+        normalized_email=normalized,
         pending_club_name=req.pending_club_name,
         is_dev=DUO_ENV == 'dev',
         session_token_hash=session_token_hash,
@@ -297,8 +298,13 @@ def post_request_otp(req: t.PostRequestOtp):
     )
 
     with api_tx() as tx:
-        if tx.execute(Q_IS_BANNED, params).fetchone():
+        banned = tx.execute(Q_IS_BANNED, dict(
+            normalized_email=normalized,
+            ip_address=request.remote_addr,
+        )).fetchone()
+        if banned:
             return 'Banned', 461
+
         rows = tx.execute(Q_INSERT_DUO_SESSION, params).fetchall()
 
     try:
@@ -403,23 +409,18 @@ def _sign_in_with_social(
     if not request.remote_addr or firehol.matches(request.remote_addr):
         return 'IP address blocked', 460
 
-    # Match the OTP path: store emails lowercased; the rest of the system
-    # treats `person.email` as already-lowercased.
-    email = email.lower().strip() if email else ''
-
     session_token = secrets.token_hex(64)
     session_token_hash = sha512(session_token)
-    normalized = normalize_email(email) if email else ''
+    normalized = normalize_email(email)
 
     with api_tx() as tx:
         # 0. Banned-person guard (mirrors `_OTP_CTE`).
-        if normalized:
-            banned = tx.execute(Q_IS_BANNED, dict(
-                normalized_email=normalized,
-                ip_address=request.remote_addr,
-            )).fetchone()
-            if banned:
-                return 'Banned', 461
+        banned = tx.execute(Q_IS_BANNED, dict(
+            normalized_email=normalized,
+            ip_address=request.remote_addr,
+        )).fetchone()
+        if banned:
+            return 'Banned', 461
 
         # 1. Resolve to an existing person via (provider, sub) first; on
         #    miss, fall back to an email match against `person`.
@@ -552,9 +553,9 @@ def post_sign_in_with_google(
 
     return _sign_in_with_social(
         provider='google',
-        sub=claims['sub'],
-        email=claims['email'],
-        email_verified=claims['email_verified'],
+        sub=claims.sub,
+        email=claims.email,
+        email_verified=claims.email_verified,
         pending_club_name=pending_club_name,
     )
 
@@ -571,9 +572,9 @@ def post_sign_in_with_apple(
 
     return _sign_in_with_social(
         provider='apple',
-        sub=claims['sub'],
-        email=claims['email'],
-        email_verified=claims['email_verified'],
+        sub=claims.sub,
+        email=claims.email,
+        email_verified=claims.email_verified,
         pending_club_name=pending_club_name,
     )
 

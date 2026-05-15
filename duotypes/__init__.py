@@ -47,6 +47,10 @@ CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42
 
 
+def _normalize_email_input(value: str) -> str:
+    return value.lower().strip() if value else ''
+
+
 def _normalize_pending_club_name(value):
     if value is None:
         return value
@@ -284,7 +288,7 @@ class PostRequestOtp(BaseModel):
 
     @field_validator('email', mode='before')
     def validate_email(cls, value):
-        return EmailStr._validate(value.lower().strip())
+        return EmailStr._validate(_normalize_email_input(value))
 
 
 class PostCheckOtp(BaseModel):
@@ -316,6 +320,16 @@ class PostSignInWithApple(BaseModel):
         min_length=1,
         max_length=CLUB_MAX_LEN,
     )
+
+
+class SocialClaims(BaseModel):
+    sub: str
+    email: str
+    email_verified: bool
+
+    @field_validator('email', mode='before')
+    def validate_email(cls, value):
+        return _normalize_email_input(value)
 
 
 class PatchOnboardeeInfo(BaseModel):

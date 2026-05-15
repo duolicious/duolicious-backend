@@ -19,6 +19,7 @@ import os
 import secrets
 import time
 from typing import TypedDict
+import duotypes as t
 
 import jwt
 from jwt import PyJWKClient
@@ -31,12 +32,6 @@ from service.api.decorators import enable_mocking
 # Bound on JWKS / certs HTTP fetches. Without this, a slow upstream pins
 # a gunicorn worker indefinitely on the cold-start fetch.
 _PROVIDER_HTTP_TIMEOUT_SECONDS = 5
-
-
-class SocialClaims(TypedDict):
-    sub: str
-    email: str
-    email_verified: bool
 
 
 class SocialAuthError(Exception):
@@ -126,7 +121,7 @@ def _decode_unverified(
     return claims
 
 
-def verify_google_id_token(id_token: str) -> SocialClaims:
+def verify_google_id_token(id_token: str) -> t.SocialClaims:
     """
     Validate a Google ID token. Returns the canonical claims we need.
 
@@ -164,7 +159,7 @@ def verify_google_id_token(id_token: str) -> SocialClaims:
         (isinstance(raw_verified, str) and raw_verified.lower() == 'true')
     )
 
-    return SocialClaims(
+    return t.SocialClaims(
         sub=sub,
         email=email,
         email_verified=email_verified,
@@ -175,7 +170,7 @@ def verify_apple_identity_token(
     identity_token: str,
     *,
     expected_nonce: str,
-) -> SocialClaims:
+) -> t.SocialClaims:
     """
     Validate an Apple `identity_token` (the JWT returned to the client by
     Sign In with Apple). Returns the canonical claims.
@@ -242,7 +237,7 @@ def verify_apple_identity_token(
         (isinstance(raw_verified, str) and raw_verified.lower() == 'true')
     )
 
-    return SocialClaims(
+    return t.SocialClaims(
         sub=sub,
         email=email,
         email_verified=email_verified,
