@@ -74,7 +74,7 @@ services:
       DUO_APPLE_CLIENT_IDS: app.duolicious,app.duolicious.web
       # Where /auth/apple/callback redirects the user after a web/Android
       # Apple sign-in. See service/auth/apple_oauth.py.
-      DUO_APPLE_WEB_REDIRECT_URL: http://localhost:8081/
+      DUO_APPLE_WEB_REDIRECT_URL: http://web.duolicious.app/
       DUO_APPLE_ANDROID_REDIRECT_URL: https://get.duolicious.app/
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]

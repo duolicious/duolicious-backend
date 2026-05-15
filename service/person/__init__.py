@@ -441,46 +441,46 @@ def _sign_in_with_social(
         )).fetchone()
         person_id = row['person_id'] if row else None
 
-        if person_id is None and email:
-            # Auto-link / collision check requires a verified email — without
-            # it we'd risk creating an onboardee that later crashes on
-            # `person.email`'s UNIQUE constraint at /finish-onboarding, and
-            # we'd risk handing someone else's account to an unverified
-            # claimant. Reject the whole sign-in up front. 409 (Conflict)
-            # lets the client distinguish this from a bad-token 401 and
-            # surface a clear "verify your email first" message.
-            if not email_verified:
-                row = tx.execute(Q_LOOKUP_PERSON_BY_EMAIL, dict(
-                    normalized_email=normalized,
-                    email=email,
-                )).fetchone()
-                if row:
-                    return (
-                        'An account already exists for this email. Sign in '
-                        'with the email link to confirm ownership, then try '
-                        'social sign-in again.',
-                        409,
-                    )
-                return (
-                    'Your email address is not verified with the sign-in '
-                    'provider. Verify it and try again.',
-                    409,
-                )
+        # Auto-link / collision check requires a verified email — without
+        # it we'd risk creating an onboardee that later crashes on
+        # `person.email`'s UNIQUE constraint at /finish-onboarding, and
+        # we'd risk handing someone else's account to an unverified
+        # claimant. Reject the whole sign-in up front. 409 (Conflict)
+        # lets the client distinguish this from a bad-token 401 and
+        # surface a clear "verify your email first" message.
+        needs_email_match = person_id is None and email
 
-            row = tx.execute(Q_LOOKUP_PERSON_BY_EMAIL, dict(
+        if needs_email_match and not email_verified:
+            existing = tx.execute(Q_LOOKUP_PERSON_BY_EMAIL, dict(
                 normalized_email=normalized,
                 email=email,
             )).fetchone()
-            if row:
-                person_id = row['person_id']
-                # Auto-link: record the social identity so future sign-ins
-                # hit Q_LOOKUP_SOCIAL_IDENTITY directly.
-                tx.execute(Q_INSERT_SOCIAL_IDENTITY, dict(
-                    provider=provider,
-                    provider_sub=sub,
-                    person_id=person_id,
-                    email=email,
-                ))
+            return (
+                'An account already exists for this email. Sign in '
+                'with the email link to confirm ownership, then try '
+                'social sign-in again.'
+                if existing else
+                'Your email address is not verified with the sign-in '
+                'provider. Verify it and try again.',
+                409,
+            )
+
+        # Auto-link: a verified social email matches an existing person.
+        # Record the social identity so future sign-ins hit
+        # Q_LOOKUP_SOCIAL_IDENTITY directly.
+        existing = tx.execute(Q_LOOKUP_PERSON_BY_EMAIL, dict(
+            normalized_email=normalized,
+            email=email,
+        )).fetchone() if needs_email_match else None
+
+        if existing:
+            person_id = existing['person_id']
+            tx.execute(Q_INSERT_SOCIAL_IDENTITY, dict(
+                provider=provider,
+                provider_sub=sub,
+                person_id=person_id,
+                email=email,
+            ))
 
         # 2. New user with no email? We can't proceed — Apple should always
         #    include `email` in the identity token, but if it doesn't and
