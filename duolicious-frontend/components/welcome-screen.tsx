@@ -30,6 +30,7 @@ import { createAccountOptionGroups } from '../data/option-groups';
 import { OptionScreen } from './option-screen';
 import { japi } from '../api/api';
 import {
+  consumePendingAppleWebSignIn,
   signInWithApple,
   useGoogleSignIn,
 } from '../api/social-auth';
@@ -732,7 +733,11 @@ const WelcomeScreen_ = ({navigation, route}) => {
     setLoginStatus("");
     setSocialLoading('apple');
     try {
-      const result = await signInWithApple();
+      // On web this never resolves — the page is navigating to Apple,
+      // and the sign-in is finished by the web-return effect below
+      // when the backend's callback redirects us back here. iOS and
+      // Android resolve normally.
+      const result = await signInWithApple({ clubName: clubName_ ?? '' });
       if (!result.ok && !result.cancelled) {
         setLoginStatus(result.reason ?? 'Apple sign-in failed');
         return;
@@ -749,6 +754,41 @@ const WelcomeScreen_ = ({navigation, route}) => {
       setSocialLoading(null);
     }
   };
+
+  // Completes a web Apple sign-in started by a prior tap of "Continue
+  // with Apple": on web the full-page redirect to Apple tears down the
+  // app, and Apple's callback redirects users back to the SPA root
+  // (i.e. this screen) with the id_token in the query string. The
+  // shared `finishSocialSignIn` handles the actual API call. iOS and
+  // Android never enter this branch — their flows resolve in-place
+  // inside `onPressApple` above. Runs once on mount; the consume call
+  // strips the query params and clears the pending sessionStorage
+  // entry, so a refresh won't replay it.
+  useEffect(() => {
+    const pending = consumePendingAppleWebSignIn();
+    if (!pending) return;
+    const { result, context } = pending;
+    (async () => {
+      setLoginStatus("");
+      setSocialLoading('apple');
+      try {
+        if (!result.ok && !result.cancelled) {
+          setLoginStatus(result.reason ?? 'Apple sign-in failed');
+          return;
+        }
+        if (!result.ok) return;
+        await finishSocialSignIn({
+          endpoint: '/sign-in-with-apple',
+          body: { identity_token: result.identityToken, nonce: result.nonce },
+          clubName: context.clubName || undefined,
+          navigation,
+          setLoginStatus,
+        });
+      } finally {
+        setSocialLoading(null);
+      }
+    })();
+  }, []);
 
   return (
     <SafeAreaView

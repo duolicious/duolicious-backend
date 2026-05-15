@@ -18,64 +18,16 @@ import {
 // pattern documented by Expo.
 WebBrowser.maybeCompleteAuthSession();
 
-// Apple's official Sign in with Apple JS SDK. We use it on web so the
-// iOS-native bottom-sheet flow (which iOS WebKit injects on
-// appleid.apple.com) can deliver the credential back to us — that
-// flow uses Apple's internal postMessage protocol and doesn't fire the
-// `response_mode=form_post` redirect, so the raw OAuth + window.open
-// approach silently fails in iOS Chrome.
-const _APPLE_JS_SDK_URL =
-  'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+// sessionStorage key that carries the nonce (and arbitrary caller
+// context) across the full-page redirect to Apple and back. Versioned
+// so a future change to the shape doesn't pick up a stale entry left
+// over from an older deploy mid-flow.
+const _APPLE_PENDING_KEY = 'apple-signin-pending-v1';
 
-declare global {
-  interface Window {
-    AppleID?: {
-      auth: {
-        init: (config: {
-          clientId: string;
-          scope: string;
-          redirectURI: string;
-          state: string;
-          nonce: string;
-          usePopup: boolean;
-        }) => void;
-        signIn: () => Promise<{
-          authorization: { id_token: string; code: string; state: string };
-        }>;
-      };
-    };
-  }
-}
-
-let _appleScriptPromise: Promise<void> | null = null;
-
-const _loadAppleScript = (): Promise<void> => {
-  if (typeof document === 'undefined') {
-    return Promise.reject(new Error('Apple JS SDK can only be loaded on web'));
-  }
-  if (window.AppleID) return Promise.resolve();
-  if (_appleScriptPromise) return _appleScriptPromise;
-
-  _appleScriptPromise = new Promise<void>((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = _APPLE_JS_SDK_URL;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => {
-      _appleScriptPromise = null;
-      reject(new Error('Failed to load Apple JS SDK'));
-    };
-    document.head.appendChild(script);
-  });
-  return _appleScriptPromise;
+type _ApplePending = {
+  nonce: string;
+  context: Record<string, string>;
 };
-
-// Eagerly preload on web so the SDK is ready by the time the user
-// taps "Continue with Apple" — keeps the AppleID.auth.signIn() call
-// close enough to the user gesture that the popup isn't blocked.
-if (Platform.OS === 'web') {
-  _loadAppleScript().catch(() => { /* will retry on first use */ });
-}
 
 export type SocialSignInResult =
   | { ok: true; idToken: string }
@@ -228,23 +180,34 @@ const _buildAppleAuthorizeUrl = (params: {
  *
  * - iOS uses the native ASAuthorizationAppleIDProvider via
  *   `expo-apple-authentication`. The token's `aud` is the iOS bundle ID.
- * - Android uses Apple's OAuth web flow against a Services ID inside
- *   `WebBrowser.openAuthSessionAsync`. Apple POSTs the result to the
- *   backend's `/auth/apple/callback`, which 302s back to the app's
- *   universal-link return URL with the id_token in a query parameter.
- * - Web uses Apple's official JS SDK with `usePopup: true`. The SDK
- *   opens and owns the popup and receives the credential via its own
- *   internal postMessage protocol — this is the path that works on
- *   iOS WebKit's native Sign-in-with-Apple bottom sheet.
+ * - Android uses Apple's OAuth web flow against a Services ID inside an
+ *   in-app browser. Apple POSTs the result to the backend's
+ *   `/auth/apple/callback`, which 302s back to the app's universal-link
+ *   return URL with the id_token in a query parameter.
+ * - Web uses the same OAuth web flow but as a full-page navigation
+ *   (popups are unreliable in iOS Chrome — `window.opener` doesn't
+ *   survive the cross-origin hop to appleid.apple.com, and Apple's iOS
+ *   bottom-sheet UI doesn't fire the `form_post` redirect at all). The
+ *   nonce and caller-provided `context` are stashed in `sessionStorage`
+ *   before navigation; after Apple's callback redirects back to the SPA
+ *   root, the caller picks them up via `consumePendingAppleWebSignIn()`.
+ *
+ * `context` is round-tripped through the web redirect so the caller can
+ * resume in the same logical flow (e.g. preserve `clubName`) after the
+ * full-page navigation has thrown away all in-memory state. iOS and
+ * Android resolve synchronously so they ignore it — the caller still
+ * has its own closure variables.
  *
  * We deliberately don't request the FULL_NAME scope: the user picks
  * their display name in the onboarding wizard, so asking Apple for it
  * is just an extra data ask we don't need.
  */
-export const signInWithApple = async (): Promise<AppleSignInResult> => {
+export const signInWithApple = async (
+  context: Record<string, string> = {},
+): Promise<AppleSignInResult> => {
   if (Platform.OS === 'ios') return signInWithAppleNative();
   if (Platform.OS === 'android') return signInWithAppleAndroid();
-  return signInWithAppleWeb();
+  return signInWithAppleWeb(context);
 };
 
 const signInWithAppleNative = async (): Promise<AppleSignInResult> => {
@@ -320,63 +283,153 @@ const signInWithAppleAndroid = async (): Promise<AppleSignInResult> => {
   return { ok: true, identityToken: idToken, nonce };
 };
 
-// Web sign-in delegates the popup dance to Apple's JS SDK. With
-// `usePopup: true`, the SDK opens a popup it controls and receives the
-// credential via its own internal postMessage protocol — `redirectURI`
-// is still required (and still must be registered against the Services
-// ID) but Apple never actually POSTs to it in the popup path. The
-// backend's `/auth/apple/callback` endpoint therefore only handles the
-// Android flow.
-const signInWithAppleWeb = async (): Promise<AppleSignInResult> => {
-  // See `signInWithAppleAndroid` — same nonce binds CSRF (state prefix)
-  // and the server-side JWT.nonce verification.
+// Web sign-in is a full-page redirect to Apple. Popup-based flows
+// don't survive iOS Chrome: `window.opener` is severed across the
+// cross-origin hop to appleid.apple.com, and Apple's iOS bottom-sheet
+// UI authenticates on-device without firing the `form_post` redirect at
+// all. A top-level navigation sidesteps both problems — the SPA simply
+// tears down, Apple does its thing, and the backend 302s us back to the
+// SPA root with the credential in query params.
+//
+// State that needs to span the redirect (the CSRF/JWT nonce and any
+// caller-provided context like `clubName`) is stashed in sessionStorage
+// keyed under `_APPLE_PENDING_KEY`; the symmetric reader is
+// `consumePendingAppleWebSignIn()`.
+//
+// This function returns a Promise that never resolves: the navigation
+// is already underway by the time we return, and any callsite `await`
+// just blocks until the page is torn down. We don't resolve it locally
+// because the result lives in the *next* page load.
+const signInWithAppleWeb = async (
+  context: Record<string, string>,
+): Promise<AppleSignInResult> => {
+  // See `signInWithAppleAndroid` — same nonce binds the redirect-time
+  // CSRF check (state prefix) and the server-side JWT.nonce verification.
   const nonce = await _generateNonce();
   const state = `${nonce}.web`;
 
-  try {
-    await _loadAppleScript();
-  } catch (e: any) {
-    return { ok: false, cancelled: false, reason: e?.message ?? 'Apple sign-in failed' };
-  }
-
-  const AppleID = window.AppleID;
-  if (!AppleID) {
-    return { ok: false, cancelled: false, reason: 'Apple JS SDK not available' };
-  }
-
-  AppleID.auth.init({
+  const authUrl = _buildAppleAuthorizeUrl({
     clientId: APPLE_WEB_CLIENT_ID,
-    scope: 'email',
-    redirectURI: APPLE_REDIRECT_URI,
+    redirectUri: APPLE_REDIRECT_URI,
     state,
     nonce,
-    usePopup: true,
   });
 
   try {
-    const data = await AppleID.auth.signIn();
-    const returnedState = data?.authorization?.state ?? '';
-    if (!returnedState.startsWith(`${nonce}.`)) {
-      return { ok: false, cancelled: false, reason: 'Apple sign-in: invalid state' };
-    }
-    const idToken = data?.authorization?.id_token;
-    if (!idToken) {
-      return { ok: false, cancelled: false, reason: 'Apple sign-in: no id_token in response' };
-    }
-    return { ok: true, identityToken: idToken, nonce };
-  } catch (e: any) {
-    // Apple's SDK rejects with a plain object like `{ error: '...' }`
-    // for user-initiated dismissal and other failures.
-    const code = e?.error ?? e?.code;
-    if (code === 'popup_closed_by_user' || code === 'user_cancelled_authorize') {
-      return { ok: false, cancelled: true };
-    }
+    const pending: _ApplePending = { nonce, context };
+    sessionStorage.setItem(_APPLE_PENDING_KEY, JSON.stringify(pending));
+  } catch {
     return {
       ok: false,
       cancelled: false,
-      reason: code ?? e?.message ?? 'Apple sign-in failed',
+      reason: 'Apple sign-in: sessionStorage unavailable',
     };
   }
+
+  window.location.assign(authUrl);
+
+  // The page is navigating away; nothing we resolve here would be
+  // observed. Return a never-settling Promise so the caller's `await`
+  // simply suspends until the tab tears down.
+  return new Promise<AppleSignInResult>(() => {});
+};
+
+/**
+ * On web, completes the Apple sign-in started by `signInWithApple()`.
+ *
+ * Call once on mount of whichever screen the backend's
+ * `/auth/apple/callback` redirects users back to. If the URL contains
+ * `apple_id_token` / `apple_state` / `apple_error`, returns the parsed
+ * result alongside the `context` the caller originally passed to
+ * `signInWithApple()`. Otherwise returns `null`.
+ *
+ * Side effects: clears the pending entry from `sessionStorage` and
+ * strips the Apple-specific query params from the URL via
+ * `history.replaceState`, so a refresh won't re-trigger this codepath.
+ * Safe to call on platforms other than web — it's a no-op there.
+ */
+export const consumePendingAppleWebSignIn = (): {
+  result: AppleSignInResult;
+  context: Record<string, string>;
+} | null => {
+  if (Platform.OS !== 'web') return null;
+  if (typeof window === 'undefined') return null;
+
+  const params = new URLSearchParams(window.location.search);
+  const idToken = params.get('apple_id_token');
+  const error = params.get('apple_error');
+  const returnedState = params.get('apple_state');
+  if (!idToken && !error && !returnedState) return null;
+
+  let pending: _ApplePending | null = null;
+  try {
+    const raw = sessionStorage.getItem(_APPLE_PENDING_KEY);
+    if (raw) pending = JSON.parse(raw) as _ApplePending;
+  } catch {
+    pending = null;
+  }
+  try {
+    sessionStorage.removeItem(_APPLE_PENDING_KEY);
+  } catch {}
+
+  // Strip the Apple-specific query params before anything else can
+  // observe them — that way a refresh on this screen doesn't re-attempt
+  // the sign-in with a now-empty sessionStorage. Preserve any other
+  // params that happened to be on the URL.
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('apple_id_token');
+    url.searchParams.delete('apple_error');
+    url.searchParams.delete('apple_state');
+    const cleanSearch = url.searchParams.toString();
+    window.history.replaceState(
+      null,
+      '',
+      url.pathname + (cleanSearch ? `?${cleanSearch}` : '') + url.hash,
+    );
+  } catch {}
+
+  const context = pending?.context ?? {};
+
+  if (!pending) {
+    // Apple redirected back but we have no record of having started
+    // the flow in this browsing context — most likely a link opened in
+    // a fresh tab. Don't trust the token: we can't verify the nonce.
+    return {
+      result: {
+        ok: false,
+        cancelled: false,
+        reason: 'Apple sign-in: missing local session',
+      },
+      context,
+    };
+  }
+  if (error) {
+    return {
+      result: { ok: false, cancelled: false, reason: `Apple: ${error}` },
+      context,
+    };
+  }
+  if (!returnedState || !returnedState.startsWith(`${pending.nonce}.`)) {
+    return {
+      result: { ok: false, cancelled: false, reason: 'Apple sign-in: invalid state' },
+      context,
+    };
+  }
+  if (!idToken) {
+    return {
+      result: {
+        ok: false,
+        cancelled: false,
+        reason: 'Apple sign-in: no id_token in callback',
+      },
+      context,
+    };
+  }
+  return {
+    result: { ok: true, identityToken: idToken, nonce: pending.nonce },
+    context,
+  };
 };
 
 const _parseQueryParams = (url: string): URLSearchParams => {
