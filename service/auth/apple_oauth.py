@@ -34,34 +34,30 @@ Env vars:
 
 import os
 from typing import Optional
-from urllib.parse import quote
 
 from flask import redirect
 
+from util import append_query
+
+
+APPLE_WEB_REDIRECT_URL = os.environ.get('DUO_APPLE_WEB_REDIRECT_URL', '').strip()
+APPLE_ANDROID_REDIRECT_URL = os.environ.get('DUO_APPLE_ANDROID_REDIRECT_URL', '').strip()
+
 
 _REDIRECT_TARGETS = {
-    'web': os.environ.get('DUO_APPLE_WEB_REDIRECT_URL', '').strip(),
-    'android': os.environ.get('DUO_APPLE_ANDROID_REDIRECT_URL', '').strip(),
+    'web': APPLE_WEB_REDIRECT_URL,
+    'android': APPLE_ANDROID_REDIRECT_URL,
 }
 
 
 def _resolve_target(state: str) -> Optional[str]:
     # `state` is `<csrf-nonce>.<target>`; we only care about the target
     # suffix. The nonce is verified client-side after the redirect.
-    if not state or '.' not in state:
+    try:
+        _, _, target = state.rpartition('.')
+    except:
         return None
-    target = state.rpartition('.')[2]
     return _REDIRECT_TARGETS.get(target) or None
-
-
-def _append_query(base: str, params: dict) -> str:
-    sep = '&' if '?' in base else '?'
-    encoded = '&'.join(
-        f'{quote(k, safe="")}={quote(v, safe="")}'
-        for k, v in params.items()
-        if v is not None
-    )
-    return f'{base}{sep}{encoded}' if encoded else base
 
 
 def handle_callback(
@@ -75,18 +71,18 @@ def handle_callback(
         return 'Invalid Apple sign-in state', 400
 
     if error:
-        return redirect(_append_query(target_url, dict(
+        return redirect(append_query(target_url, dict(
             apple_error=error,
             apple_state=state,
         )), code=302)
 
     if not id_token:
-        return redirect(_append_query(target_url, dict(
+        return redirect(append_query(target_url, dict(
             apple_error='missing_id_token',
             apple_state=state,
         )), code=302)
 
-    return redirect(_append_query(target_url, dict(
+    return redirect(append_query(target_url, dict(
         apple_id_token=id_token,
         apple_state=state,
     )), code=302)
