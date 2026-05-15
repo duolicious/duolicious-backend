@@ -58,12 +58,15 @@ jobs:
           find dist/_expo/static/js/web/ -type f -print0 | xargs -0 sed -i 's/assets\/node_modules/assets/g'
         env:
           NODE_OPTIONS: --openssl-legacy-provider
-          DUO_API_URL:            https://api.duolicious.app
-          DUO_CHAT_URL:            wss://chat.duolicious.app
+          DUO_API_URL: https://api.duolicious.app
+          DUO_CHAT_URL: wss://chat.duolicious.app
           DUO_IMAGES_URL: https://user-images.duolicious.app
-          DUO_AUDIO_URL:   https://user-audio.duolicious.app
-          DUO_STATUS_URL:      https://status.duolicious.app
-          DUO_WEB_BASE_URL:       https://web.duolicious.app
+          DUO_AUDIO_URL: https://user-audio.duolicious.app
+          DUO_STATUS_URL: https://status.duolicious.app
+          DUO_WEB_BASE_URL: https://web.duolicious.app
+          DUO_GOOGLE_WEB_CLIENT_ID: 443037492722-11ai555h9htk0h5jb7dt2er5rdbpfvp1.apps.googleusercontent.com
+          DUO_APPLE_WEB_CLIENT_ID: app.duolicious.web
+          DUO_APPLE_REDIRECT_URI: https://api.duolicious.app/auth/apple/callback
       - uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

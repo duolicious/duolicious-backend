@@ -1094,6 +1094,55 @@ const deactivationOptionGroups: OptionGroup<OptionGroupNone>[] = [
   },
 ];
 
+// Applies the post-auth response shared by `/check-otp`, `/sign-in-with-google`,
+// and `/sign-in-with-apple`. The OTP and social paths return the same dict
+// shape (modulo `session_token`, which only the social path supplies because
+// it has no separate /request-otp step). For onboarded users we reset the
+// nav stack to Home; for new users we let the caller route into onboarding.
+//
+// Returns `true` if the user is *not* onboarded (caller should advance the
+// onboarding wizard) and `false` if the user is fully signed-in.
+const applyAuthenticatedResponse = async (
+  json: any,
+  existingSessionToken: string,
+): Promise<boolean> => {
+  const onboarded = json?.onboarded;
+  const clubs: ClubItem[] = json?.clubs;
+  const pendingClub = json?.pending_club;
+  const personUuid: string = json?.person_uuid;
+
+  if (!onboarded) {
+    return true;
+  }
+
+  if (navigationContainerRef.current) {
+    navigationContainerRef.reset({
+      routes: pendingClub
+        ? [ { name: "Home", state: { routes: [ { name: "Search" } ] } } ]
+        : [ { name: 'Home' } ]
+    });
+  }
+
+  login(personUuid, existingSessionToken);
+
+  setSignedInUser({
+    personId: json?.person_id,
+    personUuid: personUuid,
+    units: json?.units === 'Imperial' ? 'Imperial' : 'Metric',
+    sessionToken: existingSessionToken,
+    pendingClub: pendingClub,
+    estimatedEndDate: new Date(json?.estimated_end_date),
+    name: json?.name,
+    hasGold: json?.has_gold,
+  });
+
+  await sessionPersonUuid(personUuid);
+
+  notify<ClubItem[]>('updated-clubs', clubs);
+
+  return false;
+};
+
 const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     title: "Password",
@@ -1107,54 +1156,8 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (!response.ok) return false;
           if (typeof existingSessionToken !== 'string') return false;
 
-          const onboarded = response.json.onboarded;
-          const clubs: ClubItem[] = response?.json?.clubs;
-          const pendingClub = response?.json?.pending_club;
-          const personUuid: string = response?.json?.person_uuid;
-
-          if (!onboarded) {
-            return true;
-          } else if (!navigationContainerRef.current) {
-            ;
-          } else if (pendingClub) {
-            navigationContainerRef.reset({
-              routes: [
-                {
-                  name: "Home",
-                  state: {
-                    routes: [
-                      {
-                        name: "Search"
-                      }
-                    ]
-                  }
-                }
-              ]
-            });
-          } else {
-            navigationContainerRef.reset({
-              routes: [ { name: 'Home' } ]
-            });
-          }
-
-          login(personUuid, existingSessionToken);
-
-          setSignedInUser({
-            personId: response?.json?.person_id,
-            personUuid: personUuid,
-            units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
-            sessionToken: existingSessionToken,
-            pendingClub: pendingClub,
-            estimatedEndDate: new Date(response?.json?.estimated_end_date),
-            name: response?.json?.name,
-            hasGold: response?.json?.has_gold,
-          });
-
-          await sessionPersonUuid(personUuid);
-
-          notify<ClubItem[]>('updated-clubs', clubs);
-
-          return false;
+          return await applyAuthenticatedResponse(
+            response.json, existingSessionToken);
         }
       }
     },
@@ -2245,6 +2248,14 @@ const verificationOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
 ];
 
+// Same wizard as `createAccountOptionGroups`, minus the OTP step. Used by
+// social sign-in: the social endpoint already mints a signed-in session,
+// so the new user goes straight into the onboarding wizard at "Display Name".
+// Filters by input shape rather than by index so a future reorder of
+// `createAccountOptionGroups` can't silently skip the wrong step.
+const socialAccountOptionGroups: OptionGroup<OptionGroupInputs>[] =
+  createAccountOptionGroups.filter(g => !('otp' in g.input));
+
 export {
   OptionGroup,
   OptionGroupButtons,
@@ -2262,6 +2273,7 @@ export {
   OptionGroupTextShort,
   OptionGroupThemePicker,
   OptionGroupVerificationChecker,
+  applyAuthenticatedResponse,
   basicsOptionGroups,
   createAccountOptionGroups,
   deactivationOptionGroups,
@@ -2288,6 +2300,7 @@ export {
   notificationSettingsOptionGroups,
   privacySettingsOptionGroups,
   searchInteractionsOptionGroups,
+  socialAccountOptionGroups,
   searchOtherBasicsOptionGroups,
   searchTwoWayBasicsOptionGroups,
   themePickerOptionGroups,

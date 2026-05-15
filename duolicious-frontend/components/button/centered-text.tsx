@@ -102,7 +102,15 @@ const ButtonWithCenteredText = (props) => {
         }}
       >
         {loading &&
-          <ActivityIndicator size="large" color={secondary ? "#70f" : appTheme.primaryColor} />
+          <ActivityIndicator
+            size="large"
+            // Default the spinner to whatever the text color is, so a
+            // button with a custom `textColor` (e.g. dark text on a
+            // white background) doesn't end up invisible while
+            // loading. Falls back to the theme-aware default when the
+            // caller hasn't set a text color.
+            color={textColor || (secondary ? "#70f" : appTheme.primaryColor)}
+          />
         }
         {!loading && children &&
           <DefaultText

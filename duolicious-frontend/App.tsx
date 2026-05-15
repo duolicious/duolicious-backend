@@ -225,6 +225,7 @@ const App = () => {
           initialRouteName: 'Welcome Screen',
           screens: {
             'Welcome Screen': '',
+            'Welcome Email Screen': 'email',
             'Create Account Or Sign In Screen': 'sign-in',
           },
         },

@@ -36,6 +36,12 @@ const config: ExpoConfig = {
     tenorApiKey: process.env.DUO_TENOR_API_KEY,
     notificationIconUrl: process.env.NOTIFICATION_ICON_URL,
     notificationSoundUrl: process.env.NOTIFICATION_SOUND_URL,
+    googleIosClientId: process.env.DUO_GOOGLE_IOS_CLIENT_ID,
+    googleAndroidClientId: process.env.DUO_GOOGLE_ANDROID_CLIENT_ID,
+    googleWebClientId: process.env.DUO_GOOGLE_WEB_CLIENT_ID,
+    appleWebClientId: process.env.DUO_APPLE_WEB_CLIENT_ID,
+    appleRedirectUri: process.env.DUO_APPLE_REDIRECT_URI,
+    appleAndroidReturnUrl: process.env.DUO_APPLE_ANDROID_RETURN_URL,
   },
   web: {
     favicon: "./assets/favicon.png"
@@ -43,6 +49,10 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: "app.duolicious",
     supportsTablet: false,
+    // App Store Guideline 4.8 requires Sign In with Apple alongside any
+    // other third-party sign-in option. The capability is added by the
+    // expo-apple-authentication plugin below.
+    usesAppleSignIn: true,
     associatedDomains: ["applinks:get.duolicious.app"],
     appStoreUrl: "https://apps.apple.com/us/app/duolicious-dating-app/id6499066647",
     infoPlist: {
@@ -78,6 +88,7 @@ const config: ExpoConfig = {
     ],
   },
   plugins: [
+    "expo-apple-authentication",
     "expo-image-picker",
     "expo-secure-store",
     [
