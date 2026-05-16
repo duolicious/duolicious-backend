@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { GestureResponderEvent, Pressable, InteractionManager } from 'react-native';
+import { GestureResponderEvent, Pressable } from 'react-native';
 import { PhotoOrSkeleton } from './profile-card';
 import { VerificationBadge } from './verification-badge';
 import * as _ from 'lodash';
@@ -49,15 +49,13 @@ const EnlargeablePhoto = ({
     if (!photoUuid || !!photoExtraExts?.length) return;
     const ext = (photoExtraExts && photoExtraExts[0]) || 'jpg';
     const originalUri = `${IMAGES_URL}/original-${photoUuid}.${ext}`;
-    InteractionManager.runAfterInteractions(() => {
-      setTimeout(() => {
-        try {
-          ExpoImage.prefetch(originalUri);
-        } catch (e) {
-          console.warn(e);
-        }
-      }, 500);
-    });
+    setTimeout(() => {
+      try {
+        ExpoImage.prefetch(originalUri);
+      } catch (e) {
+        console.warn(e);
+      }
+    }, 500);
   }, [photoUuid, photoExtraExts?.length]);
 
   if (photoUuid === undefined && !isPrimary) {
