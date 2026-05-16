@@ -54,7 +54,7 @@ import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
 import * as Clipboard from 'expo-clipboard';
 import { notifyLinkCopiedToast } from './toast';
-import { WEB_URL } from '../env/env';
+import { INVITE_URL } from '../env/env';
 import { RotateCcw, Flag, X, Share2 } from "react-native-feather";
 import Reanimated, {
   Easing,
@@ -120,7 +120,7 @@ const GalleryScreen = ({navigation, route}) => {
 
 // Path here must match the `Prospect Profile` route in App.tsx's linking config.
 const buildShareableProfileUrl = (personUuid: string) =>
-  `${WEB_URL}/profile/${encodeURIComponent(personUuid)}`;
+  `${INVITE_URL}/profile/${encodeURIComponent(personUuid)}`;
 
 const onPressShareProfile = async (personUuid: string | undefined) => {
   if (!personUuid) return;
