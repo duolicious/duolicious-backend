@@ -38,7 +38,15 @@ import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane';
 import { styles as defaultTextInputStyles } from '../default-text-input';
 import { DefaultLongTextInput } from '../default-long-text-input';
 import { isMobile } from '../../util/util';
-import { Audio } from 'expo-av';
+import {
+  RecordingOptions,
+  RecordingPresets,
+  getRecordingPermissionsAsync,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioRecorder,
+  useAudioRecorderState,
+} from 'expo-audio';
 import { uriToBase64 } from '../../api/api';
 import { notify } from '../../events/events';
 import { ValidationErrorToast } from '../toast';
@@ -60,6 +68,14 @@ import { useAppTheme } from '../../app-theme/app-theme';
 const MAX_RECORDING_SECS   = 2 * 60;   // Hard recording limit (seconds)
 const MIC_HOLD_DELAY_MS    = 300;      // Long-press threshold to start (ms)
 const PAN_CANCEL_THRESHOLD = -150;     // Drag distance to cancel (px)
+
+const recordingOptions: RecordingOptions = {
+  ...RecordingPresets.HIGH_QUALITY,
+  web: {
+    ...RecordingPresets.HIGH_QUALITY.web,
+    mimeType: undefined,
+  },
+};
 
 // ────────────────────────────────────────────────────────────────
 // Finite-state reducer for the recording flow
@@ -122,25 +138,40 @@ const useComponentWidth = () => {
 //  • Converts the final file to a base-64 data-uri so callers can POST it without
 //    having to deal with the file-system.
 //
-//  NOTE: We purposefully keep mutable `recording.current` & `recordingActive`
-//  refs so we can *synchronously* know if a session is live from gesture
-//  callbacks that run on the UI thread.
+//  NOTE: We purposefully keep mutable `recordingActive` ref so we can
+//  *synchronously* know if a session is live from gesture callbacks that
+//  run on the UI thread.
 const useRecorder = () => {
-  const recording = useRef<Audio.Recording>(undefined);
+  const recorder = useAudioRecorder(recordingOptions);
+  const recorderState = useAudioRecorderState(recorder, 250);
   const recordingActive = useRef(false);
   const [duration, setDuration] = useState(0);
 
+  useEffect(() => {
+    if (!recorderState.isRecording) {
+      return;
+    }
+
+    const seconds = Math.floor(recorderState.durationMillis / 1000);
+
+    setDuration(seconds);
+
+    if (seconds >= MAX_RECORDING_SECS) {
+      stopRecording();
+    }
+  }, [recorderState.durationMillis, recorderState.isRecording]);
+
   const startRecording = async (): Promise<boolean> => {
-    if (recording.current) {
+    if (recorder.isRecording) {
       return true;
     }
 
     try {
       recordingActive.current = true;
 
-      if ((await Audio.getPermissionsAsync())?.status === 'granted') {
+      if ((await getRecordingPermissionsAsync())?.status === 'granted') {
         ;
-      } else if ((await Audio.requestPermissionsAsync()).status === 'granted') {
+      } else if ((await requestRecordingPermissionsAsync()).status === 'granted') {
         // Permission was granted but the recording shouldn't start until the
         // user repeats the gesture to start the recording
         recordingActive.current = false;
@@ -159,33 +190,14 @@ const useRecorder = () => {
         return false;
       }
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
 
-      const onRecordingStatusUpdate = (status: Audio.RecordingStatus) => {
-        const seconds = Math.floor(status.durationMillis / 1000);
-
-        setDuration(seconds);
-
-        if (seconds >= MAX_RECORDING_SECS) {
-          stopRecording();
-        }
-      };
-
-      const recordingOptions: Audio.RecordingOptions = {
-        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
-        web: {
-          ...Audio.RecordingOptionsPresets.HIGH_QUALITY.web,
-          mimeType: undefined,
-        }
-      };
-
-      recording.current = (await Audio.Recording.createAsync(
-        recordingOptions,
-        onRecordingStatusUpdate,
-      )).recording;
+      await recorder.prepareToRecordAsync(recordingOptions);
+      recorder.record();
+      setDuration(0);
 
       return true;
     } catch (err) {
@@ -199,19 +211,17 @@ const useRecorder = () => {
   };
 
   const stopRecording = async () => {
-    const currentRecording = recording.current;
     recordingActive.current = false;
-    recording.current = undefined;
 
-    if (!currentRecording) {
+    if (!recorder.isRecording) {
       return null;
     }
 
-    await currentRecording.stopAndUnloadAsync();
+    await recorder.stop();
 
-    await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+    await setAudioModeAsync({ allowsRecording: false });
 
-    const uri = currentRecording.getURI();
+    const uri = recorder.uri;
 
     if (!uri) {
       console.error('Recording URI was unexpectedly null');

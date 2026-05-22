@@ -1,7 +1,6 @@
 import {
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   View,
@@ -590,7 +589,7 @@ const SearchScreen_ = ({navigation}) => {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safeAreaView}>
+    <View style={styles.safeAreaView}>
       <DuoliciousTopNavBar>
         {Platform.OS === 'web' &&
           <TopNavBarButton
@@ -673,7 +672,7 @@ const SearchScreen_ = ({navigation}) => {
         stickyHeaderIndices={hasClubs ? [0] : []}
         columnWrapperStyle={styles.listColumnWraperStyle}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -1,16 +1,20 @@
 import {
   useRef,
   useEffect,
+  useMemo,
   forwardRef,
   useImperativeHandle,
 } from 'react';
 import {
   View,
   StyleSheet,
-  PanResponder,
   Animated,
   LayoutChangeEvent,
 } from 'react-native';
+import {
+  Gesture,
+  GestureDetector,
+} from 'react-native-gesture-handler';
 import { useAppTheme } from '../app-theme/app-theme';
 
 const thumbRadius = 16;
@@ -56,24 +60,20 @@ const Slider = forwardRef<SliderHandle, SliderProps>((props, ref) => {
     return Math.max(minimumValue, Math.min(value, maximumValue));
   };
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        // Store the starting position of the gesture
+  const pan = useMemo(
+    () => Gesture.Pan()
+      .runOnJS(true)
+      .minDistance(0)
+      .onStart(() => {
         gestureStartX.current = panXValue.current;
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        let newPanX = gestureStartX.current + gestureState.dx;
-        // Clamp the newPanX value within the slider range
+      })
+      .onUpdate((e) => {
+        let newPanX = gestureStartX.current + e.translationX;
         newPanX = Math.max(0, Math.min(newPanX, sliderWidth.current));
         panX.setValue(newPanX);
-      },
-      onPanResponderRelease: () => {
-        // No need to update panXValue.current here since it's updated via listener
-      },
-    })
-  ).current;
+      }),
+    [panX],
+  );
 
   useImperativeHandle(ref, () => ({
     setValue: (value: number) => {
@@ -124,15 +124,16 @@ const Slider = forwardRef<SliderHandle, SliderProps>((props, ref) => {
           backgroundColor: appTheme.interactiveBorderColor,
         }}
       />
-      <Animated.View
-        style={[
-          styles.thumb,
-          {
-            transform: [{ translateX }],
-          },
-        ]}
-        {...panResponder.panHandlers}
-      />
+      <GestureDetector gesture={pan}>
+        <Animated.View
+          style={[
+            styles.thumb,
+            {
+              transform: [{ translateX }],
+            },
+          ]}
+        />
+      </GestureDetector>
     </View>
   );
 });

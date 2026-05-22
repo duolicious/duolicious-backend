@@ -75,4 +75,5 @@ export const APPLE_REDIRECT_URI: string =
 // the user here once Apple has POSTed the id_token. Must match the
 // backend's `DUO_APPLE_ANDROID_REDIRECT_URL` env var.
 export const APPLE_ANDROID_RETURN_URL: string =
-  Constants.expoConfig?.extra?.appleAndroidReturnUrl ?? '';
+  Constants.expoConfig?.extra?.appleAndroidReturnUrl ??
+  'https://get.duolicious.app/';

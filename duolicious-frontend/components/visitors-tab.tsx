@@ -2,7 +2,6 @@ import {
   ActivityIndicator,
   Animated as RNAnimated,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   View,
 } from 'react-native';
@@ -509,7 +508,7 @@ const VisitorsTab = () => {
   );
 
   return (
-    <SafeAreaView style={styles.safeAreaView}>
+    <View style={styles.safeAreaView}>
       <TopNavBar>
         <DefaultText
           style={{
@@ -564,7 +563,7 @@ const VisitorsTab = () => {
           />
         </View>
       }
-    </SafeAreaView>
+    </View>
   );
 };
 

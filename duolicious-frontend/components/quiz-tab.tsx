@@ -1,8 +1,8 @@
 import {
   View,
-  SafeAreaView,
   StyleSheet,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   useRef,
 } from 'react';
@@ -46,7 +46,7 @@ const QuizTab = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeAreaView}>
+    <SafeAreaView style={styles.safeAreaView} edges={['top', 'left', 'right']}>
       <View style={styles.safeAreaView}>
         <QuizCardStack
           innerRef={stackRef}

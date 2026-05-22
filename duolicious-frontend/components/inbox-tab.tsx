@@ -2,7 +2,6 @@ import {
   ListRenderItemInfo,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   View,
 } from 'react-native';
 import {
@@ -156,7 +155,7 @@ const InboxTab = () => {
   } = useScrollbar('inbox');
 
   return (
-    <SafeAreaView style={styles.safeAreaView}>
+    <View style={styles.safeAreaView}>
       <InboxTabNavBar
         showArchive={showArchive}
         onPressArchiveButton={onPressArchiveButton}
@@ -219,7 +218,7 @@ const InboxTab = () => {
           />
         </View>
       }
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -3,10 +3,19 @@ import {
 } from 'react-native';
 import {
   useEffect,
-  useRef,
   useState,
 } from 'react';
-import { Audio, AVPlaybackStatus } from 'expo-av';
+import {
+  AudioStatus,
+  RecordingOptions,
+  RecordingPresets,
+  getRecordingPermissionsAsync,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioPlayer,
+  useAudioRecorder,
+  useAudioRecorderState,
+} from 'expo-audio';
 import { secToMinSec } from '../util/util';
 import { SomethingWentWrongToast } from './toast';
 import { ButtonWithCenteredText } from './button/centered-text';
@@ -18,6 +27,14 @@ import {
   AUDIO_URL,
 } from '../env/env';
 import { useAppTheme } from '../app-theme/app-theme';
+
+const recordingOptions: RecordingOptions = {
+  ...RecordingPresets.HIGH_QUALITY,
+  web: {
+    ...RecordingPresets.HIGH_QUALITY.web,
+    mimeType: undefined,
+  },
+};
 
 const AudioBio = ({
   initialSavedRecordingUuid,
@@ -52,9 +69,10 @@ const AudioBio = ({
   const [playingState, setPlayingState] = useState<PlayingState>(
     'Stopped');
 
-  const recording = useRef<Audio.Recording>(undefined);
+  const recorder = useAudioRecorder(recordingOptions);
+  const recorderState = useAudioRecorderState(recorder, 250);
 
-  const sound = useRef<Audio.Sound>(undefined);
+  const player = useAudioPlayer(null);
 
   const [duration, setDuration] = useState<null | number>(); // seconds
 
@@ -101,41 +119,17 @@ const AudioBio = ({
 
   const startRecording = async () => {
     try {
-      if ((await Audio.getPermissionsAsync())?.status !== 'granted') {
-        await Audio.requestPermissionsAsync();
+      if ((await getRecordingPermissionsAsync())?.status !== 'granted') {
+        await requestRecordingPermissionsAsync();
       }
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
 
-      const onRecordingStatusUpdate = (status: Audio.RecordingStatus) => {
-        const seconds = Math.floor(status.durationMillis / 1000);
-
-        setDuration(seconds);
-
-        if (seconds >= maxDuration) {
-          stopRecording();
-        }
-      };
-
-      if (recording.current) {
-        await recording.current.stopAndUnloadAsync();
-      }
-
-      const recordingOptions: Audio.RecordingOptions = {
-        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
-        web: {
-          ...Audio.RecordingOptionsPresets.HIGH_QUALITY.web,
-          mimeType: undefined,
-        }
-      };
-
-      recording.current = (await Audio.Recording.createAsync(
-        recordingOptions,
-        onRecordingStatusUpdate,
-      )).recording;
+      await recorder.prepareToRecordAsync(recordingOptions);
+      recorder.record();
 
       setPlayingState('Recording');
 
@@ -148,18 +142,15 @@ const AudioBio = ({
   };
 
   const stopRecording = async () => {
-    const currentRecording = recording.current;
-    recording.current = undefined;
-
-    if (!currentRecording) {
+    if (!recorder.isRecording) {
       return;
     }
 
-    await currentRecording.stopAndUnloadAsync();
+    await recorder.stop();
 
-    await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+    await setAudioModeAsync({ allowsRecording: false });
 
-    const uri = currentRecording.getURI();
+    const uri = recorder.uri;
 
     if (!uri) {
       console.error('Recording URI was unexpectedly null');
@@ -174,15 +165,16 @@ const AudioBio = ({
   }
 
   const startPlayback = async () => {
-    if (!sound.current) {
+    if (!playableRecordingUri) {
       return false;
     }
 
     try {
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      await setAudioModeAsync({ playsInSilentMode: true });
     } catch { }
 
-    await sound.current.playFromPositionAsync(0);
+    await player.seekTo(0);
+    player.play();
 
     setPlayingState('Playing');
 
@@ -190,11 +182,8 @@ const AudioBio = ({
   };
 
   const stopPlayback = async () => {
-    if (!sound.current) {
-      return false;
-    }
-
-    await sound.current.stopAsync();
+    player.pause();
+    await player.seekTo(0);
 
     setPlayingState('Stopped');
 
@@ -205,7 +194,6 @@ const AudioBio = ({
     if (unsavedRecordingUri) {
       stopPlayback();
       setDuration(null);
-      recording.current = undefined;
       setUnsavedRecordingUri(null);
     } else if (savedRecordingUri) {
       setDeleting(true);
@@ -273,40 +261,47 @@ const AudioBio = ({
   })();
 
   useEffect(() => {
-    const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-      if (!status.isLoaded) {
-        return;
-      }
+    if (!playableRecordingUri) {
+      return;
+    }
+    player.replace({ uri: playableRecordingUri });
+  }, [player, playableRecordingUri]);
 
-      if (status.durationMillis) {
-        setDuration(Math.floor(status.positionMillis / 1000));
-      } else {
-        setDuration(null);
-      }
+  useEffect(() => {
+    const subscription = player.addListener(
+      'playbackStatusUpdate',
+      (status: AudioStatus) => {
+        if (!status.isLoaded) {
+          return;
+        }
 
-      if (status.didJustFinish) {
-        setPlayingState('Stopped');
-      }
-    };
+        if (status.duration) {
+          setDuration(Math.floor(status.currentTime));
+        } else {
+          setDuration(null);
+        }
 
-    const go = async () => {
-      if (!playableRecordingUri) {
-        return;
-      }
+        if (status.didJustFinish) {
+          setPlayingState('Stopped');
+        }
+      },
+    );
+    return () => subscription.remove();
+  }, [player]);
 
-      if (sound.current) {
-        await sound.current.unloadAsync();
-      }
+  useEffect(() => {
+    if (playingState !== 'Recording') {
+      return;
+    }
 
-      sound.current = (await Audio.Sound.createAsync(
-        { uri: playableRecordingUri },
-        {},
-        onPlaybackStatusUpdate,
-      )).sound;
-    };
+    const seconds = Math.floor(recorderState.durationMillis / 1000);
 
-    go();
-  }, [playableRecordingUri]);
+    setDuration(seconds);
+
+    if (seconds >= maxDuration) {
+      stopRecording();
+    }
+  }, [recorderState.durationMillis, playingState, maxDuration]);
 
   return (
     <View

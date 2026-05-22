@@ -4,13 +4,13 @@ import {
   AppStateStatus,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   TextStyle,
   View,
   ViewStyle,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Fragment,
   useCallback,
@@ -731,7 +731,7 @@ const ConversationScreen = ({navigation, route}) => {
   }
 
   return (
-    <SafeAreaView style={styles.safeAreaView}>
+    <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.safeAreaView}>
       <ConversationScreenNavBar
         navigation={navigation}
         personUuid={personUuid}

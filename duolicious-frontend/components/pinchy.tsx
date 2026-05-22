@@ -1,22 +1,25 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
 import {
   ActivityIndicator,
   Animated,
-  GestureResponderEvent,
   Image,
-  PanResponder,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
+import {
+  Gesture,
+  GestureDetector,
+} from 'react-native-gesture-handler';
 import { IMAGES_URL } from '../env/env';
 
-const FitWithinScreenImage = ({ source, style, onUpdateImageSize, ...rest }) => {
+const FitWithinScreenImage = ({ source, style, onUpdateImageSize }) => {
   const isFetchingSize = useRef(false);
   const [imageSize, setImageSize] = useState({width: 0, height: 0});
   const [imageWidth, setImageWidth] = useState<number | null>(null);
@@ -66,7 +69,6 @@ const FitWithinScreenImage = ({ source, style, onUpdateImageSize, ...rest }) => 
     return (
       <Animated.Image
         source={source}
-        {...rest}
         style={[style, { width: imageWidth, height: imageHeight }]}
       />
     );
@@ -119,9 +121,6 @@ const Pinchy = ({uuid}: {uuid: string}) => {
   const position = useRef({ x: 0, y: 0 });
   const animatedPosition = useRef(new Animated.ValueXY(position.current));
 
-  const pinchRef = useRef<number | null>(null);
-  const lastTapRef = useRef<number | null>(null);
-
   const viewportDimensionsRef = useRef({ viewportWidth, viewportHeight });
 
   const renderedImageSize = useRef({imageWidth: 0, imageHeight: 0});
@@ -158,86 +157,72 @@ const Pinchy = ({uuid}: {uuid: string}) => {
     }
   };
 
-  const handleSingleTap = (event: GestureResponderEvent) => {
-    const now = Date.now();
-    const tapX = event.nativeEvent.locationX;
-    const tapY = event.nativeEvent.locationY;
-
-    if (lastTapRef.current && now - lastTapRef.current < 300) {
-      handleDoubleTap(tapX, tapY);
-      lastTapRef.current = null;
-    } else {
-      lastTapRef.current = now;
-    }
-  };
-
-  const onPinchMove = (event, gestureState) => {
-    if (scaleBase.current === null) {
-      scaleBase.current = scale.current;
-    }
-
-    if (positionBase.current === null) {
-      positionBase.current = {
-        x: position.current.x,
-        y: position.current.y,
-      };
-    }
-
-    let touches = event.nativeEvent.touches;
-    if (touches.length > 1) {
-      const touch1 = touches[0];
-      const touch2 = touches[1];
-      const distance = Math.sqrt(
-        Math.pow(touch2.pageX - touch1.pageX, 2) +
-        Math.pow(touch2.pageY - touch1.pageY, 2)
-      );
-
-      if (!pinchRef.current) {
-        pinchRef.current = distance;
-      }
-
-      const newScale = Math.max(1, (distance / pinchRef.current) * scaleBase.current);
-      const newPosition = constrainPosition(
-        newScale,
-        renderedImageSize.current,
-        viewportDimensionsRef.current,
-        positionBase.current,
-        gestureState
-      );
-
-      setScale(newScale);
-      setPosition(newPosition);
-    } else {
-      const newPosition = constrainPosition(
-        scale.current,
-        renderedImageSize.current,
-        viewportDimensionsRef.current,
-        positionBase.current,
-        gestureState
-      );
-      setPosition(newPosition);
-    }
-  };
-
-  const onPinchEnd = () => {
-    scaleBase.current = null;
-    positionBase.current = null;
-    pinchRef.current = null;
-  };
-
   const onUpdateImageSize = useCallback(({ imageWidth, imageHeight }) => {
     renderedImageSize.current = { imageWidth, imageHeight };
   }, []);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponderCapture: (e) => (e.preventDefault(), true),
-      onPanResponderGrant: handleSingleTap,
-      onPanResponderMove: onPinchMove,
-      onPanResponderRelease: onPinchEnd,
-      onPanResponderTerminate: onPinchEnd,
-    })
-  ).current;
+  const pan = useMemo(
+    () => Gesture.Pan()
+      .runOnJS(true)
+      .onStart(() => {
+        positionBase.current = { ...position.current };
+      })
+      .onUpdate((e) => {
+        if (!positionBase.current) return;
+        const newPosition = constrainPosition(
+          scale.current,
+          renderedImageSize.current,
+          viewportDimensionsRef.current,
+          positionBase.current,
+          { dx: e.translationX, dy: e.translationY },
+        );
+        setPosition(newPosition);
+      })
+      .onEnd(() => {
+        positionBase.current = null;
+      }),
+    [],
+  );
+
+  const pinch = useMemo(
+    () => Gesture.Pinch()
+      .runOnJS(true)
+      .onStart(() => {
+        scaleBase.current = scale.current;
+      })
+      .onUpdate((e) => {
+        if (scaleBase.current == null) return;
+        const newScale = Math.max(1, e.scale * scaleBase.current);
+        const newPosition = constrainPosition(
+          newScale,
+          renderedImageSize.current,
+          viewportDimensionsRef.current,
+          position.current,
+        );
+        setScale(newScale);
+        setPosition(newPosition);
+      })
+      .onEnd(() => {
+        scaleBase.current = null;
+      }),
+    [],
+  );
+
+  const doubleTap = useMemo(
+    () => Gesture.Tap()
+      .runOnJS(true)
+      .numberOfTaps(2)
+      .maxDuration(300)
+      .onEnd((e, success) => {
+        if (success) handleDoubleTap(e.x, e.y);
+      }),
+    [],
+  );
+
+  const composed = useMemo(
+    () => Gesture.Simultaneous(pinch, pan, doubleTap),
+    [pinch, pan, doubleTap],
+  );
 
   useEffect(() => {
     viewportDimensionsRef.current = { viewportWidth, viewportHeight };
@@ -252,23 +237,23 @@ const Pinchy = ({uuid}: {uuid: string}) => {
   }, [viewportWidth, viewportHeight]);
 
   return (
-    <View style={styles.container} pointerEvents="box-none">
-      <FitWithinScreenImage
-        {...panResponder.panHandlers}
-        source={{ uri: `${IMAGES_URL}/original-${uuid}.jpg` }}
-        style={[
-          {
-            transform: [
-              { scale: animatedScale.current },
-              { translateX: animatedPosition.current.x },
-              { translateY: animatedPosition.current.y },
-            ],
-          },
-        ]}
-        onUpdateImageSize={onUpdateImageSize}
-        resizeMode="contain"
-      />
-    </View>
+    <GestureDetector gesture={composed}>
+      <View style={styles.container}>
+        <FitWithinScreenImage
+          source={{ uri: `${IMAGES_URL}/original-${uuid}.jpg` }}
+          style={[
+            {
+              transform: [
+                { scale: animatedScale.current },
+                { translateX: animatedPosition.current.x },
+                { translateY: animatedPosition.current.y },
+              ],
+            },
+          ]}
+          onUpdateImageSize={onUpdateImageSize}
+        />
+      </View>
+    </GestureDetector>
   );
 };
 

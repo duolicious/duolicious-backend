@@ -1,6 +1,5 @@
 import {
   Platform,
-  SafeAreaView,
   StyleSheet,
   View,
 } from 'react-native';
@@ -744,7 +743,7 @@ const FeedTab = () => {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safeAreaView}>
+    <View style={styles.safeAreaView}>
       <DuoliciousTopNavBar>
         {Platform.OS === 'web' &&
           <TopNavBarButton
@@ -779,7 +778,7 @@ const FeedTab = () => {
         onScroll={onScroll}
         showsVerticalScrollIndicator={showsVerticalScrollIndicator}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 

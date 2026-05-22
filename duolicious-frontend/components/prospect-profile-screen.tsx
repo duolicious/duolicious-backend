@@ -3,7 +3,6 @@ import {
   Animated,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleProp,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
   ViewStyle,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Fragment,
   useCallback,
@@ -174,52 +174,37 @@ const FloatingBackButton = (props) => {
     onPress,
     navigationRef,
     navigation,
-    safeAreaView = true,
   } = props;
 
   const { appTheme } = useAppTheme();
 
-  const RootElement = useCallback(({children}) => {
-    if (safeAreaView) {
-      return (
-        <SafeAreaView style={{zIndex: 999}}>
-          {children}
-        </SafeAreaView>
-      )
-    } else {
-      return children;
-    }
-  }, [safeAreaView]);
-
   return (
-    <RootElement>
-      <Pressable
+    <Pressable
+      style={{
+        zIndex: 999,
+        borderRadius: 999,
+        marginLeft: 10,
+        marginTop: 0,
+        width: 45,
+        height: 45,
+        backgroundColor: appTheme.primaryColor,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: appTheme.secondaryColor,
+      }}
+      onPress={onPress ?? (navigationRef?.current || navigation).goBack}
+    >
+      <FontAwesomeIcon
+        icon={faArrowLeft}
+        size={24}
         style={{
-          zIndex: 999,
-          borderRadius: 999,
-          marginLeft: 10,
-          marginTop: 0,
-          width: 45,
-          height: 45,
-          backgroundColor: appTheme.primaryColor,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderWidth: 1,
-          borderColor: appTheme.secondaryColor,
+          color: appTheme.secondaryColor,
+          // @ts-ignore
+          outline: 'none',
         }}
-        onPress={onPress ?? (navigationRef?.current || navigation).goBack}
-      >
-        <FontAwesomeIcon
-          icon={faArrowLeft}
-          size={24}
-          style={{
-            color: appTheme.secondaryColor,
-            // @ts-ignore
-            outline: 'none',
-          }}
-        />
-      </Pressable>
-    </RootElement>
+      />
+    </Pressable>
   );
 };
 
@@ -363,6 +348,7 @@ const FloatingSendIntroButton = ({
 
 const AnonymousSignInCta = ({navigation, name}) => {
   const { appTheme } = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   // Push Welcome (don't `reset`) so the system back button still points at
   // the profile and the user can bail out of sign-in.
@@ -375,7 +361,7 @@ const AnonymousSignInCta = ({navigation, name}) => {
     <View
       style={{
         position: 'absolute',
-        bottom: 0,
+        bottom: insets.bottom,
         width: '100%',
         maxWidth: 600,
         alignSelf: 'center',
@@ -794,6 +780,8 @@ const Content = (navigationRef) =>  {
 const CurriedContent = ({navigationRef, navigation, route}) => {
   navigationRef.current = navigation;
 
+  const insets = useSafeAreaInsets();
+
   const personUuid = route.params.personUuid;
 
   // `showBottomButtons` and `photoBlurhash` are intentionally NOT route params:
@@ -1057,7 +1045,7 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
           <View
             style={{
               position: 'absolute',
-              bottom: 0,
+              bottom: insets.bottom,
               width: '100%',
               maxWidth: 600,
               alignSelf: 'center',

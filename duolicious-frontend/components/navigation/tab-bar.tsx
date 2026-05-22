@@ -123,6 +123,7 @@ const TabBar = ({state, descriptors, navigation}) => {
         justifyContent: 'center',
         alignItems: 'center',
         height: 50 + insets.bottom,
+        paddingBottom: insets.bottom,
         width: '100%',
         overflow: 'visible',
       }}

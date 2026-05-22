@@ -6,10 +6,14 @@ import { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'Duolicious',
   slug: 'duolicious',
-  version: "32.0.0",
+  // Registers an intent filter for `app.duolicious://` so Android can
+  // dispatch the Google OAuth redirect (`app.duolicious:/oauthredirect`)
+  // back into the app. expo-auth-session's Google provider derives the
+  // redirect URI from the package name, so the scheme must match.
+  scheme: 'app.duolicious',
+  version: "32.1.0",
   orientation: "portrait",
   icon: './assets/icon.png',
-  newArchEnabled: true,
   updates: {
     fallbackToCacheTimeout: 0
   },
@@ -107,7 +111,9 @@ const config: ExpoConfig = {
         image: "./assets/splash.png",
         imageWidth: 300,
       }
-    ]
+    ],
+    "expo-image",
+    "expo-web-browser",
   ],
 };
 

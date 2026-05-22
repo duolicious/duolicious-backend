@@ -1,16 +1,14 @@
-import {
-  Platform,
-  StatusBar,
-  View,
-} from 'react-native';
+import { Platform, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const StatusBarSpacer = (props) => {
-  const defaultExtraHeight = Platform.OS === 'ios' ? 0 : 10;
+  const insets = useSafeAreaInsets();
+  const extraHeight = props.extraHeight ?? (Platform.OS === 'ios' ? 0 : 10);
 
   return (
     <View
       style={{
-        height: (props.extraHeight ?? defaultExtraHeight) + (Platform.OS === 'web' ? 0 : StatusBar.currentHeight),
+        height: extraHeight + (Platform.OS === 'web' ? 0 : insets.top),
         backgroundColor: 'transparent',
         ...props.style,
       }}

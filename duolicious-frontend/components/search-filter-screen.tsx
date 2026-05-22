@@ -4,8 +4,8 @@ import {
   ScrollView,
   View,
   StyleSheet,
-  SafeAreaView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   useCallback,
   useEffect,
@@ -162,6 +162,7 @@ const SearchFilterScreen = () => {
 const SearchFilterScreen_ = ({navigation}) => {
   const { appTheme } = useAppTheme();
   const [signedInUser] = useSignedInUser();
+  const insets = useSafeAreaInsets();
 
   const data = useSearchFilters();
 
@@ -249,7 +250,7 @@ const SearchFilterScreen_ = ({navigation}) => {
   }, [navigation]);
 
   return (
-    <SafeAreaView style={styles.safeAreaView}>
+    <View style={styles.safeAreaView}>
       <TopNavBar
         style={{
           alignItems: 'center',
@@ -280,7 +281,7 @@ const SearchFilterScreen_ = ({navigation}) => {
             alignSelf: 'center',
             alignItems: 'stretch',
             padding: 10,
-            paddingBottom: 50,
+            paddingBottom: 50 + insets.bottom,
           }}
         >
           <Title>Q&A Answers</Title>
@@ -363,12 +364,13 @@ const SearchFilterScreen_ = ({navigation}) => {
           <ActivityIndicator size="large" color={appTheme.brandColor} />
         </View>
       }
-    </SafeAreaView>
+    </View>
   );
 };
 
 const QandQFilterScreen = ({navigation}) => {
   const { appTheme } = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   // Source of truth for the current filter answers lives in a module-level
   // store so this screen doesn't need a mutable object handed through
@@ -419,7 +421,7 @@ const QandQFilterScreen = ({navigation}) => {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safeAreaView}>
+    <View style={styles.safeAreaView}>
       <TopNavBar
         style={{
           alignItems: 'stretch',
@@ -504,6 +506,7 @@ const QandQFilterScreen = ({navigation}) => {
             paddingTop: 0,
             paddingLeft: 10,
             paddingRight: 10,
+            paddingBottom: insets.bottom,
             maxWidth: 600,
             width: '100%',
             alignSelf: 'center',
@@ -593,7 +596,7 @@ const QandQFilterScreen = ({navigation}) => {
           }
         </ScrollView>
       }
-    </SafeAreaView>
+    </View>
   );
 };
 

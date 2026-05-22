@@ -5,7 +5,6 @@ import {
   ScrollView,
   View,
   StyleSheet,
-  SafeAreaView,
 } from 'react-native';
 import {
   useCallback,
@@ -246,7 +245,7 @@ const ProfileTab_ = ({navigation}) => {
   } = useScrollbar('profile');
 
   return (
-    <SafeAreaView style={styles.safeAreaView}>
+    <View style={styles.safeAreaView}>
       <DuoliciousTopNavBar/>
       {data &&
         <ScrollView
@@ -280,7 +279,7 @@ const ProfileTab_ = ({navigation}) => {
           <ActivityIndicator size="large" color={appTheme.brandColor} />
         </View>
       }
-    </SafeAreaView>
+    </View>
   );
 };
 

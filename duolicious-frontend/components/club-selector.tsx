@@ -2,11 +2,11 @@ import {
   ActivityIndicator,
   Animated,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   useCallback,
   useEffect,
@@ -160,6 +160,7 @@ const fetchClubItems = async (q: string): Promise<ClubItem[]> => {
 
 const ClubSelector = ({navigation}) => {
   const { appTheme } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const [selectedClubs, setSelectedClubs] = useState(
     lastEvent<ClubItem[]>('updated-clubs') ?? []
   );
@@ -208,7 +209,7 @@ const ClubSelector = ({navigation}) => {
     .filter(club => !clubsToFilter.has(club.name));
 
   return (
-    <SafeAreaView style={styles.safeAreaView}>
+    <View style={styles.safeAreaView}>
       <TopNavBar
         style={{
           alignItems: 'stretch',
@@ -281,6 +282,7 @@ const ClubSelector = ({navigation}) => {
           paddingTop: 0,
           paddingLeft: 10,
           paddingRight: 10,
+          paddingBottom: insets.bottom,
           maxWidth: 600,
           width: '100%',
           alignSelf: 'center',
@@ -369,7 +371,7 @@ const ClubSelector = ({navigation}) => {
           </>
         }
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -1,7 +1,11 @@
 import { possessive, secToMinSec } from '../util/util';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, View, Pressable, StyleSheet } from 'react-native';
-import { Audio, AVPlaybackStatus } from 'expo-av';
+import {
+  AudioStatus,
+  setAudioModeAsync,
+  useAudioPlayer,
+} from 'expo-audio';
 import { AUDIO_URL } from '../env/env';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultText } from './default-text';
@@ -72,7 +76,9 @@ type AudioPlayerProps = {
 };
 
 const AudioPlayer = (props: AudioPlayerProps) => {
-  const sound = useRef<Audio.Sound>(undefined);
+  // Deferred load: scrolling past dozens of messages shouldn't fetch them all.
+  const player = useAudioPlayer(null);
+  const hasLoaded = useRef(false);
 
   const isMounted = useRef(true);
 
@@ -108,7 +114,7 @@ const AudioPlayer = (props: AudioPlayerProps) => {
     debouncedShowLoader(nextDebouncedShowLoaderValue);
   }, [nextDebouncedShowLoaderValue])
 
-  const onPlaybackStatusUpdate = useCallback(async (status: AVPlaybackStatus) => {
+  const onPlaybackStatusUpdate = useCallback((status: AudioStatus) => {
     if (!isMounted.current) {
       return;
     }
@@ -117,17 +123,24 @@ const AudioPlayer = (props: AudioPlayerProps) => {
       return;
     }
 
-    setSecondsElapsed(Math.floor(status.positionMillis / 1000));
-
+    setIsPlaybackStarting(false);
+    setSecondsElapsed(Math.floor(status.currentTime));
     setIsBuffering(status.isBuffering);
 
     if (status.didJustFinish) {
       setIsPlaying(false);
-      if (sound.current) {
-        await sound.current.stopAsync();
-      }
+      player.pause();
+      player.seekTo(0);
     }
-  }, []);
+  }, [player]);
+
+  useEffect(() => {
+    const subscription = player.addListener(
+      'playbackStatusUpdate',
+      onPlaybackStatusUpdate,
+    );
+    return () => subscription.remove();
+  }, [player, onPlaybackStatusUpdate]);
 
   const play = async () => {
     if (!props.uuid) {
@@ -142,45 +155,30 @@ const AudioPlayer = (props: AudioPlayerProps) => {
     setIsPlaying(true);
 
     try {
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
+      await setAudioModeAsync({
+        playsInSilentMode: true,
       });
 
-      if (!sound.current) {
-        const uri = `${AUDIO_URL}/${props.uuid}.aac`;
-
-        const result = await Audio.Sound.createAsync(
-          { uri },
-          {},
-          onPlaybackStatusUpdate,
-          false,
-        );
-
-        sound.current = result.sound;
-      }
-
       if (!isMounted.current) {
-        await sound.current.unloadAsync();
         return;
       }
 
-      await sound.current.playAsync();
+      if (!hasLoaded.current) {
+        player.replace({ uri: `${AUDIO_URL}/${props.uuid}.aac` });
+        hasLoaded.current = true;
+      }
+
+      player.play();
     } catch (err) {
       setIsPlaying(false);
-      console.error('Failed to start playback', err);
-    } finally {
       setIsPlaybackStarting(false);
+      console.error('Failed to start playback', err);
     }
   };
 
-  const pause = async () => {
-    if (!sound.current) {
-      return;
-    }
-
+  const pause = () => {
     setIsPlaying(false);
-
-    await sound.current.pauseAsync();
+    player.pause();
   };
 
   const togglePlayPause = () => {
@@ -202,12 +200,9 @@ const AudioPlayer = (props: AudioPlayerProps) => {
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (sound.current) {
-        sound.current.unloadAsync();
-        sound.current = undefined;
-      }
-    };
+    hasLoaded.current = false;
+    setIsPlaying(false);
+    setSecondsElapsed(0);
   }, [props.uuid]);
 
   const middleText = (() => {

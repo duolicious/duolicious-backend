@@ -1,16 +1,14 @@
 import {
-  ActivityIndicator,
   Animated,
   Keyboard,
   Linking,
   Platform,
   Pressable,
-  SafeAreaView,
-  StatusBar,
   Text,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons/faArrowLeft';
 import { descriptionStyle } from './option-styles';
@@ -22,12 +20,12 @@ import {
 } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import { DefaultText } from './default-text';
 import { DefaultTextInput } from './default-text-input';
 import { ButtonWithCenteredText } from './button/centered-text';
 import { createAccountOptionGroups } from '../data/option-groups';
 import { OptionScreen } from './option-screen';
+import { StatusBarSpacer } from './status-bar-spacer';
 import { japi } from '../api/api';
 import {
   consumePendingAppleWebSignIn,
@@ -296,7 +294,7 @@ const InviteScreen = ({navigation, route}) => {
       >
         <View
           style={{
-            marginTop: 10 + (Platform.OS === 'web' ? 0 : StatusBar.currentHeight ?? 0),
+            marginTop: 10,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
@@ -531,7 +529,7 @@ const TermsBlurb = () => (
 const LogoHeader = () => (
   <View
     style={{
-      marginTop: 10 + (Platform.OS === 'web' ? 0 : StatusBar.currentHeight ?? 0),
+      marginTop: 10,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
@@ -854,56 +852,15 @@ const WelcomeScreen_ = ({navigation, route}) => {
           >
             Continue with Google
           </PrimaryAuthButton>
-          {Platform.OS === 'ios' ? (
-            // App Store Guideline 4.8 requires the official Apple-rendered
-            // button (with their logo, padding, and typography) whenever
-            // Sign In with Apple is offered alongside other social
-            // providers. `AppleAuthenticationButton` renders Apple's
-            // ASAuthorizationAppleIDButton natively; on non-iOS platforms
-            // it renders nothing, so we keep the custom button below as
-            // the Android/web fallback.
-            //
-            // Height + cornerRadius are picked to match the other primary
-            // buttons (50px tall, fully rounded). `backgroundColor` /
-            // `borderRadius` cannot be customized via `style` per Apple's
-            // rules — use `buttonStyle` / `cornerRadius` instead.
-            <View style={{ marginBottom: 10 }}>
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                cornerRadius={25}
-                style={{ height: 50, width: '100%' }}
-                onPress={onPressApple}
-              />
-              {socialLoading === 'apple' &&
-                // Apple's native button has no built-in loading state, so
-                // overlay a spinner during the post-Apple backend round-trip.
-                <View
-                  pointerEvents="none"
-                  style={{
-                    position: 'absolute',
-                    top: 0, bottom: 0, left: 0, right: 0,
-                    backgroundColor: 'rgba(0,0,0,0.4)',
-                    borderRadius: 25,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <ActivityIndicator size="large" color="#ffffff" />
-                </View>
-              }
-            </View>
-          ) : (
-            <PrimaryAuthButton
-              onPress={onPressApple}
-              loading={socialLoading === 'apple'}
-              icon={<Ionicons name="logo-apple" size={22} color="#ffffff" />}
-              backgroundColor="#000000"
-              textColor="#ffffff"
-            >
-              Continue with Apple
-            </PrimaryAuthButton>
-          )}
+          <PrimaryAuthButton
+            onPress={onPressApple}
+            loading={socialLoading === 'apple'}
+            icon={<Ionicons name="logo-apple" size={22} color="#ffffff" />}
+            backgroundColor="#000000"
+            textColor="#ffffff"
+          >
+            Continue with Apple
+          </PrimaryAuthButton>
           <DefaultText
             style={{
               alignSelf: 'center',
@@ -1017,6 +974,7 @@ const EmailScreen_ = ({navigation, route}) => {
   // step and onboarding wizard that follow it.
   return (
     <SafeAreaView
+      edges={['bottom', 'left', 'right']}
       style={{
         backgroundColor: '#7700ff',
         width: '100%',
@@ -1031,10 +989,11 @@ const EmailScreen_ = ({navigation, route}) => {
           alignSelf: 'center',
         }}
       >
+        <StatusBarSpacer/>
         <View
           style={{
-            marginTop: 10 + (Platform.OS === 'web' ? 0 : StatusBar.currentHeight ?? 0),
             alignItems: 'center',
+            paddingTop: 10,
             paddingBottom: 20,
           }}
         >

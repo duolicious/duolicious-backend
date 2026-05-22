@@ -16,7 +16,6 @@ import {
   Dimensions,
   PanResponder,
   Platform,
-  RegisteredStyle,
   ViewStyle,
 } from 'react-native';
 import Animated, {
@@ -78,7 +77,7 @@ interface Props {
   /**
    * Style to add to the container.
    */
-  containerStyle?: RegisteredStyle<ViewStyle>
+  containerStyle?: ViewStyle
 
   /**
    * The children passed in is what will be rendered as the actual card.

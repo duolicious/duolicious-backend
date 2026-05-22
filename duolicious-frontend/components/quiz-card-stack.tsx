@@ -24,7 +24,6 @@ import { Avatar } from './avatar';
 import { DonutChart } from './donut-chart';
 import { DefaultText } from './default-text';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBarSpacer } from './status-bar-spacer';
 import { api, japi } from '../api/api';
 import { quizQueue } from '../api/queue';
 import * as _ from "lodash";
@@ -512,7 +511,6 @@ const Prospects = ({
       locations={lgLocations}
       style={lgStyle}
     >
-      <StatusBarSpacer extraHeight={0}/>
       <Animated.View style={v1Style}>
         {
           bestProspects.map((prospect, i) =>

@@ -2,11 +2,11 @@ import {
   ActivityIndicator,
   Animated,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   useCallback,
   useEffect,
@@ -49,7 +49,7 @@ const InvitePicker = ({navigation}) => {
   }, [navigation]);
 
   return (
-    <SafeAreaView style={styles.safeAreaView}>
+    <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.safeAreaView}>
       <TopNavBar
         style={{
           alignItems: 'center',

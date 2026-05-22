@@ -2,19 +2,21 @@ import {
   Animated,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   forwardRef,
   useCallback,
+  useContext,
   useEffect,
   useImperativeHandle,
   useRef,
   useState,
   Fragment,
 } from 'react';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import { VerticalButtonGroup } from './vertical-button-group';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ButtonWithCenteredText } from './button/centered-text';
@@ -1335,6 +1337,11 @@ const OptionScreen = ({navigation, route}) => {
   const [containerHeight, setContainerHeight] = useState(0);
   const { appTheme } = useAppTheme();
 
+  // When the screen is nested under a bottom tab navigator the tab bar already
+  // reserves the system nav bar inset; applying it again here would
+  // double-pad the bottom.
+  const isInTabNav = useContext(BottomTabBarHeightContext) != null;
+
   // Non-serializable state (option-group definitions, callbacks) is handed off
   // through an in-memory store keyed by route name. We snapshot it on mount
   // and immediately clear the store entry so the next push (used for
@@ -1460,6 +1467,7 @@ const OptionScreen = ({navigation, route}) => {
 
   return (
     <SafeAreaView
+      edges={isInTabNav ? ['left', 'right'] : ['bottom', 'left', 'right']}
       style={{
         backgroundColor: backgroundColor,
         width: '100%',
