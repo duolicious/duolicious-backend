@@ -6,12 +6,12 @@ import {
   useReducer,
 } from 'react';
 import {
-  KeyboardAvoidingView,
   Platform,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -770,7 +770,7 @@ const Input = ({
   const finalGesture = Gesture.Exclusive(tapGesture, combinedGesture);
 
   return (
-    <KeyboardAvoidingView enabled={Platform.OS === 'ios'} behavior="padding">
+    <KeyboardAvoidingView behavior="padding">
       <QuotePreview quote={quote} />
       <View style={styles.container} onLayout={onLayout}>
         {/* Input wrapper: position relative so we can overlay the cancel overlay */}

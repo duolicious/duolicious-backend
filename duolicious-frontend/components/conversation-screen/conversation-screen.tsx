@@ -892,7 +892,7 @@ const ConversationScreen = ({navigation, route}) => {
             fontFamily: 'Trueno',
           }}
         >
-          This person isn't available right now. This often means their account
+          This person isn’t available right now. This often means their account
           is inactive or was deleted.
         </DefaultText>
       }

@@ -57,6 +57,7 @@ import { isMobile } from './util/util';
 import { Logo16 } from './components/logo';
 import { useScrollbarStyle } from './components/navigation/scroll-bar-hooks';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { ErrorBoundary } from './components/error-boundary';
 import { TooltipListener } from './components/tooltip';
 import { VerificationCameraModal } from './components/verification-camera';
@@ -662,6 +663,7 @@ const App = () => {
       <SafeAreaProvider>
         {!isLoading && initialState !== undefined &&
           <GestureHandlerRootView>
+            <KeyboardProvider>
             <NavigationContainer
               ref={navigationContainerRef}
               linking={linking}
@@ -727,6 +729,7 @@ const App = () => {
             <Toast/>
             <PointOfSaleModal/>
             <VerificationCameraModal/>
+            </KeyboardProvider>
           </GestureHandlerRootView>
         }
         <SplashScreen loading={isLoading} />
