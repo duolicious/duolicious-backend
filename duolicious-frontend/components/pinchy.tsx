@@ -125,9 +125,12 @@ const Pinchy = ({uuid}: {uuid: string}) => {
 
   const renderedImageSize = useRef({imageWidth: 0, imageHeight: 0});
 
+  const [isZoomed, setIsZoomed] = useState(false);
+
   const setScale = (s: number) => {
     scale.current = s;
     animatedScale.current.setValue(s);
+    setIsZoomed(s > 1 + 1e-5);
   };
 
   const setPosition = (p: {x: number, y: number}) => {
@@ -164,6 +167,7 @@ const Pinchy = ({uuid}: {uuid: string}) => {
   const pan = useMemo(
     () => Gesture.Pan()
       .runOnJS(true)
+      .enabled(isZoomed)
       .onStart(() => {
         positionBase.current = { ...position.current };
       })
@@ -181,7 +185,7 @@ const Pinchy = ({uuid}: {uuid: string}) => {
       .onEnd(() => {
         positionBase.current = null;
       }),
-    [],
+    [isZoomed],
   );
 
   const pinch = useMemo(
