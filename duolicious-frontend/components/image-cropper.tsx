@@ -321,7 +321,7 @@ const ImageCropper = () => {
         </View>
         {(data?.showProtip ?? true) &&
           <DefaultText style={styles.protip}>
-            <DefaultText style={styles.boldProtip} >
+            <DefaultText style={styles.boldProtip} disableTheme={true}>
               Pro tip: {}
             </DefaultText>
             Visitors to your profile can see the uncropped pic too
