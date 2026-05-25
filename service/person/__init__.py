@@ -32,6 +32,7 @@ import blurhash
 import numpy
 import erlastic
 from datetime import datetime, timezone
+from urllib.parse import quote
 from duoaudio import put_audio_in_object_store
 from service.person.aboutdiff import diff_addition_with_context
 from service.auth.social import (
@@ -1960,21 +1961,23 @@ def get_search_clubs(
         search_str: str,
         allow_empty: bool = False):
 
-    lower_search_str = search_str.lower().strip()
-
-    if allow_empty and not lower_search_str:
-        pass
-    elif not re.match(t.CLUB_PATTERN, lower_search_str):
-        return []
-    elif not len(lower_search_str) <= t.CLUB_MAX_LEN:
+    if (search_str or '').strip():
+        # A non-empty search string must be a valid club name.
+        search_string = t.parse_club_name(search_str)
+        if search_string is None:
+            return []
+    elif allow_empty:
+        # Empty string is allowed and yields the most popular clubs.
+        search_string = ''
+    else:
         return []
 
     params = dict(
         person_id=s.person_id if s else None,
-        search_string=lower_search_str,
+        search_string=search_string,
     )
 
-    q = Q_SEARCH_CLUBS if lower_search_str else Q_TOP_CLUBS
+    q = Q_SEARCH_CLUBS if search_string else Q_TOP_CLUBS
 
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(q, params).fetchall()
@@ -2092,6 +2095,60 @@ def get_check_verification(s: t.SessionInfo):
 def post_dismiss_donation(s: t.SessionInfo):
     with api_tx() as tx:
         tx.execute(Q_DISMISS_DONATION, dict(person_id=s.person_id))
+
+@lru_cache(maxsize=2048)
+def get_club(name: str, ttl_hash=None):
+    club_name = t.parse_club_name(name)
+    if club_name is None:
+        return None
+
+    # Single-row read of the precomputed payload. All aggregation happens in
+    # the club-stats cron; the API never touches person_club/answer here.
+    # A club with no club_stats row yet (newly eligible, not computed) 404s
+    # until the cron catches up.
+    with api_tx('READ COMMITTED') as tx:
+        row = tx.execute(Q_CLUB_PAGE_READ, dict(club_name=club_name)).fetchone()
+
+    if not row:
+        return None
+
+    return {
+        **row['stats_json'],
+        'description': row['description'],
+        'related_clubs': row['related_clubs']
+    }
+
+@lru_cache(maxsize=1)
+def get_sitemap_xml(ttl_hash=None):
+    with api_tx('READ COMMITTED') as tx:
+        # Scan of the full club table (50k+) on cache miss. Well under the
+        # connection-level 5s default in practice, but the 1h TTL means a
+        # single bad scan would brick the sitemap for the whole worker;
+        # give it real headroom.
+        tx.execute('SET LOCAL statement_timeout = 30000')  # 30 seconds
+        rows = tx.execute(Q_CLUB_SITEMAP).fetchall()
+
+    # Static pages first, then one URL per eligible club. Cloudflare
+    # Pages serves the static pages; this same sitemap covers both
+    # because search engines don't care which origin hosts them.
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        '  <url><loc>https://duolicious.app/</loc></url>',
+        '  <url><loc>https://duolicious.app/clubs</loc></url>',
+        '  <url><loc>https://duolicious.app/about</loc></url>',
+    ]
+    for row in rows:
+        loc = f"https://duolicious.app/club/{quote(row['name'], safe='')}"
+        if row.get('lastmod'):
+            lastmod = row['lastmod'].strftime('%Y-%m-%d')
+            lines.append(f'  <url><loc>{loc}</loc><lastmod>{lastmod}</lastmod></url>')
+        else:
+            lines.append(f'  <url><loc>{loc}</loc></url>')
+    lines.append('</urlset>')
+
+    body = '\n'.join(lines)
+    return body, 200, {'Content-Type': 'application/xml; charset=utf-8'}
 
 @lru_cache()
 def get_stats(ttl_hash=None, club_name: Optional[str] = None):

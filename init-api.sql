@@ -541,6 +541,55 @@ CREATE TABLE IF NOT EXISTS person_club (
     PRIMARY KEY (person_id, club_name)
 );
 
+-- Queue of clubs whose membership has changed since `club_stats` was last
+-- computed. The club-stats cron picks from here first, then DELETEs the
+-- processed rows. Kept as a separate table (rather than a flag on `club`)
+-- so the cron's clear doesn't UPDATE the same row that /join-club and
+-- /leave-club update for `count_members`: under REPEATABLE READ that race
+-- raises SerializationFailure on the API side. Maintained by
+-- trigger_mark_club_stats_dirty. Seeded with every existing club name so
+-- the cron computes every club once on its first pass.
+CREATE TABLE IF NOT EXISTS club_stats_dirty (
+    club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- Precomputed aggregate stats backing the /club/{name} page. One row per
+-- club, written by the club-stats cron in grouped batches; the API serves
+-- `stats_json` verbatim with a single-row read. `stats_json` excludes the
+-- LLM description, which lives in club_seo and is regenerated on a slower
+-- cadence.
+CREATE TABLE IF NOT EXISTS club_stats (
+    club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+    stats_json JSONB NOT NULL,
+    computed_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Directed club co-membership counts, rebuilt wholesale by the club-overlap
+-- cron. `overlap` is the number of (capped, activated) members shared by
+-- club_a and club_b. Both directions are stored, so a club's related list is
+-- a single `WHERE club_a = X` range scan on the PK. The page read query
+-- ranks these by lift to find each club's most disproportionately-related
+-- clubs.
+CREATE TABLE IF NOT EXISTS club_overlap (
+    club_a TEXT NOT NULL REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+    club_b TEXT NOT NULL REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+    overlap INT NOT NULL,
+    PRIMARY KEY (club_a, club_b)
+);
+
+-- LLM-generated description for the /club/{name} page. `description` and
+-- `stats_hash` are NULL between a club becoming eligible and its first
+-- successful generation (or after a failed attempt): the row still exists
+-- so generated_at advances and the club rotates to the back of the refresh
+-- queue rather than blocking it. `stats_hash` is a digest of the exact
+-- facts fed to the model, so the worker skips the LLM when nothing changed.
+CREATE TABLE IF NOT EXISTS club_seo (
+    club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+    description TEXT,
+    stats_hash TEXT,
+    generated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS deleted_photo_admin_token (
     token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     photo_uuid TEXT NOT NULL,
@@ -784,6 +833,14 @@ CREATE INDEX IF NOT EXISTS
     ON person_club
     USING GIST(club_name, coordinates, gender_id)
     WHERE activated;
+
+-- Plain btree to serve `WHERE club_name = X` lookups for the club SEO
+-- pages. The PK is (person_id, club_name) so club_name isn't usefully
+-- indexed for membership-by-club scans, and the GIST index above is
+-- partial (WHERE activated) and geared toward geo search. This btree
+-- gives a tight range scan of a single club's members.
+CREATE INDEX IF NOT EXISTS idx__person_club__club_name__person_id
+    ON person_club(club_name, person_id);
 
 CREATE INDEX IF NOT EXISTS idx__person__sign_up_time
     ON person(sign_up_time);
@@ -1609,6 +1666,47 @@ BEFORE INSERT ON
     person_club
 FOR EACH ROW EXECUTE FUNCTION
     populate_person_club_defaults();
+
+-- Mark a club's stats dirty whenever its active membership changes: a join
+-- (INSERT), a leave or cascaded deletion (DELETE), or an activation flip
+-- copied down from `person` (UPDATE OF activated). The club-stats cron
+-- DELETEs the row after recomputing. Joins/leaves that don't change
+-- `activated`, and answer edits, are picked up by the cron's max-age
+-- fallback rather than here, to keep write amplification bounded.
+--
+-- We INSERT into a separate `club_stats_dirty` queue table rather than
+-- UPDATE a flag on `club`: the same /join-club transaction also UPDATEs
+-- `club.count_members`, and if the cron concurrently UPDATEd the same row
+-- to clear the flag, REPEATABLE READ on the API would raise
+-- SerializationFailure. Touching a different table sidesteps that.
+CREATE OR REPLACE FUNCTION
+    mark_club_stats_dirty()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        INSERT INTO club_stats_dirty (club_name) VALUES (OLD.club_name)
+        ON CONFLICT DO NOTHING;
+        RETURN OLD;
+    ELSIF TG_OP = 'UPDATE' THEN
+        IF OLD.activated IS DISTINCT FROM NEW.activated THEN
+            INSERT INTO club_stats_dirty (club_name) VALUES (NEW.club_name)
+            ON CONFLICT DO NOTHING;
+        END IF;
+        RETURN NEW;
+    ELSE
+        INSERT INTO club_stats_dirty (club_name) VALUES (NEW.club_name)
+        ON CONFLICT DO NOTHING;
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER
+    trigger_mark_club_stats_dirty
+AFTER INSERT OR DELETE OR UPDATE OF activated ON
+    person_club
+FOR EACH ROW EXECUTE FUNCTION
+    mark_club_stats_dirty();
 
 
 --------------------------------------------------------------------------------

@@ -484,6 +484,19 @@ def get_search_public_clubs():
     return person.get_search_clubs(
             s=None, search_str=request.args.get('q', ''), allow_empty=True)
 
+@get('/club/<path:name>')
+def get_club(name: str):
+    result = person.get_club(
+        name=name,
+        ttl_hash=get_ttl_hash(seconds=300))
+    if result is None:
+        return '', 404
+    return result
+
+@get('/sitemap.xml')
+def get_sitemap_xml():
+    return person.get_sitemap_xml(ttl_hash=get_ttl_hash(seconds=3600))
+
 @apost('/join-club')
 @validate(t.PostJoinClub)
 def post_join_club(req: t.PostJoinClub, s: t.SessionInfo):

@@ -1,4 +1,5 @@
 import constants
+from constants import MIN_CLUB_PAGE_MEMBERS, MAX_RELATED_CLUBS
 from commonsql import Q_IS_ALLOWED_CLUB_NAME, Q_COMPUTED_FLAIR
 
 MAX_CLUB_SEARCH_RESULTS = 20
@@ -2255,6 +2256,88 @@ WHERE
     name = %(club_name)s
 AND
     EXISTS (SELECT 1 FROM deleted_person_club)
+"""
+
+# Club SEO page queries. The heavy aggregation that builds a club's stats
+# lives in the cron package (service/cron/clubseo/sql) and writes club_stats;
+# the API only ever runs the single-row reads below, so the request path
+# never touches person_club/answer. Shared tunables come from `constants`.
+
+# Read the precomputed page payload, its (separately-refreshed) LLM
+# description, and the related-clubs list. Gated on the live member threshold
+# so a club that has dropped below it 404s even while a stale club_stats row
+# lingers. Returns no rows until the cron has computed the club's stats.
+#
+# Related clubs are derived here, not stored in stats_json, because
+# club_overlap is rebuilt on its own (slow) cadence: ranking live keeps the
+# list fresh between rebuilds without forcing a stats recompute. The ranking
+# is lift -- n*N/(|A|*|B|) -- which for a fixed club A reduces to n/|B| (N and
+# |A| are constant across A's candidates), so it needs only the stored
+# overlap and the other club's size. This is a PK range scan on club_overlap
+# (club_a = X) of at most a few thousand rows, narrowed to the top
+# MAX_RELATED_CLUBS, and get_club memoises the whole result for its TTL.
+Q_CLUB_PAGE_READ = f"""
+SELECT
+    cs.stats_json,
+    seo.description,
+    COALESCE(rel.j, '[]'::json) AS related_clubs
+FROM
+    club c
+JOIN
+    club_stats cs ON cs.club_name = c.name
+LEFT JOIN
+    club_seo seo ON seo.club_name = c.name
+LEFT JOIN LATERAL (
+    SELECT json_agg(
+        json_build_object(
+            'name',          club_b,
+            'count_members', count_members,
+            'overlap',       overlap
+        )
+        ORDER BY score DESC
+    ) AS j
+    FROM (
+        SELECT
+            co.club_b,
+            b.count_members,
+            co.overlap,
+            co.overlap::float8 / b.count_members AS score
+        FROM
+            club_overlap co
+        JOIN
+            club b ON b.name = co.club_b
+        WHERE
+            co.club_a = c.name
+        AND
+            b.count_members >= {MIN_CLUB_PAGE_MEMBERS}
+        ORDER BY
+            score DESC
+        LIMIT {MAX_RELATED_CLUBS}
+    ) ranked
+) rel ON TRUE
+WHERE
+    c.name = %(club_name)s
+AND
+    c.count_members >= {MIN_CLUB_PAGE_MEMBERS}
+"""
+
+# Eligible clubs for the sitemap: only those that actually have a computed
+# page (club_stats row), so we never advertise a URL that would 404. The
+# member-threshold gate mirrors Q_CLUB_PAGE_READ to stay in sync. `lastmod`
+# is when the stats were last recomputed.
+Q_CLUB_SITEMAP = f"""
+SELECT
+    c.name,
+    cs.computed_at AS lastmod
+FROM
+    club c
+JOIN
+    club_stats cs ON cs.club_name = c.name
+WHERE
+    c.count_members >= {MIN_CLUB_PAGE_MEMBERS}
+ORDER BY
+    c.count_members DESC,
+    c.name
 """
 
 Q_UPDATE_CHATS_NOTIFICATIONS = """
