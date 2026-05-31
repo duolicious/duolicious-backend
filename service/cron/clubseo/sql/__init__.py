@@ -43,7 +43,8 @@ WITH target AS MATERIALIZED (
     ORDER BY
         (cs.club_name IS NULL) DESC,
         (d.club_name IS NOT NULL) DESC,
-        cs.computed_at NULLS FIRST
+        cs.computed_at NULLS FIRST,
+        c.count_members DESC
     LIMIT %(batch_size)s
 ), sampled AS MATERIALIZED (
     -- Deterministic md5-ordered sample so the payload (and its hash) are
@@ -258,7 +259,8 @@ WITH target AS MATERIALIZED (
         c.count_members >= {MIN_CLUB_PAGE_MEMBERS}
     ORDER BY
         cta.club_name IS NULL DESC,
-        cta.computed_at NULLS FIRST
+        cta.computed_at NULLS FIRST,
+        c.count_members DESC
     LIMIT %(batch_size)s
 ), sampled AS MATERIALIZED (
     SELECT club_name, person_id
@@ -366,7 +368,8 @@ WHERE
     c.count_members >= {MIN_CLUB_PAGE_MEMBERS}
 ORDER BY
     seo.club_name IS NULL DESC,
-    seo.generated_at NULLS FIRST
+    seo.generated_at NULLS FIRST,
+    c.count_members DESC
 LIMIT 1
 """
 

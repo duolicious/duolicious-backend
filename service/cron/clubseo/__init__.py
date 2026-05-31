@@ -68,7 +68,7 @@ CLUB_TOP_ANSWERS_POLL_SECONDS = int(os.environ.get(
 
 CLUB_TOP_ANSWERS_BATCH_SIZE = int(os.environ.get(
     'DUO_CRON_CLUB_TOP_ANSWERS_BATCH_SIZE',
-    str(5),
+    str(30),
 ))
 
 
