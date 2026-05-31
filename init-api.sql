@@ -893,6 +893,18 @@ CREATE INDEX IF NOT EXISTS idx__search_cache__searcher_person_id__position ON se
 
 CREATE INDEX IF NOT EXISTS idx__answer__question_id ON answer(question_id);
 CREATE INDEX IF NOT EXISTS idx__answer__person_id_public_answer ON answer(person_id, public_, answer);
+-- Covers the club-top-answers cron's per-(person, question) read. The PK
+-- has (person_id, question_id) but not `answer`, so an index-only scan
+-- isn't possible from the PK; the existing public_/answer index doesn't
+-- carry question_id. Without this index the cron's nested loop into
+-- answer does ~600 heap fetches per sampled member -- ~80 s per popular
+-- club at the production sample cap. With it, the same query is ~3 s.
+-- A future refactor could fold `answer` into the PK via INCLUDE instead
+-- of carrying a second copy here (saves ~870 MB), but that needs a
+-- CONCURRENT index swap to avoid an AccessExclusiveLock on a 40M-row
+-- table.
+CREATE INDEX IF NOT EXISTS idx__answer__person_id_question_id_inc_answer
+    ON answer(person_id, question_id) INCLUDE (answer);
 
 CREATE INDEX IF NOT EXISTS idx__duo_session__email
     ON duo_session(email);

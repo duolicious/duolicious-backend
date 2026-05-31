@@ -156,6 +156,14 @@ async def refresh_club_overlap_once():
         # makes a generous ceiling cheap; hitting it just defers the rebuild
         # to the next tick.
         await tx.execute('SET LOCAL statement_timeout = 600000')  # 10 minutes
+        # The merge-join driving the rebuild sorts ~200k member-rows on each
+        # side and the HashAggregate produces ~1M (a, b) cells before the
+        # cell-size HAVING. At the default work_mem (4 MB) both sorts and the
+        # aggregate spill to disk (~300 MB of temp files) and the rebuild
+        # runs ~2x slower (~22 s vs ~12 s on production-sized data). The
+        # whole rebuild is one statement in one short-lived backend, so the
+        # peak is a single allocation; SET LOCAL scopes it to this tx.
+        await tx.execute("SET LOCAL work_mem = '256MB'")
         await tx.execute(Q_CLUB_OVERLAP_DELETE)
         await tx.execute(Q_CLUB_OVERLAP_REBUILD)
     print('club_overlap: rebuilt')

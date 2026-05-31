@@ -155,3 +155,14 @@ FOR EACH ROW EXECUTE FUNCTION
 -- person_club.
 CREATE INDEX IF NOT EXISTS idx__person_club__club_name__person_id
     ON person_club(club_name, person_id);
+
+-- Covers the club-top-answers cron's per-(person, question) read so it
+-- can index-only-scan answer (~600 entries per sampled member) instead
+-- of doing a heap fetch per row. Without it, the per-club aggregation is
+-- ~80 s on the biggest club at the production sample cap; with it, ~3 s.
+-- The answer table is large (40M+ rows) so the index is too (~900 MB) --
+-- a future refactor could fold `answer` into the PK via INCLUDE instead
+-- (saves ~870 MB on disk), but that needs a CONCURRENT index swap to
+-- avoid an AccessExclusiveLock during deploy.
+CREATE INDEX IF NOT EXISTS idx__answer__person_id_question_id_inc_answer
+    ON answer(person_id, question_id) INCLUDE (answer);
