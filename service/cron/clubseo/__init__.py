@@ -124,6 +124,18 @@ CLUB_SEO_POLL_SECONDS = int(os.environ.get(
     str(60),
 ))
 
+CLUB_SEO_BATCH_SIZE = int(os.environ.get(
+    'DUO_CRON_CLUB_SEO_BATCH_SIZE',
+    str(20),
+))
+
+# Per-tick fan-out for OpenAI calls. Each call is mostly latency-bound,
+# so even a small fan-out gives a near-linear throughput win.
+CLUB_SEO_CONCURRENCY = int(os.environ.get(
+    'DUO_CRON_CLUB_SEO_CONCURRENCY',
+    str(10),
+))
+
 CLUB_SEO_MAX_AGE_DAYS = int(os.environ.get(
     'DUO_CRON_CLUB_SEO_MAX_AGE_DAYS',
     str(30),
@@ -258,14 +270,7 @@ def is_fresh_enough(old_stats_hash: str | None, new_hash: str, age_days: float) 
     return age_days < CLUB_SEO_MAX_AGE_DAYS
 
 
-async def refresh_club_seo_once():
-    async with api_tx('READ COMMITTED') as tx:
-        cur = await tx.execute(Q_CLUB_SEO_NEXT_REFRESH)
-        row = await cur.fetchone()
-
-    if not row:
-        return
-
+async def _process_club_seo_row(row, semaphore):
     club_name = row['name']
     old_hash = row['old_stats_hash']
     # NULL age (no club_seo row yet) means infinitely stale.
@@ -282,7 +287,11 @@ async def refresh_club_seo_once():
         print(f'club_seo: touched {club_name!r} (hash match, {age_days:.1f}d old)')
         return
 
-    description = await generate_description(payload)
+    # Only the OpenAI call is gated by the semaphore; the DB work either
+    # side of it is cheap and benefits from running unblocked.
+    async with semaphore:
+        description = await generate_description(payload)
+
     if not description:
         # Advance generated_at so this club rotates to the back of the
         # queue instead of being re-selected every tick and starving the rest.
@@ -298,6 +307,30 @@ async def refresh_club_seo_once():
             stats_hash=new_hash,
         ))
     print(f'club_seo: regenerated {club_name!r} ({len(description)} chars)')
+
+
+async def refresh_club_seo_once():
+    async with api_tx('READ COMMITTED') as tx:
+        cur = await tx.execute(
+            Q_CLUB_SEO_NEXT_REFRESH,
+            dict(batch_size=CLUB_SEO_BATCH_SIZE),
+        )
+        rows = await cur.fetchall()
+
+    if not rows:
+        return
+
+    semaphore = asyncio.Semaphore(CLUB_SEO_CONCURRENCY)
+    # return_exceptions so one club's failure doesn't cancel the others;
+    # _process_club_seo_row already handles its own OpenAI errors, so
+    # anything that surfaces here is unexpected and worth logging.
+    results = await asyncio.gather(
+        *(_process_club_seo_row(row, semaphore) for row in rows),
+        return_exceptions=True,
+    )
+    for row, res in zip(rows, results):
+        if isinstance(res, BaseException):
+            print(f"club_seo: unexpected error for {row['name']!r}: {res!r}")
 
 
 async def refresh_club_seo_forever():

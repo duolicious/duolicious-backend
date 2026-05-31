@@ -372,7 +372,7 @@ ORDER BY
     seo.club_name IS NULL DESC,
     seo.generated_at NULLS FIRST,
     c.count_members DESC
-LIMIT 1
+LIMIT %(batch_size)s
 """
 
 Q_CLUB_SEO_TOUCH = """
