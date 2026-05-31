@@ -92,7 +92,67 @@ WITH searcher AS (
                 person_id = %(searcher_person_id)s
         ) AS club_preference,
         date_of_birth,
-        count_answers
+        count_answers,
+        -- The searcher's one-way (enum) preferences, fetched once here as
+        -- arrays so the prospect filters below become cheap `= ANY(...)`
+        -- membership tests instead of re-probing each preference table once
+        -- per prospect.
+        ARRAY(
+            SELECT orientation_id FROM search_preference_orientation
+            WHERE person_id = %(searcher_person_id)s
+        ) AS orientation_preference,
+        ARRAY(
+            SELECT ethnicity_id FROM search_preference_ethnicity
+            WHERE person_id = %(searcher_person_id)s
+        ) AS ethnicity_preference,
+        ARRAY(
+            SELECT has_profile_picture_id FROM search_preference_has_profile_picture
+            WHERE person_id = %(searcher_person_id)s
+        ) AS has_profile_picture_preference,
+        ARRAY(
+            SELECT looking_for_id FROM search_preference_looking_for
+            WHERE person_id = %(searcher_person_id)s
+        ) AS looking_for_preference,
+        ARRAY(
+            SELECT smoking_id FROM search_preference_smoking
+            WHERE person_id = %(searcher_person_id)s
+        ) AS smoking_preference,
+        ARRAY(
+            SELECT drinking_id FROM search_preference_drinking
+            WHERE person_id = %(searcher_person_id)s
+        ) AS drinking_preference,
+        ARRAY(
+            SELECT drugs_id FROM search_preference_drugs
+            WHERE person_id = %(searcher_person_id)s
+        ) AS drugs_preference,
+        ARRAY(
+            SELECT long_distance_id FROM search_preference_long_distance
+            WHERE person_id = %(searcher_person_id)s
+        ) AS long_distance_preference,
+        ARRAY(
+            SELECT relationship_status_id FROM search_preference_relationship_status
+            WHERE person_id = %(searcher_person_id)s
+        ) AS relationship_status_preference,
+        ARRAY(
+            SELECT has_kids_id FROM search_preference_has_kids
+            WHERE person_id = %(searcher_person_id)s
+        ) AS has_kids_preference,
+        ARRAY(
+            SELECT wants_kids_id FROM search_preference_wants_kids
+            WHERE person_id = %(searcher_person_id)s
+        ) AS wants_kids_preference,
+        ARRAY(
+            SELECT exercise_id FROM search_preference_exercise
+            WHERE person_id = %(searcher_person_id)s
+        ) AS exercise_preference,
+        ARRAY(
+            SELECT religion_id FROM search_preference_religion
+            WHERE person_id = %(searcher_person_id)s
+        ) AS religion_preference,
+        ARRAY(
+            SELECT star_sign_id FROM search_preference_star_sign
+            WHERE person_id = %(searcher_person_id)s
+        ) AS star_sign_preference
     FROM
         person
     WHERE
@@ -240,13 +300,9 @@ WITH searcher AS (
                             SELECT
                                 1000 * distance
                             FROM
-                                person
-                            JOIN
                                 search_preference_distance
-                            ON
-                                person.id = person_id
                             WHERE
-                                person.id = prospect.id
+                                person_id = prospect.id
                         ),
                         1e9
                     )
@@ -312,23 +368,9 @@ WITH searcher AS (
 
     -- One-way filters
     AND
-        prospect.orientation_id IN (
-            SELECT
-                orientation_id
-            FROM
-                search_preference_orientation
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.orientation_id = ANY(searcher.orientation_preference)
     AND
-        prospect.ethnicity_id IN (
-            SELECT
-                ethnicity_id
-            FROM
-                search_preference_ethnicity
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.ethnicity_id = ANY(searcher.ethnicity_preference)
     AND
         COALESCE(prospect.height_cm, 0) >= COALESCE(
             (
@@ -354,113 +396,29 @@ WITH searcher AS (
             999
         )
     AND
-        prospect.has_profile_picture_id IN (
-            SELECT
-                has_profile_picture_id
-            FROM
-                search_preference_has_profile_picture
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.has_profile_picture_id = ANY(searcher.has_profile_picture_preference)
     AND
-        prospect.looking_for_id IN (
-            SELECT
-                looking_for_id
-            FROM
-                search_preference_looking_for
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.looking_for_id = ANY(searcher.looking_for_preference)
     AND
-        prospect.smoking_id IN (
-            SELECT
-                smoking_id
-            FROM
-                search_preference_smoking
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.smoking_id = ANY(searcher.smoking_preference)
     AND
-        prospect.drinking_id IN (
-            SELECT
-                drinking_id
-            FROM
-                search_preference_drinking
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.drinking_id = ANY(searcher.drinking_preference)
     AND
-        prospect.drugs_id IN (
-            SELECT
-                drugs_id
-            FROM
-                search_preference_drugs
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.drugs_id = ANY(searcher.drugs_preference)
     AND
-        prospect.long_distance_id IN (
-            SELECT
-                long_distance_id
-            FROM
-                search_preference_long_distance
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.long_distance_id = ANY(searcher.long_distance_preference)
     AND
-        prospect.relationship_status_id IN (
-            SELECT
-                relationship_status_id
-            FROM
-                search_preference_relationship_status
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.relationship_status_id = ANY(searcher.relationship_status_preference)
     AND
-        prospect.has_kids_id IN (
-            SELECT
-                has_kids_id
-            FROM
-                search_preference_has_kids
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.has_kids_id = ANY(searcher.has_kids_preference)
     AND
-        prospect.wants_kids_id IN (
-            SELECT
-                wants_kids_id
-            FROM
-                search_preference_wants_kids
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.wants_kids_id = ANY(searcher.wants_kids_preference)
     AND
-        prospect.exercise_id IN (
-            SELECT
-                exercise_id
-            FROM
-                search_preference_exercise
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.exercise_id = ANY(searcher.exercise_preference)
     AND
-        prospect.religion_id IN (
-            SELECT
-                religion_id
-            FROM
-                search_preference_religion
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.religion_id = ANY(searcher.religion_preference)
     AND
-        prospect.star_sign_id IN (
-            SELECT
-                star_sign_id
-            FROM
-                search_preference_star_sign
-            WHERE
-                person_id = %(searcher_person_id)s
-        )
+        prospect.star_sign_id = ANY(searcher.star_sign_preference)
     AND
         -- The prospect wants to be shown to strangers or isn't a stranger
         (
