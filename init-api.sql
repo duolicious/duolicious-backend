@@ -541,6 +541,59 @@ CREATE TABLE IF NOT EXISTS person_club (
     PRIMARY KEY (person_id, club_name)
 );
 
+-- Queue of clubs needing a club_stats refresh. Maintained by
+-- trigger_mark_club_stats_dirty. Kept in a separate table (rather than
+-- a flag on `club`) so the cron's clear doesn't UPDATE the same row that
+-- /join-club and /leave-club update for `count_members` -- that race
+-- raises SerializationFailure on the API under REPEATABLE READ.
+CREATE TABLE IF NOT EXISTS club_stats_dirty (
+    club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS club_stats (
+    club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+    stats_json JSONB NOT NULL,
+    computed_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Directed co-membership counts; both directions stored so a club's
+-- related list is a single PK range scan.
+--
+-- `count_members_b` is denormalised so the page read doesn't need to join
+-- `club` per related row -- the planner mis-routes equality lookups on
+-- club(name) through the trigram GiST (~50 ms cold per lookup).
+--
+-- club_a/club_b deliberately have NO foreign key to club. The per-row RI
+-- check routes through that same trigram GiST and at production cap
+-- settings the rebuild emits >100k pairs, pushing it past its statement
+-- timeout. The table is fully rewritten every overlap-cron tick from
+-- person_club (which is FK'd to club), so a deleted or renamed club
+-- leaves stale rows for at most one cron interval.
+CREATE TABLE IF NOT EXISTS club_overlap (
+    club_a TEXT NOT NULL,
+    club_b TEXT NOT NULL,
+    overlap INT NOT NULL,
+    count_members_b INT NOT NULL,
+    PRIMARY KEY (club_a, club_b)
+);
+
+CREATE TABLE IF NOT EXISTS club_top_answers (
+    club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+    answers_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+    computed_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- `description`/`stats_hash` are NULL between eligibility and the first
+-- successful generation, and after a failed attempt: the row still exists
+-- so generated_at advances and the club rotates to the back of the
+-- refresh queue instead of blocking it.
+CREATE TABLE IF NOT EXISTS club_seo (
+    club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+    description TEXT,
+    stats_hash TEXT,
+    generated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS deleted_photo_admin_token (
     token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     photo_uuid TEXT NOT NULL,
@@ -805,6 +858,11 @@ CREATE INDEX IF NOT EXISTS idx__search_cache__searcher_person_id__position ON se
 
 CREATE INDEX IF NOT EXISTS idx__answer__question_id ON answer(question_id);
 CREATE INDEX IF NOT EXISTS idx__answer__person_id_public_answer ON answer(person_id, public_, answer);
+-- Lets the club-top-answers cron index-only-scan (person, question, answer)
+-- instead of doing a heap fetch per row -- the PK is (person_id,
+-- question_id) without `answer`. ~80 s -> ~3 s per popular club.
+CREATE INDEX IF NOT EXISTS idx__answer__person_id_question_id_inc_answer
+    ON answer(person_id, question_id) INCLUDE (answer);
 
 CREATE INDEX IF NOT EXISTS idx__duo_session__email
     ON duo_session(email);
@@ -1609,6 +1667,38 @@ BEFORE INSERT ON
     person_club
 FOR EACH ROW EXECUTE FUNCTION
     populate_person_club_defaults();
+
+-- Marks a club dirty on join, leave/cascaded deletion, or activation
+-- flip. Answer edits and joins/leaves that don't change `activated` are
+-- left to the cron's max-age fallback, to keep write amplification bounded.
+CREATE OR REPLACE FUNCTION
+    mark_club_stats_dirty()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        INSERT INTO club_stats_dirty (club_name) VALUES (OLD.club_name)
+        ON CONFLICT DO NOTHING;
+        RETURN OLD;
+    ELSIF TG_OP = 'UPDATE' THEN
+        IF OLD.activated IS DISTINCT FROM NEW.activated THEN
+            INSERT INTO club_stats_dirty (club_name) VALUES (NEW.club_name)
+            ON CONFLICT DO NOTHING;
+        END IF;
+        RETURN NEW;
+    ELSE
+        INSERT INTO club_stats_dirty (club_name) VALUES (NEW.club_name)
+        ON CONFLICT DO NOTHING;
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER
+    trigger_mark_club_stats_dirty
+AFTER INSERT OR DELETE OR UPDATE OF activated ON
+    person_club
+FOR EACH ROW EXECUTE FUNCTION
+    mark_club_stats_dirty();
 
 
 --------------------------------------------------------------------------------

@@ -16,6 +16,7 @@ from pydantic import (
     EmailStr,
     Field,
     RootModel,
+    StringConstraints,
     field_validator,
     model_validator,
     ValidationError,
@@ -51,20 +52,37 @@ def _normalize_email_input(value: str) -> str:
     return value.lower().strip() if value else ''
 
 
-def _normalize_pending_club_name(value):
-    if value is None:
+def _normalize_club_name(value):
+    # Non-str values pass through so pydantic's type layer reports them
+    # instead of this raising AttributeError.
+    if not isinstance(value, str):
         return value
-    return value.lower().strip()
+    return ' '.join(value.split()).lower()
 
 
-# `pending_club_name` is sent by the client when the user is signing in
-# *into* a pending club invite. Used by /request-otp,
-# /sign-in-with-google, /sign-in-with-apple — all three normalize the
-# name the same way before pydantic's pattern/length validation runs.
+ClubName = Annotated[
+    str,
+    BeforeValidator(_normalize_club_name),
+    StringConstraints(pattern=CLUB_PATTERN, min_length=1, max_length=CLUB_MAX_LEN),
+]
+
+# Optional variant for /request-otp, /sign-in-with-google,
+# /sign-in-with-apple, where the client passes a pending-club-invite name.
 PendingClubName = Annotated[
     Optional[str],
-    BeforeValidator(_normalize_pending_club_name),
+    BeforeValidator(_normalize_club_name),
 ]
+
+_club_name_adapter = TypeAdapter(ClubName)
+
+
+def parse_club_name(value) -> Optional[str]:
+    """Returns the canonical club name, or None if invalid. For call
+    sites that want to 404 or skip on bad input rather than raise."""
+    try:
+        return _club_name_adapter.validate_python(value)
+    except ValidationError:
+        return None
 
 HEX_COLOR_PATTERN = r"^#[0-9a-fA-F]{6}$"
 
@@ -623,34 +641,11 @@ class PostInboxInfo(BaseModel):
 
 
 class PostJoinClub(BaseModel):
-    name: str = Field(
-        pattern=CLUB_PATTERN,
-        min_length=1,
-        max_length=CLUB_MAX_LEN,
-    )
-
-    @model_validator(mode='before')
-    def validate_name(cls, values):
-        name = values.get('name')
-
-        if name is None:
-            return values
-
-        name = ' '.join(name.split())
-        if len(name) < 1:
-            raise ValueError('Name must be one or more characters long')
-
-        values['name'] = name.lower().strip()
-
-        return values
+    name: ClubName
 
 
 class PostLeaveClub(BaseModel):
-    name: str = Field(
-        pattern=CLUB_PATTERN,
-        min_length=1,
-        max_length=CLUB_MAX_LEN,
-    )
+    name: ClubName
 
 
 class PostSkip(BaseModel):

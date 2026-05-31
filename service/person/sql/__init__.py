@@ -1,4 +1,5 @@
 import constants
+from constants import MIN_CLUB_PAGE_MEMBERS, MAX_RELATED_CLUBS
 from commonsql import Q_IS_ALLOWED_CLUB_NAME, Q_COMPUTED_FLAIR
 
 MAX_CLUB_SEARCH_RESULTS = 20
@@ -2255,6 +2256,78 @@ WHERE
     name = %(club_name)s
 AND
     EXISTS (SELECT 1 FROM deleted_person_club)
+"""
+
+# Club SEO page queries. The heavy aggregation lives in the cron package
+# (service/cron/clubseo/sql); these are the single-row reads.
+
+# Gated on the live member threshold (not the cached club_stats row) so a
+# club that's dropped below it 404s immediately rather than waiting for
+# the cron to clean up.
+#
+# Related clubs are ranked live (lift = n*N/(|A|*|B|), which reduces to
+# n/|B| for a fixed A) so the list stays fresh between overlap rebuilds.
+Q_CLUB_PAGE_READ = f"""
+SELECT
+    cs.stats_json,
+    seo.description,
+    COALESCE(cta.answers_json, '[]'::jsonb) AS top_answers,
+    COALESCE(rel.j, '[]'::json) AS related_clubs
+FROM
+    club c
+JOIN
+    club_stats cs ON cs.club_name = c.name
+LEFT JOIN
+    club_seo seo ON seo.club_name = c.name
+LEFT JOIN
+    club_top_answers cta ON cta.club_name = c.name
+LEFT JOIN LATERAL (
+    SELECT json_agg(
+        json_build_object(
+            'name',          club_b,
+            'count_members', count_members_b,
+            'overlap',       overlap
+        )
+        ORDER BY score DESC
+    ) AS j
+    FROM (
+        SELECT
+            co.club_b,
+            co.count_members_b,
+            co.overlap,
+            co.overlap::float8 / co.count_members_b AS score
+        FROM
+            club_overlap co
+        WHERE
+            co.club_a = c.name
+        AND
+            co.count_members_b >= {MIN_CLUB_PAGE_MEMBERS}
+        ORDER BY
+            score DESC
+        LIMIT {MAX_RELATED_CLUBS}
+    ) ranked
+) rel ON TRUE
+WHERE
+    c.name = %(club_name)s
+AND
+    c.count_members >= {MIN_CLUB_PAGE_MEMBERS}
+"""
+
+# Inner-join club_stats so the sitemap only advertises URLs that won't 404.
+# The member-threshold gate mirrors Q_CLUB_PAGE_READ.
+Q_CLUB_SITEMAP = f"""
+SELECT
+    c.name,
+    cs.computed_at AS lastmod
+FROM
+    club c
+JOIN
+    club_stats cs ON cs.club_name = c.name
+WHERE
+    c.count_members >= {MIN_CLUB_PAGE_MEMBERS}
+ORDER BY
+    c.count_members DESC,
+    c.name
 """
 
 Q_UPDATE_CHATS_NOTIFICATIONS = """
