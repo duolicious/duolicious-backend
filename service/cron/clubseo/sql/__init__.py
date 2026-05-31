@@ -8,73 +8,19 @@ from constants import (
     MAX_CLUBS_PER_PERSON_FOR_OVERLAP,
 )
 
-# Queries owned by the club-SEO crons. They live here (not in
-# service/person/sql) so the cron process never imports the API's
-# `service.person` package, which builds a boto3 client and pulls in
-# Flask/PIL/etc. at import time. The API only ever runs the tiny read
-# queries in service/person/sql; all the heavy aggregation is here, run by
-# the background workers. Shared tunables come from the dependency-free
-# `constants` module so both sides agree.
+# These live here (not in service/person/sql) so the cron process can run
+# them without importing service.person, which builds a boto3 client and
+# pulls in Flask/PIL/etc. at import time.
 #
-# Four workers use these:
-#   - the club-stats worker runs Q_CLUB_STATS_BATCH to recompute the
-#     demographic and personality payload for dirty/stale clubs in one
-#     grouped pass and stores it in club_stats. Cheap enough to run often;
-#     does not touch the answer table.
-#   - the club-top-answers worker runs Q_CLUB_TOP_ANSWERS_BATCH to recompute
-#     each club's answer-divergence list. Lives on its own cadence because
-#     it joins sampled members against the 40M-row answer table -- two
-#     orders of magnitude slower than the demographic aggregates, so mixing
-#     them livelocks the cron on initial backfill.
-#   - the club-overlap worker rebuilds club_overlap (co-membership counts)
-#     wholesale, on a slow cadence, for the related-clubs lift ranking.
-#   - the description worker reads the stored stats (no aggregation) and
-#     fills in club_seo.description via the LLM.
+# Personality maths: `person.personality` is a 47-dim pgvector (46 traits
+# + 1 padding dim), unit-normalised and then scaled by an answer-count
+# weight. A per-trait mean rescaled by SQRT(47) and clamped to +/-100 maps
+# an evenly-spread unit component to roughly +/-100.
 #
-# Note on the personality maths below: `person.personality` is a 47-dim
-# vector (46 traits + 1 constant padding dim), unit-normalised then scaled
-# by an answer-count weight. A per-trait mean rescaled by SQRT(47) and
-# clamped to +/-100 maps an evenly-spread unit component to ~+/-100, giving
-# a rough lean for display. Lookup tables store id = 1 as "Unanswered" for
-# every attribute except `gender` (where id = 1 is a real value, "Man"), so
-# the demographic CTEs exclude id = 1 everywhere except gender.
+# Lookup tables store id = 1 as "Unanswered" for every attribute except
+# `gender` (where id = 1 is the real value "Man"), so the demographic CTEs
+# exclude id = 1 everywhere except gender.
 
-# ---------------------------------------------------------------------------
-# Batch stats computation: demographics + personality only
-# ---------------------------------------------------------------------------
-#
-# Computes the demographic/personality page payload for a *set* of clubs in
-# one grouped pass rather than one query per club. The `target` CTE selects
-# up to %(batch_size)s eligible clubs that are dirty (present in
-# club_stats_dirty because their membership changed) or stale (older than
-# %(max_age_days)s days), missing ones first. Every member-level CTE is
-# grouped by club_name, so a full backfill becomes a handful of
-# hash-aggregated scans instead of tens of thousands of nested lookups.
-#
-# This query intentionally does NOT touch the `answer` table: that join is
-# two orders of magnitude more expensive than the demographic aggregates
-# and is handled by the separate club-top-answers worker. Keeping them apart
-# lets this batch run with a large batch_size and tight cadence (a hundreds-
-# of-clubs batch is seconds, not minutes), while the slow answer-divergence
-# refresh runs on its own schedule.
-#
-# `sampled` caps each club at MAX_CLUB_SAMPLE_MEMBERS members, chosen by a
-# deterministic md5 ordering of person_id. Deterministic so the payload (and
-# thus its hash) is stable when membership is stable; md5 so the sample is
-# unbiased rather than skewed toward early joiners. Proportions from the
-# sample match the full club closely, and cell suppression on a sample is
-# conservative (sample count <= true count), so the privacy floor still
-# holds. The displayed member_count is always the club's true count_members.
-#
-# The statement also upserts the results into club_stats and DELETEs the
-# processed clubs from club_stats_dirty, all in one atomic statement (data-
-# modifying CTEs share one snapshot). A join landing between this statement
-# and the next batch re-queues the club; one landing *within* the statement
-# races the queue clear and may be missed until the max-age refresh -- an
-# accepted staleness bound. Using a separate queue table (not a column on
-# `club`) means the cron's clear and the API's count_members UPDATE never
-# touch the same row, which would otherwise serialization-fail on the API
-# under REPEATABLE READ.
 Q_CLUB_STATS_BATCH = f"""
 WITH target AS MATERIALIZED (
     SELECT
@@ -100,6 +46,9 @@ WITH target AS MATERIALIZED (
         cs.computed_at NULLS FIRST
     LIMIT %(batch_size)s
 ), sampled AS MATERIALIZED (
+    -- Deterministic md5-ordered sample so the payload (and its hash) are
+    -- stable when membership is stable; md5 keeps the sample unbiased
+    -- rather than skewed toward early joiners.
     SELECT club_name, person_id
     FROM (
         SELECT
@@ -138,11 +87,9 @@ WITH target AS MATERIALIZED (
         sampled s
     JOIN
         person p ON p.id = s.person_id
--- Each per-dimension aggregate is MATERIALIZED so it computes once over
--- `members` and is then probed by hash-join in `payload`. Without
--- MATERIALIZED the planner inlines these into the payload's correlated
--- subqueries and re-evaluates them per target club, scanning all of
--- `members` ~13 times per club (~10x slowdown on a batch of 200).
+-- Each per-dimension aggregate is MATERIALIZED so the planner doesn't
+-- inline it into the payload's correlated subqueries and re-scan `members`
+-- per target club (~10x slowdown on a batch of 200).
 ), gender_j AS MATERIALIZED (
     SELECT club_name, COALESCE(json_agg(json_build_object('label', name, 'count', cnt) ORDER BY cnt DESC), '[]'::json) AS j
     FROM (SELECT m.club_name, g.name, COUNT(*)::int AS cnt FROM members m JOIN gender g ON g.id = m.gender_id GROUP BY m.club_name, g.name HAVING COUNT(*) >= {MIN_CLUB_CELL_SIZE}) x
@@ -240,8 +187,6 @@ WITH target AS MATERIALIZED (
     WHERE t.id <= 46 AND pv.arr IS NOT NULL
     GROUP BY pv.club_name
 ), payload AS (
-    -- LEFT JOIN every per-dimension CTE onto `target` so each is read once
-    -- and probed by hash, rather than re-evaluated per target row.
     SELECT
         t.name,
         json_build_object(
@@ -265,9 +210,6 @@ WITH target AS MATERIALIZED (
                 'wants_kids', COALESCE(wkj.j, '[]'::json)
             ),
             'personality',   COALESCE(pj.j,  '[]'::json)
-            -- top_answers lives in club_top_answers, refreshed by its own
-            -- (slower) worker. related_clubs lives in club_overlap, refreshed
-            -- by its own (slower) worker. The read query merges all three.
         ) AS j
     FROM target t
     LEFT JOIN gender_j              gj  ON gj.club_name  = t.name
@@ -301,25 +243,8 @@ SELECT
     (SELECT COUNT(*) FROM cleaned)  AS cleaned_count
 """
 
-# ---------------------------------------------------------------------------
-# Top-answer divergence refresh (heavy answer-join; slow cadence)
-# ---------------------------------------------------------------------------
-#
-# Computes the per-(club, question) agree-rates for a small batch of clubs,
-# ranks each club's questions by divergence from the platform average, and
-# stores the top MAX_CLUB_TOP_ANSWERS as JSON in club_top_answers.
-#
-# The cost is dominated by the nested loop from sampled members into the
-# 40M-row answer table: each sampled person yields hundreds of answer rows
-# via the (person_id, ...) btree. For the biggest club a single iteration
-# is tens of seconds, so batch_size is small (single digits) and the
-# worker has its own poll interval. No dirty queue: refreshes by oldest
-# computed_at, rotating through every eligible club.
-#
-# Clubs without a club_top_answers row yet sort first via NULLS FIRST. A
-# club with no qualifying answers (every question below the support floor
-# or divergence threshold) still gets a row -- with `answers_json = []` --
-# so its computed_at advances and it cycles to the back of the queue.
+# A club with no qualifying answers still gets a row (with answers_json =
+# []) so its computed_at advances and it rotates to the back of the queue.
 Q_CLUB_TOP_ANSWERS_BATCH = f"""
 WITH target AS MATERIALIZED (
     SELECT
@@ -355,8 +280,8 @@ WITH target AS MATERIALIZED (
     WHERE rn <= {MAX_CLUB_SAMPLE_MEMBERS}
 ), club_answer AS (
     -- Drive from the sampled members into answer via its PK
-    -- (person_id, question_id); never from question/answer first, which
-    -- would touch the whole answer table.
+    -- (person_id, question_id); starting from question/answer would touch
+    -- the whole 40M-row answer table.
     SELECT
         s.club_name,
         a.question_id,
@@ -419,30 +344,15 @@ WITH target AS MATERIALIZED (
 SELECT COUNT(*) AS upserted_count FROM upserted
 """
 
-# ---------------------------------------------------------------------------
-# Description refresh (reads precomputed stats; no aggregation)
-# ---------------------------------------------------------------------------
-
-# Pick the eligible club whose description most needs attention: never
-# attempted (no club_seo row) first, then by oldest generated_at. Only
-# clubs that already have a club_stats row are considered, so the worker
-# always has stats to describe. The worker hashes the facts it would feed
-# the model and either touches generated_at (hash match -> no LLM), upserts
-# a new description, or -- on failure -- marks the attempt so the club
-# rotates to the back of the queue instead of blocking it.
-#
-# `top_answers_json` is joined in here (not via the stats payload) because
-# the answer-divergence refresh lives on its own cadence; the LLM should
-# see the freshest divergence facts available when it generates copy.
+# top_answers_json is joined in here (rather than included in the stats
+# payload) so the LLM sees the freshest divergence facts even though the
+# answer-divergence refresh runs on its own slower cadence.
 Q_CLUB_SEO_NEXT_REFRESH = f"""
 SELECT
     c.name,
     cs.stats_json,
     COALESCE(cta.answers_json, '[]'::jsonb) AS top_answers_json,
     seo.stats_hash AS old_stats_hash,
-    -- Age is computed against the DB's NOW() so it's measured in the same
-    -- clock the generated_at column was written from. NULL when no
-    -- club_seo row exists yet, which the worker treats as infinitely stale.
     EXTRACT(EPOCH FROM (NOW() - seo.generated_at)) / 86400.0 AS age_days
 FROM
     club c
@@ -478,10 +388,9 @@ ON CONFLICT (club_name) DO UPDATE SET
     generated_at = NOW()
 """
 
-# Record a failed generation attempt without disturbing any existing
-# description/hash: it only advances generated_at so the club moves to the
-# back of the refresh queue (retried after a full cycle) rather than being
-# re-selected every tick and starving every other club.
+# Advance generated_at without touching description/stats_hash, so a
+# failed attempt rotates the club to the back of the queue instead of
+# being re-selected every tick.
 Q_CLUB_SEO_MARK_ATTEMPTED = """
 INSERT INTO club_seo (club_name, description, stats_hash, generated_at)
 VALUES (%(club_name)s, NULL, NULL, NOW())
@@ -489,33 +398,15 @@ ON CONFLICT (club_name) DO UPDATE SET
     generated_at = NOW()
 """
 
-# ---------------------------------------------------------------------------
-# Global club-overlap precompute (related clubs)
-# ---------------------------------------------------------------------------
-#
-# Co-membership counts for every pair of eligible clubs, in one grouped pass.
-# Computing it globally (rather than per club, per stats batch) means each
-# unordered pair is counted once instead of twice, and overlaps use full
-# membership rather than the stats batch's per-club sample -- which matters
-# because the lift ranking needs accurate counts. The page read query turns
-# these counts into a lift ranking at request time.
-#
-# `eligible_members` is materialised once and self-joined. Members of more
-# than MAX_CLUBS_PER_PERSON_FOR_OVERLAP clubs are dropped: a person in k
-# clubs contributes k*(k-1) pairs, so without the cap a handful of
-# hyper-joiners dominate the cost while adding only noise. Pairs sharing
-# fewer than MIN_CLUB_CELL_SIZE members are discarded (privacy floor + noise
-# floor). Both directions (a->b and b->a) are written so the read side is a
-# single PK range scan.
-#
-# Rebuilt wholesale: the worker runs DELETE then INSERT inside one
-# transaction, so readers keep seeing the previous snapshot (MVCC) until it
-# commits -- no blocking and no empty window. The dead rows are reclaimed by
-# autovacuum; the cadence is slow (hours), so churn is modest.
 Q_CLUB_OVERLAP_DELETE = """
 DELETE FROM club_overlap
 """
 
+# Members of more than MAX_CLUBS_PER_PERSON_FOR_OVERLAP clubs are dropped:
+# a person in k clubs contributes k*(k-1) pairs, so without the cap a
+# handful of hyper-joiners dominate cost while adding only noise.
+# Both directions (a->b and b->a) are written so the read side is a
+# single PK range scan.
 Q_CLUB_OVERLAP_REBUILD = f"""
 WITH eligible_members AS MATERIALIZED (
     SELECT
@@ -542,8 +433,8 @@ SELECT
     a.club_name,
     b.club_name,
     COUNT(*)::int,
-    -- All rows in a given (a, b) group share the same b.count_members.
-    -- MAX is just a cheap "any-value" aggregate; MIN/AVG would also work.
+    -- All rows in a given (a, b) group share the same b.count_members;
+    -- MAX is just a cheap "any-value" aggregate.
     MAX(b.count_members)
 FROM
     eligible_members a

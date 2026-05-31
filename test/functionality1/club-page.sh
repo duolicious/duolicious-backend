@@ -7,14 +7,10 @@ source ../util/setup.sh
 
 set -xe
 
-# The club-stats and description crons run on a 1s poll in the test compose
-# (DUO_CRON_CLUB_STATS_POLL_SECONDS / DUO_CRON_CLUB_SEO_POLL_SECONDS), and the
-# description cron uses DUO_CRON_CLUB_SEO_MOCK_DESCRIPTION instead of OpenAI.
 MOCK_DESCRIPTION='A friendly test description for this club.'
 
-# Poll a SQL predicate that should return '1', up to ~30s. Used to wait for
-# the crons to populate club_stats / club_seo before hitting the API, so we
-# never cache a premature 404 (get_club memoises its result per 5-min TTL).
+# Wait for the crons to populate club_stats / club_seo before hitting the
+# API, since get_club's lru_cache would lock in a premature 404 for 5 min.
 wait_for () {
   local sql=$1
   for _ in $(seq 1 60); do
@@ -39,9 +35,8 @@ club_page_is_precomputed_and_served () {
 
   reset_db
 
-  # 51 members (>= MIN_CLUB_PAGE_MEMBERS = 50). create-user.sh onboards every
-  # user with gender "Other" and age 26, so the demographic cells are
-  # deterministic and clear the MIN_CLUB_CELL_SIZE = 5 floor.
+  # create-user.sh onboards every user with gender "Other" and age 26, so
+  # demographic cells are deterministic and clear MIN_CLUB_CELL_SIZE = 5.
   for i in $(seq 1 51); do
     ../util/create-user.sh "clubber$i" 0 0
   done
@@ -50,16 +45,9 @@ club_page_is_precomputed_and_served () {
     jc POST /join-club -d '{ "name": "anime" }'
   done
 
-  # The stats cron precomputes club_stats; the description cron then fills in
-  # club_seo.description (mocked).
-  #
-  # We wait on the exact stored member_count (not just the row's existence)
-  # because the cron can race the join loop: the first tick that fires after
-  # the 50th join writes a club_stats row with member_count = 50, the 51st
-  # join then re-marks the club dirty, but get_club's lru_cache would lock
-  # that stale row in for its 5-minute TTL if the API saw it before the next
-  # recompute. Waiting for member_count = 51 here guarantees the API's first
-  # read (and thus the cached result) reflects every join.
+  # Wait on the exact stored member_count, not just row existence: the cron
+  # races the join loop and a tick firing mid-loop writes a stats row with
+  # a stale count that lru_cache would lock in for 5 minutes.
   wait_for "select 1 from club_stats where club_name = 'anime' and (stats_json->>'member_count')::int = 51"
   wait_for "select (description is not null)::int from club_seo where club_name = 'anime'"
 
@@ -69,15 +57,13 @@ club_page_is_precomputed_and_served () {
   [[ "$(jq -r .member_count <<< "$result")" == "51" ]]
   [[ "$(jq -r .description  <<< "$result")" == "$MOCK_DESCRIPTION" ]]
 
-  # Demographics are computed from members: all 51 are gender "Other".
   [[ "$(jq -r '.demographics.gender[0].label' <<< "$result")" == "Other" ]]
   [[ "$(jq -r '.demographics.gender[0].count' <<< "$result")" == "51" ]]
 
-  # All members are 26 -> the 25-34 age bucket.
   [[ "$(jq -r '.demographics.age_buckets[0].label' <<< "$result")" == "25-34" ]]
   [[ "$(jq -r '.demographics.age_buckets[0].count' <<< "$result")" == "51" ]]
 
-  # Empty categories are present as empty arrays, never null.
+  # Empty categories are empty arrays, not null.
   [[ "$(jq -r '.demographics.religion | type' <<< "$result")" == "array" ]]
   [[ "$(jq -r '.personality   | type'        <<< "$result")" == "array" ]]
   [[ "$(jq -r '.related_clubs | type'        <<< "$result")" == "array" ]]
@@ -96,8 +82,7 @@ small_club_is_not_a_page () {
     jc POST /join-club -d '{ "name": "tinyclub" }'
   done
 
-  # Give the crons a moment; they must NOT produce a page for an ineligible
-  # club. (count_members = 3 < MIN_CLUB_PAGE_MEMBERS = 50.)
+  # Give the crons a chance to (correctly) skip this ineligible club.
   sleep 3
 
   [[ "$(q "select count(*) from club_stats where club_name = 'tinyclub'")" == "0" ]]
@@ -114,7 +99,7 @@ sitemap_reflects_eligibility () {
   echo 'The sitemap lists eligible clubs and the static pages, but not small ones'
 
   # get_sitemap_xml is memoised for an hour, so this test makes the only
-  # /sitemap.xml call in the file and checks every condition against it.
+  # /sitemap.xml call in the file.
   reset_db
 
   for i in $(seq 1 51); do
@@ -129,10 +114,8 @@ sitemap_reflects_eligibility () {
   assume_role sitemap-tiny
   jc POST /join-club -d '{ "name": "sitemap-tinyclub" }'
 
-  # See the comment in club_page_is_precomputed_and_served on why we wait
-  # for the exact stored member_count rather than the row's existence.
   wait_for "select 1 from club_stats where club_name = 'gaming' and (stats_json->>'member_count')::int = 51"
-  sleep 2  # ensure the ineligible club has had a chance (and been skipped)
+  sleep 2  # let the cron see (and skip) the ineligible club
 
   sitemap=$(c GET /sitemap.xml)
   grep -q '<loc>https://duolicious.app/</loc>' <<< "$sitemap"
@@ -143,17 +126,16 @@ sitemap_reflects_eligibility () {
 related_clubs_are_ranked_by_overlap () {
   echo 'A club lists overlapping clubs as related (via the club_overlap cron)'
 
-  # Fresh club names: get_club memoises per name for its TTL, so reusing a
-  # name GET in an earlier test would return a stale (empty-related) result.
+  # Fresh club names: get_club memoises per name, so reusing one from an
+  # earlier test would return its cached (empty-related) result.
   reset_db
 
   for i in $(seq 1 52); do
     ../util/create-user.sh "knitter$i" 0 0
   done
 
-  # All 52 join "knitting"; the first 51 also join "crochet". Both clear the
-  # MIN_CLUB_PAGE_MEMBERS = 50 eligibility bar (so crochet shows up in the
-  # related list, which is gated on it) and share 51 members.
+  # 52 in "knitting", 51 of those also in "crochet"; both clear
+  # MIN_CLUB_PAGE_MEMBERS = 50.
   for i in $(seq 1 52); do
     assume_role "knitter$i"
     jc POST /join-club -d '{ "name": "knitting" }'
@@ -163,9 +145,8 @@ related_clubs_are_ranked_by_overlap () {
     jc POST /join-club -d '{ "name": "crochet" }'
   done
 
-  # Wait for stats to reflect all 52 joins (see comment in
-  # club_page_is_precomputed_and_served), and for the overlap rebuild to
-  # have seen all 51 shared members before we issue the cached GET.
+  # Wait for both the stats cron (all 52 joins) and the overlap rebuild
+  # (all 51 shared members) before issuing the GET that will be cached.
   wait_for "select 1 from club_stats where club_name = 'knitting' and (stats_json->>'member_count')::int = 52"
   wait_for "select 1 from club_overlap where club_a = 'knitting' and club_b = 'crochet' and overlap = 51"
 

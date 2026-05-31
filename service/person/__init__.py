@@ -2102,10 +2102,6 @@ def get_club(name: str, ttl_hash=None):
     if club_name is None:
         return None
 
-    # Single-row read of the precomputed payload. All aggregation happens in
-    # the club-stats cron; the API never touches person_club/answer here.
-    # A club with no club_stats row yet (newly eligible, not computed) 404s
-    # until the cron catches up.
     with api_tx('READ COMMITTED') as tx:
         row = tx.execute(Q_CLUB_PAGE_READ, dict(club_name=club_name)).fetchone()
 
@@ -2122,16 +2118,11 @@ def get_club(name: str, ttl_hash=None):
 @lru_cache(maxsize=1)
 def get_sitemap_xml(ttl_hash=None):
     with api_tx('READ COMMITTED') as tx:
-        # Scan of the full club table (50k+) on cache miss. Well under the
-        # connection-level 5s default in practice, but the 1h TTL means a
-        # single bad scan would brick the sitemap for the whole worker;
-        # give it real headroom.
-        tx.execute('SET LOCAL statement_timeout = 30000')  # 30 seconds
+        # The 1h TTL means a single statement-timeout bricks the sitemap
+        # for the worker for the rest of the hour; give it real headroom.
+        tx.execute('SET LOCAL statement_timeout = 30000')
         rows = tx.execute(Q_CLUB_SITEMAP).fetchall()
 
-    # Static pages first, then one URL per eligible club. Cloudflare
-    # Pages serves the static pages; this same sitemap covers both
-    # because search engines don't care which origin hosts them.
     lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',

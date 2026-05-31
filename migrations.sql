@@ -35,36 +35,25 @@ CREATE TABLE IF NOT EXISTS social_identity (
 CREATE INDEX IF NOT EXISTS social_identity__person_id__idx
     ON social_identity (person_id);
 
--- Precomputed aggregate stats backing the /club/{name} page. Written by
--- the club-stats cron in grouped batches; the API serves `stats_json`
--- verbatim with a single-row read, so no aggregate is computed in the
--- request path. Excludes the LLM description, which lives in club_seo.
 CREATE TABLE IF NOT EXISTS club_stats (
     club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
     stats_json JSONB NOT NULL,
     computed_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Directed club co-membership counts, rebuilt wholesale by the club-overlap
--- cron; both directions stored so a club's related list is one `WHERE
--- club_a = X` PK range scan. The page read query ranks by `overlap /
--- count_members_b` (lift, modulo factors constant across a fixed A).
+-- Directed co-membership counts; both directions stored so a club's
+-- related list is a single PK range scan.
 --
--- `count_members_b` is denormalised here so the read query doesn't need to
--- join `club` per related row -- a join the planner mis-routes through the
--- trigram GiST on club(name), costing ~50 ms per lookup × hundreds of rows.
--- The rebuild owns the snapshot of count_members_b; staleness between
--- rebuilds is bounded by the overlap cron cadence (hours), matching the
--- staleness already accepted for `overlap` itself.
+-- `count_members_b` is denormalised so the page read doesn't need to join
+-- `club` per related row -- the planner mis-routes equality lookups on
+-- club(name) through the trigram GiST (~50 ms cold per lookup).
 --
--- club_a/club_b deliberately have NO foreign key to club. The FK's per-row
--- RI check on insert routes through the same trigram GiST that breaks the
--- page read; at cap=100 the rebuild emits >100k pairs, and 200k+ FK lookups
--- push the rebuild past its statement timeout. The table is fully derived
--- and rewritten every overlap-cron tick (DELETE + INSERT in one tx) from
--- person_club, which is itself FK'd to club -- so a deleted/renamed club
--- can leave stale rows for at most one cron interval before the next
--- rebuild prunes them.
+-- club_a/club_b deliberately have NO foreign key to club. The per-row RI
+-- check routes through that same trigram GiST and at production cap
+-- settings the rebuild emits >100k pairs, pushing it past its statement
+-- timeout. The table is fully rewritten every overlap-cron tick from
+-- person_club (which is FK'd to club), so a deleted or renamed club
+-- leaves stale rows for at most one cron interval.
 CREATE TABLE IF NOT EXISTS club_overlap (
     club_a TEXT NOT NULL,
     club_b TEXT NOT NULL,
@@ -72,35 +61,26 @@ CREATE TABLE IF NOT EXISTS club_overlap (
     count_members_b INT NOT NULL,
     PRIMARY KEY (club_a, club_b)
 );
--- Defensive upgrade path for environments where club_overlap pre-dates the
+-- Upgrade path for environments where club_overlap pre-dates the
 -- denormalisation. Default 0 keeps the NOT NULL constraint satisfiable;
--- the next overlap-rebuild tick replaces every row with the correct value.
--- Related-club lists may be empty for the first ~6 hours after upgrade.
+-- the next overlap-rebuild replaces every row.
 ALTER TABLE club_overlap
     ADD COLUMN IF NOT EXISTS count_members_b INT NOT NULL DEFAULT 0;
--- Drop the FKs if upgrading from an earlier schema; they make the rebuild
--- unaffordable at production cap settings. Names follow Postgres's autogen
--- pattern (table_column_fkey).
+-- Drop the FKs if upgrading from an earlier schema -- see club_overlap
+-- comment above for why they can't stay.
 ALTER TABLE club_overlap DROP CONSTRAINT IF EXISTS club_overlap_club_a_fkey;
 ALTER TABLE club_overlap DROP CONSTRAINT IF EXISTS club_overlap_club_b_fkey;
 
--- Quiz-answer divergences for /club/{name}: questions where this club's
--- agree-rate differs most from the platform average. Maintained by the
--- club-top-answers cron on its own (slow) cadence. Kept out of club_stats
--- because the answer-join is two orders of magnitude more expensive than
--- the demographic aggregation -- mixing them forced the whole stats batch
--- onto the slow cadence and made the cron livelock on initial backfill.
 CREATE TABLE IF NOT EXISTS club_top_answers (
     club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
     answers_json JSONB NOT NULL DEFAULT '[]'::jsonb,
     computed_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- LLM-generated description for /club/{name}. `description`/`stats_hash`
--- are NULL between eligibility and the first successful generation, or
--- after a failed attempt: the row still exists so generated_at advances
--- and the club rotates to the back of the refresh queue instead of
--- blocking it. `stats_hash` digests the exact facts fed to the model.
+-- `description`/`stats_hash` are NULL between eligibility and the first
+-- successful generation, and after a failed attempt: the row still exists
+-- so generated_at advances and the club rotates to the back of the
+-- refresh queue instead of blocking it.
 CREATE TABLE IF NOT EXISTS club_seo (
     club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
     description TEXT,
@@ -108,13 +88,11 @@ CREATE TABLE IF NOT EXISTS club_seo (
     generated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Queue of clubs whose membership has changed since `club_stats` was last
--- computed. Kept in a separate table (rather than a flag on `club`) so the
--- cron's clear doesn't UPDATE the same row that /join-club and /leave-club
--- update for `count_members`: that race raises SerializationFailure on the
--- API side under REPEATABLE READ. Maintained by trigger_mark_club_stats_dirty;
--- seeded with every existing club so the cron computes them all on its
--- first pass.
+-- Queue of clubs needing a club_stats refresh. Maintained by
+-- trigger_mark_club_stats_dirty. Kept in a separate table (rather than
+-- a flag on `club`) so the cron's clear doesn't UPDATE the same row that
+-- /join-club and /leave-club update for `count_members` -- that race
+-- raises SerializationFailure on the API under REPEATABLE READ.
 CREATE TABLE IF NOT EXISTS club_stats_dirty (
     club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE
 );
@@ -148,13 +126,8 @@ AFTER INSERT OR DELETE OR UPDATE OF activated ON
 FOR EACH ROW EXECUTE FUNCTION
     mark_club_stats_dirty();
 
--- Covers the club-top-answers cron's per-(person, question) read so it
--- can index-only-scan answer (~600 entries per sampled member) instead
--- of doing a heap fetch per row. Without it, the per-club aggregation is
--- ~80 s on the biggest club at the production sample cap; with it, ~3 s.
--- The answer table is large (40M+ rows) so the index is too (~900 MB) --
--- a future refactor could fold `answer` into the PK via INCLUDE instead
--- (saves ~870 MB on disk), but that needs a CONCURRENT index swap to
--- avoid an AccessExclusiveLock during deploy.
+-- Lets the club-top-answers cron index-only-scan (person, question, answer)
+-- instead of doing a heap fetch per row -- the PK is (person_id,
+-- question_id) without `answer`. ~80 s -> ~3 s per popular club.
 CREATE INDEX IF NOT EXISTS idx__answer__person_id_question_id_inc_answer
     ON answer(person_id, question_id) INCLUDE (answer);

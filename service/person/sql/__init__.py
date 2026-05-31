@@ -2258,25 +2258,15 @@ AND
     EXISTS (SELECT 1 FROM deleted_person_club)
 """
 
-# Club SEO page queries. The heavy aggregation that builds a club's stats
-# lives in the cron package (service/cron/clubseo/sql) and writes club_stats;
-# the API only ever runs the single-row reads below, so the request path
-# never touches person_club/answer. Shared tunables come from `constants`.
+# Club SEO page queries. The heavy aggregation lives in the cron package
+# (service/cron/clubseo/sql); these are the single-row reads.
 
-# Read the precomputed page payload, its (separately-refreshed) LLM
-# description, the top-answer divergences, and the related-clubs list.
-# Gated on the live member threshold so a club that has dropped below it
-# 404s even while a stale club_stats row lingers. Returns no rows until the
-# cron has computed the club's stats.
+# Gated on the live member threshold (not the cached club_stats row) so a
+# club that's dropped below it 404s immediately rather than waiting for
+# the cron to clean up.
 #
-# Related clubs are derived here, not stored in stats_json, because
-# club_overlap is rebuilt on its own (slow) cadence: ranking live keeps the
-# list fresh between rebuilds without forcing a stats recompute. The ranking
-# is lift -- n*N/(|A|*|B|) -- which for a fixed club A reduces to n/|B| (N
-# and |A| are constant across A's candidates). `count_members_b` is
-# denormalised into club_overlap so the read doesn't need to join `club`
-# per related row -- equality lookups on club(name) are mis-routed by the
-# planner through the trigram GiST and cost ~50 ms cold per row.
+# Related clubs are ranked live (lift = n*N/(|A|*|B|), which reduces to
+# n/|B| for a fixed A) so the list stays fresh between overlap rebuilds.
 Q_CLUB_PAGE_READ = f"""
 SELECT
     cs.stats_json,
@@ -2323,10 +2313,8 @@ AND
     c.count_members >= {MIN_CLUB_PAGE_MEMBERS}
 """
 
-# Eligible clubs for the sitemap: only those that actually have a computed
-# page (club_stats row), so we never advertise a URL that would 404. The
-# member-threshold gate mirrors Q_CLUB_PAGE_READ to stay in sync. `lastmod`
-# is when the stats were last recomputed.
+# Inner-join club_stats so the sitemap only advertises URLs that won't 404.
+# The member-threshold gate mirrors Q_CLUB_PAGE_READ.
 Q_CLUB_SITEMAP = f"""
 SELECT
     c.name,

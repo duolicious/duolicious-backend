@@ -53,28 +53,21 @@ def _normalize_email_input(value: str) -> str:
 
 
 def _normalize_club_name(value):
-    # Clubs are case- and whitespace-insensitive: collapse internal
-    # whitespace runs to single spaces and lowercase. Non-str values
-    # (None, wrong types) pass through untouched so the type layer reports
-    # them rather than this raising AttributeError.
+    # Non-str values pass through so pydantic's type layer reports them
+    # instead of this raising AttributeError.
     if not isinstance(value, str):
         return value
     return ' '.join(value.split()).lower()
 
 
-# The canonical club-name type. Normalize first, then enforce the shared
-# pattern and length. Use this everywhere a club name is accepted as input
-# so the rules live in exactly one place.
 ClubName = Annotated[
     str,
     BeforeValidator(_normalize_club_name),
     StringConstraints(pattern=CLUB_PATTERN, min_length=1, max_length=CLUB_MAX_LEN),
 ]
 
-# `pending_club_name` is sent by the client when signing in *into* a
-# pending club invite (/request-otp, /sign-in-with-google,
-# /sign-in-with-apple). Optional, but normalized the same way; each
-# request model applies the pattern/length constraints via its Field.
+# Optional variant for /request-otp, /sign-in-with-google,
+# /sign-in-with-apple, where the client passes a pending-club-invite name.
 PendingClubName = Annotated[
     Optional[str],
     BeforeValidator(_normalize_club_name),
@@ -84,10 +77,8 @@ _club_name_adapter = TypeAdapter(ClubName)
 
 
 def parse_club_name(value) -> Optional[str]:
-    """Validate and normalize a club name with the same rules as the
-    request models (see `ClubName`). Returns the canonical name, or None
-    if `value` isn't a valid club name. For call sites that want to skip
-    or 404 on bad input rather than raise."""
+    """Returns the canonical club name, or None if invalid. For call
+    sites that want to 404 or skip on bad input rather than raise."""
     try:
         return _club_name_adapter.validate_python(value)
     except ValidationError:

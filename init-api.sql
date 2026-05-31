@@ -541,52 +541,34 @@ CREATE TABLE IF NOT EXISTS person_club (
     PRIMARY KEY (person_id, club_name)
 );
 
--- Queue of clubs whose membership has changed since `club_stats` was last
--- computed. The club-stats cron picks from here first, then DELETEs the
--- processed rows. Kept as a separate table (rather than a flag on `club`)
--- so the cron's clear doesn't UPDATE the same row that /join-club and
--- /leave-club update for `count_members`: under REPEATABLE READ that race
--- raises SerializationFailure on the API side. Maintained by
--- trigger_mark_club_stats_dirty. Seeded with every existing club name so
--- the cron computes every club once on its first pass.
+-- Queue of clubs needing a club_stats refresh. Maintained by
+-- trigger_mark_club_stats_dirty. Kept in a separate table (rather than
+-- a flag on `club`) so the cron's clear doesn't UPDATE the same row that
+-- /join-club and /leave-club update for `count_members` -- that race
+-- raises SerializationFailure on the API under REPEATABLE READ.
 CREATE TABLE IF NOT EXISTS club_stats_dirty (
     club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
--- Precomputed aggregate stats backing the /club/{name} page. One row per
--- club, written by the club-stats cron in grouped batches; the API serves
--- `stats_json` verbatim with a single-row read. `stats_json` excludes the
--- LLM description, which lives in club_seo and is regenerated on a slower
--- cadence.
 CREATE TABLE IF NOT EXISTS club_stats (
     club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
     stats_json JSONB NOT NULL,
     computed_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Directed club co-membership counts, rebuilt wholesale by the club-overlap
--- cron. `overlap` is the number of (capped, activated) members shared by
--- club_a and club_b. Both directions are stored, so a club's related list is
--- a single `WHERE club_a = X` range scan on the PK. The page read query
--- ranks by `overlap / count_members_b` (lift, modulo factors constant across
--- a fixed A).
+-- Directed co-membership counts; both directions stored so a club's
+-- related list is a single PK range scan.
 --
--- `count_members_b` is denormalised so the read query doesn't need to join
--- `club` per related row. The planner mis-routes equality lookups on
--- club(name) through the trigram GiST (~50 ms cold per lookup), and a
--- popular club has hundreds of related rows -- denormalising drops the read
--- from ~860 ms to <10 ms. The rebuild owns the snapshot; staleness between
--- rebuilds is bounded by the overlap cron cadence (hours), matching the
--- staleness already accepted for `overlap` itself.
+-- `count_members_b` is denormalised so the page read doesn't need to join
+-- `club` per related row -- the planner mis-routes equality lookups on
+-- club(name) through the trigram GiST (~50 ms cold per lookup).
 --
--- club_a/club_b deliberately have NO foreign key to club. The FK's per-row
--- RI check on insert routes through the trigram GiST on club(name) and at
--- production cap settings (overlap rebuild emits >100k pairs) the cumulative
--- FK lookups push the rebuild past its statement timeout. The table is
--- fully derived and rewritten every overlap-cron tick (DELETE + INSERT in
--- one tx) from person_club, which is itself FK'd to club -- so a deleted
--- or renamed club leaves stale rows for at most one cron interval before
--- the next rebuild prunes them.
+-- club_a/club_b deliberately have NO foreign key to club. The per-row RI
+-- check routes through that same trigram GiST and at production cap
+-- settings the rebuild emits >100k pairs, pushing it past its statement
+-- timeout. The table is fully rewritten every overlap-cron tick from
+-- person_club (which is FK'd to club), so a deleted or renamed club
+-- leaves stale rows for at most one cron interval.
 CREATE TABLE IF NOT EXISTS club_overlap (
     club_a TEXT NOT NULL,
     club_b TEXT NOT NULL,
@@ -595,25 +577,16 @@ CREATE TABLE IF NOT EXISTS club_overlap (
     PRIMARY KEY (club_a, club_b)
 );
 
--- Quiz-answer divergences for /club/{name}: questions where this club's
--- agree-rate differs most from the platform average. Maintained by the
--- club-top-answers cron on its own (slow) cadence. Kept out of club_stats
--- because the answer-join (sampled members × ~200 answers each, against
--- the 40M-row answer table) is two orders of magnitude more expensive than
--- the demographic aggregation. Mixing them forced the whole stats batch
--- onto the slow cadence and made the cron livelock on initial backfill.
 CREATE TABLE IF NOT EXISTS club_top_answers (
     club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
     answers_json JSONB NOT NULL DEFAULT '[]'::jsonb,
     computed_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- LLM-generated description for the /club/{name} page. `description` and
--- `stats_hash` are NULL between a club becoming eligible and its first
--- successful generation (or after a failed attempt): the row still exists
--- so generated_at advances and the club rotates to the back of the refresh
--- queue rather than blocking it. `stats_hash` is a digest of the exact
--- facts fed to the model, so the worker skips the LLM when nothing changed.
+-- `description`/`stats_hash` are NULL between eligibility and the first
+-- successful generation, and after a failed attempt: the row still exists
+-- so generated_at advances and the club rotates to the back of the
+-- refresh queue instead of blocking it.
 CREATE TABLE IF NOT EXISTS club_seo (
     club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
     description TEXT,
@@ -885,16 +858,9 @@ CREATE INDEX IF NOT EXISTS idx__search_cache__searcher_person_id__position ON se
 
 CREATE INDEX IF NOT EXISTS idx__answer__question_id ON answer(question_id);
 CREATE INDEX IF NOT EXISTS idx__answer__person_id_public_answer ON answer(person_id, public_, answer);
--- Covers the club-top-answers cron's per-(person, question) read. The PK
--- has (person_id, question_id) but not `answer`, so an index-only scan
--- isn't possible from the PK; the existing public_/answer index doesn't
--- carry question_id. Without this index the cron's nested loop into
--- answer does ~600 heap fetches per sampled member -- ~80 s per popular
--- club at the production sample cap. With it, the same query is ~3 s.
--- A future refactor could fold `answer` into the PK via INCLUDE instead
--- of carrying a second copy here (saves ~870 MB), but that needs a
--- CONCURRENT index swap to avoid an AccessExclusiveLock on a 40M-row
--- table.
+-- Lets the club-top-answers cron index-only-scan (person, question, answer)
+-- instead of doing a heap fetch per row -- the PK is (person_id,
+-- question_id) without `answer`. ~80 s -> ~3 s per popular club.
 CREATE INDEX IF NOT EXISTS idx__answer__person_id_question_id_inc_answer
     ON answer(person_id, question_id) INCLUDE (answer);
 
@@ -1702,18 +1668,9 @@ BEFORE INSERT ON
 FOR EACH ROW EXECUTE FUNCTION
     populate_person_club_defaults();
 
--- Mark a club's stats dirty whenever its active membership changes: a join
--- (INSERT), a leave or cascaded deletion (DELETE), or an activation flip
--- copied down from `person` (UPDATE OF activated). The club-stats cron
--- DELETEs the row after recomputing. Joins/leaves that don't change
--- `activated`, and answer edits, are picked up by the cron's max-age
--- fallback rather than here, to keep write amplification bounded.
---
--- We INSERT into a separate `club_stats_dirty` queue table rather than
--- UPDATE a flag on `club`: the same /join-club transaction also UPDATEs
--- `club.count_members`, and if the cron concurrently UPDATEd the same row
--- to clear the flag, REPEATABLE READ on the API would raise
--- SerializationFailure. Touching a different table sidesteps that.
+-- Marks a club dirty on join, leave/cascaded deletion, or activation
+-- flip. Answer edits and joins/leaves that don't change `activated` are
+-- left to the cron's max-age fallback, to keep write amplification bounded.
 CREATE OR REPLACE FUNCTION
     mark_club_stats_dirty()
 RETURNS TRIGGER AS $$

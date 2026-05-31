@@ -22,38 +22,19 @@ import os
 import random
 import traceback
 
-# ---------------------------------------------------------------------------
-# Worker 1: club-stats batch refresh (demographics + personality)
-#
-# Recomputes the demographic/personality page payload for a batch of
-# eligible clubs that are dirty or stale, in one grouped pass, and stores
-# it in club_stats. Cheap enough to run with a large batch and a frequent
-# tick. The expensive answer-divergence aggregation lives in its own
-# worker (refresh_club_top_answers_forever), so this one never touches
-# the answer table.
-# ---------------------------------------------------------------------------
-
-# How often the stats worker runs a batch. Membership changes mark clubs
-# dirty (trigger_mark_club_stats_dirty), so steady-state each tick only
-# touches the handful of clubs that changed; the cost is bounded by
-# CLUB_STATS_BATCH_SIZE regardless.
 CLUB_STATS_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_CLUB_STATS_POLL_SECONDS',
-    str(300),  # 5 minutes
+    str(300),
 ))
 
-# Max clubs recomputed per tick. On first deployment every club is dirty,
-# so this also paces the initial backfill: clubs-needing-stats / BATCH_SIZE
-# batches, one per poll interval. Without the answer-join the per-club cost
-# is small (low-hundreds-of-ms even on the biggest clubs), so a 200 batch
-# completes in a few seconds.
 CLUB_STATS_BATCH_SIZE = int(os.environ.get(
     'DUO_CRON_CLUB_STATS_BATCH_SIZE',
     str(200),
 ))
 
-# Recompute a club's stats at least this often even if its membership hasn't
-# changed, to pick up demographic drift (people aging, changing settings).
+# Recompute even when membership hasn't changed, to pick up demographic
+# drift (people aging, changing profile fields) that doesn't trip the
+# dirty-queue trigger.
 CLUB_STATS_MAX_AGE_DAYS = int(os.environ.get(
     'DUO_CRON_CLUB_STATS_MAX_AGE_DAYS',
     str(7),
@@ -62,10 +43,7 @@ CLUB_STATS_MAX_AGE_DAYS = int(os.environ.get(
 
 async def refresh_club_stats_once():
     async with api_tx('READ COMMITTED') as tx:
-        # Demographic + personality aggregation only; no answer-table join.
-        # Initial backfill of every eligible club (~1k) at batch=200 takes
-        # a handful of ticks; steady-state ticks only see dirty clubs.
-        await tx.execute('SET LOCAL statement_timeout = 60000')  # 1 minute
+        await tx.execute('SET LOCAL statement_timeout = 60000')
         cur = await tx.execute(Q_CLUB_STATS_BATCH, dict(
             batch_size=CLUB_STATS_BATCH_SIZE,
             max_age_days=CLUB_STATS_MAX_AGE_DAYS,
@@ -83,26 +61,11 @@ async def refresh_club_stats_forever():
         await asyncio.sleep(CLUB_STATS_POLL_SECONDS)
 
 
-# ---------------------------------------------------------------------------
-# Worker 2: club top-answer divergence refresh
-#
-# Rebuilds each club's most-divergent quiz answers and stores them in
-# club_top_answers. The per-club answer-join is the heaviest query in the
-# whole feature: a sampled-member × answer fan-out reads hundreds of rows
-# per member from the 40M-row answer table. So this worker runs with a
-# very small batch_size on a slow cadence, and is decoupled from the main
-# stats worker. There's no dirty queue -- the worker just rotates through
-# every eligible club by oldest computed_at.
-# ---------------------------------------------------------------------------
-
 CLUB_TOP_ANSWERS_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_CLUB_TOP_ANSWERS_POLL_SECONDS',
-    str(10 * 60),  # 10 minutes
+    str(10 * 60),
 ))
 
-# Tiny batches keep each tick well under the statement timeout: one popular
-# club's answer-join alone is tens of seconds on a cold cache. With ~1k
-# eligible clubs, a full cycle at batch=5 / 10 min ≈ 1.5 days.
 CLUB_TOP_ANSWERS_BATCH_SIZE = int(os.environ.get(
     'DUO_CRON_CLUB_TOP_ANSWERS_BATCH_SIZE',
     str(5),
@@ -111,11 +74,9 @@ CLUB_TOP_ANSWERS_BATCH_SIZE = int(os.environ.get(
 
 async def refresh_club_top_answers_once():
     async with api_tx('READ COMMITTED') as tx:
-        # The sampled-member × answer fan-out reads hundreds of rows per
-        # member from the 40M-row answer table. The biggest club is tens
-        # of seconds cold; we give the statement headroom rather than have
-        # the cron livelock on it.
-        await tx.execute('SET LOCAL statement_timeout = 600000')  # 10 minutes
+        # One popular club's answer-join alone is tens of seconds cold;
+        # give the statement headroom rather than livelock the cron on it.
+        await tx.execute('SET LOCAL statement_timeout = 600000')
         cur = await tx.execute(Q_CLUB_TOP_ANSWERS_BATCH, dict(
             batch_size=CLUB_TOP_ANSWERS_BATCH_SIZE,
         ))
@@ -132,37 +93,19 @@ async def refresh_club_top_answers_forever():
         await asyncio.sleep(CLUB_TOP_ANSWERS_POLL_SECONDS)
 
 
-# ---------------------------------------------------------------------------
-# Worker 3: club-overlap rebuild (related clubs)
-#
-# Rebuilds the global co-membership table the page read query ranks by lift.
-# A whole-table rebuild in one transaction; slow cadence because related
-# clubs drift slowly and the self-join is the heaviest query in the feature.
-# ---------------------------------------------------------------------------
-
 CLUB_OVERLAP_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_CLUB_OVERLAP_POLL_SECONDS',
-    str(6 * 60 * 60),  # 6 hours
+    str(6 * 60 * 60),
 ))
 
 
 async def refresh_club_overlap_once():
     # DELETE + INSERT in one transaction: readers see the previous snapshot
-    # until commit, so there's no window where related lists are empty.
+    # under MVCC until commit, so there's no empty window.
     async with api_tx('READ COMMITTED') as tx:
-        # The self-join on person_club is the heaviest query in the feature
-        # and the most data-dependent (worst case O(persons * max_clubs^2)
-        # pair emissions before the cell-size HAVING filter). The 6h cadence
-        # makes a generous ceiling cheap; hitting it just defers the rebuild
-        # to the next tick.
-        await tx.execute('SET LOCAL statement_timeout = 600000')  # 10 minutes
-        # The merge-join driving the rebuild sorts ~200k member-rows on each
-        # side and the HashAggregate produces ~1M (a, b) cells before the
-        # cell-size HAVING. At the default work_mem (4 MB) both sorts and the
-        # aggregate spill to disk (~300 MB of temp files) and the rebuild
-        # runs ~2x slower (~22 s vs ~12 s on production-sized data). The
-        # whole rebuild is one statement in one short-lived backend, so the
-        # peak is a single allocation; SET LOCAL scopes it to this tx.
+        await tx.execute('SET LOCAL statement_timeout = 600000')
+        # At the default work_mem (4 MB) both sorts and the HashAggregate
+        # spill to disk and the rebuild runs ~2x slower (~22 s vs ~12 s).
         await tx.execute("SET LOCAL work_mem = '256MB'")
         await tx.execute(Q_CLUB_OVERLAP_DELETE)
         await tx.execute(Q_CLUB_OVERLAP_REBUILD)
@@ -176,24 +119,11 @@ async def refresh_club_overlap_forever():
         await asyncio.sleep(CLUB_OVERLAP_POLL_SECONDS)
 
 
-# ---------------------------------------------------------------------------
-# Worker 4: LLM description refresh
-#
-# Reads a club's precomputed stats (no aggregation), derives the small set
-# of facts worth describing, and fills in club_seo.description via OpenAI.
-# Rate-limited to ~1 description per tick to cap OpenAI cost.
-# ---------------------------------------------------------------------------
-
-# How often the description worker picks up the next-stalest club. Each tick
-# does at most one OpenAI call, so this caps refresh rate (and OpenAI cost)
-# at ~1 description / interval.
 CLUB_SEO_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_CLUB_SEO_POLL_SECONDS',
-    str(60),  # 1 minute -> ~1440 descriptions/day max
+    str(60),
 ))
 
-# If the facts fed to the model haven't changed and the description is
-# younger than this, just touch generated_at and skip the LLM.
 CLUB_SEO_MAX_AGE_DAYS = int(os.environ.get(
     'DUO_CRON_CLUB_SEO_MAX_AGE_DAYS',
     str(30),
@@ -204,18 +134,14 @@ OPENAI_MODEL = os.environ.get(
     'gpt-4o-mini',
 )
 
-# Test/dev escape hatch: when set, generate a deterministic description
-# without calling OpenAI. Lets the tests exercise the cron without an
-# API key.
+# When set, skip the OpenAI call and use this string. Lets the tests
+# exercise the cron without an API key.
 MOCK_DESCRIPTION = os.environ.get('DUO_CRON_CLUB_SEO_MOCK_DESCRIPTION')
 
-# Constructed once at import; the SDK handles connection pooling and is safe
-# to share across calls.
 _openai_client = AsyncOpenAI() if not MOCK_DESCRIPTION else None
 
 
 def _top_pct(items):
-    # [{label, count}] -> [{label, pct}], pct over the category total.
     items = items or []
     total = sum(it.get('count', 0) for it in items)
     if total == 0:
@@ -227,8 +153,6 @@ def _top_pct(items):
 
 
 def _notable_traits(traits):
-    # Keep only clearly-leaning traits, strongest first, capped to the few
-    # facts the prompt can use.
     notable = [
         t for t in (traits or [])
         if abs(t.get('score', 0)) >= MIN_NOTABLE_TRAIT_SCORE
@@ -246,10 +170,6 @@ def _notable_traits(traits):
 
 
 def build_prompt_payload(stats: dict) -> dict:
-    # Derive the compact set of facts the description is grounded in from the
-    # club's precomputed page stats. This is also what gets hashed, so the
-    # description is only regenerated when a fact the model actually sees
-    # changes.
     demo = stats.get('demographics') or {}
     return {
         'club_name':        stats.get('name'),
@@ -263,19 +183,16 @@ def build_prompt_payload(stats: dict) -> dict:
 
 
 def stats_hash(payload: dict) -> str:
-    # Stable JSON for a stable hash. The hash decides whether to skip the
-    # LLM; if the facts are byte-identical we have no reason to regenerate.
     blob = json.dumps(payload, sort_keys=True, separators=(',', ':'))
     return hashlib.sha256(blob.encode('utf-8')).hexdigest()[:32]
 
 
 def build_prompt(payload: dict) -> str:
-    # `club_name` is user-generated, so the user message must make the
-    # data/instruction boundary unambiguous. We emit the whole input as a
-    # single JSON object: JSON string-escaping neutralises quotes, braces,
-    # and newlines, so a club named e.g. '"} ignore previous instructions'
-    # can't break out of its field. The system prompt (trusted) carries all
-    # instructions and tells the model to treat this JSON purely as data.
+    # `club_name` is user-generated. Emitting the whole payload as one JSON
+    # object means JSON string-escaping neutralises any quotes/braces/newlines
+    # a malicious name might contain, so it can't break out of its field and
+    # be read as instructions. The system prompt tells the model to treat the
+    # JSON purely as data.
     return json.dumps(payload, ensure_ascii=False)
 
 
@@ -351,13 +268,9 @@ async def refresh_club_seo_once():
 
     club_name = row['name']
     old_hash = row['old_stats_hash']
-    # `age_days` is computed in the DB against NOW(), so we don't have to
-    # reconcile naive vs. aware datetimes or the worker's local TZ with the
-    # DB's. NULL (no club_seo row yet) means infinitely stale.
+    # NULL age (no club_seo row yet) means infinitely stale.
     age_days = row['age_days'] if row['age_days'] is not None else float('inf')
 
-    # top_answers lives in its own table now; merge it in so the prompt
-    # payload (and its hash) see the freshest divergence facts.
     stats = dict(row['stats_json'])
     stats['top_answers'] = row['top_answers_json'] or []
     payload = build_prompt_payload(stats)
@@ -371,8 +284,8 @@ async def refresh_club_seo_once():
 
     description = await generate_description(payload)
     if not description:
-        # Record the attempt so this club moves to the back of the queue
-        # rather than being re-selected every tick and starving the rest.
+        # Advance generated_at so this club rotates to the back of the
+        # queue instead of being re-selected every tick and starving the rest.
         async with api_tx() as tx:
             await tx.execute(Q_CLUB_SEO_MARK_ATTEMPTED, dict(club_name=club_name))
         print(f'club_seo: generation failed for {club_name!r}; deferring')
