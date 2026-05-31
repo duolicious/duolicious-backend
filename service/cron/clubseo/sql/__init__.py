@@ -138,51 +138,56 @@ WITH target AS MATERIALIZED (
         sampled s
     JOIN
         person p ON p.id = s.person_id
-), gender_j AS (
+-- Each per-dimension aggregate is MATERIALIZED so it computes once over
+-- `members` and is then probed by hash-join in `payload`. Without
+-- MATERIALIZED the planner inlines these into the payload's correlated
+-- subqueries and re-evaluates them per target club, scanning all of
+-- `members` ~13 times per club (~10x slowdown on a batch of 200).
+), gender_j AS MATERIALIZED (
     SELECT club_name, COALESCE(json_agg(json_build_object('label', name, 'count', cnt) ORDER BY cnt DESC), '[]'::json) AS j
     FROM (SELECT m.club_name, g.name, COUNT(*)::int AS cnt FROM members m JOIN gender g ON g.id = m.gender_id GROUP BY m.club_name, g.name HAVING COUNT(*) >= {MIN_CLUB_CELL_SIZE}) x
     GROUP BY club_name
-), orientation_j AS (
+), orientation_j AS MATERIALIZED (
     SELECT club_name, COALESCE(json_agg(json_build_object('label', name, 'count', cnt) ORDER BY cnt DESC), '[]'::json) AS j
     FROM (SELECT m.club_name, o.name, COUNT(*)::int AS cnt FROM members m JOIN orientation o ON o.id = m.orientation_id WHERE m.orientation_id <> 1 GROUP BY m.club_name, o.name HAVING COUNT(*) >= {MIN_CLUB_CELL_SIZE}) x
     GROUP BY club_name
-), ethnicity_j AS (
+), ethnicity_j AS MATERIALIZED (
     SELECT club_name, COALESCE(json_agg(json_build_object('label', name, 'count', cnt) ORDER BY cnt DESC), '[]'::json) AS j
     FROM (SELECT m.club_name, e.name, COUNT(*)::int AS cnt FROM members m JOIN ethnicity e ON e.id = m.ethnicity_id WHERE m.ethnicity_id <> 1 GROUP BY m.club_name, e.name HAVING COUNT(*) >= {MIN_CLUB_CELL_SIZE}) x
     GROUP BY club_name
-), religion_j AS (
+), religion_j AS MATERIALIZED (
     SELECT club_name, COALESCE(json_agg(json_build_object('label', name, 'count', cnt) ORDER BY cnt DESC), '[]'::json) AS j
     FROM (SELECT m.club_name, r.name, COUNT(*)::int AS cnt FROM members m JOIN religion r ON r.id = m.religion_id WHERE m.religion_id <> 1 GROUP BY m.club_name, r.name HAVING COUNT(*) >= {MIN_CLUB_CELL_SIZE}) x
     GROUP BY club_name
-), relationship_status_j AS (
+), relationship_status_j AS MATERIALIZED (
     SELECT club_name, COALESCE(json_agg(json_build_object('label', name, 'count', cnt) ORDER BY cnt DESC), '[]'::json) AS j
     FROM (SELECT m.club_name, r.name, COUNT(*)::int AS cnt FROM members m JOIN relationship_status r ON r.id = m.relationship_status_id WHERE m.relationship_status_id <> 1 GROUP BY m.club_name, r.name HAVING COUNT(*) >= {MIN_CLUB_CELL_SIZE}) x
     GROUP BY club_name
-), drinking_j AS (
+), drinking_j AS MATERIALIZED (
     SELECT club_name, COALESCE(json_agg(json_build_object('label', name, 'count', cnt) ORDER BY cnt DESC), '[]'::json) AS j
     FROM (SELECT m.club_name, f.name, COUNT(*)::int AS cnt FROM members m JOIN frequency f ON f.id = m.drinking_id WHERE m.drinking_id <> 1 GROUP BY m.club_name, f.name HAVING COUNT(*) >= {MIN_CLUB_CELL_SIZE}) x
     GROUP BY club_name
-), smoking_j AS (
+), smoking_j AS MATERIALIZED (
     SELECT club_name, COALESCE(json_agg(json_build_object('label', name, 'count', cnt) ORDER BY cnt DESC), '[]'::json) AS j
     FROM (SELECT m.club_name, y.name, COUNT(*)::int AS cnt FROM members m JOIN yes_no_optional y ON y.id = m.smoking_id WHERE m.smoking_id <> 1 GROUP BY m.club_name, y.name HAVING COUNT(*) >= {MIN_CLUB_CELL_SIZE}) x
     GROUP BY club_name
-), drugs_j AS (
+), drugs_j AS MATERIALIZED (
     SELECT club_name, COALESCE(json_agg(json_build_object('label', name, 'count', cnt) ORDER BY cnt DESC), '[]'::json) AS j
     FROM (SELECT m.club_name, y.name, COUNT(*)::int AS cnt FROM members m JOIN yes_no_optional y ON y.id = m.drugs_id WHERE m.drugs_id <> 1 GROUP BY m.club_name, y.name HAVING COUNT(*) >= {MIN_CLUB_CELL_SIZE}) x
     GROUP BY club_name
-), exercise_j AS (
+), exercise_j AS MATERIALIZED (
     SELECT club_name, COALESCE(json_agg(json_build_object('label', name, 'count', cnt) ORDER BY cnt DESC), '[]'::json) AS j
     FROM (SELECT m.club_name, f.name, COUNT(*)::int AS cnt FROM members m JOIN frequency f ON f.id = m.exercise_id WHERE m.exercise_id <> 1 GROUP BY m.club_name, f.name HAVING COUNT(*) >= {MIN_CLUB_CELL_SIZE}) x
     GROUP BY club_name
-), has_kids_j AS (
+), has_kids_j AS MATERIALIZED (
     SELECT club_name, COALESCE(json_agg(json_build_object('label', name, 'count', cnt) ORDER BY cnt DESC), '[]'::json) AS j
     FROM (SELECT m.club_name, y.name, COUNT(*)::int AS cnt FROM members m JOIN yes_no_optional y ON y.id = m.has_kids_id WHERE m.has_kids_id <> 1 GROUP BY m.club_name, y.name HAVING COUNT(*) >= {MIN_CLUB_CELL_SIZE}) x
     GROUP BY club_name
-), wants_kids_j AS (
+), wants_kids_j AS MATERIALIZED (
     SELECT club_name, COALESCE(json_agg(json_build_object('label', name, 'count', cnt) ORDER BY cnt DESC), '[]'::json) AS j
     FROM (SELECT m.club_name, y.name, COUNT(*)::int AS cnt FROM members m JOIN yes_no_maybe y ON y.id = m.wants_kids_id WHERE m.wants_kids_id <> 1 GROUP BY m.club_name, y.name HAVING COUNT(*) >= {MIN_CLUB_CELL_SIZE}) x
     GROUP BY club_name
-), age_buckets_j AS (
+), age_buckets_j AS MATERIALIZED (
     SELECT club_name, COALESCE(json_agg(json_build_object('label', bucket, 'count', cnt) ORDER BY bucket), '[]'::json) AS j
     FROM (
         SELECT
@@ -202,20 +207,20 @@ WITH target AS MATERIALIZED (
         HAVING COUNT(*) >= {MIN_CLUB_CELL_SIZE}
     ) b
     GROUP BY club_name
-), median_age_j AS (
+), median_age_j AS MATERIALIZED (
     SELECT
         club_name,
         ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY DATE_PART('year', AGE(date_of_birth))))::int AS median_age
     FROM members
     GROUP BY club_name
-), personality_vec AS (
+), personality_vec AS MATERIALIZED (
     -- pgvector's AVG aggregates element-wise; members with few answers have
     -- shorter (answer-count-weighted) vectors and so contribute less.
     SELECT club_name, (AVG(personality))::real[] AS arr
     FROM members
     WHERE count_answers > 0
     GROUP BY club_name
-), personality_j AS (
+), personality_j AS MATERIALIZED (
     SELECT
         pv.club_name,
         COALESCE(
@@ -235,34 +240,50 @@ WITH target AS MATERIALIZED (
     WHERE t.id <= 46 AND pv.arr IS NOT NULL
     GROUP BY pv.club_name
 ), payload AS (
+    -- LEFT JOIN every per-dimension CTE onto `target` so each is read once
+    -- and probed by hash, rather than re-evaluated per target row.
     SELECT
         t.name,
         json_build_object(
             'name',         t.name,
             'member_count', t.count_members,
-            'median_age',   (SELECT median_age FROM median_age_j WHERE club_name = t.name),
+            'median_age',   maj.median_age,
             'demographics', json_build_object(
-                'gender',              COALESCE((SELECT j FROM gender_j              WHERE club_name = t.name), '[]'::json),
-                'orientation',         COALESCE((SELECT j FROM orientation_j         WHERE club_name = t.name), '[]'::json),
-                'ethnicity',           COALESCE((SELECT j FROM ethnicity_j           WHERE club_name = t.name), '[]'::json),
-                'religion',            COALESCE((SELECT j FROM religion_j            WHERE club_name = t.name), '[]'::json),
-                'relationship_status', COALESCE((SELECT j FROM relationship_status_j WHERE club_name = t.name), '[]'::json),
-                'age_buckets',         COALESCE((SELECT j FROM age_buckets_j         WHERE club_name = t.name), '[]'::json)
+                'gender',              COALESCE(gj.j,  '[]'::json),
+                'orientation',         COALESCE(oj.j,  '[]'::json),
+                'ethnicity',           COALESCE(ej.j,  '[]'::json),
+                'religion',            COALESCE(rj.j,  '[]'::json),
+                'relationship_status', COALESCE(rsj.j, '[]'::json),
+                'age_buckets',         COALESCE(abj.j, '[]'::json)
             ),
             'lifestyle', json_build_object(
-                'drinking',   COALESCE((SELECT j FROM drinking_j   WHERE club_name = t.name), '[]'::json),
-                'smoking',    COALESCE((SELECT j FROM smoking_j    WHERE club_name = t.name), '[]'::json),
-                'drugs',      COALESCE((SELECT j FROM drugs_j      WHERE club_name = t.name), '[]'::json),
-                'exercise',   COALESCE((SELECT j FROM exercise_j   WHERE club_name = t.name), '[]'::json),
-                'has_kids',   COALESCE((SELECT j FROM has_kids_j   WHERE club_name = t.name), '[]'::json),
-                'wants_kids', COALESCE((SELECT j FROM wants_kids_j WHERE club_name = t.name), '[]'::json)
+                'drinking',   COALESCE(dj.j,  '[]'::json),
+                'smoking',    COALESCE(sj.j,  '[]'::json),
+                'drugs',      COALESCE(drj.j, '[]'::json),
+                'exercise',   COALESCE(exj.j, '[]'::json),
+                'has_kids',   COALESCE(hkj.j, '[]'::json),
+                'wants_kids', COALESCE(wkj.j, '[]'::json)
             ),
-            'personality',   COALESCE((SELECT j FROM personality_j  WHERE club_name = t.name), '[]'::json)
+            'personality',   COALESCE(pj.j,  '[]'::json)
             -- top_answers lives in club_top_answers, refreshed by its own
             -- (slower) worker. related_clubs lives in club_overlap, refreshed
             -- by its own (slower) worker. The read query merges all three.
         ) AS j
     FROM target t
+    LEFT JOIN gender_j              gj  ON gj.club_name  = t.name
+    LEFT JOIN orientation_j         oj  ON oj.club_name  = t.name
+    LEFT JOIN ethnicity_j           ej  ON ej.club_name  = t.name
+    LEFT JOIN religion_j            rj  ON rj.club_name  = t.name
+    LEFT JOIN relationship_status_j rsj ON rsj.club_name = t.name
+    LEFT JOIN age_buckets_j         abj ON abj.club_name = t.name
+    LEFT JOIN drinking_j            dj  ON dj.club_name  = t.name
+    LEFT JOIN smoking_j             sj  ON sj.club_name  = t.name
+    LEFT JOIN drugs_j               drj ON drj.club_name = t.name
+    LEFT JOIN exercise_j            exj ON exj.club_name = t.name
+    LEFT JOIN has_kids_j            hkj ON hkj.club_name = t.name
+    LEFT JOIN wants_kids_j          wkj ON wkj.club_name = t.name
+    LEFT JOIN median_age_j          maj ON maj.club_name = t.name
+    LEFT JOIN personality_j         pj  ON pj.club_name  = t.name
 ), upserted AS (
     INSERT INTO club_stats (club_name, stats_json, computed_at)
     SELECT name, j, NOW() FROM payload
