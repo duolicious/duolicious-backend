@@ -865,14 +865,6 @@ CREATE INDEX IF NOT EXISTS
     USING GIST(club_name, coordinates, gender_id)
     WHERE activated;
 
--- Plain btree to serve `WHERE club_name = X` lookups for the club SEO
--- pages. The PK is (person_id, club_name) so club_name isn't usefully
--- indexed for membership-by-club scans, and the GIST index above is
--- partial (WHERE activated) and geared toward geo search. This btree
--- gives a tight range scan of a single club's members.
-CREATE INDEX IF NOT EXISTS idx__person_club__club_name__person_id
-    ON person_club(club_name, person_id);
-
 CREATE INDEX IF NOT EXISTS idx__person__sign_up_time
     ON person(sign_up_time);
 CREATE INDEX IF NOT EXISTS idx__person__tiny_id

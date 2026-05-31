@@ -148,14 +148,6 @@ AFTER INSERT OR DELETE OR UPDATE OF activated ON
 FOR EACH ROW EXECUTE FUNCTION
     mark_club_stats_dirty();
 
--- Serves `WHERE club_name = X` membership scans for club-stats computation.
--- The person_club PK is (person_id, club_name), so club_name alone has
--- no usable index; the existing GIST index is partial (WHERE activated)
--- and geo-oriented. Without this btree, club-stats batches seq-scan
--- person_club.
-CREATE INDEX IF NOT EXISTS idx__person_club__club_name__person_id
-    ON person_club(club_name, person_id);
-
 -- Covers the club-top-answers cron's per-(person, question) read so it
 -- can index-only-scan answer (~600 entries per sampled member) instead
 -- of doing a heap fetch per row. Without it, the per-club aggregation is
