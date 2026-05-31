@@ -484,7 +484,7 @@ def get_search_public_clubs():
     return person.get_search_clubs(
             s=None, search_str=request.args.get('q', ''), allow_empty=True)
 
-@get('/club/<path:name>')
+@get('/club/<clubname:name>', merge_slashes=False)
 def get_club(name: str):
     result = person.get_club(
         name=name,
