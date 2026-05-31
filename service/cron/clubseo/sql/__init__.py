@@ -16,12 +16,18 @@ from constants import (
 # the background workers. Shared tunables come from the dependency-free
 # `constants` module so both sides agree.
 #
-# Three workers use these:
-#   - the club-stats worker runs Q_CLUB_STATS_BATCH to (re)compute every
-#     eligible, dirty/stale club's full page payload in one grouped pass and
-#     store it in club_stats;
+# Four workers use these:
+#   - the club-stats worker runs Q_CLUB_STATS_BATCH to recompute the
+#     demographic and personality payload for dirty/stale clubs in one
+#     grouped pass and stores it in club_stats. Cheap enough to run often;
+#     does not touch the answer table.
+#   - the club-top-answers worker runs Q_CLUB_TOP_ANSWERS_BATCH to recompute
+#     each club's answer-divergence list. Lives on its own cadence because
+#     it joins sampled members against the 40M-row answer table -- two
+#     orders of magnitude slower than the demographic aggregates, so mixing
+#     them livelocks the cron on initial backfill.
 #   - the club-overlap worker rebuilds club_overlap (co-membership counts)
-#     wholesale, on a slow cadence, for the related-clubs lift ranking;
+#     wholesale, on a slow cadence, for the related-clubs lift ranking.
 #   - the description worker reads the stored stats (no aggregation) and
 #     fills in club_seo.description via the LLM.
 #
@@ -34,17 +40,23 @@ from constants import (
 # the demographic CTEs exclude id = 1 everywhere except gender.
 
 # ---------------------------------------------------------------------------
-# Batch stats computation (Solutions B + C)
+# Batch stats computation: demographics + personality only
 # ---------------------------------------------------------------------------
 #
-# Computes the full page payload for a *set* of clubs in one grouped pass
-# rather than one query per club. The `target` CTE selects up to
-# %(batch_size)s eligible clubs that are dirty (present in club_stats_dirty
-# because their membership changed) or stale (older than %(max_age_days)s
-# days, which catches slow answer drift the dirty flag doesn't track),
-# missing ones first. Every member-level CTE is grouped by club_name, so a
-# full backfill (all clubs dirty) becomes a handful of hash-aggregated scans
-# instead of tens of thousands of nested lookups.
+# Computes the demographic/personality page payload for a *set* of clubs in
+# one grouped pass rather than one query per club. The `target` CTE selects
+# up to %(batch_size)s eligible clubs that are dirty (present in
+# club_stats_dirty because their membership changed) or stale (older than
+# %(max_age_days)s days), missing ones first. Every member-level CTE is
+# grouped by club_name, so a full backfill becomes a handful of
+# hash-aggregated scans instead of tens of thousands of nested lookups.
+#
+# This query intentionally does NOT touch the `answer` table: that join is
+# two orders of magnitude more expensive than the demographic aggregates
+# and is handled by the separate club-top-answers worker. Keeping them apart
+# lets this batch run with a large batch_size and tight cadence (a hundreds-
+# of-clubs batch is seconds, not minutes), while the slow answer-divergence
+# refresh runs on its own schedule.
 #
 # `sampled` caps each club at MAX_CLUB_SAMPLE_MEMBERS members, chosen by a
 # deterministic md5 ordering of person_id. Deterministic so the payload (and
@@ -222,6 +234,104 @@ WITH target AS MATERIALIZED (
     CROSS JOIN trait t
     WHERE t.id <= 46 AND pv.arr IS NOT NULL
     GROUP BY pv.club_name
+), payload AS (
+    SELECT
+        t.name,
+        json_build_object(
+            'name',         t.name,
+            'member_count', t.count_members,
+            'median_age',   (SELECT median_age FROM median_age_j WHERE club_name = t.name),
+            'demographics', json_build_object(
+                'gender',              COALESCE((SELECT j FROM gender_j              WHERE club_name = t.name), '[]'::json),
+                'orientation',         COALESCE((SELECT j FROM orientation_j         WHERE club_name = t.name), '[]'::json),
+                'ethnicity',           COALESCE((SELECT j FROM ethnicity_j           WHERE club_name = t.name), '[]'::json),
+                'religion',            COALESCE((SELECT j FROM religion_j            WHERE club_name = t.name), '[]'::json),
+                'relationship_status', COALESCE((SELECT j FROM relationship_status_j WHERE club_name = t.name), '[]'::json),
+                'age_buckets',         COALESCE((SELECT j FROM age_buckets_j         WHERE club_name = t.name), '[]'::json)
+            ),
+            'lifestyle', json_build_object(
+                'drinking',   COALESCE((SELECT j FROM drinking_j   WHERE club_name = t.name), '[]'::json),
+                'smoking',    COALESCE((SELECT j FROM smoking_j    WHERE club_name = t.name), '[]'::json),
+                'drugs',      COALESCE((SELECT j FROM drugs_j      WHERE club_name = t.name), '[]'::json),
+                'exercise',   COALESCE((SELECT j FROM exercise_j   WHERE club_name = t.name), '[]'::json),
+                'has_kids',   COALESCE((SELECT j FROM has_kids_j   WHERE club_name = t.name), '[]'::json),
+                'wants_kids', COALESCE((SELECT j FROM wants_kids_j WHERE club_name = t.name), '[]'::json)
+            ),
+            'personality',   COALESCE((SELECT j FROM personality_j  WHERE club_name = t.name), '[]'::json)
+            -- top_answers lives in club_top_answers, refreshed by its own
+            -- (slower) worker. related_clubs lives in club_overlap, refreshed
+            -- by its own (slower) worker. The read query merges all three.
+        ) AS j
+    FROM target t
+), upserted AS (
+    INSERT INTO club_stats (club_name, stats_json, computed_at)
+    SELECT name, j, NOW() FROM payload
+    ON CONFLICT (club_name) DO UPDATE SET
+        stats_json  = EXCLUDED.stats_json,
+        computed_at = NOW()
+    RETURNING club_name
+), cleaned AS (
+    DELETE FROM club_stats_dirty
+    WHERE club_name IN (SELECT name FROM target WHERE is_dirty)
+    RETURNING club_name
+)
+SELECT
+    (SELECT COUNT(*) FROM upserted) AS upserted_count,
+    (SELECT COUNT(*) FROM cleaned)  AS cleaned_count
+"""
+
+# ---------------------------------------------------------------------------
+# Top-answer divergence refresh (heavy answer-join; slow cadence)
+# ---------------------------------------------------------------------------
+#
+# Computes the per-(club, question) agree-rates for a small batch of clubs,
+# ranks each club's questions by divergence from the platform average, and
+# stores the top MAX_CLUB_TOP_ANSWERS as JSON in club_top_answers.
+#
+# The cost is dominated by the nested loop from sampled members into the
+# 40M-row answer table: each sampled person yields hundreds of answer rows
+# via the (person_id, ...) btree. For the biggest club a single iteration
+# is tens of seconds, so batch_size is small (single digits) and the
+# worker has its own poll interval. No dirty queue: refreshes by oldest
+# computed_at, rotating through every eligible club.
+#
+# Clubs without a club_top_answers row yet sort first via NULLS FIRST. A
+# club with no qualifying answers (every question below the support floor
+# or divergence threshold) still gets a row -- with `answers_json = []` --
+# so its computed_at advances and it cycles to the back of the queue.
+Q_CLUB_TOP_ANSWERS_BATCH = f"""
+WITH target AS MATERIALIZED (
+    SELECT
+        c.name,
+        c.count_members
+    FROM
+        club c
+    LEFT JOIN
+        club_top_answers cta ON cta.club_name = c.name
+    WHERE
+        c.count_members >= {MIN_CLUB_PAGE_MEMBERS}
+    ORDER BY
+        cta.club_name IS NULL DESC,
+        cta.computed_at NULLS FIRST
+    LIMIT %(batch_size)s
+), sampled AS MATERIALIZED (
+    SELECT club_name, person_id
+    FROM (
+        SELECT
+            pc.club_name,
+            pc.person_id,
+            ROW_NUMBER() OVER (
+                PARTITION BY pc.club_name
+                ORDER BY MD5(pc.person_id::text)
+            ) AS rn
+        FROM
+            person_club pc
+        JOIN
+            target t ON t.name = pc.club_name
+        WHERE
+            pc.activated
+    ) z
+    WHERE rn <= {MAX_CLUB_SAMPLE_MEMBERS}
 ), club_answer AS (
     -- Drive from the sampled members into answer via its PK
     -- (person_id, question_id); never from question/answer first, which
@@ -273,51 +383,19 @@ WITH target AS MATERIALIZED (
     FROM answer_ranked
     WHERE rn <= {MAX_CLUB_TOP_ANSWERS}
     GROUP BY club_name
-), payload AS (
+), upserted AS (
+    INSERT INTO club_top_answers (club_name, answers_json, computed_at)
     SELECT
         t.name,
-        json_build_object(
-            'name',         t.name,
-            'member_count', t.count_members,
-            'median_age',   (SELECT median_age FROM median_age_j WHERE club_name = t.name),
-            'demographics', json_build_object(
-                'gender',              COALESCE((SELECT j FROM gender_j              WHERE club_name = t.name), '[]'::json),
-                'orientation',         COALESCE((SELECT j FROM orientation_j         WHERE club_name = t.name), '[]'::json),
-                'ethnicity',           COALESCE((SELECT j FROM ethnicity_j           WHERE club_name = t.name), '[]'::json),
-                'religion',            COALESCE((SELECT j FROM religion_j            WHERE club_name = t.name), '[]'::json),
-                'relationship_status', COALESCE((SELECT j FROM relationship_status_j WHERE club_name = t.name), '[]'::json),
-                'age_buckets',         COALESCE((SELECT j FROM age_buckets_j         WHERE club_name = t.name), '[]'::json)
-            ),
-            'lifestyle', json_build_object(
-                'drinking',   COALESCE((SELECT j FROM drinking_j   WHERE club_name = t.name), '[]'::json),
-                'smoking',    COALESCE((SELECT j FROM smoking_j    WHERE club_name = t.name), '[]'::json),
-                'drugs',      COALESCE((SELECT j FROM drugs_j      WHERE club_name = t.name), '[]'::json),
-                'exercise',   COALESCE((SELECT j FROM exercise_j   WHERE club_name = t.name), '[]'::json),
-                'has_kids',   COALESCE((SELECT j FROM has_kids_j   WHERE club_name = t.name), '[]'::json),
-                'wants_kids', COALESCE((SELECT j FROM wants_kids_j WHERE club_name = t.name), '[]'::json)
-            ),
-            'personality',   COALESCE((SELECT j FROM personality_j  WHERE club_name = t.name), '[]'::json),
-            'top_answers',   COALESCE((SELECT j FROM top_answers_j  WHERE club_name = t.name), '[]'::json)
-            -- related_clubs is not stored here: it changes on the overlap
-            -- cron's cadence, not this club's, so the read query computes it
-            -- live from club_overlap to avoid stale lists between rebuilds.
-        ) AS j
+        COALESCE((SELECT j FROM top_answers_j WHERE club_name = t.name), '[]'::json),
+        NOW()
     FROM target t
-), upserted AS (
-    INSERT INTO club_stats (club_name, stats_json, computed_at)
-    SELECT name, j, NOW() FROM payload
     ON CONFLICT (club_name) DO UPDATE SET
-        stats_json  = EXCLUDED.stats_json,
-        computed_at = NOW()
-    RETURNING club_name
-), cleaned AS (
-    DELETE FROM club_stats_dirty
-    WHERE club_name IN (SELECT name FROM target WHERE is_dirty)
+        answers_json = EXCLUDED.answers_json,
+        computed_at  = NOW()
     RETURNING club_name
 )
-SELECT
-    (SELECT COUNT(*) FROM upserted) AS upserted_count,
-    (SELECT COUNT(*) FROM cleaned)  AS cleaned_count
+SELECT COUNT(*) AS upserted_count FROM upserted
 """
 
 # ---------------------------------------------------------------------------
@@ -331,10 +409,15 @@ SELECT
 # the model and either touches generated_at (hash match -> no LLM), upserts
 # a new description, or -- on failure -- marks the attempt so the club
 # rotates to the back of the queue instead of blocking it.
+#
+# `top_answers_json` is joined in here (not via the stats payload) because
+# the answer-divergence refresh lives on its own cadence; the LLM should
+# see the freshest divergence facts available when it generates copy.
 Q_CLUB_SEO_NEXT_REFRESH = f"""
 SELECT
     c.name,
     cs.stats_json,
+    COALESCE(cta.answers_json, '[]'::jsonb) AS top_answers_json,
     seo.stats_hash AS old_stats_hash,
     -- Age is computed against the DB's NOW() so it's measured in the same
     -- clock the generated_at column was written from. NULL when no
@@ -344,6 +427,8 @@ FROM
     club c
 JOIN
     club_stats cs ON cs.club_name = c.name
+LEFT JOIN
+    club_top_answers cta ON cta.club_name = c.name
 LEFT JOIN
     club_seo seo ON seo.club_name = c.name
 WHERE
@@ -414,7 +499,8 @@ Q_CLUB_OVERLAP_REBUILD = f"""
 WITH eligible_members AS MATERIALIZED (
     SELECT
         pc.person_id,
-        pc.club_name
+        pc.club_name,
+        c.count_members
     FROM
         person_club pc
     JOIN
@@ -430,11 +516,14 @@ WITH eligible_members AS MATERIALIZED (
             HAVING COUNT(*) <= {MAX_CLUBS_PER_PERSON_FOR_OVERLAP}
         )
 )
-INSERT INTO club_overlap (club_a, club_b, overlap)
+INSERT INTO club_overlap (club_a, club_b, overlap, count_members_b)
 SELECT
     a.club_name,
     b.club_name,
-    COUNT(*)::int
+    COUNT(*)::int,
+    -- All rows in a given (a, b) group share the same b.count_members.
+    -- MAX is just a cheap "any-value" aggregate; MIN/AVG would also work.
+    MAX(b.count_members)
 FROM
     eligible_members a
 JOIN

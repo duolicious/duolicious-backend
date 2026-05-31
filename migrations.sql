@@ -47,12 +47,53 @@ CREATE TABLE IF NOT EXISTS club_stats (
 
 -- Directed club co-membership counts, rebuilt wholesale by the club-overlap
 -- cron; both directions stored so a club's related list is one `WHERE
--- club_a = X` PK range scan. The page read query ranks these by lift.
+-- club_a = X` PK range scan. The page read query ranks by `overlap /
+-- count_members_b` (lift, modulo factors constant across a fixed A).
+--
+-- `count_members_b` is denormalised here so the read query doesn't need to
+-- join `club` per related row -- a join the planner mis-routes through the
+-- trigram GiST on club(name), costing ~50 ms per lookup × hundreds of rows.
+-- The rebuild owns the snapshot of count_members_b; staleness between
+-- rebuilds is bounded by the overlap cron cadence (hours), matching the
+-- staleness already accepted for `overlap` itself.
+--
+-- club_a/club_b deliberately have NO foreign key to club. The FK's per-row
+-- RI check on insert routes through the same trigram GiST that breaks the
+-- page read; at cap=100 the rebuild emits >100k pairs, and 200k+ FK lookups
+-- push the rebuild past its statement timeout. The table is fully derived
+-- and rewritten every overlap-cron tick (DELETE + INSERT in one tx) from
+-- person_club, which is itself FK'd to club -- so a deleted/renamed club
+-- can leave stale rows for at most one cron interval before the next
+-- rebuild prunes them.
 CREATE TABLE IF NOT EXISTS club_overlap (
-    club_a TEXT NOT NULL REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
-    club_b TEXT NOT NULL REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+    club_a TEXT NOT NULL,
+    club_b TEXT NOT NULL,
     overlap INT NOT NULL,
+    count_members_b INT NOT NULL,
     PRIMARY KEY (club_a, club_b)
+);
+-- Defensive upgrade path for environments where club_overlap pre-dates the
+-- denormalisation. Default 0 keeps the NOT NULL constraint satisfiable;
+-- the next overlap-rebuild tick replaces every row with the correct value.
+-- Related-club lists may be empty for the first ~6 hours after upgrade.
+ALTER TABLE club_overlap
+    ADD COLUMN IF NOT EXISTS count_members_b INT NOT NULL DEFAULT 0;
+-- Drop the FKs if upgrading from an earlier schema; they make the rebuild
+-- unaffordable at production cap settings. Names follow Postgres's autogen
+-- pattern (table_column_fkey).
+ALTER TABLE club_overlap DROP CONSTRAINT IF EXISTS club_overlap_club_a_fkey;
+ALTER TABLE club_overlap DROP CONSTRAINT IF EXISTS club_overlap_club_b_fkey;
+
+-- Quiz-answer divergences for /club/{name}: questions where this club's
+-- agree-rate differs most from the platform average. Maintained by the
+-- club-top-answers cron on its own (slow) cadence. Kept out of club_stats
+-- because the answer-join is two orders of magnitude more expensive than
+-- the demographic aggregation -- mixing them forced the whole stats batch
+-- onto the slow cadence and made the cron livelock on initial backfill.
+CREATE TABLE IF NOT EXISTS club_top_answers (
+    club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+    answers_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+    computed_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- LLM-generated description for /club/{name}. `description`/`stats_hash`

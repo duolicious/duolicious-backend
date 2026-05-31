@@ -568,13 +568,44 @@ CREATE TABLE IF NOT EXISTS club_stats (
 -- cron. `overlap` is the number of (capped, activated) members shared by
 -- club_a and club_b. Both directions are stored, so a club's related list is
 -- a single `WHERE club_a = X` range scan on the PK. The page read query
--- ranks these by lift to find each club's most disproportionately-related
--- clubs.
+-- ranks by `overlap / count_members_b` (lift, modulo factors constant across
+-- a fixed A).
+--
+-- `count_members_b` is denormalised so the read query doesn't need to join
+-- `club` per related row. The planner mis-routes equality lookups on
+-- club(name) through the trigram GiST (~50 ms cold per lookup), and a
+-- popular club has hundreds of related rows -- denormalising drops the read
+-- from ~860 ms to <10 ms. The rebuild owns the snapshot; staleness between
+-- rebuilds is bounded by the overlap cron cadence (hours), matching the
+-- staleness already accepted for `overlap` itself.
+--
+-- club_a/club_b deliberately have NO foreign key to club. The FK's per-row
+-- RI check on insert routes through the trigram GiST on club(name) and at
+-- production cap settings (overlap rebuild emits >100k pairs) the cumulative
+-- FK lookups push the rebuild past its statement timeout. The table is
+-- fully derived and rewritten every overlap-cron tick (DELETE + INSERT in
+-- one tx) from person_club, which is itself FK'd to club -- so a deleted
+-- or renamed club leaves stale rows for at most one cron interval before
+-- the next rebuild prunes them.
 CREATE TABLE IF NOT EXISTS club_overlap (
-    club_a TEXT NOT NULL REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
-    club_b TEXT NOT NULL REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+    club_a TEXT NOT NULL,
+    club_b TEXT NOT NULL,
     overlap INT NOT NULL,
+    count_members_b INT NOT NULL,
     PRIMARY KEY (club_a, club_b)
+);
+
+-- Quiz-answer divergences for /club/{name}: questions where this club's
+-- agree-rate differs most from the platform average. Maintained by the
+-- club-top-answers cron on its own (slow) cadence. Kept out of club_stats
+-- because the answer-join (sampled members × ~200 answers each, against
+-- the 40M-row answer table) is two orders of magnitude more expensive than
+-- the demographic aggregation. Mixing them forced the whole stats batch
+-- onto the slow cadence and made the cron livelock on initial backfill.
+CREATE TABLE IF NOT EXISTS club_top_answers (
+    club_name TEXT PRIMARY KEY REFERENCES club(name) ON DELETE CASCADE ON UPDATE CASCADE,
+    answers_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+    computed_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- LLM-generated description for the /club/{name} page. `description` and

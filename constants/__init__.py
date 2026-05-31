@@ -58,10 +58,13 @@ MAX_LLM_PROMPT_FACTS = 6
 MIN_NOTABLE_TRAIT_SCORE = 10
 
 # Related clubs are ranked by lift (n*N / (|A|*|B|)): clubs whose members
-# overlap with A's *disproportionately*, not just the biggest clubs. The
-# global club_overlap precompute (service/cron/clubseo) drops anyone in more
-# than this many clubs, to bound the co-membership self-join's fan-out
+# overlap with A's *disproportionately*, not just the biggest clubs. For a
+# fixed A the ranking simplifies to n / |B|.
+#
+# The global club_overlap precompute (service/cron/clubseo) drops anyone in
+# more than this many clubs, to bound the co-membership self-join's fan-out
 # (quadratic per person) and because hyper-joiners are low-signal for
-# relatedness. The quiz/club quota is 50 (free) / 100 (gold), so this trims
-# only the long tail.
-MAX_CLUBS_PER_PERSON_FOR_OVERLAP = 30
+# relatedness. Set to the gold-tier club quota (100): the free quota is 50
+# and gold lets users join up to 100, so this cap only excludes people
+# operating at the upper end of the gold quota -- production p99.
+MAX_CLUBS_PER_PERSON_FOR_OVERLAP = 100

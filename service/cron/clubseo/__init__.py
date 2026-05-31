@@ -6,6 +6,7 @@ from database.asyncdatabase import api_tx
 from service.cron.cronutil import print_stacktrace, MAX_RANDOM_START_DELAY
 from service.cron.clubseo.sql import (
     Q_CLUB_STATS_BATCH,
+    Q_CLUB_TOP_ANSWERS_BATCH,
     Q_CLUB_OVERLAP_DELETE,
     Q_CLUB_OVERLAP_REBUILD,
     Q_CLUB_SEO_NEXT_REFRESH,
@@ -22,12 +23,14 @@ import random
 import traceback
 
 # ---------------------------------------------------------------------------
-# Worker 1: club-stats batch refresh
+# Worker 1: club-stats batch refresh (demographics + personality)
 #
-# Recomputes the aggregate page payload for a batch of eligible clubs that
-# are dirty or stale, in one grouped pass, and stores it in club_stats. This
-# is the only place the heavy answer/membership aggregates run; the API just
-# reads the result. One DB statement per tick, no external calls.
+# Recomputes the demographic/personality page payload for a batch of
+# eligible clubs that are dirty or stale, in one grouped pass, and stores
+# it in club_stats. Cheap enough to run with a large batch and a frequent
+# tick. The expensive answer-divergence aggregation lives in its own
+# worker (refresh_club_top_answers_forever), so this one never touches
+# the answer table.
 # ---------------------------------------------------------------------------
 
 # How often the stats worker runs a batch. Membership changes mark clubs
@@ -39,17 +42,18 @@ CLUB_STATS_POLL_SECONDS = int(os.environ.get(
     str(300),  # 5 minutes
 ))
 
-# Max clubs recomputed per tick. On first deployment every club is dirty, so
-# this also paces the initial backfill: clubs-needing-stats / BATCH_SIZE
-# batches, one per poll interval.
+# Max clubs recomputed per tick. On first deployment every club is dirty,
+# so this also paces the initial backfill: clubs-needing-stats / BATCH_SIZE
+# batches, one per poll interval. Without the answer-join the per-club cost
+# is small (low-hundreds-of-ms even on the biggest clubs), so a 200 batch
+# completes in a few seconds.
 CLUB_STATS_BATCH_SIZE = int(os.environ.get(
     'DUO_CRON_CLUB_STATS_BATCH_SIZE',
     str(200),
 ))
 
 # Recompute a club's stats at least this often even if its membership hasn't
-# changed, to pick up answer drift (which the dirty flag deliberately does
-# not track).
+# changed, to pick up demographic drift (people aging, changing settings).
 CLUB_STATS_MAX_AGE_DAYS = int(os.environ.get(
     'DUO_CRON_CLUB_STATS_MAX_AGE_DAYS',
     str(7),
@@ -58,12 +62,10 @@ CLUB_STATS_MAX_AGE_DAYS = int(os.environ.get(
 
 async def refresh_club_stats_once():
     async with api_tx('READ COMMITTED') as tx:
-        # The batch joins ~400k sampled members against the 40M-row answer
-        # table; on a cold cache (or during initial backfill, when every
-        # club is dirty) a batch can easily run tens of seconds, well past
-        # the connection-level 5s default. If we ever hit the ceiling, the
-        # tick fails loudly and the next tick retries.
-        await tx.execute('SET LOCAL statement_timeout = 300000')  # 5 minutes
+        # Demographic + personality aggregation only; no answer-table join.
+        # Initial backfill of every eligible club (~1k) at batch=200 takes
+        # a handful of ticks; steady-state ticks only see dirty clubs.
+        await tx.execute('SET LOCAL statement_timeout = 60000')  # 1 minute
         cur = await tx.execute(Q_CLUB_STATS_BATCH, dict(
             batch_size=CLUB_STATS_BATCH_SIZE,
             max_age_days=CLUB_STATS_MAX_AGE_DAYS,
@@ -82,7 +84,56 @@ async def refresh_club_stats_forever():
 
 
 # ---------------------------------------------------------------------------
-# Worker 1b: club-overlap rebuild (related clubs)
+# Worker 2: club top-answer divergence refresh
+#
+# Rebuilds each club's most-divergent quiz answers and stores them in
+# club_top_answers. The per-club answer-join is the heaviest query in the
+# whole feature: a sampled-member × answer fan-out reads hundreds of rows
+# per member from the 40M-row answer table. So this worker runs with a
+# very small batch_size on a slow cadence, and is decoupled from the main
+# stats worker. There's no dirty queue -- the worker just rotates through
+# every eligible club by oldest computed_at.
+# ---------------------------------------------------------------------------
+
+CLUB_TOP_ANSWERS_POLL_SECONDS = int(os.environ.get(
+    'DUO_CRON_CLUB_TOP_ANSWERS_POLL_SECONDS',
+    str(10 * 60),  # 10 minutes
+))
+
+# Tiny batches keep each tick well under the statement timeout: one popular
+# club's answer-join alone is tens of seconds on a cold cache. With ~1k
+# eligible clubs, a full cycle at batch=5 / 10 min ≈ 1.5 days.
+CLUB_TOP_ANSWERS_BATCH_SIZE = int(os.environ.get(
+    'DUO_CRON_CLUB_TOP_ANSWERS_BATCH_SIZE',
+    str(5),
+))
+
+
+async def refresh_club_top_answers_once():
+    async with api_tx('READ COMMITTED') as tx:
+        # The sampled-member × answer fan-out reads hundreds of rows per
+        # member from the 40M-row answer table. The biggest club is tens
+        # of seconds cold; we give the statement headroom rather than have
+        # the cron livelock on it.
+        await tx.execute('SET LOCAL statement_timeout = 600000')  # 10 minutes
+        cur = await tx.execute(Q_CLUB_TOP_ANSWERS_BATCH, dict(
+            batch_size=CLUB_TOP_ANSWERS_BATCH_SIZE,
+        ))
+        row = await cur.fetchone()
+
+    if row and row['upserted_count']:
+        print(f"club_top_answers: recomputed {row['upserted_count']} clubs")
+
+
+async def refresh_club_top_answers_forever():
+    await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
+    while True:
+        await print_stacktrace(refresh_club_top_answers_once)
+        await asyncio.sleep(CLUB_TOP_ANSWERS_POLL_SECONDS)
+
+
+# ---------------------------------------------------------------------------
+# Worker 3: club-overlap rebuild (related clubs)
 #
 # Rebuilds the global co-membership table the page read query ranks by lift.
 # A whole-table rebuild in one transaction; slow cadence because related
@@ -118,7 +169,7 @@ async def refresh_club_overlap_forever():
 
 
 # ---------------------------------------------------------------------------
-# Worker 2: LLM description refresh
+# Worker 4: LLM description refresh
 #
 # Reads a club's precomputed stats (no aggregation), derives the small set
 # of facts worth describing, and fills in club_seo.description via OpenAI.
@@ -149,8 +200,6 @@ OPENAI_MODEL = os.environ.get(
 # without calling OpenAI. Lets the tests exercise the cron without an
 # API key.
 MOCK_DESCRIPTION = os.environ.get('DUO_CRON_CLUB_SEO_MOCK_DESCRIPTION')
-
-print(f'Hello from cron module: {__name__}')
 
 # Constructed once at import; the SDK handles connection pooling and is safe
 # to share across calls.
@@ -299,7 +348,11 @@ async def refresh_club_seo_once():
     # DB's. NULL (no club_seo row yet) means infinitely stale.
     age_days = row['age_days'] if row['age_days'] is not None else float('inf')
 
-    payload = build_prompt_payload(row['stats_json'])
+    # top_answers lives in its own table now; merge it in so the prompt
+    # payload (and its hash) see the freshest divergence facts.
+    stats = dict(row['stats_json'])
+    stats['top_answers'] = row['top_answers_json'] or []
+    payload = build_prompt_payload(stats)
     new_hash = stats_hash(payload)
 
     if is_fresh_enough(old_hash, new_hash, age_days):

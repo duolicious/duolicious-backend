@@ -2264,22 +2264,24 @@ AND
 # never touches person_club/answer. Shared tunables come from `constants`.
 
 # Read the precomputed page payload, its (separately-refreshed) LLM
-# description, and the related-clubs list. Gated on the live member threshold
-# so a club that has dropped below it 404s even while a stale club_stats row
-# lingers. Returns no rows until the cron has computed the club's stats.
+# description, the top-answer divergences, and the related-clubs list.
+# Gated on the live member threshold so a club that has dropped below it
+# 404s even while a stale club_stats row lingers. Returns no rows until the
+# cron has computed the club's stats.
 #
 # Related clubs are derived here, not stored in stats_json, because
 # club_overlap is rebuilt on its own (slow) cadence: ranking live keeps the
 # list fresh between rebuilds without forcing a stats recompute. The ranking
-# is lift -- n*N/(|A|*|B|) -- which for a fixed club A reduces to n/|B| (N and
-# |A| are constant across A's candidates), so it needs only the stored
-# overlap and the other club's size. This is a PK range scan on club_overlap
-# (club_a = X) of at most a few thousand rows, narrowed to the top
-# MAX_RELATED_CLUBS, and get_club memoises the whole result for its TTL.
+# is lift -- n*N/(|A|*|B|) -- which for a fixed club A reduces to n/|B| (N
+# and |A| are constant across A's candidates). `count_members_b` is
+# denormalised into club_overlap so the read doesn't need to join `club`
+# per related row -- equality lookups on club(name) are mis-routed by the
+# planner through the trigram GiST and cost ~50 ms cold per row.
 Q_CLUB_PAGE_READ = f"""
 SELECT
     cs.stats_json,
     seo.description,
+    COALESCE(cta.answers_json, '[]'::jsonb) AS top_answers,
     COALESCE(rel.j, '[]'::json) AS related_clubs
 FROM
     club c
@@ -2287,11 +2289,13 @@ JOIN
     club_stats cs ON cs.club_name = c.name
 LEFT JOIN
     club_seo seo ON seo.club_name = c.name
+LEFT JOIN
+    club_top_answers cta ON cta.club_name = c.name
 LEFT JOIN LATERAL (
     SELECT json_agg(
         json_build_object(
             'name',          club_b,
-            'count_members', count_members,
+            'count_members', count_members_b,
             'overlap',       overlap
         )
         ORDER BY score DESC
@@ -2299,17 +2303,15 @@ LEFT JOIN LATERAL (
     FROM (
         SELECT
             co.club_b,
-            b.count_members,
+            co.count_members_b,
             co.overlap,
-            co.overlap::float8 / b.count_members AS score
+            co.overlap::float8 / co.count_members_b AS score
         FROM
             club_overlap co
-        JOIN
-            club b ON b.name = co.club_b
         WHERE
             co.club_a = c.name
         AND
-            b.count_members >= {MIN_CLUB_PAGE_MEMBERS}
+            co.count_members_b >= {MIN_CLUB_PAGE_MEMBERS}
         ORDER BY
             score DESC
         LIMIT {MAX_RELATED_CLUBS}

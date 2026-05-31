@@ -2114,8 +2114,9 @@ def get_club(name: str, ttl_hash=None):
 
     return {
         **row['stats_json'],
-        'description': row['description'],
-        'related_clubs': row['related_clubs']
+        'description':   row['description'],
+        'top_answers':   row['top_answers'],
+        'related_clubs': row['related_clubs'],
     }
 
 @lru_cache(maxsize=1)
