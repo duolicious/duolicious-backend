@@ -14,8 +14,10 @@ from constants import (
 #
 # Personality maths: `person.personality` is a 47-dim pgvector (46 traits
 # + 1 padding dim), unit-normalised and then scaled by an answer-count
-# weight. A per-trait mean rescaled by SQRT(47) and clamped to +/-100 maps
-# an evenly-spread unit component to roughly +/-100.
+# weight, so each component lies in [-1, 1]. The per-trait mean across
+# members therefore also lies in [-1, 1], with +/-1 meaning every member's
+# vector points entirely along that dim. Multiplying by 100 turns that
+# into an interpretable -100..100 lean; the clamp is defence in depth.
 #
 # Lookup tables store id = 1 as "Unanswered" for every attribute except
 # `gender` (where id = 1 is the real value "Man"), so the demographic CTEs
@@ -177,7 +179,7 @@ WITH target AS MATERIALIZED (
                     'trait',     t.name,
                     'min_label', t.min_label,
                     'max_label', t.max_label,
-                    'score',     GREATEST(-100, LEAST(100, ROUND((pv.arr[t.id] * SQRT(47) * 100)::numeric)::int))
+                    'score',     GREATEST(-100, LEAST(100, ROUND((pv.arr[t.id] * 100)::numeric)::int))
                 )
                 ORDER BY t.id
             ),
