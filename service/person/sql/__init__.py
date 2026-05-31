@@ -1333,10 +1333,14 @@ OFFSET %(o)s
 """
 
 Q_INBOX_INFO = """
-WITH person_info AS (
+WITH partner AS (
+    SELECT object_person_id AS id FROM messaged WHERE subject_person_id = %(person_id)s
+    UNION
+    SELECT subject_person_id AS id FROM messaged WHERE object_person_id = %(person_id)s
+), person_info AS (
     SELECT
-        id_table.id AS person_id,
-        id_table.uuid AS person_uuid,
+        partner.id AS person_id,
+        prospect.uuid AS person_uuid,
         prospect.id IS NULL AS is_prospect_deleted,
         COALESCE(prospect.activated, FALSE) AS is_prospect_activated,
         prospect.name AS name,
@@ -1350,7 +1354,7 @@ WITH person_info AS (
             WHERE
                 subject_person_id = %(person_id)s
             AND
-                object_person_id = id_table.id
+                object_person_id = partner.id
         ) AS person_messaged_prospect,
         EXISTS (
             SELECT
@@ -1358,7 +1362,7 @@ WITH person_info AS (
             FROM
                 messaged
             WHERE
-                subject_person_id = id_table.id
+                subject_person_id = partner.id
             AND
                 object_person_id = %(person_id)s
         ) AS prospect_messaged_person,
@@ -1370,7 +1374,7 @@ WITH person_info AS (
             WHERE
                 subject_person_id = %(person_id)s
             AND
-                object_person_id = id_table.id
+                object_person_id = partner.id
         ) AS person_skipped_prospect,
         EXISTS (
             SELECT
@@ -1378,38 +1382,16 @@ WITH person_info AS (
             FROM
                 skipped
             WHERE
-                subject_person_id = id_table.id
+                subject_person_id = partner.id
             AND
                 object_person_id = %(person_id)s
         ) AS prospect_skipped_person
     FROM
-        (
-            SELECT DISTINCT
-                id,
-                uuid
-            FROM
-                person
-            JOIN
-                messaged
-            ON
-                messaged.subject_person_id = %(person_id)s
-            AND
-                messaged.object_person_id = person.id
-            OR
-                messaged.subject_person_id = person.id
-            AND
-                messaged.object_person_id = %(person_id)s
-        ) AS id_table
+        partner
     LEFT JOIN
         person AS prospect
     ON
-        prospect.id = id_table.id
-    LEFT JOIN
-        skipped
-    ON
-        subject_person_id = prospect.id
-    AND
-        object_person_id = %(person_id)s
+        prospect.id = partner.id
 )
 SELECT
     person_id,
