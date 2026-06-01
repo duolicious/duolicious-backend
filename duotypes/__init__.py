@@ -275,8 +275,6 @@ class SessionInfo(BaseModel):
     session_token_hash: str
     person_id: Optional[int]
     person_uuid: Optional[str]
-    # Derived from `person_id` by `set_onboarded` below; the default exists only
-    # so callers don't have to pass this computed field at construction time.
     onboarded: bool = False
     signed_in: bool
     pending_club_name: Optional[str]

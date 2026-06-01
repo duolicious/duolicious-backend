@@ -400,8 +400,6 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
 
         tx.execute(Q_UPDATE_LAST, dict(person_uuid=row['person_uuid']))
 
-    # `signed_in` just flipped to TRUE (and the pending club may have been
-    # consumed), so any cached pre-sign-in view of this session is now stale.
     sessioncache.delete_session(s.session_token_hash)
 
     return dict(
@@ -416,8 +414,6 @@ def post_sign_out(s: t.SessionInfo):
     with api_tx('READ COMMITTED') as tx:
         tx.execute(Q_DELETE_DUO_SESSION, params)
 
-    # Security-critical: a signed-out token must stop validating at once
-    # rather than lingering until the cache TTL.
     sessioncache.delete_session(s.session_token_hash)
 
 def _sign_in_with_social(
@@ -814,8 +810,6 @@ def post_finish_onboarding(s: t.SessionInfo):
 
         clubs = _handle_pending_club(tx, row['person_id'], s.pending_club_name)
 
-    # `person_id` was just assigned to this session, flipping it from
-    # not-onboarded to onboarded; drop the stale cached view.
     sessioncache.delete_session(s.session_token_hash)
 
     return dict(**row, **clubs)
@@ -1047,10 +1041,6 @@ def delete_or_ban_account(
 
         tx.executemany(Q_DELETE_ACCOUNT, params_seq=rows)
 
-    # Self-deletion: the account's sessions were cascade-deleted, so purge this
-    # caller's cached entry immediately. Any *other* sessions of the same person
-    # (other devices), and admin bans where we don't hold a token hash, age out
-    # within the cache TTL instead.
     if s:
         sessioncache.delete_session(s.session_token_hash)
 

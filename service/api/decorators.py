@@ -164,9 +164,6 @@ SELECT
     duo_session.email,
     duo_session.signed_in,
     duo_session.pending_club_name,
-    -- Cast to float8 so psycopg yields a Python float, not a Decimal
-    -- (EXTRACT returns numeric on PG14+), keeping the arithmetic in
-    -- sessioncache.put_session simple.
     EXTRACT(EPOCH FROM duo_session.session_expiry)::double precision
         AS session_expiry_epoch
 FROM
@@ -275,10 +272,6 @@ def require_auth(expected_onboarding_status, expected_sign_in_status, auth='requ
 
             session_token_hash = sha512(session_token)
 
-            # Fast path: a previously-resolved session served from Redis,
-            # keeping the common case off the shared DB connection lock. On a
-            # miss (or any Redis error) we fall back to the database and
-            # populate the cache for next time.
             session_info = sessioncache.get_session(session_token_hash)
 
             row = None
