@@ -21,7 +21,7 @@ MIN_CLUB_PAGE_MEMBERS = 50
 # club's stats. The biggest clubs have thousands of members; this sample
 # size matches the full club's proportions closely. Displayed
 # `member_count` is always the true count, not the sample size.
-MAX_CLUB_SAMPLE_MEMBERS = 2000
+MAX_CLUB_SAMPLE_MEMBERS = 500
 
 # Privacy floor: never display a demographic/overlap category with fewer
 # than this many members, to prevent re-identification.

@@ -1,5 +1,9 @@
+from urllib.parse import quote
+import os
+
+OFFPEAK_FUNCTION_OVERRIDE = os.environ.get('DUO_OFFPEAK_FUNCTION_OVERRIDE', '').lower()
+
 def append_query(base: str, params: dict) -> str:
-    from urllib.parse import quote
     sep = '&' if '?' in base else '?'
     encoded = '&'.join(
         f'{quote(k, safe="")}={quote(v, safe="")}'
@@ -40,3 +44,33 @@ def truncate_text(
     text = text if text == original else text + ellipsis
 
     return text
+
+
+def is_offpeak(max_load_pct: float = 75.0, suppressed_action: str = '') -> bool:
+    if OFFPEAK_FUNCTION_OVERRIDE == 'true':
+        return True
+    elif OFFPEAK_FUNCTION_OVERRIDE == 'false':
+        return False
+
+    try:
+        load_1min, load_5min, _ = os.getloadavg()
+    except (OSError, AttributeError):
+        return True
+
+    ncpu = os.cpu_count() or 1
+    pct_1min = load_1min / ncpu * 100
+    pct_5min = load_5min / ncpu * 100
+
+    _is_offpeak = pct_1min < max_load_pct and pct_5min < max_load_pct
+
+    if _is_offpeak:
+        return True
+
+    print(
+        f'is_offpeak returned False '
+        f'load 1m={pct_1min:.0f}%, 5m={pct_5min:.0f}% '
+        f'(target < {max_load_pct:.0f}%)'
+        + (f' suppressed ' + suppressed_action if suppressed_action else '')
+    )
+
+    return False
