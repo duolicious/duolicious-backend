@@ -44,10 +44,22 @@ WITH to_deactivate AS (
         updated_person
     WHERE
         duo_session.person_id = updated_person.id
+    RETURNING
+        duo_session.session_token_hash
+), deleted_session_hashes AS (
+    SELECT
+        COALESCE(array_agg(session_token_hash), ARRAY[]::TEXT[]) AS hashes
+    FROM
+        deleted_duo_session
 )
+-- Cross join attaches the same flat list of just-deleted session token hashes
+-- to every row so the caller can evict those cached sessions. Empty on a dry
+-- run, since `updated_person` (and thus the cascade) is empty then.
 SELECT
-    id,
-    email
+    to_deactivate.id,
+    to_deactivate.email,
+    deleted_session_hashes.hashes AS session_token_hashes
 FROM
-    to_deactivate
+    to_deactivate,
+    deleted_session_hashes
 """

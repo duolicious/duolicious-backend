@@ -3,10 +3,11 @@
 # Regression test for the session cache (see sessioncache/ and
 # `require_auth` in service/api/decorators.py).
 #
-# `delete_or_ban_account` calls `sessioncache.delete_session` so that a
-# deleted account's bearer token stops authenticating immediately, instead of
-# being served from the Redis cache until its TTL expires. This test guards
-# that hook: it deletes an account and then reuses the same token.
+# `delete_or_ban_account` evicts the cached sessions of the deleted account so
+# its bearer tokens stop authenticating immediately, instead of being served
+# from the Redis cache until the TTL expires. It evicts *every* device's
+# session (not just the calling one), so this test signs in twice for the same
+# account and checks both tokens are rejected after deletion.
 #
 # The probe endpoint matters. `/check-session-token` re-queries `person` in
 # its handler and 401s on a missing row, so it would reject the token whether
@@ -27,22 +28,32 @@ q "delete from person"
 
 ../util/create-user.sh user1 0 0
 
-# Sign in, then make an authed request so the session is resolved from Postgres
-# and written into the cache.
+# Sign in on "device A", then make an authed request so the session is resolved
+# from Postgres and written into the cache.
 assume_role user1
 c GET '/search-clubs?q=my-club'
+token_a="$SESSION_TOKEN"
 
-# Sanity check: the session is cached in Postgres before deletion.
-[[ "$(q "select count(*) from duo_session where signed_in")" -eq 1 ]]
+# Sign in again on "device B" (a second session for the same account) and cache
+# it the same way.
+assume_role user1
+c GET '/search-clubs?q=my-club'
+token_b="$SESSION_TOKEN"
 
-# Delete the account using this very session. The handler cascade-deletes the
-# session row and must also evict the cached entry.
+# Two distinct signed-in sessions exist and are cached.
+[[ "$(q "select count(*) from duo_session where signed_in")" -eq 2 ]]
+
+# Delete the account using device B. The handler cascade-deletes both session
+# rows and must evict both cached entries.
 c DELETE /account
 
-# The underlying session row is gone...
 [[ "$(q "select count(*) from duo_session")" -eq 0 ]]
 
-# ...and the same token must now be rejected at `require_auth` rather than
-# served from a stale cache entry. Without the eviction, this would return 200
-# until the cache TTL elapsed.
+# The calling device's token must now be rejected at `require_auth`...
+SESSION_TOKEN="$token_b"
+! c GET '/search-clubs?q=my-club' || exit 1
+
+# ...and so must the *other* device's token, rather than being served from a
+# stale cache entry until the TTL elapsed.
+SESSION_TOKEN="$token_a"
 ! c GET '/search-clubs?q=my-club' || exit 1

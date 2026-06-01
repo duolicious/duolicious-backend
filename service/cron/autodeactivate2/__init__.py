@@ -6,6 +6,7 @@ from smtp import aws_smtp
 import asyncio
 import os
 import random
+import sessioncache
 
 DRY_RUN = os.environ.get(
     'DUO_CRON_AUTODEACTIVATE2_DRY_RUN',
@@ -40,6 +41,15 @@ async def autodeactivate2_once():
     async with api_tx() as tx:
         cur_deactivated = await tx.execute(Q_DEACTIVATE, params)
         rows_deactivated = await cur_deactivated.fetchall()
+
+    # Evict the cached sessions of everyone we just deactivated so their bearer
+    # tokens stop authenticating immediately instead of lingering until the
+    # cache TTL. Every row carries the same aggregated list, so read it once
+    # (empty on a dry run, where nothing was deleted).
+    session_token_hashes = (
+        rows_deactivated[0]['session_token_hashes'] if rows_deactivated else [])
+    for session_token_hash in session_token_hashes:
+        sessioncache.delete_session(session_token_hash)
 
     for p in rows_deactivated:
         if DRY_RUN:

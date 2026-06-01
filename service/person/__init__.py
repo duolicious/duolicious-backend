@@ -1039,10 +1039,24 @@ def delete_or_ban_account(
         else:
             raise ValueError('At least one parameter must not be None')
 
+        # Capture every session token belonging to the affected people *before*
+        # Q_DELETE_ACCOUNT cascade-deletes the rows, so we can evict their
+        # cached copies once the transaction commits. This covers all of a
+        # person's devices (not just the calling session) and the admin-ban
+        # path (where there's no calling session at all).
+        person_ids = [r['person_id'] for r in rows if r['person_id'] is not None]
+        session_token_hashes = [
+            r['session_token_hash']
+            for r in tx.execute(
+                Q_SELECT_SESSION_TOKEN_HASHES_BY_PERSON_ID,
+                params=dict(person_ids=person_ids),
+            ).fetchall()
+        ] if person_ids else []
+
         tx.executemany(Q_DELETE_ACCOUNT, params_seq=rows)
 
-    if s:
-        sessioncache.delete_session(s.session_token_hash)
+    for session_token_hash in session_token_hashes:
+        sessioncache.delete_session(session_token_hash)
 
     return rows
 

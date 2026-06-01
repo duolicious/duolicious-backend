@@ -14,7 +14,7 @@ Correctness model
 -----------------
 The cache is keyed by `session_token_hash` and stores only the fields
 `require_auth` needs. The cached fields are nearly immutable per token; the
-few mutations that change them invalidate the entry explicitly via
+mutations that change them invalidate the entry explicitly via
 `delete_session()`:
 
   * sign-out                  -> session deleted        (post_sign_out)
@@ -22,22 +22,21 @@ few mutations that change them invalidate the entry explicitly via
   * finish onboarding         -> `person_id` is set     (post_finish_onboarding)
   * search-preference update  -> `pending_club_name`    (get_search)
                                  cleared
-  * self account deletion     -> session cascade-deleted (delete_or_ban_account)
+  * account deletion / ban    -> sessions cascade-deleted (delete_or_ban_account)
+  * auto-deactivate cron      -> sessions deleted        (autodeactivate2)
 
-`SESSION_CACHE_TTL_SECONDS` is the backstop for everything explicit
-invalidation can't cover immediately:
+Person-level deletions (account deletion, admin bans, the auto-deactivate
+cron) remove sessions by `person_id`, which would otherwise leave the cache —
+keyed by token hash — with no key to evict. They handle this by reading the
+affected `session_token_hash`es before the delete and evicting every one, so a
+person's *other* devices are covered too, not just the calling session.
 
-  * Paths that can't supply a token hash cheaply — admin bans and account
-    deletes affecting a person's *other* sessions, and the auto-deactivate
-    cron (a separate process). Those delete sessions by `person_id`, and the
-    cache has no person -> hashes index, so the entries age out within the TTL.
-  * The read-then-recache race: a request that misses the cache reads the row
-    from Postgres and then writes it back; if an invalidating mutation lands in
-    that (sub-millisecond, no-lock-held) window, the re-write can resurrect the
-    just-stale row. Worst case it stays cached for one TTL.
-
-So the TTL is the true upper bound on staleness for every field; explicit
-invalidation only shrinks the common case to ~immediate.
+`SESSION_CACHE_TTL_SECONDS` is then the backstop for the one case explicit
+invalidation can't cover: the read-then-recache race. A request that misses
+the cache reads the row from Postgres and then writes it back; if an
+invalidating mutation lands in that (sub-millisecond, no-lock-held) window, the
+re-write can resurrect the just-stale row, and it stays cached for at most one
+TTL.
 
 Redis is treated as a best-effort accelerator: any Redis error degrades to a
 cache miss / no-op so authentication keeps working off Postgres alone.

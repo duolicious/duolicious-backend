@@ -61,6 +61,10 @@ do_test () {
   jc POST /join-club -d '{ "name": "my-club-2" }'
   jc POST /join-club -d '{ "name": "my-club-3" }'
 
+  # The join-club calls above resolve and cache this session; capture its token
+  # so we can later confirm deactivation evicts it from the cache.
+  local deactivated_token="$SESSION_TOKEN"
+
   assume_role 'will-remain-active3@duolicious.app'
   results=$(c GET '/search-clubs?q=my-club')
   expected=$(
@@ -115,6 +119,12 @@ do_test () {
   )
 
   diff <(echo "$results") <(echo "$expected")
+
+  # The cron deletes the deactivated user's session row (asserted above); it
+  # must also evict the cached copy, so the previously-cached token is rejected
+  # at `require_auth` instead of being served from cache until the TTL.
+  SESSION_TOKEN="$deactivated_token"
+  ! c GET '/search-clubs?q=my-club' || exit 1
 }
 
 do_test

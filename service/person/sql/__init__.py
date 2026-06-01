@@ -1485,6 +1485,19 @@ ORDER BY
     person_id
 """
 
+# Used to evict cached sessions (keyed by token hash) before Q_DELETE_ACCOUNT
+# cascade-removes the rows. Covers every device of every affected person, so
+# both self-deletion and admin bans clear the session cache immediately rather
+# than waiting out the TTL.
+Q_SELECT_SESSION_TOKEN_HASHES_BY_PERSON_ID = """
+SELECT
+    session_token_hash
+FROM
+    duo_session
+WHERE
+    person_id = ANY(%(person_ids)s)
+"""
+
 Q_DELETE_ACCOUNT = """
 WITH deleted_inbox AS (
     DELETE FROM inbox
