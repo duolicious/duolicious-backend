@@ -1,5 +1,6 @@
 import psycopg
 import duotypes as t
+import sessioncache
 from database import api_tx
 from typing import Tuple
 from service.search.sql import (
@@ -112,24 +113,34 @@ def get_search(
 
 
         if search_type == 'quiz-search':
-            return _quiz_search_results(
+            result = _quiz_search_results(
                 tx=tx,
                 searcher_person_id=s.person_id)
 
         elif search_type == 'uncached-search':
-            return _uncached_search_results(
+            result = _uncached_search_results(
                 tx=tx,
                 searcher_person_id=s.person_id,
                 no=no,
                 gender_preference=gender_preference)
 
         elif search_type == 'cached-search':
-            return _cached_search_results(
+            result = _cached_search_results(
                 tx=tx,
                 searcher_person_id=s.person_id, no=no)
 
         else:
             raise Exception('Unexpected quiz type')
+
+    # Q_SEARCH_PREFERENCE clears `pending_club_name` for this person. Once the
+    # transaction has committed, drop the now-stale cached session so the
+    # cleared value is visible immediately on this device; other sessions of
+    # the same person age out within the cache TTL. Skip the call when there
+    # was nothing pending to clear.
+    if s.pending_club_name is not None:
+        sessioncache.delete_session(s.session_token_hash)
+
+    return result
 
 
 def get_feed(s: t.SessionInfo, before: datetime):

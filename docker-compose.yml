@@ -122,6 +122,8 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
+      redis:
+        condition: service_started
     volumes:
       - .:/app
     environment:

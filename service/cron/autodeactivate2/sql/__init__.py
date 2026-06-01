@@ -44,10 +44,31 @@ WITH to_deactivate AS (
         updated_person
     WHERE
         duo_session.person_id = updated_person.id
+    RETURNING
+        duo_session.person_id,
+        duo_session.session_token_hash
+), deleted_session_hashes AS (
+    SELECT
+        person_id,
+        array_agg(session_token_hash) AS hashes
+    FROM
+        deleted_duo_session
+    GROUP BY
+        person_id
 )
+-- Each person row carries only its own just-deleted session token hashes so the
+-- caller can evict those cached sessions. The LEFT JOIN yields an empty array
+-- for persons with no deleted sessions, including every row on a dry run (when
+-- `updated_person`, and thus the cascade, is empty).
 SELECT
-    id,
-    email
+    to_deactivate.id,
+    to_deactivate.email,
+    COALESCE(deleted_session_hashes.hashes, ARRAY[]::TEXT[])
+        AS session_token_hashes
 FROM
     to_deactivate
+LEFT JOIN
+    deleted_session_hashes
+ON
+    deleted_session_hashes.person_id = to_deactivate.id
 """

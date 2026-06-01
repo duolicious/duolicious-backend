@@ -6,6 +6,7 @@ from smtp import aws_smtp
 import asyncio
 import os
 import random
+import sessioncache
 
 DRY_RUN = os.environ.get(
     'DUO_CRON_AUTODEACTIVATE2_DRY_RUN',
@@ -42,13 +43,19 @@ async def autodeactivate2_once():
         rows_deactivated = await cur_deactivated.fetchall()
 
     for p in rows_deactivated:
+        for session_token_hash in p['session_token_hashes']:
+            await asyncio.to_thread(
+                sessioncache.delete_session, session_token_hash)
+
+    for p in rows_deactivated:
+        person = dict(id=p['id'], email=p['email'])
         if DRY_RUN:
             print(
                 f'  - autodeactive2: DUO_CRON_AUTODEACTIVATE2_DRY_RUN env '
-                f'var prevented deactivation of {p}'
+                f'var prevented deactivation of {person}'
             )
         else:
-            print(f'  - autodeactive2: deactivated {p}')
+            print(f'  - autodeactive2: deactivated {person}')
 
     for p in rows_deactivated:
         maybe_send_email(p['email'])

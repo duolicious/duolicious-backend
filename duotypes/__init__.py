@@ -275,7 +275,7 @@ class SessionInfo(BaseModel):
     session_token_hash: str
     person_id: Optional[int]
     person_uuid: Optional[str]
-    onboarded: bool
+    onboarded: bool = False
     signed_in: bool
     pending_club_name: Optional[str]
 

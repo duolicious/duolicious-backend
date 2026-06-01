@@ -11,6 +11,7 @@ COPY \
   --exclude=vm \
   . /app
 
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt \
+  && python -m spacy download en_core_web_sm
 
 CMD /app/cron.main.sh

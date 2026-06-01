@@ -4,6 +4,7 @@ from typing import Any, Optional, Iterable, Tuple, Literal
 import duotypes as t
 import json
 import secrets
+import sessioncache
 from duohash import sha512
 from PIL import Image
 import io
@@ -399,6 +400,8 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
 
         tx.execute(Q_UPDATE_LAST, dict(person_uuid=row['person_uuid']))
 
+    sessioncache.delete_session(s.session_token_hash)
+
     return dict(
         onboarded=row['person_id'] is not None,
         **row,
@@ -410,6 +413,8 @@ def post_sign_out(s: t.SessionInfo):
 
     with api_tx('READ COMMITTED') as tx:
         tx.execute(Q_DELETE_DUO_SESSION, params)
+
+    sessioncache.delete_session(s.session_token_hash)
 
 def _sign_in_with_social(
     provider: str,
@@ -805,6 +810,8 @@ def post_finish_onboarding(s: t.SessionInfo):
 
         clubs = _handle_pending_club(tx, row['person_id'], s.pending_club_name)
 
+    sessioncache.delete_session(s.session_token_hash)
+
     return dict(**row, **clubs)
 
 def get_me(
@@ -1032,7 +1039,19 @@ def delete_or_ban_account(
         else:
             raise ValueError('At least one parameter must not be None')
 
+        person_ids = [r['person_id'] for r in rows if r['person_id'] is not None]
+        session_token_hashes = [
+            r['session_token_hash']
+            for r in tx.execute(
+                Q_SELECT_SESSION_TOKEN_HASHES_BY_PERSON_ID,
+                params=dict(person_ids=person_ids),
+            ).fetchall()
+        ] if person_ids else []
+
         tx.executemany(Q_DELETE_ACCOUNT, params_seq=rows)
+
+    for session_token_hash in session_token_hashes:
+        sessioncache.delete_session(session_token_hash)
 
     return rows
 

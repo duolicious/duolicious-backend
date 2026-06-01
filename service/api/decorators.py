@@ -15,6 +15,7 @@ from antiabuse.antispam.signupemail import normalize_email
 from pydantic import ValidationError
 from functools import lru_cache
 import time
+import sessioncache
 
 enable_mocking_file = (
     Path(__file__).parent.parent.parent /
@@ -162,7 +163,9 @@ SELECT
     person.uuid::TEXT AS person_uuid,
     duo_session.email,
     duo_session.signed_in,
-    duo_session.pending_club_name
+    duo_session.pending_club_name,
+    EXTRACT(EPOCH FROM duo_session.session_expiry)::double precision
+        AS session_expiry_epoch
 FROM
     duo_session
 LEFT JOIN
@@ -268,28 +271,31 @@ def require_auth(expected_onboarding_status, expected_sign_in_status, auth='requ
                 return 'Missing or malformed authorization header', 400
 
             session_token_hash = sha512(session_token)
-            params = dict(session_token_hash=session_token_hash)
+
+            session_info = sessioncache.get_session(session_token_hash)
+
             row = None
-            with api_tx('READ COMMITTED') as tx:
-                row = tx.execute(Q_GET_SESSION, params).fetchone()
+            if session_info is None:
+                params = dict(session_token_hash=session_token_hash)
+                with api_tx('READ COMMITTED') as tx:
+                    row = tx.execute(Q_GET_SESSION, params).fetchone()
 
             if row:
-                email=row['email']
-                person_id=row['person_id']
-                person_uuid=row['person_uuid']
-                signed_in=row['signed_in']
-                pending_club_name=row['pending_club_name']
-
                 session_info = duotypes.SessionInfo(
-                    email=email,
-                    person_id=person_id,
-                    person_uuid=person_uuid,
-                    signed_in=signed_in,
+                    email=row['email'],
+                    person_id=row['person_id'],
+                    person_uuid=row['person_uuid'],
+                    signed_in=row['signed_in'],
                     session_token_hash=session_token_hash,
-                    pending_club_name=pending_club_name,
+                    pending_club_name=row['pending_club_name'],
+                )
+                sessioncache.put_session(
+                    session_info,
+                    session_expiry_epoch=row['session_expiry_epoch'],
                 )
 
-                g.normalized_email = normalize_email(email)
+            if session_info is not None:
+                g.normalized_email = normalize_email(session_info.email)
             else:
                 if auth == 'optional':
                     return call_anonymous(*args, **kwargs)

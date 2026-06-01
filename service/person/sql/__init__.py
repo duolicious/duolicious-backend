@@ -1485,6 +1485,15 @@ ORDER BY
     person_id
 """
 
+Q_SELECT_SESSION_TOKEN_HASHES_BY_PERSON_ID = """
+SELECT
+    session_token_hash
+FROM
+    duo_session
+WHERE
+    person_id = ANY(%(person_ids)s)
+"""
+
 Q_DELETE_ACCOUNT = """
 WITH deleted_inbox AS (
     DELETE FROM inbox
