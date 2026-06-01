@@ -60,7 +60,7 @@ REDIS_PORT: int = int(os.environ.get("DUO_REDIS_PORT", 6379))
 # this only bounds staleness for the person-level deletes described above.
 SESSION_CACHE_TTL_SECONDS: int = 60
 
-_KEY_PREFIX = "session:"
+_KEY_PREFIX = "cached_duo_session:"
 
 # Dedicated synchronous client. The rate limiter talks to Redis through its own
 # storage URI and the chat service uses redis.asyncio; this is the only blocking
