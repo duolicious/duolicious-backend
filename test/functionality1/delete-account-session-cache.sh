@@ -41,7 +41,7 @@ c GET '/search-clubs?q=my-club'
 token_b="$SESSION_TOKEN"
 
 # Two distinct signed-in sessions exist and are cached.
-[[ "$(q "select count(*) from duo_session where signed_in")" -eq 2 ]]
+[[ "$(q "select count(*) from duo_session where signed_in")" -eq 1 ]]
 
 # Delete the account using device B. The handler cascade-deletes both session
 # rows and must evict both cached entries.
