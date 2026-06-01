@@ -1004,6 +1004,10 @@ def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo):
     )
 
     with api_tx('READ COMMITTED') as tx:
+        # The query is cheap (a few thousand index-only-scanned rows) but its
+        # estimated cost crosses the default jit_optimize/inline thresholds for
+        # users with large inboxes, so JIT spends ~1s compiling for no benefit.
+        tx.execute('SET LOCAL jit = off')
         return tx.execute(Q_INBOX_INFO, params).fetchall()
 
 def delete_or_ban_account(
