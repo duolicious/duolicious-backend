@@ -803,9 +803,36 @@ FROM
 """
 
 Q_SELECT_PROSPECT_PROFILE = f"""
-WITH prospect AS (
+WITH prospect_base AS (
+    SELECT *
+    FROM person AS prospect
+    WHERE
+        uuid = uuid_or_null(%(prospect_uuid)s::TEXT)
+    AND
+        activated
+), viewer_rel AS MATERIALIZED (
+    -- Tiny (one row, two booleans). MATERIALIZED so the planner evaluates
+    -- these as single-row index probes on (subject_person_id,
+    -- object_person_id). Without the barrier the planner inlines the CTE and
+    -- pulls the EXISTS clauses into the visibility filter's OR/NOT branches,
+    -- where it can only express them as hashed subplans that scan *every* row
+    -- targeting the viewer - so the cost grows with how many people have
+    -- messaged or skipped the viewer.
     SELECT
-        *,
+        EXISTS (
+            SELECT 1 FROM messaged
+            WHERE messaged.subject_person_id = prospect_base.id
+              AND messaged.object_person_id  = %(person_id)s
+        ) AS prospect_has_messaged_person,
+        EXISTS (
+            SELECT 1 FROM skipped
+            WHERE skipped.subject_person_id = prospect_base.id
+              AND skipped.object_person_id  = %(person_id)s
+        ) AS prospect_skipped_person
+    FROM prospect_base
+), prospect AS (
+    SELECT
+        prospect.*,
 
         (
             SELECT EXTRACT(YEAR FROM AGE(prospect.date_of_birth))::SMALLINT
@@ -823,29 +850,13 @@ WITH prospect AS (
 
         (
             ROUND(EXTRACT(EPOCH FROM NOW() - sign_up_time))
-        ) AS seconds_since_sign_up
+        ) AS seconds_since_sign_up,
+
+        viewer_rel.prospect_has_messaged_person
     FROM
-        person AS prospect
-    LEFT JOIN LATERAL (
-        SELECT
-            EXISTS (
-                SELECT
-                    1
-                FROM
-                    messaged
-                WHERE
-                    messaged.subject_person_id = prospect.id
-                AND
-                    messaged.object_person_id = %(person_id)s
-            ) AS prospect_has_messaged_person
-    ) AS prospect_has_messaged_person
-    ON
-        TRUE
+        prospect_base AS prospect,
+        viewer_rel
     WHERE
-        uuid = uuid_or_null(%(prospect_uuid)s::TEXT)
-    AND
-        activated
-    AND (
         -- Signed-in viewer: gated by hide_me_from_strangers, verification
         -- level, and skipped status.
         (
@@ -853,7 +864,7 @@ WITH prospect AS (
         AND (
                 NOT prospect.hide_me_from_strangers
             OR
-                prospect_has_messaged_person
+                viewer_rel.prospect_has_messaged_person
         )
         AND (
             prospect.privacy_verification_level_id <= (
@@ -865,23 +876,10 @@ WITH prospect AS (
                     id = %(person_id)s
             )
             OR
-                EXISTS (
-                    SELECT 1
-                    FROM messaged
-                    WHERE
-                        messaged.subject_person_id = prospect.id
-                    AND
-                        messaged.object_person_id = %(person_id)s
-                )
+                viewer_rel.prospect_has_messaged_person
         )
         AND
-            NOT EXISTS (
-                SELECT 1
-                FROM skipped
-                WHERE
-                    subject_person_id = prospect.id AND
-                    object_person_id  = %(person_id)s
-            )
+            NOT viewer_rel.prospect_skipped_person
         )
         OR
         -- Anonymous viewer: only when the prospect has opted in to
@@ -895,7 +893,6 @@ WITH prospect AS (
         OR
         -- Self-view.
         prospect.id = %(person_id)s
-    )
 ), updated_visited AS (
     INSERT INTO visited (
         subject_person_id,
@@ -946,23 +943,12 @@ WITH prospect AS (
         )::SMALLINT AS j
     FROM
         negative_dot_prod
-), photo_uuids AS (
-    SELECT COALESCE(json_agg(photo.uuid ORDER BY position), '[]'::json) AS j
-    FROM photo
-    JOIN prospect
-    ON   prospect.id = photo.person_id
-), photo_extra_exts AS (
-    SELECT COALESCE(json_agg(photo.extra_exts ORDER BY position), '[]'::json) AS j
-    FROM photo
-    JOIN prospect
-    ON   prospect.id = photo.person_id
-), photo_blurhashes AS (
-    SELECT COALESCE(json_agg(photo.blurhash ORDER BY position), '[]'::json) AS j
-    FROM photo
-    JOIN prospect
-    ON   prospect.id = photo.person_id
-), photo_verifications AS (
-    SELECT COALESCE(json_agg(photo.verified ORDER BY position), '[]'::json) AS j
+), photos AS (
+    SELECT
+        COALESCE(json_agg(photo.uuid       ORDER BY position), '[]'::json) AS uuids,
+        COALESCE(json_agg(photo.extra_exts ORDER BY position), '[]'::json) AS extra_exts,
+        COALESCE(json_agg(photo.blurhash   ORDER BY position), '[]'::json) AS blurhashes,
+        COALESCE(json_agg(photo.verified   ORDER BY position), '[]'::json) AS verifications
     FROM photo
     JOIN prospect
     ON   prospect.id = photo.person_id
@@ -1087,10 +1073,10 @@ WITH prospect AS (
 SELECT
     json_build_object(
         'person_id',                 (SELECT id                        FROM prospect),
-        'photo_uuids',               (SELECT j                         FROM photo_uuids),
-        'photo_extra_exts',          (SELECT j                         FROM photo_extra_exts),
-        'photo_blurhashes',          (SELECT j                         FROM photo_blurhashes),
-        'photo_verifications',       (SELECT j                         FROM photo_verifications),
+        'photo_uuids',               (SELECT uuids                     FROM photos),
+        'photo_extra_exts',          (SELECT extra_exts                FROM photos),
+        'photo_blurhashes',          (SELECT blurhashes                FROM photos),
+        'photo_verifications',       (SELECT verifications             FROM photos),
         'audio_bio_uuid',            (SELECT j                         FROM audio_bio_uuid),
         'name',                      (SELECT name                      FROM prospect),
         'age',                       (SELECT age                       FROM prospect),
