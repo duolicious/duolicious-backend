@@ -18,6 +18,7 @@ source ../util/setup.sh
 
 set -xe
 
+q "delete from banned_person"
 q "delete from banned_person_admin_token"
 q "delete from skipped"
 q "delete from duo_session"
@@ -51,3 +52,10 @@ c GET "/admin/ban/${ban_token}"
 # a stale cache entry.
 SESSION_TOKEN="$token1"
 ! c GET '/search-clubs?q=my-club' || exit 1
+
+# Banning user1 inserts a `banned_person` row carrying their session IP
+# (see Q_ADMIN_BAN). Every test shares the same source IP, and `_check_banned`
+# rejects `request-otp` when *either* the email or the IP is banned, so leaving
+# this row would make `create-user.sh` fail for every later test in the suite
+# (e.g. banned-display-names.sh). Clear it so we don't poison them.
+q "delete from banned_person"

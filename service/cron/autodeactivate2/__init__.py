@@ -46,10 +46,15 @@ async def autodeactivate2_once():
     # tokens stop authenticating immediately instead of lingering until the
     # cache TTL. Every row carries the same aggregated list, so read it once
     # (empty on a dry run, where nothing was deleted).
+    #
+    # `delete_session` is a *blocking* Redis call and this runs on the cron's
+    # shared asyncio event loop, so offload each call to a thread; otherwise a
+    # slow Redis would stall every other cron job (garbage collection, audio
+    # cleanup, etc.) for the duration of the call.
     session_token_hashes = (
         rows_deactivated[0]['session_token_hashes'] if rows_deactivated else [])
     for session_token_hash in session_token_hashes:
-        sessioncache.delete_session(session_token_hash)
+        await asyncio.to_thread(sessioncache.delete_session, session_token_hash)
 
     for p in rows_deactivated:
         if DRY_RUN:

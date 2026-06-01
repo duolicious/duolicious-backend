@@ -64,10 +64,20 @@ _KEY_PREFIX = "cached_duo_session:"
 # Dedicated synchronous client. The rate limiter talks to Redis through its own
 # storage URI and the chat service uses redis.asyncio; this is the only blocking
 # client the Flask API uses directly, so give it its own connection pool.
+#
+# The timeouts are not optional. Every public function below swallows Redis
+# errors and degrades to a cache miss / no-op, but that fallback only works if a
+# call actually *returns*. Without socket timeouts a slow or unreachable Redis
+# blocks the caller indefinitely. That's merely a slow request on the (threaded)
+# Flask side, but `autodeactivate2` calls `delete_session` from inside the cron's
+# single asyncio event loop, where one blocking call freezes *every* cron job.
+# Bounding both timeouts turns a Redis stall into a fast, swallowed error.
 _redis = redis.Redis(
     host=REDIS_HOST,
     port=REDIS_PORT,
     decode_responses=True,
+    socket_connect_timeout=1,
+    socket_timeout=1,
 )
 
 
