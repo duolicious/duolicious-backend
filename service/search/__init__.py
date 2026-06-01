@@ -139,6 +139,9 @@ def get_feed(s: t.SessionInfo, before: datetime):
     )
 
     with api_tx('READ COMMITTED') as tx:
+        tx.execute('SET LOCAL jit = off')
+        tx.execute("SET LOCAL work_mem = '32MB'")
+
         rows = tx.execute(Q_FEED, params).fetchall()
 
     return [row['j'] for row in rows]
