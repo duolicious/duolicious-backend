@@ -1,21 +1,5 @@
 #!/usr/bin/env bash
 
-# Regression test for the session cache (see sessioncache/ and
-# `require_auth` in service/api/decorators.py).
-#
-# `delete_or_ban_account` evicts the cached sessions of the deleted account so
-# its bearer tokens stop authenticating immediately, instead of being served
-# from the Redis cache until the TTL expires. It evicts *every* device's
-# session (not just the calling one), so this test signs in twice for the same
-# account and checks both tokens are rejected after deletion.
-#
-# The probe endpoint matters. `/check-session-token` re-queries `person` in
-# its handler and 401s on a missing row, so it would reject the token whether
-# or not the cache was invalidated — it can't catch the regression.
-# `/search-clubs` returns 200 from a valid session alone (its handler tolerates
-# a missing person), so here `require_auth` is the only gate: a stale cache hit
-# would let it succeed, while correct invalidation makes it 401.
-
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$script_dir"
 
