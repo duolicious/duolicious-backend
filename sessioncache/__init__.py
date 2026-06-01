@@ -141,7 +141,7 @@ def put_session(
     try:
         pipe = _redis.pipeline()
         pipe.delete(key)
-        pipe.hset(key, mapping=mapping)
+        pipe.hset(key, mapping=cast(dict, mapping))
         pipe.expire(key, ttl)
         pipe.execute()
     except Exception:
