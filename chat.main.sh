@@ -43,6 +43,7 @@ then
     --port "$PORT" \
     --ws-max-size "${WS_MAX_SIZE}" \
     --reload \
+    --reload-exclude 'venv/*' \
     service.chat:app
 else
   echo "The environment variable DUO_ENV must be set and have the value 'dev' or 'prod'"
