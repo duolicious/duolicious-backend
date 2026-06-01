@@ -49,26 +49,16 @@ WITH target AS MATERIALIZED (
         c.count_members DESC
     LIMIT %(batch_size)s
 ), sampled AS MATERIALIZED (
-    -- Deterministic md5-ordered sample so the payload (and its hash) are
-    -- stable when membership is stable; md5 keeps the sample unbiased
-    -- rather than skewed toward early joiners.
-    SELECT club_name, person_id
-    FROM (
-        SELECT
-            pc.club_name,
-            pc.person_id,
-            ROW_NUMBER() OVER (
-                PARTITION BY pc.club_name
-                ORDER BY MD5(pc.person_id::text)
-            ) AS rn
-        FROM
-            person_club pc
-        JOIN
-            target t ON t.name = pc.club_name
-        WHERE
-            pc.activated
-    ) z
-    WHERE rn <= {MAX_CLUB_SAMPLE_MEMBERS}
+    SELECT t.name AS club_name, s.person_id
+    FROM target t
+    CROSS JOIN LATERAL (
+        SELECT pc.person_id
+        FROM person_club pc
+        WHERE pc.club_name = t.name
+          AND pc.activated
+        ORDER BY pc.person_id DESC
+        LIMIT {MAX_CLUB_SAMPLE_MEMBERS}
+    ) s
 ), members AS MATERIALIZED (
     SELECT
         s.club_name,
@@ -265,23 +255,16 @@ WITH target AS MATERIALIZED (
         c.count_members DESC
     LIMIT %(batch_size)s
 ), sampled AS MATERIALIZED (
-    SELECT club_name, person_id
-    FROM (
-        SELECT
-            pc.club_name,
-            pc.person_id,
-            ROW_NUMBER() OVER (
-                PARTITION BY pc.club_name
-                ORDER BY MD5(pc.person_id::text)
-            ) AS rn
-        FROM
-            person_club pc
-        JOIN
-            target t ON t.name = pc.club_name
-        WHERE
-            pc.activated
-    ) z
-    WHERE rn <= {MAX_CLUB_SAMPLE_MEMBERS}
+    SELECT t.name AS club_name, s.person_id
+    FROM target t
+    CROSS JOIN LATERAL (
+        SELECT pc.person_id
+        FROM person_club pc
+        WHERE pc.club_name = t.name
+          AND pc.activated
+        ORDER BY pc.person_id DESC
+        LIMIT {MAX_CLUB_SAMPLE_MEMBERS}
+    ) s
 ), club_answer AS (
     -- Drive from the sampled members into answer via its PK
     -- (person_id, question_id); starting from question/answer would touch

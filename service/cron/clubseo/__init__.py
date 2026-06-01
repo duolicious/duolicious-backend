@@ -4,6 +4,7 @@ from constants import (
 )
 from database.asyncdatabase import api_tx
 from service.cron.cronutil import print_stacktrace, MAX_RANDOM_START_DELAY
+from util import is_offpeak
 from service.cron.clubseo.sql import (
     Q_CLUB_STATS_BATCH,
     Q_CLUB_TOP_ANSWERS_BATCH,
@@ -22,14 +23,9 @@ import os
 import random
 import traceback
 
-CLUB_STATS_POLL_SECONDS = int(os.environ.get(
-    'DUO_CRON_CLUB_STATS_POLL_SECONDS',
-    str(300),
-))
-
-CLUB_STATS_BATCH_SIZE = int(os.environ.get(
-    'DUO_CRON_CLUB_STATS_BATCH_SIZE',
-    str(200),
+CLUB_SEO_MAX_LOAD_PCT = float(os.environ.get(
+    'DUO_CRON_CLUB_SEO_MAX_LOAD_PCT',
+    str(75),
 ))
 
 # Recompute even when membership hasn't changed, to pick up demographic
@@ -40,26 +36,15 @@ CLUB_STATS_MAX_AGE_DAYS = int(os.environ.get(
     str(7),
 ))
 
+CLUB_STATS_POLL_SECONDS = int(os.environ.get(
+    'DUO_CRON_CLUB_STATS_POLL_SECONDS',
+    str(300),
+))
 
-async def refresh_club_stats_once():
-    async with api_tx('READ COMMITTED') as tx:
-        await tx.execute('SET LOCAL statement_timeout = 60000')
-        cur = await tx.execute(Q_CLUB_STATS_BATCH, dict(
-            batch_size=CLUB_STATS_BATCH_SIZE,
-            max_age_days=CLUB_STATS_MAX_AGE_DAYS,
-        ))
-        row = await cur.fetchone()
-
-    if row and row['upserted_count']:
-        print(f"club_stats: recomputed {row['upserted_count']} clubs")
-
-
-async def refresh_club_stats_forever():
-    await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
-    while True:
-        await print_stacktrace(refresh_club_stats_once)
-        await asyncio.sleep(CLUB_STATS_POLL_SECONDS)
-
+CLUB_STATS_BATCH_SIZE = int(os.environ.get(
+    'DUO_CRON_CLUB_STATS_BATCH_SIZE',
+    str(200),
+))
 
 CLUB_TOP_ANSWERS_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_CLUB_TOP_ANSWERS_POLL_SECONDS',
@@ -70,54 +55,6 @@ CLUB_TOP_ANSWERS_BATCH_SIZE = int(os.environ.get(
     'DUO_CRON_CLUB_TOP_ANSWERS_BATCH_SIZE',
     str(30),
 ))
-
-
-async def refresh_club_top_answers_once():
-    async with api_tx('READ COMMITTED') as tx:
-        # One popular club's answer-join alone is tens of seconds cold;
-        # give the statement headroom rather than livelock the cron on it.
-        await tx.execute('SET LOCAL statement_timeout = 600000')
-        cur = await tx.execute(Q_CLUB_TOP_ANSWERS_BATCH, dict(
-            batch_size=CLUB_TOP_ANSWERS_BATCH_SIZE,
-        ))
-        row = await cur.fetchone()
-
-    if row and row['upserted_count']:
-        print(f"club_top_answers: recomputed {row['upserted_count']} clubs")
-
-
-async def refresh_club_top_answers_forever():
-    await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
-    while True:
-        await print_stacktrace(refresh_club_top_answers_once)
-        await asyncio.sleep(CLUB_TOP_ANSWERS_POLL_SECONDS)
-
-
-CLUB_OVERLAP_POLL_SECONDS = int(os.environ.get(
-    'DUO_CRON_CLUB_OVERLAP_POLL_SECONDS',
-    str(6 * 60 * 60),
-))
-
-
-async def refresh_club_overlap_once():
-    # DELETE + INSERT in one transaction: readers see the previous snapshot
-    # under MVCC until commit, so there's no empty window.
-    async with api_tx('READ COMMITTED') as tx:
-        await tx.execute('SET LOCAL statement_timeout = 600000')
-        # At the default work_mem (4 MB) both sorts and the HashAggregate
-        # spill to disk and the rebuild runs ~2x slower (~22 s vs ~12 s).
-        await tx.execute("SET LOCAL work_mem = '256MB'")
-        await tx.execute(Q_CLUB_OVERLAP_DELETE)
-        await tx.execute(Q_CLUB_OVERLAP_REBUILD)
-    print('club_overlap: rebuilt')
-
-
-async def refresh_club_overlap_forever():
-    await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
-    while True:
-        await print_stacktrace(refresh_club_overlap_once)
-        await asyncio.sleep(CLUB_OVERLAP_POLL_SECONDS)
-
 
 CLUB_SEO_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_CLUB_SEO_POLL_SECONDS',
@@ -146,11 +83,87 @@ OPENAI_MODEL = os.environ.get(
     'gpt-4o-mini',
 )
 
+
+CLUB_OVERLAP_POLL_SECONDS = int(os.environ.get(
+    'DUO_CRON_CLUB_OVERLAP_POLL_SECONDS',
+    str(6 * 60 * 60),
+))
+
 # When set, skip the OpenAI call and use this string. Lets the tests
 # exercise the cron without an API key.
-MOCK_DESCRIPTION = os.environ.get('DUO_CRON_CLUB_SEO_MOCK_DESCRIPTION')
+CLUB_SEO_MOCK_DESCRIPTION = os.environ.get('DUO_CRON_CLUB_SEO_MOCK_DESCRIPTION')
 
-_openai_client = AsyncOpenAI() if not MOCK_DESCRIPTION else None
+_openai_client = AsyncOpenAI() if not CLUB_SEO_MOCK_DESCRIPTION else None
+
+
+async def refresh_club_stats_once():
+    if not is_offpeak(CLUB_SEO_MAX_LOAD_PCT, 'refresh_club_stats_once'):
+        return
+
+    async with api_tx('READ COMMITTED') as tx:
+        await tx.execute('SET LOCAL statement_timeout = 60000')
+        cur = await tx.execute(Q_CLUB_STATS_BATCH, dict(
+            batch_size=CLUB_STATS_BATCH_SIZE,
+            max_age_days=CLUB_STATS_MAX_AGE_DAYS,
+        ))
+        row = await cur.fetchone()
+
+    if row and row['upserted_count']:
+        print(f"club_stats: recomputed {row['upserted_count']} clubs")
+
+
+async def refresh_club_stats_forever():
+    await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
+    while True:
+        await print_stacktrace(refresh_club_stats_once)
+        await asyncio.sleep(CLUB_STATS_POLL_SECONDS)
+
+
+async def refresh_club_top_answers_once():
+    if not is_offpeak(CLUB_SEO_MAX_LOAD_PCT, 'refresh_club_top_answers_once'):
+        return
+
+    async with api_tx('READ COMMITTED') as tx:
+        # One popular club's answer-join alone is tens of seconds cold;
+        # give the statement headroom rather than livelock the cron on it.
+        await tx.execute('SET LOCAL statement_timeout = 600000')
+        cur = await tx.execute(Q_CLUB_TOP_ANSWERS_BATCH, dict(
+            batch_size=CLUB_TOP_ANSWERS_BATCH_SIZE,
+        ))
+        row = await cur.fetchone()
+
+    if row and row['upserted_count']:
+        print(f"club_top_answers: recomputed {row['upserted_count']} clubs")
+
+
+async def refresh_club_top_answers_forever():
+    await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
+    while True:
+        await print_stacktrace(refresh_club_top_answers_once)
+        await asyncio.sleep(CLUB_TOP_ANSWERS_POLL_SECONDS)
+
+
+async def refresh_club_overlap_once():
+    if not is_offpeak(CLUB_SEO_MAX_LOAD_PCT, 'refresh_club_overlap_once'):
+        return
+
+    # DELETE + INSERT in one transaction: readers see the previous snapshot
+    # under MVCC until commit, so there's no empty window.
+    async with api_tx('READ COMMITTED') as tx:
+        await tx.execute('SET LOCAL statement_timeout = 600000')
+        # At the default work_mem (4 MB) both sorts and the HashAggregate
+        # spill to disk and the rebuild runs ~2x slower (~22 s vs ~12 s).
+        await tx.execute("SET LOCAL work_mem = '256MB'")
+        await tx.execute(Q_CLUB_OVERLAP_DELETE)
+        await tx.execute(Q_CLUB_OVERLAP_REBUILD)
+    print('club_overlap: rebuilt')
+
+
+async def refresh_club_overlap_forever():
+    await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
+    while True:
+        await print_stacktrace(refresh_club_overlap_once)
+        await asyncio.sleep(CLUB_OVERLAP_POLL_SECONDS)
 
 
 def _top_pct(items):
@@ -250,8 +263,8 @@ Return only the description text.
 
 
 async def generate_description(payload: dict) -> str | None:
-    if MOCK_DESCRIPTION:
-        return MOCK_DESCRIPTION
+    if CLUB_SEO_MOCK_DESCRIPTION:
+        return CLUB_SEO_MOCK_DESCRIPTION
 
     assert _openai_client is not None
     try:
@@ -319,6 +332,9 @@ async def _process_club_seo_row(row, semaphore):
 
 
 async def refresh_club_seo_once():
+    if not is_offpeak(CLUB_SEO_MAX_LOAD_PCT, 'refresh_club_seo_once'):
+        return
+
     async with api_tx('READ COMMITTED') as tx:
         cur = await tx.execute(
             Q_CLUB_SEO_NEXT_REFRESH,

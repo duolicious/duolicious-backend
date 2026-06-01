@@ -172,6 +172,8 @@ services:
       DUO_CRON_CLUB_SEO_POLL_SECONDS: '1'
       # Deterministic description so the test needs no OpenAI key.
       DUO_CRON_CLUB_SEO_MOCK_DESCRIPTION: 'A friendly test description for this club.'
+      # The test host's load is unrelated to prod traffic; never suppress.
+      DUO_OFFPEAK_FUNCTION_OVERRIDE: 'true'
 
       DUO_CRON_MAX_RANDOM_START_DELAY: '0'
 
