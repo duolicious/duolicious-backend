@@ -453,13 +453,11 @@ async def process_text(
         if maybe_rate_limit:
             return await redis_publish_many(connection_uuid, maybe_rate_limit)
 
-    if is_intro:
-        used_count = await intro_use_count(maybe_message)
-
-        if used_count > 0:
-            return await redis_publish_many(connection_uuid, [
-                f'<duo_message_not_unique id="{stanza_id}" used_count="{used_count}"/>'
-            ])
+    used_count = await intro_use_count(maybe_message) if is_intro else 0
+    if is_intro and used_count > 0:
+        return await redis_publish_many(connection_uuid, [
+            f'<duo_message_not_unique id="{stanza_id}" used_count="{used_count}"/>'
+        ])
 
     async def store_audio_and_notify() -> None:
         if \
