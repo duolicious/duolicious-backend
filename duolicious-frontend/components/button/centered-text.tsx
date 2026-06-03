@@ -1,15 +1,40 @@
 import {
   Animated,
   Pressable,
+  TextStyle,
+  ViewStyle,
 } from 'react-native';
 import {
+  ReactNode,
+  RefObject,
   useRef,
 } from 'react';
 import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
 import { DefaultText } from '../default-text';
 import { useAppTheme } from '../../app-theme/app-theme';
 
-const ButtonWithCenteredText = (props) => {
+type ButtonWithCenteredTextApi = {
+  isEnabled: (value: boolean) => void
+  doPressAnimation: () => void
+};
+
+type ButtonWithCenteredTextProps = {
+  children?: ReactNode
+  extraChildren?: ReactNode
+  innerRef?: RefObject<ButtonWithCenteredTextApi | undefined>
+  backgroundColor?: string
+  borderColor?: string
+  borderWidth?: number
+  containerStyle?: ViewStyle
+  textStyle?: TextStyle
+  onPress?: () => void
+  secondary?: boolean
+  textColor?: string
+  fontSize?: number
+  loading?: boolean
+};
+
+const ButtonWithCenteredText = (props: ButtonWithCenteredTextProps) => {
   const {
     children,
     extraChildren,
@@ -75,6 +100,7 @@ const ButtonWithCenteredText = (props) => {
   return (
     <Pressable
       style={{
+        // @ts-ignore – 'outline' is a web-only style prop
         outline: 'none',
         marginTop: 10,
         marginBottom: 10,
@@ -104,11 +130,6 @@ const ButtonWithCenteredText = (props) => {
         {loading &&
           <LogoActivityIndicator
             size="large"
-            // Default the spinner to whatever the text color is, so a
-            // button with a custom `textColor` (e.g. dark text on a
-            // white background) doesn't end up invisible while
-            // loading. Falls back to the theme-aware default when the
-            // caller hasn't set a text color.
             color={textColor || (secondary ? "#70f" : appTheme.primaryColor)}
           />
         }

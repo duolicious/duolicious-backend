@@ -138,7 +138,6 @@ const UndoNoYesSkip = (props) => {
     >
       <ButtonWithCenteredText
         innerRef={undoButtonRef}
-        className="pressable"
         containerStyle={buttonStyle}
         secondary={true}
         onPress={onPressUndo}
@@ -160,7 +159,6 @@ const UndoNoYesSkip = (props) => {
       />
       <ButtonWithCenteredText
         innerRef={noButtonRef}
-        className="pressable"
         containerStyle={buttonStyle}
         onPress={onPressNo}
         backgroundColor="#70f"
@@ -180,7 +178,6 @@ const UndoNoYesSkip = (props) => {
       />
       <ButtonWithCenteredText
         innerRef={yesButtonRef}
-        className="pressable"
         containerStyle={buttonStyle}
         onPress={onPressYes}
         backgroundColor="#70f"
@@ -200,7 +197,6 @@ const UndoNoYesSkip = (props) => {
       />
       <ButtonWithCenteredText
         innerRef={skipButtonRef}
-        className="pressable"
         containerStyle={buttonStyle}
         secondary={true}
         onPress={onPressSkip}
