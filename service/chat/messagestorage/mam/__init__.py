@@ -32,6 +32,8 @@ INSERT INTO
         direction,
         message,
         audio_uuid,
+        body,
+        stanza_id,
         person_id
     )
 VALUES
@@ -42,6 +44,8 @@ VALUES
         'O',
         %(message)s,
         %(audio_uuid)s,
+        %(body)s,
+        %(stanza_id)s,
         (SELECT id FROM person WHERE uuid = uuid_or_null(%(from_username)s))
     ),
 
@@ -52,6 +56,8 @@ VALUES
         'I',
         %(message)s,
         %(audio_uuid)s,
+        %(body)s,
+        %(stanza_id)s,
         (SELECT id FROM person WHERE uuid = uuid_or_null(%(to_username)s))
     )
 """
@@ -229,6 +235,8 @@ def process_store_mam_message_batch(tx, batch: list[StoreMamMessageJob]):
                 )
             ),
             audio_uuid=message.audio_uuid,
+            body=message.message_body,
+            stanza_id=message.id,
         )
         for message in batch
     ]

@@ -259,6 +259,19 @@ send_messages "$user3uuid" "$user3token" "$user2uuid" \
   "3st from user 3 to user 2"
 
 
+echo "The structured body and stanza_id columns are forward-filled on insert"
+
+null_rows=$(q "select count(*) from mam_message where body is null or stanza_id is null")
+[[ "$null_rows" == "0" ]] || { echo "Expected forward-filled rows, found $null_rows with a null body/stanza_id"; exit 1; }
+
+# Every message in this test was sent with the stanza id 'id1'
+non_id1_rows=$(q "select count(*) from mam_message where stanza_id <> 'id1'")
+[[ "$non_id1_rows" == "0" ]] || { echo "Expected every stanza_id to be 'id1', found $non_id1_rows others"; exit 1; }
+
+stored_body=$(q "select body from mam_message where body = '3rd message from user 2 to user 1' limit 1")
+[[ "$stored_body" == "3rd message from user 2 to user 1" ]] || { echo "Expected body to be stored verbatim, got '$stored_body'"; exit 1; }
+
+
 query_id_1=$(query_id)
 actual_conversation_2_1=$(get_conversation "$user2uuid" "$user2token" "$user1uuid")
 
