@@ -1,1 +1,2 @@
-ALTER TABLE mam_message DROP COLUMN IF EXISTS search_body;
+ALTER TABLE mam_message ADD COLUMN IF NOT EXISTS body TEXT;
+ALTER TABLE mam_message ADD COLUMN IF NOT EXISTS stanza_id TEXT;
