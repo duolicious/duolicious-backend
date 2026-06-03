@@ -1,9 +1,9 @@
 import {
   ListRenderItemInfo,
-  ActivityIndicator,
   StyleSheet,
   View,
 } from 'react-native';
+import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import {
   memo,
   useCallback,
@@ -162,7 +162,7 @@ const InboxTab = () => {
       />
       {conversations === null &&
         <View style={{height: '100%', justifyContent: 'center', alignItems: 'center'}}>
-          <ActivityIndicator size="large" color={appTheme.brandColor} />
+          <LogoActivityIndicator size="large" color={appTheme.brandColor} />
         </View>
       }
       {conversations !== null &&
@@ -249,7 +249,7 @@ const InboxTabNavBar = ({
           {'Inbox' + (showArchive ? ' (Archive)' : '')}
         </DefaultText>
         {!isOnline &&
-          <ActivityIndicator
+          <LogoActivityIndicator
             size="small"
             color={appTheme.brandColor}
             style={{

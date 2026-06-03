@@ -13,6 +13,7 @@ import {
   LOGO_16_RECT_COORDINATES,
   Logo14Props,
   Logo16Props,
+  resolveLogoSize,
 } from './common';
 
 const VIEWBOX_16 = 4.2333331;
@@ -79,7 +80,9 @@ const Logo16 = ({
   fadeInDelay = 500,
   doAnimate = false,
   doLoop = true,
+  style,
 }: Logo16Props) => {
+  const sizePx = resolveLogoSize(size);
   const progress = useSharedValue(0);
 
   const timeline = useMemo(() => {
@@ -116,10 +119,10 @@ const Logo16 = ({
     return () => cancelAnimation(progress);
   }, [doAnimate, doLoop, timeline.T1, timeline.T4]);
 
-  const scale = size / VIEWBOX_16;
+  const scale = sizePx / VIEWBOX_16;
 
   return (
-    <Canvas style={{ width: size, height: size }}>
+    <Canvas style={[{ width: sizePx, height: sizePx }, style]}>
       {/* Scale Skia coordinates to the requested pixel size */}
       <Group transform={[{ scale }]}>
         {LOGO_16_RECT_COORDINATES.map((coord, index) => (

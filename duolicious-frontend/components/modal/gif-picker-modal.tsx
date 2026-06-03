@@ -4,9 +4,9 @@ import {
   View,
   ScrollView,
   Pressable,
-  ActivityIndicator,
 } from 'react-native';
 import Reanimated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
 import * as _ from "lodash";
 import { ModalButton } from '../button/modal';
 import { listen, notify } from '../../events/events';
@@ -163,7 +163,7 @@ const GifPickerModal: React.FC = () => {
             autoFocus={true}
           />
           {loading ? (
-            <ActivityIndicator
+            <LogoActivityIndicator
               size="large"
               color="#70f"
               style={styles.loadingIndicator}
@@ -261,6 +261,7 @@ const styles = StyleSheet.create({
   },
   loadingIndicator: {
     marginTop: 20,
+    alignSelf: 'center',
   },
 });
 

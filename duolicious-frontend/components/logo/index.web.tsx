@@ -17,6 +17,7 @@ import {
   LOGO_16_RECT_COORDINATES,
   Logo14Props,
   Logo16Props,
+  resolveLogoSize,
 } from './common';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
@@ -84,7 +85,9 @@ const Logo16 = ({
   fadeInDelay = 500,
   doAnimate = false,
   doLoop = true,
+  style,
 }: Logo16Props) => {
+  const sizePx = resolveLogoSize(size);
   const progress = useSharedValue(0);
 
   const timeline = useMemo(() => {
@@ -115,7 +118,7 @@ const Logo16 = ({
   }, [doAnimate, doLoop, timeline.T1, timeline.T4]);
 
   return (
-    <Svg width={size} height={size} viewBox="0 0 4.2333331 4.2333332">
+    <Svg width={sizePx} height={sizePx} viewBox="0 0 4.2333331 4.2333332" style={style}>
       <G pointerEvents="none">
         {LOGO_16_RECT_COORDINATES.map((coord, index) => (
           <AnimatedLogoRect

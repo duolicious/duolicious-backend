@@ -1,10 +1,10 @@
 import {
-  ActivityIndicator,
   Animated as RNAnimated,
   Pressable,
   StyleSheet,
   View,
 } from 'react-native';
+import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import { memo, useCallback, useEffect, useState, useRef } from 'react';
 import { DefaultText } from './default-text';
 import { TopNavBar } from './top-nav-bar';
@@ -521,7 +521,7 @@ const VisitorsTab = () => {
       </TopNavBar>
       {!keys &&
         <View style={{height: '100%', justifyContent: 'center', alignItems: 'center'}}>
-          <ActivityIndicator size="large" color={appTheme.brandColor} />
+          <LogoActivityIndicator size="large" color={appTheme.brandColor} />
         </View>
       }
       {!!keys &&

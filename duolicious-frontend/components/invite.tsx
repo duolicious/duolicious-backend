@@ -1,11 +1,11 @@
 import {
-  ActivityIndicator,
   Animated,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
+import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   useCallback,
@@ -91,7 +91,7 @@ const InvitePicker = ({navigation}) => {
               flexGrow: 1,
             }}
           >
-            <ActivityIndicator size={60} color="#70f"/>
+            <LogoActivityIndicator size="large" color="#70f"/>
           </View>
         }
         {clubs !== undefined && clubs.length === 0 &&

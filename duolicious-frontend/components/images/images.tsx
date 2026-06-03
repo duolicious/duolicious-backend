@@ -1,8 +1,8 @@
 import {
-  ActivityIndicator,
   Platform,
   View,
 } from 'react-native';
+import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
 import {
   useCallback,
   useEffect,
@@ -1187,7 +1187,7 @@ const Loading = () => {
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
       }}
     >
-      <ActivityIndicator size="large" color="white"/>
+      <LogoActivityIndicator size="large" color="white"/>
     </View>
   );
 }

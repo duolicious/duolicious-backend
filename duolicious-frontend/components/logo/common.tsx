@@ -1,3 +1,20 @@
+import { StyleProp, ViewStyle } from 'react-native';
+
+type LogoSizeStrings = 'large' | 'medium' | 'small'
+
+type LogoSize = number | LogoSizeStrings;
+
+// Sizes are multiples of 16 (the logo's grid resolution) so each cell maps to a
+// whole number of pixels and stays crisp on low-dpi displays.
+const LOGO_SIZE_PX: Record<LogoSizeStrings, number> = {
+  large: 48,
+  medium: 32,
+  small: 16,
+};
+
+const resolveLogoSize = (size: LogoSize): number =>
+  typeof size === 'number' ? size : LOGO_SIZE_PX[size];
+
 type Logo14Props = {
   size?: number,
   color?: string,
@@ -5,13 +22,14 @@ type Logo14Props = {
 };
 
 type Logo16Props = {
-  size?: number;
+  size?: LogoSize;
   color?: string;
   rectSize?: number;
   fadeOutDelay?: number;
   fadeInDelay?: number;
   doAnimate?: boolean;
   doLoop?: boolean;
+  style?: StyleProp<ViewStyle>;
 };
 
 const LOGO_16_RECT_COORDINATES = [
@@ -48,5 +66,7 @@ const LOGO_16_RECT_COORDINATES = [
 export {
   Logo14Props,
   Logo16Props,
+  LogoSize,
   LOGO_16_RECT_COORDINATES,
+  resolveLogoSize,
 }

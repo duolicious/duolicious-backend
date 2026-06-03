@@ -1,5 +1,4 @@
 import {
-  ActivityIndicator,
   AppState,
   AppStateStatus,
   Platform,
@@ -21,6 +20,7 @@ import {
 } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { TopNavBar } from '../top-nav-bar';
+import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
 import { SpeechBubble, TypingSpeechBubble } from './speech-bubble';
 import { DefaultText } from '../default-text';
 import {
@@ -253,7 +253,7 @@ const Menu = ({navigation, name, personUuid, isSkipped, setIsSkipped, closeFn}) 
             borderRadius: 10,
           }}
         >
-          <ActivityIndicator size="large" color={appTheme.brandColor} />
+          <LogoActivityIndicator size="large" color={appTheme.brandColor} />
         </View>
       }
     </View>
@@ -370,7 +370,7 @@ const ConversationScreenNavBar = ({
         >
           {name ?? '...'}
         </DefaultText>
-        <ActivityIndicator
+        <LogoActivityIndicator
           size="small"
           color={appTheme.brandColor}
           style={{
@@ -745,7 +745,7 @@ const ConversationScreen = ({navigation, route}) => {
       />
       {messageIds === null &&
         <View style={{flexGrow: 1, justifyContent: 'center', alignItems: 'center'}}>
-          <ActivityIndicator size="large" color={appTheme.brandColor} />
+          <LogoActivityIndicator size="large" color={appTheme.brandColor} />
         </View>
       }
       {messageIds !== null &&

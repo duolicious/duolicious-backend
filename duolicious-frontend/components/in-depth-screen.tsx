@@ -1,7 +1,7 @@
 import {
-  ActivityIndicator,
   View,
 } from 'react-native';
+import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import {
   memo,
   useEffect,
@@ -327,7 +327,7 @@ const CurredInDepthScreen = ({navigationRef, navigation, route}) => {
             alignItems: 'center',
           }}
         >
-          <ActivityIndicator size="large" />
+          <LogoActivityIndicator size="large" color="#70f" />
         </View>
       }
       {personId === undefined && fetchFailed &&

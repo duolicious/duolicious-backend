@@ -1,9 +1,9 @@
 import {
-  ActivityIndicator,
   Animated,
   Pressable,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
 import { DefaultText } from '../default-text';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { usePressableAnimation } from '../../animation/animation';
@@ -112,7 +112,7 @@ const ButtonForOption = (props) => {
           {setting ?? noSettingText}
         </DefaultText>
         {loading &&
-          <ActivityIndicator
+          <LogoActivityIndicator
             style={{
               position: 'absolute',
               right: 15,

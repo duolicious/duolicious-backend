@@ -1,10 +1,10 @@
 import {
-  ActivityIndicator,
   ImageStyle,
   Pressable,
   StyleProp,
   View,
 } from 'react-native';
+import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import {
   useState,
 } from 'react';
@@ -64,7 +64,7 @@ const AutoResizingGif = ({
             }}
           >
             {shouldLoad &&
-              <ActivityIndicator size="large" color="white" />
+              <LogoActivityIndicator size="large" color="white" />
             }
             {!shouldLoad &&
               <Ionicons
@@ -79,7 +79,7 @@ const AutoResizingGif = ({
           </View>
         }
         {!requirePress &&
-          <ActivityIndicator size="large" color="white" />
+          <LogoActivityIndicator size="large" color="white" />
         }
         <DefaultText
           style={{

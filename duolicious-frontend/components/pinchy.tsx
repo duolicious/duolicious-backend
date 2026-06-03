@@ -6,13 +6,13 @@ import {
   useState,
 } from 'react';
 import {
-  ActivityIndicator,
   Image,
   ImageStyle,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import {
   Gesture,
   GestureDetector,
@@ -120,7 +120,7 @@ const FitWithinScreenImage = ({
     );
   }
 
-  return <ActivityIndicator size="large" color="white"/>;
+  return <LogoActivityIndicator size="large" color="white"/>;
 };
 
 const Pinchy = ({uuid}: {uuid: string}) => {

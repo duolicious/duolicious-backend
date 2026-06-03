@@ -3,12 +3,12 @@ import {
   useState,
 } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   Pressable,
   ScrollView,
   View,
 } from 'react-native';
+import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import { DefaultText } from './default-text';
 import { DefaultTextInput } from './default-text-input';
 import { japi } from '../api/api';
@@ -91,10 +91,10 @@ const LocationSelector = ({onChangeText, ...rest}) => {
           >
             <ScrollView showsVerticalScrollIndicator={!loading}>
               {loading &&
-                <ActivityIndicator
+                <LogoActivityIndicator
                   size="large"
                   color={appTheme.brandColor}
-                  style={{ padding: 5 }}
+                  style={{ padding: 5, alignSelf: 'center' }}
                 />
               }
               {!loading && items &&

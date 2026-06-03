@@ -1,5 +1,4 @@
 import {
-  ActivityIndicator,
   FlatList,
   FlatListProps,
   StyleProp,
@@ -7,6 +6,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import {
   forwardRef,
   memo,
@@ -24,6 +24,7 @@ const styles = StyleSheet.create({
   activityIndicator: {
     marginTop: 20,
     marginBottom: 20,
+    alignItems: 'center',
   },
   errorText: {
     fontFamily: 'Trueno',
@@ -205,12 +206,12 @@ type DefaultFlashListProps<ItemT> =
     | "refreshing"
   >;
 
-const ActivityIndicator_ = memo(() => {
+const LoadingIndicator = memo(() => {
   const { appTheme } = useAppTheme();
 
   return (
     <View style={styles.activityIndicator}>
-      <ActivityIndicator size="large" color={appTheme.brandColor} />
+      <LogoActivityIndicator size="large" color={appTheme.brandColor} />
     </View>
   );
 });
@@ -279,7 +280,7 @@ const ListFooterComponent = memo(({
   } else if (isComplete && !isEmpty) {
     return <RenderedHoc Hoc={EndTextNotice}/>;
   } else {
-    return <ActivityIndicator_/>;
+    return <LoadingIndicator/>;
   }
 });
 

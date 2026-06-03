@@ -1,11 +1,11 @@
 import {
-  ActivityIndicator,
   Linking,
   Platform,
   ScrollView,
   View,
   StyleSheet,
 } from 'react-native';
+import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import {
   useCallback,
   useEffect,
@@ -276,7 +276,7 @@ const ProfileTab_ = ({navigation}) => {
             flexGrow: 1,
           }}
         >
-          <ActivityIndicator size="large" color={appTheme.brandColor} />
+          <LogoActivityIndicator size="large" color={appTheme.brandColor} />
         </View>
       }
     </View>

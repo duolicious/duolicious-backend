@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, View, useWindowDimensions } from 'react-native';
+import { Platform, View, useWindowDimensions } from 'react-native';
 import { DefaultText } from '../default-text';
 import { DefaultModal } from './default-modal';
 import { backgroundColors } from './background-colors';
 import { ButtonWithCenteredText } from '../button/centered-text';
 import { Logo14 } from '../logo';
+import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
 import { Close } from '../button/close';
 import Purchases, { PurchasesOffering } from 'react-native-purchases';
 import * as _ from 'lodash';
@@ -139,7 +140,7 @@ const Offering = ({
             justifyContent: 'center',
           }}
         >
-          <ActivityIndicator size="large" color="#70f"/>
+          <LogoActivityIndicator size="large" color="#70f"/>
         </View>
         <Close onPress={onPressClose} />
       </>

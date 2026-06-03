@@ -1,5 +1,4 @@
 import {
-  ActivityIndicator,
   Animated,
   Platform,
   Pressable,
@@ -23,6 +22,7 @@ import {
 } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBarSpacer } from './status-bar-spacer';
+import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import { DefaultText } from './default-text';
 import { DonutChart } from './donut-chart';
 import { Title } from './title';
@@ -250,10 +250,6 @@ const FloatingProfileInteractionButton = ({
       <Animated.View
         style={{
           borderRadius: 999,
-          paddingLeft: 15,
-          paddingRight: 15,
-          paddingTop: 12,
-          paddingBottom: 12,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: backgroundColor,
@@ -290,7 +286,7 @@ const FloatingSkipButton = ({personUuid}) => {
       backgroundColor={appTheme.primaryColor}
     >
       {isPosting &&
-        <ActivityIndicator size="large" color={appTheme.brandColor} />
+        <LogoActivityIndicator size="medium" color={appTheme.brandColor} />
       }
       {!isLoading && isSkipped === true && <RotateCcw
           stroke={appTheme.brandColor}
@@ -493,7 +489,7 @@ const BlockButton = ({name, personUuid}) => {
       }}
     >
       {isPosting &&
-        <ActivityIndicator size="small" color="#70f"/>
+        <LogoActivityIndicator size="small" color="#70f"/>
       }
       {!isLoading && isSkipped &&
         <RotateCcw

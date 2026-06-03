@@ -1,11 +1,11 @@
 import {
-  ActivityIndicator,
   Animated,
   Pressable,
 } from 'react-native';
 import {
   useRef,
 } from 'react';
+import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
 import { DefaultText } from '../default-text';
 import { useAppTheme } from '../../app-theme/app-theme';
 
@@ -102,7 +102,7 @@ const ButtonWithCenteredText = (props) => {
         }}
       >
         {loading &&
-          <ActivityIndicator
+          <LogoActivityIndicator
             size="large"
             // Default the spinner to whatever the text color is, so a
             // button with a custom `textColor` (e.g. dark text on a
