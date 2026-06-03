@@ -1,4 +1,3 @@
-import re
 from dataclasses import dataclass
 from lxml import etree
 from typing import Callable
@@ -33,7 +32,6 @@ INSERT INTO
         direction,
         message,
         audio_uuid,
-        search_body,
         person_id
     )
 VALUES
@@ -44,7 +42,6 @@ VALUES
         'O',
         %(message)s,
         %(audio_uuid)s,
-        %(search_body)s,
         (SELECT id FROM person WHERE uuid = uuid_or_null(%(from_username)s))
     ),
 
@@ -55,7 +52,6 @@ VALUES
         'I',
         %(message)s,
         %(audio_uuid)s,
-        %(search_body)s,
         (SELECT id FROM person WHERE uuid = uuid_or_null(%(to_username)s))
     )
 """
@@ -233,7 +229,6 @@ def process_store_mam_message_batch(tx, batch: list[StoreMamMessageJob]):
                 )
             ),
             audio_uuid=message.audio_uuid,
-            search_body=normalize_search_text(message.message_body),
         )
         for message in batch
     ]
@@ -362,24 +357,3 @@ def binary_to_integer(binary: bytes, base: int) -> int:
     if not (2 <= base <= 36):
         raise ValueError("Base must be between 2 and 36")
     return int(binary.decode(), base)
-
-
-def normalize_search_text(text: str | None) -> str | None:
-    if text is None:
-        return None
-
-    # Convert to lowercase
-    lower_body = text.lower()
-
-    # Step 1: Replace certain punctuations with a single space
-    re0 = re.sub(r"[,.:;\-?!]+", " ", lower_body, flags=re.UNICODE)
-
-    # Step 2: Remove non-word characters except whitespace
-    # (allowing tabs, newlines, carriage returns, etc.)
-    re1 = re.sub(r"[^\w\s]+", "", re0, flags=re.UNICODE)
-
-    # Step 3: Replace multiple whitespace characters (spaces, tabs, newlines, etc.)
-    # with a single space and trim any leading/trailing spaces.
-    re2 = re.sub(r"\s+", " ", re1, flags=re.UNICODE).strip()
-
-    return re2
