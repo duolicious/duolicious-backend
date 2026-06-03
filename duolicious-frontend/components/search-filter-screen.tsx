@@ -295,7 +295,12 @@ const SearchFilterScreen_ = ({navigation}) => {
             noSettingText="Any"
             onPress={onPressQAndAAnswers}
             icon={
-              () => <QAndADevice color="black" isBold={true} height={16} />
+              () => <QAndADevice
+                color={appTheme.secondaryColor}
+                backgroundColor={appTheme.primaryColor}
+                isBold={true}
+                height={16}
+              />
             }
           />
           <DefaultText
