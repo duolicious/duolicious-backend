@@ -211,7 +211,7 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 
 sleep 3 # MongooseIM takes some time to flush messages to the DB
 
-curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_not_unique id="id2"/>'
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_not_unique id="id2" used_count="1"/>'
 
 [[ "$(q "select count(*) from mam_message where \
     search_body = 'hello user 2'")" = 2 ]]

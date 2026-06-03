@@ -250,13 +250,13 @@ def is_ping(parsed_xml) -> bool:
         return False
 
 
-@AsyncLruCache(cache_condition=lambda x: not x)
-async def is_unique_message(message: Message):
+@AsyncLruCache(ttl=1, cache_condition=lambda count: count > 0)
+async def intro_use_count(message: Message) -> int:
     if isinstance(message, AudioMessage):
-        return True
+        return 0
 
     if isinstance(message, TypingMessage):
-        return True
+        return 0
 
     normalized = normalize_message(message.body)
     hashed = duohash.md5(normalized)
@@ -269,7 +269,7 @@ async def is_unique_message(message: Message):
 
     upsert_intro_hash(hashed)
 
-    return row is None
+    return row['used_count'] if row is not None else 0
 
 @AsyncLruCache(cache_condition=lambda x: not x)
 async def fetch_is_intro(from_id: int, to_id: int) -> bool:
@@ -453,10 +453,13 @@ async def process_text(
         if maybe_rate_limit:
             return await redis_publish_many(connection_uuid, maybe_rate_limit)
 
-    if is_intro and not await is_unique_message(maybe_message):
-        return await redis_publish_many(connection_uuid, [
-            f'<duo_message_not_unique id="{stanza_id}"/>'
-        ])
+    if is_intro:
+        used_count = await intro_use_count(maybe_message)
+
+        if used_count > 0:
+            return await redis_publish_many(connection_uuid, [
+                f'<duo_message_not_unique id="{stanza_id}" used_count="{used_count}"/>'
+            ])
 
     async def store_audio_and_notify() -> None:
         if \
