@@ -272,30 +272,13 @@ stored_body=$(q "select body from mam_message where body = '3rd message from use
 [[ "$stored_body" == "3rd message from user 2 to user 1" ]] || { echo "Expected body to be stored verbatim, got '$stored_body'"; exit 1; }
 
 
-echo "The body and stanza_id columns can be back-filled from the legacy message column"
+echo "Conversations are served from the structured columns, not the legacy message blob"
 
-# Simulate the pre-backfill state by blanking the structured columns, leaving
-# the legacy `message` blob as the only source of truth, then run the one-off
-# back-fill script inside the api container (which has erlastic available).
-q "update mam_message set body = null, stanza_id = null"
-
-null_before=$(q "select count(*) from mam_message where body is null")
-[[ "$null_before" != "0" ]] || { echo "Expected rows to back-fill"; exit 1; }
-
-docker exec \
-  -e DUO_CRON_MAM_MESSAGE_BACKFILL_ENABLED=1 \
-  -e DUO_CRON_MAM_MESSAGE_BACKFILL_POLL_SECONDS=0 \
-  "$(docker ps | grep api- | cut -d ' ' -f 1)" \
-  python3 -c 'import asyncio; from backfill.mam_message_body import backfill_mam_message_body_forever; asyncio.run(backfill_mam_message_body_forever())'
-
-null_after=$(q "select count(*) from mam_message where body is null or stanza_id is null")
-[[ "$null_after" == "0" ]] || { echo "Expected back-fill to populate every row, found $null_after still null"; exit 1; }
-
-non_id1_rows=$(q "select count(*) from mam_message where stanza_id <> 'id1'")
-[[ "$non_id1_rows" == "0" ]] || { echo "Expected every back-filled stanza_id to be 'id1', found $non_id1_rows others"; exit 1; }
-
-stored_body=$(q "select body from mam_message where body = '3rd message from user 2 to user 1' limit 1")
-[[ "$stored_body" == "3rd message from user 2 to user 1" ]] || { echo "Expected back-filled body to be stored verbatim, got '$stored_body'"; exit 1; }
+# Clobber the legacy ETF blob with an undecodable value. The read path must
+# reconstruct each message from the body/stanza_id columns and ignore `message`
+# entirely; if it still decoded `message`, every conversation below would come
+# back empty.
+q "update mam_message set message = decode('00', 'hex')"
 
 
 query_id_1=$(query_id)

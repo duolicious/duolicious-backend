@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from lxml import etree
-from typing import Callable
 from database import asyncdatabase
-import database
 import erlastic
 from service.chat.chatutil import (
     LSERVER,
@@ -10,17 +8,9 @@ from service.chat.chatutil import (
     message_string_to_etree,
     to_bare_jid,
 )
-from service.chat.chatutil.erlang import (
-    etree_to_term,
-    term_to_etree,
-)
+from service.chat.chatutil.erlang import etree_to_term
 import datetime
 import uuid
-from async_lru_cache import AsyncLruCache
-from service.chat.message import (
-    ChatMessage,
-    AudioMessage,
-)
 
 
 Q_INSERT_MESSAGE = """
@@ -67,7 +57,9 @@ Q_SELECT_MESSAGE = f"""
 WITH page AS (
     SELECT
         mam_message.id,
-        mam_message.message,
+        mam_message.direction,
+        mam_message.stanza_id,
+        mam_message.body,
         mam_message.audio_uuid
     FROM
         mam_message
@@ -199,6 +191,42 @@ def _forwarded_element(
     return forwarded_message
 
 
+def _structured_message_to_etree(
+    from_username: str,
+    to_username: str,
+    direction: str,
+    stanza_id: str | None,
+    body: str | None,
+    audio_uuid: str | None,
+) -> etree._Element:
+    message_from, message_to = (
+        (from_username, to_username)
+        if direction == 'O'
+        else (to_username, from_username)
+    )
+
+    message = build_element(
+        'message',
+        attrib={
+            'from': f'{message_from}@{LSERVER}',
+            **({'id': stanza_id} if stanza_id is not None else {}),
+            'to': f'{message_to}@{LSERVER}',
+            'type': 'chat',
+        },
+        ns='jabber:client',
+    )
+
+    if audio_uuid:
+        message.set('audio_uuid', audio_uuid)
+
+    message.extend([
+        build_element('body', text=body),
+        build_element('request', ns='urn:xmpp:receipts'),
+    ])
+
+    return message
+
+
 async def maybe_get_conversation(
     parsed_xml: etree._Element | None,
     from_username: str,
@@ -268,14 +296,16 @@ async def _get_conversation(
     messages = []
     for row in rows:
         row_id = row['id']
-        message_binary = row['message']
-        audio_uuid = row['audio_uuid']
 
         try:
-            message_term = erlastic.decode(message_binary)
-            message_etree = term_to_etree(message_term)
-            if audio_uuid:
-                message_etree.set('audio_uuid', audio_uuid)
+            message_etree = _structured_message_to_etree(
+                from_username=from_username,
+                to_username=to_username,
+                direction=row['direction'],
+                stanza_id=row['stanza_id'],
+                body=row['body'],
+                audio_uuid=row['audio_uuid'],
+            )
         except Exception as e:
             continue
 
