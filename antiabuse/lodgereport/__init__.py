@@ -11,7 +11,6 @@ import traceback
 import threading
 import html
 import yaml
-import erlastic
 from io import StringIO
 import re
 from dataclasses import dataclass
@@ -24,25 +23,11 @@ class EmailEntry:
     count: int
 
 
-def _decode_last_messages_in_place(last_messages: list[dict]):
-    for message in last_messages:
-        m = erlastic.decode(message['message'])
-
-        try:
-            m = m[3][0][3][0][1].decode('utf-8')
-        except:
-            m = dict(
-                error="Couldn't unpack message while generating report.",
-            )
-
-        message['message'] = m
-
-
 def _repack_last_messages_in_place(last_messages: list[dict]):
     for i in range(len(last_messages)):
         m = last_messages[i]
 
-        last_messages[i] = { m['sent_by']: m['message'] }
+        last_messages[i] = { m['sent_by']: m['body'] }
 
 
 def _obj_to_yaml_string(obj):
@@ -81,7 +66,6 @@ def report_template(
 
     object_person_id = report_obj[1]['id']
 
-    _decode_last_messages_in_place(last_messages)
     _repack_last_messages_in_place(last_messages)
 
     report_str = _obj_to_yaml_string(report_obj)

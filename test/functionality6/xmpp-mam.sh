@@ -272,13 +272,54 @@ stored_body=$(q "select body from mam_message where body = '3rd message from use
 [[ "$stored_body" == "3rd message from user 2 to user 1" ]] || { echo "Expected body to be stored verbatim, got '$stored_body'"; exit 1; }
 
 
-echo "Conversations are served from the structured columns, not the legacy message blob"
+echo "The finalizer drops the legacy message column and enforces body NOT NULL"
 
-# Clobber the legacy ETF blob with an undecodable value. The read path must
-# reconstruct each message from the body/stanza_id columns and ignore `message`
-# entirely; if it still decoded `message`, every conversation below would come
-# back empty.
-q "update mam_message set message = decode('00', 'hex')"
+# Recreate the schema as it looks in production right after this PR's
+# migrations.sql has run but before the finalizer: the legacy `message` column
+# is back (nullable) and `body` is not yet NOT NULL.
+q "alter table mam_message add column if not exists message bytea"
+q "alter table mam_message alter column body drop not null"
+
+[[ "$(q "select count(*) from information_schema.columns \
+    where table_name = 'mam_message' and column_name = 'message'")" = 1 ]]
+
+# Run the one-off finalizer. Using psql -f (no --single-transaction) runs each
+# statement in its own transaction, which is what keeps the validation scan
+# lock-light in production.
+PGPASSWORD="${DUO_DB_PASS:-password}" psql \
+  -U "${DUO_DB_USER:-postgres}" \
+  -d duo_api \
+  -h "${DUO_DB_HOST:-localhost}" \
+  -p "${DUO_DB_PORT:-5432}" \
+  -v ON_ERROR_STOP=1 \
+  -f ../../migration/finalize_mam_message.sql
+
+# The legacy column is gone...
+[[ "$(q "select count(*) from information_schema.columns \
+    where table_name = 'mam_message' and column_name = 'message'")" = 0 ]] \
+  || { echo "Expected the message column to be dropped"; exit 1; }
+
+# ...and body is now enforced NOT NULL at the column level.
+[[ "$(q "select attnotnull from pg_attribute \
+    where attrelid = 'mam_message'::regclass and attname = 'body'")" = "t" ]] \
+  || { echo "Expected body to be NOT NULL"; exit 1; }
+
+# ...with no leftover redundant check constraint.
+[[ "$(q "select count(*) from pg_constraint \
+    where conrelid = 'mam_message'::regclass \
+    and conname = 'mam_message_body_not_null'")" = 0 ]] \
+  || { echo "Expected the temporary check constraint to be dropped"; exit 1; }
+
+# Re-running the finalizer is a safe no-op.
+PGPASSWORD="${DUO_DB_PASS:-password}" psql \
+  -U "${DUO_DB_USER:-postgres}" \
+  -d duo_api \
+  -h "${DUO_DB_HOST:-localhost}" \
+  -p "${DUO_DB_PORT:-5432}" \
+  -v ON_ERROR_STOP=1 \
+  -f ../../migration/finalize_mam_message.sql
+
+echo "Conversations are still served from the structured columns"
 
 
 query_id_1=$(query_id)

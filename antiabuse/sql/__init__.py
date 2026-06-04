@@ -7,7 +7,7 @@ WITH last_messages AS (
             THEN 'reporter'
             ELSE 'accused'
         END AS sent_by,
-        message
+        body
     FROM
         mam_message
     JOIN
@@ -27,7 +27,7 @@ WITH last_messages AS (
 )
 SELECT
     sent_by,
-    message
+    body
 FROM
     last_messages
 ORDER BY

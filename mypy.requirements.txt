@@ -5,7 +5,6 @@ PyYAML
 blurhash
 boto3==1.35.99
 confusable-homoglyphs
-erlastic
 fastapi
 flask-cors
 google-auth

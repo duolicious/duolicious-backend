@@ -1737,11 +1737,12 @@ CREATE TABLE IF NOT EXISTS mam_message(
   -- O - outgoing, remote_jid is a value from To.
   -- Has no meaning for MUC-rooms.
   direction mam_direction NOT NULL,
-  -- Term-encoded message packet
-  message bytea NOT NULL,
   person_id INT REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
   audio_uuid TEXT,
-  body TEXT,
+  -- The message's plain-text body.
+  body TEXT NOT NULL,
+  -- The stanza's XMPP `id` attribute. Nullable: a small number of legacy
+  -- messages were archived without one.
   stanza_id TEXT,
   PRIMARY KEY(person_id, id)
 );

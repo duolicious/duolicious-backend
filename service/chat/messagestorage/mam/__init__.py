@@ -1,14 +1,11 @@
 from dataclasses import dataclass
 from lxml import etree
 from database import asyncdatabase
-import erlastic
 from service.chat.chatutil import (
     LSERVER,
     build_element,
-    message_string_to_etree,
     to_bare_jid,
 )
-from service.chat.chatutil.erlang import etree_to_term
 import datetime
 import uuid
 
@@ -20,7 +17,6 @@ INSERT INTO
         from_jid,
         remote_bare_jid,
         direction,
-        message,
         audio_uuid,
         body,
         stanza_id,
@@ -32,7 +28,6 @@ VALUES
         '', -- from_jid is ignored
         %(to_username)s,
         'O',
-        %(message)s,
         %(audio_uuid)s,
         %(body)s,
         %(stanza_id)s,
@@ -44,7 +39,6 @@ VALUES
         '', -- from_jid is ignored
         %(from_username)s,
         'I',
-        %(message)s,
         %(audio_uuid)s,
         %(body)s,
         %(stanza_id)s,
@@ -252,16 +246,6 @@ def process_store_mam_message_batch(tx, batch: list[StoreMamMessageJob]):
             id=microseconds_to_mam_message_id(message.timestamp_microseconds),
             to_username=message.to_username,
             from_username=message.from_username,
-            message=erlastic.encode(
-                etree_to_term(
-                    message_string_to_etree(
-                        message_body=message.message_body,
-                        to_username=message.to_username,
-                        from_username=message.from_username,
-                        id=message.id,
-                    )
-                )
-            ),
             audio_uuid=message.audio_uuid,
             body=message.message_body,
             stanza_id=message.id,
