@@ -272,16 +272,30 @@ stored_body=$(q "select body from mam_message where body = '3rd message from use
 [[ "$stored_body" == "3rd message from user 2 to user 1" ]] || { echo "Expected body to be stored verbatim, got '$stored_body'"; exit 1; }
 
 
-echo "The finalizer drops the legacy message column and enforces body NOT NULL"
+echo "The finalizer drops the legacy message column and enforces body/stanza_id NOT NULL"
 
 # Recreate the schema as it looks in production right after this PR's
 # migrations.sql has run but before the finalizer: the legacy `message` column
-# is back (nullable) and `body` is not yet NOT NULL.
+# is back (nullable) and `body`/`stanza_id` are not yet NOT NULL.
 q "alter table mam_message add column if not exists message bytea"
 q "alter table mam_message alter column body drop not null"
+q "alter table mam_message alter column stanza_id drop not null"
 
 [[ "$(q "select count(*) from information_schema.columns \
     where table_name = 'mam_message' and column_name = 'message'")" = 1 ]]
+
+# A handful of legacy rows were archived without a stanza id. Simulate one,
+# using a remote_bare_jid no conversation query below touches. The finalizer
+# must drop it so stanza_id can be made NOT NULL.
+user1id=$(q "select id from person where uuid = '$user1uuid'")
+q "insert into mam_message \
+    (id, from_jid, remote_bare_jid, direction, person_id, body, stanza_id) \
+    values \
+    (1, '', '00000000-0000-0000-0000-000000000000', 'O', $user1id, \
+     'legacy message archived without a stanza id', null)"
+
+[[ "$(q "select count(*) from mam_message where stanza_id is null")" != "0" ]] \
+  || { echo "Expected a null-stanza_id row to drop"; exit 1; }
 
 # Run the one-off finalizer. Using psql -f (no --single-transaction) runs each
 # statement in its own transaction, which is what keeps the validation scan
@@ -299,16 +313,24 @@ PGPASSWORD="${DUO_DB_PASS:-password}" psql \
     where table_name = 'mam_message' and column_name = 'message'")" = 0 ]] \
   || { echo "Expected the message column to be dropped"; exit 1; }
 
-# ...and body is now enforced NOT NULL at the column level.
+# ...the legacy null-stanza_id row was dropped...
+[[ "$(q "select count(*) from mam_message \
+    where remote_bare_jid = '00000000-0000-0000-0000-000000000000'")" = 0 ]] \
+  || { echo "Expected the null-stanza_id row to be deleted"; exit 1; }
+
+# ...body and stanza_id are now enforced NOT NULL at the column level...
 [[ "$(q "select attnotnull from pg_attribute \
     where attrelid = 'mam_message'::regclass and attname = 'body'")" = "t" ]] \
   || { echo "Expected body to be NOT NULL"; exit 1; }
+[[ "$(q "select attnotnull from pg_attribute \
+    where attrelid = 'mam_message'::regclass and attname = 'stanza_id'")" = "t" ]] \
+  || { echo "Expected stanza_id to be NOT NULL"; exit 1; }
 
-# ...with no leftover redundant check constraint.
+# ...with no leftover redundant check constraints.
 [[ "$(q "select count(*) from pg_constraint \
     where conrelid = 'mam_message'::regclass \
-    and conname = 'mam_message_body_not_null'")" = 0 ]] \
-  || { echo "Expected the temporary check constraint to be dropped"; exit 1; }
+    and conname in ('mam_message_body_not_null', 'mam_message_stanza_id_not_null')")" = 0 ]] \
+  || { echo "Expected the temporary check constraints to be dropped"; exit 1; }
 
 # Re-running the finalizer is a safe no-op.
 PGPASSWORD="${DUO_DB_PASS:-password}" psql \

@@ -1741,9 +1741,8 @@ CREATE TABLE IF NOT EXISTS mam_message(
   audio_uuid TEXT,
   -- The message's plain-text body.
   body TEXT NOT NULL,
-  -- The stanza's XMPP `id` attribute. Nullable: a small number of legacy
-  -- messages were archived without one.
-  stanza_id TEXT,
+  -- The stanza's XMPP `id` attribute.
+  stanza_id TEXT NOT NULL,
   PRIMARY KEY(person_id, id)
 );
 
