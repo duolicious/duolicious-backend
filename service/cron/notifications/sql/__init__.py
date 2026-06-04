@@ -80,15 +80,43 @@ WITH ten_minutes_ago AS (
                 > EXTRACT(EPOCH FROM NOW() - INTERVAL '8 days')
             THEN COALESCE((
                 SELECT
-                    array_agg(DISTINCT duo_session.push_token)
-                FROM
-                    duo_session
-                WHERE
-                    duo_session.person_id = person.id
-                AND
-                    duo_session.signed_in
-                AND
-                    duo_session.push_token IS NOT NULL
+                    array_agg(DISTINCT latest_and_push_tokens.push_token)
+                FROM (
+                    -- Every signed-in session reachable by push notification.
+                    SELECT
+                        push_session.push_token
+                    FROM
+                        duo_session AS push_session
+                    WHERE
+                        push_session.person_id = person.id
+                    AND
+                        push_session.signed_in
+                    AND
+                        push_session.push_token IS NOT NULL
+
+                    UNION ALL
+
+                    -- The single most-recently-online signed-in session. Its
+                    -- `push_token` is NULL when that session is a push-less
+                    -- (web) client, which lands a NULL in the `tokens` array
+                    -- and signals downstream that the user should also be
+                    -- emailed. If the most recent session is a mobile client,
+                    -- its token is already covered above and de-duplicated by
+                    -- DISTINCT.
+                    (
+                        SELECT
+                            latest_session.push_token
+                        FROM
+                            duo_session AS latest_session
+                        WHERE
+                            latest_session.person_id = person.id
+                        AND
+                            latest_session.signed_in
+                        ORDER BY
+                            latest_session.last_online_time DESC NULLS LAST
+                        LIMIT 1
+                    )
+                ) AS latest_and_push_tokens
             ), ARRAY[]::TEXT[])
             ELSE ARRAY[]::TEXT[]
         END AS tokens,

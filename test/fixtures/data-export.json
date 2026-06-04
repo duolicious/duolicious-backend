@@ -160,7 +160,6 @@
         "has_gold": false,
         "intro_seconds": 0,
         "chat_seconds": 0,
-        "push_token": null,
         "gender_name": "Other",
         "has_profile_picture_name": "Yes",
         "verification_level_name": "No verification",

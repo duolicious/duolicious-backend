@@ -1,5 +1,17 @@
 ALTER TABLE duo_session ADD COLUMN IF NOT EXISTS push_token TEXT;
 
+ALTER TABLE duo_session
+    ADD COLUMN IF NOT EXISTS last_online_time TIMESTAMP NOT NULL DEFAULT NOW();
+
+-- Existing sessions predate per-session presence tracking, so the column
+-- default (NOW()) would falsely mark every dormant session as having just been
+-- online and could suppress notifications. Backfill from the person's real
+-- last-online time so the value reflects actual activity.
+UPDATE duo_session
+SET last_online_time = person.last_online_time
+FROM person
+WHERE duo_session.person_id = person.id;
+
 DO $$
 BEGIN
     IF EXISTS (

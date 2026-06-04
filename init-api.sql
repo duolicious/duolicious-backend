@@ -404,6 +404,10 @@ CREATE TABLE IF NOT EXISTS duo_session (
     pending_social_provider TEXT,
     pending_social_sub TEXT,
     push_token TEXT,
+    -- Per-session last-online time. A session with a NULL `push_token` is a
+    -- push-less (i.e. web) client; comparing the most-recent web vs. mobile
+    -- session lets the notification cron decide whether to also send an email.
+    last_online_time TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (session_token_hash)
 );
 
