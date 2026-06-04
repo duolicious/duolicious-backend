@@ -138,13 +138,21 @@ Q_IMMEDIATE_INTRO_DATA = Q_IMMEDIATE_DATA.replace('[[type]]', 'intros')
 
 Q_IMMEDIATE_CHAT_DATA = Q_IMMEDIATE_DATA.replace('[[type]]', 'chats')
 
-Q_SELECT_PUSH_TOKEN = """
+Q_SELECT_PUSH_TOKENS = """
 SELECT
-    push_token AS token
+    duo_session.push_token AS token
 FROM
+    duo_session
+JOIN
     person
+ON
+    person.id = duo_session.person_id
 WHERE
-    uuid = uuid_or_null(%(username)s)
+    person.uuid = uuid_or_null(%(username)s)
+AND
+    duo_session.signed_in
+AND
+    duo_session.push_token IS NOT NULL
 """
 
 MAX_MESSAGE_LEN = 5000
@@ -207,19 +215,22 @@ async def send_notification(
     if data is None:
         return
 
-    to_token = await fetch_push_token(username=to_username)
+    to_tokens = await fetch_push_tokens(username=to_username)
 
-    if to_token is None:
+    # No device is reachable by push notification. Leave the last-notification
+    # time untouched so the cron job falls back to emailing the user.
+    if not to_tokens:
         return
 
     truncated_message = truncate_text(message, MAX_NOTIFICATION_LENGTH)
 
-    notify.enqueue_mobile_notification(
-        token=to_token,
-        title=f"{from_name} sent you a message",
-        body=truncated_message,
-        data=data,
-    )
+    for to_token in to_tokens:
+        notify.enqueue_mobile_notification(
+            token=to_token,
+            title=f"{from_name} sent you a message",
+            body=truncated_message,
+            data=data,
+        )
 
     upsert_last_notification(username=to_username, is_intro=is_intro)
 
@@ -290,12 +301,12 @@ async def fetch_is_trusted_account(from_id: int) -> bool:
     return bool(row)
 
 @AsyncLruCache(ttl=2 * 60)  # 2 minutes
-async def fetch_push_token(username: str) -> str | None:
+async def fetch_push_tokens(username: str) -> list[str]:
     async with api_tx('read committed') as tx:
-        await tx.execute(Q_SELECT_PUSH_TOKEN, dict(username=username))
-        row = await tx.fetchone()
+        await tx.execute(Q_SELECT_PUSH_TOKENS, dict(username=username))
+        rows = await tx.fetchall()
 
-    return row.get('token') if row else None
+    return list({row['token'] for row in rows})
 
 @AsyncLruCache(ttl=10)  # 10 seconds
 async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
@@ -357,7 +368,7 @@ async def process_text(
     if not from_username:
         return
 
-    if maybe_register(parsed_xml, from_username):
+    if maybe_register(parsed_xml, session.session_token_hash):
         return await redis_publish_many(connection_uuid, [
             '<duo_registration_successful />'
         ])

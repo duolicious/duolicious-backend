@@ -432,8 +432,14 @@ test_low_active_users_notified_via_email () {
   q "update person set last_online_time = now() - interval '7 days' where uuid = '$user1id'"
   q "update person set last_online_time = now() - interval '9 days' where uuid = '$user2id'"
 
-  q "update person set push_token = 'token_1' where uuid::text = '$user1id'"
-  q "update person set push_token = 'token_2' where uuid::text = '$user2id'"
+  q "update duo_session set push_token = 'token_1' where session_token_hash = (
+      select ds.session_token_hash from duo_session ds
+      join person p on p.id = ds.person_id
+      where p.uuid::text = '$user1id' and ds.signed_in limit 1)"
+  q "update duo_session set push_token = 'token_2' where session_token_hash = (
+      select ds.session_token_hash from duo_session ds
+      join person p on p.id = ds.person_id
+      where p.uuid::text = '$user2id' and ds.signed_in limit 1)"
 
   local time_interval=$(db_now as-microseconds '- 11 minutes')
 

@@ -159,9 +159,10 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 sleep 1.5
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful />'
-[[ "$(q "select count(*) from person \
-    where uuid::text = '$user1uuid' \
-    and push_token = 'user-x-token'")" = 1 ]]
+[[ "$(q "select count(*) from duo_session ds \
+    join person p on p.id = ds.person_id \
+    where p.uuid::text = '$user1uuid' \
+    and ds.push_token = 'user-x-token'")" = 1 ]]
 
 
 
@@ -174,9 +175,10 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 sleep 1.5
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful />'
-[[ "$(q "select count(*) from person \
-    where uuid::text = '$user1uuid' \
-    and push_token = 'user-x-token'")" = 0 ]]
+[[ "$(q "select count(*) from duo_session ds \
+    join person p on p.id = ds.person_id \
+    where p.uuid::text = '$user1uuid' \
+    and ds.push_token = 'user-x-token'")" = 0 ]]
 
 
 
@@ -189,9 +191,10 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 sleep 0.5
 
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_registration_successful />'
-[[ "$(q "select count(*) from person \
-    where uuid::text = '$user1uuid' \
-    and push_token = 'user-1-token'")" = 1 ]]
+[[ "$(q "select count(*) from duo_session ds \
+    join person p on p.id = ds.person_id \
+    where p.uuid::text = '$user1uuid' \
+    and ds.push_token = 'user-1-token'")" = 1 ]]
 
 
 
@@ -222,8 +225,14 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_not_unique id="i
 
 echo 'User 1 can message user 3 and notification is sent'
 
-q "update person set push_token = 'user-2-token' where uuid::text = '$user2uuid'"
-q "update person set push_token = 'user-3-token' where uuid::text = '$user3uuid'"
+q "update duo_session set push_token = 'user-2-token' where session_token_hash = (
+    select ds.session_token_hash from duo_session ds
+    join person p on p.id = ds.person_id
+    where p.uuid::text = '$user2uuid' and ds.signed_in limit 1)"
+q "update duo_session set push_token = 'user-3-token' where session_token_hash = (
+    select ds.session_token_hash from duo_session ds
+    join person p on p.id = ds.person_id
+    where p.uuid::text = '$user3uuid' and ds.signed_in limit 1)"
 
 curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 <message
@@ -392,7 +401,7 @@ echo user1\'s records are no longer on the server
 
 [[ "$(q "select count(*) from inbox where luser = '$user1uuid'")" = 0 ]]
 [[ "$(q "select count(*) from person where uuid::text = '$user1uuid' and (intro_seconds > 0 or chat_seconds > 0)")" = 0 ]]
-[[ "$(q "select count(*) from person where uuid::text = '$user1uuid' and push_token is not null")" = 0 ]]
+[[ "$(q "select count(*) from duo_session where push_token = 'user-1-token'")" = 0 ]]
 
 
 
@@ -402,10 +411,10 @@ c GET "/admin/ban-link/${ban_token}"
 
 [[ "$(q "select count(*) from inbox where luser = '$user2uuid'")" = 1 ]]
 [[ "$(q "select count(*) from person where uuid::text = '$user2uuid' and (intro_seconds > 0 or chat_seconds > 0)")" = 0 ]]
-[[ "$(q "select count(*) from person where uuid::text = '$user2uuid' and push_token is not null")" = 1 ]]
+[[ "$(q "select count(*) from duo_session where push_token = 'user-2-token'")" = 1 ]]
 
 c GET "/admin/ban/${ban_token}"
 
 [[ "$(q "select count(*) from inbox where luser = '$user2uuid'")" = 0 ]]
 [[ "$(q "select count(*) from person where uuid::text = '$user2uuid' and (intro_seconds > 0 or chat_seconds > 0)")" = 0 ]]
-[[ "$(q "select count(*) from person where uuid::text = '$user2uuid' and push_token is not null")" = 0 ]]
+[[ "$(q "select count(*) from duo_session where push_token = 'user-2-token'")" = 0 ]]

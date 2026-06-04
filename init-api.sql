@@ -344,7 +344,6 @@ CREATE TABLE IF NOT EXISTS person (
     -- Notifications
     intro_seconds INT NOT NULL DEFAULT 0,
     chat_seconds INT NOT NULL DEFAULT 0,
-    push_token TEXT,
 
     -- Primary keys and constraints
     UNIQUE (email),
@@ -404,6 +403,7 @@ CREATE TABLE IF NOT EXISTS duo_session (
     -- to a row in `social_identity` linked to the new person.
     pending_social_provider TEXT,
     pending_social_sub TEXT,
+    push_token TEXT,
     PRIMARY KEY (session_token_hash)
 );
 

@@ -5,28 +5,32 @@ from batcher import Batcher
 
 
 Q_SET_TOKEN = """
-UPDATE person SET push_token = %(token)s WHERE uuid = uuid_or_null(%(username)s)
+UPDATE duo_session SET push_token = %(token)s
+WHERE session_token_hash = %(session_token_hash)s
 """
 
 
 Q_DELETE_TOKEN = """
-UPDATE person SET push_token = NULL WHERE uuid = uuid_or_null(%(username)s)
+UPDATE duo_session SET push_token = NULL
+WHERE session_token_hash = %(session_token_hash)s
 """
 
 
 @dataclass(frozen=True)
 class DuoPushToken:
-    username: str
+    session_token_hash: str
     token: Optional[str]
 
 
-def execute_query(usernames: Iterable[DuoPushToken], has_token: bool):
-    if not usernames:
+def execute_query(tokens: Iterable[DuoPushToken], has_token: bool):
+    if not tokens:
         return
 
     params_seq = [
-            dict(username=username.username, token=username.token)
-            for username in usernames]
+            dict(
+                session_token_hash=duo_push_token.session_token_hash,
+                token=duo_push_token.token)
+            for duo_push_token in tokens]
 
     q = Q_SET_TOKEN if has_token else Q_DELETE_TOKEN
 
@@ -36,12 +40,12 @@ def execute_query(usernames: Iterable[DuoPushToken], has_token: bool):
 
 def process_batch(batch: Iterable[DuoPushToken]):
     for has_token in (True, False):
-        usernames = set(
+        tokens = set(
             duo_push_token
             for duo_push_token in batch
             if bool(duo_push_token.token) is has_token)
 
-        execute_query(usernames=usernames, has_token=has_token)
+        execute_query(tokens=tokens, has_token=has_token)
 
 
 _batcher = Batcher[DuoPushToken](
@@ -54,8 +58,8 @@ _batcher = Batcher[DuoPushToken](
 
 _batcher.start()
 
-def maybe_register(parsed_xml, username):
-    if not username:
+def maybe_register(parsed_xml, session_token_hash):
+    if not session_token_hash:
         return False
 
     try:
@@ -64,7 +68,9 @@ def maybe_register(parsed_xml, username):
 
         token = parsed_xml.attrib.get('token')
 
-        _batcher.enqueue(DuoPushToken(username=username, token=token))
+        _batcher.enqueue(DuoPushToken(
+            session_token_hash=session_token_hash,
+            token=token))
 
         return True
     except:

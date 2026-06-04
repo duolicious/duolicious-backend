@@ -2,7 +2,6 @@ from database.asyncdatabase import api_tx
 from dataclasses import dataclass
 from service.cron.notifications.sql import (
     Q_UNREAD_INBOX,
-    Q_DELETE_MOBILE_TOKEN,
 )
 from service.cron.notifications.template import (
     big_part,
@@ -51,7 +50,7 @@ class PersonNotification:
     email: str
     chats_drift_seconds: int
     intros_drift_seconds: int
-    token: str | None
+    tokens: list[str]
 
 def disable_mobile_notifications():
     if _disable_mobile_notifications_file.is_file():
@@ -115,15 +114,16 @@ def send_mobile_notification(row: PersonNotification):
             str(_disable_mobile_notifications_file.absolute())
         )
     else:
-        return notify.enqueue_mobile_notification(
-            token=row.token,
-            title='You have a new message 😍',
-            body=big_part(row.has_intro, row.has_chat),
-            data={'screen': 'Inbox'},
-        )
+        for token in row.tokens:
+            notify.enqueue_mobile_notification(
+                token=token,
+                title='You have a new message 😍',
+                body=big_part(row.has_intro, row.has_chat),
+                data={'screen': 'Inbox'},
+            )
 
 async def send_notification(row: PersonNotification):
-    if not row.token:
+    if not row.tokens:
         print('Sending email notification:', str(row))
         return await send_email_notification(row)
 

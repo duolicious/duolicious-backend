@@ -30,6 +30,7 @@ class Session:
     def __init__(self):
         self.connection_uuid = str(uuid.uuid4())
         self.username = None
+        self.session_token_hash = None
 
 
 async def is_authorized(parsed_xml: etree._Element, session: Session) -> bool:
@@ -66,6 +67,7 @@ async def is_authorized(parsed_xml: etree._Element, session: Session) -> bool:
             assert await tx.fetchone()
 
         session.username = auth_username
+        session.session_token_hash = auth_token_hash
 
         return True
     except:

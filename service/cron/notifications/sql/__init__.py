@@ -78,9 +78,20 @@ WITH ten_minutes_ago AS (
         CASE
             WHEN extract(epoch from person.last_online_time)
                 > EXTRACT(EPOCH FROM NOW() - INTERVAL '8 days')
-            THEN person.push_token
-            ELSE NULL
-        END AS token,
+            THEN COALESCE((
+                SELECT
+                    array_agg(DISTINCT duo_session.push_token)
+                FROM
+                    duo_session
+                WHERE
+                    duo_session.person_id = person.id
+                AND
+                    duo_session.signed_in
+                AND
+                    duo_session.push_token IS NOT NULL
+            ), ARRAY[]::TEXT[])
+            ELSE ARRAY[]::TEXT[]
+        END AS tokens,
         CASE
             WHEN im_chats.name = 'Immediately'  THEN 0
             WHEN im_chats.name = 'Daily'        THEN 86400
@@ -120,7 +131,7 @@ SELECT
     last_chat_notification_seconds,
     has_intro,
     has_chat,
-    token,
+    tokens,
     name,
     email,
     chats_drift_seconds,
@@ -131,13 +142,4 @@ WHERE
     (has_intro OR has_chat)
 AND
     activated
-"""
-
-Q_DELETE_MOBILE_TOKEN = """
-UPDATE
-    person
-SET
-    push_token = NULL
-WHERE
-    uuid = uuid_or_null(%(username)s)
 """

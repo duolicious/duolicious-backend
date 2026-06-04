@@ -20,7 +20,7 @@ person_notification = PersonNotification(
     email='user.1@gmail.com',
     chats_drift_seconds=0,
     intros_drift_seconds=86400,
-    token='asdf',
+    tokens=['asdf'],
 )
 
 class TestSendNotification(unittest.TestCase):
