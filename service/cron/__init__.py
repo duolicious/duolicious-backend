@@ -13,7 +13,6 @@ from service.cron.photocleaner import clean_photos_forever
 from service.cron.audiocleaner import clean_audio_forever
 from service.cron.verificationjobrunner import verify_forever
 from service.cron.profilereporter import report_profiles_forever
-from backfill.mam_message_body import backfill_mam_message_body_forever
 import asyncio
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
@@ -68,9 +67,6 @@ async def main():
         refresh_club_overlap_forever(),
 
         refresh_club_seo_forever(),
-
-        # One-off; gated behind DUO_CRON_MAM_MESSAGE_BACKFILL_ENABLED
-        backfill_mam_message_body_forever(),
 
         check_connections_forever(),
 
