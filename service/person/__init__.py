@@ -31,7 +31,6 @@ from antiabuse.lodgereport import (
 from antiabuse.firehol import firehol
 import blurhash
 import numpy
-import erlastic
 from datetime import datetime, timezone
 from urllib.parse import quote
 from duoaudio import put_audio_in_object_store
@@ -47,16 +46,6 @@ from verification.messages import (
     V_UPLOADING_PHOTO,
 )
 
-
-class BytesEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, bytes):
-            try:
-                return obj.decode('utf-8')
-            except:
-                return str(obj)
-
-        return super().default(obj)
 
 DUO_ENV = os.environ['DUO_ENV']
 
@@ -2276,25 +2265,13 @@ def get_export_data(token: str):
     for person in raw_data['person']:
         del person['id_salt']
 
-    # Decode messages
+    # Add a human-readable timestamp derived from the message id. The message
+    # text itself is exported verbatim via the `body` column.
     for row in raw_data['mam_message'] or []:
         row['timestamp'] = datetime.fromtimestamp(
             timestamp=(row['id'] >> 8) / 1_000_000,
             tz=timezone.utc,
         ).isoformat()
-
-        # this is a json string that looks like: \x836804640005786d6c656c6d00000
-        message = row['message']
-
-        # Remove the \x prefix
-        no_prefix = message[2:]
-
-        # Bytes object
-        json_decoded = bytes.fromhex(no_prefix)
-
-        erlang_decoded = erlastic.decode(json_decoded)
-
-        row['message'] = json.dumps(erlang_decoded, cls=BytesEncoder)
 
     # Return the result
     exported_dict = dict(

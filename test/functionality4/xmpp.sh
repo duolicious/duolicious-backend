@@ -101,7 +101,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_blocked id="id1"/>'
 
 [[ "$(q "select count(*) from mam_message where \
-    encode(message, 'escape') like '%hello user 2%'")" = 0 ]]
+    body like '%hello user 2%'")" = 0 ]]
 
 q "delete from skipped where subject_person_id = $user2id and object_person_id = $user1id"
 
@@ -136,7 +136,7 @@ sleep 4 # MongooseIM takes some time to flush messages to the DB
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"/>'
 
 [[ "$(q "select count(*) from mam_message where \
-    encode(message, 'escape') like '%hello user 2%'")" = 2 ]]
+    body like '%hello user 2%'")" = 2 ]]
 
 [[ "$(q "select count(*) from inbox where \
     luser = '${user1uuid}' and \
@@ -214,7 +214,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_not_unique id="id2" used_count="1"/>'
 
 [[ "$(q "select count(*) from mam_message where \
-    encode(message, 'escape') like '%hello user 2%'")" = 2 ]]
+    body like '%hello user 2%'")" = 2 ]]
 
 [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
 
@@ -249,7 +249,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id3"/>'
 
 [[ "$(q "select count(*) from mam_message where \
-    encode(message, 'escape') like '%hello user 3%'")" = 2 ]]
+    body like '%hello user 3%'")" = 2 ]]
 
 [[ "$(q " \
   select count(*) \
@@ -291,7 +291,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id3"/>'
 
 [[ "$(q "select count(*) from mam_message where \
-    encode(message, 'escape') like '%hello user 2%'")" = 4 ]]
+    body like '%hello user 2%'")" = 4 ]]
 
 [[ "$(q " \
   select count(*) \
@@ -336,7 +336,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id3"/>'
 
 [[ "$(q "select count(*) from mam_message where \
-    encode(message, 'escape') like '%message will be sent with no notification%'")" = 2 ]]
+    body like '%message will be sent with no notification%'")" = 2 ]]
 
 [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
 
