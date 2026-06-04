@@ -272,6 +272,15 @@ stored_body=$(q "select body from mam_message where body = '3rd message from use
 [[ "$stored_body" == "3rd message from user 2 to user 1" ]] || { echo "Expected body to be stored verbatim, got '$stored_body'"; exit 1; }
 
 
+echo "Conversations are served from the structured columns, not the legacy message blob"
+
+# Clobber the legacy ETF blob with an undecodable value. The read path must
+# reconstruct each message from the body/stanza_id columns and ignore `message`
+# entirely; if it still decoded `message`, every conversation below would come
+# back empty.
+q "update mam_message set message = decode('00', 'hex')"
+
+
 query_id_1=$(query_id)
 actual_conversation_2_1=$(get_conversation "$user2uuid" "$user2token" "$user1uuid")
 
