@@ -50,11 +50,7 @@ class PersonNotification:
     email: str
     chats_drift_seconds: int
     intros_drift_seconds: int
-    # Push tokens of the user's reachable (signed-in) devices. A NULL/None
-    # entry means the user's most recently used session is a push-less (web)
-    # client, which can't receive a push notification and so should also be
-    # emailed. See `tokens` in `Q_UNREAD_INBOX`.
-    tokens: list[str | None]
+    token: str | None
 
 def disable_mobile_notifications():
     if _disable_mobile_notifications_file.is_file():
@@ -118,29 +114,20 @@ def send_mobile_notification(row: PersonNotification):
             str(_disable_mobile_notifications_file.absolute())
         )
     else:
-        for token in row.tokens:
-            if not token:
-                continue
-            notify.enqueue_mobile_notification(
-                token=token,
-                title='You have a new message 😍',
-                body=big_part(row.has_intro, row.has_chat),
-                data={'screen': 'Inbox'},
-            )
+        return notify.enqueue_mobile_notification(
+            token=row.token,
+            title='You have a new message 😍',
+            body=big_part(row.has_intro, row.has_chat),
+            data={'screen': 'Inbox'},
+        )
 
 async def send_notification(row: PersonNotification):
-    reachable_tokens = [token for token in row.tokens if token]
-
-    if reachable_tokens:
-        print('Sending mobile notification:', str(row))
-        send_mobile_notification(row)
-
-    # Email when no device is reachable by push, or when the user's most
-    # recently used session is a push-less (web) client (encoded as a None
-    # entry in `tokens`).
-    if not reachable_tokens or None in row.tokens:
+    if not row.token:
         print('Sending email notification:', str(row))
-        await send_email_notification(row)
+        return await send_email_notification(row)
+
+    print('Sending mobile notification:', str(row))
+    send_mobile_notification(row)
 
 async def update_last_notification_time(row: PersonNotification):
     params = dict(username=row.person_uuid)

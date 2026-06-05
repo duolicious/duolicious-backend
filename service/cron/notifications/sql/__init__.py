@@ -75,51 +75,9 @@ WITH ten_minutes_ago AS (
         person.name,
         person.email,
         person.activated,
-        CASE
-            WHEN extract(epoch from person.last_online_time)
-                > EXTRACT(EPOCH FROM NOW() - INTERVAL '8 days')
-            THEN COALESCE((
-                SELECT
-                    array_agg(DISTINCT latest_and_push_tokens.push_token)
-                FROM (
-                    -- Every signed-in session reachable by push notification.
-                    SELECT
-                        push_session.push_token
-                    FROM
-                        duo_session AS push_session
-                    WHERE
-                        push_session.person_id = person.id
-                    AND
-                        push_session.signed_in
-                    AND
-                        push_session.push_token IS NOT NULL
-
-                    UNION ALL
-
-                    -- The single most-recently-online signed-in session. Its
-                    -- `push_token` is NULL when that session is a push-less
-                    -- (web) client, which lands a NULL in the `tokens` array
-                    -- and signals downstream that the user should also be
-                    -- emailed. If the most recent session is a mobile client,
-                    -- its token is already covered above and de-duplicated by
-                    -- DISTINCT.
-                    (
-                        SELECT
-                            latest_session.push_token
-                        FROM
-                            duo_session AS latest_session
-                        WHERE
-                            latest_session.person_id = person.id
-                        AND
-                            latest_session.signed_in
-                        ORDER BY
-                            latest_session.last_online_time DESC NULLS LAST
-                        LIMIT 1
-                    )
-                ) AS latest_and_push_tokens
-            ), ARRAY[]::TEXT[])
-            ELSE ARRAY[]::TEXT[]
-        END AS tokens,
+        -- One row per notification to send (see the LATERAL join below): a
+        -- non-NULL token produces a push, a NULL token produces an email.
+        notification_target.token,
         CASE
             WHEN im_chats.name = 'Immediately'  THEN 0
             WHEN im_chats.name = 'Daily'        THEN 86400
@@ -150,6 +108,70 @@ WITH ten_minutes_ago AS (
         immediacy AS im_intros
     ON
         im_intros.id = person.intros_notification
+    -- Fan a single person out into one row per notification that must be sent.
+    -- A signed-in `duo_session` with a NULL `push_token` is a push-less (web)
+    -- client: only the mobile app registers a push token, so this is how a
+    -- web client is identified (its `session_token_hash` can't be NULL, being
+    -- the table's primary key).
+    CROSS JOIN LATERAL (
+        -- One push per distinct logged-in mobile push token, but only while the
+        -- user has been online within the push window (8 days). Logged-out
+        -- devices have no `duo_session` row (or are not `signed_in`), so they're
+        -- excluded.
+        SELECT
+            push_session.push_token AS token
+        FROM
+            duo_session AS push_session
+        WHERE
+            push_session.person_id = person.id
+        AND
+            push_session.signed_in
+        AND
+            push_session.push_token IS NOT NULL
+        AND
+            extract(epoch from person.last_online_time)
+                > EXTRACT(EPOCH FROM NOW() - INTERVAL '8 days')
+        GROUP BY
+            push_session.push_token
+
+        UNION ALL
+
+        -- A single email (NULL token) when either no logged-in device can
+        -- receive push, or the user was last seen online on a web client more
+        -- recently than on any mobile session. Ties favour the mobile session,
+        -- so the email is only added when a web session is strictly more recent.
+        SELECT
+            NULL AS token
+        WHERE
+            NOT EXISTS (
+                SELECT 1
+                FROM duo_session AS push_session
+                WHERE push_session.person_id = person.id
+                AND push_session.signed_in
+                AND push_session.push_token IS NOT NULL
+                AND extract(epoch from person.last_online_time)
+                        > EXTRACT(EPOCH FROM NOW() - INTERVAL '8 days')
+            )
+            OR
+            COALESCE(
+                (
+                    SELECT MAX(web_session.last_online_time)
+                    FROM duo_session AS web_session
+                    WHERE web_session.person_id = person.id
+                    AND web_session.signed_in
+                    AND web_session.push_token IS NULL
+                )
+                >
+                (
+                    SELECT MAX(mobile_session.last_online_time)
+                    FROM duo_session AS mobile_session
+                    WHERE mobile_session.person_id = person.id
+                    AND mobile_session.signed_in
+                    AND mobile_session.push_token IS NOT NULL
+                ),
+                FALSE
+            )
+    ) AS notification_target
 )
 SELECT
     inbox_second_pass.person_uuid,
@@ -159,7 +181,7 @@ SELECT
     last_chat_notification_seconds,
     has_intro,
     has_chat,
-    tokens,
+    token,
     name,
     email,
     chats_drift_seconds,

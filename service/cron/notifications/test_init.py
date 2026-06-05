@@ -21,7 +21,7 @@ def make_person_notification(**overrides) -> PersonNotification:
         email='user.1@gmail.com',
         chats_drift_seconds=0,
         intros_drift_seconds=86400,
-        tokens=['asdf'],
+        token='asdf',
     )
     kwargs.update(overrides)
     return PersonNotification(**kwargs)
@@ -50,65 +50,19 @@ class TestSendNotification(unittest.TestCase):
 
     @patch('service.cron.notifications.send_email_notification')
     @patch('service.cron.notifications.send_mobile_notification')
-    def test_email_only_when_no_tokens(
+    def test_email_send_when_no_token(
         self,
         mock_send_mobile_notification,
         mock_send_email_notification,
     ):
-        row = make_person_notification(tokens=[])
-
-        asyncio.run(send_notification(row))
-
-        # No reachable push device: email only, no push.
-        mock_send_mobile_notification.assert_not_called()
-        mock_send_email_notification.assert_called_once_with(row)
-
-    @patch('service.cron.notifications.send_email_notification')
-    @patch('service.cron.notifications.send_mobile_notification')
-    def test_email_only_when_web_only(
-        self,
-        mock_send_mobile_notification,
-        mock_send_email_notification,
-    ):
-        # Web-only user: the sole (web) session contributes a None token.
-        row = make_person_notification(tokens=[None])
+        # No reachable push device (or the user was last seen on a web client):
+        # the query returns a NULL token, so we email instead of pushing.
+        row = make_person_notification(token=None)
 
         asyncio.run(send_notification(row))
 
         mock_send_mobile_notification.assert_not_called()
         mock_send_email_notification.assert_called_once_with(row)
-
-    @patch('service.cron.notifications.send_email_notification')
-    @patch('service.cron.notifications.send_mobile_notification')
-    def test_mobile_and_email_when_web_most_recent(
-        self,
-        mock_send_mobile_notification,
-        mock_send_email_notification,
-    ):
-        # Has a push token but the most recent session is a web client (None).
-        row = make_person_notification(tokens=['asdf', None])
-
-        asyncio.run(send_notification(row))
-
-        # User has push tokens but was last seen on a web client: send both.
-        mock_send_mobile_notification.assert_called_once_with(row)
-        mock_send_email_notification.assert_called_once_with(row)
-
-    @patch('service.cron.notifications.send_email_notification')
-    @patch('service.cron.notifications.send_mobile_notification')
-    def test_mobile_only_when_mobile_most_recent(
-        self,
-        mock_send_mobile_notification,
-        mock_send_email_notification,
-    ):
-        # No None entry: the most recent session is a (reachable) mobile one.
-        row = make_person_notification(tokens=['asdf'])
-
-        asyncio.run(send_notification(row))
-
-        # A mobile session was more recent than any web session: push only.
-        mock_send_mobile_notification.assert_called_once_with(row)
-        mock_send_email_notification.assert_not_called()
 
 
 if __name__ == '__main__':

@@ -432,9 +432,10 @@ count_emails_to () {
 }
 
 # A signed-in session with a NULL push_token is a push-less (web) client. If the
-# user's most recent session is such a web client, they should also be emailed
-# even though they have a push token on a (less recently used) mobile session.
-# Conversely, if a mobile session was more recent, no email should be sent.
+# user's most recent session is such a web client, the cron emails them (web
+# clients can't receive push) even though they have a push token on a (less
+# recently used) mobile session. Conversely, if a mobile session was more
+# recent, the push token is used and no email is sent.
 test_web_client_also_emailed () {
   setup
 
