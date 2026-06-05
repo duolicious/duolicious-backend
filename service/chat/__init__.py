@@ -139,20 +139,35 @@ Q_IMMEDIATE_INTRO_DATA = Q_IMMEDIATE_DATA.replace('[[type]]', 'intros')
 Q_IMMEDIATE_CHAT_DATA = Q_IMMEDIATE_DATA.replace('[[type]]', 'chats')
 
 Q_SELECT_PUSH_TOKENS = """
+WITH session_summary AS (
+    SELECT
+        ARRAY_AGG(DISTINCT duo_session.push_token)
+            FILTER (WHERE duo_session.push_token IS NOT NULL) AS push_tokens,
+        MAX(duo_session.last_online_time)
+            FILTER (WHERE duo_session.push_token IS NULL) AS web_last_online,
+        MAX(duo_session.last_online_time)
+            FILTER (WHERE duo_session.push_token IS NOT NULL) AS mobile_last_online
+    FROM
+        duo_session
+    JOIN
+        person
+    ON
+        person.id = duo_session.person_id
+    WHERE
+        person.uuid = uuid_or_null(%(username)s)
+    AND
+        duo_session.signed_in
+)
 SELECT
-    duo_session.push_token AS token
+    unnest(push_tokens) AS token
 FROM
-    duo_session
-JOIN
-    person
-ON
-    person.id = duo_session.person_id
+    session_summary
 WHERE
-    person.uuid = uuid_or_null(%(username)s)
-AND
-    duo_session.signed_in
-AND
-    duo_session.push_token IS NOT NULL
+    -- A web session being strictly more recent means we defer the whole
+    -- notification to the cron, which pushes *and* emails. Pushing here would
+    -- upsert the last-notification time and suppress that email. Ties favour
+    -- mobile, matching the cron's web-vs-mobile comparison.
+    NOT COALESCE(web_last_online > mobile_last_online, FALSE)
 """
 
 MAX_MESSAGE_LEN = 5000

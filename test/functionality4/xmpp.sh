@@ -225,11 +225,17 @@ curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_not_unique id="i
 
 echo 'User 1 can message user 3 and notification is sent'
 
-q "update duo_session set push_token = 'user-2-token' where session_token_hash = (
+# Mark the token'd session as the most recently used one. Each `assume_role`
+# above also leaves a signed-in, push-less (web) session; without this bump the
+# web session could be more recent, in which case the live push correctly defers
+# to the cron and no immediate notification is recorded.
+q "update duo_session set push_token = 'user-2-token', last_online_time = now()
+    where session_token_hash = (
     select ds.session_token_hash from duo_session ds
     join person p on p.id = ds.person_id
     where p.uuid::text = '$user2uuid' and ds.signed_in limit 1)"
-q "update duo_session set push_token = 'user-3-token' where session_token_hash = (
+q "update duo_session set push_token = 'user-3-token', last_online_time = now()
+    where session_token_hash = (
     select ds.session_token_hash from duo_session ds
     join person p on p.id = ds.person_id
     where p.uuid::text = '$user3uuid' and ds.signed_in limit 1)"
