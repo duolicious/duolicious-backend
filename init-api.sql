@@ -1803,8 +1803,8 @@ CREATE TABLE IF NOT EXISTS rude_message (
     PRIMARY KEY (person_id, created_at)
 );
 
-CREATE INDEX IF NOT EXISTS duo_idx__inbox__timestamp__unread_count
-ON inbox(timestamp, unread_count)
+CREATE INDEX IF NOT EXISTS duo_idx__inbox__timestamp__luser__box
+ON inbox(timestamp, luser, box)
 WHERE unread_count > 0;
 
 CREATE INDEX IF NOT EXISTS duo_idx__mam_message__remote_bare_jid__id

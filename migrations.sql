@@ -30,3 +30,13 @@ BEGIN
 END $$;
 
 ALTER TABLE person DROP COLUMN IF EXISTS push_token;
+
+-- Q_UNREAD_INBOX scans `inbox` by `timestamp` then needs `luser` and `box` per
+-- row. Covering those columns lets the scan stay index-only instead of doing a
+-- random heap fetch per row. Supersedes duo_idx__inbox__timestamp__unread_count
+-- (same leading `timestamp` column, so nothing else regresses).
+DROP INDEX IF EXISTS duo_idx__inbox__timestamp__unread_count;
+
+CREATE INDEX IF NOT EXISTS duo_idx__inbox__timestamp__luser__box
+ON inbox(timestamp, luser, box)
+WHERE unread_count > 0;
