@@ -6,8 +6,10 @@ import sessioncache
 
 
 Q_SIGN_OUT_SESSIONS = """
-DELETE FROM duo_session
-WHERE session_token_hash = ANY(%(session_token_hashes)s)
+DELETE FROM
+    duo_session
+WHERE
+    session_token_hash = ANY(%(session_token_hashes)s)
 """
 
 Q_OVER_LIMIT_SESSIONS = """
