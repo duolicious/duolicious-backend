@@ -8,7 +8,7 @@ from service import (
     question,
     search,
 )
-from service.auth import apple_oauth
+from auth import apple_oauth
 from database import api_tx
 import psycopg
 from service.api.decorators import (
@@ -243,7 +243,7 @@ def post_sign_in_with_apple(req: t.PostSignInWithApple):
 # Apple Sign-In web/Android OAuth callback. Must be a `@post` (not
 # `@apost`) — the request comes from Apple's authorize endpoint as an
 # unauthenticated form_post, with no bearer token. See
-# `service/auth/apple_oauth.py` for the rationale.
+# `auth/apple_oauth.py` for the rationale.
 #
 # This is on its own scope so it doesn't double-bill against
 # `social_sign_in`: a single web/Android Apple sign-in hits this

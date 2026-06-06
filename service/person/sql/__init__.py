@@ -427,36 +427,6 @@ FROM
     deleted_uuid
 """
 
-# The one and only sign-out query (see `_sign_out` in service/person). Deletes
-# the session rows by hash; the caller must evict the same hashes from the
-# session cache. Takes an array so signing out one session and trimming a
-# person's excess sessions share a single code path.
-Q_SIGN_OUT_SESSIONS = """
-DELETE FROM duo_session
-WHERE session_token_hash = ANY(%(session_token_hashes)s)
-"""
-
-# A person's signed-in sessions beyond the `keep` most-recently-active ones,
-# excluding the caller's current session (which must never be signed out by the
-# session limit). Drives `_enforce_session_limit`.
-Q_OVER_LIMIT_SESSIONS = """
-SELECT
-    session_token_hash
-FROM
-    duo_session
-WHERE
-    person_id = %(person_id)s
-AND
-    signed_in
-AND
-    session_token_hash <> %(current_session_token_hash)s
-ORDER BY
-    last_online_time DESC,
-    session_expiry DESC
-OFFSET
-    %(keep)s
-"""
-
 Q_FINISH_ONBOARDING = f"""
 WITH onboardee_location AS (
     SELECT

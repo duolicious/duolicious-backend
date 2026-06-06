@@ -1,6 +1,6 @@
 import os
 from database import api_tx, fetchall_sets
-from typing import Any, Optional, Iterable, Tuple, Literal
+from typing import Any, Optional, Tuple, Literal
 import duotypes as t
 import json
 import secrets
@@ -35,7 +35,8 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 from duoaudio import put_audio_in_object_store
 from service.person.aboutdiff import diff_addition_with_context
-from service.auth.social import (
+from auth.session import sign_out, enforce_session_limit
+from auth.social import (
     SocialAuthError,
     verify_apple_identity_token,
     verify_google_id_token,
@@ -391,7 +392,7 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
 
     sessioncache.delete_session(s.session_token_hash)
 
-    _enforce_session_limit(row['person_id'], s.session_token_hash)
+    enforce_session_limit(row['person_id'], s.session_token_hash)
 
     return dict(
         onboarded=row['person_id'] is not None,
@@ -399,56 +400,8 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
         **clubs,
     )
 
-MAX_SIGNED_IN_SESSIONS = 100
-
-def _sign_out(session_token_hashes: Iterable[str]):
-    """The one and only way to sign sessions out.
-
-    Signing out is *both* deleting the `duo_session` row *and* evicting it from
-    the session cache. Never hand-roll either half elsewhere:
-
-      * Setting `signed_in = FALSE` is NOT a sign-out: the chat server's auth
-        (service/chat) never checks `signed_in`, so the bearer token keeps
-        working until the row is actually gone.
-      * Deleting the row without evicting the cache leaves the token usable for
-        up to `sessioncache.SESSION_CACHE_TTL_SECONDS`.
-
-    Evicting only after the delete commits avoids a concurrent request re-caching
-    the row we're removing.
-    """
-    hashes = [h for h in session_token_hashes if h]
-    if not hashes:
-        return
-
-    with api_tx('READ COMMITTED') as tx:
-        tx.execute(Q_SIGN_OUT_SESSIONS, dict(session_token_hashes=hashes))
-
-    for session_token_hash in hashes:
-        sessioncache.delete_session(session_token_hash)
-
-def _enforce_session_limit(person_id, current_session_token_hash):
-    """Keep a person signed in on at most `MAX_SIGNED_IN_SESSIONS` devices,
-    signing out their least-recently-active sessions. The current session is
-    always kept. No-op for sessions not yet attached to a person."""
-    if person_id is None:
-        return
-
-    with api_tx('READ COMMITTED') as tx:
-        over_limit = [
-            row['session_token_hash']
-            for row in tx.execute(Q_OVER_LIMIT_SESSIONS, dict(
-                person_id=person_id,
-                current_session_token_hash=current_session_token_hash,
-                # -1: the current session is excluded above and always kept, so
-                # we retain it plus the (MAX - 1) most-recently-active others.
-                keep=MAX_SIGNED_IN_SESSIONS - 1,
-            )).fetchall()
-        ]
-
-    _sign_out(over_limit)
-
 def post_sign_out(s: t.SessionInfo):
-    _sign_out([s.session_token_hash])
+    sign_out([s.session_token_hash])
 
 def _sign_in_with_social(
     provider: str,
@@ -575,7 +528,7 @@ def _sign_in_with_social(
         if profile.get('person_uuid'):
             tx.execute(Q_UPDATE_LAST, dict(person_uuid=profile['person_uuid']))
 
-    _enforce_session_limit(person_id, session_token_hash)
+    enforce_session_limit(person_id, session_token_hash)
 
     return dict(
         session_token=session_token,

@@ -236,7 +236,7 @@ b64url () {
 # Mint a fake JWT for the social-login mocking path.
 # Args: $1 = JSON payload string. The header is fixed (HS256/JWT) and the
 # signature is a constant garbage value — when test/input/enable-mocking
-# is '1', service/auth/social.py decodes payloads without verifying the
+# is '1', auth/social.py decodes payloads without verifying the
 # signature, so any non-empty signature works. Issuer / audience / exp
 # are still enforced, so the JSON payload must include them.
 # Example:
