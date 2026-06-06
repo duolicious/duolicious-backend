@@ -276,19 +276,31 @@ def is_ping(parsed_xml) -> bool:
         return False
 
 
-def estimatedUsedCount(n: int, ramp_at: int = 3333) -> int:
+def estimated_used_count(measured_count: int, ramp_at: int = 3333) -> int:
     # TODO: When this is removed, the tests should be updated
     #
     # intro_hash tracking started after the app launched, so raw counts are
     # under-estimates; prorate to approximate what the true count would be.
-    if n <= 1:
-        return n
-    intro_hash_tracking_started = datetime(2026, 6, 3, 1, 18, 0, tzinfo=timezone.utc)
-    app_launched = datetime(2026, 6, 6, 9, 38, 48, tzinfo=timezone.utc)
+    if measured_count <= 1:
+        return measured_count
+
+    app_launched = datetime(2023, 8, 26, 1, 5, 49, tzinfo=timezone.utc)
+    intro_hash_counting_started = datetime(2026, 6, 3, 1, 18, 0, tzinfo=timezone.utc)
     now = datetime.now(timezone.utc)
-    scale = (now - intro_hash_tracking_started).total_seconds() / (now - app_launched).total_seconds()
-    t = min(n - 1, ramp_at - 1) / (ramp_at - 1)
-    return round(n * (1 + t * (scale - 1)))
+
+    seconds_since_app_launched = (
+            now - app_launched).total_seconds()
+
+    seconds_since_intro_hash_counting = (
+            now - intro_hash_counting_started).total_seconds()
+
+    prorating = seconds_since_app_launched / seconds_since_intro_hash_counting
+
+    prorating_certainty = max(0, min(1, measured_count / ramp_at))
+
+    return round(
+            measured_count * (1 - prorating_certainty) +
+            measured_count * (0 + prorating_certainty) * prorating)
 
 
 @AsyncLruCache(ttl=1, cache_condition=lambda count: count > 0)
@@ -497,7 +509,7 @@ async def process_text(
     used_count = await intro_use_count(maybe_message) if is_intro else 0
     if is_intro and used_count > 0:
         return await redis_publish_many(connection_uuid, [
-            f'<duo_message_not_unique id="{stanza_id}" used_count="{estimatedUsedCount(used_count)}"/>'
+            f'<duo_message_not_unique id="{stanza_id}" used_count="{estimated_used_count(used_count)}"/>'
         ])
 
     async def store_audio_and_notify() -> None:
