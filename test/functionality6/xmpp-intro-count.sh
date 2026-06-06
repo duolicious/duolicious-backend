@@ -94,19 +94,23 @@ send_intro "$recipient2uuid" m2 "the very same intro"
 
 sleep 3
 
+response=$(curl -sX GET http://localhost:3001/pop)
+
 expected=$(cat << EOF
 {
   "duo_message_not_unique": {
     "@id": "m2",
-    "@used_count": "1"
+    "@used_count": "N"
   }
 }
 EOF
 )
 
 diff -u --color --ignore-trailing-space \
-  <(curl -sX GET http://localhost:3001/pop) \
+  <(jq '.duo_message_not_unique."@used_count" = "N"' <<< "$response") \
   <(jq -r <<< "$expected")
+
+[[ $(jq -r '.duo_message_not_unique."@used_count"' <<< "$response") =~ ^[0-9]+$ ]]
 
 [[ "$(hash_used_count)" = 2 ]]
 
@@ -118,19 +122,23 @@ send_intro "$recipient3uuid" m3 "the very same intro"
 
 sleep 3
 
+response=$(curl -sX GET http://localhost:3001/pop)
+
 expected=$(cat << EOF
 {
   "duo_message_not_unique": {
     "@id": "m3",
-    "@used_count": "2"
+    "@used_count": "N"
   }
 }
 EOF
 )
 
 diff -u --color --ignore-trailing-space \
-  <(curl -sX GET http://localhost:3001/pop) \
+  <(jq '.duo_message_not_unique."@used_count" = "N"' <<< "$response") \
   <(jq -r <<< "$expected")
+
+[[ $(jq -r '.duo_message_not_unique."@used_count"' <<< "$response") =~ ^[0-9]+$ ]]
 
 [[ "$(hash_used_count)" = 3 ]]
 

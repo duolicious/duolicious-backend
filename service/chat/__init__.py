@@ -10,7 +10,7 @@ import notify
 from async_lru_cache import AsyncLruCache
 import random
 from typing import Any, Tuple, Callable, Tuple, Iterable
-from datetime import datetime
+from datetime import datetime, timezone
 from service.chat.robot9000 import Q_SELECT_INTRO_HASH, upsert_intro_hash
 from service.chat.mayberegister import maybe_register
 from service.chat.spam import is_spam_message
@@ -276,6 +276,21 @@ def is_ping(parsed_xml) -> bool:
         return False
 
 
+def estimatedUsedCount(n: int, ramp_at: int = 3333) -> int:
+    # TODO: When this is removed, the tests should be updated
+    #
+    # intro_hash tracking started after the app launched, so raw counts are
+    # under-estimates; prorate to approximate what the true count would be.
+    if n <= 1:
+        return n
+    intro_hash_tracking_started = datetime(2026, 6, 3, 1, 18, 0, tzinfo=timezone.utc)
+    app_launched = datetime(2026, 6, 6, 9, 38, 48, tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    scale = (now - intro_hash_tracking_started).total_seconds() / (now - app_launched).total_seconds()
+    t = min(n - 1, ramp_at - 1) / (ramp_at - 1)
+    return round(n * (1 + t * (scale - 1)))
+
+
 @AsyncLruCache(ttl=1, cache_condition=lambda count: count > 0)
 async def intro_use_count(message: Message) -> int:
     if isinstance(message, AudioMessage):
@@ -482,7 +497,7 @@ async def process_text(
     used_count = await intro_use_count(maybe_message) if is_intro else 0
     if is_intro and used_count > 0:
         return await redis_publish_many(connection_uuid, [
-            f'<duo_message_not_unique id="{stanza_id}" used_count="{used_count}"/>'
+            f'<duo_message_not_unique id="{stanza_id}" used_count="{estimatedUsedCount(used_count)}"/>'
         ])
 
     async def store_audio_and_notify() -> None:
