@@ -24,6 +24,8 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_USER: postgres
       POSTGRES_DB: postgres
+    volumes:
+      - ${POSTGRES_VOLUME:-postgres_test}:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 1s
@@ -211,11 +213,23 @@ services:
     ports:
       - "3001:3001"
 
+  pushmock:
+    build:
+      context: .
+      dockerfile: pushmock.Dockerfile
+
+    ports:
+      - "3002:3002"
+
   redis:
     image: "redis:alpine"
     container_name: redis
     ports:
       - "6379:6379"
+
+volumes:
+  postgres_test:
+  postgres_prod:
 
 networks:
   default:

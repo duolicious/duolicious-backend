@@ -424,6 +424,91 @@ test_sad_not_activated () {
   [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
 }
 
+# Count emails delivered to a given address by the test SMTP server (MailHog).
+count_emails_to () {
+  local addr=$1
+  curl -s 'http://localhost:8025/api/v1/messages' \
+    | jq "[.[] | select(.Content.Headers.To[] | contains(\"${addr}\"))] | length"
+}
+
+# Count pushes the test push server (pushmock) received for a given token.
+count_pushes_to () {
+  local token=$1
+  curl -s 'http://localhost:3002/messages' \
+    | jq "[.[] | select(.to == \"${token}\")] | length"
+}
+
+# Forget all pushes recorded by the test push server.
+clear_pushes () {
+  curl -s -X DELETE 'http://localhost:3002/messages' > /dev/null
+}
+
+# A signed-in session with a NULL push_token is a push-less (web) client. If the
+# user's most recent session is such a web client, the cron emails them (web
+# clients can't receive push) even though they have a push token on a (less
+# recently used) mobile session. Conversely, if a mobile session was more
+# recent, the push token is used and no email is sent.
+test_web_client_also_emailed () {
+  setup
+
+  [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
+
+  # Person was last online > 10 minutes ago so the notification is eligible.
+  q "update person set last_online_time = now() - interval '20 minutes' where uuid = '$user1id'"
+  q "update person set last_online_time = now() - interval '20 minutes' where uuid = '$user2id'"
+
+  # user1: mobile session (older) + web session (newer) -> web is most recent.
+  q "update duo_session
+     set push_token = 'user1_mobile_token',
+         last_online_time = now() - interval '20 minutes'
+     where session_token_hash = (
+       select ds.session_token_hash from duo_session ds
+       join person p on p.id = ds.person_id
+       where p.uuid::text = '$user1id' and ds.signed_in limit 1)"
+  q "insert into duo_session
+       (session_token_hash, person_id, email, signed_in, last_online_time)
+     select 'web-session-user1', p.id, p.email, true, now() - interval '11 minutes'
+     from person p where p.uuid::text = '$user1id'"
+
+  # user2: web session (older) + mobile session (newer) -> mobile is most recent.
+  q "update duo_session
+     set push_token = 'user2_mobile_token',
+         last_online_time = now() - interval '11 minutes'
+     where session_token_hash = (
+       select ds.session_token_hash from duo_session ds
+       join person p on p.id = ds.person_id
+       where p.uuid::text = '$user2id' and ds.signed_in limit 1)"
+  q "insert into duo_session
+       (session_token_hash, person_id, email, signed_in, last_online_time)
+     select 'web-session-user2', p.id, p.email, true, now() - interval '20 minutes'
+     from person p where p.uuid::text = '$user2id'"
+
+  # Disable push so the test only observes the email side effect. The email
+  # path is independent of this flag.
+  echo 1 > ../../test/input/disable-mobile-notifications
+
+  local time_interval=$(db_now as-microseconds '- 11 minutes')
+
+  q "
+  insert into inbox
+  values
+    ('$user1id', '', '', 'inbox', '', ${time_interval}, 42),
+    ('$user2id', '', '', 'inbox', '', ${time_interval}, 43)
+  "
+
+  sleep 2
+
+  echo 0 > ../../test/input/disable-mobile-notifications
+
+  # Both users were eligible for a notification.
+  [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 2 ]]
+
+  # user1 (web most recent) is emailed despite having a push token; user2
+  # (mobile most recent) is not.
+  [[ "$(count_emails_to 'user1@duolicious.app')" = 1 ]]
+  [[ "$(count_emails_to 'user2@duolicious.app')" = 0 ]]
+}
+
 test_low_active_users_notified_via_email () {
   setup
 
@@ -432,8 +517,14 @@ test_low_active_users_notified_via_email () {
   q "update person set last_online_time = now() - interval '7 days' where uuid = '$user1id'"
   q "update person set last_online_time = now() - interval '9 days' where uuid = '$user2id'"
 
-  q "update person set push_token = 'token_1' where uuid::text = '$user1id'"
-  q "update person set push_token = 'token_2' where uuid::text = '$user2id'"
+  q "update duo_session set push_token = 'token_1' where session_token_hash = (
+      select ds.session_token_hash from duo_session ds
+      join person p on p.id = ds.person_id
+      where p.uuid::text = '$user1id' and ds.signed_in limit 1)"
+  q "update duo_session set push_token = 'token_2' where session_token_hash = (
+      select ds.session_token_hash from duo_session ds
+      join person p on p.id = ds.person_id
+      where p.uuid::text = '$user2id' and ds.signed_in limit 1)"
 
   local time_interval=$(db_now as-microseconds '- 11 minutes')
 
@@ -458,9 +549,104 @@ test_low_active_users_notified_via_email () {
     ../../test/fixtures/cron-emails-active-users-notified-via-email
 }
 
+# A user last online more than 8 days ago still gets their push token tried (it
+# may be stale and fail to deliver), and is *also* emailed as a backstop. So a
+# single unread intro produces both a push and an email.
+test_inactive_over_8_days_pushed_and_emailed () {
+  setup
+
+  [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
+
+  # Pushes must actually be sent (an earlier test may have disabled them).
+  echo 0 > ../../test/input/disable-mobile-notifications
+  clear_pushes
+
+  # user1: last online 9 days ago, on a signed-in mobile (push) session.
+  q "update person set last_online_time = now() - interval '9 days' where uuid = '$user1id'"
+  q "update duo_session
+     set push_token = 'token_9d', last_online_time = now() - interval '9 days'
+     where signed_in
+     and person_id = (select id from person where uuid::text = '$user1id')"
+
+  local time_interval=$(db_now as-microseconds '- 11 minutes')
+
+  q "insert into inbox values ('$user1id', '', '', 'inbox', '', ${time_interval}, 42)"
+
+  sleep 4
+
+  # The notification was recorded ...
+  [[ "$(q "select count(*) from person where uuid::text = '$user1id' and intro_seconds > 0")" = 1 ]]
+
+  # ... and delivered as both a push (to the possibly-stale token) and an email.
+  [[ "$(count_pushes_to 'token_9d')" = 1 ]]
+  [[ "$(count_emails_to 'user1@duolicious.app')" = 1 ]]
+}
+
+# Happy path: a recently-active user whose most recent session is a reachable
+# mobile device gets a push, and no email.
+test_recently_active_mobile_user_pushed () {
+  setup
+
+  [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
+
+  echo 0 > ../../test/input/disable-mobile-notifications
+  clear_pushes
+
+  q "update person set last_online_time = now() - interval '20 minutes' where uuid = '$user1id'"
+  q "update duo_session
+     set push_token = 'token_recent', last_online_time = now() - interval '20 minutes'
+     where signed_in
+     and person_id = (select id from person where uuid::text = '$user1id')"
+
+  local time_interval=$(db_now as-microseconds '- 11 minutes')
+
+  q "insert into inbox values ('$user1id', '', '', 'inbox', '', ${time_interval}, 42)"
+
+  sleep 4
+
+  [[ "$(q "select count(*) from person where uuid::text = '$user1id' and intro_seconds > 0")" = 1 ]]
+  [[ "$(count_pushes_to 'token_recent')" = 1 ]]
+  [[ "$(count_emails_to 'user1@duolicious.app')" = 0 ]]
+}
+
+# Happy path: a person signed in on several mobile devices gets one push per
+# distinct device token.
+test_pushed_to_each_signed_in_device () {
+  setup
+
+  [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
+
+  echo 0 > ../../test/input/disable-mobile-notifications
+  clear_pushes
+
+  q "update person set last_online_time = now() - interval '20 minutes' where uuid = '$user1id'"
+  q "update duo_session
+     set push_token = 'token_dev_a', last_online_time = now() - interval '20 minutes'
+     where signed_in
+     and person_id = (select id from person where uuid::text = '$user1id')"
+  q "insert into duo_session
+       (session_token_hash, person_id, email, signed_in, push_token, last_online_time)
+     select 'device-b-session', p.id, p.email, true, 'token_dev_b', now() - interval '21 minutes'
+     from person p where p.uuid::text = '$user1id'"
+
+  local time_interval=$(db_now as-microseconds '- 11 minutes')
+
+  q "insert into inbox values ('$user1id', '', '', 'inbox', '', ${time_interval}, 42)"
+
+  sleep 4
+
+  [[ "$(q "select count(*) from person where uuid::text = '$user1id' and intro_seconds > 0")" = 1 ]]
+  [[ "$(count_pushes_to 'token_dev_a')" = 1 ]]
+  [[ "$(count_pushes_to 'token_dev_b')" = 1 ]]
+  [[ "$(count_emails_to 'user1@duolicious.app')" = 0 ]]
+}
+
 test_happy_path_intros
 test_happy_path_chats
 test_happy_path_chat_not_deferred_by_intro
+
+test_recently_active_mobile_user_pushed
+test_pushed_to_each_signed_in_device
 
 test_sad_sent_9_minutes_ago
 test_sad_sent_11_days_ago
@@ -475,4 +661,8 @@ test_sad_intro_within_day_and_chat_within_past_10_minutes
 
 test_sad_not_activated
 
+test_web_client_also_emailed
+
 test_low_active_users_notified_via_email
+
+test_inactive_over_8_days_pushed_and_emailed

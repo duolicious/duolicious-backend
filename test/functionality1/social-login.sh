@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Tests for /sign-in-with-google and /sign-in-with-apple. Relies on the
-# mocking-mode branch in service/auth/social.py — when
+# mocking-mode branch in auth/social.py — when
 # test/input/enable-mocking is '1' the API skips JWT signature checks
 # but still enforces iss/aud/exp, so we mint structurally-valid fake
 # tokens with `mint_google_token` / `mint_apple_token` from setup.sh.

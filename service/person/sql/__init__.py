@@ -427,11 +427,6 @@ FROM
     deleted_uuid
 """
 
-Q_DELETE_DUO_SESSION = """
-DELETE FROM duo_session
-WHERE session_token_hash = %(session_token_hash)s
-"""
-
 Q_FINISH_ONBOARDING = f"""
 WITH onboardee_location AS (
     SELECT

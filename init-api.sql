@@ -344,7 +344,6 @@ CREATE TABLE IF NOT EXISTS person (
     -- Notifications
     intro_seconds INT NOT NULL DEFAULT 0,
     chat_seconds INT NOT NULL DEFAULT 0,
-    push_token TEXT,
 
     -- Primary keys and constraints
     UNIQUE (email),
@@ -399,11 +398,10 @@ CREATE TABLE IF NOT EXISTS duo_session (
     signed_in BOOLEAN NOT NULL DEFAULT FALSE,
     session_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '6 months'),
     otp_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '10 minutes'),
-    -- For new-user social sign-ins (Google / Apple) where an `onboardee`
-    -- exists but no `person` yet. On `/finish-onboarding`, these get promoted
-    -- to a row in `social_identity` linked to the new person.
     pending_social_provider TEXT,
     pending_social_sub TEXT,
+    push_token TEXT,
+    last_online_time TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (session_token_hash)
 );
 
@@ -1799,8 +1797,8 @@ CREATE TABLE IF NOT EXISTS rude_message (
     PRIMARY KEY (person_id, created_at)
 );
 
-CREATE INDEX IF NOT EXISTS duo_idx__inbox__timestamp__unread_count
-ON inbox(timestamp, unread_count)
+CREATE INDEX IF NOT EXISTS duo_idx__inbox__timestamp__luser__box
+ON inbox(timestamp, luser, box)
 WHERE unread_count > 0;
 
 CREATE INDEX IF NOT EXISTS duo_idx__mam_message__remote_bare_jid__id

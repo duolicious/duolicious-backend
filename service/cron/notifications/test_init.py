@@ -8,20 +8,26 @@ from service.cron.notifications import (
 import asyncio
 import json
 
-person_notification = PersonNotification(
-    person_uuid='2',
-    last_intro_notification_seconds=1693786048,
-    last_chat_notification_seconds=1693786048,
-    has_intro=True,
-    has_chat=True,
-    last_intro_seconds=1693786124,
-    last_chat_seconds=100,
-    name='jk',
-    email='user.1@gmail.com',
-    chats_drift_seconds=0,
-    intros_drift_seconds=86400,
-    token='asdf',
-)
+def make_person_notification(**overrides) -> PersonNotification:
+    kwargs = dict(
+        person_uuid='2',
+        last_intro_notification_seconds=1693786048,
+        last_chat_notification_seconds=1693786048,
+        has_intro=True,
+        has_chat=True,
+        last_intro_seconds=1693786124,
+        last_chat_seconds=100,
+        name='jk',
+        email='user.1@gmail.com',
+        chats_drift_seconds=0,
+        intros_drift_seconds=86400,
+        token='asdf',
+    )
+    kwargs.update(overrides)
+    return PersonNotification(**kwargs)
+
+
+person_notification = make_person_notification()
 
 class TestSendNotification(unittest.TestCase):
 
@@ -41,6 +47,22 @@ class TestSendNotification(unittest.TestCase):
 
         # Assert that send_email_notification was not called
         mock_send_email_notification.assert_not_called()
+
+    @patch('service.cron.notifications.send_email_notification')
+    @patch('service.cron.notifications.send_mobile_notification')
+    def test_email_send_when_no_token(
+        self,
+        mock_send_mobile_notification,
+        mock_send_email_notification,
+    ):
+        # No reachable push device (or the user was last seen on a web client):
+        # the query returns a NULL token, so we email instead of pushing.
+        row = make_person_notification(token=None)
+
+        asyncio.run(send_notification(row))
+
+        mock_send_mobile_notification.assert_not_called()
+        mock_send_email_notification.assert_called_once_with(row)
 
 
 if __name__ == '__main__':

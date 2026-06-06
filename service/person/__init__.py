@@ -1,6 +1,6 @@
 import os
 from database import api_tx, fetchall_sets
-from typing import Any, Optional, Iterable, Tuple, Literal
+from typing import Any, Optional, Tuple, Literal
 import duotypes as t
 import json
 import secrets
@@ -35,7 +35,8 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 from duoaudio import put_audio_in_object_store
 from service.person.aboutdiff import diff_addition_with_context
-from service.auth.social import (
+from auth.session import sign_out, enforce_session_limit
+from auth.social import (
     SocialAuthError,
     verify_apple_identity_token,
     verify_google_id_token,
@@ -391,6 +392,8 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
 
     sessioncache.delete_session(s.session_token_hash)
 
+    enforce_session_limit(row['person_id'], s.session_token_hash)
+
     return dict(
         onboarded=row['person_id'] is not None,
         **row,
@@ -398,12 +401,7 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
     )
 
 def post_sign_out(s: t.SessionInfo):
-    params = dict(session_token_hash=s.session_token_hash)
-
-    with api_tx('READ COMMITTED') as tx:
-        tx.execute(Q_DELETE_DUO_SESSION, params)
-
-    sessioncache.delete_session(s.session_token_hash)
+    sign_out([s.session_token_hash])
 
 def _sign_in_with_social(
     provider: str,
@@ -529,6 +527,8 @@ def _sign_in_with_social(
 
         if profile.get('person_uuid'):
             tx.execute(Q_UPDATE_LAST, dict(person_uuid=profile['person_uuid']))
+
+    enforce_session_limit(person_id, session_token_hash)
 
     return dict(
         session_token=session_token,

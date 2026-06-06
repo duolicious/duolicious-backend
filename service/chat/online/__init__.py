@@ -35,9 +35,20 @@ class OnlineStatus(Enum):
     OFFLINE = 'offline'
 
 
+Q_UPDATE_SESSION_LAST_ONLINE = """
+UPDATE
+    duo_session
+SET
+    last_online_time = NOW()
+WHERE
+    session_token_hash = %(session_token_hash)s
+"""
+
+
 @dataclass(frozen=True)
 class UpdateLastJob:
     session_username: str
+    session_token_hash: str
     do_update_last_event: bool
 
 
@@ -149,14 +160,25 @@ def process_batch(jobs: list[UpdateLastJob]):
         for job in jobs
     ]
 
+    session_params_seq = [
+        dict(session_token_hash=job.session_token_hash)
+        for job in jobs
+    ]
+
     with api_tx('read committed') as tx:
         tx.executemany(Q_UPDATE_LAST, update_last_params_seq)
+        tx.executemany(Q_UPDATE_SESSION_LAST_ONLINE, session_params_seq)
 
 
-def update_last_once(session_username: str, do_update_last_event: bool):
+def update_last_once(
+    session_username: str,
+    session_token_hash: str,
+    do_update_last_event: bool,
+):
     _batcher.enqueue(
         UpdateLastJob(
             session_username=session_username,
+            session_token_hash=session_token_hash,
             do_update_last_event=do_update_last_event,
         )
     )
@@ -168,11 +190,12 @@ async def update_online_once(
     online: bool,
     do_update_last_event: bool = False,
 ):
-    if session.username is None:
+    if session.username is None or session.session_token_hash is None:
         return
 
     update_last_once(
         session_username=session.username,
+        session_token_hash=session.session_token_hash,
         do_update_last_event=do_update_last_event,
     )
 

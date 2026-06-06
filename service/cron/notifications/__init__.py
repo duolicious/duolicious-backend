@@ -2,7 +2,6 @@ from database.asyncdatabase import api_tx
 from dataclasses import dataclass
 from service.cron.notifications.sql import (
     Q_UNREAD_INBOX,
-    Q_DELETE_MOBILE_TOKEN,
 )
 from service.cron.notifications.template import (
     big_part,
