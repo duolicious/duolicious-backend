@@ -36,9 +36,12 @@ class OnlineStatus(Enum):
 
 
 Q_UPDATE_SESSION_LAST_ONLINE = """
-UPDATE duo_session
-SET last_online_time = NOW()
-WHERE session_token_hash = %(session_token_hash)s
+UPDATE
+    duo_session
+SET
+    last_online_time = NOW()
+WHERE
+    session_token_hash = %(session_token_hash)s
 """
 
 

@@ -213,6 +213,14 @@ services:
     ports:
       - "3001:3001"
 
+  pushmock:
+    build:
+      context: .
+      dockerfile: pushmock.Dockerfile
+
+    ports:
+      - "3002:3002"
+
   redis:
     image: "redis:alpine"
     container_name: redis

@@ -398,15 +398,9 @@ CREATE TABLE IF NOT EXISTS duo_session (
     signed_in BOOLEAN NOT NULL DEFAULT FALSE,
     session_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '6 months'),
     otp_expiry TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '10 minutes'),
-    -- For new-user social sign-ins (Google / Apple) where an `onboardee`
-    -- exists but no `person` yet. On `/finish-onboarding`, these get promoted
-    -- to a row in `social_identity` linked to the new person.
     pending_social_provider TEXT,
     pending_social_sub TEXT,
     push_token TEXT,
-    -- Per-session last-online time. A session with a NULL `push_token` is a
-    -- push-less (i.e. web) client; comparing the most-recent web vs. mobile
-    -- session lets the notification cron decide whether to also send an email.
     last_online_time TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (session_token_hash)
 );

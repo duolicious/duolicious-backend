@@ -5,14 +5,22 @@ from batcher import Batcher
 
 
 Q_SET_TOKEN = """
-UPDATE duo_session SET push_token = %(token)s
-WHERE session_token_hash = %(session_token_hash)s
+UPDATE
+    duo_session
+SET
+    push_token = %(token)s
+WHERE
+    session_token_hash = %(session_token_hash)s
 """
 
 
 Q_DELETE_TOKEN = """
-UPDATE duo_session SET push_token = NULL
-WHERE session_token_hash = %(session_token_hash)s
+UPDATE
+    duo_session
+SET
+    push_token = NULL
+WHERE
+    session_token_hash = %(session_token_hash)s
 """
 
 
