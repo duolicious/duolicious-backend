@@ -236,7 +236,7 @@ const MessageStatusComponent = ({
     'offensive': `Intros can’t be too rude. Try sending ${name} a different message.`,
     'age-verification': `Verification is required to chat.` + verificationMessageText,
     'blocked': name + ' is unavailable right now. Try messaging someone else!',
-    'not unique': `${formatCount(usedCount)} ${usedCount === 1 ? 'person has' : 'people have'} already sent that intro! Try sending ${name} a different message.`,
+    'not unique': `That intro’s been sent ${usedCount === 1 ? 'once before' : `${formatCount(usedCount)} times`}. Send ${name} a unique message instead!`,
     'too long': 'That message is too big! 😩',
     'server-error': 'Our server went boom. Please contact support@duolicious.app',
   };
