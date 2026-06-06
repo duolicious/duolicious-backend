@@ -582,9 +582,71 @@ test_inactive_over_8_days_pushed_and_emailed () {
   [[ "$(count_emails_to 'user1@duolicious.app')" = 1 ]]
 }
 
+# Happy path: a recently-active user whose most recent session is a reachable
+# mobile device gets a push, and no email.
+test_recently_active_mobile_user_pushed () {
+  setup
+
+  [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
+
+  echo 0 > ../../test/input/disable-mobile-notifications
+  clear_pushes
+
+  q "update person set last_online_time = now() - interval '20 minutes' where uuid = '$user1id'"
+  q "update duo_session
+     set push_token = 'token_recent', last_online_time = now() - interval '20 minutes'
+     where signed_in
+     and person_id = (select id from person where uuid::text = '$user1id')"
+
+  local time_interval=$(db_now as-microseconds '- 11 minutes')
+
+  q "insert into inbox values ('$user1id', '', '', 'inbox', '', ${time_interval}, 42)"
+
+  sleep 4
+
+  [[ "$(q "select count(*) from person where uuid::text = '$user1id' and intro_seconds > 0")" = 1 ]]
+  [[ "$(count_pushes_to 'token_recent')" = 1 ]]
+  [[ "$(count_emails_to 'user1@duolicious.app')" = 0 ]]
+}
+
+# Happy path: a person signed in on several mobile devices gets one push per
+# distinct device token.
+test_pushed_to_each_signed_in_device () {
+  setup
+
+  [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
+
+  echo 0 > ../../test/input/disable-mobile-notifications
+  clear_pushes
+
+  q "update person set last_online_time = now() - interval '20 minutes' where uuid = '$user1id'"
+  q "update duo_session
+     set push_token = 'token_dev_a', last_online_time = now() - interval '20 minutes'
+     where signed_in
+     and person_id = (select id from person where uuid::text = '$user1id')"
+  q "insert into duo_session
+       (session_token_hash, person_id, email, signed_in, push_token, last_online_time)
+     select 'device-b-session', p.id, p.email, true, 'token_dev_b', now() - interval '21 minutes'
+     from person p where p.uuid::text = '$user1id'"
+
+  local time_interval=$(db_now as-microseconds '- 11 minutes')
+
+  q "insert into inbox values ('$user1id', '', '', 'inbox', '', ${time_interval}, 42)"
+
+  sleep 4
+
+  [[ "$(q "select count(*) from person where uuid::text = '$user1id' and intro_seconds > 0")" = 1 ]]
+  [[ "$(count_pushes_to 'token_dev_a')" = 1 ]]
+  [[ "$(count_pushes_to 'token_dev_b')" = 1 ]]
+  [[ "$(count_emails_to 'user1@duolicious.app')" = 0 ]]
+}
+
 test_happy_path_intros
 test_happy_path_chats
 test_happy_path_chat_not_deferred_by_intro
+
+test_recently_active_mobile_user_pushed
+test_pushed_to_each_signed_in_device
 
 test_sad_sent_9_minutes_ago
 test_sad_sent_11_days_ago

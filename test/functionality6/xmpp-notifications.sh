@@ -88,6 +88,17 @@ count_push_token () {
      where p.uuid::text = '${uuid}' and ds.push_token = '${token}'"
 }
 
+# Count pushes the test push server (pushmock) received for a given token.
+count_pushes_to () {
+  local token=$1
+  curl -s 'http://localhost:3002/messages' \
+    | jq "[.[] | select(.to == \"${token}\")] | length"
+}
+
+clear_pushes () {
+  curl -s -X DELETE 'http://localhost:3002/messages' > /dev/null
+}
+
 
 
 echo 'A push token is registered against the current session'
@@ -160,6 +171,8 @@ q "insert into duo_session
    select 'web-session-webc', p.id, p.email, true, now() - interval '20 minutes'
    from person p where p.uuid::text = '$webcuuid'"
 
+clear_pushes
+
 send_message "$webauuid" "$webatoken" "$webbuuid" "hello webb" "id-web"
 send_message "$webauuid" "$webatoken" "$webcuuid" "hello webc" "id-mobile"
 
@@ -169,7 +182,44 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 [[ "$(q "select count(*) from messaged where subject_person_id = $webaid and object_person_id = $webbid")" = 1 ]]
 [[ "$(q "select count(*) from messaged where subject_person_id = $webaid and object_person_id = $webcid")" = 1 ]]
 
-# ... but only webc (mobile most recent) got an immediate push. webb (web most
-# recent) was deferred to the cron, so its last-notification time is untouched.
+# ... but only webc (mobile most recent) got an immediate push, delivered to its
+# token. webb (web most recent) was deferred to the cron, so its
+# last-notification time is untouched and no push was sent.
 [[ "$(q "select count(*) from person where uuid::text = '$webbuuid' and (intro_seconds > 0 or chat_seconds > 0)")" = 0 ]]
 [[ "$(q "select count(*) from person where uuid::text = '$webcuuid' and intro_seconds > 0")" = 1 ]]
+[[ "$(count_pushes_to 'webc-mobile-token')" = 1 ]]
+[[ "$(count_pushes_to 'webb-mobile-token')" = 0 ]]
+
+
+
+echo 'A registered mobile device receives a real-time push notification'
+
+unset SESSION_TOKEN
+../util/create-user.sh sendr 0 0
+../util/create-user.sh recvr 0 0
+
+q "update person set intros_notification = 1, intro_seconds = 0
+   where email in ('sendr@example.com', 'recvr@example.com')"
+
+assume_role recvr ; recvrtoken=$SESSION_TOKEN
+recvruuid=$(get_uuid 'recvr@example.com')
+recvrid=$(get_id 'recvr@example.com')
+
+# recvr registers a push token over the chat connection, then we make that
+# session the most recent so the live push targets it.
+register_push_token "$recvruuid" "$recvrtoken" 'recvr-token'
+q "update duo_session set last_online_time = now() where push_token = 'recvr-token'"
+
+assume_role sendr ; sendrtoken=$SESSION_TOKEN
+sendruuid=$(get_uuid 'sendr@example.com')
+sendrid=$(get_id 'sendr@example.com')
+
+clear_pushes
+
+send_message "$sendruuid" "$sendrtoken" "$recvruuid" "hello recvr" "id-happy"
+
+sleep 3
+
+[[ "$(q "select count(*) from messaged where subject_person_id = $sendrid and object_person_id = $recvrid")" = 1 ]]
+[[ "$(q "select count(*) from person where uuid::text = '$recvruuid' and intro_seconds > 0")" = 1 ]]
+[[ "$(count_pushes_to 'recvr-token')" = 1 ]]
