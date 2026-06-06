@@ -160,23 +160,17 @@ LEFT JOIN
 ON
     session_summary.person_id = filtered.person_id
 -- Fan a single person out into one row per notification that must be sent:
--- one push per distinct logged-in mobile push token (only while the user has
--- been online within the push window of 8 days), plus a single email (NULL
--- token) when either no logged-in device can receive push, or the user was
--- last seen online on a web client more recently than on any mobile session
--- (ties favour mobile, so the email is only added when a web session is
--- strictly more recent).
+-- one push per distinct logged-in mobile push token, plus a single email (NULL
+-- token) when any of: no logged-in device can receive push; the user was last
+-- online more than 8 days ago (a stale token may no longer reach them, so we
+-- still push but also email as a backstop); or the user was last seen online on
+-- a web client more recently than on any mobile session (ties favour mobile, so
+-- the email is only added when a web session is strictly more recent).
 CROSS JOIN LATERAL (
     SELECT
         token
     FROM
-        unnest(
-            CASE
-                WHEN extract(epoch from filtered.last_online_time)
-                    > EXTRACT(EPOCH FROM NOW() - INTERVAL '8 days')
-                THEN session_summary.push_tokens
-            END
-        ) AS token
+        unnest(session_summary.push_tokens) AS token
 
     UNION ALL
 

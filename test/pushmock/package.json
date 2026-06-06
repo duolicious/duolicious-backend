@@ -1,0 +1,11 @@
+{
+  "name": "pushmock",
+  "version": "1.0.0",
+  "description": "Records push notifications sent by the cron during tests.",
+  "main": "index.js",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "express": "^4.19.2"
+  }
+}

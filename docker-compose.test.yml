@@ -146,6 +146,10 @@ services:
 
       DUO_CRON_EMAIL_POLL_SECONDS: '1'
 
+      # Push notifications are recorded by the `pushmock` service so tests can
+      # assert on them.
+      DUO_NOTIFICATION_API_URL: http://pushmock:3002
+
       DUO_CRON_AUTODEACTIVATE2_DRY_RUN: 'false'
       DUO_CRON_AUTODEACTIVATE2_POLL_SECONDS: '1'
 
@@ -210,6 +214,14 @@ services:
 
     ports:
       - "3001:3001"
+
+  pushmock:
+    build:
+      context: .
+      dockerfile: pushmock.Dockerfile
+
+    ports:
+      - "3002:3002"
 
   redis:
     image: "redis:alpine"

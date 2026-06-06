@@ -431,6 +431,18 @@ count_emails_to () {
     | jq "[.[] | select(.Content.Headers.To[] | contains(\"${addr}\"))] | length"
 }
 
+# Count pushes the test push server (pushmock) received for a given token.
+count_pushes_to () {
+  local token=$1
+  curl -s 'http://localhost:3002/messages' \
+    | jq "[.[] | select(.to == \"${token}\")] | length"
+}
+
+# Forget all pushes recorded by the test push server.
+clear_pushes () {
+  curl -s -X DELETE 'http://localhost:3002/messages' > /dev/null
+}
+
 # A signed-in session with a NULL push_token is a push-less (web) client. If the
 # user's most recent session is such a web client, the cron emails them (web
 # clients can't receive push) even though they have a push token on a (less
@@ -537,6 +549,39 @@ test_low_active_users_notified_via_email () {
     ../../test/fixtures/cron-emails-active-users-notified-via-email
 }
 
+# A user last online more than 8 days ago still gets their push token tried (it
+# may be stale and fail to deliver), and is *also* emailed as a backstop. So a
+# single unread intro produces both a push and an email.
+test_inactive_over_8_days_pushed_and_emailed () {
+  setup
+
+  [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
+
+  # Pushes must actually be sent (an earlier test may have disabled them).
+  echo 0 > ../../test/input/disable-mobile-notifications
+  clear_pushes
+
+  # user1: last online 9 days ago, on a signed-in mobile (push) session.
+  q "update person set last_online_time = now() - interval '9 days' where uuid = '$user1id'"
+  q "update duo_session
+     set push_token = 'token_9d', last_online_time = now() - interval '9 days'
+     where signed_in
+     and person_id = (select id from person where uuid::text = '$user1id')"
+
+  local time_interval=$(db_now as-microseconds '- 11 minutes')
+
+  q "insert into inbox values ('$user1id', '', '', 'inbox', '', ${time_interval}, 42)"
+
+  sleep 4
+
+  # The notification was recorded ...
+  [[ "$(q "select count(*) from person where uuid::text = '$user1id' and intro_seconds > 0")" = 1 ]]
+
+  # ... and delivered as both a push (to the possibly-stale token) and an email.
+  [[ "$(count_pushes_to 'token_9d')" = 1 ]]
+  [[ "$(count_emails_to 'user1@duolicious.app')" = 1 ]]
+}
+
 test_happy_path_intros
 test_happy_path_chats
 test_happy_path_chat_not_deferred_by_intro
@@ -557,3 +602,5 @@ test_sad_not_activated
 test_web_client_also_emailed
 
 test_low_active_users_notified_via_email
+
+test_inactive_over_8_days_pushed_and_emailed

@@ -31,8 +31,8 @@ The channel depends on where the user was last active:
   app, since they're unlikely to be watching their phone.
 - **No device that can receive a push** (web only, or signed out everywhere) —
   email.
-- **Last online more than 8 days ago** — email, since a push probably won't
-  reach them.
+- **Last online more than 8 days ago** — push *and* email; the push token may be
+  stale and fail to reach them, so the email is sent as a backstop.
 
 A device that has been signed out is never pushed to.
 
