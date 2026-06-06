@@ -276,7 +276,9 @@ def is_ping(parsed_xml) -> bool:
         return False
 
 
-def estimatedUsedCount(n: int, ramp_at: int = 100) -> int:
+def estimatedUsedCount(n: int, ramp_at: int = 3333) -> int:
+    # TODO: When this is removed, the tests should be updated
+    #
     # intro_hash tracking started after the app launched, so raw counts are
     # under-estimates; prorate to approximate what the true count would be.
     if n <= 1:
