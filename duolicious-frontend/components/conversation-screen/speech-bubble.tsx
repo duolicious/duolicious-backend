@@ -38,7 +38,7 @@ import { useSignedInUser } from '../../events/signed-in-user';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
 import { useNavigation } from '@react-navigation/native';
-import { assertNever } from '../../util/util';
+import { assertNever, formatCount } from '../../util/util';
 import { useAppTheme } from '../../app-theme/app-theme';
 
 const currentUserBackgroundColor = '#70f';
@@ -193,15 +193,12 @@ const FormattedText = ({
 
 const MessageStatusComponent = ({
   messageStatus,
-  name: nameRaw,
-}: {
-  messageStatus: MessageStatus,
-  name: string | undefined,
-}) => {
-  // Until the prospect-profile API resolves we may not yet have the recipient's
-  // name; fall back to a neutral placeholder so error/info copy doesn't leak
-  // the literal string "undefined".
-  const name = nameRaw ?? 'them';
+  name = 'them',
+  usedCount = 0,
+}:
+  | { name: string | undefined, messageStatus: 'not unique', usedCount: number }
+  | { name: string | undefined, messageStatus: Exclude<MessageStatus, 'not unique'>, usedCount?: never }
+) => {
 
   const verificationStatuses: MessageStatus[] =  [
     'rate-limited-1day-unverified-basics',
@@ -239,7 +236,7 @@ const MessageStatusComponent = ({
     'offensive': `Intros can’t be too rude. Try sending ${name} a different message.`,
     'age-verification': `Verification is required to chat.` + verificationMessageText,
     'blocked': name + ' is unavailable right now. Try messaging someone else!',
-    'not unique': `Someone already sent that intro! Try sending ${name} a different message.`,
+    'not unique': `${formatCount(usedCount)} ${usedCount === 1 ? 'person has' : 'people have'} already sent that intro! Try sending ${name} a different message.`,
     'too long': 'That message is too big! 😩',
     'server-error': 'Our server went boom. Please contact support@duolicious.app',
   };
@@ -549,8 +546,11 @@ const SpeechBubble = ({
         </DefaultText>
       }
       <MessageStatusComponent
-        messageStatus={message.status}
         name={name}
+        {...(message.status === 'not unique'
+          ? { messageStatus: message.status, usedCount: message.usedCount }
+          : { messageStatus: message.status }
+        )}
       />
     </View>
   );

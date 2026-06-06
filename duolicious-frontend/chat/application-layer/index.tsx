@@ -475,7 +475,8 @@ const sendMessage = async (
   },
 ): Promise<
   | { message: Message, status: 'sent' }
-  | { message: null, status: Exclude<MessageStatus, 'sent' | 'sending'>}
+  | { message: null, status: 'not unique', usedCount: number }
+  | { message: null, status: Exclude<MessageStatus, 'sent' | 'sending' | 'not unique'> }
 > => {
   const {
     numTries = 3,
@@ -528,77 +529,57 @@ const sendMessage = async (
     }
   })();
 
-  const responseDetector = (doc: any):
-    | { status: Exclude<MessageStatus, 'sent' | 'sending' | 'timeout'> }
-    | { status: Extract<MessageStatus, 'sent'>, audioUuid?: string }
-    | null =>
-  {
-    type MappingInput = Exclude<MessageStatus, 'sending' | 'timeout'>;
+  type MessageDetectionResult =
+    | { status: 'not unique', usedCount: number }
+    | { status: Exclude<MessageStatus, 'sent' | 'sending' | 'timeout' | 'not unique'> }
+    | { status: 'sent', audioUuid?: string };
 
-    const messageStatusMapping: Record<
-      MappingInput,
-      (doc: any) => false | { audioUuid?: string }
-    > = {
-      'sent': (doc) =>
-        doc.duo_message_delivered?.['@id'] === id &&
-        { audioUuid: doc.duo_message_delivered?.['@audio_uuid'] },
-      'offensive': (doc) =>
-        doc.duo_message_blocked?.['@reason'] === 'offensive' &&
-        {},
-      'rate-limited-1day': (doc) =>
-        doc.duo_message_blocked?.['@id'] === id &&
+  const responseDetector = (doc: any): MessageDetectionResult | null => {
+    const detectors: (() => MessageDetectionResult | false)[] = [
+      () => doc.duo_message_delivered?.['@id'] === id &&
+        { status: 'sent', audioUuid: doc.duo_message_delivered?.['@audio_uuid'] },
+      () => doc.duo_message_blocked?.['@reason'] === 'offensive' &&
+        { status: 'offensive' },
+      () => doc.duo_message_blocked?.['@id'] === id &&
         doc.duo_message_blocked?.['@reason'] === 'rate-limited-1day' &&
         !doc.duo_message_blocked?.['@subreason'] &&
-        {},
-      'rate-limited-1day-unverified-basics': (doc) =>
-        doc.duo_message_blocked?.['@id'] === id &&
+        { status: 'rate-limited-1day' },
+      () => doc.duo_message_blocked?.['@id'] === id &&
         doc.duo_message_blocked?.['@reason'] === 'rate-limited-1day' &&
         doc.duo_message_blocked?.['@subreason'] === 'unverified-basics' &&
-        {},
-      'rate-limited-1day-unverified-photos': (doc) =>
-        doc.duo_message_blocked?.['@id'] === id &&
+        { status: 'rate-limited-1day-unverified-basics' },
+      () => doc.duo_message_blocked?.['@id'] === id &&
         doc.duo_message_blocked?.['@reason'] === 'rate-limited-1day' &&
         doc.duo_message_blocked?.['@subreason'] === 'unverified-photos' &&
-        {},
-      'voice-intro': (doc) =>
-        doc.duo_message_blocked?.['@id'] === id &&
+        { status: 'rate-limited-1day-unverified-photos' },
+      () => doc.duo_message_blocked?.['@id'] === id &&
         doc.duo_message_blocked?.['@reason'] === 'voice-intro' &&
-        {},
-      'spam': (doc) =>
-        doc.duo_message_blocked?.['@id'] === id &&
+        { status: 'voice-intro' },
+      () => doc.duo_message_blocked?.['@id'] === id &&
         doc.duo_message_blocked?.['@reason'] === 'spam' &&
-        {},
-      'age-verification': (doc) =>
-        doc.duo_message_blocked?.['@id'] === id &&
+        { status: 'spam' },
+      () => doc.duo_message_blocked?.['@id'] === id &&
         doc.duo_message_blocked?.['@reason'] === 'age-verification' &&
-        {},
-      'blocked': (doc) =>
+        { status: 'age-verification' },
+      () =>
         // Fallback for any blocked case not caught above.
         doc.duo_message_blocked?.['@id'] === id &&
         doc.duo_message_blocked !== undefined &&
-        {},
-      'not unique': (doc) =>
-        doc.duo_message_not_unique?.['@id'] === id &&
+        { status: 'blocked' },
+      () => doc.duo_message_not_unique?.['@id'] === id &&
         doc.duo_message_not_unique !== undefined &&
-        {},
-      'too long': (doc) =>
-        doc.duo_message_too_long?.['@id'] === id &&
+        { status: 'not unique', usedCount: Number(doc.duo_message_not_unique['@used_count']) },
+      () => doc.duo_message_too_long?.['@id'] === id &&
         doc.duo_message_too_long !== undefined &&
-        {},
-      'server-error': (doc) =>
-        doc.duo_server_error?.['@id'] === id &&
+        { status: 'too long' },
+      () => doc.duo_server_error?.['@id'] === id &&
         doc.duo_server_error !== undefined &&
-        {},
-    };
+        { status: 'server-error' },
+    ];
 
-    for (const [status, subDetector] of Object.entries(messageStatusMapping)) {
-      const detectedContent = subDetector(doc);
-      if (detectedContent) {
-        return {
-          status: status as MappingInput,
-          ...detectedContent
-        };
-      }
+    for (const detect of detectors) {
+      const result = detect();
+      if (result) return result;
     }
 
     return null;
@@ -658,6 +639,8 @@ const sendMessage = async (
       },
       status: response.status
     };
+  } else if (response.status === 'not unique') {
+    return { message: null, status: 'not unique', usedCount: response.usedCount };
   } else {
     return { message: null, status: response.status };
   }

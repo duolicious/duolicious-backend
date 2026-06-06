@@ -360,6 +360,18 @@ const memoizeWithTtl = <R, A extends unknown[]>(
   return Object.assign(get, { clear });
 };
 
+const formatCount = (n: number): string => {
+  if (n >= 1_000_000) {
+    const v = n / 1_000_000;
+    return (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 'M';
+  }
+  if (n >= 1_000) {
+    const v = n / 1_000;
+    return (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 'K';
+  }
+  return n.toString();
+};
+
 export {
   assert,
   assertNever,
@@ -383,6 +395,7 @@ export {
   getLuminance,
   bestTextOn,
   capLuminance,
+  formatCount,
   happenedInLast7Days,
   memoizeWithTtl,
 };
