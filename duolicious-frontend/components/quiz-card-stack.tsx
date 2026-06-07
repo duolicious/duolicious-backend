@@ -63,25 +63,17 @@ const fetchNextQuestions = async (n: number = 10, o: number = 0): Promise<{
   id: number,
   question: string,
   topic: string,
-  yesPercentage: string,
-  noPercentage: string
+  yesCount: number,
+  noCount: number
 }[]> => {
   const response = await api('GET', `/next-questions?n=${n}&o=${o}`);
-
-  const clamp = (min, max, x) => Math.min(max, Math.max(min, x));
-
-  const percentage = (numerator: number, denominator_b: number): string => {
-    return Math.round(
-      100 * clamp(0, 99, numerator / (numerator + denominator_b + 1e-5))
-    ).toString()
-  };
 
   return response.json.map(q => ({
     id: q.id,
     question: q.question,
     topic: q.topic,
-    yesPercentage: percentage(q.count_yes, q.count_no),
-    noPercentage:  percentage(q.count_no, q.count_yes),
+    yesCount: q.count_yes,
+    noCount: q.count_no,
   }));
 };
 
@@ -174,8 +166,8 @@ type CardState = {
   questionNumber: number | undefined
   questionText: string | undefined
   topic: string | undefined
-  noPercentage: string | undefined
-  yesPercentage: string | undefined
+  noCount: number | undefined
+  yesCount: number | undefined
   style: {
     transform: [
       { rotate: string },
@@ -228,8 +220,8 @@ const unfetchedCard = (): CardState => {
     questionNumber: undefined,
     questionText: undefined,
     topic: undefined,
-    noPercentage: getRandomInt(100).toString(),
-    yesPercentage: getRandomInt(100).toString(),
+    noCount: getRandomInt(100),
+    yesCount: getRandomInt(100),
     answerPublicly: true,
     swipeDirection: undefined,
     style: {
@@ -287,8 +279,8 @@ const addNextCardsInPlace = async (
       u.questionNumber = q.id;
       u.questionText = q.question;
       u.topic = q.topic;
-      u.yesPercentage = q.yesPercentage;
-      u.noPercentage = q.noPercentage;
+      u.yesCount = q.yesCount;
+      u.noCount = q.noCount;
       u.isFetched = true;
     }
   });
@@ -605,8 +597,8 @@ const QuizCardStack_ = ({
               nonInteractiveContainerStyle={card.style}
               questionNumber={card.questionNumber}
               topic={card.topic}
-              noPercentage={card.noPercentage}
-              yesPercentage={card.yesPercentage}
+              noCount={card.noCount}
+              yesCount={card.yesCount}
               answerPubliclyValue={card.answerPublicly}
               onChangeAnswerPublicly={card.onChangeAnswerPublicly}
             >

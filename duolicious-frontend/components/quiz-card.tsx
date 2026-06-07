@@ -25,6 +25,7 @@ import { quizQueue } from '../api/queue';
 import { IndeterminateProgressBar } from './indeterminate-progress-bar';
 import { Logo14 } from './logo';
 import { useAppTheme } from '../app-theme/app-theme';
+import { formatCount } from '../util/util';
 
 const cardBorders = {
   borderRadius: 10,
@@ -49,7 +50,7 @@ type CardState = {
   public_: boolean,
 }
 
-const LeftComponent = ({percentage}) => {
+const LeftComponent = ({count}) => {
   return (
     <View
       style={{
@@ -72,7 +73,7 @@ const LeftComponent = ({percentage}) => {
           color: 'white',
         }}
       >
-        {percentage}% said
+        {formatCount(count)} said
       </DefaultText>
       <View style={{flexDirection: 'row', alignItems: 'center'}}>
         <DefaultText
@@ -95,7 +96,7 @@ const LeftComponent = ({percentage}) => {
   );
 };
 
-const RightComponent = ({percentage}) => {
+const RightComponent = ({count}) => {
   return (
     <View
       style={{
@@ -118,7 +119,7 @@ const RightComponent = ({percentage}) => {
           color: 'white',
         }}
       >
-        {percentage}% said
+        {formatCount(count)} said
       </DefaultText>
       <View style={{flexDirection: 'row', alignItems: 'center'}}>
         <DefaultText style={{
@@ -177,8 +178,8 @@ const DownComponent = memo(() => {
 
 const QuizCard = ({
   children,
-  noPercentage,
-  yesPercentage,
+  noCount,
+  yesCount,
   ...props
 }) => {
   const {
@@ -203,8 +204,8 @@ const QuizCard = ({
         height: '100%',
         ...style,
       }}
-      leftComponent={<LeftComponent percentage={noPercentage}/>}
-      rightComponent={<RightComponent percentage={yesPercentage}/>}
+      leftComponent={<LeftComponent count={noCount}/>}
+      rightComponent={<RightComponent count={yesCount}/>}
       downComponent={<DownComponent/>}
       swipeThreshold={75}
       {...rest}
