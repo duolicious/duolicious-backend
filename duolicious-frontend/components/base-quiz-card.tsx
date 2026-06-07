@@ -289,7 +289,10 @@ const BaseQuizCard = forwardRef(
     }: Props,
     ref: React.Ref<API>
   ) => {
-    const isAtStartPosition = useRef(true);
+    // True only while the card is flicked away / leaving the screen. A
+    // spring-back to center does NOT set this, so the card can be re-grabbed
+    // (and the buttons stay responsive) mid-animation.
+    const isSwipingOut = useRef(false);
 
     // Compute initial x, y, rot
     const startPosition = (() => {
@@ -309,8 +312,8 @@ const BaseQuizCard = forwardRef(
 
     useImperativeHandle(ref, () => ({
       async swipe (dir: Direction = 'right') {
-        if (!isAtStartPosition.current) return;
-        isAtStartPosition.current = false;
+        if (isSwipingOut.current) return;
+        isSwipingOut.current = true;
 
         if (onSwipe) onSwipe(dir)
         const power = 2.0
@@ -328,7 +331,7 @@ const BaseQuizCard = forwardRef(
       },
       async restoreCard () {
         await animateBack(setSpringTarget)
-        isAtStartPosition.current = true;
+        isSwipingOut.current = false;
       }
     }));
 
@@ -348,8 +351,8 @@ const BaseQuizCard = forwardRef(
         if (dir === 'none' || preventSwipe.includes(dir)) {
           // Card was not flicked away, animate back to start
           await animateBack(setSpringTarget)
-          isAtStartPosition.current = true;
         } else {
+          isSwipingOut.current = true;
           if (onSwipe) onSwipe(dir)
 
           await animateOut(
@@ -372,21 +375,9 @@ const BaseQuizCard = forwardRef(
         onStartShouldSetPanResponderCapture:
           () => false,
         onMoveShouldSetPanResponder:
-          () => {
-            if (!isAtStartPosition.current) {
-              return false;
-            }
-            isAtStartPosition.current = false;
-            return true;
-          },
+          () => !isSwipingOut.current,
         onMoveShouldSetPanResponderCapture:
-          () => {
-            if (!isAtStartPosition.current) {
-              return false;
-            }
-            isAtStartPosition.current = false;
-            return true;
-          },
+          () => !isSwipingOut.current,
         onPanResponderGrant: (evt) => {
           if (Platform.OS === 'web') {
             evt.preventDefault?.();
