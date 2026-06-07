@@ -38,7 +38,10 @@ from service.chat.ratelimit import (
 from lxml import etree
 from service.chat.chatutil import (
     fetch_is_skipped,
+    fetch_has_gold,
+    format_timestamp,
     message_string_to_etree,
+    read_receipt_stanza,
     to_bare_jid,
     fetch_id_from_username,
 )
@@ -423,7 +426,22 @@ async def process_text(
     if maybe_inbox:
         return await redis_publish_many(connection_uuid, maybe_inbox)
 
-    if maybe_mark_displayed(parsed_xml, from_username):
+    displayed_to = await maybe_mark_displayed(parsed_xml, from_username)
+    if displayed_to:
+        # Nudge the original sender that their messages were read, but only if
+        # they're a gold user (only gold users can view read receipts). The
+        # nudge carries no timestamp: the client stamps it with its own clock,
+        # and the authoritative read time is served from the database when the
+        # conversation is fetched from the archive. The sender may receive more
+        # than one nudge for the same message (e.g. on re-open); the client
+        # ignores nudges that don't acknowledge a newer outgoing message.
+        if await fetch_has_gold(displayed_to):
+            await redis_publish_many(displayed_to, [
+                read_receipt_stanza(
+                    from_username=from_username,
+                    to_username=displayed_to,
+                )
+            ])
         return
 
     maybe_subscription = await maybe_redis_subscribe_online(
@@ -512,6 +530,13 @@ async def process_text(
             f'<duo_message_not_unique id="{stanza_id}" used_count="{estimated_used_count(used_count)}"/>'
         ])
 
+    # The same instant is used to stamp the stored message and the delivery
+    # receipt, so the sender's client can timestamp its own message in server
+    # time (rather than its possibly-skewed local clock). This keeps read
+    # receipts, which are compared against this timestamp, accurate.
+    sent_at_microseconds = int(datetime.now().timestamp() * 1_000_000)
+    sent_at_stamp = format_timestamp(sent_at_microseconds)
+
     async def store_audio_and_notify() -> None:
         if \
                 isinstance(maybe_message, AudioMessage) and \
@@ -572,11 +597,13 @@ async def process_text(
                 f'<duo_message_delivered '
                 f'id="{stanza_id}" '
                 f'audio_uuid="{maybe_message.audio_uuid}" '
+                f'stamp="{sent_at_stamp}" '
             ).strip() + '/>'
         else:
             response = (
                 f'<duo_message_delivered '
                 f'id="{stanza_id}" '
+                f'stamp="{sent_at_stamp}" '
             ).strip() + '/>'
 
         await redis_publish_many(to_username, [sanitized_xml])
@@ -590,7 +617,8 @@ async def process_text(
         to_id=to_id,
         msg_id=stanza_id,
         message=maybe_message,
-        callback=store_audio_and_notify)
+        callback=store_audio_and_notify,
+        timestamp_microseconds=sent_at_microseconds)
 
 
 @app.websocket("/")

@@ -78,7 +78,7 @@ EOF
 )
 
 diff -u --color --ignore-trailing-space \
-  <(curl -sX GET http://localhost:3001/pop) \
+  <(curl -sX GET http://localhost:3001/pop | jq -r 'del(.duo_message_delivered."@stamp")') \
   <(jq -r <<< "$expected")
 
 
@@ -123,7 +123,7 @@ EOF
 )
 
 diff -u --color --ignore-trailing-space \
-  <(curl -sX GET http://localhost:3001/pop) \
+  <(curl -sX GET http://localhost:3001/pop | jq -r 'del(.duo_message_delivered."@stamp")') \
   <(jq -r <<< "$expected")
 
 
@@ -168,5 +168,5 @@ EOF
 )
 
 diff -u --color --ignore-trailing-space \
-  <(curl -sX GET http://localhost:3001/pop) \
+  <(curl -sX GET http://localhost:3001/pop | jq -r 'del(.duo_message_delivered."@stamp")') \
   <(jq -r <<< "$expected")

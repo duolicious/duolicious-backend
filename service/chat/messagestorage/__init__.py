@@ -35,9 +35,11 @@ def store_message(
     to_id: int,
     msg_id: str,
     message: ChatMessage | AudioMessage,
-    callback: Callable[[], None] | Callable[[], Awaitable[None]] | None = None
+    callback: Callable[[], None] | Callable[[], Awaitable[None]] | None = None,
+    timestamp_microseconds: int | None = None,
 ):
-    timestamp = datetime.datetime.now().timestamp()
+    if timestamp_microseconds is None:
+        timestamp_microseconds = int(datetime.datetime.now().timestamp() * 1_000_000)
 
     content = etree.tostring(
         message_string_to_etree(
@@ -52,7 +54,7 @@ def store_message(
 
     job = StoreMessageJob(
         store_mam_message_job=StoreMamMessageJob(
-            timestamp_microseconds=int(timestamp * 1_000_000),
+            timestamp_microseconds=timestamp_microseconds,
             from_username=from_username,
             to_username=to_username,
             id=msg_id,

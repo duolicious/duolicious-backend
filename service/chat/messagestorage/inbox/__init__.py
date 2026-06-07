@@ -85,11 +85,14 @@ Q_MARK_DISPLAYED = f"""
 UPDATE
     inbox
 SET
+    displayed_at = NOW(),
     unread_count = 0
 WHERE
     luser = %(luser)s
 AND
     remote_bare_jid = %(remote_bare_jid)s
+AND
+    unread_count > 0
 """
 
 
@@ -225,34 +228,42 @@ def process_upsert_conversation_batch(tx, batch: list[UpsertConversationJob]):
 
     tx.executemany(Q_UPSERT_CONVERSATION, params_seq)
 
-def maybe_mark_displayed(
+
+async def maybe_mark_displayed(
     parsed_xml: etree._Element | None,
     from_username: str,
-) -> bool:
+) -> str | None:
+    """
+    Marks the conversation as read and returns the other person's username, or
+    None if the stanza wasn't a read marker. Whether the read actually advances
+    the stored read state is decided in the database: Q_MARK_DISPLAYED only
+    touches the row (and bumps displayed_at) when there are unread messages, so
+    re-opening an already-read conversation is a no-op.
+    """
     if parsed_xml is None:
-        return False
+        return None
 
     xpath_query = "/*[local-name()='message'][*[local-name()='displayed']]"
     displayed_element = parsed_xml.xpath(xpath_query)
 
     if not displayed_element or type(displayed_element) is not list:
-        return False
+        return None
 
     first_displayed_element = displayed_element[0]
     if type(first_displayed_element) is not etree._Element:
-        return False
+        return None
 
     try:
         to_username, *_ = first_displayed_element.get('to', '').split('@')
     except:
-        return False
+        return None
 
     if not to_username:
-        return False
+        return None
 
     _mark_displayed(from_username=from_username, to_username=to_username)
 
-    return True
+    return to_username
 
 
 def _mark_displayed(from_username: str, to_username: str):

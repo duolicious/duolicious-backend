@@ -133,7 +133,7 @@ sleep 4 # MongooseIM takes some time to flush messages to the DB
 
 [[ "$(q "select count(*) from messaged")" = 1 ]]
 
-curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"/>'
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"'
 
 [[ "$(q "select count(*) from mam_message where \
     body like '%hello user 2%'")" = 2 ]]
@@ -261,7 +261,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
 
 [[ "$(q "select count(*) from messaged")" = 2 ]]
 
-curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id3"/>'
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id3"'
 
 [[ "$(q "select count(*) from mam_message where \
     body like '%hello user 3%'")" = 2 ]]
@@ -303,7 +303,7 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 
 sleep 3 # MongooseIM takes some time to flush messages to the DB
 
-curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id3"/>'
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id3"'
 
 [[ "$(q "select count(*) from mam_message where \
     body like '%hello user 2%'")" = 4 ]]
@@ -348,7 +348,7 @@ curl -X POST http://localhost:3000/send -H "Content-Type: application/xml" -d "
 
 sleep 3 # MongooseIM takes some time to flush messages to the DB
 
-curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id3"/>'
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id3"'
 
 [[ "$(q "select count(*) from mam_message where \
     body like '%message will be sent with no notification%'")" = 2 ]]

@@ -4,6 +4,9 @@ from database import asyncdatabase
 from service.chat.chatutil import (
     LSERVER,
     build_element,
+    fetch_has_gold,
+    format_datetime,
+    read_receipt_stanza,
     to_bare_jid,
 )
 import datetime
@@ -79,6 +82,18 @@ FROM
     page
 ORDER BY
     id
+"""
+
+
+Q_SELECT_DISPLAYED_AT = f"""
+SELECT
+    displayed_at
+FROM
+    inbox
+WHERE
+    luser = %(partner)s
+AND
+    remote_bare_jid = %(viewer_jid)s
 """
 
 
@@ -304,6 +319,15 @@ async def _get_conversation(
                 etree.tostring(
                     forwarded_etree, encoding='unicode', pretty_print=False))
 
+    # The receipt belongs under the most recent outgoing message, so it's only
+    # needed on the first (most recent) page, not on older pages fetched while
+    # scrolling up.
+    receipt = None if query.before else await _maybe_read_receipt(
+        viewer=from_username,
+        partner=to_username,
+    )
+    if receipt:
+        messages.append(receipt)
 
     iq_element = build_element(
             'iq',
@@ -327,6 +351,27 @@ async def _get_conversation(
                 iq_element, encoding='unicode', pretty_print=False))
 
     return messages
+
+
+async def _maybe_read_receipt(viewer: str, partner: str) -> str | None:
+    if not await fetch_has_gold(viewer):
+        return None
+
+    async with asyncdatabase.api_tx('read committed') as tx:
+        await tx.execute(
+            Q_SELECT_DISPLAYED_AT,
+            dict(partner=partner, viewer_jid=f'{viewer}@{LSERVER}'),
+        )
+        row = await tx.fetchone()
+
+    if not row or not row['displayed_at']:
+        return None
+
+    return read_receipt_stanza(
+        from_username=partner,
+        to_username=viewer,
+        stamp=format_datetime(row['displayed_at']),
+    )
 
 
 def microseconds_to_mam_message_id(microseconds: int):

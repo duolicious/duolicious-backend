@@ -189,7 +189,7 @@ test_rate_limit () {
   sleep 1 # Wait for testing service to receive messages
 
   curl -sX GET http://localhost:3000/pop \
-    | grep -qF "<duo_message_delivered id=\"id${max_intros_per_day}\"/>"
+    | grep -qF "<duo_message_delivered id=\"id${max_intros_per_day}\""
 
   sleep 6 # Wait for the ttl cache to expire
 
@@ -242,7 +242,7 @@ test_rate_limit () {
   sleep 1 # Wait for testing service to receive messages
 
   curl -sX GET http://localhost:3000/pop \
-    | grep -qF "<duo_message_delivered id=\"id$((max_intros_per_day + 2))\"/>"
+    | grep -qF "<duo_message_delivered id=\"id$((max_intros_per_day + 2))\""
 }
 
 # Send some reports about sender 1
