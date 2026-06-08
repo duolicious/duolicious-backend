@@ -856,6 +856,8 @@ WITH prospect_base AS (
         -- level, and skipped status.
         (
             %(person_id)s IS NOT NULL
+        AND
+            NOT prospect.shadow_banned
         AND (
                 NOT prospect.hide_me_from_strangers
             OR
@@ -882,6 +884,8 @@ WITH prospect_base AS (
         -- `hide_me_from_strangers` and `privacy_verification_level_id`.
         (
             %(person_id)s IS NULL
+        AND
+            NOT prospect.shadow_banned
         AND
             prospect.public_profile
         )
@@ -1154,7 +1158,8 @@ WITH prospect AS (
         activated
     AND (
         (
-            (
+            NOT person.shadow_banned
+        AND (
                 NOT person.hide_me_from_strangers
             OR
                 m.prospect_has_messaged_person
@@ -1283,7 +1288,14 @@ FROM (
         (question.topic = %(topic)s OR %(topic)s = 'All') AND
         answer.person_id = %(prospect_person_id)s AND
         answer.public_ = TRUE AND
-        answer.answer IS NOT NULL
+        answer.answer IS NOT NULL AND
+        (
+            %(prospect_person_id)s = %(person_id)s OR
+            NOT EXISTS (
+                SELECT 1 FROM person
+                WHERE id = %(prospect_person_id)s AND shadow_banned
+            )
+        )
 ) AS prospect_answer
 JOIN
     question ON
@@ -1323,7 +1335,9 @@ WITH partner AS (
         partner.id AS person_id,
         prospect.uuid AS person_uuid,
         prospect.id IS NULL AS is_prospect_deleted,
-        COALESCE(prospect.activated, FALSE) AS is_prospect_activated,
+        COALESCE(
+            prospect.activated AND NOT prospect.shadow_banned, FALSE
+        ) AS is_prospect_activated,
         prospect.name AS name,
         prospect.personality AS personality,
         prospect.verification_level_id > 1 AS verified,
@@ -2659,7 +2673,9 @@ Q_EXPORT_API_DATA = """
 SELECT json_build_object(
     'person', (
         SELECT
-            json_agg(row_to_json(t))
+            -- `shadow_banned` is stripped: a shadow-banned user's own export must
+            -- not reveal the ban.
+            json_agg(to_jsonb(t) - 'shadow_banned')
         FROM (
             SELECT
                 person.*,
@@ -3264,6 +3280,8 @@ WITH checker AS (
         TRUE
     WHERE
         prospect.activated
+    AND
+        NOT prospect.shadow_banned
     AND
         prospect.id <> %(person_id)s
     AND

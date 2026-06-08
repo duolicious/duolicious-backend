@@ -219,7 +219,7 @@ def lodge_report(
 
 def is_bot_report(reason: str):
     detection_pattern = re.compile(
-        r'\b(fake|(cat\s*fish(ing)?)|scam|scammer|bot)\b',
+        r'\b(fake|(cat\s*fish(ing)?)|scam|scammer|bot|clanker)\b',
         re.I
     )
 

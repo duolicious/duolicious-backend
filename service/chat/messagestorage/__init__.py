@@ -37,6 +37,7 @@ def store_message(
     message: ChatMessage | AudioMessage,
     callback: Callable[[], None] | Callable[[], Awaitable[None]] | None = None,
     timestamp_microseconds: int | None = None,
+    deliver_to_recipient: bool = True,
 ):
     if timestamp_microseconds is None:
         timestamp_microseconds = int(datetime.datetime.now().timestamp() * 1_000_000)
@@ -64,12 +65,14 @@ def store_message(
                 if isinstance(message, AudioMessage)
                 else None
             ),
+            deliver_to_recipient=deliver_to_recipient,
         ),
         upsert_conversation_job=UpsertConversationJob(
             from_username=from_username,
             to_username=to_username,
             msg_id=msg_id,
             content=content,
+            deliver_to_recipient=deliver_to_recipient,
         ),
         messaged_job=SetMessagedJob(
             from_id=from_id,

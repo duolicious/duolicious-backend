@@ -25,28 +25,31 @@ INSERT INTO
         stanza_id,
         person_id
     )
-VALUES
-    (
-        %(id)s,
-        '', -- from_jid is ignored
-        %(to_username)s,
-        'O',
-        %(audio_uuid)s,
-        %(body)s,
-        %(stanza_id)s,
-        (SELECT id FROM person WHERE uuid = uuid_or_null(%(from_username)s))
-    ),
-
-    (
-        %(id)s + 1,
-        '', -- from_jid is ignored
-        %(from_username)s,
-        'I',
-        %(audio_uuid)s,
-        %(body)s,
-        %(stanza_id)s,
-        (SELECT id FROM person WHERE uuid = uuid_or_null(%(to_username)s))
-    )
+-- The sender's archive copy (direction 'O') is always stored. The recipient's
+-- copy (direction 'I') is skipped when %(deliver_to_recipient)s is false (the
+-- sender is shadow-banned), so the message never lands in the recipient's
+-- archive.
+SELECT
+    %(id)s::BIGINT,
+    '', -- from_jid is ignored
+    %(to_username)s,
+    'O'::mam_direction,
+    %(audio_uuid)s,
+    %(body)s,
+    %(stanza_id)s,
+    (SELECT id FROM person WHERE uuid = uuid_or_null(%(from_username)s))
+UNION ALL
+SELECT
+    %(id)s::BIGINT + 1,
+    '', -- from_jid is ignored
+    %(from_username)s,
+    'I'::mam_direction,
+    %(audio_uuid)s,
+    %(body)s,
+    %(stanza_id)s,
+    (SELECT id FROM person WHERE uuid = uuid_or_null(%(to_username)s))
+WHERE
+    %(deliver_to_recipient)s::BOOLEAN
 """
 
 
@@ -114,6 +117,7 @@ class StoreMamMessageJob:
     id: str
     message_body: str
     audio_uuid: str | None
+    deliver_to_recipient: bool = True
 
 
 def _process_query(
@@ -264,6 +268,7 @@ def process_store_mam_message_batch(tx, batch: list[StoreMamMessageJob]):
             audio_uuid=message.audio_uuid,
             body=message.message_body,
             stanza_id=message.id,
+            deliver_to_recipient=message.deliver_to_recipient,
         )
         for message in batch
     ]
