@@ -164,7 +164,12 @@ const fetchPage = async (pageNumber: number): Promise<DataItem[] | null> => {
 
   const response = await japi(
     'get',
-    `/feed?before=${encodeURIComponent(before)}`
+    `/feed?before=${encodeURIComponent(before)}`,
+    undefined,
+    {
+      maxRetries: 2,
+      retryOnServerError: true,
+    }
   );
 
   if (!response.ok) {
