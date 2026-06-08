@@ -48,6 +48,7 @@ import {
   useNotificationObserverOnMobile,
   getLastNotificationResponseOnMobile,
 } from './notifications/mobile';
+import { usePushTokenListenerOnMobile } from './notifications/notifications';
 import { verificationWatcher } from './verification/verification';
 import { ClubItem } from './club/club';
 import { Toast } from './components/toast';
@@ -643,6 +644,8 @@ const App = () => {
 
     navigationContainer.navigate(screen, params);
   });
+
+  usePushTokenListenerOnMobile();
 
   useEffect(() => {
     (async () => {
