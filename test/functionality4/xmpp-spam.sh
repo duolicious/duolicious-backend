@@ -99,7 +99,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
     object_person_id = $user2id")" = 1 ]]
 [[ "$(q "select count(*) from messaged")" = 1 ]]
 
-curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"/>'
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"'
 
 [[ "$(q "select count(*) from mam_message")" = 2 ]]
 
@@ -142,7 +142,7 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
     object_person_id = $user1id")" = 1 ]]
 [[ "$(q "select count(*) from messaged")" = 2 ]]
 
-curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"/>'
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"'
 
 [[ "$(q "select count(*) from mam_message")" = 4 ]]
 
@@ -183,6 +183,6 @@ sleep 3 # MongooseIM takes some time to flush messages to the DB
     object_person_id = $user2id")" = 1 ]]
 [[ "$(q "select count(*) from messaged")" = 3 ]]
 
-curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"/>'
+curl -sX GET http://localhost:3000/pop | grep -qF '<duo_message_delivered id="id1"'
 
 [[ "$(q "select count(*) from mam_message")" = 6 ]]

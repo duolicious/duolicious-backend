@@ -7,6 +7,8 @@ import datetime
 
 LSERVER = 'duolicious.app'
 
+FMT_ISO_8601_TIMESTAMP = '%Y-%m-%dT%H:%M:%S.%fZ'
+
 
 Q_IS_SKIPPED = """
 SELECT
@@ -22,6 +24,11 @@ OR
 
 Q_FETCH_PERSON_ID = """
 SELECT id FROM person WHERE uuid = uuid_or_null(%(username)s)
+"""
+
+
+Q_FETCH_HAS_GOLD = """
+SELECT has_gold FROM person WHERE uuid = uuid_or_null(%(username)s)
 """
 
 
@@ -54,7 +61,17 @@ def format_timestamp(microseconds: int) -> str:
     """
     timestamp_sec = microseconds / 1e6  # Convert microseconds to seconds
     dt = datetime.datetime.utcfromtimestamp(timestamp_sec)
-    return dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    return dt.strftime(FMT_ISO_8601_TIMESTAMP)
+
+
+def format_datetime(dt: datetime.datetime) -> str:
+    """
+    Converts a datetime to an ISO 8601 string in UTC. Naive datetimes (e.g. the
+    `TIMESTAMP` columns, which store UTC) are assumed to be in UTC.
+    """
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=datetime.timezone.utc)
+    return dt.astimezone(datetime.timezone.utc).strftime(FMT_ISO_8601_TIMESTAMP)
 
 
 def to_bare_jid(jid: str | None):
@@ -119,3 +136,38 @@ async def fetch_id_from_username(username: str) -> int | None:
         row = await tx.fetchone()
 
     return row.get('id') if row else None
+
+
+@AsyncLruCache(ttl=60)  # 60 seconds
+async def fetch_has_gold(username: str) -> bool:
+    async with api_tx('read committed') as tx:
+        await tx.execute(Q_FETCH_HAS_GOLD, dict(username=username))
+        row = await tx.fetchone()
+
+    return bool(row and row.get('has_gold'))
+
+
+def read_receipt_stanza(
+    from_username: str,
+    to_username: str,
+    stamp: str | None = None,
+) -> str:
+    message = build_element(
+        'message',
+        attrib={
+            'from': f'{from_username}@{LSERVER}',
+            'to': f'{to_username}@{LSERVER}',
+            'type': 'read-receipt',
+        },
+        ns='jabber:client',
+    )
+
+    message.append(
+        build_element(
+            'displayed',
+            attrib={'stamp': stamp} if stamp else {},
+            ns='urn:xmpp:chat-markers:0',
+        )
+    )
+
+    return etree.tostring(message, encoding='unicode', pretty_print=False)

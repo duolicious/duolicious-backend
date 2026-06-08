@@ -1760,6 +1760,7 @@ CREATE TABLE IF NOT EXISTS inbox (
     content BYTEA                    NOT NULL,
     timestamp BIGINT                 NOT NULL,
     unread_count INT                 NOT NULL,
+    displayed_at TIMESTAMP,
     PRIMARY KEY(luser, remote_bare_jid)
 );
 
