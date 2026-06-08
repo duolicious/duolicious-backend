@@ -101,7 +101,7 @@ const HomeTabs = () => {
   );
 };
 
-const WebSplashScreen = ({loading}) => {
+const SplashScreen = ({ loading }: { loading: boolean }) => {
   const [isFaded, setIsFaded] = useState(false);
   const opacity = useRef(new Animated.Value(1)).current;
 
@@ -137,14 +137,6 @@ const WebSplashScreen = ({loading}) => {
         <Logo16 size={96} fadeOutDelay={0} fadeInDelay={0} doAnimate={true} />
       </Animated.View>
     );
-  }
-};
-
-const SplashScreen = ({loading}) => {
-  if (Platform.OS === 'web') {
-    return <WebSplashScreen loading={loading} />;
-  } else {
-    return null;
   }
 };
 
@@ -646,16 +638,15 @@ const App = () => {
   });
 
   usePushTokenListenerOnMobile();
+  useScrollbarStyle();
 
   useEffect(() => {
     (async () => {
-      if (!isLoading) {
+      if (!isLoading || serverStatus !== "ok") {
         await ExpoSplashScreen.hideAsync();
       }
     })();
-  }, [isLoading]);
-
-  useScrollbarStyle();
+  }, [isLoading, serverStatus]);
 
   if (serverStatus !== "ok") {
     return <UtilityScreen serverStatus={serverStatus} />
