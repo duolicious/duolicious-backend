@@ -272,7 +272,7 @@ const MessageStatusComponent = ({
 const SpeechBubble = ({
   messageId,
   name,
-  avatarUuid
+  avatarUuid,
 }: {
   messageId: string
   name: string | undefined
@@ -376,7 +376,6 @@ const SpeechBubble = ({
   const tap = Gesture
     .Tap()
     .maxDistance(10)
-    .requireExternalGestureToFail()
     .enabled(
       !doRenderUrlAsImage &&
       !!message &&
@@ -472,6 +471,13 @@ const SpeechBubble = ({
               /* @ts-ignore */
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
+              /* @ts-ignore */
+              onClick={isMobile() ? undefined : () => {
+                if (window.getSelection()?.toString()) {
+                  return;
+                }
+                showTimestamp();
+              }}
             >
               {doRenderUrlAsImage &&
                 <AutoResizingGif
@@ -488,39 +494,36 @@ const SpeechBubble = ({
                 />
               }
               {!doRenderUrlAsImage && !isMobile() &&
-                <TapGestureHandler
-                  onHandlerStateChange={({ nativeEvent }) => {
-                    if (nativeEvent.state === State.ACTIVE) {
-                      setQuoteToThisSpeechBubble();
-                    }
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    height: 32,
+                    width: 32,
+                    opacity: isHovering ? 1 : 0,
+                    borderBottomLeftRadius: 10,
+                    backgroundColor,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                  }}
+                  /* @ts-ignore */
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setQuoteToThisSpeechBubble();
                   }}
                 >
-                  <View
+                  <FontAwesomeIcon
+                    icon={faReply}
+                    size={20}
+                    color={textColor}
                     style={{
-                      position: 'absolute',
-                      top: 0,
-                      right: 0,
-                      height: 32,
-                      width: 32,
-                      opacity: isHovering ? 1 : 0,
-                      borderBottomLeftRadius: 10,
-                      backgroundColor,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      cursor: 'pointer',
+                      /* @ts-ignore */
+                      outline: 'none',
                     }}
-                  >
-                    <FontAwesomeIcon
-                      icon={faReply}
-                      size={20}
-                      color={textColor}
-                      style={{
-                        /* @ts-ignore */
-                        outline: 'none',
-                      }}
-                    />
-                  </View>
-                </TapGestureHandler>
+                  />
+                </View>
               }
             </View>
           }
@@ -537,12 +540,12 @@ const SpeechBubble = ({
         <DefaultText
           selectable={true}
           style={{
-            fontSize: 13,
+            fontSize: appTheme.timestampFontSize,
             alignSelf: message.message.fromCurrentUser ? 'flex-end' : 'flex-start',
-            color: '#666',
+            color: appTheme.hintColor,
           }}
         >
-          {longFriendlyTimestamp(message.message.timestamp)}
+          Delivered {longFriendlyTimestamp(message.message.timestamp)}
         </DefaultText>
       }
       <MessageStatusComponent
@@ -670,7 +673,7 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     paddingRight: 10,
     alignItems: 'flex-start',
-    width: '100%',
+    flex: 1,
     gap: 4,
   },
   dot: {

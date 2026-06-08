@@ -12,6 +12,7 @@ import {
   EV_CHAT_WS_SEND_CLOSE,
   send,
 } from '../websocket-layer';
+import { notifyOwnLastMessageAt } from './hooks/read-receipt';
 
 const AUDIO_MESSAGE = 'Audio message';
 
@@ -532,12 +533,16 @@ const sendMessage = async (
   type MessageDetectionResult =
     | { status: 'not unique', usedCount: number }
     | { status: Exclude<MessageStatus, 'sent' | 'sending' | 'timeout' | 'not unique'> }
-    | { status: 'sent', audioUuid?: string };
+    | { status: 'sent', audioUuid?: string, stamp?: string };
 
   const responseDetector = (doc: any): MessageDetectionResult | null => {
     const detectors: (() => MessageDetectionResult | false)[] = [
       () => doc.duo_message_delivered?.['@id'] === id &&
-        { status: 'sent', audioUuid: doc.duo_message_delivered?.['@audio_uuid'] },
+        {
+          status: 'sent',
+          audioUuid: doc.duo_message_delivered?.['@audio_uuid'],
+          stamp: doc.duo_message_delivered?.['@stamp'],
+        },
       () => doc.duo_message_blocked?.['@reason'] === 'offensive' &&
         { status: 'offensive' },
       () => doc.duo_message_blocked?.['@id'] === id &&
@@ -604,9 +609,15 @@ const sendMessage = async (
   if (response === 'timeout') {
     ;
   } else if (response.status === 'sent' && response.audioUuid) {
+    const timestamp = response.stamp ? new Date(response.stamp) : new Date();
+
     setInboxSent(recipientPersonUuid, AUDIO_MESSAGE);
 
     notify(`message-to-${recipientPersonUuid}`);
+
+    // Our message is now the conversation's last one, so a receipt for it can
+    // be shown once it's read.
+    notifyOwnLastMessageAt(recipientPersonUuid, timestamp);
 
     return {
       message: {
@@ -615,17 +626,22 @@ const sendMessage = async (
         to: personUuidToJid(recipientPersonUuid),
         id,
         audioUuid: response.audioUuid,
-        timestamp: new Date(),
+        timestamp,
         fromCurrentUser: true,
       },
       status: response.status,
     };
   } else if (response.status === 'sent') {
     const text = content.type === 'chat-text' ? content.text : '';
+    const timestamp = response.stamp ? new Date(response.stamp) : new Date();
 
     setInboxSent(recipientPersonUuid, text);
 
     notify(`message-to-${recipientPersonUuid}`);
+
+    // Our message is now the conversation's last one, so a receipt for it can
+    // be shown once it's read.
+    notifyOwnLastMessageAt(recipientPersonUuid, timestamp);
 
     return {
       message: {
@@ -634,7 +650,7 @@ const sendMessage = async (
         to: personUuidToJid(recipientPersonUuid),
         id,
         text,
-        timestamp: new Date(),
+        timestamp,
         fromCurrentUser: true,
       },
       status: response.status
@@ -802,7 +818,6 @@ const onReceiveMessage = (
       return;
     }
 
-
     const message: ChatMessage = unpacked.type === 'chat-text' ? {
       ...unpacked,
       type: 'chat-text',
@@ -825,7 +840,7 @@ const onReceiveMessage = (
       notify(`message-from-${bareFrom}`);
     }
 
-    if (otherPersonUuid !== undefined && doMarkDisplayed !== false) {
+    if (otherPersonUuid !== undefined && doMarkDisplayed) {
       await markDisplayed(message);
     }
 
@@ -952,6 +967,17 @@ const fetchConversation = async (
   if (response !== 'timeout' && response.length > 0) {
     const lastMessage = response[response.length - 1];
     await markDisplayed(lastMessage);
+  }
+
+  // Reconcile whether our message is the conversation's last one against the
+  // archive, but only on the first (most recent) page — older pages fetched
+  // while scrolling up don't change what's at the bottom.
+  if (response !== 'timeout' && beforeId === '') {
+    const lastMessage = response[response.length - 1];
+    notifyOwnLastMessageAt(
+      withPersonUuid,
+      lastMessage?.fromCurrentUser ? lastMessage.timestamp : null,
+    );
   }
 
   return response;

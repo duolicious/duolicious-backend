@@ -7,6 +7,7 @@ import {
 } from '../../chat/application-layer';
 import { isSameDay } from 'date-fns';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
+import { useAppTheme } from '../../app-theme/app-theme';
 
 type Props = {
   previousMessage: Message
@@ -14,6 +15,8 @@ type Props = {
 };
 
 const MessageDivider = ({ previousMessage, message }: Props) => {
+  const { appTheme } = useAppTheme();
+
   const opacity = useSharedValue(0);
 
   useEffect(() => {
@@ -33,7 +36,14 @@ const MessageDivider = ({ previousMessage, message }: Props) => {
   }
 
   return (
-    <DefaultText style={styles.text} animated={true}>
+    <DefaultText
+      disableTheme={true}
+      style={{
+        ...styles.text,
+        ...{ color: appTheme.hintColor },
+      }}
+      animated={true}
+    >
       {friendlyDate(message.timestamp)}
     </DefaultText>
   );
@@ -45,7 +55,6 @@ const styles = StyleSheet.create({
     paddingTop: 58,
     paddingBottom: 12,
     fontSize: 12,
-    color: '#999',
     fontWeight: '700',
     marginHorizontal: 8,
     textTransform: 'uppercase',

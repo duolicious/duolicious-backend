@@ -26,6 +26,7 @@ type AppTheme = {
   brandColor: string
   avatarBackgroundColor: string
   avatarColor: string
+  timestampFontSize: number
 };
 
 type AppThemes = Record<AppThemeName, AppTheme>;
@@ -50,6 +51,7 @@ const APP_THEME: AppThemes = {
     brandColor: '#7700ff',
     avatarBackgroundColor: '#f1e5ff',
     avatarColor: 'rgba(119, 0, 255, 0.2)',
+    timestampFontSize: 13,
   },
   dark: {
     primaryColor: '#1a1a1e',
@@ -70,6 +72,7 @@ const APP_THEME: AppThemes = {
     brandColor: '#ffffff',
     avatarBackgroundColor: '#2a2b35',
     avatarColor: '#ffffff',
+    timestampFontSize: 13,
   }
 };
 

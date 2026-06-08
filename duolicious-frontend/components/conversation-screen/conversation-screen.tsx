@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   AppState,
   AppStateStatus,
   Platform,
@@ -22,6 +23,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { TopNavBar } from '../top-nav-bar';
 import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
 import { SpeechBubble, TypingSpeechBubble } from './speech-bubble';
+import { ReadReceipt } from './read-receipt';
 import { DefaultText } from '../default-text';
 import {
   Message,
@@ -370,7 +372,7 @@ const ConversationScreenNavBar = ({
         >
           {name ?? '...'}
         </DefaultText>
-        <LogoActivityIndicator
+        <ActivityIndicator
           size="small"
           color={appTheme.brandColor}
           style={{
@@ -862,10 +864,19 @@ const ConversationScreen = ({navigation, route}) => {
               </Fragment>
             );
           })}
-          <TypingSpeechBubble
-            personUuid={personUuid}
-            avatarUuid={photoUuid}
-          />
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+            }}
+          >
+            <TypingSpeechBubble
+              personUuid={personUuid}
+              avatarUuid={photoUuid}
+            />
+            <ReadReceipt personUuid={personUuid} />
+          </View>
         </ScrollView>
       }
       {isAvailableUser && draft !== null &&
