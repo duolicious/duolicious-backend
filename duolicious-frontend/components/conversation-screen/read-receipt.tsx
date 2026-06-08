@@ -57,7 +57,7 @@ const ReadReceipt = ({ personUuid }: { personUuid: string }) => {
       pointerEvents={content ? 'auto' : 'none'}
       style={[styles.container, animatedStyle]}
     >
-      {false && shown?.kind === 'upsell' ?
+      {shown?.kind === 'upsell' ?
         <GestureDetector gesture={upsellGesture}>
           <View>
             <DefaultText
