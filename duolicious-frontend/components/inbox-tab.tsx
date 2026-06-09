@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   ListRenderItemInfo,
   StyleSheet,
   View,
@@ -249,7 +250,7 @@ const InboxTabNavBar = ({
           {'Inbox' + (showArchive ? ' (Archive)' : '')}
         </DefaultText>
         {!isOnline &&
-          <LogoActivityIndicator
+          <ActivityIndicator
             size="small"
             color={appTheme.brandColor}
             style={{
