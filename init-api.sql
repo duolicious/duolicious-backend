@@ -329,6 +329,10 @@ CREATE TABLE IF NOT EXISTS person (
     -- Whether the account was deactivated via the settings or automatically
     activated BOOLEAN NOT NULL DEFAULT TRUE,
 
+    -- Shadow banned accounts behave normally for the account holder but appear
+    -- not to exist from every other user's perspective
+    shadow_banned BOOLEAN NOT NULL DEFAULT FALSE,
+
     -- Events
     last_event_time TIMESTAMP NOT NULL DEFAULT NOW(),
     last_event_name person_event NOT NULL DEFAULT 'joined',

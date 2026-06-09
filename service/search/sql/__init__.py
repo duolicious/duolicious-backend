@@ -220,6 +220,12 @@ WITH searcher AS (
         prospects_second_pass.id = prospect.id
     CROSS JOIN
         searcher
+    WHERE
+        -- Shadow-banned prospects appear not to exist to other searchers. Done
+        -- here (rather than in the per-source first passes) so the single
+        -- `person` join covers both the club and non-club paths, and so
+        -- person_club needn't carry the column.
+        NOT prospect.shadow_banned
     ORDER BY
         prospect.personality <#> searcher.personality
     LIMIT
@@ -1012,6 +1018,8 @@ WITH searcher AS (
         last_event_time > now() - interval '1 month'
     AND
         activated
+    AND
+        NOT shadow_banned
     AND
         -- The searcher meets the prospects privacy_verification_level_id
         -- requirement

@@ -51,6 +51,10 @@ WITH upsert_sender AS (
         timestamp = EXCLUDED.timestamp,
         unread_count = 0
 ), upsert_recipient AS (
+    -- Skipped (the SELECT returns no rows) when %(deliver_to_recipient)s is
+    -- false -- i.e. the sender is shadow-banned -- so the recipient's inbox
+    -- never gains an entry or unread count, and the notification cron (which
+    -- reads `inbox`) never sees it. The sender's own row above is still written.
     INSERT INTO inbox (
         luser,
         remote_bare_jid,
@@ -60,7 +64,7 @@ WITH upsert_sender AS (
         timestamp,
         unread_count
     )
-    VALUES (
+    SELECT
         %(to_username)s,
         %(sender_jid)s,
         %(msg_id)s,
@@ -68,7 +72,8 @@ WITH upsert_sender AS (
         %(content)s,
         EXTRACT(EPOCH FROM NOW()) * 1e6,
         1
-    )
+    WHERE
+        %(deliver_to_recipient)s::BOOLEAN
     ON CONFLICT (luser, remote_bare_jid)
     DO UPDATE SET
         msg_id = EXCLUDED.msg_id,
@@ -102,6 +107,7 @@ class UpsertConversationJob:
     to_username: str
     msg_id: str
     content: bytes
+    deliver_to_recipient: bool = True
 
 
 @dataclass(frozen=True)
@@ -222,6 +228,7 @@ def process_upsert_conversation_batch(tx, batch: list[UpsertConversationJob]):
             recipient_jid=f"{job.to_username}@{LSERVER}",
             msg_id=job.msg_id,
             content=job.content,
+            deliver_to_recipient=job.deliver_to_recipient,
         )
         for job in batch
     ]

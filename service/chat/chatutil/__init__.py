@@ -32,6 +32,11 @@ SELECT has_gold FROM person WHERE uuid = uuid_or_null(%(username)s)
 """
 
 
+Q_FETCH_IS_SHADOW_BANNED = """
+SELECT shadow_banned FROM person WHERE id = %(person_id)s
+"""
+
+
 def build_element(
     tag: str,
     text: str | None = None,
@@ -136,6 +141,15 @@ async def fetch_id_from_username(username: str) -> int | None:
         row = await tx.fetchone()
 
     return row.get('id') if row else None
+
+
+@AsyncLruCache(ttl=5)  # 5 seconds
+async def fetch_is_shadow_banned(person_id: int) -> bool:
+    async with api_tx('read committed') as tx:
+        await tx.execute(Q_FETCH_IS_SHADOW_BANNED, dict(person_id=person_id))
+        row = await tx.fetchone()
+
+    return bool(row and row.get('shadow_banned'))
 
 
 @AsyncLruCache(ttl=60)  # 60 seconds

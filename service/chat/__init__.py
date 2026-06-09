@@ -38,6 +38,7 @@ from service.chat.ratelimit import (
 from lxml import etree
 from service.chat.chatutil import (
     fetch_is_skipped,
+    fetch_is_shadow_banned,
     fetch_has_gold,
     format_timestamp,
     message_string_to_etree,
@@ -435,7 +436,15 @@ async def process_text(
         # conversation is fetched from the archive. The sender may receive more
         # than one nudge for the same message (e.g. on re-open); the client
         # ignores nudges that don't acknowledge a newer outgoing message.
-        if await fetch_has_gold(displayed_to):
+        #
+        # A shadow-banned reader's activity must stay invisible to others, so
+        # the nudge is suppressed for them (their own read state is still
+        # updated above, so their app behaves normally).
+        reader_id = await fetch_id_from_username(from_username)
+        if \
+                reader_id is not None and \
+                not await fetch_is_shadow_banned(reader_id) and \
+                await fetch_has_gold(displayed_to):
             await redis_publish_many(displayed_to, [
                 read_receipt_stanza(
                     from_username=from_username,
@@ -477,6 +486,13 @@ async def process_text(
     if not to_id:
         return
 
+    # Shadow-banned senders perceive the app as normal -- validation runs as
+    # usual and their own client/storage behave normally -- but nothing they
+    # send reaches the recipient: no real-time delivery, push notification, or
+    # recipient-side storage. Their own copy (MAM + chats list) is still stored
+    # so their conversation history persists when they navigate back to it.
+    is_shadow_banned = await fetch_is_shadow_banned(from_id)
+
     if await verification_required(person_id=from_id):
         return await redis_publish_many(connection_uuid, [
             FMT_VERIFICATION_REQUIRED.format(stanza_id=stanza_id)
@@ -488,6 +504,10 @@ async def process_text(
         ])
 
     if isinstance(maybe_message, TypingMessage):
+        # A shadow-banned sender's typing indicator must not reach the recipient.
+        if is_shadow_banned:
+            return
+
         return await redis_publish_many(to_username, [
             etree.tostring(
                 message_string_to_etree(
@@ -569,7 +589,7 @@ async def process_text(
                 to_id=to_id,
                 is_intro=is_intro)
 
-        if immediate_data is not None:
+        if immediate_data is not None and not is_shadow_banned:
             await send_notification(
                 from_name=immediate_data['name'],
                 to_username=to_username,
@@ -606,7 +626,10 @@ async def process_text(
                 f'stamp="{sent_at_stamp}" '
             ).strip() + '/>'
 
-        await redis_publish_many(to_username, [sanitized_xml])
+        # Don't deliver to the recipient when the sender is shadow-banned; the
+        # sender still gets their delivery receipt below.
+        if not is_shadow_banned:
+            await redis_publish_many(to_username, [sanitized_xml])
 
         await redis_publish_many(connection_uuid, [response])
 
@@ -617,6 +640,7 @@ async def process_text(
         to_id=to_id,
         msg_id=stanza_id,
         message=maybe_message,
+        deliver_to_recipient=not is_shadow_banned,
         callback=store_audio_and_notify,
         timestamp_microseconds=sent_at_microseconds)
 
