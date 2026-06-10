@@ -252,7 +252,92 @@ bans_work_despite_no_active_sessions () {
     where normalized_email = 'accused@gmail.com'")" == '{"my target"}' ]]
 }
 
+# Make the existing reporter plus a second reporter trustworthy (30+ days old
+# and not shadow banned) so their bot reports count toward the automod. The
+# accused is given has_gold = false so the automod can apply to them (every user
+# created by create-user.sh starts with has_gold = true).
+setup_trustworthy_reporters () {
+  setup
+
+  ../util/create-user.sh 'reporter2@gmail.com' 0 0
+
+  q "update person
+     set sign_up_time = now() - interval '31 days'
+     where email in ('reporter@gmail.com', 'reporter2@gmail.com')"
+
+  q "update person set has_gold = false where id = ${accused_id}"
+}
+
+accused_is_shadow_banned () {
+  q "select shadow_banned from person where id = ${accused_id}"
+}
+
+# Two trustworthy bot reports automatically shadow ban a non-gold user
+automod_shadow_bans_after_two_bot_reports () {
+  setup_trustworthy_reporters
+
+  # One bot report isn't enough
+  assume_role 'reporter@gmail.com'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "this is a scammer" }'
+  [[ "$(accused_is_shadow_banned)" == f ]]
+
+  # A second one from another trustworthy reporter trips the automod
+  assume_role 'reporter2@gmail.com'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "obviously a bot" }'
+  [[ "$(accused_is_shadow_banned)" == t ]]
+}
+
+# Gold users are never automatically shadow banned
+automod_spares_gold_users () {
+  setup_trustworthy_reporters
+
+  q "update person set has_gold = true where id = ${accused_id}"
+
+  assume_role 'reporter@gmail.com'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "scammer" }'
+  assume_role 'reporter2@gmail.com'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "bot" }'
+
+  [[ "$(accused_is_shadow_banned)" == f ]]
+}
+
+# Reports from untrustworthy reporters don't count toward the automod
+automod_ignores_untrustworthy_reporters () {
+  setup_trustworthy_reporters
+
+  # The first reporter is brand new; the second is shadow banned
+  q "update person
+     set sign_up_time = now()
+     where email = 'reporter@gmail.com'"
+  q "update person
+     set shadow_banned = true
+     where email = 'reporter2@gmail.com'"
+
+  assume_role 'reporter@gmail.com'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "scammer" }'
+  assume_role 'reporter2@gmail.com'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "bot" }'
+
+  [[ "$(accused_is_shadow_banned)" == f ]]
+}
+
+# Reports whose reasons don't match the bot regex don't count toward the automod
+automod_ignores_non_bot_reports () {
+  setup_trustworthy_reporters
+
+  assume_role 'reporter@gmail.com'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "rude to me" }'
+  assume_role 'reporter2@gmail.com'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "bad vibes" }'
+
+  [[ "$(accused_is_shadow_banned)" == f ]]
+}
+
 # Execute tests
+automod_shadow_bans_after_two_bot_reports
+automod_spares_gold_users
+automod_ignores_untrustworthy_reporters
+automod_ignores_non_bot_reports
 bans_work_despite_no_active_sessions
 no_otp_when_email_banned
 no_otp_when_ip_banned

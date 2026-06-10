@@ -256,3 +256,41 @@ SELECT EXISTS (
     SELECT * FROM q3
 ) AS is_automoded_bot
 """
+
+Q_TRUSTWORTHY_REPORTS = """
+SELECT
+    object.has_gold AS has_gold,
+    ARRAY(
+        SELECT
+            skipped.report_reason
+        FROM
+            skipped
+        JOIN
+            person AS reporter
+        ON
+            reporter.id = skipped.subject_person_id
+        WHERE
+            skipped.object_person_id = object.id
+        AND
+            skipped.reported
+        AND
+            reporter.sign_up_time <= now() - interval '30 days'
+        AND
+            NOT reporter.shadow_banned
+    ) AS trustworthy_report_reasons
+FROM
+    person AS object
+WHERE
+    object.uuid = uuid_or_null(%(object_uuid)s::TEXT)
+"""
+
+Q_SHADOW_BAN = """
+UPDATE
+    person
+SET
+    shadow_banned = TRUE
+WHERE
+    uuid = uuid_or_null(%(object_uuid)s::TEXT)
+AND
+    NOT has_gold
+"""

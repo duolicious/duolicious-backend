@@ -3,6 +3,8 @@ from antiabuse.sql import (
     Q_LAST_MESSAGES,
     Q_MAKE_REPORT,
     Q_INSERT_SKIPPED,
+    Q_TRUSTWORTHY_REPORTS,
+    Q_SHADOW_BAN,
 )
 from typing import Any
 import os
@@ -160,11 +162,20 @@ def _sample_email_addresses(email_entries):
     return sampled_email
 
 
+def _automod_subject_suffix(is_automoded_bot: bool, is_shadow_banned: bool):
+    if is_shadow_banned:
+        return ' [automoded - shadow banned]'
+    if is_automoded_bot:
+        return ' [automoded]'
+    return ''
+
+
 def _send_report_email(
     reason: str,
     report_obj: Any,
     last_messages: list[dict],
     is_automoded_bot: bool,
+    is_shadow_banned: bool,
 ):
     subject_person_id = report_obj[0]['id']
     object_person_id  = report_obj[1]['id']
@@ -172,7 +183,7 @@ def _send_report_email(
     report_email = _sample_email_addresses(REPORT_EMAILS)
 
     subject = f"Report: {subject_person_id} - {object_person_id}"
-    subject += ' [automoded]' if is_automoded_bot else ''
+    subject += _automod_subject_suffix(is_automoded_bot, is_shadow_banned)
 
     try:
         aws_smtp.send(
@@ -193,7 +204,8 @@ def lodge_report(
     subject_uuid: str,
     object_uuid: str,
     reason: str,
-    is_automoded_bot: bool
+    is_automoded_bot: bool,
+    is_shadow_banned: bool,
 ):
     params = dict(
         subject_uuid=subject_uuid,
@@ -213,6 +225,7 @@ def lodge_report(
             reason=reason,
             last_messages=last_messages,
             is_automoded_bot=is_automoded_bot,
+            is_shadow_banned=is_shadow_banned,
         )
     ).start()
 
@@ -233,6 +246,20 @@ def is_bot_report(reason: str):
     return bool(re.search(detection_pattern, clean_reason))
 
 
+SHADOW_BAN_REPORT_THRESHOLD = 2
+
+
+def _should_shadow_ban(has_gold: bool, trustworthy_report_reasons: list[str]):
+    if has_gold:
+        return False
+
+    bot_report_count = sum(
+        1 for reason in trustworthy_report_reasons if is_bot_report(reason)
+    )
+
+    return bot_report_count >= SHADOW_BAN_REPORT_THRESHOLD
+
+
 def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str):
     params = dict(
         subject_uuid=subject_uuid,
@@ -242,14 +269,28 @@ def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str):
         is_bot_report=is_bot_report(reason),
     )
 
+    is_shadow_banned = False
+
     with api_tx() as tx:
         tx.execute(Q_INSERT_SKIPPED, params=params)
-        row = tx.fetchone()
+        is_automoded_bot = tx.fetchone()['is_automoded_bot']
+
+        if reason:
+            row = tx.execute(Q_TRUSTWORTHY_REPORTS, params=params).fetchone()
+
+            is_shadow_banned = _should_shadow_ban(
+                has_gold=row['has_gold'],
+                trustworthy_report_reasons=row['trustworthy_report_reasons'],
+            )
+
+            if is_shadow_banned:
+                tx.execute(Q_SHADOW_BAN, params=params)
 
     if reason:
         lodge_report(
             subject_uuid=subject_uuid,
             object_uuid=object_uuid,
             reason=reason,
-            is_automoded_bot=row['is_automoded_bot'],
+            is_automoded_bot=is_automoded_bot,
+            is_shadow_banned=is_shadow_banned,
         )
