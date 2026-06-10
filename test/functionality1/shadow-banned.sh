@@ -7,9 +7,10 @@ source ../util/setup.sh
 
 set -xe
 
-# Shadow-banned users must appear not to exist from every other user's
-# perspective, while the app keeps behaving normally for the shadow-banned user
-# themselves.
+# Shadow-banned users must appear not to exist in other users' discovery
+# surfaces (search, visitors, inbox), while the app keeps behaving normally for
+# the shadow-banned user themselves. Their profile remains reachable via a
+# direct link, so sharing a profile URL keeps working.
 
 setup () {
   q "delete from duo_session"
@@ -92,14 +93,15 @@ test_prospect_profile () {
 
   ban user1
 
-  # A signed-in stranger gets a 404
+  # A shadow ban hides the user from search, but the profile is still
+  # reachable via a direct link: a signed-in stranger can open it
   assume_role user2
-  ! c GET "/prospect-profile/${user1_uuid}" > /dev/null || exit 1
+  [[ "$(c GET "/prospect-profile/${user1_uuid}" | jq -r '.name')" = "user1" ]]
 
-  # An anonymous viewer gets a 404 even when the profile is public
+  # An anonymous viewer can open it too when the profile is public
   q "update person set public_profile = true where name = 'user1'"
   SESSION_TOKEN=""
-  ! c GET "/prospect-profile/${user1_uuid}" > /dev/null || exit 1
+  [[ "$(c GET "/prospect-profile/${user1_uuid}" | jq -r '.name')" = "user1" ]]
 
   # The shadow-banned user can still view their own profile
   assume_role user1
