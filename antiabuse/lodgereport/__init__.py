@@ -19,6 +19,13 @@ from dataclasses import dataclass
 import random
 
 
+SHADOW_BAN_REPORT_THRESHOLD = 2
+REPORT_EMAIL = os.environ['DUO_REPORT_EMAIL']
+REPORT_EMAILS = parse_email_string(REPORT_EMAIL)
+PRIMARY_REPORT_EMAIL = REPORT_EMAILS[0].email
+print(REPORT_EMAILS)
+
+
 @dataclass(frozen=True)
 class EmailEntry:
     email: str
@@ -145,12 +152,6 @@ def parse_email_string(email_string):
     return result
 
 
-REPORT_EMAIL = os.environ['DUO_REPORT_EMAIL']
-REPORT_EMAILS = parse_email_string(REPORT_EMAIL)
-PRIMARY_REPORT_EMAIL = REPORT_EMAILS[0].email
-print(REPORT_EMAILS)
-
-
 def _sample_email_addresses(email_entries):
     # Extract the emails and their respective weights from the list of EmailEntry instances
     emails = [entry.email for entry in email_entries]
@@ -244,9 +245,6 @@ def is_bot_report(reason: str):
     clean_reason = ' '.join(cleaning_pattern.sub(' ', reason).split())
 
     return bool(re.search(detection_pattern, clean_reason))
-
-
-SHADOW_BAN_REPORT_THRESHOLD = 2
 
 
 def _should_shadow_ban(has_gold: bool, trustworthy_report_reasons: list[str]):
