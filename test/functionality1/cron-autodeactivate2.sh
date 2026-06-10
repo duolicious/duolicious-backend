@@ -90,6 +90,13 @@ do_test () {
     sign_in_time = now() - interval '20 minutes'
   "
 
+  # Give the soon-to-be-deactivated user a mobile push token so the cron should
+  # push them in addition to emailing. The active users keep no token. This must
+  # happen before the user becomes eligible below, otherwise the cron may
+  # deactivate them (deleting the session, and with it the token) before it's set.
+  clear_pushes
+  q "update duo_session set push_token = 'deactivated_push_token' where email like 'will-be-deactivated%'"
+
   q "update person set last_online_time = now() - interval '31 days' where email like 'will-be-deactivated%'"
   q "update person set last_online_time = now() - interval '21 days' where email like 'will-remain-active1%'"
   q "update person set last_online_time = now() - interval '11 days' where email like 'will-remain-active2%'"
@@ -102,6 +109,10 @@ do_test () {
   [[ "$(q "select 1 from person where activated = true  and email like 'will-remain-active2%' ")" = "1" ]]
   [[ "$(q "select 1 from person where activated = true  and email like 'will-remain-active3%' ")" = "1" ]]
   [[ "$(q "select count(*) from duo_session where email like 'will-be-deactivated%'")" = "0" ]]
+
+  # The deactivated user's mobile device got a push (captured before its session
+  # was deleted), while users who remained active got none.
+  [[ "$(count_pushes_to 'deactivated_push_token')" = "1" ]]
 
   diff \
     <(get_emails) \

@@ -375,6 +375,20 @@ get_emails () {
   )
 }
 
+# Count pushes the test push server (pushmock) received for a given token.
+# Example: count_pushes_to 'some_token'
+count_pushes_to () {
+  local token=$1
+  curl -s 'http://localhost:3002/messages' \
+    | jq "[.[] | select(.to == \"${token}\")] | length"
+}
+
+# Forget all pushes recorded by the test push server.
+# Example: clear_pushes
+clear_pushes () {
+  curl -s -X DELETE 'http://localhost:3002/messages' > /dev/null
+}
+
 # Ensure that photos for a UUID are downloadable from the mock S3 server.
 # Accepts optional size list; defaults to original, 900, 450.
 # Example: assert_photos_downloadable_by_uuid "$uuid" 900 450
