@@ -6,8 +6,16 @@ from antiabuse.sql import (
     Q_TRUSTWORTHY_REPORTS,
     Q_SHADOW_BAN,
 )
+from antiabuse.lodgereport.constants import (
+    PRIMARY_REPORT_EMAIL,
+    REPORT_EMAILS,
+    SHADOW_BAN_REPORT_THRESHOLD,
+    TRUSTWORTHY_MIN_ACCOUNT_AGE_DAYS,
+    TRUSTWORTHY_MIN_BIO_LENGTH,
+    TRUSTWORTHY_MIN_PEOPLE_MESSAGED,
+    TRUSTWORTHY_MIN_QUESTIONS_ANSWERED,
+)
 from typing import Any
-import os
 from smtp import aws_smtp
 import traceback
 import threading
@@ -15,21 +23,7 @@ import html
 import yaml
 from io import StringIO
 import re
-from dataclasses import dataclass
 import random
-
-
-SHADOW_BAN_REPORT_THRESHOLD = 2
-REPORT_EMAIL = os.environ['DUO_REPORT_EMAIL']
-REPORT_EMAILS = parse_email_string(REPORT_EMAIL)
-PRIMARY_REPORT_EMAIL = REPORT_EMAILS[0].email
-print(REPORT_EMAILS)
-
-
-@dataclass(frozen=True)
-class EmailEntry:
-    email: str
-    count: int
 
 
 def _repack_last_messages_in_place(last_messages: list[dict]):
@@ -133,23 +127,6 @@ def report_template(
 </body>
 </html>
 """
-
-
-def parse_email_string(email_string):
-    # Regular expression to match an email followed optionally by a number
-    pattern = r'(\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b)(?:\s+(\d+))?'
-    matches = re.findall(pattern, email_string)
-
-    result = []
-    for email, count in matches:
-        # If no number is given, default to 1
-        if count == '':
-            count = 1
-        else:
-            count = int(count)
-        result.append(EmailEntry(email, count))
-
-    return result
 
 
 def _sample_email_addresses(email_entries):
@@ -274,7 +251,16 @@ def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str):
         is_automoded_bot = tx.fetchone()['is_automoded_bot']
 
         if reason:
-            row = tx.execute(Q_TRUSTWORTHY_REPORTS, params=params).fetchone()
+            row = tx.execute(
+                Q_TRUSTWORTHY_REPORTS,
+                params=dict(
+                    object_uuid=object_uuid,
+                    min_account_age_days=TRUSTWORTHY_MIN_ACCOUNT_AGE_DAYS,
+                    min_bio_length=TRUSTWORTHY_MIN_BIO_LENGTH,
+                    min_people_messaged=TRUSTWORTHY_MIN_PEOPLE_MESSAGED,
+                    min_questions_answered=TRUSTWORTHY_MIN_QUESTIONS_ANSWERED,
+                ),
+            ).fetchone()
 
             is_shadow_banned = _should_shadow_ban(
                 has_gold=row['has_gold'],

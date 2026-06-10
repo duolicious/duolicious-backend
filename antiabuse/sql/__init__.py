@@ -274,9 +274,23 @@ SELECT
         AND
             skipped.reported
         AND
-            reporter.sign_up_time <= now() - interval '30 days'
+            reporter.sign_up_time
+                <= now() - %(min_account_age_days)s * interval '1 day'
         AND
             NOT reporter.shadow_banned
+        AND
+            char_length(reporter.about) >= %(min_bio_length)s
+        AND
+            reporter.count_answers >= %(min_questions_answered)s
+        AND
+            (
+                SELECT
+                    count(*)
+                FROM
+                    messaged
+                WHERE
+                    messaged.subject_person_id = reporter.id
+            ) >= %(min_people_messaged)s
     ) AS trustworthy_report_reasons
 FROM
     person AS object

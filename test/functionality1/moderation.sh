@@ -252,17 +252,35 @@ bans_work_despite_no_active_sessions () {
     where normalized_email = 'accused@gmail.com'")" == '{"my target"}' ]]
 }
 
-# Make the existing reporter plus a second reporter trustworthy (30+ days old
-# and not shadow banned) so their bot reports count toward the automod. The
-# accused is given has_gold = false so the automod can apply to them (every user
-# created by create-user.sh starts with has_gold = true).
+# Make the existing reporter plus a second reporter fully trustworthy: 30+ days
+# old, not shadow banned, a 10+ character bio, 10+ answered questions and 5+
+# people messaged. Their bot reports then count toward the automod. The accused
+# is given has_gold = false so the automod can apply to them (every user created
+# by create-user.sh starts with has_gold = true).
 setup_trustworthy_reporters () {
   setup
 
   ../util/create-user.sh 'reporter2@gmail.com' 0 0
 
+  # Five distinct people for the reporters to have messaged
+  local i
+  for i in 1 2 3 4 5
+  do
+    ../util/create-user.sh "filler${i}@gmail.com" 0 0
+  done
+
+  q "insert into messaged (subject_person_id, object_person_id)
+     select reporter.id, filler.id
+     from person as reporter
+     cross join person as filler
+     where reporter.email in ('reporter@gmail.com', 'reporter2@gmail.com')
+       and filler.email like 'filler%@gmail.com'
+     on conflict do nothing"
+
   q "update person
-     set sign_up_time = now() - interval '31 days'
+     set sign_up_time = now() - interval '31 days',
+         about = 'A genuine human bio',
+         count_answers = 10
      where email in ('reporter@gmail.com', 'reporter2@gmail.com')"
 
   q "update person set has_gold = false where id = ${accused_id}"
@@ -333,11 +351,58 @@ automod_ignores_non_bot_reports () {
   [[ "$(accused_is_shadow_banned)" == f ]]
 }
 
+# A reporter with too short a bio isn't trustworthy
+automod_ignores_reporters_with_short_bio () {
+  setup_trustworthy_reporters
+
+  q "update person set about = 'short' where email = 'reporter2@gmail.com'"
+
+  assume_role 'reporter@gmail.com'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "scammer" }'
+  assume_role 'reporter2@gmail.com'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "bot" }'
+
+  [[ "$(accused_is_shadow_banned)" == f ]]
+}
+
+# A reporter who's messaged too few people isn't trustworthy
+automod_ignores_reporters_who_messaged_few_people () {
+  setup_trustworthy_reporters
+
+  q "delete from messaged
+     where subject_person_id =
+       (select id from person where email = 'reporter2@gmail.com')"
+
+  assume_role 'reporter@gmail.com'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "scammer" }'
+  assume_role 'reporter2@gmail.com'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "bot" }'
+
+  [[ "$(accused_is_shadow_banned)" == f ]]
+}
+
+# A reporter who's answered too few questions isn't trustworthy
+automod_ignores_reporters_who_answered_few_questions () {
+  setup_trustworthy_reporters
+
+  q "update person set count_answers = 9 where email = 'reporter2@gmail.com'"
+
+  assume_role 'reporter@gmail.com'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "scammer" }'
+  assume_role 'reporter2@gmail.com'
+  jc POST "/skip/by-uuid/${accused_uuid}" -d '{ "report_reason": "bot" }'
+
+  [[ "$(accused_is_shadow_banned)" == f ]]
+}
+
 # Execute tests
 automod_shadow_bans_after_two_bot_reports
 automod_spares_gold_users
 automod_ignores_untrustworthy_reporters
 automod_ignores_non_bot_reports
+automod_ignores_reporters_with_short_bio
+automod_ignores_reporters_who_messaged_few_people
+automod_ignores_reporters_who_answered_few_questions
 bans_work_despite_no_active_sessions
 no_otp_when_email_banned
 no_otp_when_ip_banned
