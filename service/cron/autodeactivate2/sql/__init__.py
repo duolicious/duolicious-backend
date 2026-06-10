@@ -55,6 +55,24 @@ WITH to_deactivate AS (
         deleted_duo_session
     GROUP BY
         person_id
+), push_token_summary AS (
+    -- Read push tokens from the live `duo_session` rows rather than the
+    -- just-deleted ones so they're available on a dry run too (when nothing is
+    -- deleted), mirroring how `email` is always sourced from `to_deactivate`.
+    -- A data-modifying CTE's deletes aren't visible to sibling CTEs, so a real
+    -- run still reads the pre-deletion rows here.
+    SELECT
+        duo_session.person_id,
+        array_agg(DISTINCT duo_session.push_token)
+            FILTER (WHERE duo_session.push_token IS NOT NULL) AS push_tokens
+    FROM
+        duo_session
+    JOIN
+        to_deactivate
+    ON
+        to_deactivate.id = duo_session.person_id
+    GROUP BY
+        duo_session.person_id
 )
 -- Each person row carries only its own just-deleted session token hashes so the
 -- caller can evict those cached sessions. The LEFT JOIN yields an empty array
@@ -64,11 +82,17 @@ SELECT
     to_deactivate.id,
     to_deactivate.email,
     COALESCE(deleted_session_hashes.hashes, ARRAY[]::TEXT[])
-        AS session_token_hashes
+        AS session_token_hashes,
+    COALESCE(push_token_summary.push_tokens, ARRAY[]::TEXT[])
+        AS push_tokens
 FROM
     to_deactivate
 LEFT JOIN
     deleted_session_hashes
 ON
     deleted_session_hashes.person_id = to_deactivate.id
+LEFT JOIN
+    push_token_summary
+ON
+    push_token_summary.person_id = to_deactivate.id
 """

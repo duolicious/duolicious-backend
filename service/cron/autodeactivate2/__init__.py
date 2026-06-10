@@ -4,6 +4,7 @@ from service.cron.autodeactivate2.template import emailtemplate
 from service.cron.cronutil import print_stacktrace, MAX_RANDOM_START_DELAY
 from smtp import aws_smtp
 import asyncio
+import notify
 import os
 import random
 import sessioncache
@@ -33,6 +34,18 @@ def maybe_send_email(email: str):
     print('autodeactivate2: sending deactivation email to', email)
     aws_smtp.send(**send_args)
 
+def send_mobile_notifications(push_tokens):
+    for token in push_tokens:
+        print('autodeactivate2: sending deactivation push notification to', token)
+        notify.enqueue_mobile_notification(
+            token=token,
+            title="Your profile is invisible 👻",
+            body=(
+                "Because we only show active members, your profile was hidden. "
+                "Open Duolicious to become visible again."
+            ),
+        )
+
 async def autodeactivate2_once():
     params = dict(
         dry_run=DRY_RUN,
@@ -59,6 +72,7 @@ async def autodeactivate2_once():
 
     for p in rows_deactivated:
         maybe_send_email(p['email'])
+        send_mobile_notifications(p['push_tokens'])
 
 async def autodeactivate2_forever():
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))

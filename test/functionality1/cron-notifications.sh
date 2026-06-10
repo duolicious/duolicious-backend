@@ -431,18 +431,6 @@ count_emails_to () {
     | jq "[.[] | select(.Content.Headers.To[] | contains(\"${addr}\"))] | length"
 }
 
-# Count pushes the test push server (pushmock) received for a given token.
-count_pushes_to () {
-  local token=$1
-  curl -s 'http://localhost:3002/messages' \
-    | jq "[.[] | select(.to == \"${token}\")] | length"
-}
-
-# Forget all pushes recorded by the test push server.
-clear_pushes () {
-  curl -s -X DELETE 'http://localhost:3002/messages' > /dev/null
-}
-
 # A signed-in session with a NULL push_token is a push-less (web) client. If the
 # user's most recent session is such a web client, the cron emails them (web
 # clients can't receive push) even though they have a push token on a (less

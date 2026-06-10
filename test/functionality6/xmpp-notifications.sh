@@ -88,17 +88,6 @@ count_push_token () {
      where p.uuid::text = '${uuid}' and ds.push_token = '${token}'"
 }
 
-# Count pushes the test push server (pushmock) received for a given token.
-count_pushes_to () {
-  local token=$1
-  curl -s 'http://localhost:3002/messages' \
-    | jq "[.[] | select(.to == \"${token}\")] | length"
-}
-
-clear_pushes () {
-  curl -s -X DELETE 'http://localhost:3002/messages' > /dev/null
-}
-
 
 
 echo 'A push token is registered against the current session'
