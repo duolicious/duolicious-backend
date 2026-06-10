@@ -168,7 +168,7 @@ const fetchPage = async (pageNumber: number): Promise<DataItem[] | null> => {
     undefined,
     {
       maxRetries: 2,
-      retryOnServerError: true,
+      retryOnTransientError: true,
     }
   );
 

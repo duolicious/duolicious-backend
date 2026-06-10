@@ -391,7 +391,7 @@ const App = () => {
       'post',
       '/check-session-token',
       undefined,
-      { retryOnServerError: true }
+      { retryOnTransientError: true }
     );
 
     if (response.clientError || response?.json?.onboarded === false) {

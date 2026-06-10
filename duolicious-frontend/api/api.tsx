@@ -27,7 +27,7 @@ type Config = {
   timeout?: number,
   maxRetries?: number,
   showValidationToast?: boolean,
-  retryOnServerError?: boolean,
+  retryOnTransientError?: boolean,
 };
 
 const parseErrors = (errors: any): string[] => {
@@ -50,7 +50,7 @@ const api = async (
     timeout,
     maxRetries,
     showValidationToast,
-    retryOnServerError,
+    retryOnTransientError,
   } = config;
 
   let response: Response | undefined;
@@ -92,9 +92,10 @@ const api = async (
     try {
       response = await fetch(url, init_);
       if (
-        retryOnServerError &&
-        response.status >= 500 &&
-        response.status <  600
+        retryOnTransientError &&
+        (response.status === 429 ||
+          (response.status >= 500 &&
+           response.status <  600))
       ) {
         throw new Error();
       } else {
