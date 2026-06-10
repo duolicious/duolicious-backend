@@ -856,8 +856,6 @@ WITH prospect_base AS (
         -- level, and skipped status.
         (
             %(person_id)s IS NOT NULL
-        AND
-            NOT prospect.shadow_banned
         AND (
                 NOT prospect.hide_me_from_strangers
             OR
@@ -884,8 +882,6 @@ WITH prospect_base AS (
         -- `hide_me_from_strangers` and `privacy_verification_level_id`.
         (
             %(person_id)s IS NULL
-        AND
-            NOT prospect.shadow_banned
         AND
             prospect.public_profile
         )
