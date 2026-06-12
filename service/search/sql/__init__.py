@@ -741,17 +741,26 @@ SELECT
         ELSE NULL
     END AS age,
 
-    -- match_percentage is computed against a searcher's personality. A public
-    -- search has no searcher, so there's nobody to match against.
-    NULL AS match_percentage
+    50 AS match_percentage
 FROM
     person AS prospect
 WHERE
     prospect.public_profile
 AND
     prospect.activated
+AND
+    NOT prospect.shadow_banned
+AND
+    prospect.last_online_time > now() - interval '7 days'
 ORDER BY
-    prospect.id DESC
+    (
+        SELECT
+            count(*)
+        FROM
+            messaged
+        WHERE
+            object_person_id = prospect.id
+    ) DESC
 """
 
 Q_QUIZ_SEARCH = f"""
