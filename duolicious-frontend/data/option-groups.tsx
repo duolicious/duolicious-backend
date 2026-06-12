@@ -917,7 +917,7 @@ const themePickerOptionGroups: OptionGroup<OptionGroupThemePicker | OptionGroupB
         submit: async (titleColor, bodyColor, backgroundColor) => {
           const { hasGold = false } = getSignedInUser() ?? {};
           if (!hasGold) {
-            showPointOfSale('blocked');
+            showPointOfSale(true);
             return false;
           }
 
@@ -961,7 +961,7 @@ const themePickerOptionGroups: OptionGroup<OptionGroupThemePicker | OptionGroupB
         submit: async (input: 'On' | 'Off') => {
           const { hasGold = false } = getSignedInUser() ?? {};
           if (!hasGold) {
-            showPointOfSale('blocked');
+            showPointOfSale(true);
             return false;
           }
 
@@ -2070,7 +2070,7 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         submit: async (hideMeFromStrangers: string) => {
           const { hasGold = false } = getSignedInUser() ?? {};
           if (!hasGold) {
-            showPointOfSale('blocked');
+            showPointOfSale(true);
             return false;
           }
 
@@ -2114,7 +2114,7 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         submit: async (browseInvisibly: string) => {
           const { hasGold = false } = getSignedInUser() ?? {};
           if (!hasGold) {
-            showPointOfSale('blocked');
+            showPointOfSale(true);
             return false;
           }
 
@@ -2159,7 +2159,7 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         submit: async (showMyAge: string) => {
           const { hasGold = false } = getSignedInUser() ?? {};
           if (!hasGold) {
-            showPointOfSale('blocked');
+            showPointOfSale(true);
             return false;
           }
 
@@ -2204,7 +2204,7 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         submit: async (showMyLocation: string) => {
           const { hasGold = false } = getSignedInUser() ?? {};
           if (!hasGold) {
-            showPointOfSale('blocked');
+            showPointOfSale(true);
             return false;
           }
 

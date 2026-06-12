@@ -1106,7 +1106,7 @@ const ColorPickerButton = ({
   const onPress = useCallback(() => {
     const { hasGold = false } = getSignedInUser() ?? {};
     if (!hasGold) {
-      showPointOfSale('blocked');
+      showPointOfSale(true);
       return;
     }
 

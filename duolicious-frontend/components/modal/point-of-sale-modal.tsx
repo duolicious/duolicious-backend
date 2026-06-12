@@ -17,34 +17,27 @@ import { pluralize, isMobileWeb } from '../../util/util';
 
 const cardPadding = 20;
 
-type Referrer = 'blocked' | 'inquiry' | false;
-
-const showPointOfSale = (reason: Referrer) => {
-  notify<Referrer>('show-point-of-sale', reason);
+const showPointOfSale = (isVisible: boolean) => {
+  notify<boolean>('show-point-of-sale', isVisible);
 };
 
 const useShowPointOfSale = () => {
-  const [referrer, setReferrer] = useState<Exclude<Referrer, false>>('blocked');
   const [isVisible, setIsVisible] = useState<boolean>(false);
 
   useEffect(() => {
-    return listen<Referrer>(
+    return listen<boolean>(
       'show-point-of-sale',
       (x) => {
         if (x === undefined) {
           return;
         }
 
-        if (x !== false) {
-          setReferrer(x);
-        }
-
-        setIsVisible(x !== false);
+        setIsVisible(x);
       }
     );
   }, []);
 
-  return [referrer, isVisible] as const;
+  return isVisible;
 };
 
 const PurchaseButton = ({
@@ -111,10 +104,8 @@ const PurchaseButton = ({
 
 const Offering = ({
   onPressClose,
-  referrer,
 }: {
   onPressClose: () => void,
-  referrer: Referrer
 }) => {
   const [hasError, setHasError] = useState(false);
   const [currentOffering, setCurrentOffering] = useState<PurchasesOffering | null>();
@@ -166,10 +157,7 @@ const Offering = ({
     return `Try ${numUnits} ${formattedUnits} Free`
   })();
 
-  const subtitle =
-    referrer === 'blocked'
-      ? `You’re gonna need ${productName} for that...`
-      : 'Please support Duolicious 🥺 👉👈'
+  const subtitle = 'Please support Duolicious 🥺 👉👈';
 
   const onPress = async () => {
     setHasError(false);
@@ -362,7 +350,7 @@ const Offering = ({
 };
 
 const PointOfSaleModal = () => {
-  const [referrer, isVisible] = useShowPointOfSale();
+  const isVisible = useShowPointOfSale();
 
   const onPressClose = useCallback(() => showPointOfSale(false), []);
 
@@ -405,7 +393,6 @@ const PointOfSaleModal = () => {
           >
             <Offering
               onPressClose={onPressClose}
-              referrer={referrer}
             />
           </View>
         </View>

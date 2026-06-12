@@ -48,7 +48,7 @@ const ReadReceipt = ({ personUuid }: { personUuid: string }) => {
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   const upsellGesture = useMemo(
-    () => Gesture.Tap().onEnd(() => runOnJS(showPointOfSale)('blocked')),
+    () => Gesture.Tap().onEnd(() => runOnJS(showPointOfSale)(true)),
     []
   );
 

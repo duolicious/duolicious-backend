@@ -324,7 +324,7 @@ const DisplayNameAndAboutPerson = ({data}) => {
     } else if (r.validationErrors[0] === 'Spam') {
       stateSetter('spam');
     } else if (r.text === 'Requires gold') {
-      showPointOfSale('blocked');
+      showPointOfSale(true);
       stateSetter('needs gold');
     } else {
       stateSetter('error');
