@@ -5,6 +5,7 @@ from database import api_tx
 from typing import Tuple
 from service.search.sql import (
     Q_CACHED_SEARCH,
+    Q_PUBLIC_SEARCH,
     Q_QUIZ_SEARCH,
     Q_SEARCH_PREFERENCE,
     Q_UNCACHED_SEARCH_1,
@@ -141,6 +142,11 @@ def get_search(
         sessioncache.delete_session(s.session_token_hash)
 
     return result
+
+
+def get_public_search():
+    with api_tx('READ COMMITTED') as tx:
+        return tx.execute(Q_PUBLIC_SEARCH).fetchall()
 
 
 def get_feed(s: t.SessionInfo, before: datetime):

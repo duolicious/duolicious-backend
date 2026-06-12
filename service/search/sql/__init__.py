@@ -711,6 +711,49 @@ ON
     private_page.prospect_person_id = public_page.prospect_person_id
 """
 
+Q_PUBLIC_SEARCH = """
+SELECT
+    prospect.id AS prospect_person_id,
+
+    prospect.uuid AS prospect_uuid,
+
+    prospect.name,
+
+    prospect.personality,
+
+    prospect.verification_level_id > 1 AS verified,
+
+    (
+        SELECT
+            uuid
+        FROM
+            photo
+        WHERE
+            person_id = prospect.id
+        ORDER BY
+            position
+        LIMIT 1
+    ) AS profile_photo_uuid,
+
+    CASE
+        WHEN prospect.show_my_age
+        THEN EXTRACT(YEAR FROM AGE(prospect.date_of_birth))
+        ELSE NULL
+    END AS age,
+
+    -- match_percentage is computed against a searcher's personality. A public
+    -- search has no searcher, so there's nobody to match against.
+    NULL AS match_percentage
+FROM
+    person AS prospect
+WHERE
+    prospect.public_profile
+AND
+    prospect.activated
+ORDER BY
+    prospect.id DESC
+"""
+
 Q_QUIZ_SEARCH = f"""
 WITH searcher AS (
     SELECT
