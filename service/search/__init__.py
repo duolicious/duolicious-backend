@@ -145,10 +145,25 @@ def get_search(
     return result
 
 
+def get_public_search(n: str | None, o: str | None):
+    n_: int = 10 if n is None else int(n)
+    o_: int = 0 if o is None else int(o)
+
+    if not n_ >= 0:
+        raise ValueError('n must be >= 0')
+    if not o_ >= 0:
+        raise ValueError('o must be >= 0')
+
+    if n_ > 10:
+        return 'n must be less than or equal to 10', 400
+
+    return _get_public_search(n=n_, o=o_)
+
+
 @redis_cache(ttl=10 * 60)
-def get_public_search():
+def _get_public_search(n: int, o: int):
     with api_tx('READ COMMITTED') as tx:
-        return tx.execute(Q_PUBLIC_SEARCH).fetchall()
+        return tx.execute(Q_PUBLIC_SEARCH, dict(n=n, o=o)).fetchall()
 
 
 def get_feed(s: t.SessionInfo, before: datetime):

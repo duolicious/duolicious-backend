@@ -761,6 +761,10 @@ ORDER BY
         WHERE
             object_person_id = prospect.id
     ) DESC
+LIMIT
+    %(n)s
+OFFSET
+    %(o)s
 """
 
 Q_QUIZ_SEARCH = f"""
