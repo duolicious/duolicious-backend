@@ -44,6 +44,11 @@ import { useSignedInUser } from '../events/signed-in-user';
 import { joinClub } from '../club/club';
 import { isMobile } from '../util/util';
 import { setOptionScreenPayload } from '../navigation/option-screen-store';
+import { showSignUp } from './modal/sign-up-modal';
+import { lastEvent } from '../events/events';
+
+const useInModal = () =>
+  useState(() => lastEvent<boolean>('show-sign-up') ?? false)[0];
 
 const activeMembersText = (
   numActiveMembers: number,
@@ -129,6 +134,7 @@ const Stack = createNativeStackNavigator();
 
 const WelcomeScreen = () => {
   const { width: windowWidth } = useWindowDimensions();
+  const inModal = useInModal();
 
   // Note: the "logged-in user lands on Welcome" redirect is handled centrally
   // by App.tsx's post-login effect (which runs on `signedInUser` changes and
@@ -144,7 +150,7 @@ const WelcomeScreen = () => {
         overflow: 'hidden',
       }}
     >
-      {Platform.OS === 'web' && windowWidth >= 950 && <>
+      {!inModal && Platform.OS === 'web' && windowWidth >= 950 && <>
         <img
           src="https://duolicious.app/assets/landing/left.svg"
           style={{
@@ -682,6 +688,7 @@ const finishSocialSignIn = async ({
 const WelcomeScreen_ = ({navigation, route}) => {
   const clubName_ = (route.params?.clubName) as string | undefined;
   const numUsers = useNumActiveUsers(route.params?.numUsers);
+  const inModal = useInModal();
 
   const [loginStatus, setLoginStatus] = useState("");
   const [socialLoading, setSocialLoading] = useState<SocialProvider | null>(null);
@@ -807,13 +814,26 @@ const WelcomeScreen_ = ({navigation, route}) => {
           flexDirection: 'column',
         }}
       >
+        {inModal &&
+          <Pressable
+            onPress={() => showSignUp(false)}
+            style={{ position: 'absolute', top: 0, right: 0, zIndex: 99 }}
+          >
+            <Ionicons
+              style={{ margin: 10, fontSize: 30, color: 'white' }}
+              name="close"
+            />
+          </Pressable>
+        }
         <LogoHeader />
-        <Hero
-          clubName={clubName_}
-          numUsers={numUsers}
-          showTagline={windowHeight > 460}
-          showActiveMembers={windowHeight > 500}
-        />
+        {!inModal &&
+          <Hero
+            clubName={clubName_}
+            numUsers={numUsers}
+            showTagline={windowHeight > 460}
+            showActiveMembers={windowHeight > 500}
+          />
+        }
         <View
           style={{
             flex: 1,
@@ -827,9 +847,9 @@ const WelcomeScreen_ = ({navigation, route}) => {
             style={{
               color: 'white',
               textAlign: 'center',
-              marginBottom: 20,
-              fontSize: 20,
-              fontWeight: 700,
+              marginBottom: inModal ? 40 : 20,
+              fontSize: inModal ? 36 : 20,
+              fontWeight: inModal ? 900 : 700,
             }}
           >
             Join or sign in
@@ -1105,4 +1125,5 @@ const EmailScreen_ = ({navigation, route}) => {
 export {
   InviteScreen,
   WelcomeScreen,
+  useNumActiveUsers,
 };

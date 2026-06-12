@@ -31,6 +31,8 @@ import { searchQueue } from '../api/queue';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
 import { onPressInvite } from '../components/invite';
 import { useAppTheme } from '../app-theme/app-theme';
+import { useIsWebLoggedOut } from '../events/signed-in-user';
+import { showSignUp } from './modal/sign-up-modal';
 
 const styles = StyleSheet.create({
   safeAreaView: {
@@ -126,13 +128,15 @@ type PageItem = {
 
 const fetchPageWithoutQueue = async (
   club: string | null,
-  pageNumber: number
+  pageNumber: number,
+  isPublic: boolean,
 ): Promise<PageItem[] | null> => {
   const resultsPerPage = 10;
   const offset = resultsPerPage * (pageNumber - 1);
+
   const response = await japi(
     'get',
-    `/search` +
+    (isPublic ? '/public-search' : '/search') +
     `?n=${resultsPerPage}` +
     `&o=${offset}` +
     `&club=${encodeURIComponent(club === null ? '\0' : club)}`
@@ -142,12 +146,13 @@ const fetchPageWithoutQueue = async (
 };
 
 const fetchPage = (
-  club: string | null
+  club: string | null,
+  isPublic: boolean,
 ) => async (
   pageNumber: number
 ): Promise<PageItem[] | null> => {
   return searchQueue.addTask(
-    async () => fetchPageWithoutQueue(club, pageNumber));
+    async () => fetchPageWithoutQueue(club, pageNumber, isPublic));
 };
 
 type ClubSelectorProps = {
@@ -497,6 +502,7 @@ const ListHeaderComponent = ({
   hasClubs,
   selectedClub,
   setSelectedClub,
+  isPublic,
 }) => {
   const { appTheme } = useAppTheme();
 
@@ -505,6 +511,10 @@ const ListHeaderComponent = ({
       selectedClub={selectedClub}
       onChangeSelectedClub={setSelectedClub}
     />;
+  }
+
+  if (isPublic) {
+    return null;
   }
 
   return (
@@ -526,6 +536,8 @@ const ListHeaderComponent = ({
 };
 
 const SearchScreen_ = ({navigation}) => {
+  const isPublic = useIsWebLoggedOut();
+
   const {
     hasClubs: initialHasClubs,
     selectedClub: initialSelectedClub,
@@ -561,10 +573,14 @@ const SearchScreen_ = ({navigation}) => {
   }, [onPressRefresh]);
 
   const onPressOptions = useCallback(() => {
+    if (isPublic) {
+      showSignUp(true);
+      return;
+    }
     navigation.navigate('Search Filter Screen', {
       screen: 'Search Filter Tab',
     });
-  }, [selectedClub]);
+  }, [selectedClub, isPublic]);
 
   useEffect(() => {
     const refresh = listRef?.current?.refresh;
@@ -648,8 +664,8 @@ const SearchScreen_ = ({navigation}) => {
         endText={
           "No more matches to show"
         }
-        fetchPage={fetchPage(selectedClub)}
-        dataKey={JSON.stringify(selectedClub)}
+        fetchPage={fetchPage(selectedClub, isPublic)}
+        dataKey={JSON.stringify([selectedClub, isPublic])}
         hideListHeaderComponentWhenEmpty={!hasClubs}
         hideListHeaderComponentWhenLoading={!hasClubs}
         numColumns={2}
@@ -660,6 +676,7 @@ const SearchScreen_ = ({navigation}) => {
             hasClubs={hasClubs}
             selectedClub={selectedClub}
             setSelectedClub={setSelectedClub}
+            isPublic={isPublic}
           />
         }
         renderItem={({item}: any) => <ProfileCardMemo item={item} />}

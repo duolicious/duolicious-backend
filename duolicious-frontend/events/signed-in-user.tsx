@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { listen, notify, lastEvent } from './events';
 import type { ClubItem } from '../club/club';
 
@@ -41,9 +42,19 @@ const useSignedInUser = () => {
   return [value, setSignedInUser] as const;
 };
 
+const isWebLoggedOut = (): boolean =>
+  Platform.OS === 'web' && !getSignedInUser();
+
+const useIsWebLoggedOut = (): boolean => {
+  const [signedInUser] = useSignedInUser();
+  return Platform.OS === 'web' && !signedInUser;
+};
+
 export {
   SignedInUser,
   getSignedInUser,
   setSignedInUser,
   useSignedInUser,
+  isWebLoggedOut,
+  useIsWebLoggedOut,
 };

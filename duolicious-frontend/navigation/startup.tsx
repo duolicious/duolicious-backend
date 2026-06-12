@@ -59,7 +59,7 @@ const withHomeBackStack = (state: any, isAuthenticated: boolean = true): any => 
   if (!backTab) return state;
   // `Home`'s tabs assume an authenticated user. Without one, back from the
   // prospect profile should drop the user on Welcome, not a broken Q&A tab.
-  if (!isAuthenticated) return state;
+  if (!isAuthenticated && Platform.OS !== 'web') return state;
 
   // Prepend a synthetic `Home` parent and keep focus on the original top
   // route, which has shifted from index 0 to index 1 (= newRoutes.length - 1).
@@ -176,6 +176,10 @@ export async function computeStartupNavigationState(args: {
 }): Promise<StartupNavResult> {
   const { linking, isAuthenticated, notification, pendingClub } = args;
 
+  const loggedOutInitialState = Platform.OS === 'web'
+    ? { routes: [{ name: 'Home', state: { routes: [{ name: 'Search' }] } }] }
+    : { routes: [{ name: 'Welcome' }] };
+
   const urlState = await getUrlInitialState(linking);
 
   if (urlState) {
@@ -189,13 +193,13 @@ export async function computeStartupNavigationState(args: {
     // Protected deep-link while logged out. Stash the full state (including
     // any synthesized `Home` parent) for after they sign in.
     return {
-      initialState: { routes: [{ name: 'Welcome' }] },
-      postLoginRedirectState: withHomeBackStack(urlState),
+      initialState: loggedOutInitialState,
+      postLoginRedirectState: Platform.OS === 'web' ? null : withHomeBackStack(urlState),
     };
   }
 
   if (!isAuthenticated) {
-    return { initialState: { routes: [{ name: 'Welcome' }] }, postLoginRedirectState: null };
+    return { initialState: loggedOutInitialState, postLoginRedirectState: null };
   }
 
   // Signed in: prefer push-notification, then pending-club flows, then restore.

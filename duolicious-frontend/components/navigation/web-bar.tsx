@@ -12,6 +12,8 @@ import { LabelToIcon } from './util';
 import { useInboxStats } from '../../chat/application-layer/hooks/inbox-stats';
 import { WebBarFooter } from './web-bar-footer/web-bar-footer';
 import { useAppTheme } from '../../app-theme/app-theme';
+import { useIsWebLoggedOut } from '../../events/signed-in-user';
+import { showSignUp } from '../modal/sign-up-modal';
 
 const Logo = () => {
   return (
@@ -48,6 +50,7 @@ const Logo = () => {
 
 const NavigationItems = ({state, navigation, descriptors}) => {
   const { appThemeName } = useAppTheme();
+  const isWebLoggedOut = useIsWebLoggedOut();
 
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
@@ -96,6 +99,11 @@ const NavigationItems = ({state, navigation, descriptors}) => {
           <Pressable
             key={route.key}
             onPress={() => {
+              if (isWebLoggedOut && route.name !== 'Search') {
+                showSignUp(true);
+                return;
+              }
+
               const isFocused = state.index === index;
               const event = navigation.emit({
                 type: 'tabPress',

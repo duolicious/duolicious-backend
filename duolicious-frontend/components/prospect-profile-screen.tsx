@@ -348,7 +348,6 @@ const AnonymousSignInCta = ({navigation, name}) => {
 
   // Push Welcome (don't `reset`) so the system back button still points at
   // the profile and the user can bail out of sign-in.
-  // TODO: route the user back to this profile after sign-in.
   const onPress = useCallback(() => {
     navigation.navigate('Welcome');
   }, [navigation]);
@@ -1000,7 +999,8 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
                   width: '100%',
                   maxWidth: 600,
                   alignSelf: 'center',
-                  paddingBottom: 100,
+                  paddingBottom:
+                    showAnonymousSignInCta && Platform.OS === 'web' ? 200 : 100,
                 }}
               >
                 <EnlargeablePhoto
@@ -1070,14 +1070,14 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
             </View>
           </View>
         }
-        {showAnonymousSignInCta &&
+        {showAnonymousSignInCta && Platform.OS !== 'web' &&
           <AnonymousSignInCta
             navigation={navigation}
             name={data?.name}
           />
         }
       </>}
-      {!isAnonymousViewer &&
+      {(!isAnonymousViewer || Platform.OS === 'web') &&
         <View
           style={{
             position: 'absolute',

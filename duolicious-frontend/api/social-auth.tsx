@@ -486,6 +486,17 @@ export const consumePendingAppleWebSignIn = (): {
   };
 };
 
+export const hasPendingAppleWebSignIn = (): boolean => {
+  if (Platform.OS !== 'web') return false;
+  if (typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  return (
+    params.has('apple_id_token') ||
+    params.has('apple_error') ||
+    params.has('apple_state')
+  );
+};
+
 const _parseQueryParams = (url: string): URLSearchParams => {
   // Some browsers/env may not populate URL.searchParams from a relative-ish
   // string; parse the query manually as a fallback.

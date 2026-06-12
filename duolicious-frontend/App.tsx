@@ -64,7 +64,10 @@ import { TooltipListener } from './components/tooltip';
 import { VerificationCameraModal } from './components/verification-camera';
 import { notify } from './events/events';
 import { PointOfSaleModal } from './components/modal/point-of-sale-modal';
-import { setSignedInUser, useSignedInUser, getSignedInUser } from './events/signed-in-user';
+import { SignUpModal, showSignUp } from './components/modal/sign-up-modal';
+import { SignUpBanner } from './components/sign-up-banner';
+import { hasPendingAppleWebSignIn } from './api/social-auth';
+import { setSignedInUser, useSignedInUser, getSignedInUser, isWebLoggedOut, useIsWebLoggedOut } from './events/signed-in-user';
 import { useAppThemeLoader, useAppTheme } from './app-theme/app-theme';
 import { computeStartupNavigationState } from './navigation/startup';
 import { resetUserScopedClientState } from './navigation/reset-client-state';
@@ -76,7 +79,11 @@ ExpoSplashScreen.preventAutoHideAsync();
 const Stack = createNativeStackNavigator();
 const Tab = isMobile() ? createBottomTabNavigator() : createWebNavigator();
 
+const LockedTab = () => null;
+
 const HomeTabs = () => {
+  const gated = useIsWebLoggedOut();
+
   return (
     <Tab.Navigator
       backBehavior="history"
@@ -91,12 +98,12 @@ const HomeTabs = () => {
       // bottom-tabs animation packages are racing to detach the screens.
       detachInactiveScreens={Platform.OS !== 'ios'}
     >
-      <Tab.Screen name="Q&A" component={QuizTab} options={{ title: 'Q&A' }} />
+      <Tab.Screen name="Q&A" component={gated ? LockedTab : QuizTab} options={{ title: 'Q&A' }} />
       <Tab.Screen name="Search" component={SearchTab} options={{ title: 'Search' }} />
-      <Tab.Screen name="Feed" component={FeedTab} options={{ title: 'Feed' }} />
-      <Tab.Screen name="Inbox" component={InboxTab} options={{ title: 'Inbox' }} />
-      <Tab.Screen name="Visitors" component={VisitorsTab} options={{ title: 'Visitors' }} />
-      <Tab.Screen name="Profile" component={ProfileTab} options={{ title: 'Profile' }} />
+      <Tab.Screen name="Feed" component={gated ? LockedTab : FeedTab} options={{ title: 'Feed' }} />
+      <Tab.Screen name="Inbox" component={gated ? LockedTab : InboxTab} options={{ title: 'Inbox' }} />
+      <Tab.Screen name="Visitors" component={gated ? LockedTab : VisitorsTab} options={{ title: 'Visitors' }} />
+      <Tab.Screen name="Profile" component={gated ? LockedTab : ProfileTab} options={{ title: 'Profile' }} />
     </Tab.Navigator>
   );
 };
@@ -160,6 +167,21 @@ const WIZARD_ROUTE_NAMES = new Set([
   'Search Filter Option Screen',
 ]);
 
+const GATED_LOGGED_OUT_PATHS = new Set([
+  '/qa', '/feed', '/inbox', '/visitors', '/profile',
+]);
+
+const isBannerRoute = (state: any): boolean => {
+  const root = state?.routes?.[state.index ?? 0];
+  if (!root) return false;
+  if (root.name === 'Prospect Profile Screen') return true;
+  if (root.name === 'Home') {
+    const tab = root.state?.routes?.[root.state.index ?? 0]?.name;
+    return tab === 'Search';
+  }
+  return false;
+};
+
 const focusedRouteIsWizard = (state: any): boolean => {
   let node: any = state;
   while (node && Array.isArray(node.routes)) {
@@ -177,6 +199,7 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
   const [signedInUser] = useSignedInUser();
+  const [bannerVisible, setBannerVisible] = useState(false);
   const pendingPostLoginStateRef = useRef<any | null>(null);
   useAppThemeLoader();
   const { appTheme } = useAppTheme();
@@ -303,14 +326,20 @@ const App = () => {
         if (pathname === '/' && getSignedInUser()) {
           return rnGetStateFromPath('/qa', options);
         }
+        if (pathname === '/' && isWebLoggedOut()) {
+          return rnGetStateFromPath('/search', options);
+        }
+        if (isWebLoggedOut() && GATED_LOGGED_OUT_PATHS.has(pathname)) {
+          return rnGetStateFromPath('/search', options);
+        }
 
         // For anything we don't recognise, fall back to the app root rather
         // than returning `undefined` (which would render a blank screen).
         const state = rnGetStateFromPath(normalized, options);
         if (state) return state;
-        return getSignedInUser()
-          ? rnGetStateFromPath('/qa', options)
-          : { routes: [{ name: 'Welcome' }] };
+        if (getSignedInUser()) return rnGetStateFromPath('/qa', options);
+        if (isWebLoggedOut()) return rnGetStateFromPath('/search', options);
+        return { routes: [{ name: 'Welcome' }] };
       },
       getPathFromState: rnGetPathFromState,
     };
@@ -465,16 +494,27 @@ const App = () => {
     }
   }, []);
 
+  const recomputeBannerVisible = useCallback((state?: any) => {
+    const rootState = state ?? navigationContainerRef.current?.getRootState?.();
+    setBannerVisible(isWebLoggedOut() && isBannerRoute(rootState));
+  }, []);
+
+  const onNavigationReady = useCallback(() => {
+    applyPostSignInRedirect();
+    recomputeBannerVisible();
+  }, [applyPostSignInRedirect, recomputeBannerVisible]);
+
   useEffect(() => {
     // On sign-out drop any remaining pending state so a stale entry from
     // this session can't latch onto a subsequent sign-in as a different
     // user on the same browser.
     if (!signedInUser) {
       pendingPostLoginStateRef.current = null;
-      return;
+    } else {
+      applyPostSignInRedirect();
     }
-    applyPostSignInRedirect();
-  }, [signedInUser?.personUuid, applyPostSignInRedirect]);
+    recomputeBannerVisible();
+  }, [signedInUser?.personUuid, applyPostSignInRedirect, recomputeBannerVisible]);
 
   const fetchServerStatusState = useCallback(async () => {
     let response: Response | null = null
@@ -528,6 +568,14 @@ const App = () => {
   }, []);
 
   useEffect(() => {
+    if (isLoading) return;
+    if (getSignedInUser()) return;
+    if (hasPendingAppleWebSignIn()) {
+      showSignUp(true);
+    }
+  }, [isLoading]);
+
+  useEffect(() => {
     // Without this flag, an infinite loop will start each time this effect
     // starts, which would effectively be whenever the server's status changes.
     // That would lead to multiple infinite loops running concurrently.
@@ -570,6 +618,8 @@ const App = () => {
 
   const onNavigationStateChange = useCallback(async (state) => {
     if (!state) return;
+
+    recomputeBannerVisible(state);
 
     // URL-bar sync is left entirely to React Navigation's linking integration.
     // Doing a `window.history.replaceState` here in addition to RN's own
@@ -619,7 +669,7 @@ const App = () => {
       // because intermittent failures on transient states are expected.
       console.warn('Failed to persist last navigation path', e);
     }
-  }, [linking]);
+  }, [linking, recomputeBannerVisible]);
 
   // Only need live updates on web (for browser tab title)
   const stats = useInboxStats(Platform.OS === 'web');
@@ -666,7 +716,7 @@ const App = () => {
                 { ...initialState, stale: true } :
                 undefined
               }
-              onReady={applyPostSignInRedirect}
+              onReady={onNavigationReady}
               onStateChange={onNavigationStateChange}
               theme={{
                 ...DefaultTheme,
@@ -715,6 +765,7 @@ const App = () => {
                   options={{ title: 'Invitation' }} />
               </Stack.Navigator>
             </NavigationContainer>
+            {bannerVisible && <SignUpBanner/>}
             <TooltipListener/>
             <ReportModal/>
             <ImageCropper/>
@@ -722,6 +773,7 @@ const App = () => {
             <GifPickerModal/>
             <Toast/>
             <PointOfSaleModal/>
+            <SignUpModal/>
             <VerificationCameraModal/>
             </KeyboardProvider>
           </GestureHandlerRootView>
