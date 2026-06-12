@@ -348,6 +348,10 @@ def get_search(s: t.SessionInfo):
     else:
         return search.get_search(s=s, n=n, o=o, club=club)
 
+@get('/public-search')
+def get_public_search():
+    return search.get_public_search()
+
 @get('/health', limiter=limiter.exempt)
 def get_health():
     return 'status: ok'

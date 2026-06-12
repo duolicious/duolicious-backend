@@ -711,6 +711,58 @@ ON
     private_page.prospect_person_id = public_page.prospect_person_id
 """
 
+Q_PUBLIC_SEARCH = """
+SELECT
+    prospect.id AS prospect_person_id,
+
+    prospect.uuid AS prospect_uuid,
+
+    prospect.name,
+
+    prospect.personality,
+
+    prospect.verification_level_id > 1 AS verified,
+
+    (
+        SELECT
+            uuid
+        FROM
+            photo
+        WHERE
+            person_id = prospect.id
+        ORDER BY
+            position
+        LIMIT 1
+    ) AS profile_photo_uuid,
+
+    CASE
+        WHEN prospect.show_my_age
+        THEN EXTRACT(YEAR FROM AGE(prospect.date_of_birth))
+        ELSE NULL
+    END AS age,
+
+    50 AS match_percentage
+FROM
+    person AS prospect
+WHERE
+    prospect.public_profile
+AND
+    prospect.activated
+AND
+    NOT prospect.shadow_banned
+AND
+    prospect.last_online_time > now() - interval '7 days'
+ORDER BY
+    (
+        SELECT
+            count(*)
+        FROM
+            messaged
+        WHERE
+            object_person_id = prospect.id
+    ) DESC
+"""
+
 Q_QUIZ_SEARCH = f"""
 WITH searcher AS (
     SELECT
