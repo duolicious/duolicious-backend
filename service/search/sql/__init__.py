@@ -741,7 +741,13 @@ SELECT
         ELSE NULL
     END AS age,
 
-    50 AS match_percentage
+    50 AS match_percentage,
+
+    FALSE AS person_messaged_prospect,
+
+    FALSE AS prospect_messaged_person,
+
+    NULL AS verification_required_to_view
 FROM
     person AS prospect
 WHERE
@@ -761,6 +767,10 @@ ORDER BY
         WHERE
             object_person_id = prospect.id
     ) DESC
+LIMIT
+    %(n)s
+OFFSET
+    %(o)s
 """
 
 Q_QUIZ_SEARCH = f"""

@@ -350,7 +350,10 @@ def get_search(s: t.SessionInfo):
 
 @get('/public-search')
 def get_public_search():
-    return search.get_public_search()
+    n = request.args.get('n')
+    o = request.args.get('o')
+
+    return search.get_public_search(n=n, o=o)
 
 @get('/health', limiter=limiter.exempt)
 def get_health():
