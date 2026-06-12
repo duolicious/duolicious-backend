@@ -3,6 +3,7 @@ import {
   Animated,
   BackHandler,
   Easing,
+  Platform,
   StatusBar,
   StyleSheet,
   View,
@@ -74,7 +75,6 @@ const DefaultModal = ({
     };
   }, [isMounted, onRequestClose]);
 
-  // If not visible, we completely remove it from the render tree
   if (!isMounted) {
     return null;
   }
@@ -82,10 +82,9 @@ const DefaultModal = ({
   return (
     <View
       style={[
-        {
-          width,
-          height: height + (StatusBar?.currentHeight ?? 0),
-        },
+        Platform.OS === 'web'
+          ? { width: '100%', height: '100%' }
+          : { width, height: height + (StatusBar?.currentHeight ?? 0) },
         styles.wrapper
       ]}
       pointerEvents={visible ? 'auto' : 'none'}
