@@ -19,6 +19,16 @@ import {
 // pattern documented by Expo.
 WebBrowser.maybeCompleteAuthSession();
 
+// Apple's web callback returns to the SPA with the result in the query
+// string, but the navigation container rewrites the URL (stripping those
+// params) as soon as it mounts. Snapshot the query at module load - which
+// runs on the fresh page load before navigation mounts - so the return can
+// still be read once the sign-up modal mounts the welcome flow.
+let _appleWebReturnSearch =
+  Platform.OS === 'web' && typeof window !== 'undefined'
+    ? window.location.search
+    : '';
+
 // sessionStorage key that carries the nonce (and arbitrary caller
 // context) across the full-page redirect to Apple and back. Versioned
 // so a future change to the shape doesn't pick up a stale entry left
@@ -409,11 +419,12 @@ export const consumePendingAppleWebSignIn = (): {
   if (Platform.OS !== 'web') return null;
   if (typeof window === 'undefined') return null;
 
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(_appleWebReturnSearch);
   const idToken = params.get('apple_id_token');
   const error = params.get('apple_error');
   const returnedState = params.get('apple_state');
   if (!idToken && !error && !returnedState) return null;
+  _appleWebReturnSearch = '';
 
   let pending: _ApplePending | null = null;
   try {
@@ -488,8 +499,7 @@ export const consumePendingAppleWebSignIn = (): {
 
 export const hasPendingAppleWebSignIn = (): boolean => {
   if (Platform.OS !== 'web') return false;
-  if (typeof window === 'undefined') return false;
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(_appleWebReturnSearch);
   return (
     params.has('apple_id_token') ||
     params.has('apple_error') ||
