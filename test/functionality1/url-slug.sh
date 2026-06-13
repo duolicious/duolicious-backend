@@ -11,9 +11,11 @@ q "delete from duo_session"
 q "delete from person"
 q "delete from onboardee"
 
-# Onboard a user with an explicit email and display name (create-user.sh derives
-# the name from the username, so it can't produce a deliberate collision).
-onboard () {
+# Begin onboarding for the given email and set the display name, leaving the
+# session authenticated mid-onboarding. Sets two globals (not stdout, so it must
+# be called directly rather than in $(...), whose subshell would discard the
+# session): SESSION_TOKEN and PREVIEW (the name PATCH's {url_slug, is_random}).
+start_onboarding () {
   local email=$1
   local name=$2
 
@@ -21,21 +23,30 @@ onboard () {
   SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
 
   jc POST /check-otp -d '{ "otp": "000000" }' > /dev/null
-  jc PATCH /onboardee-info -d '{ "name": "'"$name"'" }' > /dev/null
+  PREVIEW=$(jc PATCH /onboardee-info -d '{ "name": "'"$name"'" }')
+}
+
+# Finish onboarding for the current session (name already set), printing the
+# finish-onboarding response.
+finish_onboarding () {
   jc PATCH /onboardee-info -d '{ "date_of_birth": "1997-05-30" }' > /dev/null
   jc PATCH /onboardee-info -d '{ "location": "New York, New York, United States" }' > /dev/null
   jc PATCH /onboardee-info -d '{ "gender": "Other" }' > /dev/null
   jc PATCH /onboardee-info -d '{ "other_peoples_genders": ["Man", "Woman"] }' > /dev/null
-  c POST /finish-onboarding > /dev/null
+  c POST /finish-onboarding
+}
+
+# Onboard a user with an explicit email and display name (create-user.sh derives
+# the name from the username, so it can't produce a deliberate collision).
+onboard () {
+  start_onboarding "$1" "$2"
+  finish_onboarding > /dev/null
 }
 
 # --- Onboardee preview: a free name previews the bare slug -------------------
-response=$(jc POST /request-otp -d '{ "email": "preview@example.com" }')
-SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
-jc POST /check-otp -d '{ "otp": "000000" }' > /dev/null
-preview=$(jc PATCH /onboardee-info -d '{ "name": "Zelda" }')
-[[ "$(jq -r .url_slug <<< "$preview")" = zelda ]]
-[[ "$(jq -r .is_random <<< "$preview")" = false ]]
+start_onboarding preview@example.com "Zelda"
+[[ "$(jq -r .url_slug  <<< "$PREVIEW")" = zelda ]]
+[[ "$(jq -r .is_random <<< "$PREVIEW")" = false ]]
 
 # --- First user gets the bare slug -------------------------------------------
 onboard alice@example.com "Alice"
@@ -54,13 +65,32 @@ onboard alice2@example.com "Alice"
 slug2=$(q "select url_slug from person where email='alice2@example.com'")
 [[ "$slug2" =~ ^alice[0-9]+$ ]]
 
-# --- Onboardee preview of a taken name shows a concrete suffixed slug --------
-response=$(jc POST /request-otp -d '{ "email": "preview2@example.com" }')
-SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
-jc POST /check-otp -d '{ "otp": "000000" }' > /dev/null
-preview=$(jc PATCH /onboardee-info -d '{ "name": "Alice" }')
-[[ "$(jq -r .is_random <<< "$preview")" = true ]]
-[[ "$(jq -r .url_slug  <<< "$preview")" =~ ^alice[0-9]+$ ]]
+# --- Onboardee preview of a taken name is carried through verbatim -----------
+# The previewed (suffixed) slug must be exactly what finish-onboarding mints,
+# not a freshly-rolled random number.
+start_onboarding preview2@example.com "Alice"
+[[ "$(jq -r .is_random <<< "$PREVIEW")" = true ]]
+previewed_slug=$(jq -r .url_slug <<< "$PREVIEW")
+[[ "$previewed_slug" =~ ^alice[0-9]+$ ]]
+
+finish=$(finish_onboarding)
+[[ "$(jq -r .url_slug <<< "$finish")" = "$previewed_slug" ]]
+[[ "$(q "select url_slug from person where email='preview2@example.com'")" = "$previewed_slug" ]]
+
+# --- A reserved slug can't be stolen out from under an in-flight onboardee ---
+# X reserves the bare slug "mallory" (free when previewed)...
+start_onboarding mallory-x@example.com "Mallory"
+[[ "$(jq -r .url_slug <<< "$PREVIEW")" = mallory ]]
+session_x=$SESSION_TOKEN
+
+# ...so Y, previewing the same name, is bumped onto a suffixed slug...
+start_onboarding mallory-y@example.com "Mallory"
+[[ "$(jq -r .url_slug <<< "$PREVIEW")" =~ ^mallory[0-9]+$ ]]
+
+# ...and X still gets the bare slug when they finish.
+SESSION_TOKEN=$session_x
+finish_x=$(finish_onboarding)
+[[ "$(jq -r .url_slug <<< "$finish_x")" = mallory ]]
 
 # --- Emoji-only name → numeric-only random slug ------------------------------
 onboard emoji@example.com "🎉🎉"
@@ -100,6 +130,12 @@ q "update person set has_gold = true where email='bob@example.com'"
 assume_role bob
 
 # A free name → bare slug, not random.
+resp=$(jc PATCH /profile-info -d '{ "name": "Carol" }')
+[[ "$(jq -r .url_slug  <<< "$resp")" = carol ]]
+[[ "$(jq -r .is_random <<< "$resp")" = false ]]
+
+# Re-saving the same name keeps the slug: the person's own row must not be
+# mistaken for a collision and bump the suffix.
 resp=$(jc PATCH /profile-info -d '{ "name": "Carol" }')
 [[ "$(jq -r .url_slug  <<< "$resp")" = carol ]]
 [[ "$(jq -r .is_random <<< "$resp")" = false ]]
