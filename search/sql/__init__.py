@@ -766,11 +766,8 @@ ORDER BY
             messaged
         WHERE
             object_person_id = prospect.id
-    ) DESC
-LIMIT
-    %(n)s
-OFFSET
-    %(o)s
+    ) DESC,
+    prospect.id
 """
 
 Q_QUIZ_SEARCH = f"""
