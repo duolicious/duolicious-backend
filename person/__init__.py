@@ -1,6 +1,7 @@
 import os
 from database import api_tx, fetchall_sets
 from typing import Any, Optional, Tuple, Literal
+from urlslug import assign_url_slug, slug_base, preview_url_slug
 import duotypes as t
 import json
 import secrets
@@ -624,6 +625,14 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
 
         with api_tx() as tx:
             tx.execute(q_set_onboardee_field, params)
+
+            if field_name == 'name':
+                # Best-effort preview of the future profile URL. The person row
+                # doesn't exist yet, so the slug is only authoritatively
+                # assigned at finish-onboarding; this can race with another
+                # sign-up. Returns {'url_slug', 'is_random'}, matching the
+                # slug-assigning endpoints.
+                return preview_url_slug(tx, slug_base(field_value))
     elif field_name == 'location':
         params = dict(
             email=s.email,
@@ -799,9 +808,11 @@ def post_finish_onboarding(s: t.SessionInfo):
 
         clubs = _handle_pending_club(tx, row['person_id'], s.pending_club_name)
 
+        slug = assign_url_slug(tx, row['person_id'])
+
     sessioncache.delete_session(s.session_token_hash)
 
-    return dict(**row, **clubs)
+    return dict(**row, **clubs, url_slug=slug['url_slug'])
 
 def get_me(
     person_id_as_int: int | None = None,
@@ -838,10 +849,10 @@ def get_me(
     except:
         return '', 404
 
-def get_prospect_profile(s: Optional[t.SessionInfo], prospect_uuid):
+def get_prospect_profile(s: Optional[t.SessionInfo], prospect_handle):
     params = dict(
         person_id=s.person_id if s is not None else None,
-        prospect_uuid=prospect_uuid,
+        prospect_handle=prospect_handle,
     )
 
     with api_tx('READ COMMITTED') as tx:
@@ -852,6 +863,10 @@ def get_prospect_profile(s: Optional[t.SessionInfo], prospect_uuid):
         profile = api_row.get('j')
         if not profile:
             return '', 404
+
+        # The handle may have been a url_slug; resolve to the real uuid so the
+        # message-stats query (which keys on person.uuid) gets a valid value.
+        prospect_uuid = api_row.get('prospect_uuid')
 
     if s is None:
         # Reply-rate stats count replies *to* %(person_id)s, so they're
@@ -867,7 +882,10 @@ def get_prospect_profile(s: Optional[t.SessionInfo], prospect_uuid):
         with api_tx('READ COMMITTED') as tx:
             tx.execute('SET LOCAL statement_timeout = 1000') # 1 second
 
-            message_stats = tx.execute(Q_MESSAGE_STATS, params).fetchone()
+            message_stats = tx.execute(
+                Q_MESSAGE_STATS,
+                dict(prospect_uuid=prospect_uuid),
+            ).fetchone()
     except psycopg.errors.QueryCanceled:
         message_stats = dict(
             gets_reply_percentage=None,
@@ -1319,11 +1337,14 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
         if not _has_gold(person_id=s.person_id):
             return 'Requires gold', 403
 
-        q1 = """
-        UPDATE person
-        SET name = %(field_value)s
-        WHERE id = %(person_id)s
-        """
+        with api_tx() as tx:
+            tx.execute(
+                "UPDATE person SET name = %(field_value)s WHERE id = %(person_id)s",
+                params,
+            )
+            slug = assign_url_slug(tx, s.person_id)
+
+        return slug
     elif field_name == 'about':
         return _patch_profile_info_about(s.person_id, field_value)
     elif field_name == 'gender':

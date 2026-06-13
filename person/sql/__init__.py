@@ -802,9 +802,20 @@ WITH prospect_base AS (
     SELECT *
     FROM person AS prospect
     WHERE
-        uuid = uuid_or_null(%(prospect_uuid)s::TEXT)
+        (
+            uuid = uuid_or_null(%(prospect_handle)s::TEXT)
+        OR
+            url_slug = lower(%(prospect_handle)s)
+        )
     AND
         activated
+    -- The OR lets the planner BitmapOr the uuid and url_slug indexes (a CASE
+    -- here would hide both from it). A handle can in principle match two rows
+    -- (a uuid for one person, a url_slug for another); prefer the exact-uuid
+    -- match so a uuid handle always resolves to its owner, and LIMIT to one.
+    ORDER BY
+        (uuid = uuid_or_null(%(prospect_handle)s::TEXT)) DESC NULLS LAST
+    LIMIT 1
 ), viewer_rel AS MATERIALIZED (
     -- Tiny (one row, two booleans). MATERIALIZED so the planner evaluates
     -- these as single-row index probes on (subject_person_id,
@@ -1074,6 +1085,7 @@ SELECT
         'photo_verifications',       (SELECT verifications             FROM photos),
         'audio_bio_uuid',            (SELECT j                         FROM audio_bio_uuid),
         'name',                      (SELECT name                      FROM prospect),
+        'url_slug',                  (SELECT url_slug                  FROM prospect),
         'age',                       (SELECT age                       FROM prospect),
         'location',                  (SELECT location                  FROM prospect),
         'match_percentage',          (SELECT j                         FROM match_percentage),
@@ -1118,7 +1130,8 @@ SELECT
             'body_color',          (SELECT body_color       FROM prospect),
             'background_color',    (SELECT background_color FROM prospect)
         )
-    ) AS j
+    ) AS j,
+    (SELECT uuid FROM prospect) AS prospect_uuid
 WHERE
     EXISTS (SELECT 1 FROM prospect)
 """
@@ -1644,6 +1657,8 @@ WITH photo_ AS (
     SELECT uuid AS j FROM audio WHERE person_id = %(person_id)s AND position = -1
 ), name AS (
     SELECT name AS j FROM person WHERE id = %(person_id)s
+), url_slug AS (
+    SELECT url_slug AS j FROM person WHERE id = %(person_id)s
 ), about AS (
     SELECT about AS j FROM person WHERE id = %(person_id)s
 ), gender AS (
@@ -1799,6 +1814,7 @@ SELECT
         'audio_bio_max_seconds',  {constants.MAX_AUDIO_SECONDS},
         'audio_bio',              (SELECT j FROM audio_bio),
         'name',                   (SELECT j FROM name),
+        'url_slug',               (SELECT j FROM url_slug),
         'about',                  (SELECT j FROM about),
         'gender',                 (SELECT j FROM gender),
         'orientation',            (SELECT j FROM orientation),
