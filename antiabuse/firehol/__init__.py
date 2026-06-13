@@ -1,10 +1,10 @@
 """
 HTTP client for the FireHOL block-list lookup container.
 
-Exposes the same surface the rest of the app relied on when `Firehol` ran
-in-process (`matches()` / `wait_until_loaded()`), but forwards each call to the
-`firehol` container (see service/firehol) so that the block-list tries are held
-in memory once rather than once per API worker.
+Exposes the `matches()` surface the rest of the app relied on when `Firehol`
+ran in-process, but forwards each call to the `firehol` container (see
+service/firehol) so that the block-list tries are held in memory once rather
+than once per API worker.
 
 Lookups fail open: any timeout, connection error, or non-200 response yields an
 empty list, i.e. "not blocked". The service itself does no timeout handling, so
@@ -15,7 +15,6 @@ import ipaddress
 import json
 import os
 import socket
-import time
 from datetime import datetime, timezone
 from typing import Union
 from urllib.error import URLError
@@ -69,17 +68,6 @@ class FireholClient:
         if not isinstance(response, list):
             return []
         return response
-
-    def wait_until_loaded(self, timeout: float | None = None) -> bool:
-        """Block until the container reports its first refresh has finished."""
-        start = time.time()
-        while True:
-            response = self._get("/ready")
-            if isinstance(response, dict) and response.get("ready"):
-                return True
-            if timeout is not None and (time.time() - start) >= timeout:
-                return False
-            time.sleep(0.05)
 
 
 # ---------------------------------------------------------------------------

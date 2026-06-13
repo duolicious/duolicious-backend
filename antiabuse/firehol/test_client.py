@@ -28,8 +28,6 @@ class _StubHandler(BaseHTTPRequestHandler):
         if parsed.path == "/matches":
             ip = parse_qs(parsed.query).get("ip", [None])[0]
             self._json(200, self.server.matches_for.get(ip, []))
-        elif parsed.path == "/ready":
-            self._json(200, {"ready": self.server.ready})
         else:
             self._json(404, {"error": "not found"})
 
@@ -41,7 +39,6 @@ class FireholClientTests(unittest.TestCase):
     def setUp(self):
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), _StubHandler)
         self.server.matches_for = {"1.2.3.4": ["list_a", "list_b"]}
-        self.server.ready = True
         self._thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self._thread.start()
         host, port = self.server.server_address
@@ -57,13 +54,6 @@ class FireholClientTests(unittest.TestCase):
     def test_matches_miss(self):
         self.assertEqual(self.client.matches("5.5.5.5"), [])
 
-    def test_wait_until_loaded(self):
-        self.assertTrue(self.client.wait_until_loaded(timeout=1.0))
-
-    def test_wait_until_loaded_not_ready(self):
-        self.server.ready = False
-        self.assertFalse(self.client.wait_until_loaded(timeout=0.2))
-
 
 class FireholClientFailOpenTests(unittest.TestCase):
     """A down/unreachable container must look like "not blocked"."""
@@ -74,9 +64,6 @@ class FireholClientFailOpenTests(unittest.TestCase):
 
     def test_matches_fails_open(self):
         self.assertEqual(self.client.matches("1.2.3.4"), [])
-
-    def test_wait_until_loaded_times_out(self):
-        self.assertFalse(self.client.wait_until_loaded(timeout=0.3))
 
 
 if __name__ == "__main__":
