@@ -1,4 +1,5 @@
 import { Pressable, View } from 'react-native';
+import { CrossFade } from './cross-fade';
 import { DefaultText } from './default-text';
 import { Logo16 } from './logo';
 import { isMobile } from '../util/util';
@@ -48,15 +49,27 @@ const SignUpBanner = () => {
             gap: 12,
           }}
         >
-          <Logo16 size={64} color="#70f" rectSize={0.3} />
-          <View style={{ flexShrink: 1 }}>
-            <DefaultText style={{ fontWeight: '900', fontSize: 20 }}>
-              {numActiveUsers === undefined ? '\xa0' : numActiveUsers.toLocaleString()}
-            </DefaultText>
-            <DefaultText style={{ fontWeight: '600', fontSize: 14 }}>
-              Active Members
-            </DefaultText>
-          </View>
+          <Logo16 size={64} color={appTheme.brandColor} rectSize={0.3} />
+          <CrossFade
+            style={{ flexShrink: 1 }}
+            showFront={numActiveUsers !== undefined}
+            minBackMs={3000}
+            front={
+              <>
+                <DefaultText style={{ fontWeight: '900', fontSize: 20 }}>
+                  {numActiveUsers === undefined ? '\xa0' : numActiveUsers.toLocaleString()}
+                </DefaultText>
+                <DefaultText style={{ fontWeight: '600', fontSize: 14 }}>
+                  Active Members
+                </DefaultText>
+              </>
+            }
+            back={
+              <DefaultText style={{ fontWeight: '600', fontSize: 12 }}>
+                Online dating, but based and true love-pilled
+              </DefaultText>
+            }
+          />
         </View>
         <View style={{ flex: 1 }}>
           <Pressable
