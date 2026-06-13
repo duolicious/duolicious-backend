@@ -133,13 +133,14 @@ test_json_format () {
             | redact_if_present("added_photo_blurhash")
             | redact_if_present("photo_blurhash")
             | redact_if_present("person_uuid")
+            | redact_if_present("url_slug")
             | redact_if_present("photo_uuid")
             | redact_if_present("time")
         )
       '
   )
 
-  expected=$(jq -r . << EOF
+  expected=$(jq -rS . << EOF
 [
   {
     "added_photo_blurhash": "redacted_nonnull_value",
@@ -154,6 +155,7 @@ test_json_format () {
     "location": "New York, New York, United States",
     "match_percentage": 50,
     "name": "user14",
+    "url_slug": "redacted_nonnull_value",
     "person_uuid": "redacted_nonnull_value",
     "photo_blurhash": "redacted_nonnull_value",
     "photo_uuid": "redacted_nonnull_value",
@@ -173,6 +175,7 @@ test_json_format () {
     "location": "New York, New York, United States",
     "match_percentage": 50,
     "name": "user11",
+    "url_slug": "redacted_nonnull_value",
     "person_uuid": "redacted_nonnull_value",
     "photo_blurhash": "redacted_nonnull_value",
     "photo_uuid": "redacted_nonnull_value",
@@ -191,6 +194,7 @@ test_json_format () {
     "location": "New York, New York, United States",
     "match_percentage": 50,
     "name": "user10",
+    "url_slug": "redacted_nonnull_value",
     "person_uuid": "redacted_nonnull_value",
     "photo_blurhash": "redacted_nonnull_value",
     "photo_uuid": "redacted_nonnull_value",
@@ -210,6 +214,7 @@ test_json_format () {
     "location": "New York, New York, United States",
     "match_percentage": 50,
     "name": "user8",
+    "url_slug": "redacted_nonnull_value",
     "person_uuid": "redacted_nonnull_value",
     "photo_blurhash": "redacted_nonnull_value",
     "photo_uuid": "redacted_nonnull_value",

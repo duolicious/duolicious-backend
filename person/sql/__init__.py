@@ -1079,6 +1079,7 @@ WITH prospect_base AS (
 SELECT
     json_build_object(
         'person_id',                 (SELECT id                        FROM prospect),
+        'person_uuid',               (SELECT uuid                      FROM prospect),
         'photo_uuids',               (SELECT uuids                     FROM photos),
         'photo_extra_exts',          (SELECT extra_exts                FROM photos),
         'photo_blurhashes',          (SELECT blurhashes                FROM photos),
@@ -1145,7 +1146,8 @@ Q_SELECT_CONVERSATION_PROSPECT = """
 WITH prospect AS (
     SELECT
         person.id,
-        person.name
+        person.name,
+        person.url_slug
     FROM
         person
     LEFT JOIN LATERAL (
@@ -1226,6 +1228,7 @@ SELECT
         -- where we still want to render the name) can diverge cleanly.
         'is_available',   true,
         'name',           (SELECT name           FROM prospect),
+        'url_slug',       (SELECT url_slug       FROM prospect),
         'photo_uuid',     (SELECT photo_uuid     FROM primary_photo),
         'photo_blurhash', (SELECT photo_blurhash FROM primary_photo),
         'is_skipped',     (SELECT j              FROM is_skipped)
@@ -1348,6 +1351,7 @@ WITH partner AS (
             prospect.activated AND NOT prospect.shadow_banned, FALSE
         ) AS is_prospect_activated,
         prospect.name AS name,
+        prospect.url_slug AS url_slug,
         prospect.personality AS personality,
         prospect.verification_level_id > 1 AS verified,
         EXISTS (
@@ -1414,6 +1418,13 @@ SELECT
         ELSE
             NULL
     END AS name,
+    CASE
+        WHEN is_prospect_activated AND NOT prospect_skipped_person
+        THEN
+            url_slug
+        ELSE
+            NULL
+    END AS url_slug,
     CASE
         WHEN is_prospect_activated AND NOT prospect_skipped_person
         THEN
@@ -3189,6 +3200,8 @@ WITH checker AS (
         direction.kind AS direction_kind,
 
         prospect.uuid AS person_uuid,
+
+        prospect.url_slug AS url_slug,
 
         visitor_photo.blurhash AS photo_blurhash,
 

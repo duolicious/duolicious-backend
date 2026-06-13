@@ -52,6 +52,7 @@ returns_only_header_fields () {
 {
   "is_available": true,
   "name": "user2",
+  "url_slug": "user2",
   "photo_uuid": null,
   "photo_blurhash": null,
   "is_skipped": false
