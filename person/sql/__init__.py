@@ -805,7 +805,11 @@ WITH prospect_base AS (
         (
             uuid = uuid_or_null(%(prospect_handle)s::TEXT)
         OR
-            url_slug = lower(%(prospect_handle)s)
+            -- Slugs are always minted lower-case, so match exactly: a
+            -- mixed-case handle resolves only as a uuid, never a slug. This
+            -- keeps the canonical profile URL lower-case and matches the
+            -- frontend's lower-case-only slug route.
+            url_slug = %(prospect_handle)s
         )
     AND
         activated

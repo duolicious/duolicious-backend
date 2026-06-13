@@ -77,7 +77,7 @@ onboard feed@example.com "Feed"
 slug_feed=$(q "select url_slug from person where email='feed@example.com'")
 [[ "$slug_feed" =~ ^feed[0-9]+$ ]]
 
-# --- Lookup resolves by slug, by uuid, and case-insensitively ----------------
+# --- Lookup resolves by slug and by uuid -------------------------------------
 alice_uuid=$(q "select uuid from person where email='alice@example.com'")
 alice_id=$(q "select id from person where email='alice@example.com'")
 q "update person set privacy_verification_level_id = 1"
@@ -85,9 +85,12 @@ q "update person set privacy_verification_level_id = 1"
 assume_role alice
 
 [[ "$(c GET /prospect-profile/alice           | jq -r .person_id)" = "$alice_id" ]]
-[[ "$(c GET /prospect-profile/ALICE           | jq -r .person_id)" = "$alice_id" ]]
 [[ "$(c GET "/prospect-profile/$alice_uuid"   | jq -r .person_id)" = "$alice_id" ]]
 [[ "$(c GET /prospect-profile/alice           | jq -r .url_slug)"  = alice ]]
+
+# Slugs are lower-case only: a mixed-case slug must NOT resolve (it would only
+# match as a uuid, which "ALICE" isn't), so the lookup 404s.
+! c GET /prospect-profile/ALICE > /dev/null
 
 # --- /profile-info exposes the viewer's own slug -----------------------------
 [[ "$(c GET /profile-info | jq -r .url_slug)" = alice ]]
