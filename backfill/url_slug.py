@@ -17,7 +17,7 @@ ENABLED = os.environ.get(
 
 BATCH_SIZE = int(os.environ.get(
     'DUO_CRON_URL_SLUG_BACKFILL_BATCH_SIZE',
-    str(100),
+    str(1000),
 ))
 
 POLL_SECONDS = float(os.environ.get(
