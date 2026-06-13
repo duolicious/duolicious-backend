@@ -572,6 +572,7 @@ test_verified_privacy () {
     "prospect_messaged_person": false,
     "prospect_person_id": null,
     "prospect_uuid": null,
+    "url_slug": null,
     "verification_required_to_view": "basics",
     "verified": false
   },
@@ -585,6 +586,7 @@ test_verified_privacy () {
     "prospect_messaged_person": false,
     "prospect_person_id": null,
     "prospect_uuid": null,
+    "url_slug": null,
     "verification_required_to_view": "photos",
     "verified": false
   }
@@ -607,6 +609,7 @@ EOF
     "prospect_messaged_person": false,
     "prospect_person_id": null,
     "prospect_uuid": null,
+    "url_slug": null,
     "verification_required_to_view": "photos",
     "verified": false
   }
@@ -627,6 +630,7 @@ EOF
     "profile_photo_uuid": null,
     "prospect_person_id": null,
     "prospect_uuid": null,
+    "url_slug": null,
     "verification_required_to_view": "basics"
   }
 ]
@@ -686,6 +690,7 @@ test_json_format () {
     "prospect_messaged_person": false,
     "prospect_person_id": ${user1_id},
     "prospect_uuid": "${user1_uuid}",
+    "url_slug": "user1",
     "verification_required_to_view": null,
     "verified": false
   }
@@ -708,6 +713,7 @@ EOF
     "prospect_messaged_person": false,
     "prospect_person_id": ${user2_id},
     "prospect_uuid": "${user2_uuid}",
+    "url_slug": "user2",
     "verification_required_to_view": null,
     "verified": false
   }
@@ -728,6 +734,7 @@ EOF
     "profile_photo_uuid": null,
     "prospect_person_id": ${user1_id},
     "prospect_uuid": "${user1_uuid}",
+    "url_slug": "user1",
     "verification_required_to_view": null
   }
 ]

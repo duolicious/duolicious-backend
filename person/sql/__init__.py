@@ -802,9 +802,24 @@ WITH prospect_base AS (
     SELECT *
     FROM person AS prospect
     WHERE
-        uuid = uuid_or_null(%(prospect_uuid)s::TEXT)
+        (
+            uuid = uuid_or_null(%(prospect_handle)s::TEXT)
+        OR
+            -- Slugs are always minted lower-case, so match exactly: a
+            -- mixed-case handle resolves only as a uuid, never a slug. This
+            -- keeps the canonical profile URL lower-case and matches the
+            -- frontend's lower-case-only slug route.
+            url_slug = %(prospect_handle)s
+        )
     AND
         activated
+    -- The OR lets the planner BitmapOr the uuid and url_slug indexes (a CASE
+    -- here would hide both from it). A handle can in principle match two rows
+    -- (a uuid for one person, a url_slug for another); prefer the exact-uuid
+    -- match so a uuid handle always resolves to its owner, and LIMIT to one.
+    ORDER BY
+        (uuid = uuid_or_null(%(prospect_handle)s::TEXT)) DESC NULLS LAST
+    LIMIT 1
 ), viewer_rel AS MATERIALIZED (
     -- Tiny (one row, two booleans). MATERIALIZED so the planner evaluates
     -- these as single-row index probes on (subject_person_id,
@@ -1068,12 +1083,14 @@ WITH prospect_base AS (
 SELECT
     json_build_object(
         'person_id',                 (SELECT id                        FROM prospect),
+        'person_uuid',               (SELECT uuid                      FROM prospect),
         'photo_uuids',               (SELECT uuids                     FROM photos),
         'photo_extra_exts',          (SELECT extra_exts                FROM photos),
         'photo_blurhashes',          (SELECT blurhashes                FROM photos),
         'photo_verifications',       (SELECT verifications             FROM photos),
         'audio_bio_uuid',            (SELECT j                         FROM audio_bio_uuid),
         'name',                      (SELECT name                      FROM prospect),
+        'url_slug',                  (SELECT url_slug                  FROM prospect),
         'age',                       (SELECT age                       FROM prospect),
         'location',                  (SELECT location                  FROM prospect),
         'match_percentage',          (SELECT j                         FROM match_percentage),
@@ -1118,7 +1135,8 @@ SELECT
             'body_color',          (SELECT body_color       FROM prospect),
             'background_color',    (SELECT background_color FROM prospect)
         )
-    ) AS j
+    ) AS j,
+    (SELECT uuid FROM prospect) AS prospect_uuid
 WHERE
     EXISTS (SELECT 1 FROM prospect)
 """
@@ -1132,7 +1150,8 @@ Q_SELECT_CONVERSATION_PROSPECT = """
 WITH prospect AS (
     SELECT
         person.id,
-        person.name
+        person.name,
+        person.url_slug
     FROM
         person
     LEFT JOIN LATERAL (
@@ -1213,6 +1232,7 @@ SELECT
         -- where we still want to render the name) can diverge cleanly.
         'is_available',   true,
         'name',           (SELECT name           FROM prospect),
+        'url_slug',       (SELECT url_slug       FROM prospect),
         'photo_uuid',     (SELECT photo_uuid     FROM primary_photo),
         'photo_blurhash', (SELECT photo_blurhash FROM primary_photo),
         'is_skipped',     (SELECT j              FROM is_skipped)
@@ -1335,6 +1355,7 @@ WITH partner AS (
             prospect.activated AND NOT prospect.shadow_banned, FALSE
         ) AS is_prospect_activated,
         prospect.name AS name,
+        prospect.url_slug AS url_slug,
         prospect.personality AS personality,
         prospect.verification_level_id > 1 AS verified,
         EXISTS (
@@ -1387,6 +1408,7 @@ WITH partner AS (
 SELECT
     person_id,
     person_uuid,
+    url_slug,
     CASE
         WHEN is_prospect_activated AND NOT prospect_skipped_person
         THEN
@@ -1644,6 +1666,8 @@ WITH photo_ AS (
     SELECT uuid AS j FROM audio WHERE person_id = %(person_id)s AND position = -1
 ), name AS (
     SELECT name AS j FROM person WHERE id = %(person_id)s
+), url_slug AS (
+    SELECT url_slug AS j FROM person WHERE id = %(person_id)s
 ), about AS (
     SELECT about AS j FROM person WHERE id = %(person_id)s
 ), gender AS (
@@ -1799,6 +1823,7 @@ SELECT
         'audio_bio_max_seconds',  {constants.MAX_AUDIO_SECONDS},
         'audio_bio',              (SELECT j FROM audio_bio),
         'name',                   (SELECT j FROM name),
+        'url_slug',               (SELECT j FROM url_slug),
         'about',                  (SELECT j FROM about),
         'gender',                 (SELECT j FROM gender),
         'orientation',            (SELECT j FROM orientation),
@@ -3173,6 +3198,8 @@ WITH checker AS (
         direction.kind AS direction_kind,
 
         prospect.uuid AS person_uuid,
+
+        prospect.url_slug AS url_slug,
 
         visitor_photo.blurhash AS photo_blurhash,
 

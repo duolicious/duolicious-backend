@@ -64,6 +64,7 @@ expected=$(jq -r . << EOF
   "orientation": null,
   "other_clubs": [],
   "person_id": $user2_id,
+  "person_uuid": "$user2_uuid",
   "photo_blurhashes": [],
   "photo_extra_exts": [],
   "photo_uuids": [],
@@ -79,6 +80,7 @@ expected=$(jq -r . << EOF
     "body_color": "#000000",
     "title_color": "#000000"
   },
+  "url_slug": "user2",
   "verified_age": false,
   "verified_ethnicity": false,
   "verified_gender": false,
@@ -138,6 +140,7 @@ expected=$(jq -r . << EOF
   "orientation": null,
   "other_clubs": ["my-club-unshared-11", "my-club-unshared-21"],
   "person_id": $user2_id,
+  "person_uuid": "$user2_uuid",
   "photo_blurhashes": [],
   "photo_extra_exts": [],
   "photo_uuids": [],
@@ -153,6 +156,7 @@ expected=$(jq -r . << EOF
     "body_color": "#000000",
     "title_color": "#000000"
   },
+  "url_slug": "user2",
   "verified_age": false,
   "verified_ethnicity": false,
   "verified_gender": false,

@@ -34,7 +34,7 @@ assume_role user2
 echo Test 1 - Nobody was messaged
 response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
-actual=$(jq -r 'sort_by(.name)' <<< "$response")
+actual=$(jq -r 'map(del(.url_slug)) | sort_by(.name)' <<< "$response")
 expected='[]'
 
 [[ "$expected" = "$actual" ]]
@@ -47,7 +47,7 @@ q "insert into messaged values (${user4_id}, ${user2_id})"
 
 response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
-actual=$(jq -r '.' <<< "$response")
+actual=$(jq -r 'map(del(.url_slug))' <<< "$response")
 expected=$(cat <<EOF
 [
   {
@@ -83,7 +83,7 @@ q "insert into skipped values (${user4_id}, ${user2_id}, true)"
 
 response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
-actual=$(jq -r '.' <<< "$response")
+actual=$(jq -r 'map(del(.url_slug))' <<< "$response")
 expected=$(cat <<EOF
 [
   {
@@ -118,7 +118,7 @@ q "insert into skipped values (${user4_id}, ${user2_id}, false)"
 
 response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
-actual=$(jq -r '.' <<< "$response")
+actual=$(jq -r 'map(del(.url_slug))' <<< "$response")
 expected=$(cat <<EOF
 [
   {
@@ -155,7 +155,7 @@ q "insert into messaged values (${user2_id}, ${user4_id})"
 assume_role user2
 response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
-actual=$(jq -r '.' <<< "$response")
+actual=$(jq -r 'map(del(.url_slug))' <<< "$response")
 expected=$(cat <<EOF
 [
   {
@@ -178,7 +178,7 @@ echo "Test 5b - user2 messaged user4 (user4's perspective)"
 assume_role user4
 response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user2_uuid}\", \"${user1_uuid}\"] }")
 
-actual=$(jq -r '.' <<< "$response")
+actual=$(jq -r 'map(del(.url_slug))' <<< "$response")
 expected=$(cat <<EOF
 [
   {
@@ -207,7 +207,7 @@ q "insert into messaged values (${user4_id}, ${user2_id})"
 assume_role user2
 response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
-actual=$(jq -r '.' <<< "$response")
+actual=$(jq -r 'map(del(.url_slug))' <<< "$response")
 expected=$(cat <<EOF
 [
   {
@@ -231,7 +231,7 @@ echo "Test 6b - user4 replied to user2 (user4's perspective)"
 assume_role user4
 response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user2_uuid}\", \"${user1_uuid}\"] }")
 
-actual=$(jq -r '.' <<< "$response")
+actual=$(jq -r 'map(del(.url_slug))' <<< "$response")
 expected=$(cat <<EOF
 [
   {
@@ -259,7 +259,7 @@ q "insert into skipped  values (${user4_id}, ${user2_id})"
 assume_role user2
 response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user4_uuid}\", \"${user1_uuid}\"] }")
 
-actual=$(jq -r '.' <<< "$response")
+actual=$(jq -r 'map(del(.url_slug))' <<< "$response")
 expected=$(cat <<EOF
 [
   {
@@ -283,7 +283,7 @@ echo "Test 7b - user4 skipped user2's message (user4's perspective)"
 assume_role user4
 response=$(jc POST "/inbox-info" -d "{ \"person_uuids\": [\"${user2_uuid}\", \"${user1_uuid}\"] }")
 
-actual=$(jq -r '.' <<< "$response")
+actual=$(jq -r 'map(del(.url_slug))' <<< "$response")
 expected=$(cat <<EOF
 [
   {

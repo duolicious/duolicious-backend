@@ -13,6 +13,7 @@ from service.cron.photocleaner import clean_photos_forever
 from service.cron.audiocleaner import clean_audio_forever
 from service.cron.verificationjobrunner import verify_forever
 from service.cron.profilereporter import report_profiles_forever
+from backfill.url_slug import backfill_url_slug_forever
 import asyncio
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
@@ -69,6 +70,8 @@ async def main():
         refresh_club_seo_forever(),
 
         check_connections_forever(),
+
+        backfill_url_slug_forever(),
 
         http_server(),
     )

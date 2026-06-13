@@ -612,6 +612,9 @@ WITH page AS (
     SELECT
         prospect_person_id,
         prospect_uuid,
+        (
+            SELECT url_slug FROM person WHERE id = prospect_person_id
+        ) AS url_slug,
         profile_photo_uuid,
         (
             SELECT blurhash FROM photo WHERE profile_photo_uuid = photo.uuid
@@ -677,6 +680,7 @@ SELECT
 
     private_page.prospect_person_id,
     private_page.prospect_uuid,
+    private_page.url_slug,
     private_page.profile_photo_uuid
 FROM
     (
@@ -716,6 +720,8 @@ SELECT
     prospect.id AS prospect_person_id,
 
     prospect.uuid AS prospect_uuid,
+
+    prospect.url_slug,
 
     prospect.name,
 
@@ -812,6 +818,9 @@ WITH searcher AS (
     SELECT
         prospect_person_id,
         prospect_uuid,
+        (
+            SELECT url_slug FROM person WHERE id = prospect_person_id
+        ) AS url_slug,
         profile_photo_uuid,
         (
             SELECT blurhash FROM photo WHERE profile_photo_uuid = photo.uuid
@@ -866,6 +875,7 @@ SELECT
 
     private_page.prospect_person_id,
     private_page.prospect_uuid,
+    private_page.url_slug,
     private_page.profile_photo_uuid
 FROM
     (
@@ -944,6 +954,7 @@ WITH searcher AS (
     SELECT
         prospect.id,
         prospect.uuid AS person_uuid,
+        prospect.url_slug,
         prospect.name,
         prospect.gender_id,
         photo_data.blurhash AS photo_blurhash,
@@ -1271,6 +1282,7 @@ WITH searcher AS (
 ), filtered_by_club AS (
     SELECT
         person_uuid,
+        url_slug,
         name,
         photo_uuid,
         photo_blurhash,
@@ -1306,6 +1318,7 @@ WITH searcher AS (
 SELECT
     jsonb_build_object(
         'person_uuid', person_uuid,
+        'url_slug', url_slug,
         'name', name,
         'photo_uuid', photo_uuid,
         'photo_blurhash', photo_blurhash,
