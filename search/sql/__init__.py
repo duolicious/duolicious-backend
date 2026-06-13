@@ -719,8 +719,6 @@ SELECT
 
     prospect.name,
 
-    prospect.personality,
-
     prospect.verification_level_id > 1 AS verified,
 
     (
@@ -734,6 +732,18 @@ SELECT
             position
         LIMIT 1
     ) AS profile_photo_uuid,
+
+    (
+        SELECT
+            blurhash
+        FROM
+            photo
+        WHERE
+            person_id = prospect.id
+        ORDER BY
+            position
+        LIMIT 1
+    ) AS profile_photo_blurhash,
 
     CASE
         WHEN prospect.show_my_age
