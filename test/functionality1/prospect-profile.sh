@@ -79,6 +79,7 @@ expected=$(jq -r . << EOF
     "body_color": "#000000",
     "title_color": "#000000"
   },
+  "url_slug": "user2",
   "verified_age": false,
   "verified_ethnicity": false,
   "verified_gender": false,
@@ -153,6 +154,7 @@ expected=$(jq -r . << EOF
     "body_color": "#000000",
     "title_color": "#000000"
   },
+  "url_slug": "user2",
   "verified_age": false,
   "verified_ethnicity": false,
   "verified_gender": false,
