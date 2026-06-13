@@ -1,23 +1,23 @@
 """
-Tests for antiabuse.firehol – updated for the pytricia-backed refactor.
+Tests for service.firehol – the simplified single-process block-list service.
 
-The radix-trie implementation has been replaced by `pytricia.PyTricia`, wrapped
-by `_PrefixTrie`. `_parse_blocklist` now yields CIDR-string prefixes (e.g.
-"1.2.3.0/24") rather than `ipaddress.IPvXNetwork` objects, since pytricia
-accepts string keys directly.
+`_parse_blocklist` yields CIDR-string prefixes (e.g. "1.2.3.0/24"), which
+pytricia accepts directly. Lookups go through the module-level `lookup()`, which
+reads the active tries (`_tries`) the background refresher swaps in.
 """
 
 import ipaddress
 import random
 import unittest
-from datetime import timedelta
 from typing import Iterable, Tuple, Union
 from unittest.mock import patch
 
-from antiabuse.firehol import (
-    Firehol,
+import service.firehol as firehol
+from service.firehol import (
+    _build_tries,
     _parse_blocklist,
     _PrefixTrie,
+    lookup,
 )
 
 IPvXNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
@@ -34,10 +34,6 @@ _SAMPLE_NETSET = """
 bad_line_should_be_ignored
 """
 
-def _fake_download(name: str, _update_interval: timedelta) -> str:
-    """Stub that replaces antiabuse.firehol._download_or_load – never hits disk."""
-    return _SAMPLE_NETSET
-
 
 def _sample_addresses(net: IPvXNetwork) -> Iterable[ipaddress._BaseAddress]:
     yield net.network_address
@@ -53,39 +49,6 @@ def _address_outside(net: IPvXNetwork) -> ipaddress._BaseAddress:
 
 
 # ---------------------------------------------------------------------------
-# Mix-in that patches the *module-level* helper, not the class method anymore
-# ---------------------------------------------------------------------------
-
-class PatchedFireholMixin(unittest.TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self._patcher = patch("antiabuse.firehol._download_or_load", _fake_download)
-        self._patcher.start()
-
-    _spawned: list[Firehol] = []
-
-    def _make_loaded_firehol(self, name: str = "dummy") -> Firehol:
-        fh = Firehol(
-            [name],
-            update_interval=timedelta(hours=1),
-            start_updater=True,
-        )
-        ok = fh.wait_until_loaded(timeout=11.0)
-        if not ok:
-            self.fail("Firehol worker did not deliver data within 11 s")
-        self._spawned.append(fh)
-        return fh
-
-    def tearDown(self) -> None:
-        for fh in getattr(self, "_spawned", []):
-            if fh._proc and fh._proc.is_alive():
-                fh._proc.terminate()
-                fh._proc.join(timeout=1)
-        self._patcher.stop()
-        super().tearDown()
-
-
-# ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
 
@@ -98,35 +61,32 @@ class ParseBlocklistTests(unittest.TestCase):
         self.assertEqual((len(v4), len(v6)), (2, 1))
 
 
-class LookupTests(PatchedFireholMixin, unittest.TestCase):
-    def test_ipv4_hits_and_misses(self):
-        fh = self._make_loaded_firehol("dummy")
-        self.assertEqual(sorted(fh.matches("1.2.3.4")), ["dummy"])
-        self.assertEqual(sorted(fh.matches("4.4.4.4")), ["dummy"])
-        self.assertEqual(fh.matches("5.5.5.5"), [])
-
-    def test_ipv6_hits_and_misses(self):
-        fh = self._make_loaded_firehol("v6only")
-        self.assertEqual(sorted(fh.matches("2001:db8::1")), ["v6only"])
-        self.assertEqual(fh.matches("2001:dead::1"), [])
-
-
-class ConstructorGuardTests(unittest.TestCase):
-    """
-    Expect a ValueError for an empty list-set.  We patch .close so that the
-    partially-initialised instance’s __del__ doesn’t raise AttributeError.
-    """
+class LookupTests(unittest.TestCase):
+    """Exercises `lookup()` against tries built from the sample netset."""
 
     def setUp(self):
-        self._close_patcher = patch.object(Firehol, "close", lambda self, **kw: None)
-        self._close_patcher.start()
+        v4, v6 = _parse_blocklist(_SAMPLE_NETSET)
+        tries = _build_tries({"dummy": (v4, v6)})
+        self._patcher = patch.object(firehol, "_tries", tries)
+        self._patcher.start()
 
     def tearDown(self):
-        self._close_patcher.stop()
+        self._patcher.stop()
 
-    def test_empty_list_names(self):
-        with self.assertRaises(ValueError):
-            Firehol([])
+    def test_ipv4_hits_and_misses(self):
+        self.assertEqual(sorted(lookup("1.2.3.4")), ["dummy"])
+        self.assertEqual(sorted(lookup("4.4.4.4")), ["dummy"])
+        self.assertEqual(lookup("5.5.5.5"), [])
+
+    def test_ipv6_hits_and_misses(self):
+        self.assertEqual(sorted(lookup("2001:db8::1")), ["dummy"])
+        self.assertEqual(lookup("2001:dead::1"), [])
+
+
+class LookupNotLoadedTests(unittest.TestCase):
+    def test_returns_empty_before_first_build(self):
+        with patch.object(firehol, "_tries", None):
+            self.assertEqual(lookup("1.2.3.4"), [])
 
 
 class PrefixTrieTests(unittest.TestCase):

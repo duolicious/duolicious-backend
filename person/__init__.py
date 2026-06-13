@@ -10,10 +10,10 @@ from PIL import Image
 import io
 import boto3
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from service.person.sql import *
-from service.search.sql import *
+from person.sql import *
+from search.sql import *
 from commonsql import *
-from service.person.template import otp_template
+from person.template import otp_template
 import traceback
 import re
 from smtp import aws_smtp
@@ -34,7 +34,7 @@ import numpy
 from datetime import datetime, timezone
 from urllib.parse import quote
 from duoaudio import put_audio_in_object_store
-from service.person.aboutdiff import diff_addition_with_context
+from person.aboutdiff import diff_addition_with_context
 from auth.session import sign_out, enforce_session_limit
 from auth.social import (
     SocialAuthError,

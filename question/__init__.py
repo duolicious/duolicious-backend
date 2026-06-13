@@ -6,15 +6,15 @@ from typing import List, Optional
 import json
 
 _categorised_question_json_file = os.path.join(
-        os.path.dirname(__file__), '..', '..',
+        os.path.dirname(__file__), '..',
         'questions', 'questions-categorised.txt')
 
 _archetypeised_question_json_file = os.path.join(
-        os.path.dirname(__file__), '..', '..',
+        os.path.dirname(__file__), '..',
         'questions', 'questions-archetypeised.txt')
 
 _questions_text_file = os.path.join(
-        os.path.dirname(__file__), '..', '..',
+        os.path.dirname(__file__), '..',
         'questions', 'questions.txt')
 
 Q_GET_NEXT_QUESTIONS = """

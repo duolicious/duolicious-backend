@@ -41,12 +41,10 @@ def create_dbs():
 
 def init_db():
     # Now DB_NAME exists, we do do the rest of the init.
-    from service import (
-        api,
-        location,
-        person,
-        question,
-    )
+    from service import api
+    import location
+    import person
+    import question
 
     init_funcs = [
         api.init_db,

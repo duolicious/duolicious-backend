@@ -33,6 +33,16 @@ services:
     env_file:
       - .env
 
+  firehol:
+    image: us-east1-docker.pkg.dev/duolicious/firehol/{{branch}}:{{commit_sha}}
+    ports:
+      - "5070:5070"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5070/health', timeout=2)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 networks:
   default:
     driver: bridge

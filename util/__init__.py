@@ -1,7 +1,23 @@
 from urllib.parse import quote
+from typing import Callable
+import contextlib
 import os
+import time
 
 OFFPEAK_FUNCTION_OVERRIDE = os.environ.get('DUO_OFFPEAK_FUNCTION_OVERRIDE', '').lower()
+
+
+@contextlib.contextmanager
+def timed(label: str = 'block', log: Callable[[str], None] = print):
+    """Context manager that logs how long the block took, even if it raises.
+
+    `log` receives the formatted message (default `print`).
+    """
+    start = time.monotonic()
+    try:
+        yield
+    finally:
+        log(f"{label} took {time.monotonic() - start:.4f}s")
 
 def append_query(base: str, params: dict) -> str:
     sep = '&' if '?' in base else '?'

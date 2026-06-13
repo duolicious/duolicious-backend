@@ -8,8 +8,8 @@ from constants import (
     MAX_CLUBS_PER_PERSON_FOR_OVERLAP,
 )
 
-# These live here (not in service/person/sql) so the cron process can run
-# them without importing service.person, which builds a boto3 client and
+# These live here (not in person/sql) so the cron process can run
+# them without importing person, which builds a boto3 client and
 # pulls in Flask/PIL/etc. at import time.
 #
 # Personality maths: `person.personality` is a 47-dim pgvector (46 traits

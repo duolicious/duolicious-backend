@@ -2,12 +2,10 @@ from pathlib import Path
 from typing import Optional
 from flask import request
 import duotypes as t
-from service import (
-    location,
-    person,
-    question,
-    search,
-)
+import location
+import person
+import question
+import search
 from auth import apple_oauth
 from database import api_tx
 import psycopg
