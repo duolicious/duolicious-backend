@@ -1,7 +1,7 @@
 # tests/test_aboutdiff.py
 
 import unittest
-from service.person.aboutdiff import diff_addition_with_context
+from person.aboutdiff import diff_addition_with_context
 
 class TestDiffAdditionWithContext(unittest.TestCase):
 

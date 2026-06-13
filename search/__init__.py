@@ -4,7 +4,7 @@ import sessioncache
 from database import api_tx
 from rediscache import redis_cache
 from typing import Tuple
-from service.search.sql import (
+from search.sql import (
     Q_CACHED_SEARCH,
     Q_PUBLIC_SEARCH,
     Q_QUIZ_SEARCH,

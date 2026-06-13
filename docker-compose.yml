@@ -39,12 +39,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      firehol:
+        condition: service_started
     ports:
       - "5000:5000"
     volumes:
       - .:/app:ro
     environment:
       DUO_ENV: dev
+
+      DUO_FIREHOL_URL: http://firehol:5070
 
       DUO_SMTP_HOST: smtp
       DUO_SMTP_PORT: 1025
@@ -220,6 +224,23 @@ services:
 
     ports:
       - "3002:3002"
+
+  firehol:
+    build:
+      context: .
+      dockerfile: firehol.Dockerfile
+    ports:
+      - "5070:5070"
+    volumes:
+      - .:/app:ro
+    # Hot-reload on source changes. watchfiles ships with uvicorn[standard], so
+    # editing service/firehol restarts the server without rebuilding the image.
+    command: ["watchfiles", "python3 service/firehol/__init__.py", "service/firehol"]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5070/health', timeout=2)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   redis:
     image: "redis:alpine"

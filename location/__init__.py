@@ -5,7 +5,7 @@ from typing import Optional
 from functools import lru_cache
 
 _locations_json_file = os.path.join(
-        os.path.dirname(__file__), '..', '..',
+        os.path.dirname(__file__), '..',
         'locations', 'locations.json')
 
 Q_SEARCH_LOCATIONS = """

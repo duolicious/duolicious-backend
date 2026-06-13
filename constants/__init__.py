@@ -13,7 +13,7 @@ ONLINE_RECENTLY_SECONDS = 12 * 60 * 60  # 12 hours
 # signed out on each new sign-in.
 MAX_SIGNED_IN_SESSIONS = 100
 
-# Club SEO page tunables. Shared by service/person/sql (API reads) and
+# Club SEO page tunables. Shared by person/sql (API reads) and
 # service/cron/clubseo/sql (cron aggregation); kept in this dependency-free
 # module so both sides can import them without pulling each other in.
 

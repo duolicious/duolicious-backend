@@ -33,12 +33,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      firehol:
+        condition: service_started
     ports:
       - "5000:5000"
     volumes:
       - ./test:/app/test:ro
     environment:
       DUO_ENV: dev
+
+      DUO_FIREHOL_URL: http://firehol:5070
 
       DUO_SMTP_HOST: smtp
       DUO_SMTP_PORT: 1025
@@ -226,6 +230,13 @@ services:
 
     ports:
       - "3002:3002"
+
+  firehol:
+    build:
+      context: .
+      dockerfile: firehol.Dockerfile
+    ports:
+      - "5070:5070"
 
   redis:
     image: "redis:alpine"
