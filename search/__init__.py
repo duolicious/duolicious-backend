@@ -160,7 +160,7 @@ def get_public_search(n: str | None, o: str | None):
     return _get_public_search()[o_:o_ + n_]
 
 
-@redis_cache(ttl=10 * 60)
+@redis_cache(ttl=60)
 def _get_public_search():
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_PUBLIC_SEARCH).fetchall()

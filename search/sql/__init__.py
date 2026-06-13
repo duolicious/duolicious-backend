@@ -756,6 +756,11 @@ AND
     prospect.activated
 AND
     NOT prospect.shadow_banned
+AND ( -- Exclude users who should be verified but aren't
+        prospect.verification_level_id > 1
+    OR
+        NOT prospect.verification_required
+)
 AND
     prospect.last_online_time > now() - interval '7 days'
 ORDER BY
