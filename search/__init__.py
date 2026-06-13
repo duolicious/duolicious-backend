@@ -157,13 +157,13 @@ def get_public_search(n: str | None, o: str | None):
     if n_ > 10:
         return 'n must be less than or equal to 10', 400
 
-    return _get_public_search(n=n_, o=o_)
+    return _get_public_search()[o_:o_ + n_]
 
 
 @redis_cache(ttl=10 * 60)
-def _get_public_search(n: int, o: int):
+def _get_public_search():
     with api_tx('READ COMMITTED') as tx:
-        return tx.execute(Q_PUBLIC_SEARCH, dict(n=n, o=o)).fetchall()
+        return tx.execute(Q_PUBLIC_SEARCH).fetchall()
 
 
 def get_feed(s: t.SessionInfo, before: datetime):
