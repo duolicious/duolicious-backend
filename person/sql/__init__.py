@@ -1404,6 +1404,7 @@ WITH partner AS (
 SELECT
     person_id,
     person_uuid,
+    url_slug,
     CASE
         WHEN is_prospect_activated AND NOT prospect_skipped_person
         THEN
@@ -1418,13 +1419,6 @@ SELECT
         ELSE
             NULL
     END AS name,
-    CASE
-        WHEN is_prospect_activated AND NOT prospect_skipped_person
-        THEN
-            url_slug
-        ELSE
-            NULL
-    END AS url_slug,
     CASE
         WHEN is_prospect_activated AND NOT prospect_skipped_person
         THEN

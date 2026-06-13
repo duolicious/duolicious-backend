@@ -606,7 +606,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
     [field_name] = req.__pydantic_fields_set__
     field_value = req.dict()[field_name]
 
-    if field_name in ['name', 'date_of_birth']:
+    if field_name == 'name':
         params = dict(
             email=s.email,
             field_value=field_value
@@ -615,24 +615,41 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
         q_set_onboardee_field = """
             INSERT INTO onboardee (
                 email,
-                $field_name
+                name
             ) VALUES (
                 %(email)s,
                 %(field_value)s
             ) ON CONFLICT (email) DO UPDATE SET
-                $field_name = EXCLUDED.$field_name
-            """.replace('$field_name', field_name)
+                name = EXCLUDED.name
+            """
 
         with api_tx() as tx:
             tx.execute(q_set_onboardee_field, params)
 
-            if field_name == 'name':
-                # Best-effort preview of the future profile URL. The person row
-                # doesn't exist yet, so the slug is only authoritatively
-                # assigned at finish-onboarding; this can race with another
-                # sign-up. Returns {'url_slug', 'is_random'}, matching the
-                # slug-assigning endpoints.
-                return preview_url_slug(tx, slug_base(field_value))
+            # Best-effort preview of the future profile URL. The person row
+            # doesn't exist yet, so the slug is only authoritatively assigned
+            # at finish-onboarding; this can race with another sign-up. Returns
+            # {'url_slug', 'is_random'}, matching the slug-assigning endpoints.
+            return preview_url_slug(tx, slug_base(field_value))
+    elif field_name == 'date_of_birth':
+        params = dict(
+            email=s.email,
+            field_value=field_value
+        )
+
+        q_set_onboardee_field = """
+            INSERT INTO onboardee (
+                email,
+                date_of_birth
+            ) VALUES (
+                %(email)s,
+                %(field_value)s
+            ) ON CONFLICT (email) DO UPDATE SET
+                date_of_birth = EXCLUDED.date_of_birth
+            """
+
+        with api_tx() as tx:
+            tx.execute(q_set_onboardee_field, params)
     elif field_name == 'location':
         params = dict(
             email=s.email,
