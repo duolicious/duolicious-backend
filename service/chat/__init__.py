@@ -411,6 +411,26 @@ async def process_text(
             '<duo_pong preferred_interval="10000" preferred_timeout="5000" />',
         ])
 
+    # Online-status subscriptions are handled before the authentication gate so
+    # that logged-out viewers can see the online status of public profiles. The
+    # subscription handler itself restricts unauthenticated viewers to profiles
+    # which have opted in to `public_profile`.
+    maybe_subscription = await maybe_redis_subscribe_online(
+            from_username=from_username,
+            parsed_xml=parsed_xml,
+            redis_client=REDIS_WORKER_CLIENT,
+            pubsub=pubsub,
+            session=session)
+    if maybe_subscription:
+        return await redis_publish_many(connection_uuid, maybe_subscription)
+
+    maybe_unsubscription = await maybe_redis_unsubscribe_online(
+            parsed_xml=parsed_xml,
+            pubsub=pubsub,
+            session=session)
+    if maybe_unsubscription:
+        return await redis_publish_many(connection_uuid, maybe_unsubscription)
+
     if not from_username:
         return
 
@@ -452,20 +472,6 @@ async def process_text(
                 )
             ])
         return
-
-    maybe_subscription = await maybe_redis_subscribe_online(
-            from_username=from_username,
-            parsed_xml=parsed_xml,
-            redis_client=REDIS_WORKER_CLIENT,
-            pubsub=pubsub)
-    if maybe_subscription:
-        return await redis_publish_many(connection_uuid, maybe_subscription)
-
-    maybe_unsubscription = await maybe_redis_unsubscribe_online(
-            parsed_xml=parsed_xml,
-            pubsub=pubsub)
-    if maybe_unsubscription:
-        return await redis_publish_many(connection_uuid, maybe_unsubscription)
 
     maybe_message = xml_to_message(parsed_xml)
 

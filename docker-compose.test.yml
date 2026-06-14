@@ -92,6 +92,10 @@ services:
     ports:
       - "5442:5442"
       - "5443:5443"
+    volumes:
+      # Lets tests toggle behaviour at runtime via test/input/* files (e.g.
+      # `max-online-subscriptions`), the same way the api service does.
+      - ./test:/app/test:ro
     environment:
       DUO_ENV: dev
 

@@ -31,6 +31,10 @@ class Session:
         self.connection_uuid = str(uuid.uuid4())
         self.username = None
         self.session_token_hash = None
+        # Ordered set (oldest first) of usernames whose online status this
+        # connection is subscribed to. When the per-connection cap is reached,
+        # the earliest subscriptions are evicted to make room for new ones.
+        self.online_subscriptions: dict[str, None] = {}
 
 
 async def is_authorized(parsed_xml: etree._Element, session: Session) -> bool:
