@@ -7,6 +7,7 @@ import { WelcomeScreen } from '../welcome-screen';
 import { listen, notify, lastEvent } from '../../events/events';
 import { useSignedInUser } from '../../events/signed-in-user';
 import { navigationContainerRef } from '../../App';
+import { isMobile } from '../../util/util';
 
 const showSignUp = (isVisible: boolean) => {
   notify<boolean>('show-sign-up', isVisible);
@@ -64,8 +65,8 @@ const SignUpModal = () => {
           justifyContent: 'center',
           alignItems: 'center',
           flexDirection: 'row',
-          paddingHorizontal: 10,
-          paddingVertical: 20,
+          paddingHorizontal: isMobile() ? 0 : 10,
+          paddingVertical: isMobile() ? 0 : 20,
           ...backgroundColors.dark,
         }}
       >
@@ -73,10 +74,10 @@ const SignUpModal = () => {
           style={{
             flex: 1,
             width: '100%',
-            maxWidth: 600,
-            maxHeight: 900,
+            maxWidth: isMobile() ? undefined : 600,
+            maxHeight: isMobile() ? undefined : 900,
             height: '100%',
-            borderRadius: 10,
+            borderRadius: isMobile() ? 0 : 10,
             overflow: 'hidden',
           }}
         >
