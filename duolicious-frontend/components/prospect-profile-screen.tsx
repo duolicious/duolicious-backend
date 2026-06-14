@@ -121,7 +121,7 @@ const GalleryScreen = ({navigation, route}) => {
 // Path here must match the `Prospect Profile` route in App.tsx's linking config
 // (profiles live at the top level: /<username>).
 const buildShareableProfileUrl = (handle: string) =>
-  `${INVITE_URL}/${encodeURIComponent(handle)}`;
+  `${INVITE_URL}/p/${encodeURIComponent(handle)}`;
 
 const onPressShareProfile = async (personUuid: string | undefined) => {
   if (!personUuid) return;
