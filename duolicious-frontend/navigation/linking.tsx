@@ -165,11 +165,19 @@ const createLinking = () => {
     // say on the URL. Keeping this function free of `window.history` side
     // effects makes it predictable and easy to reason about in isolation.
     getStateFromPath: (path: string, options: any) => {
+      // Collapse duplicate slashes up front. React Navigation resolves
+      // `//asdf` to the same state as `/asdf` (it dedupes slashes internally),
+      // but it stamps the *raw* path onto the focused route's `path`. On web
+      // the linking integration then feeds that raw path to
+      // `history.replaceState`, where `//asdf` is parsed as a protocol-relative
+      // URL (`http://asdf/`) and rejected cross-origin with a SecurityError
+      // that crashes the app. Normalizing here keeps the stored path same-origin.
+      let normalized = path.replace(/\/{2,}/g, '/');
+
       // `/me` and `/welcome` previously served different purposes than any
       // current screen. Per the routing brief these legacy URLs shouldn't
       // quietly land users on something unexpected, so we drop them at the
       // app root.
-      let normalized = path;
       if (normalized === '/me' || normalized.startsWith('/me/')) normalized = '/';
       if (normalized === '/welcome' || normalized.startsWith('/welcome/')) normalized = '/';
 
