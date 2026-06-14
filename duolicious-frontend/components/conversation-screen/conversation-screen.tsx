@@ -674,7 +674,7 @@ const ConversationScreen = ({navigation, route}) => {
 
   useLayoutEffect(() => {
     return listen(
-      'xmpp-is-online',
+      'chat-is-online',
       (data) => setIsOnline(data ?? false),
       true,
     );

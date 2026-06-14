@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { getRandomString } from '../../random/string';
 import { japi } from '../../api/api';
 import { deleteFromArray, assert } from '../../util/util';
@@ -25,6 +26,33 @@ let credentials: null | {
   password: string
 } = null;
 
+// The only place `credentials` is mutated, so a change is always observable.
+const setCredentials = (next: typeof credentials) => {
+  credentials = next;
+  notify('chat-has-credentials', !!credentials);
+};
+
+// Whether the client may subscribe to other people's online status. Logged-in
+// users subscribe once XMPP authentication completes (so skip-checks apply).
+// Logged-out web users may subscribe as soon as the socket is open, but the
+// server only honours their subscriptions for `public_profile` users.
+//
+// It's fully derived from its three inputs, so it's recomputed whenever any of
+// them changes rather than hand-called at each mutation site.
+const recomputeOnlineSubscribable = () => {
+  const authenticated = !!lastEvent('chat-is-online');
+  const webSocketOpen = !!lastEvent('chat-is-websocket-open');
+  const loggedOutOnWeb = Platform.OS === 'web' && !credentials;
+
+  notify('online-subscribable', webSocketOpen && (authenticated || loggedOutOnWeb));
+};
+
+listen('chat-is-online', recomputeOnlineSubscribable);
+listen('chat-is-websocket-open', recomputeOnlineSubscribable);
+listen('chat-has-credentials', recomputeOnlineSubscribable);
+
+notify('chat-is-websocket-open', false);
+notify('chat-has-credentials', false);
 notify('inbox', null);
 
 const jidMatchesSignedInUser = (jid: string) => {
@@ -397,13 +425,13 @@ const login = async (
   username: string,
   password: string,
 ) => {
-  credentials = { username, password };
+  setCredentials({ username, password });
 
   authenticate();
 };
 
 const logout = async () => {
-  credentials = null;
+  setCredentials(null);
   await registerPushToken(null);
   notify(EV_CHAT_WS_SEND_CLOSE);
   notify<Inbox | null>('inbox', null);
@@ -414,7 +442,7 @@ const authenticate = async () => {
     return;
   }
 
-  if (lastEvent('xmpp-is-online')) {
+  if (lastEvent('chat-is-online')) {
     return;
   }
 
@@ -432,7 +460,7 @@ const authenticate = async () => {
     return;
   }
 
-  notify('xmpp-is-online', true);
+  notify('chat-is-online', true);
 
   await Promise.all([
     refreshInbox(),
@@ -1144,8 +1172,18 @@ const registerPushToken = async (token: string | null) => {
 // Update the inbox upon receiving a message
 onReceiveMessage();
 
-listen(EV_CHAT_WS_OPEN, authenticate);
-listen(EV_CHAT_WS_CLOSE, () => notify('xmpp-is-online', false));
+const onWebsocketOpen = () => {
+  notify('chat-is-websocket-open', true);
+  authenticate();
+};
+
+const onWebsocketClose = () => {
+  notify('chat-is-websocket-open', false);
+  notify('chat-is-online', false);
+};
+
+listen(EV_CHAT_WS_OPEN, onWebsocketOpen);
+listen(EV_CHAT_WS_CLOSE, onWebsocketClose);
 
 export {
   Conversation,

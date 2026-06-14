@@ -80,7 +80,7 @@ const subscribe = (personUuid: string) => {
 
 const useOnline = (personUuid: string | null | undefined): OnlineStatus => {
   const [onlineStatus, setOnlineStatus] = useState<OnlineStatus>('offline');
-  const xmppIsOnlineRef = useRef(false);
+  const subscribableRef = useRef(false);
   const personSubRef = useRef<{
     removeSubscription: () => void;
     removeListener: () => void;
@@ -88,7 +88,7 @@ const useOnline = (personUuid: string | null | undefined): OnlineStatus => {
 
   useEffect(() => {
     const subscribePerson = () => {
-      if (!personUuid || !xmppIsOnlineRef.current || personSubRef.current) {
+      if (!personUuid || !subscribableRef.current || personSubRef.current) {
         return;
       }
 
@@ -112,11 +112,11 @@ const useOnline = (personUuid: string | null | undefined): OnlineStatus => {
       personSubRef.current = null;
     };
 
-    const removeXmppListener = listen(
-      'xmpp-is-online',
+    const removeSubscribableListener = listen(
+      'online-subscribable',
       (data: boolean) => {
         const newStatus = data ?? false;
-        xmppIsOnlineRef.current = newStatus;
+        subscribableRef.current = newStatus;
         if (newStatus) {
           subscribePerson();
         } else {
@@ -127,7 +127,7 @@ const useOnline = (personUuid: string | null | undefined): OnlineStatus => {
     );
 
     return () => {
-      removeXmppListener();
+      removeSubscribableListener();
       unsubscribePerson();
     };
   }, [personUuid]);
