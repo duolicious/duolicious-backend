@@ -24,6 +24,7 @@ import { setProspectHint } from '../navigation/prospect-cache';
 const Avatar = ({
   percentage,
   personUuid,
+  urlSlug = null,
   photoUuid,
   photoBlurhash,
   isSkipped = false,
@@ -33,6 +34,7 @@ const Avatar = ({
 }: {
   percentage: number
   personUuid: string
+  urlSlug?: string | null
   photoUuid: string | null
   photoBlurhash: string | null
   isSkipped?: boolean
@@ -44,6 +46,10 @@ const Avatar = ({
 
   const navigation = useNavigation<any>();
 
+  // The profile URL prefers the username (url_slug); the uuid is the fallback
+  // for not-yet-backfilled users and shared links.
+  const handle = urlSlug || personUuid;
+
   const onPress = useCallback((e) => {
     e.preventDefault();
 
@@ -54,22 +60,22 @@ const Avatar = ({
     if (verificationRequired) {
       return navigation.navigate('Profile');
     } else if (personUuid) {
-      setProspectHint(personUuid, { photoBlurhash });
+      setProspectHint(handle, { photoBlurhash });
       return navigation.navigate(
         'Prospect Profile Screen',
         {
           screen: 'Prospect Profile',
-          params: { personUuid },
+          params: { personUuid: handle },
         }
       );
     }
-  }, [navigation, personUuid, photoBlurhash, verificationRequired]);
+  }, [navigation, personUuid, handle, photoBlurhash, verificationRequired]);
 
   const isLinkToProfile = navigation && !verificationRequired && personUuid && !disableProfileNavigation;
 
   const link =
     isLinkToProfile
-      ? makeLinkProps(`/profile/${personUuid}`)
+      ? makeLinkProps(`/${handle}`)
       : {};
 
   return (

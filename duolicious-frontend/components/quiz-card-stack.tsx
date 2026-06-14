@@ -80,6 +80,7 @@ const fetchNextQuestions = async (n: number = 10, o: number = 0): Promise<{
 const prospectState = (
   personId: number,
   personUuid: string,
+  urlSlug: string | null,
   photoUuid: string,
   photoBlurhash: string,
   matchPercentage: number,
@@ -115,6 +116,7 @@ const prospectState = (
   return {
     personId: personId,
     personUuid: personUuid,
+    urlSlug: urlSlug,
     photoUuid: photoUuid,
     photoBlurhash: photoBlurhash,
     matchPercentage: matchPercentage,
@@ -147,6 +149,7 @@ const fetchNBestProspects = async (
   return response.json.map(x => prospectState(
     x.prospect_person_id,
     x.prospect_uuid,
+    x.url_slug,
     x.profile_photo_uuid,
     x.profile_photo_blurhash,
     x.match_percentage,
@@ -185,6 +188,7 @@ type CardState = {
 type ProspectState = {
   personId: number
   personUuid: string
+  urlSlug: string | null
   photoUuid: string
   photoBlurhash: string
   matchPercentage: number
@@ -349,6 +353,7 @@ const getBestProspects = (prospects: ProspectState[]) => {
 const Prospect = ({
   style,
   personUuid,
+  urlSlug,
   photoUuid,
   photoBlurhash,
   matchPercentage,
@@ -367,6 +372,7 @@ const Prospect = ({
   >
     <Avatar
       personUuid={personUuid}
+      urlSlug={urlSlug}
       photoUuid={photoUuid}
       photoBlurhash={photoBlurhash}
       percentage={matchPercentage}
@@ -510,6 +516,7 @@ const Prospects = ({
               key={String(topCardIndex - i)}
               style={prospect.style}
               personUuid={prospect.personUuid}
+              urlSlug={prospect.urlSlug}
               photoUuid={prospect.photoUuid}
               photoBlurhash={prospect.photoBlurhash}
               matchPercentage={prospect.matchPercentage}

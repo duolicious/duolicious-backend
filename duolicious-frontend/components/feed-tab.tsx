@@ -47,6 +47,7 @@ type Action =
 const DataItemBaseSchema = z.object({
   time: z.string(),
   person_uuid: z.string(),
+  url_slug: z.string().nullable(),
   name: z.string(),
   photo_uuid: z.string().nullable(),
   photo_blurhash: z.string().nullable(),
@@ -189,7 +190,7 @@ const fetchPage = async (pageNumber: number): Promise<DataItem[] | null> => {
 };
 
 const useNavigationToProfile = (
-  personUuid: string,
+  handle: string,
   photoBlurhash: string | null
 ) => {
   const navigation = useNavigation<any>();
@@ -197,15 +198,15 @@ const useNavigationToProfile = (
   return useCallback((e) => {
     e.preventDefault();
 
-    setProspectHint(personUuid, { photoBlurhash });
+    setProspectHint(handle, { photoBlurhash });
     navigation.navigate(
       'Prospect Profile Screen',
       {
         screen: 'Prospect Profile',
-        params: { personUuid },
+        params: { personUuid: handle },
       }
     );
-  }, [personUuid, photoBlurhash]);
+  }, [handle, photoBlurhash]);
 };
 
 const useNavigationToProfileGallery = (photoUuid) => {
@@ -243,6 +244,7 @@ const useNavigationToConversation = (
 
 const AgeGenderLocation = ({
   personUuid,
+  urlSlug,
   photoBlurhash,
   name,
   isVerified,
@@ -253,6 +255,7 @@ const AgeGenderLocation = ({
   style,
 }: {
   personUuid: string
+  urlSlug: string | null
   photoBlurhash: string | null
   name: string
   isVerified: boolean
@@ -263,6 +266,9 @@ const AgeGenderLocation = ({
   style?: any
 }) => {
   const { appTheme } = useAppTheme();
+
+  // Profile links prefer the username (url_slug), falling back to the uuid.
+  const handle = urlSlug || personUuid;
 
   const onPressReport = useCallback((event: GestureResponderEvent) => {
     event.stopPropagation();
@@ -276,11 +282,11 @@ const AgeGenderLocation = ({
   }, [notify, name, personUuid]);
 
   const onPress = useNavigationToProfile(
-    personUuid,
+    handle,
     photoBlurhash,
   );
 
-  const link = makeLinkProps(`/profile/${personUuid}`);
+  const link = makeLinkProps(`/${handle}`);
 
   return (
     <View
@@ -428,6 +434,7 @@ const FeedItemJoined = ({ fields }: { fields: JoinedFields }) => {
           <Avatar
             percentage={fields.match_percentage}
             personUuid={fields.person_uuid}
+            urlSlug={fields.url_slug}
             photoUuid={fields.photo_uuid}
             photoBlurhash={fields.photo_blurhash}
             doUseOnline={!!fields.photo_uuid}
@@ -436,6 +443,7 @@ const FeedItemJoined = ({ fields }: { fields: JoinedFields }) => {
         <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
           <AgeGenderLocation
             personUuid={fields.person_uuid}
+            urlSlug={fields.url_slug}
             photoBlurhash={fields.photo_blurhash}
             name={fields.name}
             isVerified={fields.is_verified}
@@ -504,6 +512,7 @@ const FeedItemAddedPhoto = ({
           <Avatar
             percentage={fields.match_percentage}
             personUuid={fields.person_uuid}
+            urlSlug={fields.url_slug}
             photoUuid={fields.photo_uuid}
             photoBlurhash={fields.photo_blurhash}
             doUseOnline={!!fields.photo_uuid}
@@ -512,6 +521,7 @@ const FeedItemAddedPhoto = ({
         <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
           <AgeGenderLocation
             personUuid={fields.person_uuid}
+            urlSlug={fields.url_slug}
             photoBlurhash={fields.photo_blurhash}
             name={fields.name}
             isVerified={fields.is_verified}
@@ -570,6 +580,7 @@ const FeedItemAddedVoiceBio = ({
           <Avatar
             percentage={fields.match_percentage}
             personUuid={fields.person_uuid}
+            urlSlug={fields.url_slug}
             photoUuid={fields.photo_uuid}
             photoBlurhash={fields.photo_blurhash}
             doUseOnline={!!fields.photo_uuid}
@@ -578,6 +589,7 @@ const FeedItemAddedVoiceBio = ({
         <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
           <AgeGenderLocation
             personUuid={fields.person_uuid}
+            urlSlug={fields.url_slug}
             photoBlurhash={fields.photo_blurhash}
             name={fields.name}
             isVerified={fields.is_verified}
@@ -637,6 +649,7 @@ const FeedItemUpdatedBio = ({
           <Avatar
             percentage={fields.match_percentage}
             personUuid={fields.person_uuid}
+            urlSlug={fields.url_slug}
             photoUuid={fields.photo_uuid}
             photoBlurhash={fields.photo_blurhash}
             doUseOnline={!!fields.photo_uuid}
@@ -646,6 +659,7 @@ const FeedItemUpdatedBio = ({
           <View style={{ flex: 1, gap: NAME_ACTION_TIME_GAP_VERTICAL }}>
             <AgeGenderLocation
               personUuid={fields.person_uuid}
+              urlSlug={fields.url_slug}
               photoBlurhash={fields.photo_blurhash}
               name={fields.name}
               isVerified={fields.is_verified}

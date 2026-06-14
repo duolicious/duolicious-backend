@@ -115,6 +115,7 @@ const ProfileCardMemo = memo(ProfileCard);
 type PageItem = {
   prospect_person_id: number
   prospect_uuid: string
+  url_slug: string | null
   profile_photo_uuid: string
   profile_photo_blurhash: string
   name: string

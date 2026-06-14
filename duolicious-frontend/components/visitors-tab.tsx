@@ -86,6 +86,7 @@ const useNumVisitors = () => {
 
 const DataItemSchema = z.object({
   person_uuid: z.string(),
+  url_slug: z.string().nullable(),
   photo_uuid: z.string().nullable(),
   photo_blurhash: z.string().nullable(),
   time: z.string(),
@@ -284,10 +285,14 @@ const markVisitorChecked = (personUuid: string) => {
 
 const useNavigationToProfile = (
   personUuid: string,
+  urlSlug: string | null,
   photoBlurhash: string | null,
   verificationRequired: boolean
 ) => {
   const navigation = useNavigation<any>();
+
+  // Profile links prefer the username (url_slug), falling back to the uuid.
+  const handle = urlSlug || personUuid;
 
   const onPress = useCallback((e) => {
     e.preventDefault();
@@ -297,21 +302,21 @@ const useNavigationToProfile = (
     } else if (personUuid) {
       markVisitorChecked(personUuid);
 
-      setProspectHint(personUuid, { photoBlurhash });
+      setProspectHint(handle, { photoBlurhash });
       return navigation.navigate(
         'Prospect Profile Screen',
         {
           screen: 'Prospect Profile',
-          params: { personUuid },
+          params: { personUuid: handle },
         }
       );
     }
 
-  }, [personUuid, photoBlurhash, verificationRequired]);
+  }, [personUuid, handle, photoBlurhash, verificationRequired]);
 
   return {
     onPress,
-    href: verificationRequired ? undefined : `/profile/${personUuid}`
+    href: verificationRequired ? undefined : `/${handle}`
   };
 };
 
@@ -323,6 +328,7 @@ const VisitorsItem = ({ itemKey }: { itemKey: string }) => {
   const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
   const navigationProps = useNavigationToProfile(
     dataItem.person_uuid,
+    dataItem.url_slug,
     dataItem.photo_blurhash,
     dataItem.verification_required_to_view !== null,
   );
@@ -355,6 +361,7 @@ const VisitorsItem = ({ itemKey }: { itemKey: string }) => {
         <Avatar
           percentage={dataItem.match_percentage}
           personUuid={dataItem.person_uuid}
+          urlSlug={dataItem.url_slug}
           photoUuid={dataItem.photo_uuid}
           photoBlurhash={dataItem.photo_blurhash}
           verificationRequired={dataItem.verification_required_to_view}

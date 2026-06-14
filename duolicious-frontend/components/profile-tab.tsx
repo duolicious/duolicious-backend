@@ -50,9 +50,7 @@ import { resetUserScopedClientState } from '../navigation/reset-client-state';
 import { api, japi, ApiResponse } from '../api/api';
 import { useSignedInUser, setSignedInUser, getSignedInUser } from '../events/signed-in-user';
 import { cmToFeetInchesStr } from '../units/units';
-import {
-  IMAGES_URL,
-} from '../env/env';
+import { IMAGES_URL } from '../env/env';
 import * as _ from "lodash";
 import { aboutQueue, nameQueue } from '../api/queue';
 import { ClubSelector } from './club-selector';
@@ -285,6 +283,7 @@ const ProfileTab_ = ({navigation}) => {
 
 const DisplayNameAndAboutPerson = ({data}) => {
   const [name, setName] = useState<string>(data.name ?? '');
+  const { appTheme } = useAppTheme();
 
   type State
     = 'unchanged'
@@ -298,6 +297,13 @@ const DisplayNameAndAboutPerson = ({data}) => {
     | 'too long';
 
   const [nameState, setNameState] = useState<State>('unchanged');
+
+  const [nameSlug, setNameSlug] = useState<string | null>(data?.url_slug ?? null);
+
+  // Whether the current slug needed a random suffix because the name collided.
+  // Tracked separately from `nameState` because a successful rename is always
+  // `'saved'` (r.ok), so the random case can't be a state of its own.
+  const [nameSlugTaken, setNameSlugTaken] = useState<boolean>(false);
 
   const [aboutState, setAboutState] = useState<State>('unchanged');
 
@@ -314,6 +320,11 @@ const DisplayNameAndAboutPerson = ({data}) => {
     (stateSetter: (state: State) => void) =>
     (r: ApiResponse): boolean =>
   {
+    if (r.json?.url_slug) {
+      setNameSlug(r.json.url_slug);
+      setNameSlugTaken(!!r.json.is_random);
+    }
+
     if (r.ok && r.validationErrors === null) {
       stateSetter('saved');
       return true;
@@ -352,7 +363,6 @@ const DisplayNameAndAboutPerson = ({data}) => {
 
       if (responseHandler(setNameState)(r)) {
         setName(name);
-
         notify<string>('updated-name', name);
       }
     };
@@ -395,6 +405,23 @@ const DisplayNameAndAboutPerson = ({data}) => {
           marginRight: 0,
         }}
       />
+      {!!nameSlug &&
+        <DefaultText
+          style={{
+            fontSize: 14,
+            color: appTheme.hintColor,
+            marginTop: 10,
+            textAlign: 'center',
+          }}
+        >
+          Changing your display name changes your username – Your current
+          username is {}
+          <DefaultText style={{ fontWeight: 700 }} disableTheme={true}>
+            {nameSlug}
+          </DefaultText>
+          {nameSlugTaken && ` (${name} is taken)`}
+        </DefaultText>
+      }
 
       <Title>
         About {name} {}
@@ -664,7 +691,11 @@ const Options = ({ navigation, data }) => {
           'Prospect Profile Screen',
           {
             screen: 'Prospect Profile',
-            params: { personUuid: signedInUser?.personUuid },
+            // Prefer the username (url_slug) so the previewed URL matches what
+            // others see; fall back to the uuid until the slug is backfilled.
+            params: {
+              personUuid: data?.url_slug ?? signedInUser?.personUuid,
+            },
           }
         )}
         containerStyle={{

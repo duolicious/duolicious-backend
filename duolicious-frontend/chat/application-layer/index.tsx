@@ -108,6 +108,7 @@ type Message = ChatMessage | TypingMessage
 
 type Conversation = {
   personUuid: string
+  urlSlug: string | null
   name: string
   matchPercentage: number
   photoUuid: string | null
@@ -207,6 +208,7 @@ const populateConversationList = (
 
     // Update conversation information
     c.name = personInfo?.name ?? 'Unavailable Person';
+    c.urlSlug = personInfo?.url_slug ?? null;
     c.matchPercentage = personInfo?.match_percentage ?? 0;
     c.photoUuid = personInfo?.image_uuid ?? null;
     c.photoBlurhash = personInfo?.image_blurhash ?? null;
@@ -243,6 +245,7 @@ const setInboxSent = (recipientPersonUuid: string, message: string) => {
 
   const updatedConversation: Conversation = {
     personUuid: recipientPersonUuid,
+    urlSlug: null,
     name: '',
     matchPercentage: 0,
     photoUuid: null,
@@ -301,6 +304,7 @@ const setInboxRecieved = async (
 
   const updatedConversation: Conversation = {
     personUuid: fromPersonUuid,
+    urlSlug: null,
     name: '',
     matchPercentage: 0,
     photoUuid: null,
@@ -1064,6 +1068,7 @@ const refreshInbox = async (
       // server
       return {
         personUuid,
+        urlSlug: null,
         name: '',
         matchPercentage: 0,
         photoUuid: null,

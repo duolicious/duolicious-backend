@@ -186,6 +186,7 @@ const ProfileCard = ({
     profile_photo_uuid: photoUuid,
     profile_photo_blurhash: photoBlurhash,
     prospect_uuid: personUuid,
+    url_slug: urlSlug,
     person_messaged_prospect: personMessagedProspect,
     prospect_messaged_person: prospectMessagedPerson,
     verified: verified,
@@ -193,6 +194,9 @@ const ProfileCard = ({
   } = item;
 
   const { appTheme } = useAppTheme();
+
+  // Profile links prefer the username (url_slug), falling back to the uuid.
+  const handle = urlSlug || personUuid;
 
   const { isSkipped, wasPostSkipFiredInThisSession } = useSkipped(personUuid);
 
@@ -219,16 +223,16 @@ const ProfileCard = ({
     if (verificationRequired) {
       return navigation.navigate('Profile');
     } else if (personUuid) {
-      setProspectHint(personUuid, { photoBlurhash });
+      setProspectHint(handle, { photoBlurhash });
       return navigation.navigate(
         'Prospect Profile Screen',
         {
           screen: 'Prospect Profile',
-          params: { personUuid },
+          params: { personUuid: handle },
         }
       );
     }
-  }, [navigation, personUuid, verificationRequired, photoBlurhash]);
+  }, [navigation, personUuid, handle, verificationRequired, photoBlurhash]);
 
   const onMessageFrom = useCallback(
     () => {
@@ -256,7 +260,7 @@ const ProfileCard = ({
     [personUuid, onMessageTo]
   );
 
-  const link = navigation && !verificationRequired && personUuid ? makeLinkProps(`/profile/${personUuid}`)
+  const link = navigation && !verificationRequired && personUuid ? makeLinkProps(`/${handle}`)
                                                                  : {};
 
   return (

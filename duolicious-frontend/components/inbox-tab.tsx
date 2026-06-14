@@ -39,6 +39,7 @@ const RenderItem = ({ item }: { item: string }) => {
       wasRead={conversation.lastMessageRead}
       name={conversation.name}
       personUuid={conversation.personUuid}
+      urlSlug={conversation.urlSlug}
       photoUuid={conversation.photoUuid}
       photoBlurhash={conversation.photoBlurhash}
       matchPercentage={conversation.matchPercentage}

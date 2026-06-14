@@ -65,7 +65,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { ClubItem, joinClub, leaveClub } from '../club/club';
 import * as _ from 'lodash';
-import { friendlyTimeAgo, possessive, bestTextOn, capLuminance } from '../util/util';
+import { friendlyTimeAgo, possessive, bestTextOn, capLuminance, isUuid } from '../util/util';
 import { useOnline } from '../chat/application-layer/hooks/online';
 import { HeartBackground } from './heart-background';
 import { AudioPlayer } from './audio-player';
@@ -118,9 +118,10 @@ const GalleryScreen = ({navigation, route}) => {
   );
 };
 
-// Path here must match the `Prospect Profile` route in App.tsx's linking config.
-const buildShareableProfileUrl = (personUuid: string) =>
-  `${INVITE_URL}/profile/${encodeURIComponent(personUuid)}`;
+// Path here must match the `Prospect Profile` route in App.tsx's linking config
+// (profiles live at the top level: /<username>).
+const buildShareableProfileUrl = (handle: string) =>
+  `${INVITE_URL}/${encodeURIComponent(handle)}`;
 
 const onPressShareProfile = async (personUuid: string | undefined) => {
   if (!personUuid) return;
@@ -662,6 +663,8 @@ const AllClubs = ({
 
 type UserData = {
   name: string,
+  url_slug: string | null,
+  person_uuid: string,
   about: string,
   mutual_clubs: string[],
   other_clubs: string[],
@@ -777,43 +780,55 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
 
   const insets = useSafeAreaInsets();
 
-  const personUuid = route.params.personUuid;
+  // The route param is a "handle": either a uuid (legacy/shared links) or a
+  // url_slug. It drives the URL, the initial fetch and the caller-supplied
+  // hints (all keyed by whatever the caller navigated with). Uuid-keyed actions
+  // (skip, online presence, chat) instead need the *canonical* uuid, which we
+  // read from the fetched profile (`data.person_uuid`); when the handle is
+  // already a uuid we can use it immediately, otherwise it resolves once `data`
+  // lands.
+  const handle = route.params.personUuid;
+
+  const [signedInUser] = useSignedInUser();
+  const [data, setData] = useState<UserData | undefined>(undefined);
+
+  const personUuid = data?.person_uuid ?? (isUuid(handle) ? handle : undefined);
 
   // `showBottomButtons` and `photoBlurhash` are intentionally NOT route params:
   // the former is derived from who's signed in (plus an optional one-shot
   // hint from the caller), the latter is an optimistic rendering hint stashed
   // in prospect-cache by the navigating caller. This keeps URLs clean
-  // (`/profile/:uuid`) and navigation state serializable.
-  const [signedInUser] = useSignedInUser();
-  const hint = getProspectHint(personUuid);
+  // (`/:username`) and navigation state serializable.
+  const hint = getProspectHint(handle);
   const isViewingSelf =
-    !!signedInUser?.personUuid && signedInUser.personUuid === personUuid;
+    !!signedInUser?.personUuid && (
+      signedInUser.personUuid === personUuid ||
+      signedInUser.personUuid === handle);
   const isAnonymousViewer = !signedInUser;
-  // Consume the `hideBottomButtons` hint when a new uuid lands here so a
+  // Consume the `hideBottomButtons` hint when a new handle lands here so a
   // later visit from a different context (e.g. tapping the same person's
   // avatar in search) gets the default behaviour rather than inheriting a
   // stale conversation hint. Tracked in state because the same screen
-  // instance can be reused with a different `personUuid` without remount.
+  // instance can be reused with a different `handle` without remount.
   // Initialised lazily from the cache to avoid a one-frame flash of the
   // bottom buttons before the consuming effect runs.
   const [hideBottomButtonsHint, setHideBottomButtonsHint] = useState(
-    () => !!getProspectHint(personUuid)?.hideBottomButtons,
+    () => !!getProspectHint(handle)?.hideBottomButtons,
   );
   useEffect(() => {
-    const h = getProspectHint(personUuid);
+    const h = getProspectHint(handle);
     if (h?.hideBottomButtons) {
       setHideBottomButtonsHint(true);
-      setProspectHint(personUuid, { hideBottomButtons: false });
+      setProspectHint(handle, { hideBottomButtons: false });
     } else {
       setHideBottomButtonsHint(false);
     }
-  }, [personUuid]);
+  }, [handle]);
   const showAuthedBottomButtons =
     !isAnonymousViewer && !isViewingSelf && !hideBottomButtonsHint;
   const photoBlurhashParam = hint?.photoBlurhash;
 
   const { appThemeName, appTheme } = useAppTheme();
-  const [data, setData] = useState<UserData | undefined>(undefined);
   // Wait for `data` to resolve so the CTA doesn't briefly flash before
   // `notFound` flips on for 404'd profiles.
   const showAnonymousSignInCta =
@@ -826,7 +841,7 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
   // fetched name but fall back to the optimistic hint while the API is in
   // flight so the title doesn't briefly read "Duolicious" before snapping
   // to the name. App.tsx's `documentTitle.formatter` reads `options.title`.
-  const screenTitle = data?.name ?? getProspectHint(personUuid)?.name;
+  const screenTitle = data?.name ?? getProspectHint(handle)?.name;
   useLayoutEffect(() => {
     navigation.setOptions({ title: screenTitle });
   }, [navigation, screenTitle]);
@@ -837,28 +852,36 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
     setData(undefined);
     setNotFound(false);
     (async () => {
-      setSkipped(personUuid, { networkState: 'fetching' });
-      const response = await api('get', `/prospect-profile/${personUuid}`);
+      // The skip cache is keyed by the canonical uuid. When the handle is a
+      // uuid we can show the "fetching" state immediately; for a slug we settle
+      // it once the profile (which carries `person_uuid`) lands.
+      if (isUuid(handle)) {
+        setSkipped(handle, { networkState: 'fetching' });
+      }
+      const response = await api('get', `/prospect-profile/${handle}`);
       setData(response?.json);
       setNotFound(response.clientError);
-      setSkipped(
-        personUuid,
-        {
-          isSkipped: response?.json?.is_skipped ?? false,
-          networkState: 'settled',
-        }
-      );
-      // Make `personId` / `name` available to sibling screens (e.g. In-Depth)
-      // so they don't have to refetch this endpoint just to resolve the
-      // numeric id required by `/compare-*` APIs.
-      if (response?.json) {
-        setProspectHint(personUuid, {
+      const canonicalUuid = response?.json?.person_uuid ?? (
+        isUuid(handle) ? handle : undefined);
+      if (canonicalUuid) {
+        setSkipped(
+          canonicalUuid,
+          {
+            isSkipped: response?.json?.is_skipped ?? false,
+            networkState: 'settled',
+          }
+        );
+        // Make `personId` / `name` available to sibling screens (e.g. In-Depth,
+        // navigated to by the canonical uuid) so they don't have to refetch
+        // this endpoint just to resolve the numeric id required by `/compare-*`
+        // APIs.
+        setProspectHint(canonicalUuid, {
           personId: response.json.person_id,
           name: response.json.name,
         });
       }
     })();
-  }, [personUuid]);
+  }, [handle]);
 
   const photoUuid = data === undefined ?
     undefined :
@@ -1549,7 +1572,7 @@ const Body = ({
             personUuid={personUuid}
             name={data?.name}
           />}
-        <ShareButton personUuid={personUuid}/>
+        <ShareButton personUuid={data?.url_slug ?? personUuid}/>
         {!isViewingSelf && !!signedInUser &&
           <BlockButton
             name={data?.name}

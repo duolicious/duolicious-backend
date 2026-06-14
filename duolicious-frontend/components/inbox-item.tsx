@@ -18,6 +18,7 @@ const IntrosItem = ({
   wasRead,
   name,
   personUuid,
+  urlSlug,
   photoUuid,
   photoBlurhash,
   matchPercentage,
@@ -27,6 +28,7 @@ const IntrosItem = ({
   wasRead: boolean
   name: string
   personUuid: string
+  urlSlug: string | null
   photoUuid: string | null
   photoBlurhash: string | null
   matchPercentage: number
@@ -39,16 +41,19 @@ const IntrosItem = ({
 
   const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
 
+  // Profile links prefer the username (url_slug), falling back to the uuid.
+  const handle = urlSlug || personUuid;
+
   const onPress = useCallback(() => {
-    setProspectHint(personUuid, { name, photoUuid, photoBlurhash });
+    setProspectHint(handle, { name, photoUuid, photoBlurhash });
     navigation.navigate(
       'Prospect Profile Screen',
       {
         screen: 'Prospect Profile',
-        params: { personUuid },
+        params: { personUuid: handle },
       }
     );
-  }, [personUuid, name, photoUuid, photoBlurhash]);
+  }, [handle, name, photoUuid, photoBlurhash]);
 
   return (
     <Pressable

@@ -81,6 +81,8 @@ import { faCaretDown } from '@fortawesome/free-solid-svg-icons/faCaretDown'
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { japi, api } from '../api/api';
 import { delay } from '../util/util';
+import { onboardingQueue } from '../api/queue';
+import * as _ from "lodash";
 import { KeyboardDismissingView } from './keyboard-dismissing-view';
 import { listen, notify } from '../events/events';
 import { Title } from './title';
@@ -230,10 +232,44 @@ const Slider = forwardRef((props: InputProps<OptionGroupSlider>, ref) => {
 
 const GivenName = forwardRef((props: InputProps<OptionGroupGivenName>, ref) => {
   const [isInvalid, setIsInvalid] = useState(false);
+  const [slugPreview, setSlugPreview] = useState('');
+  const [slugTaken, setSlugTaken] = useState(false);
   const inputValueRef = useRef<string>('');
+
+  // The backend is the source of truth for the slug and its availability (the
+  // app deliberately doesn't recompute slug_base() here, so the two can't drift
+  // apart). Debounce a best-effort check; it upserts the onboardee's name,
+  // which is harmless before finish-onboarding. Routed through onboardingQueue
+  // (same as submit()) so the writes stay ordered.
+  const checkAvailability = useCallback(_.debounce(async (name: string) => {
+    // Nothing typed yet — no feedback (an empty name is "invalid" server-side,
+    // but we don't want to nag before the user has entered anything).
+    if (!name.trim()) return;
+
+    const response = await onboardingQueue.addTask(
+      () => japi('patch', '/onboardee-info', { name }));
+    // Drop a response the user has already typed past: if the input no longer
+    // matches the name we checked, a newer check is (or will be) in flight for
+    // the current value.
+    if (name !== inputValueRef.current) return;
+    // Same response drives both the validity error and the slug preview: an
+    // invalid name (too short/long, not a real name) comes back !ok, so we can
+    // surface "not a real name" as the user types instead of only on submit.
+    setIsInvalid(!response.ok);
+    if (response.ok) {
+      setSlugPreview(response.json?.url_slug ?? '');
+      setSlugTaken(response.json?.is_random ?? false);
+    }
+  }, 500), []);
 
   const onChangeInputValue = useCallback((value: string) => {
     inputValueRef.current = value;
+    // Clear stale feedback immediately; the debounced check re-derives both the
+    // validity error and the slug preview from the next server response.
+    setIsInvalid(false);
+    setSlugPreview('');
+    setSlugTaken(false);
+    checkAvailability(value);
   }, []);
 
   const submit = useCallback(async () => {
@@ -259,16 +295,36 @@ const GivenName = forwardRef((props: InputProps<OptionGroupGivenName>, ref) => {
         onChangeText={onChangeInputValue}
         onSubmitEditing={isMobile() ? undefined : () => submit()}
       />
-      <DefaultText
-        style={{
-          textAlign: 'center',
-          color: 'white',
-          marginTop: 15,
-          opacity: isInvalid ? 1 : 0,
-        }}
-      >
-        That doesn’t look like a real name 🤨
-      </DefaultText>
+      {/* Fixed-height slot for the (mutually exclusive) messages above: the
+          invalid-name error takes precedence over the slug preview. It's always
+          mounted and toggles opacity rather than mounting/unmounting, so the
+          input above never jumps. The height holds three lines — enough for the
+          longest "taken" message; numberOfLines caps very long slugs. */}
+      <View style={{ height: 54, marginTop: 15, justifyContent: 'center' }}>
+        <DefaultText
+          numberOfLines={3}
+          style={{
+            fontSize: 14,
+            textAlign: 'center',
+            color: 'white',
+            lineHeight: 18,
+            marginHorizontal: 20,
+            opacity: (isInvalid || !!slugPreview) ? 1 : 0,
+          }}
+        >
+          {isInvalid
+            ? 'That doesn’t look like a real name 🤨'
+            : slugPreview
+              ? <>
+                  Your username will be {}
+                  <DefaultText style={{ fontWeight: 700 }} disableTheme={true}>
+                    {slugPreview}
+                  </DefaultText>
+                  {slugTaken && ` (${inputValueRef.current} is taken)`}
+                </>
+              : null}
+        </DefaultText>
+      </View>
     </>
   );
 });

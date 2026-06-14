@@ -372,6 +372,16 @@ const formatCount = (n: number): string => {
   return n.toString();
 };
 
+// Strict UUID v1-v5 shape (8-4-4-4-12 hex). A bare source string so it can be
+// embedded in React Navigation path patterns (App.tsx) as well as anchored for
+// whole-string matching (isUuid).
+const UUID_REGEX_SOURCE =
+  '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
+
+const UUID_REGEX = new RegExp(`^${UUID_REGEX_SOURCE}$`);
+
+const isUuid = (s: string | undefined): boolean => !!s && UUID_REGEX.test(s);
+
 export {
   assert,
   assertNever,
@@ -398,4 +408,6 @@ export {
   formatCount,
   happenedInLast7Days,
   memoizeWithTtl,
+  UUID_REGEX_SOURCE,
+  isUuid,
 };

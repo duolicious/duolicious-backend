@@ -265,6 +265,7 @@ const Menu = ({navigation, name, personUuid, isSkipped, setIsSkipped, closeFn}) 
 const ConversationScreenNavBar = ({
   navigation,
   personUuid,
+  urlSlug,
   isAvailableUser,
   photoUuid,
   photoBlurhash,
@@ -276,11 +277,14 @@ const ConversationScreenNavBar = ({
   const { appTheme } = useAppTheme();
   const [showMenu, setShowMenu] = useState(false);
 
+  // Profile links prefer the username (url_slug), falling back to the uuid.
+  const handle = urlSlug || personUuid;
+
   const onPressName = useCallback(() => {
     if (isAvailableUser) {
       // The user is already in this conversation, so the prospect's bottom
       // "send intro" buttons would be redundant.
-      setProspectHint(personUuid, {
+      setProspectHint(handle, {
         name,
         photoBlurhash,
         hideBottomButtons: true,
@@ -289,11 +293,11 @@ const ConversationScreenNavBar = ({
         'Prospect Profile Screen',
         {
           screen: 'Prospect Profile',
-          params: { personUuid },
+          params: { personUuid: handle },
         }
       );
     }
-  }, [isAvailableUser, name, personUuid, photoBlurhash]);
+  }, [isAvailableUser, name, handle, photoBlurhash]);
 
   const toggleMenu = useCallback(() => {
     setShowMenu(x => !x);
@@ -434,6 +438,9 @@ const ConversationScreen = ({navigation, route}) => {
   const [isAvailableUser, setIsAvailableUser] = useState<boolean>(
     initialHint.isAvailableUser ?? true);
   const [isSkipped, setIsSkipped] = useState<boolean | undefined>();
+  // The prospect's url_slug, resolved from /conversation-prospect; used to link
+  // to their profile by username rather than uuid.
+  const [urlSlug, setUrlSlug] = useState<string | null>(null);
 
   useEffect(() => {
     if (!personUuid) return;
@@ -447,6 +454,7 @@ const ConversationScreen = ({navigation, route}) => {
     setPhotoBlurhash(hint.photoBlurhash);
     setIsAvailableUser(hint.isAvailableUser ?? true);
     setIsSkipped(undefined);
+    setUrlSlug(null);
 
     let cancelled = false;
     (async () => {
@@ -471,6 +479,7 @@ const ConversationScreen = ({navigation, route}) => {
       setPhotoBlurhash(nextPhotoBlurhash);
       setIsAvailableUser(nextIsAvailableUser);
       setIsSkipped(j.is_skipped ?? false);
+      setUrlSlug(j.url_slug ?? null);
       setProspectHint(personUuid, {
         name: nextName,
         photoUuid: nextPhotoUuid,
@@ -737,6 +746,7 @@ const ConversationScreen = ({navigation, route}) => {
       <ConversationScreenNavBar
         navigation={navigation}
         personUuid={personUuid}
+        urlSlug={urlSlug}
         isAvailableUser={isAvailableUser}
         photoUuid={photoUuid}
         photoBlurhash={photoBlurhash}

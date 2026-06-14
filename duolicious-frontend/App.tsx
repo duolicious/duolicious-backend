@@ -1,5 +1,4 @@
 import {
-  Animated,
   Platform,
 } from 'react-native';
 import {
@@ -14,20 +13,14 @@ import {
   NavigationContainer,
   createNavigationContainerRef,
   getPathFromState as rnGetPathFromState,
-  getStateFromPath as rnGetStateFromPath,
 } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Font from 'expo-font';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as ExpoSplashScreen from 'expo-splash-screen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { TabBar } from './components/navigation/tab-bar';
-import { SearchTab } from './components/search-tab';
-import { QuizTab } from './components/quiz-tab';
-import { ProfileTab } from './components/profile-tab';
-import { InboxTab } from './components/inbox-tab';
-import { FeedTab } from './components/feed-tab';
-import { VisitorsTab, fetchVisitors } from './components/visitors-tab';
+import { HomeTabs } from './components/home-tabs';
+import { SplashScreen } from './components/splash-screen';
+import { fetchVisitors } from './components/visitors-tab';
 import { ConversationScreen } from './components/conversation-screen/conversation-screen';
 import { ServerStatus, UtilityScreen } from './components/utility-screen';
 import { ProspectProfileScreen } from './components/prospect-profile-screen';
@@ -53,9 +46,7 @@ import { verificationWatcher } from './verification/verification';
 import { ClubItem } from './club/club';
 import { Toast } from './components/toast';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { createWebNavigator } from './components/navigation/web-navigator';
-import { isMobile } from './util/util';
-import { Logo16 } from './components/logo';
+import { createLinking, isBannerRoute, focusedRouteIsWizard } from './navigation/linking';
 import { useScrollbarStyle } from './components/navigation/scroll-bar-hooks';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -67,7 +58,7 @@ import { PointOfSaleModal } from './components/modal/point-of-sale-modal';
 import { SignUpModal, showSignUp } from './components/modal/sign-up-modal';
 import { SignUpBanner } from './components/sign-up-banner';
 import { hasPendingAppleWebSignIn } from './api/social-auth';
-import { setSignedInUser, useSignedInUser, getSignedInUser, isWebLoggedOut, useIsWebLoggedOut } from './events/signed-in-user';
+import { setSignedInUser, useSignedInUser, getSignedInUser, isWebLoggedOut } from './events/signed-in-user';
 import { useAppThemeLoader, useAppTheme } from './app-theme/app-theme';
 import { computeStartupNavigationState } from './navigation/startup';
 import { resetUserScopedClientState } from './navigation/reset-client-state';
@@ -77,122 +68,11 @@ verificationWatcher();
 ExpoSplashScreen.preventAutoHideAsync();
 
 const Stack = createNativeStackNavigator();
-const Tab = isMobile() ? createBottomTabNavigator() : createWebNavigator();
-
-const LockedTab = () => null;
-
-const HomeTabs = () => {
-  const gated = useIsWebLoggedOut();
-
-  return (
-    <Tab.Navigator
-      backBehavior="history"
-      screenOptions={{
-        headerShown: false,
-        animation: 'shift',
-      }}
-      tabBar={props => <TabBar {...props} />}
-
-      // Without this, tabs appear blank about 5% of the time when switching
-      // between them. ChatGPT suggests the react-native-screens and
-      // bottom-tabs animation packages are racing to detach the screens.
-      detachInactiveScreens={Platform.OS !== 'ios'}
-    >
-      <Tab.Screen name="Q&A" component={gated ? LockedTab : QuizTab} options={{ title: 'Q&A' }} />
-      <Tab.Screen name="Search" component={SearchTab} options={{ title: 'Search' }} />
-      <Tab.Screen name="Feed" component={gated ? LockedTab : FeedTab} options={{ title: 'Feed' }} />
-      <Tab.Screen name="Inbox" component={gated ? LockedTab : InboxTab} options={{ title: 'Inbox' }} />
-      <Tab.Screen name="Visitors" component={gated ? LockedTab : VisitorsTab} options={{ title: 'Visitors' }} />
-      <Tab.Screen name="Profile" component={gated ? LockedTab : ProfileTab} options={{ title: 'Profile' }} />
-    </Tab.Navigator>
-  );
-};
-
-const SplashScreen = ({ loading }: { loading: boolean }) => {
-  const [isFaded, setIsFaded] = useState(false);
-  const opacity = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (!loading) {
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }).start(() => setIsFaded(true));
-    }
-  }, [loading]);
-
-  if (isFaded) {
-    return null;
-  } else {
-    return (
-      <Animated.View
-        style={{
-          position: 'absolute',
-          top: 0,
-          bottom: 0,
-          left: 0,
-          right: 0,
-          alignItems: 'center',
-          flexDirection: 'column',
-          justifyContent: 'space-around',
-          backgroundColor: '#70f',
-          opacity: opacity,
-          zIndex: 999,
-        }}
-      >
-        <Logo16 size={96} fadeOutDelay={0} fadeInDelay={0} doAnimate={true} />
-      </Animated.View>
-    );
-  }
-};
 
 const otpDestination = { value: '' };
 const isImagePickerOpen = { value: false };
 
 const navigationContainerRef = createNavigationContainerRef<any>();
-
-// Strict UUID v1-v5 shape (8-4-4-4-12 hex). Used in path patterns to
-// disambiguate prospect uuids from sibling static paths (e.g. `/profile/:uuid`
-// vs `/profile/settings`).
-const UUID_REGEX_SOURCE =
-  '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
-
-// Route names that render the generic OptionScreen-driven wizard. These
-// rely on an in-memory payload that's not URL-serializable, so we don't
-// persist their paths in `last_path` (see `onNavigationStateChange`).
-const WIZARD_ROUTE_NAMES = new Set([
-  'Create Account Or Sign In Screen',
-  'Profile Option Screen',
-  'Search Filter Option Screen',
-]);
-
-const GATED_LOGGED_OUT_PATHS = new Set([
-  '/qa', '/feed', '/inbox', '/visitors', '/profile',
-]);
-
-const isBannerRoute = (state: any): boolean => {
-  const root = state?.routes?.[state.index ?? 0];
-  if (!root) return false;
-  if (root.name === 'Prospect Profile Screen') return true;
-  if (root.name === 'Home') {
-    const tab = root.state?.routes?.[root.state.index ?? 0]?.name;
-    return tab === 'Search';
-  }
-  return false;
-};
-
-const focusedRouteIsWizard = (state: any): boolean => {
-  let node: any = state;
-  while (node && Array.isArray(node.routes)) {
-    const idx = typeof node.index === 'number' ? node.index : 0;
-    const route = node.routes[idx];
-    if (!route) return false;
-    if (WIZARD_ROUTE_NAMES.has(route.name)) return true;
-    node = route.state;
-  }
-  return false;
-};
 
 const App = () => {
   const [initialState, setInitialState] = useState<any>(undefined);
@@ -204,146 +84,7 @@ const App = () => {
   useAppThemeLoader();
   const { appTheme } = useAppTheme();
 
-  const linking = useMemo(() => {
-    const prefixes =
-      Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin
-        ? [window.location.origin]
-        : [];
-
-    // The URL structure below is the single source of truth for every path
-    // the app exposes. React Navigation handles serialization/deserialization
-    // for us via getPathFromState / getStateFromPath - we don't hand-roll
-    // redirects or strip params manually anywhere else.
-    //
-    // `Welcome` and `Home` both effectively live at the app root, but since
-    // React Navigation forbids two screens sharing a pattern, we hang each
-    // top-level destination off a distinct child path:
-    //   - Logged out: `/` -> Welcome / Welcome Screen
-    //   - Logged in:  `/qa`, `/search`, `/profile`, ... (Home's tabs)
-    // `Home` itself has no `path`, so its tabs' paths are matched directly
-    // at the URL root. This avoids a `Home` vs `Welcome` conflict at `''`.
-    //
-    // OptionScreen-backed routes ("Create Account Or Sign In", profile
-    // settings, search filter editor) are transient wizards driven by an
-    // in-memory payload that doesn't survive a hard refresh. We still give
-    // each wizard a clean URL so back/forward and copy-paste behave normally
-    // mid-flow, but we set `initialRouteName` on every nested navigator so
-    // that a hard refresh or bookmark on a wizard URL hydrates the parent
-    // screen *underneath* the wizard. When the wizard then sees no payload
-    // and calls `navigation.popToTop()`, the user lands on the parent
-    // (welcome, profile tab, filter list) instead of a blank screen.
-    const config = {
-      screens: {
-        Welcome: {
-          path: '',
-          initialRouteName: 'Welcome Screen',
-          screens: {
-            'Welcome Screen': '',
-            'Welcome Email Screen': 'email',
-            'Create Account Or Sign In Screen': 'sign-in',
-          },
-        },
-        Home: {
-          screens: {
-            'Q&A': 'qa',
-            Search: {
-              path: 'search',
-              initialRouteName: 'Search Screen',
-              screens: {
-                'Search Screen': '',
-                'Search Filter Screen': {
-                  path: 'filters',
-                  initialRouteName: 'Search Filter Tab',
-                  screens: {
-                    'Search Filter Tab': '',
-                    'Search Filter Option Screen': 'edit',
-                    'Q&A Filter Screen': 'qa',
-                  },
-                },
-              },
-            },
-            Feed: 'feed',
-            Inbox: 'inbox',
-            Visitors: 'visitors',
-            Profile: {
-              path: 'profile',
-              initialRouteName: 'Profile Tab',
-              screens: {
-                'Profile Tab': '',
-                'Profile Option Screen': 'settings',
-                'Club Selector': 'clubs',
-                'Invite Picker': 'invites',
-              },
-            },
-          },
-        },
-        'Conversation Screen': `chat/:personUuid(${UUID_REGEX_SOURCE})`,
-        'Prospect Profile Screen': {
-          // NOTE: No `path` here. If we set `path: 'profile'`, it conflicts with
-          // the Profile tab's `/profile` route (React Navigation requires unique patterns).
-          // We deliberately do NOT set `initialRouteName: 'Prospect Profile'`
-          // either, because every child route here is parameterised by the
-          // same `personUuid` and there's no way to forward that param down
-          // to the synthesised parent. A direct deep-link to `/in-depth/:uuid`
-          // therefore mounts In-Depth alone, and back navigation falls
-          // through to the synthesised `Home/Search` set up by
-          // `withHomeBackStack` in `navigation/startup.ts`.
-          screens: {
-            // Avoid conflicts with `/profile/settings` etc
-            'Prospect Profile': `profile/:personUuid(${UUID_REGEX_SOURCE})`,
-            'Gallery Screen': 'gallery/:photoUuid',
-            'In-Depth': `in-depth/:personUuid(${UUID_REGEX_SOURCE})`,
-          },
-        },
-        'Invite Screen': 'invite/:clubName',
-      },
-    };
-
-    return {
-      prefixes,
-      config,
-      // Pure path-to-state resolver. URL-bar normalization (sign-out, legacy
-      // redirects, unauthorized deep-links) lives in `onNavigationStateChange`
-      // below, which fires after RN's linking integration has already had its
-      // say on the URL. Keeping this function free of `window.history` side
-      // effects makes it predictable and easy to reason about in isolation.
-      getStateFromPath: (path: string, options: any) => {
-        // `/me` and `/welcome` previously served different purposes than any
-        // current screen. Per the routing brief these legacy URLs shouldn't
-        // quietly land users on something unexpected, so we drop them at the
-        // app root.
-        let normalized = path;
-        if (normalized === '/me' || normalized.startsWith('/me/')) normalized = '/';
-        if (normalized === '/welcome' || normalized.startsWith('/welcome/')) normalized = '/';
-
-        // The app root `/` is shared between the logged-out Welcome screen
-        // and the logged-in Home tabs. We want `/` to land on the default
-        // Q&A tab for signed-in users rather than `{ routes: [{ name: 'Home' }] }`,
-        // which would let the bottom-tab navigator keep whichever tab was
-        // previously focused. Delegate to React Navigation's resolver so
-        // this stays in sync with whatever path the Q&A tab is mapped to.
-        const pathname = normalized.split('?')[0].replace(/\/$/, '') || '/';
-        if (pathname === '/' && getSignedInUser()) {
-          return rnGetStateFromPath('/qa', options);
-        }
-        if (pathname === '/' && isWebLoggedOut()) {
-          return rnGetStateFromPath('/search', options);
-        }
-        if (isWebLoggedOut() && GATED_LOGGED_OUT_PATHS.has(pathname)) {
-          return rnGetStateFromPath('/search', options);
-        }
-
-        // For anything we don't recognise, fall back to the app root rather
-        // than returning `undefined` (which would render a blank screen).
-        const state = rnGetStateFromPath(normalized, options);
-        if (state) return state;
-        if (getSignedInUser()) return rnGetStateFromPath('/qa', options);
-        if (isWebLoggedOut()) return rnGetStateFromPath('/search', options);
-        return { routes: [{ name: 'Welcome' }] };
-      },
-      getPathFromState: rnGetPathFromState,
-    };
-  }, []);
+  const linking = useMemo(() => createLinking(), []);
 
   const loadFonts = useCallback(async () => {
     await Font.loadAsync({
