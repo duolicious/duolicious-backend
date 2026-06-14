@@ -34,9 +34,6 @@ def _read_test_input(name: str) -> str | None:
 
 @lru_cache(maxsize=1)
 def _max_online_subscriptions(ttl_hash: int) -> int:
-    # Tests may shrink the cap via `test/input/max-online-subscriptions` (only
-    # when mocking is enabled) so the limit can be exercised without creating
-    # hundreds of subscriptions. Production never ships these files.
     if _read_test_input('enable-mocking') != '1':
         return MAX_ONLINE_SUBSCRIPTIONS
 
@@ -49,7 +46,6 @@ def _max_online_subscriptions(ttl_hash: int) -> int:
 
 
 def max_online_subscriptions() -> int:
-    # Cache within a one-second window to avoid a filesystem stat per subscribe.
     return _max_online_subscriptions(ttl_hash=round(time.time()))
 
 FMT_KEY = 'online-{username}'
@@ -181,9 +177,6 @@ async def maybe_redis_subscribe_online(
                 to_username=to_username):
             return [FMT_SUB_BAD.format(username=to_username)]
 
-        # Cap concurrent subscriptions per connection. Re-subscribing to a key
-        # already held is idempotent, so only new keys cost a slot; reaching the
-        # cap evicts the earliest subscriptions rather than refusing new ones.
         if to_username not in session.online_subscriptions:
             await _evict_oldest_online_subscriptions(
                     pubsub=pubsub,
