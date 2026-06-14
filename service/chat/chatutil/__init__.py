@@ -37,6 +37,11 @@ SELECT shadow_banned FROM person WHERE id = %(person_id)s
 """
 
 
+Q_FETCH_IS_PUBLIC = """
+SELECT public_profile FROM person WHERE id = %(person_id)s
+"""
+
+
 def build_element(
     tag: str,
     text: str | None = None,
@@ -150,6 +155,15 @@ async def fetch_is_shadow_banned(person_id: int) -> bool:
         row = await tx.fetchone()
 
     return bool(row and row.get('shadow_banned'))
+
+
+@AsyncLruCache(ttl=5)  # 5 seconds
+async def fetch_is_public(person_id: int) -> bool:
+    async with api_tx('read committed') as tx:
+        await tx.execute(Q_FETCH_IS_PUBLIC, dict(person_id=person_id))
+        row = await tx.fetchone()
+
+    return bool(row and row.get('public_profile'))
 
 
 @AsyncLruCache(ttl=60)  # 60 seconds

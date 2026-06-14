@@ -92,6 +92,8 @@ services:
     ports:
       - "5442:5442"
       - "5443:5443"
+    volumes:
+      - ./test:/app/test:ro
     environment:
       DUO_ENV: dev
 

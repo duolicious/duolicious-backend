@@ -9,6 +9,12 @@ MAX_NOTIFICATION_LENGTH = 128
 
 ONLINE_RECENTLY_SECONDS = 12 * 60 * 60  # 12 hours
 
+# Most online-status subscriptions a single chat connection may hold at once.
+# Once reached, the earliest subscriptions are evicted to make room for new
+# ones. Bounds the resources one client (possibly unauthenticated, since
+# logged-out web viewers may subscribe to public profiles) can consume.
+MAX_ONLINE_SUBSCRIPTIONS = 500
+
 # Most devices a person may stay signed in on at once; older sessions are
 # signed out on each new sign-in.
 MAX_SIGNED_IN_SESSIONS = 100
