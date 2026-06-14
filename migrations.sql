@@ -1,15 +1,24 @@
 --
--- Nullable column is a metadata-only add (no rewrite). The partial unique index
--- is built here, not CONCURRENTLY in the backfill, because at migration time
--- url_slug is entirely NULL: the partial predicate (WHERE url_slug IS NOT NULL)
--- indexes zero rows, so the build is instant with no meaningful lock. Building
--- it now (rather than after the backfill) also guarantees the application's
--- slug assignment always has a uniqueness constraint to retry against, closing
--- the window in which concurrent sign-ups could otherwise mint duplicate slugs.
+-- The url_slug column was added (nullable) and backfilled by a previous
+-- release, and every person row now has a slug: it's assigned in the same
+-- transaction that inserts the person at finish-onboarding. Promote it to NOT
+-- NULL now that the backfill is complete. Idempotent: a no-op once applied.
+--
+-- This migration FAILS if any url_slug is still NULL, so it must only ship
+-- after the backfill has run to completion.
 
 ALTER TABLE person
+    ALTER COLUMN url_slug SET NOT NULL;
+
+-- Onboardees reserve their url_slug here as they pick a display name, so
+-- finish-onboarding mints exactly the slug the user was shown and concurrent
+-- sign-ups treat it as taken. Nullable (not every onboardee has reached the
+-- name step); the partial unique index keeps two onboardees from reserving the
+-- same slug. Metadata-only add over an all-NULL column, so the index is instant.
+
+ALTER TABLE onboardee
     ADD COLUMN IF NOT EXISTS url_slug TEXT;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx__person__url_slug
-    ON person(url_slug)
+CREATE UNIQUE INDEX IF NOT EXISTS idx__onboardee__url_slug
+    ON onboardee(url_slug)
     WHERE url_slug IS NOT NULL;

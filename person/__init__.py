@@ -1,7 +1,7 @@
 import os
 from database import api_tx, fetchall_sets
 from typing import Any, Optional, Tuple, Literal
-from urlslug import assign_url_slug, slug_base, preview_url_slug
+from urlslug import assign_url_slug, reserve_onboardee_url_slug
 import duotypes as t
 import json
 import secrets
@@ -626,11 +626,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
         with api_tx() as tx:
             tx.execute(q_set_onboardee_field, params)
 
-            # Best-effort preview of the future profile URL. The person row
-            # doesn't exist yet, so the slug is only authoritatively assigned
-            # at finish-onboarding; this can race with another sign-up. Returns
-            # {'url_slug', 'is_random'}, matching the slug-assigning endpoints.
-            return preview_url_slug(tx, slug_base(field_value))
+            return reserve_onboardee_url_slug(tx, s.email, field_value)
     elif field_name == 'date_of_birth':
         params = dict(
             email=s.email,
@@ -825,11 +821,9 @@ def post_finish_onboarding(s: t.SessionInfo):
 
         clubs = _handle_pending_club(tx, row['person_id'], s.pending_club_name)
 
-        slug = assign_url_slug(tx, row['person_id'])
-
     sessioncache.delete_session(s.session_token_hash)
 
-    return dict(**row, **clubs, url_slug=slug['url_slug'])
+    return dict(**row, **clubs)
 
 def get_me(
     person_id_as_int: int | None = None,

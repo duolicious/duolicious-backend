@@ -251,7 +251,7 @@ CREATE TABLE IF NOT EXISTS person (
     email TEXT NOT NULL,
     normalized_email TEXT NOT NULL,
     name TEXT NOT NULL,
-    url_slug TEXT,
+    url_slug TEXT NOT NULL,
     date_of_birth DATE NOT NULL,
     coordinates GEOGRAPHY(Point, 4326) NOT NULL,
     gender_id SMALLINT REFERENCES gender(id) NOT NULL,
@@ -366,6 +366,7 @@ CREATE TABLE IF NOT EXISTS onboardee (
     email TEXT NOT NULL,
 
     name TEXT,
+    url_slug TEXT,
     date_of_birth DATE,
     coordinates GEOGRAPHY(Point, 4326),
     gender_id SMALLINT REFERENCES gender(id),
@@ -912,6 +913,9 @@ CREATE INDEX IF NOT EXISTS idx__onboardee_photo__uuid
     ON onboardee_photo(uuid);
 CREATE INDEX IF NOT EXISTS idx__onboardee__created_at
     ON onboardee(created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx__onboardee__url_slug
+    ON onboardee(url_slug)
+    WHERE url_slug IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx__bad_email_domain__domain
     ON bad_email_domain(domain);

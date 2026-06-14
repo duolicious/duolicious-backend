@@ -447,6 +447,7 @@ WITH onboardee_location AS (
         email,
         normalized_email,
         name,
+        url_slug,
         date_of_birth,
         coordinates,
         gender_id,
@@ -461,6 +462,7 @@ WITH onboardee_location AS (
         email,
         %(normalized_email)s,
         name,
+        url_slug,
         date_of_birth,
         coordinates,
         gender_id,
@@ -492,6 +494,7 @@ WITH onboardee_location AS (
     RETURNING
         id,
         person.uuid,
+        url_slug,
         email,
         unit_id,
         coordinates,
@@ -789,6 +792,7 @@ WITH onboardee_location AS (
 SELECT
     new_person.id AS person_id,
     new_person.uuid AS person_uuid,
+    new_person.url_slug,
     (SELECT name FROM unit WHERE unit.id = new_person.unit_id) AS units,
     false AS do_show_donation_nag,
     {_Q_ESTIMATED_END_DATE},

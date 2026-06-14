@@ -31,9 +31,31 @@ _MAX_RANDOM_ATTEMPTS = 10
 _UUID_RE = re.compile(
     r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
 
-Q_SELECT_NAME = 'SELECT name FROM person WHERE id = %(person_id)s'
-Q_UPDATE_SLUG = 'UPDATE person SET url_slug = %(slug)s WHERE id = %(person_id)s'
-Q_SLUG_EXISTS = 'SELECT EXISTS (SELECT 1 FROM person WHERE url_slug = %(slug)s)'
+Q_SELECT_PERSON = 'SELECT name, email FROM person WHERE id = %(person_id)s'
+Q_UPDATE_PERSON_SLUG = (
+    'UPDATE person SET url_slug = %(slug)s WHERE id = %(person_id)s')
+Q_UPDATE_ONBOARDEE_SLUG = (
+    'UPDATE onboardee SET url_slug = %(slug)s WHERE email = %(email)s')
+
+# A candidate is taken if any person already holds it, or any *other* onboardee
+# has reserved it. Counting onboardee reservations is what stops an in-flight
+# onboardee's previewed slug from being minted out from under them before they
+# finish. The caller's own rows are excluded so re-deriving a slug for the same
+# identity is idempotent rather than bumping the suffix: by person_id (a person
+# re-saving the same display name must keep their slug, not collide with self)
+# and by email (an onboardee re-previewing the same name). A NULL exclusion key
+# matches nothing, so the whole table counts.
+Q_SLUG_TAKEN = """
+SELECT EXISTS (
+    SELECT 1 FROM person
+        WHERE url_slug = %(slug)s
+        AND id IS DISTINCT FROM %(person_id)s
+    UNION ALL
+    SELECT 1 FROM onboardee
+        WHERE url_slug = %(slug)s
+        AND email IS DISTINCT FROM %(email)s
+)
+"""
 
 def slug_base(name: str) -> str:
     """Lowercase the name, turn spaces into underscores, and keep only
@@ -49,9 +71,8 @@ def is_base_usable(base: str) -> bool:
         and not _UUID_RE.match(base))
 
 def _candidates(base: str):
-    """Yields (slug, is_random). The bare base first (when usable), then random
-    numeric suffixes that grow by a digit each attempt. Dumb-and-fast: no
-    scanning for the next free number."""
+    """Yields (slug, is_random) to try, in order: the bare base first (when
+    usable), then random numeric suffixes that grow by a digit each attempt."""
     if is_base_usable(base):
         yield base, False
 
@@ -61,48 +82,52 @@ def _candidates(base: str):
         n = random.randint(lo, hi)
         yield (f'{base}{n}' if base else str(n)), True
 
-def preview_url_slug(tx, base: str) -> dict:
-    """Read-only preview of the slug `assign_url_slug` would mint for `base`:
-    the first candidate not already taken. Returns {'url_slug', 'is_random'}.
-    Doesn't reserve anything, so the eventually-assigned slug can differ (a
-    concurrent sign-up takes it first, or the random suffix differs); it's only
-    meant to show the user the shape of their URL."""
+def _mint(tx, base, write_q, write_params, *, email, person_id=None) -> dict:
+    """Claim the first free candidate for `base` via `write_q`, skipping slugs
+    already held by another person or reserved by another onboardee (the
+    caller's own rows, identified by `person_id`/`email`, don't count). The
+    pre-check avoids the obvious collisions; the write's unique index is the
+    final arbiter for races it misses, with each attempt in a savepoint so a
+    rejection doesn't abort the caller's transaction. Returns
+    {'url_slug', 'is_random'}."""
     for slug, is_random in _candidates(base):
-        taken = tx.execute(Q_SLUG_EXISTS, dict(slug=slug)).fetchone()['exists']
-        if not taken:
-            return dict(url_slug=slug, is_random=is_random)
-
-    raise RuntimeError(f'could not preview url_slug for base {base!r}')
-
-def assign_url_slug(tx, person_id: int) -> dict:
-    """Assigns person.url_slug from the display name. Tries the bare slug, then
-    random suffixes, relying on the unique index to reject collisions. Each
-    attempt runs in a savepoint so a rejection doesn't abort the caller's
-    transaction. Returns {'url_slug', 'is_random'}."""
-    base = slug_base(
-        tx.execute(Q_SELECT_NAME, dict(person_id=person_id)).fetchone()['name'])
-
-    for slug, is_random in _candidates(base):
+        taken = tx.execute(
+            Q_SLUG_TAKEN,
+            dict(slug=slug, email=email, person_id=person_id),
+        ).fetchone()['exists']
+        if taken:
+            continue
         try:
             with tx.connection.transaction():
-                tx.execute(Q_UPDATE_SLUG, dict(slug=slug, person_id=person_id))
+                tx.execute(write_q, dict(write_params, slug=slug))
         except psycopg.errors.UniqueViolation:
             continue
         return dict(url_slug=slug, is_random=is_random)
 
-    raise RuntimeError(f'could not assign url_slug for person {person_id}')
+    raise RuntimeError(f'could not mint url_slug for base {base!r}')
 
-async def assign_url_slug_async(tx, person_id: int) -> dict:
-    """Async counterpart of `assign_url_slug` for the backfill cron."""
-    cur = await tx.execute(Q_SELECT_NAME, dict(person_id=person_id))
-    base = slug_base((await cur.fetchone())['name'])
+def reserve_onboardee_url_slug(tx, email: str, name: str) -> dict:
+    """Reserve onboardee.url_slug for `name` and return {'url_slug', 'is_random'}.
+    Persisting the reservation is what lets finish-onboarding mint exactly this
+    slug and makes concurrent sign-ups treat it as taken. Re-runnable as the
+    onboardee edits their name; the latest reservation wins."""
+    return _mint(
+        tx,
+        slug_base(name),
+        Q_UPDATE_ONBOARDEE_SLUG,
+        dict(email=email),
+        email=email)
 
-    for slug, is_random in _candidates(base):
-        try:
-            async with tx.connection.transaction():
-                await tx.execute(Q_UPDATE_SLUG, dict(slug=slug, person_id=person_id))
-        except psycopg.errors.UniqueViolation:
-            continue
-        return dict(url_slug=slug, is_random=is_random)
+def assign_url_slug(tx, person_id: int) -> dict:
+    """Assigns person.url_slug from the person's display name, skipping slugs
+    held by another person or reserved by an onboardee. Returns
+    {'url_slug', 'is_random'}."""
+    person = tx.execute(Q_SELECT_PERSON, dict(person_id=person_id)).fetchone()
 
-    raise RuntimeError(f'could not assign url_slug for person {person_id}')
+    return _mint(
+        tx,
+        slug_base(person['name']),
+        Q_UPDATE_PERSON_SLUG,
+        dict(person_id=person_id),
+        email=person['email'],
+        person_id=person_id)
