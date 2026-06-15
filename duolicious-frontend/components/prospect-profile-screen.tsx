@@ -984,28 +984,6 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
               not exist.
             </DefaultText>
           }
-          {isAnonymousViewer &&
-            <ButtonWithCenteredText
-              onPress={() => navigation.navigate('Welcome')}
-              secondary={true}
-              containerStyle={{
-                width: 300,
-              }}
-              extraChildren={
-                <View style={{ flexDirection: 'row' }}>
-                  <DefaultText style={{ fontSize: 16, textAlign: 'center', fontWeight: '700' }}>
-                    Sign Up
-                  </DefaultText>
-                  <DefaultText style={{ fontSize: 16 }}>
-                    {} or {}
-                  </DefaultText>
-                  <DefaultText style={{ fontSize: 16, textAlign: 'center', fontWeight: '700' }}>
-                    Sign In
-                  </DefaultText>
-                </View>
-              }
-            />
-          }
         </View>
       }
       {!notFound && <>
