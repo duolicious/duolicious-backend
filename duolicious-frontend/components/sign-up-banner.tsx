@@ -14,8 +14,8 @@ const SignUpBanner = ({ prospectHandle }: { prospectHandle?: string }) => {
   const prospectName = useBannerProspectName(prospectHandle);
 
   // Longer names blow out the button's width, so fall back to the default copy.
-  const label = prospectName && prospectName.length <= 5
-    ? `Message\xa0${prospectName}`
+  const label = prospectName && prospectName.length <= 7
+    ? `Message ${prospectName}`
     : `Join or\xa0sign\xa0in`;
 
   return (
