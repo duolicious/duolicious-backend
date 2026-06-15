@@ -33,7 +33,7 @@ SELECT has_gold FROM person WHERE uuid = uuid_or_null(%(username)s)
 
 
 Q_FETCH_IS_SHADOW_BANNED = """
-SELECT shadow_banned FROM person WHERE id = %(person_id)s
+SELECT shadow_banned_at FROM person WHERE id = %(person_id)s
 """
 
 
@@ -154,7 +154,7 @@ async def fetch_is_shadow_banned(person_id: int) -> bool:
         await tx.execute(Q_FETCH_IS_SHADOW_BANNED, dict(person_id=person_id))
         row = await tx.fetchone()
 
-    return bool(row and row.get('shadow_banned'))
+    return bool(row and row.get('shadow_banned_at'))
 
 
 @AsyncLruCache(ttl=5)  # 5 seconds

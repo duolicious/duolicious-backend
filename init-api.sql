@@ -332,7 +332,7 @@ CREATE TABLE IF NOT EXISTS person (
 
     -- Shadow banned accounts behave normally for the account holder but appear
     -- not to exist from every other user's perspective
-    shadow_banned BOOLEAN NOT NULL DEFAULT FALSE,
+    shadow_banned_at TIMESTAMP,
 
     -- Events
     last_event_time TIMESTAMP NOT NULL DEFAULT NOW(),

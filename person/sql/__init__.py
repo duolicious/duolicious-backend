@@ -1177,7 +1177,7 @@ WITH prospect AS (
         activated
     AND (
         (
-            NOT person.shadow_banned
+            person.shadow_banned_at IS NULL
         AND (
                 NOT person.hide_me_from_strangers
             OR
@@ -1313,7 +1313,7 @@ FROM (
             %(prospect_person_id)s = %(person_id)s OR
             NOT EXISTS (
                 SELECT 1 FROM person
-                WHERE id = %(prospect_person_id)s AND shadow_banned
+                WHERE id = %(prospect_person_id)s AND shadow_banned_at IS NOT NULL
             )
         )
 ) AS prospect_answer
@@ -1356,7 +1356,7 @@ WITH partner AS (
         prospect.uuid AS person_uuid,
         prospect.id IS NULL AS is_prospect_deleted,
         COALESCE(
-            prospect.activated AND NOT prospect.shadow_banned, FALSE
+            prospect.activated AND prospect.shadow_banned_at IS NULL, FALSE
         ) AS is_prospect_activated,
         prospect.name AS name,
         prospect.url_slug AS url_slug,
@@ -2698,9 +2698,9 @@ Q_EXPORT_API_DATA = """
 SELECT json_build_object(
     'person', (
         SELECT
-            -- `shadow_banned` is stripped: a shadow-banned user's own export must
-            -- not reveal the ban.
-            json_agg(to_jsonb(t) - 'shadow_banned')
+            -- `shadow_banned_at` is stripped: a shadow-banned user's own export
+            -- must not reveal the ban.
+            json_agg(to_jsonb(t) - 'shadow_banned_at')
         FROM (
             SELECT
                 person.*,
@@ -3308,7 +3308,7 @@ WITH checker AS (
     WHERE
         prospect.activated
     AND
-        NOT prospect.shadow_banned
+        prospect.shadow_banned_at IS NULL
     AND
         prospect.id <> %(person_id)s
     AND

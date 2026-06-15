@@ -277,7 +277,7 @@ SELECT
             reporter.sign_up_time
                 <= now() - %(min_account_age_days)s * interval '1 day'
         AND
-            NOT reporter.shadow_banned
+            reporter.shadow_banned_at IS NULL
         AND
             char_length(reporter.about) >= %(min_bio_length)s
         AND
@@ -302,7 +302,7 @@ Q_SHADOW_BAN = """
 UPDATE
     person
 SET
-    shadow_banned = TRUE
+    shadow_banned_at = now()
 WHERE
     uuid = uuid_or_null(%(object_uuid)s::TEXT)
 AND

@@ -40,11 +40,11 @@ setup () {
 }
 
 ban () {
-  q "update person set shadow_banned = true where name = '$1'"
+  q "update person set shadow_banned_at = now() where name = '$1'"
 }
 
 unban () {
-  q "update person set shadow_banned = false where name = '$1'"
+  q "update person set shadow_banned_at = null where name = '$1'"
 }
 
 search_names () {
@@ -193,8 +193,8 @@ test_data_export_hides_the_flag () {
 
   # Sanity check: the export succeeded and contains the user's own data...
   echo "$export_json" | grep -q 'user1@example.com' || exit 1
-  # ...but it never reveals the shadow_banned flag.
-  ! echo "$export_json" | grep -q shadow_banned || exit 1
+  # ...but it never reveals the shadow_banned_at column.
+  ! echo "$export_json" | grep -q shadow_banned_at || exit 1
 }
 
 test_search_hides_banned_from_others
