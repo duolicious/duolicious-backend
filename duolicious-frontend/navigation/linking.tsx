@@ -20,6 +20,9 @@ const GATED_LOGGED_OUT_PATHS = new Set([
   '/qa', '/feed', '/inbox', '/visitors', '/profile',
 ]);
 
+const getTopRouteName = (state: any): string | undefined =>
+  state?.routes?.[state?.index ?? 0]?.name;
+
 const focusedProspectHandle = (state: any): string | undefined => {
   const root = state?.routes?.[state.index ?? 0];
   if (root?.name !== 'Prospect Profile Screen') return undefined;
@@ -149,4 +152,4 @@ const createLinking = () => {
   };
 };
 
-export { createLinking, isBannerRoute, focusedProspectHandle, focusedRouteIsWizard };
+export { createLinking, isBannerRoute, focusedProspectHandle, focusedRouteIsWizard, getTopRouteName };

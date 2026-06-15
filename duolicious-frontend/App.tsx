@@ -46,7 +46,7 @@ import { verificationWatcher } from './verification/verification';
 import { ClubItem } from './club/club';
 import { Toast } from './components/toast';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { createLinking, isBannerRoute, focusedProspectHandle, focusedRouteIsWizard } from './navigation/linking';
+import { createLinking, isBannerRoute, focusedProspectHandle, focusedRouteIsWizard, getTopRouteName } from './navigation/linking';
 import { useScrollbarStyle } from './components/navigation/scroll-bar-hooks';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -224,10 +224,7 @@ const App = () => {
       return;
     }
 
-    const rootState: any = navigationContainer.getRootState?.();
-    const topRouteName: string | undefined =
-      rootState?.routes?.[rootState?.index ?? 0]?.name;
-    if (topRouteName === 'Welcome') {
+    if (getTopRouteName(navigationContainer.getRootState?.()) === 'Welcome') {
       navigationContainer.reset({
         routes: [
           { name: 'Home', state: { routes: [{ name: 'Q&A' }] } },

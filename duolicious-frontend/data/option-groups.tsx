@@ -9,6 +9,7 @@ import {
 import { sessionToken, sessionPersonUuid } from '../kv-storage/session-token';
 import { lastPath } from '../kv-storage/last-path';
 import { resetUserScopedClientState } from '../navigation/reset-client-state';
+import { navigateAfterAuth } from '../navigation/navigate-after-auth';
 import { X } from "react-native-feather";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faPalette } from '@fortawesome/free-solid-svg-icons/faPalette'
@@ -1097,8 +1098,8 @@ const deactivationOptionGroups: OptionGroup<OptionGroupNone>[] = [
 // Applies the post-auth response shared by `/check-otp`, `/sign-in-with-google`,
 // and `/sign-in-with-apple`. The OTP and social paths return the same dict
 // shape (modulo `session_token`, which only the social path supplies because
-// it has no separate /request-otp step). For onboarded users we reset the
-// nav stack to Home; for new users we let the caller route into onboarding.
+// it has no separate /request-otp step). For onboarded users we route via
+// `navigateAfterAuth`; for new users we let the caller route into onboarding.
 //
 // Returns `true` if the user is *not* onboarded (caller should advance the
 // onboarding wizard) and `false` if the user is fully signed-in.
@@ -1115,13 +1116,7 @@ const applyAuthenticatedResponse = async (
     return true;
   }
 
-  if (navigationContainerRef.current) {
-    navigationContainerRef.reset({
-      routes: pendingClub
-        ? [ { name: "Home", state: { routes: [ { name: "Search" } ] } } ]
-        : [ { name: 'Home' } ]
-    });
-  }
+  navigateAfterAuth(pendingClub, { preserveLocation: true });
 
   login(personUuid, existingSessionToken);
 
@@ -1272,28 +1267,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           const pendingClub = response?.json?.pending_club;
           const personUuid: string = response?.json?.person_uuid;
 
-          if (!navigationContainerRef.current) {
-            ;
-          } else if (pendingClub) {
-            navigationContainerRef.reset({
-              routes: [
-                {
-                  name: "Home",
-                  state: {
-                    routes: [
-                      {
-                        name: "Search"
-                      }
-                    ]
-                  }
-                }
-              ]
-            });
-          } else {
-            navigationContainerRef.reset({
-              routes: [ { name: 'Home' } ]
-            });
-          }
+          navigateAfterAuth(pendingClub, { preserveLocation: false });
 
           login(personUuid, existingSessionToken);
 

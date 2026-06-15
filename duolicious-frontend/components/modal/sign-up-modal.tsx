@@ -6,7 +6,6 @@ import { backgroundColors } from './background-colors';
 import { WelcomeScreen } from '../welcome-screen';
 import { listen, notify, lastEvent } from '../../events/events';
 import { useSignedInUser } from '../../events/signed-in-user';
-import { navigationContainerRef } from '../../App';
 import { isMobile } from '../../util/util';
 
 const showSignUp = (isVisible: boolean) => {
@@ -45,11 +44,6 @@ const SignUpModal = () => {
     if (!signedInUser) return;
 
     showSignUp(false);
-    navigationContainerRef.current?.reset({
-      routes: [
-        { name: 'Home', state: { routes: [{ name: 'Search' }] } },
-      ],
-    });
   }, [isVisible, signedInUser?.personUuid]);
 
   return (
