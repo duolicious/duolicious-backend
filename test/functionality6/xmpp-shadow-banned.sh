@@ -75,7 +75,7 @@ EOF
 
 echo "A shadow-banned sender's message is stored only on their own side"
 
-q "update person set shadow_banned = true where name = 'user1'"
+q "update person set shadow_banned_at = now() where name = 'user1'"
 
 receipt=$(send_message "$user1uuid" "$user1token" "$user2uuid" "hello from a shadow-banned user")
 

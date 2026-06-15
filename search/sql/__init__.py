@@ -225,7 +225,7 @@ WITH searcher AS (
         -- here (rather than in the per-source first passes) so the single
         -- `person` join covers both the club and non-club paths, and so
         -- person_club needn't carry the column.
-        NOT prospect.shadow_banned
+        prospect.shadow_banned_at IS NULL
     ORDER BY
         prospect.personality <#> searcher.personality
     LIMIT
@@ -771,7 +771,7 @@ WHERE
 AND
     prospect.activated
 AND
-    NOT prospect.shadow_banned
+    prospect.shadow_banned_at IS NULL
 AND ( -- Exclude users who should be verified but aren't
         prospect.verification_level_id > 1
     OR
@@ -1104,7 +1104,7 @@ WITH searcher AS (
     AND
         activated
     AND
-        NOT shadow_banned
+        shadow_banned_at IS NULL
     AND
         -- The searcher meets the prospects privacy_verification_level_id
         -- requirement

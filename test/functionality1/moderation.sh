@@ -287,7 +287,7 @@ setup_trustworthy_reporters () {
 }
 
 accused_is_shadow_banned () {
-  q "select shadow_banned from person where id = ${accused_id}"
+  q "select shadow_banned_at is not null from person where id = ${accused_id}"
 }
 
 # Two trustworthy bot reports automatically shadow ban a non-gold user
@@ -328,7 +328,7 @@ automod_ignores_untrustworthy_reporters () {
      set sign_up_time = now()
      where email = 'reporter@gmail.com'"
   q "update person
-     set shadow_banned = true
+     set shadow_banned_at = now()
      where email = 'reporter2@gmail.com'"
 
   assume_role 'reporter@gmail.com'
