@@ -46,7 +46,7 @@ import { verificationWatcher } from './verification/verification';
 import { ClubItem } from './club/club';
 import { Toast } from './components/toast';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { createLinking, isBannerRoute, focusedRouteIsWizard } from './navigation/linking';
+import { createLinking, isBannerRoute, focusedProspectHandle, focusedRouteIsWizard } from './navigation/linking';
 import { useScrollbarStyle } from './components/navigation/scroll-bar-hooks';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -80,6 +80,7 @@ const App = () => {
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
   const [signedInUser] = useSignedInUser();
   const [bannerVisible, setBannerVisible] = useState(false);
+  const [bannerProspectHandle, setBannerProspectHandle] = useState<string | undefined>(undefined);
   const pendingPostLoginStateRef = useRef<any | null>(null);
   useAppThemeLoader();
   const { appTheme } = useAppTheme();
@@ -238,6 +239,7 @@ const App = () => {
   const recomputeBannerVisible = useCallback((state?: any) => {
     const rootState = state ?? navigationContainerRef.current?.getRootState?.();
     setBannerVisible(isWebLoggedOut() && isBannerRoute(rootState));
+    setBannerProspectHandle(focusedProspectHandle(rootState));
   }, []);
 
   const onNavigationReady = useCallback(() => {
@@ -506,7 +508,7 @@ const App = () => {
                   options={{ title: 'Invitation' }} />
               </Stack.Navigator>
             </NavigationContainer>
-            {bannerVisible && <SignUpBanner/>}
+            {bannerVisible && <SignUpBanner prospectHandle={bannerProspectHandle}/>}
             <TooltipListener/>
             <ReportModal/>
             <ImageCropper/>

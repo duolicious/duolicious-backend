@@ -1,15 +1,22 @@
 import { Pressable, View } from 'react-native';
-import { CrossFade } from './cross-fade';
+import { CrossFade, CrossFadeText } from './cross-fade';
 import { DefaultText } from './default-text';
 import { Logo16 } from './logo';
 import { isMobile } from '../util/util';
 import { useAppTheme } from '../app-theme/app-theme';
 import { showSignUp } from './modal/sign-up-modal';
 import { useNumActiveUsers } from './welcome-screen';
+import { useBannerProspectName } from '../events/banner-prospect-name';
 
-const SignUpBanner = () => {
+const SignUpBanner = ({ prospectHandle }: { prospectHandle?: string }) => {
   const { appTheme } = useAppTheme();
   const numActiveUsers = useNumActiveUsers(undefined);
+  const prospectName = useBannerProspectName(prospectHandle);
+
+  // Longer names blow out the button's width, so fall back to the default copy.
+  const label = prospectName && prospectName.length <= 5
+    ? `Message\xa0${prospectName}`
+    : `Join or\xa0sign\xa0in`;
 
   return (
     <View
@@ -53,7 +60,7 @@ const SignUpBanner = () => {
           <CrossFade
             style={{ flexShrink: 1 }}
             showFront={numActiveUsers !== undefined}
-            minBackMs={3000}
+            minBackMs={2000}
             front={
               <>
                 <DefaultText style={{ fontWeight: '900', fontSize: 20 }}>
@@ -85,16 +92,18 @@ const SignUpBanner = () => {
               borderColor: appTheme.secondaryColor,
             }}
           >
-            <DefaultText
-              style={{
-                color: appTheme.primaryColor,
-                fontWeight: '700',
-                fontSize: 16,
-                textAlign: 'center',
-              }}
-            >
-              {`Join or\xa0sign\xa0in`}
-            </DefaultText>
+            <CrossFadeText triggerKey={label} style={{ width: '100%' }}>
+              <DefaultText
+                style={{
+                  color: appTheme.primaryColor,
+                  fontWeight: '700',
+                  fontSize: 16,
+                  textAlign: 'center',
+                }}
+              >
+                {label}
+              </DefaultText>
+            </CrossFadeText>
           </Pressable>
         </View>
       </View>

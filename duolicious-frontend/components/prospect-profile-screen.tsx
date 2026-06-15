@@ -39,6 +39,7 @@ import { Stat, Stats } from './stat';
 import { listen, notify } from '../events/events';
 import { ReportModalInitialData } from './modal/report-modal';
 import { getProspectHint, setProspectHint } from '../navigation/prospect-cache';
+import { setBannerProspectName } from '../events/banner-prospect-name';
 import {
   VerificationBadge,
   DetailedVerificationBadges,
@@ -844,7 +845,8 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
   const screenTitle = data?.name ?? getProspectHint(handle)?.name;
   useLayoutEffect(() => {
     navigation.setOptions({ title: screenTitle });
-  }, [navigation, screenTitle]);
+    setBannerProspectName(handle, screenTitle);
+  }, [navigation, handle, screenTitle]);
 
   const { width } = useWindowDimensions();
 
