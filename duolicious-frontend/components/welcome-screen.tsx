@@ -32,10 +32,8 @@ import {
   signInWithApple,
   useGoogleSignIn,
 } from '../api/social-auth';
-import {
-  applyAuthenticatedResponse,
-  socialAccountOptionGroups,
-} from '../data/option-groups';
+import { applyAuthenticatedResponse } from '../api/auth';
+import { socialAccountOptionGroups } from '../data/option-groups';
 import { sessionToken } from '../kv-storage/session-token';
 import { Logo16 } from './logo';
 import { KeyboardDismissingView } from './keyboard-dismissing-view';
@@ -669,10 +667,10 @@ const finishSocialSignIn = async ({
   }
   await sessionToken(newSessionToken);
 
-  const needsOnboarding = await applyAuthenticatedResponse(
-    response.json, newSessionToken);
+  const outcome = await applyAuthenticatedResponse(
+    response, newSessionToken);
 
-  if (needsOnboarding) {
+  if (outcome === 'needs-onboarding') {
     setOptionScreenPayload('Create Account Or Sign In Screen', {
       optionGroups: socialAccountOptionGroups,
       showSkipButton: false,

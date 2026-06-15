@@ -1,5 +1,6 @@
 import * as _ from "lodash";
 import { japi, ApiResponse } from '../api/api';
+import { applyAuthenticatedResponse, AuthResult } from '../api/auth';
 import { navigationContainerRef } from '../App';
 import {
   getSignedInUser,
@@ -112,7 +113,7 @@ type OptionGroupTextShort = {
 
 type OptionGroupOtp = {
   otp: {
-    submit: (input: string) => Promise<boolean>
+    submit: (input: string) => Promise<AuthResult>
   }
 };
 
@@ -1095,49 +1096,6 @@ const deactivationOptionGroups: OptionGroup<OptionGroupNone>[] = [
   },
 ];
 
-// Applies the post-auth response shared by `/check-otp`, `/sign-in-with-google`,
-// and `/sign-in-with-apple`. The OTP and social paths return the same dict
-// shape (modulo `session_token`, which only the social path supplies because
-// it has no separate /request-otp step). For onboarded users we route via
-// `navigateAfterAuth`; for new users we let the caller route into onboarding.
-//
-// Returns `true` if the user is *not* onboarded (caller should advance the
-// onboarding wizard) and `false` if the user is fully signed-in.
-const applyAuthenticatedResponse = async (
-  json: any,
-  existingSessionToken: string,
-): Promise<boolean> => {
-  const onboarded = json?.onboarded;
-  const clubs: ClubItem[] = json?.clubs;
-  const pendingClub = json?.pending_club;
-  const personUuid: string = json?.person_uuid;
-
-  if (!onboarded) {
-    return true;
-  }
-
-  navigateAfterAuth(pendingClub, { preserveLocation: true });
-
-  login(personUuid, existingSessionToken);
-
-  setSignedInUser({
-    personId: json?.person_id,
-    personUuid: personUuid,
-    units: json?.units === 'Imperial' ? 'Imperial' : 'Metric',
-    sessionToken: existingSessionToken,
-    pendingClub: pendingClub,
-    estimatedEndDate: new Date(json?.estimated_end_date),
-    name: json?.name,
-    hasGold: json?.has_gold,
-  });
-
-  await sessionPersonUuid(personUuid);
-
-  notify<ClubItem[]>('updated-clubs', clubs);
-
-  return false;
-};
-
 const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     title: "Password",
@@ -1146,13 +1104,12 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       otp: {
         submit: async (input) => {
           const existingSessionToken = await sessionToken();
+          if (typeof existingSessionToken !== 'string') return 'rejected';
+
           const response = await japi('post', '/check-otp', { otp: input });
 
-          if (!response.ok) return false;
-          if (typeof existingSessionToken !== 'string') return false;
-
           return await applyAuthenticatedResponse(
-            response.json, existingSessionToken);
+            response, existingSessionToken);
         }
       }
     },
@@ -2247,7 +2204,6 @@ export {
   OptionGroupTextShort,
   OptionGroupThemePicker,
   OptionGroupVerificationChecker,
-  applyAuthenticatedResponse,
   basicsOptionGroups,
   createAccountOptionGroups,
   deactivationOptionGroups,

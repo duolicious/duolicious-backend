@@ -336,20 +336,27 @@ const Otp = forwardRef((props: InputProps<OptionGroupOtp>, ref) => {
   const [isInvalid, setIsInvalid] = useState(false);
   const [counter, setCounter] = useState(counterInit);
   const inputValueRef = useRef<string>('');
+  const isSubmittingRef = useRef(false);
 
   const onChangeInputValue = useCallback((value: string) => {
     inputValueRef.current = value;
   }, []);
 
   const submit = useCallback(async () => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+
     setIsInvalid(false);
     props.setIsLoading(true);
 
-    const ok = await props.input.otp.submit(inputValueRef?.current);
-    setIsInvalid(!ok);
-    ok && props.onSubmitSuccess();
-
-    props.setIsLoading(false);
+    try {
+      const result = await props.input.otp.submit(inputValueRef?.current);
+      setIsInvalid(result === 'rejected');
+      if (result === 'needs-onboarding') props.onSubmitSuccess();
+    } finally {
+      props.setIsLoading(false);
+      isSubmittingRef.current = false;
+    }
   }, []);
 
   useImperativeHandle(ref, () => ({ submit }), []);
