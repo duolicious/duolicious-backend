@@ -408,6 +408,12 @@ CREATE TABLE IF NOT EXISTS duo_session (
     pending_social_sub TEXT,
     push_token TEXT,
     last_online_time TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    -- Answers given in the unauthenticated Q&A tab before sign-up, as a JSON
+    -- array of {question_id, answer, public}. Flushed onto the person and
+    -- cleared once the session resolves to one (sign-in or onboarding).
+    answers JSONB,
+
     PRIMARY KEY (session_token_hash)
 );
 
@@ -1458,98 +1464,6 @@ ON CONFLICT (id) DO NOTHING;
 --------------------------------------------------------------------------------
 -- FUNCTIONS (2)
 --------------------------------------------------------------------------------
-
-DROP TYPE IF EXISTS answer_score_vectors CASCADE;
-CREATE TYPE answer_score_vectors AS (
-    presence_score INT[],
-    absence_score INT[]
-);
-
-CREATE OR REPLACE FUNCTION answer_score_vectors(
-    question_id INT,
-    answer BOOLEAN
-)
-RETURNS answer_score_vectors AS $$
-    SELECT
-        CASE
-            WHEN answer = TRUE  THEN presence_given_yes
-            WHEN answer = FALSE THEN presence_given_no
-            ELSE NULL
-        END AS presence_score,
-        CASE
-            WHEN answer = TRUE  THEN absence_given_yes
-            WHEN answer = FALSE THEN absence_given_no
-            ELSE NULL
-        END AS absence_score
-    FROM question
-    WHERE id = question_id
-$$ LANGUAGE sql IMMUTABLE LEAKPROOF PARALLEL SAFE;
-
-
-DROP TYPE IF EXISTS personality_vectors CASCADE;
-CREATE TYPE personality_vectors AS (
-    personality FLOAT4[],
-    presence_score INT[],
-    absence_score INT[],
-    count_answers SMALLINT
-);
-
-CREATE OR REPLACE FUNCTION compute_personality_vectors(
-    new_presence_score INT[],
-    new_absence_score INT[],
-    old_presence_score INT[],
-    old_absence_score INT[],
-    cur_presence_score INT[],
-    cur_absence_score INT[],
-    cur_count_answers SMALLINT
-)
-RETURNS personality_vectors AS $$
-    import numpy
-
-    presence_score = numpy.array(cur_presence_score)
-    absence_score  = numpy.array(cur_absence_score)
-    count_answers  = cur_count_answers
-
-    if new_presence_score and new_absence_score:
-        excess = numpy.minimum(new_presence_score, new_absence_score)
-
-        presence_score += new_presence_score - excess
-        absence_score  += new_absence_score  - excess
-        count_answers  += 1
-
-    if old_presence_score and old_absence_score:
-        excess = numpy.minimum(old_presence_score, old_absence_score)
-
-        presence_score -= old_presence_score - excess
-        absence_score  -= old_absence_score  - excess
-        count_answers  -= 1
-
-    numerator = presence_score
-    denominator = presence_score + absence_score
-    trait_percentages = numpy.divide(
-        numerator,
-        denominator,
-        out=numpy.full_like(numerator, 0.5, dtype=numpy.float64),
-        where=denominator != 0
-    )
-
-    ll = lambda x: numpy.log(numpy.log(x + 1) + 1)
-
-    personality_weight = ll(count_answers) / ll(250)
-    personality_weight = personality_weight.clip(0, 1)
-
-    personality = 2 * trait_percentages - 1
-    personality = numpy.concatenate([personality, [1e-5]])
-    personality /= numpy.linalg.norm(personality)
-    personality *= personality_weight
-
-    return (
-        personality,
-        presence_score,
-        absence_score,
-        count_answers,
-    )
-$$ LANGUAGE plpython3u IMMUTABLE LEAKPROOF PARALLEL SAFE;
 
 CREATE OR REPLACE FUNCTION trait_ratio(
     presence_score INT[],

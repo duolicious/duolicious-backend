@@ -46,6 +46,38 @@ OFFSET
     %(o)s;
 """
 
+# The per-trait score vectors a question contributes, used to (re)compute
+# personality vectors on the application server (see the `personality` module).
+Q_QUESTION_SCORE_VECTORS = """
+SELECT
+    id,
+    presence_given_yes,
+    presence_given_no,
+    absence_given_yes,
+    absence_given_no
+FROM
+    question
+WHERE
+    id = ANY(%(question_ids)s)
+"""
+
+Q_GET_PUBLIC_NEXT_QUESTIONS = """
+SELECT
+    question.id,
+    question.question,
+    question.topic,
+    question.count_yes,
+    question.count_no
+FROM
+    question
+ORDER BY
+    question.id
+LIMIT
+    %(n)s
+OFFSET
+    %(o)s;
+"""
+
 Q_GET_SEARCH_FILTER_QUESTIONS = """
 SELECT
     id AS question_id,
@@ -200,6 +232,15 @@ def get_next_questions(s: t.SessionInfo, n: str, o: str):
 
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_NEXT_QUESTIONS, params).fetchall()
+
+def get_public_next_questions(n: str, o: str):
+    params = dict(
+        n=int(n),
+        o=int(o),
+    )
+
+    with api_tx('READ COMMITTED') as tx:
+        return tx.execute(Q_GET_PUBLIC_NEXT_QUESTIONS, params).fetchall()
 
 def get_search_filter_questions(s: t.SessionInfo, q: str, n: str, o: str):
     params = dict(
