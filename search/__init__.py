@@ -2,10 +2,10 @@ import json
 import psycopg
 import duotypes as t
 import sessioncache
-import personality
+from qanda import personality
 from pydantic import ValidationError
 from database import api_tx
-from question import Q_QUESTION_SCORE_VECTORS
+from qanda.question import Q_QUESTION_SCORE_VECTORS
 from rediscache import redis_cache
 from typing import Tuple
 from search.sql import (

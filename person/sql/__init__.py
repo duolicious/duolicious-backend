@@ -32,72 +32,6 @@ _Q_ESTIMATED_END_DATE = """
 (SELECT iso8601_utc(estimated_end_date) FROM funding) AS estimated_end_date
 """
 
-Q_GET_PERSONALITY_SCORES = """
-SELECT
-    presence_score,
-    absence_score,
-    count_answers
-FROM
-    person
-WHERE
-    id = %(person_id)s
-"""
-
-Q_GET_ANSWER = """
-SELECT
-    answer
-FROM
-    answer
-WHERE
-    person_id = %(person_id)s AND
-    question_id = %(question_id)s
-"""
-
-Q_UPSERT_ANSWER = """
-INSERT INTO answer (
-    person_id,
-    question_id,
-    answer,
-    public_
-)
-VALUES (
-    %(person_id)s,
-    %(question_id)s,
-    %(answer)s,
-    %(public)s
-)
-ON CONFLICT (person_id, question_id) DO UPDATE SET
-    answer  = EXCLUDED.answer,
-    public_ = EXCLUDED.public_
-"""
-
-Q_DELETE_ANSWER = """
-DELETE FROM answer
-WHERE
-    person_id = %(person_id)s AND
-    question_id = %(question_id)s
-"""
-
-Q_SET_PERSONALITY = """
-UPDATE person
-SET
-    personality    = %(personality)s::vector,
-    presence_score = %(presence_score)s,
-    absence_score  = %(absence_score)s,
-    count_answers  = %(count_answers)s
-WHERE
-    id = %(person_id)s
-"""
-
-Q_ADD_YES_NO_COUNT = """
-UPDATE question
-SET
-    count_yes = count_yes + %(add_yes)s,
-    count_no  = count_no  + %(add_no)s
-WHERE
-    id = %(question_id)s
-"""
-
 Q_SELECT_PERSONALITY = """
 SELECT
     CASE
@@ -306,24 +240,6 @@ FROM
     otp
 RETURNING
     otp
-"""
-
-# Answers given before sign-up are stashed on the session row created by
-# `/request-otp` (see `duo_session.answers`), then flushed into `answer` once
-# the session resolves to a person.
-Q_GET_SESSION_ANSWERS = """
-SELECT
-    answers
-FROM
-    duo_session
-WHERE
-    session_token_hash = %(session_token_hash)s
-"""
-
-Q_CLEAR_SESSION_ANSWERS = """
-UPDATE duo_session
-SET answers = NULL
-WHERE session_token_hash = %(session_token_hash)s
 """
 
 Q_UPDATE_OTP = f"""

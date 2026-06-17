@@ -4,7 +4,8 @@ from flask import request
 import duotypes as t
 import location
 import person
-import question
+import qanda
+from qanda import question
 import search
 from auth import apple_oauth
 from database import api_tx
@@ -311,12 +312,12 @@ def get_public_next_questions():
 @apost('/answer')
 @validate(t.PostAnswer)
 def post_answer(req: t.PostAnswer, s: t.SessionInfo):
-    return person.post_answer(req, s)
+    return qanda.post_answer(req, s)
 
 @adelete('/answer')
 @validate(t.DeleteAnswer)
 def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
-    return person.delete_answer(req, s)
+    return qanda.delete_answer(req, s)
 
 @aget('/search')
 def get_search(s: t.SessionInfo):
