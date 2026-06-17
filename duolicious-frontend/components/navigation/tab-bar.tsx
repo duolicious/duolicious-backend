@@ -11,6 +11,7 @@ import { LabelToIcon } from './util';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { useIsWebLoggedOut } from '../../events/signed-in-user';
 import { showSignUp } from '../modal/sign-up-modal';
+import { PUBLIC_TAB_NAMES } from './public-tabs';
 
 const Tab = ({ navigation, state, route, descriptors, index, numUnread }) => {
   const { appThemeName, appTheme } = useAppTheme();
@@ -48,7 +49,7 @@ const Tab = ({ navigation, state, route, descriptors, index, numUnread }) => {
     // TODO: Do I even need this?
     // navigation.dispatch(StackActions.popToTop());
 
-    if (isWebLoggedOut && route.name !== 'Search') {
+    if (isWebLoggedOut && !PUBLIC_TAB_NAMES.includes(route.name)) {
       showSignUp(true);
       return;
     }

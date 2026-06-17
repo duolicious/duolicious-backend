@@ -31,7 +31,7 @@ const HomeTabs = () => {
       // bottom-tabs animation packages are racing to detach the screens.
       detachInactiveScreens={Platform.OS !== 'ios'}
     >
-      <Tab.Screen name="Q&A" component={gated ? LockedTab : QuizTab} options={{ title: 'Q&A' }} />
+      <Tab.Screen name="Q&A" component={QuizTab} options={{ title: 'Q&A' }} />
       <Tab.Screen name="Search" component={SearchTab} options={{ title: 'Search' }} />
       <Tab.Screen name="Feed" component={gated ? LockedTab : FeedTab} options={{ title: 'Feed' }} />
       <Tab.Screen name="Inbox" component={gated ? LockedTab : InboxTab} options={{ title: 'Inbox' }} />

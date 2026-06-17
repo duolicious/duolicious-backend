@@ -14,6 +14,7 @@ import { WebBarFooter } from './web-bar-footer/web-bar-footer';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { useIsWebLoggedOut } from '../../events/signed-in-user';
 import { showSignUp } from '../modal/sign-up-modal';
+import { PUBLIC_TAB_NAMES } from './public-tabs';
 
 const Logo = () => {
   return (
@@ -99,7 +100,7 @@ const NavigationItems = ({state, navigation, descriptors}) => {
           <Pressable
             key={route.key}
             onPress={() => {
-              if (isWebLoggedOut && route.name !== 'Search') {
+              if (isWebLoggedOut && !PUBLIC_TAB_NAMES.includes(route.name)) {
                 showSignUp(true);
                 return;
               }

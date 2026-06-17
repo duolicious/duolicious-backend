@@ -65,6 +65,11 @@ interface Props {
    */
   preventSwipe?: string[]
 
+  /**
+   * Callback executed when the user releases a swipe in a direction listed in `preventSwipe` (i.e. an attempted-but-blocked swipe). The card has snapped back to its position by the time this fires.
+   */
+  onSwipePrevented?: SwipeHandler
+
    /**
    * The threshold of which to accept swipes. If swipeRequirementType is set to velocity it is the velocity threshold and if set to position it is the position threshold.
    * On native the default value is 1 as the physics works differently there.
@@ -279,6 +284,7 @@ const BaseQuizCard = forwardRef(
       children,
       onSwipe,
       onCardLeftScreen,
+      onSwipePrevented,
       preventSwipe = [],
       swipeThreshold = settings.swipeThreshold,
       containerStyle,
@@ -293,6 +299,9 @@ const BaseQuizCard = forwardRef(
     // spring-back to center does NOT set this, so the card can be re-grabbed
     // (and the buttons stay responsive) mid-animation.
     const isSwipingOut = useRef(false);
+
+    const preventSwipeRef = useRef(preventSwipe);
+    preventSwipeRef.current = preventSwipe;
 
     // Compute initial x, y, rot
     const startPosition = (() => {
@@ -348,9 +357,10 @@ const BaseQuizCard = forwardRef(
           swipeThreshold
         );
 
-        if (dir === 'none' || preventSwipe.includes(dir)) {
+        if (dir === 'none' || preventSwipeRef.current.includes(dir)) {
           // Card was not flicked away, animate back to start
           await animateBack(setSpringTarget)
+          if (dir !== 'none' && onSwipePrevented) onSwipePrevented(dir)
         } else {
           isSwipingOut.current = true;
           if (onSwipe) onSwipe(dir)
@@ -364,7 +374,7 @@ const BaseQuizCard = forwardRef(
           if (onCardLeftScreen) onCardLeftScreen(dir)
         }
       },
-      [onSwipe, onCardLeftScreen, preventSwipe]
+      [onSwipe, onCardLeftScreen, onSwipePrevented]
     );
 
     const panResponder = useRef(

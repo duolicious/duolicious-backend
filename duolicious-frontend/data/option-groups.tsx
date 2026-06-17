@@ -10,7 +10,6 @@ import {
 import { sessionToken, sessionPersonUuid } from '../kv-storage/session-token';
 import { lastPath } from '../kv-storage/last-path';
 import { resetUserScopedClientState } from '../navigation/reset-client-state';
-import { navigateAfterAuth } from '../navigation/navigate-after-auth';
 import { X } from "react-native-feather";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faPalette } from '@fortawesome/free-solid-svg-icons/faPalette'
@@ -31,13 +30,11 @@ import { faChild } from '@fortawesome/free-solid-svg-icons/faChild'
 import { faChildren } from '@fortawesome/free-solid-svg-icons/faChildren'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { NonNullImageCropperOutput } from '../components/image-cropper';
-import { login, logout } from '../chat/application-layer';
+import { logout } from '../chat/application-layer';
 import { LOGARITHMIC_SCALE, Scale } from "../scales/scales";
 import { VerificationBadge } from '../components/verification-badge';
-import { notify } from '../events/events';
 import { patchProfileInfo } from '../events/profile-info';
 import { patchSearchFilters } from '../events/search-filters';
-import { ClubItem } from '../club/club';
 import { DefaultText } from '../components/default-text';
 import {
   Linking,
@@ -1213,36 +1210,17 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
         description: FinishOnboardingDescription,
         submit: async () => {
           const existingSessionToken = await sessionToken();
+          if (typeof existingSessionToken !== 'string') return false;
+
           const response = await onboardingQueue.addTask(
             async () => await japi('post', '/finish-onboarding')
           );
 
-          if (!response.ok) return false;
-          if (typeof existingSessionToken !== 'string') return false;
-
-          const clubs: ClubItem[] = response?.json?.clubs;
-          const pendingClub = response?.json?.pending_club;
-          const personUuid: string = response?.json?.person_uuid;
-
-          navigateAfterAuth(pendingClub, { preserveLocation: false });
-
-          login(personUuid, existingSessionToken);
-
-          setSignedInUser((signedInUser) => ({
-            sessionToken: existingSessionToken ?? '',
-            ...signedInUser,
-            personId: response?.json?.person_id,
-            personUuid: personUuid,
-            units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
-            pendingClub: pendingClub,
-            estimatedEndDate: new Date(response?.json?.estimated_end_date),
-            name: response?.json?.name,
-            hasGold: response?.json?.has_gold,
-          }));
-
-          await sessionPersonUuid(response?.json?.person_uuid);
-
-          notify<ClubItem[]>('updated-clubs', clubs);
+          await applyAuthenticatedResponse(
+            response,
+            existingSessionToken,
+            { onboardingComplete: true, preserveLocation: false },
+          );
 
           return false;
         }

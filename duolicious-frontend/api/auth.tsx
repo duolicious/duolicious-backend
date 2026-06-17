@@ -3,6 +3,7 @@ import { navigateAfterAuth } from '../navigation/navigate-after-auth';
 import { login } from '../chat/application-layer';
 import { setSignedInUser } from '../events/signed-in-user';
 import { sessionPersonUuid } from '../kv-storage/session-token';
+import { clearAnonymousAnswers } from '../events/anonymous-answers';
 import { notify } from '../events/events';
 import { ClubItem } from '../club/club';
 
@@ -29,13 +30,17 @@ type AuthenticatedResponse = {
 export const applyAuthenticatedResponse = async (
   response: ApiResponse,
   existingSessionToken: string,
+  { onboardingComplete = false, preserveLocation = true }: {
+    onboardingComplete?: boolean,
+    preserveLocation?: boolean,
+  } = {},
 ): Promise<AuthResult> => {
   if (!response.ok) {
     return 'rejected';
   }
 
   const json = response.json as AuthenticatedResponse;
-  const onboarded = json.onboarded;
+  const onboarded = onboardingComplete || json.onboarded;
   const clubs = json.clubs;
   const pendingClub = json.pending_club;
   const personUuid = json.person_uuid;
@@ -44,7 +49,7 @@ export const applyAuthenticatedResponse = async (
     return 'needs-onboarding';
   }
 
-  navigateAfterAuth(pendingClub, { preserveLocation: true });
+  navigateAfterAuth(pendingClub, { preserveLocation });
 
   login(personUuid, existingSessionToken);
 
@@ -60,6 +65,10 @@ export const applyAuthenticatedResponse = async (
   });
 
   await sessionPersonUuid(personUuid);
+
+  // The server already received these with `/request-otp`; clear the local
+  // copy now that the user is signed in.
+  clearAnonymousAnswers();
 
   notify<ClubItem[]>('updated-clubs', clubs);
 

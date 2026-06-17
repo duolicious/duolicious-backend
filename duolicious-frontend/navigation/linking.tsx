@@ -17,7 +17,7 @@ const WIZARD_ROUTE_NAMES = new Set([
 ]);
 
 const GATED_LOGGED_OUT_PATHS = new Set([
-  '/qa', '/feed', '/inbox', '/visitors', '/profile',
+  '/feed', '/inbox', '/visitors', '/profile',
 ]);
 
 const getTopRouteName = (state: any): string | undefined =>

@@ -8,7 +8,10 @@ import { listen, notify, lastEvent } from '../../events/events';
 import { useSignedInUser } from '../../events/signed-in-user';
 import { isMobile } from '../../util/util';
 
-const showSignUp = (isVisible: boolean) => {
+const showSignUp = (isVisible: boolean, message?: string) => {
+  if (isVisible) {
+    notify<string | null>('sign-up-message', message ?? null);
+  }
   notify<boolean>('show-sign-up', isVisible);
 };
 

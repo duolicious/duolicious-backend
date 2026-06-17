@@ -13,6 +13,7 @@ import {
   useState,
 } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { ProfileCard }  from './profile-card';
 import { DuoliciousTopNavBar } from './top-nav-bar';
 import { SearchFilterScreen } from './search-filter-screen';
@@ -32,6 +33,8 @@ import { useScrollbar } from './navigation/scroll-bar-hooks';
 import { onPressInvite } from '../components/invite';
 import { useAppTheme } from '../app-theme/app-theme';
 import { useIsWebLoggedOut } from '../events/signed-in-user';
+import { anonymousAnswers } from '../events/anonymous-answers';
+import { consumeStaleSearchResults } from '../events/stale-search-results';
 import { showSignUp } from './modal/sign-up-modal';
 
 const styles = StyleSheet.create({
@@ -135,12 +138,21 @@ const fetchPageWithoutQueue = async (
   const resultsPerPage = 10;
   const offset = resultsPerPage * (pageNumber - 1);
 
+  // Logged-out web users have no profile to rank against, so the public search
+  // is ranked by the answers they've given in the Q&A tab (when they've given
+  // any). Signed-in users are ranked server-side from their saved answers.
+  const answersParam =
+    isPublic && anonymousAnswers.length
+      ? `&answers=${encodeURIComponent(JSON.stringify(anonymousAnswers))}`
+      : '';
+
   const response = await japi(
     'get',
     (isPublic ? '/public-search' : '/search') +
     `?n=${resultsPerPage}` +
     `&o=${offset}` +
-    `&club=${encodeURIComponent(club === null ? '\0' : club)}`
+    `&club=${encodeURIComponent(club === null ? '\0' : club)}` +
+    answersParam
   );
 
   return response.ok ? response.json : null;
@@ -572,6 +584,17 @@ const SearchScreen_ = ({navigation}) => {
   useEffect(() => {
     return listen('search-refresh-requested', onPressRefresh);
   }, [onPressRefresh]);
+
+  // Answers given in the Q&A tab re-rank these results, so refetch when the tab
+  // regains focus if they've changed since we last fetched. This spares users
+  // from having to discover the manual refresh button.
+  useFocusEffect(
+    useCallback(() => {
+      if (consumeStaleSearchResults()) {
+        onPressRefresh();
+      }
+    }, [onPressRefresh])
+  );
 
   const onPressOptions = useCallback(() => {
     if (isPublic) {

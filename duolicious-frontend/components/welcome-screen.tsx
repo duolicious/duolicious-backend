@@ -43,10 +43,26 @@ import { joinClub } from '../club/club';
 import { isMobile } from '../util/util';
 import { setOptionScreenPayload } from '../navigation/option-screen-store';
 import { showSignUp } from './modal/sign-up-modal';
-import { lastEvent } from '../events/events';
+import { lastEvent, listen } from '../events/events';
+import { anonymousAnswers } from '../events/anonymous-answers';
 
 const useInModal = () =>
   useState(() => lastEvent<boolean>('show-sign-up') ?? false)[0];
+
+const useSignUpMessage = (): string | null => {
+  const [message, setMessage] = useState<string | null>(
+    () => lastEvent<string | null>('sign-up-message') ?? null);
+
+  useEffect(() => {
+    return listen<string | null>(
+      'sign-up-message',
+      (x) => setMessage(x ?? null),
+      true,
+    );
+  }, []);
+
+  return message;
+};
 
 const activeMembersText = (
   numActiveMembers: number,
@@ -687,6 +703,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
   const clubName_ = (route.params?.clubName) as string | undefined;
   const numUsers = useNumActiveUsers(route.params?.numUsers);
   const inModal = useInModal();
+  const signUpMessage = useSignUpMessage();
 
   const [loginStatus, setLoginStatus] = useState("");
   const [socialLoading, setSocialLoading] = useState<SocialProvider | null>(null);
@@ -850,7 +867,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
               fontWeight: inModal ? 900 : 700,
             }}
           >
-            Join or sign in
+            {inModal && signUpMessage ? signUpMessage : 'Join or sign in'}
           </DefaultText>
           <PrimaryAuthButton
             onPress={onPressUseEmail}
@@ -936,6 +953,7 @@ const EmailScreen_ = ({navigation, route}) => {
       {
         email: email_,
         ...(clubName_ && { pending_club_name: clubName_ }),
+        ...(anonymousAnswers.length && { answers: anonymousAnswers }),
       },
       { timeout: 9999 * 1000 },
     );
