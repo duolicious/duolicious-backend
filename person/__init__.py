@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from person.sql import *
 from search.sql import *
 from commonsql import *
+from qanda import _flush_session_answers
 from person.template import otp_template
 import traceback
 import re
@@ -226,39 +227,6 @@ def _has_gold(person_id: int) -> bool:
     return row.get('has_gold', False)
 
 
-def post_answer(req: t.PostAnswer, s: t.SessionInfo):
-    params_add_yes_no_count = dict(
-        question_id=req.question_id,
-        add_yes=1 if req.answer is True else 0,
-        add_no=1 if req.answer is False else 0,
-    )
-
-    params_update_answer = dict(
-        person_id=s.person_id,
-        question_id_to_delete=None,
-        question_id_to_insert=req.question_id,
-        answer=req.answer,
-        public=req.public,
-    )
-
-    with api_tx('READ COMMITTED') as tx:
-        tx.execute(Q_ADD_YES_NO_COUNT, params_add_yes_no_count)
-
-    with api_tx() as tx:
-        tx.execute(Q_UPDATE_ANSWER, params_update_answer)
-
-def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
-    params = dict(
-        person_id=s.person_id,
-        question_id_to_delete=req.question_id,
-        question_id_to_insert=None,
-        answer=None,
-        public=None,
-    )
-
-    with api_tx() as tx:
-        tx.execute(Q_UPDATE_ANSWER, params)
-
 def _send_otp(email: str, otp: str):
     if email.endswith('@example.com'):
         return
@@ -317,6 +285,13 @@ def post_request_otp(req: t.PostRequestOtp):
     session_token, session_token_hash = _new_session_token()
     normalized = normalize_email(req.email)
 
+    # Stash any answers the user gave before signing up on the session row, to
+    # be flushed onto their profile once the session resolves to a person.
+    answers = json.dumps([
+        dict(question_id=a.question_id, answer=a.answer, public=a.public)
+        for a in req.answers
+    ]) if req.answers else None
+
     params = dict(
         email=req.email,
         normalized_email=normalized,
@@ -324,6 +299,7 @@ def post_request_otp(req: t.PostRequestOtp):
         is_dev=DUO_ENV == 'dev',
         session_token_hash=session_token_hash,
         ip_address=request.remote_addr,
+        answers=answers,
     )
 
     with api_tx() as tx:
@@ -390,6 +366,9 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
         clubs = _handle_pending_club(tx, s.person_id, s.pending_club_name)
 
         tx.execute(Q_UPDATE_LAST, dict(person_uuid=row['person_uuid']))
+
+        if row['person_id'] is not None:
+            _flush_session_answers(tx, s.session_token_hash, row['person_id'])
 
     sessioncache.delete_session(s.session_token_hash)
 
@@ -820,6 +799,8 @@ def post_finish_onboarding(s: t.SessionInfo):
         ))
 
         clubs = _handle_pending_club(tx, row['person_id'], s.pending_club_name)
+
+        _flush_session_answers(tx, s.session_token_hash, row['person_id'])
 
     sessioncache.delete_session(s.session_token_hash)
 

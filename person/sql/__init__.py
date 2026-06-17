@@ -32,85 +32,6 @@ _Q_ESTIMATED_END_DATE = """
 (SELECT iso8601_utc(estimated_end_date) FROM funding) AS estimated_end_date
 """
 
-Q_UPDATE_ANSWER = """
-WITH
-old_answer AS (
-    SELECT question_id, answer
-    FROM answer
-    WHERE
-        person_id = %(person_id)s AND
-        question_id = COALESCE(
-            %(question_id_to_insert)s,
-            %(question_id_to_delete)s
-        )
-), deleted_answer AS (
-    DELETE FROM answer
-    WHERE
-        person_id = %(person_id)s AND
-        question_id = %(question_id_to_delete)s
-), new_answer AS (
-    INSERT INTO answer (
-        person_id,
-        question_id,
-        answer,
-        public_
-    )
-    SELECT
-        %(person_id)s,
-        %(question_id_to_insert)s,
-        %(answer)s,
-        %(public)s
-    WHERE %(question_id_to_insert)s::SMALLINT IS NOT NULL
-    ON CONFLICT (person_id, question_id) DO UPDATE SET
-        answer  = EXCLUDED.answer,
-        public_ = EXCLUDED.public_
-    RETURNING
-        question_id,
-        answer
-), updated_personality_vectors AS (
-    SELECT
-        (compute_personality_vectors(
-            new_vectors.presence_score,
-            new_vectors.absence_score,
-            old_vectors.presence_score,
-            old_vectors.absence_score,
-            cur_vectors.presence_score,
-            cur_vectors.absence_score,
-            cur_vectors.count_answers
-        )).*
-    FROM (
-        SELECT (answer_score_vectors(question_id, answer)).*
-        FROM new_answer
-        LIMIT 1
-    ) AS new_vectors FULL OUTER JOIN (
-        SELECT (answer_score_vectors(question_id, answer)).*
-        FROM old_answer
-        LIMIT 1
-    ) AS old_vectors ON TRUE FULL OUTER JOIN (
-        SELECT presence_score, absence_score, count_answers
-        FROM person where id = %(person_id)s
-        LIMIT 1
-    ) AS cur_vectors ON TRUE
-)
-UPDATE person
-SET
-    personality    = updated_personality_vectors.personality,
-    presence_score = updated_personality_vectors.presence_score,
-    absence_score  = updated_personality_vectors.absence_score,
-    count_answers  = updated_personality_vectors.count_answers
-FROM updated_personality_vectors
-WHERE person.id = %(person_id)s
-"""
-
-Q_ADD_YES_NO_COUNT = """
-UPDATE question
-SET
-    count_yes = count_yes + %(add_yes)s,
-    count_no  = count_no  + %(add_no)s
-WHERE
-    id = %(question_id)s
-"""
-
 Q_SELECT_PERSONALITY = """
 SELECT
     CASE
@@ -293,7 +214,8 @@ INSERT INTO duo_session (
     email,
     pending_club_name,
     otp,
-    ip_address
+    ip_address,
+    answers
 )
 SELECT
     %(session_token_hash)s,
@@ -312,7 +234,8 @@ SELECT
     %(email)s,
     %(pending_club_name)s,
     otp,
-    %(ip_address)s
+    %(ip_address)s,
+    %(answers)s::jsonb
 FROM
     otp
 RETURNING

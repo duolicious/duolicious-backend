@@ -4,7 +4,8 @@ from flask import request
 import duotypes as t
 import location
 import person
-import question
+import qanda
+from qanda import question
 import search
 from auth import apple_oauth
 from database import api_tx
@@ -301,15 +302,22 @@ def get_next_questions(s: t.SessionInfo):
         o=request.args.get('o', '0'),
     )
 
+@get('/public-next-questions')
+def get_public_next_questions():
+    return question.get_public_next_questions(
+        n=request.args.get('n', '10'),
+        o=request.args.get('o', '0'),
+    )
+
 @apost('/answer')
 @validate(t.PostAnswer)
 def post_answer(req: t.PostAnswer, s: t.SessionInfo):
-    return person.post_answer(req, s)
+    return qanda.post_answer(req, s)
 
 @adelete('/answer')
 @validate(t.DeleteAnswer)
 def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
-    return person.delete_answer(req, s)
+    return qanda.delete_answer(req, s)
 
 @aget('/search')
 def get_search(s: t.SessionInfo):
@@ -348,10 +356,11 @@ def get_search(s: t.SessionInfo):
 
 @get('/public-search')
 def get_public_search():
-    n = request.args.get('n')
-    o = request.args.get('o')
-
-    return search.get_public_search(n=n, o=o)
+    return search.get_public_search(
+        n=request.args.get('n'),
+        o=request.args.get('o'),
+        answers=request.args.get('answers'),
+    )
 
 @get('/health', limiter=limiter.exempt)
 def get_health():

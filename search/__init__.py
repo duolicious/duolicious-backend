@@ -1,12 +1,17 @@
+import json
 import psycopg
 import duotypes as t
 import sessioncache
+from qanda import personality
+from pydantic import ValidationError
 from database import api_tx
+from qanda.question import Q_QUESTION_SCORE_VECTORS
 from rediscache import redis_cache
 from typing import Tuple
 from search.sql import (
     Q_CACHED_SEARCH,
     Q_PUBLIC_SEARCH,
+    Q_PUBLIC_SEARCH_WITH_ANSWERS,
     Q_QUIZ_SEARCH,
     Q_SEARCH_PREFERENCE,
     Q_UNCACHED_SEARCH_1,
@@ -145,7 +150,7 @@ def get_search(
     return result
 
 
-def get_public_search(n: str | None, o: str | None):
+def get_public_search(n: str | None, o: str | None, answers: str | None = None):
     n_: int = 10 if n is None else int(n)
     o_: int = 0 if o is None else int(o)
 
@@ -157,6 +162,13 @@ def get_public_search(n: str | None, o: str | None):
     if n_ > 10:
         return 'n must be less than or equal to 10', 400
 
+    if answers is not None:
+        try:
+            req = t.PublicSearchRequest(answers=json.loads(answers), n=n_, o=o_)
+        except (ValueError, ValidationError) as e:
+            return str(e), 400
+        return _get_public_search_with_answers(req)
+
     return _get_public_search()[o_:o_ + n_]
 
 
@@ -164,6 +176,32 @@ def get_public_search(n: str | None, o: str | None):
 def _get_public_search():
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_PUBLIC_SEARCH).fetchall()
+
+
+def _get_public_search_with_answers(req: t.PublicSearchRequest):
+    with api_tx('READ COMMITTED') as tx:
+        questions = {
+            q['id']: q
+            for q in tx.execute(
+                Q_QUESTION_SCORE_VECTORS,
+                dict(question_ids=[a.question_id for a in req.answers]),
+            ).fetchall()
+        }
+
+        presence, absence, count = personality.accumulate(
+            (questions[a.question_id], a.answer)
+            for a in req.answers
+            if a.question_id in questions
+        )
+
+        searcher_personality = personality.to_pgvector(
+            personality.personality_vector(presence, absence, count))
+
+        return tx.execute(Q_PUBLIC_SEARCH_WITH_ANSWERS, dict(
+            searcher_personality=searcher_personality,
+            n=req.n,
+            o=req.o,
+        )).fetchall()
 
 
 def get_feed(s: t.SessionInfo, before: datetime):

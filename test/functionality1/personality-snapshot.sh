@@ -38,35 +38,7 @@ reset_db () {
   q "delete from undeleted_photo"
 }
 
-# Sign in an existing, onboarded user. Sets the global SESSION_TOKEN.
-sign_in () {
-  local response=$(jc POST /request-otp -d '{ "email": "'"$1"'" }')
-  SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
-  jc POST /check-otp -d '{ "otp": "000000" }' > /dev/null
-}
-
-answer () {
-  jc POST /answer -d '{
-    "question_id": '"$1"',
-    "answer": '"$2"',
-    "public": '"$3"'
-  }' > /dev/null
-}
-
-# Print one user's stored vectors in a stable, diffable form.
-snapshot_user () {
-  local email=$1
-  local label=$2
-
-  echo "$label count_answers=$(q "
-    select count_answers from person where email = '$email'")"
-  echo "$label presence_score=$(q "
-    select presence_score::text from person where email = '$email'")"
-  echo "$label absence_score=$(q "
-    select absence_score::text from person where email = '$email'")"
-  echo "$label personality=$(q "
-    select personality::text from person where email = '$email'")"
-}
+# `sign_in`, `answer` and `snapshot_user_personality` live in ../util/setup.sh.
 
 # Assert a person has exactly `$2` rows in the `answer` table.
 assert_answer_count () {
@@ -148,8 +120,8 @@ personality_snapshot_is_stable () {
 
   local actual
   actual=$(
-    snapshot_user user1@example.com user1
-    snapshot_user user2@example.com user2
+    snapshot_user_personality user1@example.com user1
+    snapshot_user_personality user2@example.com user2
   )
 
   if [[ "$UPDATE_SNAPSHOT" == 1 || ! -f "$SNAPSHOT_FILE" ]]; then

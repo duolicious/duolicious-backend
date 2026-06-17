@@ -295,6 +295,24 @@ class DeleteAnswer(BaseModel):
     question_id: int
 
 
+# The number of questions an unauthenticated user may answer before signing up.
+# Must match `PUBLIC_ANSWER_LIMIT` in the frontend
+PUBLIC_ANSWER_LIMIT = 10
+
+
+class PublicAnswer(BaseModel):
+    question_id: int
+    answer: Optional[bool]
+    public: bool = True
+
+
+class PublicSearchRequest(BaseModel):
+    answers: List[PublicAnswer] = Field(
+        default_factory=list, max_length=PUBLIC_ANSWER_LIMIT)
+    n: int = Field(default=10, ge=0, le=10)
+    o: int = Field(default=0, ge=0)
+
+
 class PostRequestOtp(BaseModel):
     email: EmailStr
     pending_club_name: PendingClubName = Field(
@@ -303,6 +321,8 @@ class PostRequestOtp(BaseModel):
         min_length=1,
         max_length=CLUB_MAX_LEN,
     )
+    answers: List[PublicAnswer] = Field(
+        default_factory=list, max_length=PUBLIC_ANSWER_LIMIT)
 
     @field_validator('email', mode='before')
     def validate_email(cls, value):

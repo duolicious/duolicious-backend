@@ -216,6 +216,44 @@ assume_role () {
   fi
 }
 
+# Sign in an existing, onboarded @example.com user via the OTP flow (the OTP is
+# always 000000 in tests). Sets the global SESSION_TOKEN.
+# Example: sign_in user1@example.com
+sign_in () {
+  local response=$(jc POST /request-otp -d '{ "email": "'"$1"'" }')
+  SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
+  jc POST /check-otp -d '{ "otp": "000000" }' > /dev/null
+}
+
+# Submit one answer for the signed-in user (the global SESSION_TOKEN).
+# `answer` is a JSON boolean or `null` (a skip); `public` is a JSON boolean.
+# Example: answer 1 true false
+answer () {
+  jc POST /answer -d '{
+    "question_id": '"$1"',
+    "answer": '"$2"',
+    "public": '"$3"'
+  }' > /dev/null
+}
+
+# Print one user's stored personality vectors in a stable, diffable form, with
+# every line prefixed by `label`. Pass the same label for two users to compare
+# them with `diff`.
+# Example: diff <(snapshot_user_personality a@x snap) <(snapshot_user_personality b@x snap)
+snapshot_user_personality () {
+  local email=$1
+  local label=$2
+
+  echo "$label count_answers=$(q "
+    select count_answers from person where email = '$email'")"
+  echo "$label presence_score=$(q "
+    select presence_score::text from person where email = '$email'")"
+  echo "$label absence_score=$(q "
+    select absence_score::text from person where email = '$email'")"
+  echo "$label personality=$(q "
+    select personality::text from person where email = '$email'")"
+}
+
 # Lookup an internal numeric person id by email.
 # Example: user1id=$(get_id 'user1@example.com')
 get_id () {

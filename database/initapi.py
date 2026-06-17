@@ -44,7 +44,7 @@ def init_db():
     from service import api
     import location
     import person
-    import question
+    from qanda import question
 
     init_funcs = [
         api.init_db,
