@@ -12,12 +12,7 @@ source ../util/setup.sh
 
 set -xe
 
-# Sign in an existing, onboarded user. Sets the global SESSION_TOKEN.
-sign_in () {
-  local response=$(jc POST /request-otp -d '{ "email": "'"$1"'" }')
-  SESSION_TOKEN=$(echo "$response" | jq -r '.session_token')
-  jc POST /check-otp -d '{ "otp": "000000" }' > /dev/null
-}
+# `sign_in` lives in ../util/setup.sh.
 
 reset_db () {
   q "delete from duo_session"
