@@ -497,6 +497,37 @@ test_web_client_also_emailed () {
   [[ "$(count_emails_to 'user2@duolicious.app')" = 0 ]]
 }
 
+# A notifiable user with no signed-in sessions at all (e.g. they logged out on
+# every device) still gets emailed: the LEFT JOIN to the session summary yields
+# no row, so the LATERAL falls back to a NULL token, which the cron sends as an
+# email rather than a push.
+test_no_sessions_emailed () {
+  setup
+
+  [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
+
+  echo 0 > ../../test/input/disable-mobile-notifications
+  clear_pushes
+
+  # Remove every session for user1 so they have no signed-in device.
+  q "delete from duo_session
+     where person_id = (select id from person where uuid::text = '$user1id')"
+  [[ "$(q "select count(*) from duo_session ds
+           join person p on p.id = ds.person_id
+           where p.uuid::text = '$user1id'")" = 0 ]]
+
+  local time_interval=$(db_now as-microseconds '- 11 minutes')
+
+  q "insert into inbox values ('$user1id', '', '', 'inbox', '', ${time_interval}, 42)"
+
+  sleep 2
+
+  # The notification was recorded and delivered as an email, with no push.
+  [[ "$(q "select count(*) from person where uuid::text = '$user1id' and intro_seconds > 0")" = 1 ]]
+  [[ "$(count_emails_to 'user1@duolicious.app')" = 1 ]]
+  [[ "$(curl -s 'http://localhost:3002/messages' | jq 'length')" = 0 ]]
+}
+
 test_low_active_users_notified_via_email () {
   setup
 
@@ -650,6 +681,8 @@ test_sad_intro_within_day_and_chat_within_past_10_minutes
 test_sad_not_activated
 
 test_web_client_also_emailed
+
+test_no_sessions_emailed
 
 test_low_active_users_notified_via_email
 
