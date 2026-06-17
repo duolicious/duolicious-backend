@@ -4,3 +4,5 @@ DROP FUNCTION IF EXISTS compute_personality_vectors(INT[], INT[], INT[], INT[], 
 DROP FUNCTION IF EXISTS answer_score_vectors(INT, BOOLEAN) CASCADE;
 DROP TYPE IF EXISTS personality_vectors CASCADE;
 DROP TYPE IF EXISTS answer_score_vectors CASCADE;
+
+DROP EXTENSION IF EXISTS plpython3u;
