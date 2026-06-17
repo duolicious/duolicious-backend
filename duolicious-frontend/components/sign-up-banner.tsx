@@ -18,6 +18,10 @@ const SignUpBanner = ({ prospectHandle }: { prospectHandle?: string }) => {
     ? `Message ${prospectName}`
     : `Join or\xa0sign\xa0in`;
 
+  const signUpMessage = prospectName && prospectName.length <= 15
+    ? `Join or sign in to message ${prospectName}`
+    : undefined;
+
   return (
     <View
       style={{
@@ -80,7 +84,7 @@ const SignUpBanner = ({ prospectHandle }: { prospectHandle?: string }) => {
         </View>
         <View style={{ flex: 1 }}>
           <Pressable
-            onPress={() => showSignUp(true)}
+            onPress={() => showSignUp(true, signUpMessage)}
             style={{
               backgroundColor: appTheme.brandColor,
               borderRadius: 999,
