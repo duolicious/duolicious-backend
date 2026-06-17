@@ -387,9 +387,7 @@ const deleteAnswer = async (
   questionNumber: number,
   isPublic: boolean,
 ) => {
-  if (isPublic) {
-    removeAnonymousAnswer(questionNumber);
-  } else {
+  if (!isPublic) {
     await japi('delete', '/answer', { question_id: questionNumber });
   }
 
@@ -427,7 +425,6 @@ const saveAnswer = async (
   answer: boolean | null | undefined,
   answerPublicly: boolean,
   isPublic: boolean,
-  triggerRender: () => void,
 ) => {
   if (!isPublic) {
     await japi('post', '/answer', {
@@ -435,23 +432,6 @@ const saveAnswer = async (
       answer: answer,
       public: answerPublicly,
     });
-  } else {
-    const previousCount = anonymousAnswers.length;
-
-    addAnonymousAnswer({
-      question_id: questionNumber,
-      answer: answer ?? null,
-      public: answerPublicly,
-    });
-
-    const reachedLimit =
-      previousCount < PUBLIC_ANSWER_LIMIT &&
-      anonymousAnswers.length >= PUBLIC_ANSWER_LIMIT;
-
-    if (reachedLimit) {
-      triggerRender();
-      showSignUp(true, SIGN_UP_MESSAGE);
-    }
   }
 
   markSearchResultsStale();
@@ -471,7 +451,6 @@ const addAnswerInPlace = async (
       directionToAnswer(direction),
       swipedCard.answerPublicly,
       isPublic,
-      triggerRender,
     );
   }
 
@@ -796,10 +775,8 @@ const QuizCardStack = (props) => {
   const [, triggerRender_] = useState({});
   const triggerRender = () => triggerRender_({});
 
-  const isAtAnswerLimit = (card: CardState): boolean =>
-    isPublic &&
-    anonymousAnswers.length >= PUBLIC_ANSWER_LIMIT &&
-    !anonymousAnswers.some(a => a.question_id === card?.questionNumber);
+  const isAtAnswerLimit = (): boolean =>
+    isPublic && anonymousAnswers.length >= PUBLIC_ANSWER_LIMIT;
 
   class Api implements ApiInterface {
     async swipe(direction) {
@@ -809,7 +786,7 @@ const QuizCardStack = (props) => {
       if (topCard === undefined) {
         return;
       }
-      if (isAtAnswerLimit(topCard)) {
+      if (isAtAnswerLimit()) {
         showSignUp(true, SIGN_UP_MESSAGE);
         return;
       }
@@ -838,6 +815,10 @@ const QuizCardStack = (props) => {
       previouslySwipedCard.ref.current.restoreCard();
 
       const previousSwipeDirection = previouslySwipedCard.swipeDirection;
+
+      if (isPublic && previouslySwipedCard.questionNumber !== undefined) {
+        removeAnonymousAnswer(previouslySwipedCard.questionNumber);
+      }
 
       quizQueue.addTask(() => removePreviousAnswerInPlace(
         previouslySwipedCard,
@@ -880,13 +861,21 @@ const QuizCardStack = (props) => {
   const onSwipe_ = useCallback(async (direction: Direction) => {
     const swipedCard = stateRef.cards[stateRef.topCardIndex];
 
-    if (isAtAnswerLimit(swipedCard)) {
+    if (isAtAnswerLimit()) {
       swipedCard.ref.current?.restoreCard();
       showSignUp(true, SIGN_UP_MESSAGE);
       return;
     }
 
     swipedCard.swipeDirection = direction;
+
+    if (isPublic && swipedCard.questionNumber !== undefined) {
+      addAnonymousAnswer({
+        question_id: swipedCard.questionNumber,
+        answer: directionToAnswer(direction) ?? null,
+        public: swipedCard.answerPublicly,
+      });
+    }
 
     quizQueue.addTask(() => addAnswerInPlace(
       direction,
@@ -899,14 +888,17 @@ const QuizCardStack = (props) => {
 
     stateRef.topCardIndex++;
 
+    if (isAtAnswerLimit()) {
+      showSignUp(true, SIGN_UP_MESSAGE);
+    }
+
     onTopCardChanged && onTopCardChanged();
 
     onSwipe(direction);
   }, []);
 
   const onSwipePrevented = useCallback(() => {
-    const topCard = stateRef.cards[stateRef.topCardIndex];
-    if (isAtAnswerLimit(topCard)) {
+    if (isAtAnswerLimit()) {
       showSignUp(true, SIGN_UP_MESSAGE);
     }
   }, []);
@@ -948,7 +940,7 @@ const QuizCardStack = (props) => {
         card1={stateRef.cards[stateRef.topCardIndex + 1]}
         card2={stateRef.cards[stateRef.topCardIndex + 0]}
         card3={stateRef.cards[stateRef.topCardIndex - 1]}
-        locked={isAtAnswerLimit(stateRef.cards[stateRef.topCardIndex])}
+        locked={isAtAnswerLimit()}
         triggerRender={triggerRender}
         onSwipe={onSwipe_}
         onSwipePrevented={onSwipePrevented}
