@@ -1,14 +1,85 @@
-import {
-  Pressable,
-  View,
-} from 'react-native';
-import Checkbox from 'expo-checkbox';
-import { useCallback, useState } from 'react';
+import { StyleSheet, View, ViewStyle } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  interpolateColor,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faCheck } from '@fortawesome/free-solid-svg-icons/faCheck';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DefaultText } from './default-text';
 
-const hitSlop = 10;
+const COLOR = '#70f';
+const SIZE = 22;
+const DURATION = 150;
 
-const CheckBox = ({children, ...rest}) => {
+const Box = ({ value, style }: { value: boolean, style?: ViewStyle }) => {
+  const progress = useSharedValue(value ? 1 : 0);
+
+  useEffect(() => {
+    progress.value = withTiming(value ? 1 : 0, { duration: DURATION });
+  }, [value]);
+
+  const boxStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      progress.value,
+      [0, 1],
+      ['rgba(119, 0, 255, 0)', 'rgba(119, 0, 255, 1)'],
+    ),
+  }));
+
+  const checkStyle = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [{ scale: progress.value }],
+  }));
+
+  return (
+    <Animated.View style={[styles.box, boxStyle, style]}>
+      <Animated.View style={checkStyle}>
+        <FontAwesomeIcon icon={faCheck} size={SIZE - 4} color="white" />
+      </Animated.View>
+    </Animated.View>
+  );
+};
+
+const CheckBoxLayout = ({
+  children,
+  value,
+  labelPosition = 'right',
+  containerStyle,
+  onPress,
+}: {
+  children: React.ReactNode,
+  value: boolean,
+  labelPosition?: 'left' | 'right',
+  containerStyle?: ViewStyle,
+  onPress: () => void,
+}) => {
+  const gesture = useMemo(
+    () => Gesture.Tap().onEnd(() => runOnJS(onPress)()),
+    [onPress]
+  );
+
+  const label = <DefaultText>{children}</DefaultText>;
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <View style={{ ...styles.container, ...containerStyle }}>
+        {labelPosition !== 'right' && label}
+        <Box
+          value={value}
+          style={labelPosition === 'right' ? styles.boxLeft : styles.boxRight}
+        />
+        {labelPosition === 'right' && label}
+      </View>
+    </GestureDetector>
+  );
+};
+
+const CheckBox = ({children, ...rest}: { children: React.ReactNode, [key: string]: any }) => {
   const {
     initialValue,
     value,
@@ -19,53 +90,30 @@ const CheckBox = ({children, ...rest}) => {
 
   const [isChecked, setChecked] = useState(initialValue ?? value ?? false);
 
-  if (value!== undefined && isChecked !== value)
+  if (value !== undefined && isChecked !== value)
     setChecked(value);
 
-  const onValueChange_ = () => {
-    setChecked(v => {
+  const onPress = useCallback(() => {
+    setChecked((v: boolean) => {
       const newV = !v;
       onValueChange && onValueChange(newV);
       return newV;
     });
-  };
+  }, [onValueChange]);
 
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        margin: 5,
-        marginTop: 15,
-        marginBottom: 15,
-        ...containerStyle,
-      }}
+    <CheckBoxLayout
+      value={isChecked}
+      labelPosition={labelPosition}
+      containerStyle={containerStyle}
+      onPress={onPress}
     >
-      {labelPosition !== 'right' &&
-        <Pressable onPress={onValueChange_} hitSlop={hitSlop}>
-          <DefaultText>{children}</DefaultText>
-        </Pressable>
-      }
-      <Checkbox
-        value={isChecked}
-        onValueChange={onValueChange_}
-        style={
-          labelPosition === 'right' ?
-          {marginRight: 8} :
-          {marginLeft: 8}
-        }
-        color="#70f"
-      />
-      {labelPosition === 'right' &&
-        <Pressable onPress={onValueChange_} hitSlop={hitSlop}>
-          <DefaultText>{children}</DefaultText>
-        </Pressable>
-      }
-    </View>
+      {children}
+    </CheckBoxLayout>
   );
 };
 
-const StatelessCheckBox = ({children, ...rest}) => {
+const StatelessCheckBox = ({children, ...rest}: { children: React.ReactNode, [key: string]: any }) => {
   const {
     value,
     labelPosition = 'right',
@@ -73,44 +121,46 @@ const StatelessCheckBox = ({children, ...rest}) => {
     onValueChange,
   } = rest;
 
-  const onValueChange_ = useCallback(() => {
+  const onPress = useCallback(() => {
     onValueChange(!value);
   }, [onValueChange, value]);
 
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        margin: 5,
-        marginTop: 15,
-        marginBottom: 15,
-        ...containerStyle,
-      }}
+    <CheckBoxLayout
+      value={value}
+      labelPosition={labelPosition}
+      containerStyle={containerStyle}
+      onPress={onPress}
     >
-      {labelPosition !== 'right' &&
-        <Pressable onPress={onValueChange_} hitSlop={hitSlop}>
-          <DefaultText>{children}</DefaultText>
-        </Pressable>
-      }
-      <Checkbox
-        value={value}
-        onValueChange={onValueChange_}
-        style={
-          labelPosition === 'right' ?
-          {marginRight: 8} :
-          {marginLeft: 8}
-        }
-        color="#70f"
-      />
-      {labelPosition === 'right' &&
-        <Pressable onPress={onValueChange_} hitSlop={hitSlop}>
-          <DefaultText>{children}</DefaultText>
-        </Pressable>
-      }
-    </View>
+      {children}
+    </CheckBoxLayout>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    margin: 5,
+    marginTop: 15,
+    marginBottom: 15,
+  },
+  box: {
+    width: SIZE,
+    height: SIZE,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: COLOR,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  boxLeft: {
+    marginRight: 8,
+  },
+  boxRight: {
+    marginLeft: 8,
+  },
+});
 
 export default CheckBox;
 export { StatelessCheckBox };
