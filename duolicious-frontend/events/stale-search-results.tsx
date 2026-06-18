@@ -1,8 +1,8 @@
-// Answering Q&A questions re-ranks a user's search results (server-side for
-// signed-in users, via their anonymous answers for logged-out web users). The
-// search tab caches its results, so without a nudge it keeps showing the old
-// ranking until manually refreshed. We flag the results as stale whenever an
-// answer changes and let the search tab refetch the next time it's focused.
+// Changing a search filter or answering a Q&A question changes which profiles
+// a user's search results contain or how they're ranked. The search tab caches
+// its results, so without a nudge it keeps showing the old results until
+// refreshed. We flag the results as stale whenever they change and let the
+// search tab refetch the next time it's focused.
 
 let isStale = false;
 

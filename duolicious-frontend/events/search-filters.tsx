@@ -1,5 +1,7 @@
 import { useLayoutEffect, useState } from 'react';
+import * as _ from 'lodash';
 import { listen, notify, lastEvent } from './events';
+import { markSearchResultsStale } from './stale-search-results';
 import type { SearchFilterAnswer } from '../navigation/search-filter-state';
 
 type SearchFilters = Record<string, any> & {
@@ -16,9 +18,22 @@ const setSearchFilters = (next: SearchFilters | undefined) => {
   notify<SearchFilters | undefined>(EVENT_KEY, next);
 };
 
+const filterValueChanged = (next: any, prev: any): boolean => {
+  if (Array.isArray(next) && Array.isArray(prev)) {
+    return _.xorWith(next, prev, _.isEqual).length > 0;
+  }
+  return !_.isEqual(next, prev);
+};
+
 const patchSearchFilters = (partial: SearchFilters) => {
   const prev = getSearchFilters();
   if (!prev) return;
+
+  const changed = Object.keys(partial).some(
+    (key) => filterValueChanged(partial[key], prev[key]));
+  if (!changed) return;
+
+  markSearchResultsStale();
   notify<SearchFilters>(EVENT_KEY, { ...prev, ...partial });
 };
 

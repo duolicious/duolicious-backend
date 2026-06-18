@@ -38,7 +38,7 @@ import { cmToFeetInchesStr, kmToMilesStr } from '../units/units';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { QAndADevice } from './q-and-a-device';
 import { useAppTheme } from '../app-theme/app-theme';
-import { listen, notify } from '../events/events';
+import { listen } from '../events/events';
 import {
   SearchFilterAnswer,
   setSearchFilterAnswers,
@@ -245,7 +245,6 @@ const SearchFilterScreen_ = ({navigation}) => {
   const _searchInteractionsOptionGroups = searchInteractionsOptionGroups.map(withCurrent);
 
   const goBack = useCallback(() => {
-    notify('search-refresh-requested');
     navigation.goBack();
   }, [navigation]);
 

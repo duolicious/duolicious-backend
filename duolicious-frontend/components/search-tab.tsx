@@ -1,5 +1,4 @@
 import {
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -581,13 +580,9 @@ const SearchScreen_ = ({navigation}) => {
     refresh && refresh();
   }, []);
 
-  useEffect(() => {
-    return listen('search-refresh-requested', onPressRefresh);
-  }, [onPressRefresh]);
-
-  // Answers given in the Q&A tab re-rank these results, so refetch when the tab
-  // regains focus if they've changed since we last fetched. This spares users
-  // from having to discover the manual refresh button.
+  // Changing a search filter or answering a Q&A question re-ranks these
+  // results, so refetch when the tab regains focus if they've gone stale since
+  // we last fetched.
   useFocusEffect(
     useCallback(() => {
       if (consumeStaleSearchResults()) {
@@ -631,7 +626,7 @@ const SearchScreen_ = ({navigation}) => {
   return (
     <View style={styles.safeAreaView}>
       <DuoliciousTopNavBar>
-        {Platform.OS === 'web' &&
+        {!isMobile() &&
           <TopNavBarButton
             onPress={onPressRefresh}
             iconName="refresh"
@@ -678,6 +673,7 @@ const SearchScreen_ = ({navigation}) => {
         }
         ref={listRef}
         innerRef={observeListRef}
+        disableRefresh={true}
         emptyText={
           "No matches found. Try adjusting your search filters to include " +
           "more people."
