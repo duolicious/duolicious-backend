@@ -34,7 +34,6 @@ import { useAppTheme } from '../app-theme/app-theme';
 import { useIsWebLoggedOut } from '../events/signed-in-user';
 import { anonymousAnswers } from '../events/anonymous-answers';
 import { consumeStaleSearchResults } from '../events/stale-search-results';
-import { showSignUp } from './modal/sign-up-modal';
 
 const styles = StyleSheet.create({
   safeAreaView: {
@@ -592,14 +591,10 @@ const SearchScreen_ = ({navigation}) => {
   );
 
   const onPressOptions = useCallback(() => {
-    if (isPublic) {
-      showSignUp(true);
-      return;
-    }
     navigation.navigate('Search Filter Screen', {
       screen: 'Search Filter Tab',
     });
-  }, [selectedClub, isPublic]);
+  }, [selectedClub]);
 
   useEffect(() => {
     const refresh = listRef?.current?.refresh;

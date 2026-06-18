@@ -34,7 +34,7 @@ import { logout } from '../chat/application-layer';
 import { LOGARITHMIC_SCALE, Scale } from "../scales/scales";
 import { VerificationBadge } from '../components/verification-badge';
 import { patchProfileInfo } from '../events/profile-info';
-import { patchSearchFilters } from '../events/search-filters';
+import { patchSearchFilters, SearchFilters } from '../events/search-filters';
 import { DefaultText } from '../components/default-text';
 import {
   Linking,
@@ -1890,6 +1890,37 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   },
 ];
 
+const defaultSearchFilters = (): SearchFilters => {
+  const filters: SearchFilters = { answer: [] };
+
+  const optionGroups = [
+    ...searchTwoWayBasicsOptionGroups,
+    ...searchOtherBasicsOptionGroups,
+    ...searchInteractionsOptionGroups,
+  ];
+
+  for (const og of optionGroups) {
+    const key = og.title.toLowerCase().replaceAll(' ', '_');
+
+    if (isOptionGroupCheckChips(og.input)) {
+      // A brand-new account filters nothing out, i.e. every option is selected
+      // (the per-option `checked` flag is the onboarding default, not this one).
+      filters[key] = og.input.checkChips.values.map((v) => v.label);
+    } else if (
+      isOptionGroupSlider(og.input) ||
+      isOptionGroupRangeSlider(og.input)
+    ) {
+      filters[key] = null;
+    }
+  }
+
+  // `buttons` filters have no "unset" state; these mirror the server defaults.
+  filters.people_you_messaged = 'Yes';
+  filters.people_you_skipped = 'No';
+
+  return filters;
+};
+
 const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
   {
     title: 'Public Profile',
@@ -2186,6 +2217,7 @@ export {
   createAccountOptionGroups,
   deactivationOptionGroups,
   deletionOptionGroups,
+  defaultSearchFilters,
   descriptionStyle,
   generalSettingsOptionGroups,
   getCurrentValue,

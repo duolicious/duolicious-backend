@@ -21,6 +21,7 @@ import {
   searchTwoWayBasicsOptionGroups,
   searchOtherBasicsOptionGroups,
   searchInteractionsOptionGroups,
+  defaultSearchFilters,
   getCurrentValue,
   isOptionGroupCheckChips,
   isOptionGroupRangeSlider,
@@ -33,7 +34,8 @@ import { DefaultTextInput } from './default-text-input';
 import { SearchQuizCard } from './quiz-card';
 import { api } from '../api/api';
 import * as _ from "lodash";
-import { useSignedInUser, getSignedInUser } from '../events/signed-in-user';
+import { useSignedInUser, getSignedInUser, useIsWebLoggedOut } from '../events/signed-in-user';
+import { showSignUp } from './modal/sign-up-modal';
 import { cmToFeetInchesStr, kmToMilesStr } from '../units/units';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { QAndADevice } from './q-and-a-device';
@@ -162,16 +164,25 @@ const SearchFilterScreen = () => {
 const SearchFilterScreen_ = ({navigation}) => {
   const { appTheme } = useAppTheme();
   const [signedInUser] = useSignedInUser();
+  const isLocked = useIsWebLoggedOut();
   const insets = useSafeAreaInsets();
 
   const data = useSearchFilters();
 
   const answers: AnswerItem[] = data?.answer ?? [];
 
+  const promptSignUp = useCallback(() => {
+    showSignUp(true, 'Join or sign in to filter matches');
+  }, []);
+
   const onPressQAndAAnswers = useCallback(() => {
+    if (isLocked) {
+      promptSignUp();
+      return;
+    }
     setSearchFilterAnswers(answers);
     navigation.navigate("Q&A Filter Screen");
-  }, [navigation, answers]);
+  }, [navigation, answers, isLocked, promptSignUp]);
 
   useEffect(() => {
     return listen<AnswerItem[]>('search-filter-answers-updated', (next) => {
@@ -181,6 +192,14 @@ const SearchFilterScreen_ = ({navigation}) => {
   }, []);
 
   const Button_ = useCallback((props) => {
+    if (isLocked) {
+      return <ButtonForOption
+        onPress={promptSignUp}
+        showSkipButton={false}
+        noSettingText="Any"
+        {...props}
+      />;
+    }
     return <ButtonForOption
       navigation={navigation}
       navigationScreen="Search Filter Option Screen"
@@ -188,7 +207,7 @@ const SearchFilterScreen_ = ({navigation}) => {
       noSettingText="Any"
       {...props}
     />;
-  }, []);
+  }, [navigation, isLocked, promptSignUp]);
 
   const withCurrent = (
     og: OptionGroup<OptionGroupInputs>,
@@ -232,13 +251,17 @@ const SearchFilterScreen_ = ({navigation}) => {
   };
 
   useEffect(() => {
+    if (isLocked) {
+      setSearchFilters(defaultSearchFilters());
+      return;
+    }
     (async () => {
       const response = await api('get', '/search-filters');
       if (response.json) {
         setSearchFilters(response.json);
       }
     })();
-  }, []);
+  }, [isLocked]);
 
   const _searchTwoWayBasicsOptionGroups = searchTwoWayBasicsOptionGroups.map(withCurrent);
   const _searchOtherBasicsOptionGroups = searchOtherBasicsOptionGroups.map(withCurrent);
