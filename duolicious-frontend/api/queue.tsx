@@ -42,12 +42,18 @@ class PromiseQueue {
   }
 }
 
-// Operations on the cards need to finish in order. If we send two http request
-// at roughly the same time, the server will see them in an arbitrary order. So
-// if the user undoes then re-answers a question in short succession, their
-// re-answer might be deleted. So we use a queue to make sure that doesn't
+// Answer writes (and undos) need to finish in order. If we send two http
+// requests at roughly the same time, the server will see them in an arbitrary
+// order. So if the user undoes then re-answers a question in short succession,
+// their re-answer might be deleted. So we use a queue to make sure that doesn't
 // happen.
 const quizQueue = new PromiseQueue();
+
+// Fetching the next batch of cards is kept on its own queue, separate from
+// quizQueue. Otherwise an answer write that's stuck retrying (e.g. while
+// offline) would block the queue and prevent us from ever topping up the stack,
+// so the user would never see the skeleton cards as they swipe to the end.
+const cardQueue = new PromiseQueue();
 
 const aboutQueue = new PromiseQueue();
 
@@ -64,6 +70,7 @@ const photoQueue = new PromiseQueue();
 
 export {
   aboutQueue,
+  cardQueue,
   nameQueue,
   onboardingQueue,
   photoQueue,

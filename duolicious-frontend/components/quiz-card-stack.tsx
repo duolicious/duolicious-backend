@@ -25,7 +25,7 @@ import { DonutChart } from './donut-chart';
 import { DefaultText } from './default-text';
 import { LinearGradient } from 'expo-linear-gradient';
 import { api, japi } from '../api/api';
-import { quizQueue } from '../api/queue';
+import { cardQueue, quizQueue } from '../api/queue';
 import * as _ from "lodash";
 import { useSkipped } from '../hide-and-block/hide-and-block';
 import { useAppTheme } from '../app-theme/app-theme';
@@ -443,7 +443,6 @@ const addAnswerInPlace = async (
   isPublic: boolean,
   state: StackState,
   triggerRender: () => void,
-  onTopCardChanged?: () => void,
 ) => {
   if (swipedCard.questionNumber !== undefined) {
     await saveAnswer(
@@ -458,14 +457,6 @@ const addAnswerInPlace = async (
     await addNextProspectsInPlace(
       state, isPublic, anonymousAnswers, triggerRender);
   }
-
-  addNextCardsInPlace(
-    state,
-    isPublic,
-    undefined,
-    triggerRender,
-    onTopCardChanged,
-  );
 };
 
 const getBestProspects = (prospects: ProspectState[]) => {
@@ -883,6 +874,13 @@ const QuizCardStack = (props) => {
       isPublic,
       stateRef,
       triggerRender,
+    ));
+
+    cardQueue.addTask(() => addNextCardsInPlace(
+      stateRef,
+      isPublic,
+      triggerRender,
+      triggerRender,
       onTopCardChanged,
     ));
 
@@ -908,23 +906,21 @@ const QuizCardStack = (props) => {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      if (isPublic) {
-        anonymousAnswers.forEach(
-          a => stateRef.questionNumbers.add(a.question_id));
-      }
+    if (isPublic) {
+      anonymousAnswers.forEach(
+        a => stateRef.questionNumbers.add(a.question_id));
+    }
 
-      await addNextProspectsInPlace(
-        stateRef, isPublic, anonymousAnswers, triggerRender, 3);
+    addNextProspectsInPlace(
+      stateRef, isPublic, anonymousAnswers, triggerRender, 3);
 
-      addNextCardsInPlace(
-        stateRef,
-        isPublic,
-        triggerRender,
-        triggerRender,
-        onTopCardChanged
-      );
-    })();
+    cardQueue.addTask(() => addNextCardsInPlace(
+      stateRef,
+      isPublic,
+      triggerRender,
+      triggerRender,
+      onTopCardChanged
+    ));
   }, []);
 
   return (
