@@ -1,8 +1,13 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { DefaultText } from '../default-text';
 import { getRandomElement } from '../../util/util';
 import { PARTNER_URL } from '../../env/env';
+import { useSignedInUser } from '../../events/signed-in-user';
+
+const ADSENSE_CLIENT = 'ca-pub-2356864342428722';
+const ADSENSE_SCRIPT_SRC =
+  `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
 
 type Partner = {
   name: string
@@ -132,17 +137,47 @@ const SponsoredRightPanelContent = () => {
   );
 };
 
-const RightPanelContent = () => {
+const QandARightPanelContent = () => {
+  useEffect(() => {
+    if (!document.querySelector(`script[src="${ADSENSE_SCRIPT_SRC}"]`)) {
+      const script = document.createElement('script');
+      script.src = ADSENSE_SCRIPT_SRC;
+      script.async = true;
+      script.crossOrigin = 'anonymous';
+      document.head.appendChild(script);
+    }
+
+    try {
+      // @ts-ignore
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch {
+    }
+  }, []);
+
+  return (
+    <ins
+      className="adsbygoogle"
+      style={{ display: 'inline-block', width: 300, height: 250 }}
+      data-ad-client={ADSENSE_CLIENT}
+      data-ad-slot="9659361574"
+    />
+  );
+};
+
+const RightPanelContent = ({ isQandA }: { isQandA: boolean }) => {
+  const [signedInUser] = useSignedInUser();
   const rand = useRef(Math.random()).current;
 
-  if (rand < 0.2) {
+  if (isQandA && !signedInUser?.hasGold) {
+    return <QandARightPanelContent/>;
+  } else if (rand < 0.2) {
     return <DuoliciousRightPanelContent/>;
   } else {
     return <SponsoredRightPanelContent/>;
   }
 };
 
-const RightPanel = () => {
+const RightPanel = ({ routeName }: { routeName?: string }) => {
   return (
     <View
       style={{
@@ -150,7 +185,7 @@ const RightPanel = () => {
         padding: 20,
       }}
     >
-      <RightPanelContent/>
+      <RightPanelContent isQandA={routeName === 'Q&A'}/>
     </View>
   );
 };

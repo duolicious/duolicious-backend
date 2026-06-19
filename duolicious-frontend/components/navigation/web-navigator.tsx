@@ -123,7 +123,7 @@ function WebNavigator<Navigation>({
         </View>
         {windowWidth > 1100 &&
           <View style={{ height: '100%', flex: 1 }}>
-            <RightPanel/>
+            <RightPanel routeName={state.routes[state.index]?.name}/>
           </View>
         }
         <Scrollbar/>
