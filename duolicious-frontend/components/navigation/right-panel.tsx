@@ -5,9 +5,19 @@ import { getRandomElement } from '../../util/util';
 import { PARTNER_URL } from '../../env/env';
 import { useSignedInUser } from '../../events/signed-in-user';
 
+const IS_LOCALHOST =
+  typeof window !== 'undefined' &&
+  /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+
 const ADSENSE_CLIENT = 'ca-pub-2356864342428722';
 const ADSENSE_SCRIPT_SRC =
   `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
+
+const AD_SLOTS_BY_ROUTE: Record<string, string[]> = {
+  'Q&A': ['9659361574', '4220166788'],
+  'Inbox': ['7936050512', '2520072307'],
+  'Visitors': ['2715513425', '7461673725'],
+};
 
 type Partner = {
   name: string
@@ -15,7 +25,7 @@ type Partner = {
   link: string
 };
 
-const partners: Partner[] = [
+const PARTNERS: Partner[] = [
   { name: 'SFDating',  file: 'sfdating.jpg',  link: 'https://discord.gg/REbbHqzD9p'},
   { name: 'duo3k',     file: 'duo3k.webp',    link: 'https://discord.gg/duo3k'},
   { name: 'Tiblur',    file: 'tiblur.jpg',    link: 'https://tiblur.com/register' },
@@ -78,7 +88,7 @@ const DuoliciousRightPanelContent = () => {
 };
 
 const SponsoredRightPanelContent = () => {
-  const partner = useRef(getRandomElement(partners)).current;
+  const partner = useRef(getRandomElement(PARTNERS)).current;
 
   if (!partner) {
     return null;
@@ -137,8 +147,30 @@ const SponsoredRightPanelContent = () => {
   );
 };
 
-const QandARightPanelContent = () => {
+const AdSensePlaceholder = ({ slot }: { slot: string }) => (
+  <View
+    style={{
+      width: 300,
+      height: 250,
+      borderWidth: 1,
+      borderColor: '#ccc',
+      borderStyle: 'dashed',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}
+  >
+    <DefaultText style={{ color: '#999' }}>
+      Ad placeholder (slot {slot})
+    </DefaultText>
+  </View>
+);
+
+const AdSenseUnit = ({ slot }: { slot: string }) => {
   useEffect(() => {
+    if (IS_LOCALHOST) {
+      return;
+    }
+
     if (!document.querySelector(`script[src="${ADSENSE_SCRIPT_SRC}"]`)) {
       const script = document.createElement('script');
       script.src = ADSENSE_SCRIPT_SRC;
@@ -154,22 +186,36 @@ const QandARightPanelContent = () => {
     }
   }, []);
 
+  if (IS_LOCALHOST) {
+    return <AdSensePlaceholder slot={slot}/>;
+  }
+
   return (
     <ins
       className="adsbygoogle"
       style={{ display: 'inline-block', width: 300, height: 250 }}
       data-ad-client={ADSENSE_CLIENT}
-      data-ad-slot="9659361574"
+      data-ad-slot={slot}
     />
   );
 };
 
-const RightPanelContent = ({ isQandA }: { isQandA: boolean }) => {
+const AdSenseRightPanelContent = ({ slots }: { slots: string[] }) => {
+  return (
+    <View style={{ gap: 20 }}>
+      {slots.map((slot) => <AdSenseUnit key={slot} slot={slot}/>)}
+    </View>
+  );
+};
+
+const RightPanelContent = ({ routeName }: { routeName?: string }) => {
   const [signedInUser] = useSignedInUser();
   const rand = useRef(Math.random()).current;
 
-  if (isQandA && !signedInUser?.hasGold) {
-    return <QandARightPanelContent/>;
+  const adSlots = routeName ? AD_SLOTS_BY_ROUTE[routeName] : undefined;
+
+  if (adSlots && !signedInUser?.hasGold) {
+    return <AdSenseRightPanelContent slots={adSlots}/>;
   } else if (rand < 0.2) {
     return <DuoliciousRightPanelContent/>;
   } else {
@@ -185,7 +231,7 @@ const RightPanel = ({ routeName }: { routeName?: string }) => {
         padding: 20,
       }}
     >
-      <RightPanelContent isQandA={routeName === 'Q&A'}/>
+      <RightPanelContent key={routeName} routeName={routeName}/>
     </View>
   );
 };
