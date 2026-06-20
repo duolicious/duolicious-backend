@@ -152,23 +152,22 @@ const PhotoOrSkeleton_ = ({
     >
       <LinearGradient
         colors={showGradient ? [
-          'rgba(0, 0, 0, 0.1)',
           'transparent',
-          'transparent',
-          'transparent',
-          'transparent',
-          'rgba(0, 0, 0, 0.1)',
-          'rgba(0, 0, 0, 0.3)',
-          'rgba(0, 0, 0, 0.4)',
+          'rgba(0, 0, 0, 0.5)',
         ] : [
           'transparent',
           'transparent',
+        ]}
+        locations={[
+          0.7,
+          1.0,
         ]}
         style={{
           height: '100%',
           justifyContent: 'center',
           alignItems: 'center',
         }}
+        dither={false}
       >
         {photoUuid === null && photoBlurhash === null &&
           <Ionicons
@@ -440,7 +439,7 @@ const UserDetails = ({name, age, matchPercentage, verified, ...rest}: {
       >
         <DefaultText style={{
           fontSize: 18,
-          fontWeight: '600',
+          fontWeight: '700',
           color: 'white',
           overflow: 'hidden',
           flexShrink: 1,
