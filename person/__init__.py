@@ -1,5 +1,5 @@
 import os
-from database import Tx, api_tx, fetchall_sets, require_row
+from database import Tx, api_tx, fetchall_sets
 from collections.abc import Mapping, Sequence
 from typing import Optional, Tuple, Literal, cast
 from urlslug import assign_url_slug, reserve_onboardee_url_slug
@@ -223,8 +223,7 @@ def put_image_in_object_store(
 
 def _has_gold(person_id: int) -> bool:
     with api_tx() as tx:
-        tx.execute(Q_HAS_GOLD, dict(person_id=person_id))
-        row = require_row(tx.fetchone())
+        row = tx.require_one(Q_HAS_GOLD, dict(person_id=person_id))
     return row.get('has_gold', False)
 
 
@@ -281,7 +280,7 @@ def _handle_pending_club(
     if person_id is not None and pending_club_name is not None:
         tx.execute(Q_JOIN_CLUB, club_params)
         tx.execute(Q_UPSERT_SEARCH_PREFERENCE_CLUB, club_params)
-    return require_row(tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone())
+    return tx.require_one(Q_GET_SESSION_CLUBS, club_params)
 
 
 def _str_value(value: object, field_name: str) -> str:
@@ -504,9 +503,9 @@ def _sign_in_with_social(
         # 5. For existing users, bump sign-in metadata + reactivation
         #    club counts; for new users, return a stub profile.
         if person_id is not None:
-            profile = require_row(tx.execute(Q_AFTER_SOCIAL_SIGN_IN, dict(
+            profile = tx.require_one(Q_AFTER_SOCIAL_SIGN_IN, dict(
                 person_id=person_id,
-            )).fetchone())
+            ))
         else:
             profile = dict(
                 person_id=None,
@@ -587,7 +586,7 @@ def post_check_session_token(s: t.SessionInfo) -> object:
             pending_club_name=s.pending_club_name,
         )
 
-        clubs = require_row(tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone())
+        clubs = tx.require_one(Q_GET_SESSION_CLUBS, club_params)
 
         return dict(
             person_id=s.person_id,
@@ -805,8 +804,7 @@ def post_finish_onboarding(s: t.SessionInfo) -> object:
 
     with api_tx() as tx:
         tx.execute('SET LOCAL statement_timeout = 15000') # 15 seconds
-        tx.execute(Q_FINISH_ONBOARDING, params=api_params)
-        row = require_row(tx.fetchone())
+        row = tx.require_one(Q_FINISH_ONBOARDING, params=api_params)
 
         # If this user signed up via Google/Apple, drain the pending
         # provider identity from `duo_session` into `social_identity` now
@@ -1083,7 +1081,7 @@ def get_profile_info(s: t.SessionInfo) -> object:
     params = dict(person_id=s.person_id)
 
     with api_tx('READ COMMITTED') as tx:
-        return require_row(tx.execute(Q_GET_PROFILE_INFO, params).fetchone())['j']
+        return tx.require_one(Q_GET_PROFILE_INFO, params)['j']
 
 def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo) -> None:
     files_params = [
@@ -1159,9 +1157,7 @@ def _patch_profile_info_about(person_id: int, new_about: str) -> None:
             person_id=person_id,
         )
 
-        tx.execute(select, select_params)
-
-        old_about = require_row(tx.fetchone())['old_about']
+        old_about = tx.require_one(select, select_params)['old_about']
 
         update_params = dict(
             person_id=person_id,
@@ -1645,7 +1641,7 @@ def get_search_filters_by_person_id(person_id: Optional[int]) -> object:
     params = dict(person_id=person_id)
 
     with api_tx('READ COMMITTED') as tx:
-        return require_row(tx.execute(Q_GET_SEARCH_FILTERS, params).fetchone())['j']
+        return tx.require_one(Q_GET_SEARCH_FILTERS, params)['j']
 
 def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo) -> object:
     [field_name] = req.__pydantic_fields_set__
@@ -2009,7 +2005,7 @@ def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo) -
         """
 
     with api_tx() as tx:
-        answer = require_row(tx.execute(q, params).fetchone()).get('j')
+        answer = tx.require_one(q, params).get('j')
         if answer is None:
             return dict(error=error), 400
         else:
@@ -2081,7 +2077,7 @@ def get_update_notifications(email: str, type: str, frequency: str) -> object:
 
     with api_tx('READ COMMITTED') as tx:
         query_results = [
-            require_row(tx.execute(q, params).fetchone())['ok']
+            tx.require_one(q, params)['ok']
             for q in queries
         ]
 
@@ -2308,7 +2304,7 @@ def get_export_data(token: str) -> object:
 
     with api_tx('read committed') as tx:
         tx.execute('SET LOCAL statement_timeout = 30000') # 30 seconds
-        raw_data = require_row(tx.execute(Q_EXPORT_API_DATA, params).fetchone())['j']
+        raw_data = tx.require_one(Q_EXPORT_API_DATA, params)['j']
 
     person_id = params['person_id']
 
@@ -2428,8 +2424,7 @@ def post_revenuecat(req: t.PostRevenuecat) -> object:
 
 def get_visitors(s: t.SessionInfo) -> object:
     with api_tx('READ COMMITTED') as tx:
-        tx.execute(Q_VISITORS, dict(person_id=s.person_id))
-        return require_row(tx.fetchone())['j']
+        return tx.require_one(Q_VISITORS, dict(person_id=s.person_id))['j']
 
 def post_mark_visitors_checked(
     req: t.PostMarkVisitorsChecked,

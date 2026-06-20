@@ -4,10 +4,10 @@ import duotypes as t
 import sessioncache
 from qanda import personality
 from pydantic import ValidationError
-from database import Tx, api_tx
+from database import Tx, api_tx, row_int
 from qanda.question import Q_QUESTION_SCORE_VECTORS
 from rediscache import redis_cache
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Literal, Tuple
 from search.sql import (
     Q_CACHED_SEARCH,
@@ -95,13 +95,6 @@ def get_search_type(n: str | None, o: str | None) -> tuple[SearchType, Tuple[int
         return 'cached-search', no
 
 
-def _row_int(row: Mapping[str, object], key: str) -> int:
-    value = row[key]
-    if not isinstance(value, int):
-        raise RuntimeError(f'{key} must be an integer')
-    return value
-
-
 def get_search(
     s: t.SessionInfo,
     n: str | None,
@@ -127,7 +120,7 @@ def get_search(
 
         rows = tx.execute(Q_SEARCH_PREFERENCE, params).fetchall()
 
-        gender_preference = [_row_int(row, 'gender_id') for row in rows]
+        gender_preference = [row_int(row, 'gender_id') for row in rows]
 
 
         if search_type == 'quiz-search':
@@ -199,7 +192,7 @@ def _get_public_search() -> Sequence[object]:
 def _get_public_search_with_answers(req: t.PublicSearchRequest) -> object:
     with api_tx('READ COMMITTED') as tx:
         questions = {
-            _row_int(q, 'id'): q
+            row_int(q, 'id'): q
             for q in tx.execute(
                 Q_QUESTION_SCORE_VECTORS,
                 dict(question_ids=[a.question_id for a in req.answers]),

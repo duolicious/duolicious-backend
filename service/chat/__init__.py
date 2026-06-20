@@ -1,5 +1,10 @@
 import os
-from database.asyncdatabase import api_tx, check_connections_forever
+from database.asyncdatabase import (
+    api_tx,
+    check_connections_forever,
+    row_str,
+    row_str_or_none,
+)
 import asyncio
 import duohash
 import regex
@@ -355,7 +360,7 @@ async def fetch_push_tokens(username: str) -> list[str]:
         await tx.execute(Q_SELECT_PUSH_TOKENS, dict(username=username))
         rows = await tx.fetchall()
 
-    return list({_row_str(row, 'token') for row in rows})
+    return list({row_str(row, 'token') for row in rows})
 
 @AsyncLruCache(ttl=10)  # 10 seconds
 async def fetch_immediate_data(
@@ -370,20 +375,6 @@ async def fetch_immediate_data(
         row = await tx.fetchone()
 
     return row if row else None
-
-def _row_str(row: Mapping[str, object], key: str) -> str:
-    value = row[key]
-    if not isinstance(value, str):
-        raise RuntimeError(f'{key} must be a string')
-    return value
-
-
-def _row_str_or_none(row: Mapping[str, object], key: str) -> str | None:
-    value = row[key]
-    if value is None or isinstance(value, str):
-        return value
-    raise RuntimeError(f'{key} must be a string or None')
-
 
 def get_middleware(subprotocol: str) -> Middleware:
     if subprotocol == 'json':
@@ -619,7 +610,7 @@ async def process_text(
 
         if immediate_data is not None and not is_shadow_banned:
             await send_notification(
-                from_name=_row_str_or_none(immediate_data, 'name'),
+                from_name=row_str_or_none(immediate_data, 'name'),
                 to_username=to_username,
                 message=maybe_message.body,
                 is_intro=is_intro,

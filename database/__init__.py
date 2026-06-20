@@ -1,6 +1,15 @@
 from types import TracebackType
 from typing import Protocol
 from collections.abc import Iterable
+from database._row import (
+    require_row,
+    row_bool,
+    row_int,
+    row_str,
+    row_str_list,
+    row_str_or_none,
+    row_value,
+)
 import os
 import psycopg
 import random
@@ -42,11 +51,6 @@ CursorQuery = str | bytes | psycopg.sql.SQL | psycopg.sql.Composed
 Row = psycopg.rows.DictRow
 
 
-def require_row(row: Row | None) -> Row:
-    if row is None:
-        raise RuntimeError('query returned no row')
-    return row
-
 class TransactionContext(Protocol):
     def __enter__(self) -> object:
         ...
@@ -79,6 +83,13 @@ class Tx(Protocol):
         query: CursorQuery,
         params: psycopg.abc.Params | None = None,
     ) -> "Tx":
+        ...
+
+    def require_one(
+        self,
+        query: CursorQuery,
+        params: psycopg.abc.Params | None = None,
+    ) -> Row:
         ...
 
     def executemany(
@@ -122,6 +133,14 @@ class TxCursor:
     ) -> Tx:
         self._cur.execute(query, params)
         return self
+
+    def require_one(
+        self,
+        query: CursorQuery,
+        params: psycopg.abc.Params | None = None,
+    ) -> Row:
+        self.execute(query, params)
+        return require_row(self.fetchone())
 
     def executemany(
         self,

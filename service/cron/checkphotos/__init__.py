@@ -1,5 +1,5 @@
 # Remove unused imports
-from database.asyncdatabase import api_tx
+from database.asyncdatabase import api_tx, row_str
 from service.cron.cronutil import (
     MAX_RANDOM_START_DELAY,
     delete_images_from_object_store,
@@ -14,7 +14,7 @@ import io
 import blurhash
 import numpy
 from PIL import Image
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator
 
 DRY_RUN = os.environ.get(
     'DUO_CRON_CHECK_PHOTOS_DRY_RUN',
@@ -100,13 +100,6 @@ def _require_image(image: io.BytesIO | None) -> io.BytesIO:
     return image
 
 
-def _row_uuid(row: Mapping[str, object]) -> str:
-    uuid = row['uuid']
-    if not isinstance(uuid, str):
-        raise RuntimeError('uuid must be a string')
-    return uuid
-
-
 async def resolve_uuids(uuids: list[str]) -> tuple[list[str], list[str]]:
     q_to_update = """
         SELECT uuid
@@ -133,8 +126,8 @@ async def resolve_uuids(uuids: list[str]) -> tuple[list[str], list[str]]:
         cur = await tx.execute(q_to_delete, params)
         rows_to_delete = await cur.fetchall()
 
-    to_update = [_row_uuid(x) for x in rows_to_update]
-    to_delete = [_row_uuid(x) for x in rows_to_delete]
+    to_update = [row_str(x, 'uuid') for x in rows_to_update]
+    to_delete = [row_str(x, 'uuid') for x in rows_to_delete]
 
     return to_update, to_delete
 

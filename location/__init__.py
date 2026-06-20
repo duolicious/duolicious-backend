@@ -1,4 +1,4 @@
-from database import api_tx, require_row
+from database import api_tx
 import json
 import os
 from typing import Optional
@@ -25,8 +25,7 @@ def init_db() -> None:
         locations = json.load(f)
 
     with api_tx() as tx:
-        tx.execute("SELECT COUNT(*) FROM location")
-        if require_row(tx.fetchone())['count'] != 0:
+        if tx.require_one("SELECT COUNT(*) FROM location")['count'] != 0:
             return
 
         tx.executemany(

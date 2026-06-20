@@ -8,6 +8,15 @@ import traceback
 from types import TracebackType
 from typing import Protocol
 from collections.abc import Iterable
+from database._row import (
+    require_row,
+    row_bool,
+    row_int,
+    row_str,
+    row_str_list,
+    row_str_or_none,
+    row_value,
+)
 
 DB_HOST = os.environ['DUO_DB_HOST']
 DB_PORT = os.environ['DUO_DB_PORT']
@@ -43,11 +52,6 @@ CursorQuery = str | bytes | psycopg.sql.SQL | psycopg.sql.Composed
 Row = psycopg.rows.DictRow
 
 
-def require_row(row: Row | None) -> Row:
-    if row is None:
-        raise RuntimeError('query returned no row')
-    return row
-
 class Tx(Protocol):
     @property
     def rowcount(self) -> int:
@@ -58,6 +62,13 @@ class Tx(Protocol):
         query: CursorQuery,
         params: psycopg.abc.Params | None = None,
     ) -> "Tx":
+        ...
+
+    async def require_one(
+        self,
+        query: CursorQuery,
+        params: psycopg.abc.Params | None = None,
+    ) -> Row:
         ...
 
     async def executemany(
@@ -92,6 +103,14 @@ class TxCursor:
     ) -> Tx:
         await self._cur.execute(query, params)
         return self
+
+    async def require_one(
+        self,
+        query: CursorQuery,
+        params: psycopg.abc.Params | None = None,
+    ) -> Row:
+        await self.execute(query, params)
+        return require_row(await self.fetchone())
 
     async def executemany(
         self,

@@ -1,5 +1,5 @@
 from typing import Iterator
-from database import Tx
+from database import Tx, row_bool
 import psycopg
 import random
 import re
@@ -101,13 +101,11 @@ def _mint(
     rejection doesn't abort the caller's transaction. Returns
     {'url_slug', 'is_random'}."""
     for slug, is_random in _candidates(base):
-        row = tx.execute(
+        row = tx.require_one(
             Q_SLUG_TAKEN,
             dict(slug=slug, email=email, person_id=person_id),
-        ).fetchone()
-        if row is None:
-            raise RuntimeError('slug availability query returned no row')
-        taken = row['exists']
+        )
+        taken = row_bool(row, 'exists')
         if taken:
             continue
         try:

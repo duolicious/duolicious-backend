@@ -1,5 +1,5 @@
 from antiabuse.antispam.signupemail.sql import *
-from database import api_tx, require_row
+from database import api_tx
 from pathlib import Path
 
 dot_insignificant_email_domains = set([
@@ -33,10 +33,10 @@ def check_and_update_bad_domains(email: str) -> object:
 
     # Check if we already know about the email domain
     with api_tx() as tx:
-        domain_status = require_row(tx.execute(
+        domain_status = tx.require_one(
             Q_EMAIL_INFO,
             params=params
-        ).fetchone())['domain_status']
+        )['domain_status']
 
     if domain_status == 'registered':
         return True

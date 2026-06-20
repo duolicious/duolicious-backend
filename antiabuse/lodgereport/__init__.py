@@ -1,4 +1,10 @@
-from database import api_tx, require_row
+from database import (
+    api_tx,
+    row_bool,
+    row_str,
+    row_str_list,
+    row_value,
+)
 from antiabuse.sql import (
     Q_LAST_MESSAGES,
     Q_MAKE_REPORT,
@@ -27,38 +33,13 @@ from collections.abc import Mapping, Sequence
 from antiabuse.lodgereport.constants import EmailEntry
 
 
-def _row_value(row: Mapping[str, object], key: str) -> object:
-    return row[key]
-
-
-def _row_str(row: Mapping[str, object], key: str) -> str:
-    value = _row_value(row, key)
-    if not isinstance(value, str):
-        raise RuntimeError(f'{key} must be a string')
-    return value
-
-
-def _row_bool(row: Mapping[str, object], key: str) -> bool:
-    value = _row_value(row, key)
-    if not isinstance(value, bool):
-        raise RuntimeError(f'{key} must be a boolean')
-    return value
-
-
-def _row_str_list(row: Mapping[str, object], key: str) -> list[str]:
-    value = _row_value(row, key)
-    if not isinstance(value, list) or not all(isinstance(x, str) for x in value):
-        raise RuntimeError(f'{key} must be a list of strings')
-    return value
-
-
 def _repack_last_messages_in_place(
     last_messages: list[dict[str, object]],
 ) -> None:
     for i in range(len(last_messages)):
         m = last_messages[i]
 
-        last_messages[i] = { _row_str(m, 'sent_by'): _row_value(m, 'body') }
+        last_messages[i] = { row_str(m, 'sent_by'): row_value(m, 'body') }
 
 
 def _obj_to_yaml_string(obj: object) -> str:
@@ -94,12 +75,12 @@ def report_template(
     reason: str,
     last_messages: list[dict[str, object]],
 ) -> str:
-    reporter_token = _row_str(report_obj[0], 'token')
-    accused_token = _row_str(report_obj[1], 'token')
+    reporter_token = row_str(report_obj[0], 'token')
+    accused_token = row_str(report_obj[1], 'token')
 
-    accused_photo_links = _row_str_list(report_obj[1], 'photo_links')
+    accused_photo_links = row_str_list(report_obj[1], 'photo_links')
 
-    object_person_id = _row_value(report_obj[1], 'id')
+    object_person_id = row_value(report_obj[1], 'id')
 
     _repack_last_messages_in_place(last_messages)
 
@@ -190,8 +171,8 @@ def _send_report_email(
     is_automoded_bot: bool,
     is_shadow_banned: bool,
 ) -> None:
-    subject_person_id = _row_value(report_obj[0], 'id')
-    object_person_id  = _row_value(report_obj[1], 'id')
+    subject_person_id = row_value(report_obj[0], 'id')
+    object_person_id  = row_value(report_obj[1], 'id')
 
     report_email = _sample_email_addresses(REPORT_EMAILS)
 
@@ -285,14 +266,13 @@ def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str) -> None:
     is_shadow_banned = False
 
     with api_tx() as tx:
-        tx.execute(Q_INSERT_SKIPPED, params=params)
-        is_automoded_bot = _row_bool(
-            require_row(tx.fetchone()),
+        is_automoded_bot = row_bool(
+            tx.require_one(Q_INSERT_SKIPPED, params=params),
             'is_automoded_bot',
         )
 
         if reason:
-            row = require_row(tx.execute(
+            row = tx.require_one(
                 Q_TRUSTWORTHY_REPORTS,
                 params=dict(
                     object_uuid=object_uuid,
@@ -301,11 +281,11 @@ def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str) -> None:
                     min_people_messaged=TRUSTWORTHY_MIN_PEOPLE_MESSAGED,
                     min_questions_answered=TRUSTWORTHY_MIN_QUESTIONS_ANSWERED,
                 ),
-            ).fetchone())
+            )
 
             is_shadow_banned = _should_shadow_ban(
-                has_gold=_row_bool(row, 'has_gold'),
-                trustworthy_report_reasons=_row_str_list(
+                has_gold=row_bool(row, 'has_gold'),
+                trustworthy_report_reasons=row_str_list(
                     row,
                     'trustworthy_report_reasons',
                 ),

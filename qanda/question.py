@@ -1,5 +1,5 @@
 import os
-from database import api_tx, require_row
+from database import api_tx
 import duotypes as t
 from questions.archetypeise_questions import load_questions
 from typing import List, Optional
@@ -109,8 +109,7 @@ def init_db() -> None:
         key=lambda q: question_to_index[q["question"]])
 
     with api_tx() as tx:
-        tx.execute('SELECT COUNT(*) FROM question')
-        if require_row(tx.fetchone())['count'] == 0:
+        if tx.require_one('SELECT COUNT(*) FROM question')['count'] == 0:
             tx.executemany(
                 """
                 INSERT INTO question (
@@ -141,14 +140,13 @@ def init_db() -> None:
     archetypeised_questions = load_questions(_archetypeised_question_json_file)
 
     with api_tx() as tx:
-        tx.execute(
+        if tx.require_one(
             """
             SELECT COUNT(*)
             FROM question
             WHERE presence_given_yes = ARRAY[]::INT[]
             """
-        )
-        if require_row(tx.fetchone())['count'] > 0:
+        )['count'] > 0:
             tx.execute(
                 """
                 CREATE TEMPORARY TABLE question_trait_pair (

@@ -1,5 +1,5 @@
 import numpy
-from database import Tx, api_tx, require_row
+from database import Tx, api_tx
 import duotypes as t
 from qanda import personality
 from qanda.question import Q_QUESTION_SCORE_VECTORS
@@ -108,10 +108,10 @@ def _set_answer(
     if question is None:
         return
 
-    scores = require_row(tx.execute(
+    scores = tx.require_one(
         Q_GET_PERSONALITY_SCORES,
         dict(person_id=person_id),
-    ).fetchone())
+    )
 
     old = tx.execute(
         Q_GET_ANSWER,

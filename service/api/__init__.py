@@ -8,7 +8,7 @@ import qanda
 from qanda import question
 import search
 from auth import apple_oauth
-from database import api_tx, require_row
+from database import api_tx
 import psycopg
 from service.api.decorators import (
     app,
@@ -114,7 +114,7 @@ def migrate_unnormalized_emails() -> None:
 
 def maybe_run_init() -> None:
     with api_tx() as tx:
-        row = require_row(tx.execute("SELECT to_regclass('person')").fetchone())
+        row = tx.require_one("SELECT to_regclass('person')")
 
     if row ['to_regclass'] is not None:
         print('Database already initialized')

@@ -1,4 +1,4 @@
-from database import api_tx, require_row
+from database import api_tx
 from commonsql import Q_IS_ALLOWED_CLUB_NAME
 
 def is_allowed_club_name(club_name: str) -> bool:
@@ -7,5 +7,5 @@ def is_allowed_club_name(club_name: str) -> bool:
     params = dict(club_name=club_name)
 
     with api_tx() as tx:
-        row = require_row(tx.execute(q, params).fetchone())
+        row = tx.require_one(q, params)
         return bool(row['is_allowed_club_name'])

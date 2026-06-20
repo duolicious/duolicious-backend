@@ -5,6 +5,13 @@ from constants import (
 from database.asyncdatabase import api_tx
 from service.cron.cronutil import print_stacktrace, MAX_RANDOM_START_DELAY
 from util import is_offpeak
+from util.coerce import (
+    mapping,
+    mapping_sequence,
+    number,
+    optional_str,
+    sequence,
+)
 from service.cron.clubseo.sql import (
     Q_CLUB_STATS_BATCH,
     Q_CLUB_TOP_ANSWERS_BATCH,
@@ -167,25 +174,15 @@ async def refresh_club_overlap_forever() -> None:
         await asyncio.sleep(CLUB_OVERLAP_POLL_SECONDS)
 
 
-def _number(value: object) -> int | float:
-    if not isinstance(value, (int, float)):
-        return 0
-    return value
-
-
-def _optional_str(value: object) -> str | None:
-    return value if isinstance(value, str) else None
-
-
 def _top_pct(items: Sequence[Mapping[str, object]] | None) -> list[dict[str, object]]:
     items = items or []
-    total = sum(_number(it.get('count', 0)) for it in items)
+    total = sum(number(it.get('count', 0)) for it in items)
     if total == 0:
         return []
     return [
         {
             'label': it.get('label'),
-            'pct': round(100 * _number(it.get('count', 0)) / total),
+            'pct': round(100 * number(it.get('count', 0)) / total),
         }
         for it in items
     ]
@@ -196,9 +193,9 @@ def _notable_traits(
 ) -> list[dict[str, object]]:
     notable = [
         t for t in (traits or [])
-        if abs(_number(t.get('score', 0))) >= MIN_NOTABLE_TRAIT_SCORE
+        if abs(number(t.get('score', 0))) >= MIN_NOTABLE_TRAIT_SCORE
     ]
-    notable.sort(key=lambda t: abs(_number(t.get('score', 0))), reverse=True)
+    notable.sort(key=lambda t: abs(number(t.get('score', 0))), reverse=True)
     return [
         {
             'trait':     t.get('trait'),
@@ -210,35 +207,17 @@ def _notable_traits(
     ]
 
 
-def _mapping(value: object) -> Mapping[str, object]:
-    if not isinstance(value, dict):
-        return {}
-    return value
-
-
-def _mapping_sequence(value: object) -> Sequence[Mapping[str, object]] | None:
-    if not isinstance(value, list):
-        return None
-    if not all(isinstance(item, dict) for item in value):
-        return None
-    return value
-
-
-def _sequence(value: object) -> Sequence[object]:
-    return value if isinstance(value, list) else []
-
-
 def build_prompt_payload(stats: Mapping[str, object]) -> dict[str, object]:
-    demo = _mapping(stats.get('demographics'))
+    demo = mapping(stats.get('demographics'))
     return {
         'club_name':        stats.get('name'),
         'member_count':     stats.get('member_count'),
         'median_age':       stats.get('median_age'),
-        'gender_mix':       _top_pct(_mapping_sequence(demo.get('gender'))),
-        'religion_mix':     _top_pct(_mapping_sequence(demo.get('religion'))),
+        'gender_mix':       _top_pct(mapping_sequence(demo.get('gender'))),
+        'religion_mix':     _top_pct(mapping_sequence(demo.get('religion'))),
         'personality_lean': _notable_traits(
-            _mapping_sequence(stats.get('personality'))),
-        'shared_answers':   _sequence(stats.get('top_answers'))[:MAX_LLM_PROMPT_FACTS],
+            mapping_sequence(stats.get('personality'))),
+        'shared_answers':   sequence(stats.get('top_answers'))[:MAX_LLM_PROMPT_FACTS],
     }
 
 
@@ -335,15 +314,15 @@ async def _process_club_seo_row(
     row: Mapping[str, object],
     semaphore: asyncio.Semaphore,
 ) -> None:
-    club_name = _optional_str(row['name'])
+    club_name = optional_str(row['name'])
     if club_name is None:
         raise RuntimeError('club name must be a string')
 
-    old_hash = _optional_str(row['old_stats_hash'])
+    old_hash = optional_str(row['old_stats_hash'])
     # NULL age (no club_seo row yet) means infinitely stale.
-    age_days = _number(row['age_days']) if row['age_days'] is not None else float('inf')
+    age_days = number(row['age_days']) if row['age_days'] is not None else float('inf')
 
-    stats = dict(_mapping(row['stats_json']))
+    stats = dict(mapping(row['stats_json']))
     stats['top_answers'] = row['top_answers_json'] or []
     payload = build_prompt_payload(stats)
     new_hash = stats_hash(payload)

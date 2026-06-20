@@ -1,5 +1,5 @@
 from async_lru_cache import AsyncLruCache
-from database.asyncdatabase import api_tx, require_row
+from database.asyncdatabase import api_tx
 from enum import Enum
 from dataclasses import dataclass
 
@@ -146,8 +146,7 @@ def pure_maybe_fetch_rate_limit(row: Row, stanza_id: str) -> list[str]:
 @AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
 async def fetch_rate_limit_reason(from_id: int) -> Row:
     async with api_tx('read committed') as tx:
-        await tx.execute(Q_RATE_LIMIT_REASON, dict(from_id=from_id))
-        row = require_row(await tx.fetchone())
+        row = await tx.require_one(Q_RATE_LIMIT_REASON, dict(from_id=from_id))
 
     return Row(
         verification_level_id=row['verification_level_id'],
