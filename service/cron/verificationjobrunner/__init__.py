@@ -9,6 +9,8 @@ import asyncio
 import os
 import random
 from dataclasses import dataclass
+from typing import cast
+from verification import Failure
 
 VERIFICATION_POLL_SECONDS = int(os.environ.get(
     'DUO_CRON_VERIFICATION_POLL_SECONDS',
@@ -60,9 +62,10 @@ async def do_verification_job(verification_job: VerificationJob):
             raw_json=verification_result.success.raw_json,
         )
     else:
+        failure = cast(Failure, verification_result.failure)
         message = (
-            verification_result.failure.reason
-            if verification_result.failure
+            failure.reason
+            if failure
             else V_SOMETHING_WENT_WRONG)
 
         params = dict(
@@ -75,7 +78,7 @@ async def do_verification_job(verification_job: VerificationJob):
             status='failure',
             message=message,
             verification_level_name='No verification',
-            raw_json=verification_result.failure.raw_json,
+            raw_json=failure.raw_json,
         )
 
     async with api_tx() as tx:

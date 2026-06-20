@@ -39,7 +39,7 @@ print(f'Hello from cron module: {__name__}')
 
 @dataclass
 class PersonNotification:
-    person_uuid: int
+    person_uuid: str
     last_intro_notification_seconds: int
     last_chat_notification_seconds: int
     last_intro_seconds: int

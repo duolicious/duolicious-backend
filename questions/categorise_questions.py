@@ -7,6 +7,7 @@ import datetime
 import random
 import sys
 from typing import NamedTuple, List
+from typing import Any
 import json
 import time
 import re
@@ -22,6 +23,7 @@ if not question_path:
 
 openai.organization = open(f'{Path.home()}/.openai-org-id').read().strip()
 openai.api_key = open(f'{Path.home()}/.openai-key').read().strip()
+openai_legacy: Any = openai
 
 valid_categories = set(['values', 'sex', 'interpersonal', 'other'])
 
@@ -56,7 +58,7 @@ Express your answer as a JSON object in the format {'{'}1: "category", 2: "categ
 def categorise_batch_once(questions: List[str]) -> List[CategorisedQuestion]:
     prompt = get_batch_prompt(questions)
 
-    completion = openai.ChatCompletion.create(
+    completion = openai_legacy.ChatCompletion.create(
         model="gpt-4",
         messages=[
             {

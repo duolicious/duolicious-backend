@@ -1,6 +1,6 @@
 import os
 from database import api_tx, fetchall_sets
-from typing import Any, Optional, Tuple, Literal
+from typing import Any, Optional, Tuple, Literal, cast
 from urlslug import assign_url_slug, reserve_onboardee_url_slug
 import duotypes as t
 import json
@@ -81,9 +81,9 @@ class CropSize:
 
 def process_image_as_image(
     image: Image.Image,
-    output_size: Optional[int] = None,
-    crop_size: Optional[CropSize] = None,
-) -> io.BytesIO:
+    output_size: int | None = None,
+    crop_size: CropSize | None = None,
+) -> Image.Image:
     # Rotate the image according to EXIF data
     try:
         exif = image.getexif()
@@ -159,8 +159,8 @@ def process_image_as_image(
 def process_image_as_bytes(
     base64_file: t.Base64File,
     format: Literal['raw', 'jpeg'],
-    output_size: Optional[int] = None,
-    crop_size: Optional[CropSize] = None,
+    output_size: int | None = None,
+    crop_size: CropSize | None = None,
 ) -> io.BytesIO:
     if format == 'raw':
         return io.BytesIO(base64_file.bytes)
@@ -182,7 +182,7 @@ def process_image_as_bytes(
 
     return output_bytes
 
-def compute_blurhash(image: Image.Image, crop_size: Optional[CropSize] = None):
+def compute_blurhash(image: Image.Image, crop_size: CropSize | None = None):
     image = process_image_as_image(image, output_size=32, crop_size=crop_size)
 
     return blurhash.encode(numpy.array(image.convert("RGB")))
@@ -982,12 +982,12 @@ def get_compare_answers(
         return 'Invalid topic', 400
 
     try:
-        n_int = int(n)
+        n_int = int(cast(str, n))
     except:
         return 'Invalid n', 400
 
     try:
-        o_int = int(o)
+        o_int = int(cast(str, o))
     except:
         return 'Invalid o', 400
 

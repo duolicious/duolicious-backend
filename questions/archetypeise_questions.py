@@ -3,7 +3,7 @@
 import statistics
 import openai
 import sys
-from typing import List, NamedTuple, Optional
+from typing import Any, List, NamedTuple, Optional
 import json
 from random import shuffle
 import re
@@ -13,6 +13,8 @@ import functools
 from dataclasses import dataclass
 import time
 from pathlib import Path
+
+openai_legacy: Any = openai
 
 class Props(NamedTuple):
     ppgy: float
@@ -442,7 +444,7 @@ def archetypeise_batch_for_one_trait_once(
     completion = None
     while not completion:
         try:
-            completion = openai.ChatCompletion.create(
+            completion = openai_legacy.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
                     {
@@ -454,7 +456,7 @@ def archetypeise_batch_for_one_trait_once(
                 max_tokens=8 * len(questions),
                 stop=['}']
             )
-        except openai.error.RateLimitError as e:
+        except openai_legacy.error.RateLimitError as e:
             time.sleep(1)
         except Exception as e:
             print(str(e))
@@ -470,9 +472,12 @@ raw_batch_response: {raw_batch_response}
     )
 
     parsed_batch_response = re.sub('[^q,:0-9]', '', raw_batch_response).split(',')
-    parsed_batch_response = [int(nc.split(':')[1]) for nc in parsed_batch_response]
+    parsed_batch_response_ints = [
+        int(nc.split(':')[1])
+        for nc in parsed_batch_response
+    ]
 
-    return parsed_batch_response
+    return parsed_batch_response_ints
 
 def archetypeise_questions_for_trait(
     trait: Trait,

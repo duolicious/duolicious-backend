@@ -120,7 +120,7 @@ REDIS_HOST: str = os.environ.get("DUO_REDIS_HOST", "redis")
 REDIS_PORT: int = int(os.environ.get("DUO_REDIS_PORT", 6379))
 
 app = Flask(__name__)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
+setattr(app, 'wsgi_app', ProxyFix(app.wsgi_app, x_for=1))
 app.config['MAX_CONTENT_LENGTH'] = constants.MAX_CONTENT_LENGTH;
 
 # Lets routes capture club names that begin with a slash (e.g. "/club/%2Fa%2F"

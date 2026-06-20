@@ -14,6 +14,8 @@ import io
 import blurhash
 import numpy
 from PIL import Image
+from collections.abc import Iterator
+from typing import cast
 
 DRY_RUN = os.environ.get(
     'DUO_CRON_CHECK_PHOTOS_DRY_RUN',
@@ -45,7 +47,7 @@ s3_client = boto3.client(
 )
 
 async def update_blurhashes(uuids: list[str]):
-    images = await download_450_images(uuids)
+    images = cast(list[io.BytesIO], await download_450_images(uuids))
     blurhashes = compute_blurhashes(images)
 
     params_seq = [
@@ -67,7 +69,7 @@ async def update_blurhashes(uuids: list[str]):
 
     print('checkphotos: updated blurhashes', params_seq)
 
-def list_images_in_object_store() -> list[list[str]]:
+def list_images_in_object_store() -> Iterator[list[str]]:
     print(f'checkphotos: listing images in object store')
     paginator = s3_client.get_paginator('list_objects_v2')
 
@@ -88,7 +90,7 @@ def list_images_in_object_store() -> list[list[str]]:
 
     print(f'checkphotos: fetched {count} keys in total')
 
-def list_uuids_in_object_store() -> list[list[str]]:
+def list_uuids_in_object_store() -> Iterator[list[str]]:
     for chunk in list_images_in_object_store():
         yield [key[4:-4] for key in chunk]
 

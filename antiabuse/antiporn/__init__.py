@@ -1,6 +1,7 @@
 from PIL import Image
 from typing import List
 import numpy as np
+import numpy.typing as npt
 import onnxruntime as ort
 import argparse
 from pathlib import Path
@@ -9,11 +10,11 @@ from pathlib import Path
 
 _MODEL_PATH_BASE = Path(__file__).parent.parent / 'antiporn'
 
-_MODEL = bytearray()
+_MODEL_PARTS = bytearray()
 for file_path in sorted(_MODEL_PATH_BASE.glob('model.onnx.part*')):
     with open(file_path, 'rb') as file:
-        _MODEL.extend(file.read())
-_MODEL = bytes(_MODEL)
+        _MODEL_PARTS.extend(file.read())
+_MODEL = bytes(_MODEL_PARTS)
 
 # Create a global ONNX runtime session
 _SESSION = ort.InferenceSession(_MODEL)
@@ -22,7 +23,10 @@ _INPUT_NAME = _SESSION.get_inputs()[0].name
 def avg(*n):
     return sum(n) / float(len(n))
 
-def preprocess_for_evaluation(image: Image.Image, image_size: int) -> np.array:
+def preprocess_for_evaluation(
+    image: Image.Image,
+    image_size: int,
+) -> npt.NDArray[np.float16]:
     """
     Preprocess image for evaluation
     Parameters
@@ -36,11 +40,11 @@ def preprocess_for_evaluation(image: Image.Image, image_size: int) -> np.array:
     image : np.array
         Image ready for evaluation
     """
-    image = pad_resize_image(image, image_size)
-    image = np.array(image, dtype=np.float16)
-    image -= 128
-    image /= 128
-    return image
+    resized_image = pad_resize_image(image, image_size)
+    image_array = np.array(resized_image, dtype=np.float16)
+    image_array -= 128
+    image_array /= 128
+    return image_array
 
 def pad_resize_image(image: Image.Image, target_size: int) -> Image.Image:
     """
@@ -58,13 +62,16 @@ def pad_resize_image(image: Image.Image, target_size: int) -> Image.Image:
     """
     old_size = image.size
     ratio = float(target_size) / max(old_size)
-    new_size = tuple([int(x * ratio) for x in old_size])
+    new_size = (int(old_size[0] * ratio), int(old_size[1] * ratio))
     image = image.resize(new_size, Image.BILINEAR)
     new_im = Image.new("RGB", (target_size, target_size))
     new_im.paste(image, ((target_size - new_size[0]) // 2, (target_size - new_size[1]) // 2))
     return new_im
 
-def read_image_from_bytes(image_data: BytesIO, flip_mode: str = "none") -> np.array:
+def read_image_from_bytes(
+    image_data: BytesIO,
+    flip_mode: str = "none",
+) -> npt.NDArray[np.float16]:
     """
     Load and preprocess image from a BytesIO object for inference.
     Parameters
@@ -93,9 +100,9 @@ def read_image_from_bytes(image_data: BytesIO, flip_mode: str = "none") -> np.ar
     else:
         raise ValueError("Invalid flip mode")
 
-    image = preprocess_for_evaluation(image, 480)
+    image_array = preprocess_for_evaluation(image, 480)
 
-    return image.flatten()
+    return image_array.flatten()
 
 def predict_nsfw(image_data_list: List[BytesIO]) -> List[float]:
     """
