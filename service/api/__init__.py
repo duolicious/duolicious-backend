@@ -374,12 +374,12 @@ def get_me_by_session(s: t.SessionInfo):
 def get_me_by_id(person_id: str):
     return person.get_me(person_id_as_str=person_id)
 
-@aget('/prospect-profile/<prospect_uuid>', auth='optional')
+@aget('/prospect-profile/<prospect_handle>', auth='optional')
 def get_prospect_profile(
     s: Optional[t.SessionInfo],
-    prospect_uuid: str,
+    prospect_handle: str,
 ):
-    return person.get_prospect_profile(s, prospect_uuid)
+    return person.get_prospect_profile(s, prospect_handle)
 
 @aget('/conversation-prospect/<prospect_uuid>')
 def get_conversation_prospect(s: t.SessionInfo, prospect_uuid: str):

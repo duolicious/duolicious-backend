@@ -1056,6 +1056,17 @@ WITH searcher AS (
         flair,
         has_gold,
         sign_up_time,
+        (
+            NOT EXISTS (
+                SELECT 1
+                FROM skipped
+                WHERE
+                    object_person_id = prospect.id AND
+                    reported
+            )
+        AND
+            prospect.sign_up_time < now() - interval '1 month'
+        ) AS advertiser_friendly,
         count_answers,
         about,
         (
@@ -1378,7 +1389,8 @@ WITH searcher AS (
         ({Q_COMPUTED_FLAIR}) AS flair,
         age,
         gender,
-        location
+        location,
+        advertiser_friendly
     FROM
         person_data,
         searcher
@@ -1412,7 +1424,8 @@ SELECT
         'flair', flair,
         'age', age,
         'gender', gender,
-        'location', location
+        'location', location,
+        'advertiser_friendly', advertiser_friendly
     ) || mapped_last_event_data AS j
 FROM
     filtered_by_club

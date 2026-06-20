@@ -146,6 +146,7 @@ test_json_format () {
     "added_photo_blurhash": "redacted_nonnull_value",
     "added_photo_extra_exts": [],
     "added_photo_uuid": "redacted_nonnull_value",
+    "advertiser_friendly": false,
     "age": 26,
     "flair": [
       "gold"
@@ -166,6 +167,7 @@ test_json_format () {
     "added_photo_blurhash": "redacted_nonnull_value",
     "added_photo_extra_exts": [],
     "added_photo_uuid": "redacted_nonnull_value",
+    "advertiser_friendly": false,
     "age": 26,
     "flair": [
       "gold"
@@ -184,6 +186,7 @@ test_json_format () {
   },
   {
     "added_audio_uuid": "redacted_nonnull_value",
+    "advertiser_friendly": false,
     "age": 26,
     "flair": [
       "gold",
@@ -205,6 +208,7 @@ test_json_format () {
     "added_photo_blurhash": "redacted_nonnull_value",
     "added_photo_extra_exts": [],
     "added_photo_uuid": "redacted_nonnull_value",
+    "advertiser_friendly": false,
     "age": 26,
     "flair": [
       "gold"

@@ -960,6 +960,19 @@ WITH prospect_base AS (
                 subject_person_id = %(person_id)s AND
                 object_person_id  = (SELECT id FROM prospect)
         ) AS j
+), advertiser_friendly AS (
+    SELECT
+        (
+            NOT EXISTS (
+                SELECT 1
+                FROM skipped
+                WHERE
+                    object_person_id = (SELECT id FROM prospect) AND
+                    reported
+            )
+        AND
+            (SELECT sign_up_time FROM prospect) < NOW() - INTERVAL '1 month'
+        ) AS j
 ), clubs AS (
     SELECT
         prospect_person_club.club_name,
@@ -1024,6 +1037,7 @@ SELECT
         'about',                     (SELECT about                     FROM prospect),
         'count_answers',             (SELECT count_answers             FROM prospect),
         'is_skipped',                (SELECT j                         FROM is_skipped),
+        'advertiser_friendly',       (SELECT j                         FROM advertiser_friendly),
         'seconds_since_last_online', (SELECT seconds_since_last_online FROM prospect),
         'seconds_since_sign_up',     (SELECT seconds_since_sign_up     FROM prospect),
         'flair',                     (SELECT computed_flair            FROM flair),
@@ -3149,6 +3163,18 @@ WITH checker AS (
         ) AS location,
 
         prospect.verification_level_id > 1 AS is_verified,
+
+        (
+            NOT EXISTS (
+                SELECT 1
+                FROM skipped
+                WHERE
+                    object_person_id = prospect.id AND
+                    reported
+            )
+        AND
+            prospect.sign_up_time < now() - interval '1 month'
+        ) AS advertiser_friendly,
 
         CLAMP(
             0,
