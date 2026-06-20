@@ -1,4 +1,5 @@
 import {
+  GestureResponderEvent,
   ImageBackground as RNImageBackground,
   Platform,
   Pressable,
@@ -38,7 +39,15 @@ import { setProspectHint } from '../navigation/prospect-cache';
 // The React Native ImageBackground implementation doesn't have that issue, but
 // it also doesn't support blurhashes, so we need to combine them if we want to
 // have blurhashes and (the appearance of) bug-free operation
-const ImageBackground = (props) => {
+const ImageBackground = (props: {
+  children?: React.ReactNode,
+  placeholder?: any,
+  source?: any,
+  style?: any,
+  transition?: any,
+  contentFit?: any,
+  onLoad?: () => void,
+}) => {
   if (Platform.OS !== 'android') {
     return <ExpoImageBackground {...props} />;
   }
@@ -213,7 +222,7 @@ const ProfileCard = ({
 
   const navigation = useNavigation<any>();
 
-  const itemOnPress = useCallback((e) => {
+  const itemOnPress = useCallback((e: GestureResponderEvent) => {
     e.preventDefault();
 
     if (!navigation) {
@@ -399,7 +408,13 @@ const ProfileCard = ({
   );
 };
 
-const UserDetails = ({name, age, matchPercentage, verified, ...rest}) => {
+const UserDetails = ({name, age, matchPercentage, verified, ...rest}: {
+  name: string,
+  age: number,
+  matchPercentage: number,
+  verified: boolean,
+  containerStyle?: any,
+}) => {
   const {
     containerStyle,
   } = rest;

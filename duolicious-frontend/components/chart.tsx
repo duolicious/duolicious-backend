@@ -15,7 +15,16 @@ import { commonStyles } from '../styles';
 import { useAppTheme } from '../app-theme/app-theme';
 import { usePressableAnimation } from '../animation/animation';
 
-const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
+const Chart = ({name1, percentage1, name2, percentage2, ...props}: {
+  name1?: string | null,
+  percentage1?: number,
+  name2?: string | null,
+  percentage2?: number,
+  children?: React.ReactNode,
+  dimensionName?: string,
+  minLabel?: string,
+  maxLabel?: string,
+}) => {
   const {
     children,
     dimensionName,
@@ -57,7 +66,14 @@ const Chart = ({name1, percentage1, name2, percentage2, ...props}) => {
   const minLabel_ = minLabel ? `100%` : '0%';
   const maxLabel_ = maxLabel ? `100%` : '100%';
 
-  const Tick = useCallback(({position, color, ...props}) => {
+  const Tick = useCallback(({position, color, ...props}: {
+    position?: any,
+    color: string,
+    label?: string | null,
+    labelPercentage?: number,
+    extraHeight?: number,
+    round?: boolean,
+  }) => {
     const {label, labelPercentage, extraHeight, round = false} = props;
 
     const position_ = position && Math.round(position);

@@ -7,7 +7,14 @@ import { isMobile } from '../../util/util';
 import { DefaultText } from '../default-text';
 import { useNumVisitors } from '../visitors-tab';
 
-const NumberBadge = ({ num, left, borderColor, backgroundColor, color, cap = 99 }) => {
+const NumberBadge = ({ num, left, borderColor, backgroundColor, color, cap = 99 }: {
+  num: number
+  left: number
+  borderColor: string
+  backgroundColor: string
+  color: string
+  cap?: number
+}) => {
   const cappedNum = Math.min(num, cap);
   const isCapped = cap > cap;
   const maybePlus = isCapped ? '+' : '';

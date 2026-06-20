@@ -227,6 +227,9 @@ const InboxTab = () => {
 const InboxTabNavBar = ({
   showArchive,
   onPressArchiveButton,
+}: {
+  showArchive: boolean,
+  onPressArchiveButton: () => void,
 }) => {
   const { appTheme } = useAppTheme();
   const [isOnline, setIsOnline] = useState(false);

@@ -6,8 +6,8 @@ jest.mock('../../websocket-layer', () => ({
 }));
 
 describe('Batching Mechanism and Reference Counting', () => {
-  let subscribe;
-  let send;
+  let subscribe: (personUuid: string) => () => void;
+  let send: jest.Mock;
 
   beforeEach(() => {
     // Reset modules and import a fresh instance. `jest.resetModules()`

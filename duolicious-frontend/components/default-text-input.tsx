@@ -3,9 +3,10 @@ import {
   StyleSheet,
   TextInput,
 } from 'react-native';
+import { ComponentProps, Ref } from 'react';
 import { useAppTheme } from '../app-theme/app-theme';
 
-const DefaultTextInput = (props) => {
+const DefaultTextInput = (props: ComponentProps<typeof TextInput> & { innerRef?: Ref<TextInput> }) => {
   const { style, innerRef, ...rest } = props;
 
   const { appTheme } = useAppTheme();

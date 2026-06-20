@@ -19,7 +19,7 @@ import { AudioPlayer } from '../audio-player';
 import { MessageStatus } from '../../chat/application-layer';
 import { useMessage } from '../../chat/application-layer/hooks/message';
 import { onReceiveMessage, Message } from '../../chat/application-layer';
-import { Gesture, GestureDetector, TapGestureHandler, State } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, HandlerStateChangeEvent, TapGestureHandler, TapGestureHandlerEventPayload, State } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -210,7 +210,7 @@ const MessageStatusComponent = ({
 
   const navigation = useNavigation<any>();
 
-  const onHandlerStateChange = useCallback(({ nativeEvent }) => {
+  const onHandlerStateChange = useCallback(({ nativeEvent }: HandlerStateChangeEvent<TapGestureHandlerEventPayload>) => {
     if (!isPressable) {
       return;
     }

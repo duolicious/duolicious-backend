@@ -241,7 +241,7 @@ const useNavigationToProfile = (
 ) => {
   const navigation = useNavigation<any>();
 
-  return useCallback((e) => {
+  return useCallback((e: GestureResponderEvent) => {
     e.preventDefault();
 
     setProspectHint(handle, { photoBlurhash });
@@ -255,7 +255,7 @@ const useNavigationToProfile = (
   }, [handle, photoBlurhash]);
 };
 
-const useNavigationToProfileGallery = (photoUuid) => {
+const useNavigationToProfileGallery = (photoUuid: string) => {
   const navigation = useNavigation<any>();
 
   return useCallback(() => {
@@ -278,7 +278,7 @@ const useNavigationToConversation = (
 ) => {
   const navigation = useNavigation<any>();
 
-  return useCallback((e) => {
+  return useCallback((e: GestureResponderEvent) => {
     e.preventDefault();
 
     setQuote({ text: quote, attribution: name });

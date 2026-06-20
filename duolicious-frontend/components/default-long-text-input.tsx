@@ -1,6 +1,7 @@
+import { ComponentProps } from 'react';
 import { DefaultTextInput } from './default-text-input';
 
-const DefaultLongTextInput = (props) => {
+const DefaultLongTextInput = (props: ComponentProps<typeof DefaultTextInput>) => {
   const {style, ...rest} = props;
 
   return (

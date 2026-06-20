@@ -1,7 +1,10 @@
 import {useState, useRef} from 'react';
 import {
   Keyboard,
+  NativeSyntheticEvent,
   Platform,
+  TextInput,
+  TextInputKeyPressEventData,
   View,
 } from 'react-native';
 import {
@@ -64,7 +67,7 @@ const OtpInput = (props: Props) => {
     inputRefs.current[clampedInputRefsIndex(i)].focus()
   };
 
-  const onKeyPress = (i: number) => ({nativeEvent: {key: keyValue}}) => {
+  const onKeyPress = (i: number) => ({nativeEvent: {key: keyValue}}: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
     if (keyValue === 'Backspace' && state[i].digit === '') {
       const clampedI = clampedInputRefsIndex(i - 1);
       setDigit(clampedI, '');
@@ -161,7 +164,7 @@ const OtpInput = (props: Props) => {
               placeholder=""
               key={i}
               autoFocus={i === 0}
-              innerRef={e => inputRefs.current[i] = e}
+              innerRef={(e: TextInput | null) => { inputRefs.current[i] = e; }}
               onFocus={onFocus(i)}
               onBlur={onBlur(i)}
               onChangeText={onChangeText(i)}

@@ -1,6 +1,7 @@
 import {
   FlatList,
   FlatListProps,
+  LayoutChangeEvent,
   StyleProp,
   StyleSheet,
   View,
@@ -8,6 +9,8 @@ import {
 } from 'react-native';
 import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import {
+  ForwardedRef,
+  Ref,
   forwardRef,
   memo,
   useCallback,
@@ -302,7 +305,7 @@ const EndTextNotice = ({
   }
 };
 
-const useList = <ItemT, ListType>(ref, props: DefaultFlatListProps<ItemT> | DefaultFlashListProps<ItemT>) => {
+const useList = <ItemT, ListType>(ref: Ref<{ refresh: () => void }>, props: DefaultFlatListProps<ItemT> | DefaultFlashListProps<ItemT>) => {
   const contentHeight = useRef(0);
   const viewportHeight = useRef(0);
 
@@ -372,7 +375,7 @@ const useList = <ItemT, ListType>(ref, props: DefaultFlatListProps<ItemT> | Defa
     }
   };
 
-  const onLayout = useCallback((params) => {
+  const onLayout = useCallback((params: LayoutChangeEvent) => {
     viewportHeight.current = params.nativeEvent.layout.height;
 
     if (contentHeight.current < viewportHeight.current) {
@@ -399,7 +402,7 @@ const useList = <ItemT, ListType>(ref, props: DefaultFlatListProps<ItemT> | Defa
   }
 };
 
-const UntypedDefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>, ref) => {
+const UntypedDefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>, ref: ForwardedRef<{ refresh: () => void }>) => {
   const {
     flatList,
     onRefresh,
@@ -470,7 +473,7 @@ const UntypedDefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>, ref)
   );
 };
 
-const UntypedDefaultFlashList = <ItemT,>(props: DefaultFlashListProps<ItemT>, ref) => {
+const UntypedDefaultFlashList = <ItemT,>(props: DefaultFlashListProps<ItemT>, ref: ForwardedRef<{ refresh: () => void }>) => {
   const {
     flatList,
     onRefresh,

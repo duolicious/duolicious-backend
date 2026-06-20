@@ -13,6 +13,7 @@ import {
   useState,
 } from 'react';
 import {
+  ProfileInfo,
   getProfileInfo,
   patchProfileInfo,
   setProfileInfo,
@@ -136,7 +137,7 @@ const ProfileTab = () => {
   );
 };
 
-const Images_ = ({data}) => {
+const Images_ = ({data}: {data: ProfileInfo}) => {
   const input: OptionGroupPhotos = useMemo(() => {
     return {
       photos: {
@@ -213,7 +214,7 @@ const Images_ = ({data}) => {
   );
 };
 
-const ProfileTab_ = ({navigation}) => {
+const ProfileTab_ = ({navigation}: {navigation: any}) => {
   const { appTheme } = useAppTheme();
   const [signedInUser] = useSignedInUser();
   const data = useProfileInfo();
@@ -281,7 +282,7 @@ const ProfileTab_ = ({navigation}) => {
   );
 };
 
-const DisplayNameAndAboutPerson = ({data}) => {
+const DisplayNameAndAboutPerson = ({data}: {data: ProfileInfo}) => {
   const [name, setName] = useState<string>(data.name ?? '');
   const { appTheme } = useAppTheme();
 
@@ -455,7 +456,7 @@ const DisplayNameAndAboutPerson = ({data}) => {
 const optionGroupToDataKey = (og: OptionGroup<OptionGroupInputs>) =>
   og.title.toLowerCase().replaceAll(' ', '_');
 
-const Options = ({ navigation, data }) => {
+const Options = ({ navigation, data }: { navigation: any, data: ProfileInfo }) => {
   const [isLoadingSignOut, setIsLoadingSignOut] = useState(false);
   const [dataExportStatus, setDataExportStatus] = useState<
     'error' | 'loading' | 'ok'
@@ -538,7 +539,7 @@ const Options = ({ navigation, data }) => {
     });
   }, []);
 
-  const Button_ = useCallback((props) => {
+  const Button_ = useCallback((props: any) => {
     return <ButtonForOption
       navigation={navigation}
       navigationScreen="Profile Option Screen"

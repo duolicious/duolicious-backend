@@ -226,7 +226,7 @@ const WelcomeScreen = () => {
   );
 };
 
-const InviteScreen = ({navigation, route}) => {
+const InviteScreen = ({navigation, route}: {navigation: any, route: any}) => {
   const [loading, setLoading] = useState(false);
   const [signedInUser] = useSignedInUser();
 
@@ -699,7 +699,7 @@ const finishSocialSignIn = async ({
   }
 };
 
-const WelcomeScreen_ = ({navigation, route}) => {
+const WelcomeScreen_ = ({navigation, route}: {navigation: any, route: any}) => {
   const clubName_ = (route.params?.clubName) as string | undefined;
   const numUsers = useNumActiveUsers(route.params?.numUsers);
   const inModal = useInModal();
@@ -923,7 +923,7 @@ const WelcomeScreen_ = ({navigation, route}) => {
   );
 };
 
-const EmailScreen_ = ({navigation, route}) => {
+const EmailScreen_ = ({navigation, route}: {navigation: any, route: any}) => {
   const clubName_ = (route.params?.clubName) as string | undefined;
 
   const [email, setEmail] = useState("");
@@ -983,7 +983,7 @@ const EmailScreen_ = ({navigation, route}) => {
     }
   };
 
-  const SuffixButton = useCallback(({suffix}) => (
+  const SuffixButton = useCallback(({suffix}: {suffix: string}) => (
     <ButtonWithCenteredText
       onPress={() => !isLoading && submit(suffix)}
       borderWidth={0}

@@ -80,7 +80,7 @@ class CallbackErrorBoundary extends Component<Props, State> {
   }
 }
 
-const NoOpErrorBoundary = ({ children, ..._ }) => children;
+const NoOpErrorBoundary = ({ children, ..._ }: { children?: ReactNode, [key: string]: any }) => children;
 
 // Disable error boundary in dev env so it doesn't keep logging us out
 const ErrorBoundary = process.env.NODE_ENV === 'development'

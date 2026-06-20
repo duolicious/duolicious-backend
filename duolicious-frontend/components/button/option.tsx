@@ -9,7 +9,7 @@ import { useAppTheme } from '../../app-theme/app-theme';
 import { usePressableAnimation } from '../../animation/animation';
 import { setOptionScreenPayload } from '../../navigation/option-screen-store';
 
-const ButtonForOption = (props) => {
+const ButtonForOption = (props: any) => {
   const {
     onPress,
     onSubmitSuccess,

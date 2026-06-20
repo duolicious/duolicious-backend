@@ -7,7 +7,7 @@ import {
 } from 'react';
 import { useAppTheme } from '../app-theme/app-theme';
 
-const Notice = ({children, ...rest}) => {
+const Notice = ({children, ...rest}: {children?: React.ReactNode, [key: string]: any}) => {
   const {
     onPress,
     style,

@@ -1,6 +1,6 @@
 import { DefaultText } from './default-text';
 
-const Title = ({children, ...rest}) => {
+const Title = ({children, ...rest}: {children?: React.ReactNode, [key: string]: any}) => {
   return (
     <DefaultText
       style={{

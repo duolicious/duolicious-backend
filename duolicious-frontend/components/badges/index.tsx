@@ -138,7 +138,7 @@ const QAndA = ({
     countRef.current = startAt;
     loopsRef.current = 0;
 
-    const schedule = (delay, fn) => {
+    const schedule = (delay: number, fn: () => void) => {
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(fn, delay);
     };

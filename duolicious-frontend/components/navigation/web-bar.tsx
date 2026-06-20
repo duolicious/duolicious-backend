@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import {
   Pressable,
+  StyleProp,
   Text,
   View,
+  ViewStyle,
   ScrollView,
 } from 'react-native';
 import { DefaultText } from '../default-text';
@@ -49,7 +51,11 @@ const Logo = () => {
   );
 };
 
-const NavigationItems = ({state, navigation, descriptors}) => {
+const NavigationItems = ({state, navigation, descriptors}: {
+  state: any
+  navigation: any
+  descriptors: any
+}) => {
   const { appThemeName } = useAppTheme();
   const isWebLoggedOut = useIsWebLoggedOut();
 
@@ -66,7 +72,7 @@ const NavigationItems = ({state, navigation, descriptors}) => {
         flex: 1,
       }}
     >
-      {state.routes.map((route, index) => {
+      {state.routes.map((route: any, index: number) => {
         const { options } = descriptors[route.key];
         const label =
           options.tabBarLabel !== undefined
@@ -174,7 +180,12 @@ const NavigationItems = ({state, navigation, descriptors}) => {
   );
 };
 
-const WebBar = ({state, navigation, tabBarStyle, descriptors}) => {
+const WebBar = ({state, navigation, tabBarStyle, descriptors}: {
+  state: any
+  navigation: any
+  tabBarStyle: StyleProp<ViewStyle>
+  descriptors: any
+}) => {
   const { appThemeName } = useAppTheme();
 
   return (

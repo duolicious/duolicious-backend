@@ -50,7 +50,7 @@ const VerificationBadge = ({
   );
 }
 
-const DetailedVerificationBadge = ({verified, name}) => {
+const DetailedVerificationBadge = ({verified, name}: {verified: boolean, name: string}) => {
   return (
     <View
       style={{

@@ -225,7 +225,7 @@ const populateConversationList = (
   conversationList: Conversation[],
   apiData: any,
 ): void => {
-  const personUuidToInfo = apiData.reduce((obj, item) => {
+  const personUuidToInfo = apiData.reduce((obj: Record<string, any>, item: any) => {
     obj[item.person_uuid] = item;
     return obj;
   }, {});

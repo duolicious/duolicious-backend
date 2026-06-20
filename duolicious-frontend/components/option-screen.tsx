@@ -1,5 +1,8 @@
 import {
   Animated,
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -734,7 +737,7 @@ const CheckChips = forwardRef((props: InputProps<OptionGroupCheckChips>, ref) =>
               key={i}
               label={checkChip.label}
               initialCheckedState={checkChip.checked}
-              onChange={x => {
+              onChange={(x: boolean) => {
                 if (x) {
                   inputValueRef.current.add(checkChip.label);
                 } else {
@@ -908,7 +911,7 @@ const VerificationChecker = forwardRef((props: InputProps<OptionGroupVerificatio
     setMessage(message);
     setNumChecks((n) => n + 1);
 
-    const filter = (item): item is string => item !== null;
+    const filter = (item: string | null): item is string => item !== null;
 
     setVerifiedThings([
       gender ? 'gender' : null,
@@ -1392,7 +1395,7 @@ const InputElement = forwardRef((props: InputProps<OptionGroupInputs>, ref) => {
   }
 });
 
-const OptionScreen = ({navigation, route}) => {
+const OptionScreen = ({navigation, route}: {navigation: any, route: any}) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const [isBottom, setIsBottom] = useState(true);
@@ -1487,21 +1490,21 @@ const OptionScreen = ({navigation, route}) => {
     _onSubmitSuccess();
   }, [isLoading, inputRef.current, _onSubmitSuccess]);
 
-  const checkIsBottom = useCallback((nativeEvent) => {
+  const checkIsBottom = useCallback((nativeEvent: NativeScrollEvent) => {
     const isCloseToBottom = (
       nativeEvent.layoutMeasurement.height +
       nativeEvent.contentOffset.y) >= nativeEvent.contentSize.height - 10;
     setIsBottom(isCloseToBottom);
   }, [setIsBottom]);
 
-  const onScroll = useCallback(({ nativeEvent }) => {
+  const onScroll = useCallback(({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
     checkIsBottom(nativeEvent);
   }, [checkIsBottom]);
 
-  const onContentSizeChange = useCallback((width, height) =>
+  const onContentSizeChange = useCallback((width: number, height: number) =>
     setContentHeight(height), []);
 
-  const onLayout = useCallback(({ nativeEvent }) =>
+  const onLayout = useCallback(({ nativeEvent }: LayoutChangeEvent) =>
     setContainerHeight(nativeEvent.layout.height), []);
 
   useEffect(() => {

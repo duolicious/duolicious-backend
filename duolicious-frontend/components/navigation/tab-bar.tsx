@@ -13,7 +13,14 @@ import { useIsWebLoggedOut } from '../../events/signed-in-user';
 import { showSignUp } from '../modal/sign-up-modal';
 import { PUBLIC_TAB_NAMES } from './public-tabs';
 
-const Tab = ({ navigation, state, route, descriptors, index, numUnread }) => {
+const Tab = ({ navigation, state, route, descriptors, index, numUnread }: {
+  navigation: any
+  state: any
+  route: any
+  descriptors: any
+  index: number
+  numUnread: number
+}) => {
   const { appThemeName, appTheme } = useAppTheme();
   const isWebLoggedOut = useIsWebLoggedOut();
 
@@ -118,7 +125,11 @@ const Tab = ({ navigation, state, route, descriptors, index, numUnread }) => {
   );
 };
 
-const TabBar = ({state, descriptors, navigation}) => {
+const TabBar = ({state, descriptors, navigation}: {
+  state: any
+  descriptors: any
+  navigation: any
+}) => {
   const insets = useSafeAreaInsets();
 
   const stats = useInboxStats();
@@ -146,7 +157,7 @@ const TabBar = ({state, descriptors, navigation}) => {
           overflow: 'visible',
         }}
       >
-        {state.routes.map((route, index) =>
+        {state.routes.map((route: any, index: number) =>
           <Tab
             key={index}
             navigation={navigation}

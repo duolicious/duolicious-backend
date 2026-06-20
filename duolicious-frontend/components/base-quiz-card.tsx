@@ -15,6 +15,7 @@ import {
 import {
   Dimensions,
   PanResponder,
+  PanResponderGestureState,
   Platform,
   ViewStyle,
 } from 'react-native';
@@ -116,20 +117,20 @@ const physics = {
   }
 }
 
-const pythagoras = (x, y) => {
+const pythagoras = (x: number, y: number) => {
   return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2))
 }
 
-const normalize = (vector) => {
+const normalize = (vector: { x: number; y: number }) => {
   const length = Math.sqrt(Math.pow(vector.x, 2) + Math.pow(vector.y, 2))
   return { x: vector.x / length, y: vector.y / length }
 }
 
-const rotateByDx = (dx) => {
+const rotateByDx = (dx: number) => {
   return Math.max(Math.min(dx * 0.05, settings.maxTilt), -settings.maxTilt)
 }
 
-const finalXyrot = (gesture) => {
+const finalXyrot = (gesture: { x: number; y: number }) => {
   const finalX = diagonal() * normalize(gesture).x
   const finalY = diagonal() * normalize(gesture).y
   const finalRotation = rotateByDx(finalX)
@@ -349,7 +350,7 @@ const BaseQuizCard = forwardRef(
         setSpringTarget: React.MutableRefObject<
           { start: (args: any) => void }
         >,
-        gesture
+        gesture: PanResponderGestureState
       ) => {
         // Check if this is a swipe
         const dir = getSwipeDirection(

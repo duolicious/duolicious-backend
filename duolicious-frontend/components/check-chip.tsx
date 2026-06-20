@@ -5,13 +5,14 @@ import {
   TextStyle,
 } from 'react-native';
 import {
+  ReactNode,
   useCallback,
   useState,
 } from 'react';
 import { DefaultText } from './default-text';
 import { useAppTheme } from '../app-theme/app-theme';
 
-const CheckChip = ({label, ...props}) => {
+const CheckChip = ({label, ...props}: {label?: ReactNode, [key: string]: any}) => {
   const {
     onChange = () => {}
   } = props;
@@ -32,7 +33,7 @@ const CheckChip = ({label, ...props}) => {
   };
 
   const onPress_ = useCallback(() => {
-    setChecked(checked => {
+    setChecked((checked: boolean) => {
       onChange(!checked);
       return !checked;
     });
@@ -70,7 +71,7 @@ const CheckChip = ({label, ...props}) => {
   );
 };
 
-const CheckChips = ({children, ...props}) => {
+const CheckChips = ({children, ...props}: {children?: ReactNode, [key: string]: any}) => {
   return (
     <View
       style={{

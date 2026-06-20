@@ -2,6 +2,11 @@ import {
   useEffect,
   useRef,
 } from 'react';
+import {
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from 'react-native';
 import { isMobile } from '../../util/util';
 import { notify } from '../../events/events';
 import { ScrollViewData } from '../navigation/scroll-bar';
@@ -56,7 +61,7 @@ const useScrollbar = (controller: string) => {
   }, []);
 
   return useRef({
-    onLayout: (params) => {
+    onLayout: (params: LayoutChangeEvent) => {
       if (isMobile()) {
         return;
       }
@@ -73,7 +78,7 @@ const useScrollbar = (controller: string) => {
         }
       );
     },
-    onContentSizeChange: (contentWidth, contentHeight) => {
+    onContentSizeChange: (contentWidth: number, contentHeight: number) => {
       if (isMobile()) {
         return;
       }
@@ -90,7 +95,7 @@ const useScrollbar = (controller: string) => {
         }
       );
     },
-    onScroll: ({nativeEvent}) => {
+    onScroll: ({nativeEvent}: NativeSyntheticEvent<NativeScrollEvent>) => {
       if (isMobile()) {
         return;
       }
@@ -106,7 +111,7 @@ const useScrollbar = (controller: string) => {
       )
     },
     showsVerticalScrollIndicator: isMobile(),
-    observeListRef: (node): void => {
+    observeListRef: (node: any): void => {
       if (isMobile()) {
         return;
       }

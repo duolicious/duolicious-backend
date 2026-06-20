@@ -3,6 +3,7 @@ import {
   Pressable,
   View,
 } from 'react-native';
+import { ReactNode } from 'react';
 import { DefaultText } from './default-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
@@ -15,7 +16,7 @@ const isIconDefinition = (x: any): x is IconDefinition => {
   return x.iconName !== undefined;
 };
 
-const Icon = ({icon, textStyle}) => {
+const Icon = ({icon, textStyle}: {icon: any, textStyle?: any}) => {
   if (isIconDefinition(icon)) {
     return <FontAwesomeIcon
       icon={icon}
@@ -37,7 +38,7 @@ const Icon = ({icon, textStyle}) => {
   }
 };
 
-const Basic = ({children, ...rest}) => {
+const Basic = ({children, ...rest}: {children?: ReactNode, [key: string]: any}) => {
   const {
     icon,
     style = {},
@@ -95,7 +96,7 @@ const Basic = ({children, ...rest}) => {
   );
 };
 
-const Basics = ({children}) => {
+const Basics = ({children}: {children?: ReactNode}) => {
   return (
     <View
       style={{

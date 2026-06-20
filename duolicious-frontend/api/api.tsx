@@ -33,7 +33,7 @@ type Config = {
 const parseErrors = (errors: any): string[] => {
   try {
     return errors.map(
-      (e) => (e?.msg ?? SOMETHING_WENT_WRONG).split(",").slice(1).join(",").trim()
+      (e: any) => (e?.msg ?? SOMETHING_WENT_WRONG).split(",").slice(1).join(",").trim()
     );
   } catch {
     return [SOMETHING_WENT_WRONG];

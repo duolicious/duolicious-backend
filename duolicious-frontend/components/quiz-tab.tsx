@@ -65,7 +65,14 @@ const QuizTab = () => {
   );
 };
 
-const UndoNoYesSkip = (props) => {
+const UndoNoYesSkip = (props: {
+  innerRef: React.MutableRefObject<any>,
+  onPressUndo: () => void,
+  onPressNo: () => void,
+  onPressYes: () => void,
+  onPressSkip: () => void,
+  style?: any,
+}) => {
   const undoButtonRef = useRef<any>(undefined);
   const noButtonRef = useRef<any>(undefined);
   const yesButtonRef = useRef<any>(undefined);

@@ -356,7 +356,7 @@ const App = () => {
     loadApp();
   }, []);
 
-  const onNavigationStateChange = useCallback(async (state) => {
+  const onNavigationStateChange = useCallback(async (state: any) => {
     if (!state) return;
 
     recomputeBannerVisible(state);

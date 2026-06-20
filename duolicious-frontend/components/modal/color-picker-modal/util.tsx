@@ -26,7 +26,7 @@ const rgbToHex = (r: number, g: number, b: number) =>
  * @return {Array} The RGB representation
  */
 const hsvToRgb = (h: number, s: number, v: number) => {
-  let r, g, b;
+  let r = 0, g = 0, b = 0;
   const i = Math.floor(h / 60);
   const f = h / 60 - i;
   const p = v * (1 - s);

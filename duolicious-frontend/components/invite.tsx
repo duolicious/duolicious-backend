@@ -37,7 +37,7 @@ const onPressInvite = (clubName: string) => async () => {
   notifyLinkCopiedToast('Invite Link Copied!');
 };
 
-const InvitePicker = ({navigation}) => {
+const InvitePicker = ({navigation}: {navigation: any}) => {
   const [clubs, setClubs] = useState(lastEvent<ClubItem[]>('updated-clubs'));
 
   useEffect(() => {
@@ -137,7 +137,7 @@ const InvitePicker = ({navigation}) => {
   );
 };
 
-const InviteEntrypoint = ({navigation}) => {
+const InviteEntrypoint = ({navigation}: {navigation: any}) => {
   const { appTheme } = useAppTheme();
 
   const opacityLo = 0.2;

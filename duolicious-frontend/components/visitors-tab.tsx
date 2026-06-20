@@ -326,7 +326,7 @@ const useNavigationToProfile = (
   // Profile links prefer the username (url_slug), falling back to the uuid.
   const handle = urlSlug || personUuid;
 
-  const onPress = useCallback((e) => {
+  const onPress = useCallback((e: GestureResponderEvent) => {
     e.preventDefault();
 
     if (verificationRequired) {

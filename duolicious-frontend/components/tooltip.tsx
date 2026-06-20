@@ -64,7 +64,7 @@ const TooltipListener = () => {
     onStartShouldSetResponder: () => true,
     onResponderGrant: () => setTooltip(null),
   } : {
-    onMouseMove: (e) => {
+    onMouseMove: (e: React.MouseEvent) => {
       if (e.target === e.currentTarget) {
         setTooltip(null);
       }

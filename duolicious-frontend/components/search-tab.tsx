@@ -1,10 +1,15 @@
 import {
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
 import {
+  Dispatch,
+  SetStateAction,
   memo,
   useCallback,
   useEffect,
@@ -171,7 +176,7 @@ type ClubSelectorProps = {
   onChangeSelectedClub: (s: string | null) => any;
 };
 
-const LeftContinuation = ({scrollLeft}) => {
+const LeftContinuation = ({scrollLeft}: {scrollLeft: () => void}) => {
   const { appTheme } = useAppTheme();
 
   if (isMobile()) {
@@ -236,7 +241,7 @@ const LeftContinuation = ({scrollLeft}) => {
   }
 };
 
-const RightContinuation = ({scrollRight}) => {
+const RightContinuation = ({scrollRight}: {scrollRight: () => void}) => {
   const { appTheme } = useAppTheme();
 
   if (isMobile()) {
@@ -319,13 +324,13 @@ const ClubSelector = (props: ClubSelectorProps) => {
     sortClubs(lastEvent('updated-clubs')));
 
 
-  const checkIsTop = useCallback((nativeEvent) => {
+  const checkIsTop = useCallback((nativeEvent: NativeScrollEvent) => {
     const isCloseToTop = nativeEvent.contentOffset.x <= 10;
 
     setIsTop(isCloseToTop);
   }, [setIsTop]);
 
-  const checkIsBottom = useCallback((nativeEvent) => {
+  const checkIsBottom = useCallback((nativeEvent: NativeScrollEvent) => {
     const isCloseToBottom = (
       nativeEvent.layoutMeasurement.width +
       nativeEvent.contentOffset.x) >= nativeEvent.contentSize.width - 10;
@@ -333,20 +338,20 @@ const ClubSelector = (props: ClubSelectorProps) => {
     setIsBottom(isCloseToBottom);
   }, [setIsBottom]);
 
-  const onScroll = useCallback(({ nativeEvent }) => {
+  const onScroll = useCallback(({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
     scrollXRef.current = nativeEvent.contentOffset.x;
 
     checkIsTop(nativeEvent);
     checkIsBottom(nativeEvent);
   }, [checkIsTop, checkIsBottom]);
 
-  const onContentSizeChange = useCallback((width) =>
+  const onContentSizeChange = useCallback((width: number) =>
     setContentWidth(width), []);
 
-  const onScrollViewLayout = useCallback(({ nativeEvent }) =>
+  const onScrollViewLayout = useCallback(({ nativeEvent }: LayoutChangeEvent) =>
     setContainerWidth(nativeEvent.layout.width), []);
 
-  const onSelectedClubLayout = useCallback(({ nativeEvent }) => {
+  const onSelectedClubLayout = useCallback(({ nativeEvent }: LayoutChangeEvent) => {
     (async () => {
       if (!scrollViewRef.current) {
         return;
@@ -514,6 +519,12 @@ const ListHeaderComponent = ({
   selectedClub,
   setSelectedClub,
   isPublic,
+}: {
+  navigation: any,
+  hasClubs: boolean,
+  selectedClub: string | null,
+  setSelectedClub: Dispatch<SetStateAction<string | null>>,
+  isPublic: boolean,
 }) => {
   const { appTheme } = useAppTheme();
 
@@ -546,7 +557,7 @@ const ListHeaderComponent = ({
   );
 };
 
-const SearchScreen_ = ({navigation}) => {
+const SearchScreen_ = ({navigation}: {navigation: any}) => {
   const isPublic = useIsWebLoggedOut();
 
   const {

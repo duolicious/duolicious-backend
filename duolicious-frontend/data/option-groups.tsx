@@ -202,7 +202,7 @@ type OptionGroup<T extends OptionGroupInputs> = {
   buttonLabel?: string,
 };
 
-const hasExactKeys = (obj, keys) => {
+const hasExactKeys = (obj: object, keys: string[]) => {
     // If the number of keys in the object and the keys array don't match, return false
     if (Object.keys(obj).length !== keys.length) return false;
 
@@ -1133,7 +1133,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       title: 'Step 2 of 5: Your Gender',
       input: {
         buttons: {
-          submit: async (input) => await onboardingQueue.addTask(
+          submit: async (input: string) => await onboardingQueue.addTask(
             async () =>
               (await japi(
                 'patch',
@@ -1172,7 +1172,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
     ),
     input: {
       date: {
-        submit: async (input) => await onboardingQueue.addTask(
+        submit: async (input: string) => await onboardingQueue.addTask(
           async () =>
             (await japi(
               'patch',
@@ -1190,7 +1190,7 @@ const createAccountOptionGroups: OptionGroup<OptionGroupInputs>[] = [
       title: 'Step 5 of 5: ' + locationOptionGroup.title,
       input: {
         locationSelector: {
-          submit: async (input) => await onboardingQueue.addTask(
+          submit: async (input: string) => await onboardingQueue.addTask(
             async () =>
               (await japi(
                 'patch',

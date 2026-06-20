@@ -4,7 +4,7 @@ import {
 } from 'react';
 import { View, Animated } from 'react-native';
 
-const IndeterminateProgressBar = (props) => {
+const IndeterminateProgressBar = (props: { show?: boolean }) => {
   const { show = true } = props;
 
   const animationValue = useRef(new Animated.Value(0)).current;

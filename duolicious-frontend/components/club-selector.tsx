@@ -158,7 +158,7 @@ const fetchClubItems = async (q: string): Promise<ClubItem[]> => {
   return response.ok ? response.json : [];
 };
 
-const ClubSelector = ({navigation}) => {
+const ClubSelector = ({navigation}: {navigation: any}) => {
   const { appTheme } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [selectedClubs, setSelectedClubs] = useState(

@@ -11,7 +11,7 @@ import {
 import { DefaultText } from './default-text';
 import Svg, { Circle } from "react-native-svg";
 
-const DonutChart = ({percentage, ...rest}) => {
+const DonutChart = ({percentage, ...rest}: {percentage?: number, [key: string]: any}) => {
   const {
     children,
     style,

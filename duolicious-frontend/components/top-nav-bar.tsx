@@ -7,7 +7,12 @@ import { Logo16 } from './logo';
 import { isMobile } from '../util/util';
 import { useAppTheme } from '../app-theme/app-theme';
 
-const TopNavBar = (props) => {
+const TopNavBar = (props: {
+  containerStyle?: any,
+  style?: any,
+  backgroundColor?: string,
+  children?: React.ReactNode,
+}) => {
   const { appTheme } = useAppTheme();
 
   return (
@@ -38,7 +43,12 @@ const TopNavBar = (props) => {
   );
 };
 
-const DuoliciousTopNavBar = (props) => {
+const DuoliciousTopNavBar = (props: {
+  style?: any,
+  backgroundColor?: string,
+  textColor?: string,
+  children?: React.ReactNode,
+}) => {
   const {
     style,
     backgroundColor,

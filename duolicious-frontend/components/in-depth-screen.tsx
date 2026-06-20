@@ -27,7 +27,7 @@ const sideMargins = {
   marginRight: 10,
 };
 
-const Subtitle = ({children}) => {
+const Subtitle = ({children}: {children: React.ReactNode}) => {
   return (
     <DefaultText
       style={{
@@ -54,6 +54,16 @@ const Header = ({
   onChangeIdx2,
   onChangeIdx3,
   onChangeIdx4,
+}: {
+  name: string,
+  idx1: number,
+  idx2: number,
+  idx3: number,
+  idx4: number,
+  onChangeIdx1: (index: number) => void,
+  onChangeIdx2: (index: number) => void,
+  onChangeIdx3: (index: number) => void,
+  onChangeIdx4: (index: number) => void,
 }) => {
   const answersSubtitle = () => {
     let result = name.endsWith('s') ? `${name}' ` : `${name}'s `;
@@ -92,8 +102,6 @@ const Header = ({
           minHeight: 40,
           height: undefined,
         }}
-        borderColor="transparent"
-        shadow={false}
       >
         <DefaultText
           style={{
@@ -176,7 +184,7 @@ const fetchAnswersPage = (
 
   const responseList = response.ok ? response.json : [];
 
-  return responseList.map(item => ({
+  return responseList.map((item: any) => ({
     kind: 'answer',
     item: item,
   }));
@@ -199,14 +207,14 @@ const fetchPersonalityPage = (personId: number, m: number) => async (n: number):
   return [];
 };
 
-const InDepthScreen = (navigationRef) => {
-  return (props) => <CurredInDepthScreen
+const InDepthScreen = (navigationRef: any) => {
+  return (props: any) => <CurredInDepthScreen
      navigationRef={navigationRef}
      {...props}
   />;
 }
 
-const InDepthItem = ({personId, item}) => {
+const InDepthItem = ({personId, item}: {personId: number, item: any}) => {
   const [signedInUser] = useSignedInUser();
   const isViewingSelf = personId === signedInUser?.personId;
 
@@ -248,7 +256,11 @@ const InDepthItem = ({personId, item}) => {
 
 const InDepthItemMemo = memo(InDepthItem);
 
-const CurredInDepthScreen = ({navigationRef, navigation, route}) => {
+const CurredInDepthScreen = ({navigationRef, navigation, route}: {
+  navigationRef: any,
+  navigation: any,
+  route: any,
+}) => {
   if (navigationRef)
     navigationRef.current = navigation;
 
@@ -402,16 +414,16 @@ const CurredInDepthScreen = ({navigationRef, navigation, route}) => {
         }}
       >
         <StatusBarSpacer/>
-        <FloatingBackButton navigationRef={navigationRef} safeAreaView={false}/>
+        <FloatingBackButton navigationRef={navigationRef}/>
       </View>
     </>
   );
 };
 
-const Charts = ({data}) => {
+const Charts = ({data}: {data: any[]}) => {
   return (
     <View style={sideMargins}>
-      {data.map((trait) =>
+      {data.map((trait: any) =>
         <Chart
           key={JSON.stringify(trait)}
           dimensionName={trait.trait_min_label ? undefined : trait.trait_name}

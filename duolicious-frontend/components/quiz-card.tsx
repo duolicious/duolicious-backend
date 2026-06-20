@@ -50,7 +50,7 @@ type CardState = {
   public_: boolean,
 }
 
-const LeftComponent = ({count}) => {
+const LeftComponent = ({count}: {count: number}) => {
   return (
     <View
       style={{
@@ -96,7 +96,7 @@ const LeftComponent = ({count}) => {
   );
 };
 
-const RightComponent = ({count}) => {
+const RightComponent = ({count}: {count: number}) => {
   return (
     <View
       style={{
@@ -181,6 +181,11 @@ const QuizCard = ({
   noCount,
   yesCount,
   ...props
+}: {
+  children: React.ReactNode,
+  noCount: number,
+  yesCount: number,
+  [key: string]: any,
 }) => {
   const {
     style,
@@ -226,7 +231,10 @@ const QuizCard = ({
   );
 };
 
-const NonInteractiveQuizCard = ({children, ...props}) => {
+const NonInteractiveQuizCard = ({children, ...props}: {
+  children: any,
+  [key: string]: any,
+}) => {
   const {
     extraChildren,
     containerStyle,
@@ -766,6 +774,13 @@ const SearchQuizCard = ({
   answer,
   initialCheckBoxValue,
   onAnswerChange,
+}: {
+  children: React.ReactNode,
+  questionNumber: number,
+  topic: string,
+  answer: boolean | null,
+  initialCheckBoxValue: boolean,
+  onAnswerChange: (answers: any) => void,
 }) => {
   type State = {
     answer: boolean | null
@@ -932,7 +947,7 @@ const SearchQuizCard = ({
   );
 };
 
-const SkeletonQuizCard = (props) => {
+const SkeletonQuizCard = (props: {innerStyle?: any}) => {
   return (
     <Animated.View
       style={{

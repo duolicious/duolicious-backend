@@ -15,7 +15,10 @@ import { japi } from '../api/api';
 import * as _ from "lodash";
 import { useAppTheme } from '../app-theme/app-theme';
 
-const LocationSelector = ({onChangeText, ...rest}) => {
+const LocationSelector = ({onChangeText, ...rest}: {
+  onChangeText: (text: string) => void,
+  [key: string]: any,
+}) => {
   const { appTheme } = useAppTheme();
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<string[] | null>(null);
@@ -38,7 +41,7 @@ const LocationSelector = ({onChangeText, ...rest}) => {
     setLoading(false);
   }, 500), []);
 
-  const onChangeTextDebounced = useCallback(async (q) => {
+  const onChangeTextDebounced = useCallback(async (q: string) => {
     onChangeText(q);
     setText(q);
     setLoading(true);
@@ -46,7 +49,7 @@ const LocationSelector = ({onChangeText, ...rest}) => {
     getSuggestions(q);
   }, [getSuggestions]);
 
-  const Item = useCallback(({text}) => {
+  const Item = useCallback(({text}: {text: string}) => {
     return (
       <Pressable onPress={() => {
         setDisplayResults(false);

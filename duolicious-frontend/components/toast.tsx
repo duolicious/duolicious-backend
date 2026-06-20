@@ -86,7 +86,7 @@ const Toast: React.FC = () => {
   }
 };
 
-const ToastContainer = ({children}) => {
+const ToastContainer = ({children}: {children?: React.ReactNode}) => {
   return (
     <View
       style={{

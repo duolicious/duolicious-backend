@@ -1,14 +1,16 @@
 import {
   Animated,
   Pressable,
+  PressableProps,
   StyleSheet,
 } from 'react-native';
 import {
+  ReactNode,
   useRef,
 } from 'react'
 import { DefaultText } from '../default-text';
 
-const ModalButton = ({onPress, title, color}) => {
+const ModalButton = ({onPress, title, color}: {onPress?: PressableProps['onPress'], title?: ReactNode, color?: string}) => {
   const animatedOpacity = useRef(new Animated.Value(1)).current;
 
   const opacityLo = 0.7;

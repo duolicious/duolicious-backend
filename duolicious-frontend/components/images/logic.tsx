@@ -25,7 +25,7 @@ const makeWorkingMap = (
       .entries(occupancyMap)
       .reduce(
         (acc, [startingKey, occupied]) => {
-          acc[startingKey] = { startingKey: Number(startingKey), occupied };
+          acc[Number(startingKey)] = { startingKey: Number(startingKey), occupied };
           return acc;
         },
         {} as WorkingMap

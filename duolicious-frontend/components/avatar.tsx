@@ -2,6 +2,7 @@ import {
   useCallback,
 } from 'react';
 import {
+  GestureResponderEvent,
   Pressable,
   StyleSheet,
   View,
@@ -50,7 +51,7 @@ const Avatar = ({
   // for not-yet-backfilled users and shared links.
   const handle = urlSlug || personUuid;
 
-  const onPress = useCallback((e) => {
+  const onPress = useCallback((e: GestureResponderEvent) => {
     e.preventDefault();
 
     if (!navigation) {

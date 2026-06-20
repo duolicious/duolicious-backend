@@ -112,7 +112,7 @@ type HttpPostAssignments = {
   [k: number]: number
 };
 
-const merge = (old, extra) => {
+const merge = <T extends object>(old: T, extra: Partial<T> | undefined): T => {
   const updated = { ...old, ...extra };
   if (_.isEqual(old, updated)) {
     return old;

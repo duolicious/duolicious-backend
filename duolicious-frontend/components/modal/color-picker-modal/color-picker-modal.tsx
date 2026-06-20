@@ -155,7 +155,11 @@ const ColorPickerModal: React.FC = () => {
     }
   }, [hsvColorPickerRef.current, initialBackgroundColor, shouldShow]);
 
-  const Button = ({onPress, title, color}) => {
+  const Button = ({onPress, title, color}: {
+    onPress: () => void,
+    title: string,
+    color: string,
+  }) => {
     const animatedOpacity = useRef(new Animated.Value(1)).current;
 
     const opacityLo = 0.7;

@@ -1,8 +1,10 @@
 import {
   Animated,
   BackHandler,
+  GestureResponderEvent,
   Image,
   PanResponder,
+  PanResponderGestureState,
   Platform,
   StatusBar,
   StyleSheet,
@@ -99,7 +101,7 @@ const ImageCropper = () => {
   const renderedImageSize = useRef(computeRenderedImageSize());
   renderedImageSize.current = computeRenderedImageSize();
 
-  const onPanResponderMove = (event, gestureState) => {
+  const onPanResponderMove = (event: GestureResponderEvent, gestureState: PanResponderGestureState) => {
     if (!renderedImageSize.current) {
       return;
     }

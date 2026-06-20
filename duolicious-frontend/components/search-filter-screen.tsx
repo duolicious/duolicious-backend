@@ -161,7 +161,7 @@ const SearchFilterScreen = () => {
   );
 };
 
-const SearchFilterScreen_ = ({navigation}) => {
+const SearchFilterScreen_ = ({navigation}: {navigation: any}) => {
   const { appTheme } = useAppTheme();
   const [signedInUser] = useSignedInUser();
   const isLocked = useIsWebLoggedOut();
@@ -191,7 +191,7 @@ const SearchFilterScreen_ = ({navigation}) => {
     });
   }, []);
 
-  const Button_ = useCallback((props) => {
+  const Button_ = useCallback((props: any) => {
     if (isLocked) {
       return <ButtonForOption
         onPress={promptSignUp}
@@ -395,7 +395,7 @@ const SearchFilterScreen_ = ({navigation}) => {
   );
 };
 
-const QandQFilterScreen = ({navigation}) => {
+const QandQFilterScreen = ({navigation}: {navigation: any}) => {
   const { appTheme } = useAppTheme();
   const insets = useSafeAreaInsets();
 
@@ -435,7 +435,7 @@ const QandQFilterScreen = ({navigation}) => {
     setIsLoading(false);
   }, 500), []);
 
-  const onChangeTextDebounced = useCallback(async (q) => {
+  const onChangeTextDebounced = useCallback(async (q: string) => {
     setSearchText(q);
     setSearchResults(null);
     setIsLoading(true);

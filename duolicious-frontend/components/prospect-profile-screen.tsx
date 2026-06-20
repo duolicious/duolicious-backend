@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Fragment,
+  ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -124,7 +125,7 @@ const ProspectProfileScreen = () => {
   );
 };
 
-const GalleryScreen = ({navigation, route}) => {
+const GalleryScreen = ({navigation, route}: {navigation: any, route: any}) => {
   const { photoUuid } = route.params;
 
   return (
@@ -188,7 +189,11 @@ const ShareButton = ({personUuid}: {personUuid: string | undefined}) => {
   );
 };
 
-const FloatingBackButton = (props) => {
+const FloatingBackButton = (props: {
+  onPress?: () => void,
+  navigationRef?: any,
+  navigation?: any,
+}) => {
   const {
     onPress,
     navigationRef,
@@ -231,6 +236,10 @@ const FloatingProfileInteractionButton = ({
   children,
   onPress,
   backgroundColor,
+}: {
+  children: ReactNode,
+  onPress: () => void,
+  backgroundColor: string,
 }) => {
   const { appTheme } = useAppTheme();
 
@@ -286,12 +295,14 @@ const FloatingProfileInteractionButton = ({
   );
 };
 
-const FloatingSkipButton = ({personUuid}) => {
+const FloatingSkipButton = ({personUuid}: {
+  personUuid: string | null | undefined,
+}) => {
   const { isSkipped, isLoading, isPosting } = useSkipped(personUuid);
   const { appTheme } = useAppTheme();
 
   const onPress = useCallback(async () => {
-    if (personUuid === undefined) return;
+    if (personUuid == null) return;
     if (isLoading) return;
 
     const nextIsSkippedState = !isSkipped;
@@ -331,10 +342,17 @@ const FloatingSendIntroButton = ({
   name,
   photoUuid,
   photoBlurhash,
+}: {
+  navigation: any,
+  personUuid: string | null | undefined,
+  name: string | undefined,
+  photoUuid: string | null | undefined,
+  photoBlurhash: string | null | undefined,
 }) => {
   const { appTheme } = useAppTheme();
 
   const onPress = useCallback(() => {
+    if (personUuid == null) return;
     if (name === undefined) return;
 
     setProspectHint(personUuid, { name, photoUuid, photoBlurhash });
@@ -361,7 +379,10 @@ const FloatingSendIntroButton = ({
   );
 };
 
-const AnonymousSignInCta = ({navigation, name}) => {
+const AnonymousSignInCta = ({navigation, name}: {
+  navigation: any,
+  name: string | undefined,
+}) => {
   const { appTheme } = useAppTheme();
   const insets = useSafeAreaInsets();
 
@@ -424,7 +445,11 @@ const AnonymousSignInCta = ({navigation, name}) => {
   );
 };
 
-const SeeQAndAButton = ({navigation, personUuid, name}) => {
+const SeeQAndAButton = ({navigation, personUuid, name}: {
+  navigation: any,
+  personUuid: string | null | undefined,
+  name: string | undefined,
+}) => {
   const containerStyle = useRef({
     marginTop: 40,
     marginLeft: 10,
@@ -470,13 +495,20 @@ const SeeQAndAButton = ({navigation, personUuid, name}) => {
   );
 };
 
-const BlockButton = ({name, personUuid}) => {
+const BlockButton = ({name, personUuid}: {
+  name: string | undefined,
+  personUuid: string | null | undefined,
+}) => {
   const { isSkipped, isLoading, isPosting } = useSkipped(personUuid);
 
   const onPress = useCallback(async () => {
+    if (personUuid == null) return;
+
     if (isSkipped) {
       await postSkipped(personUuid, false);
     } else {
+      if (name === undefined) return;
+
       const data: ReportModalInitialData = {
         name,
         personUuid,
@@ -540,7 +572,11 @@ const BlockButton = ({name, personUuid}) => {
   );
 };
 
-const AllClubsItem = ({kind, kids, props}) => {
+const AllClubsItem = ({kind, kids, props}: {
+  kind: string | undefined,
+  kids: ReactNode,
+  props: any,
+}) => {
   const propsWithoutKey = { ...props };
   delete propsWithoutKey['key'];
 
@@ -787,8 +823,8 @@ const hasAnyStats = (data: UserData | null | undefined): boolean => {
   );
 };
 
-const Content = (navigationRef) =>  {
-  return (props) => <CurriedContent
+const Content = (navigationRef: any) =>  {
+  return (props: any) => <CurriedContent
     navigationRef={navigationRef}
     {...props}
   />;
@@ -837,7 +873,11 @@ const ProspectProfileSideAds = ({
   );
 };
 
-const CurriedContent = ({navigationRef, navigation, route}) => {
+const CurriedContent = ({navigationRef, navigation, route}: {
+  navigationRef: any,
+  navigation: any,
+  route: any,
+}) => {
   navigationRef.current = navigation;
 
   const insets = useSafeAreaInsets();
@@ -1184,6 +1224,18 @@ const ProspectUserDetails = ({
   matchPercentage,
   titleColor,
   bodyColor,
+}: {
+  navigation: any,
+  personId: number | undefined,
+  personUuid: string | null | undefined,
+  name: string | undefined,
+  age: number | null | undefined,
+  gender: string | undefined,
+  userLocation: string | null | undefined,
+  verified: boolean,
+  matchPercentage: number | null | undefined,
+  titleColor: string | undefined,
+  bodyColor: string | undefined,
 }) => {
   const onPressDonutChart = useCallback(() => {
     if (personId === undefined) return;
