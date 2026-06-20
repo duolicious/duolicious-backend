@@ -28,7 +28,7 @@ import { DonutChart } from './donut-chart';
 import { Title } from './title';
 import { InDepthScreen } from './in-depth-screen';
 import { ButtonWithCenteredText } from './button/centered-text';
-import { AdSenseUnit } from './adsense';
+import { ResponsiveAd } from './adsense';
 import { api } from '../api/api';
 import { cmToFeetInchesStr } from '../units/units';
 import { useSignedInUser } from '../events/signed-in-user';
@@ -67,7 +67,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { ClubItem, joinClub, leaveClub } from '../club/club';
 import * as _ from 'lodash';
-import { friendlyTimeAgo, possessive, bestTextOn, capLuminance, isUuid } from '../util/util';
+import { friendlyTimeAgo, possessive, bestTextOn, capLuminance, isUuid, isMobile } from '../util/util';
 import { useOnline } from '../chat/application-layer/hooks/online';
 import { HeartBackground } from './heart-background';
 import { AudioPlayer } from './audio-player';
@@ -79,6 +79,22 @@ import { Flair } from './badges';
 import { useAppTheme } from '../app-theme/app-theme';
 import { faChild } from '@fortawesome/free-solid-svg-icons/faChild'
 import { faChildren } from '@fortawesome/free-solid-svg-icons/faChildren'
+
+const PROFILE_CONTENT_MAX_WIDTH = 600;
+const SIDE_AD_GAP = 20;
+const SIDE_AD_ROW_GAP = 150;
+const SIDE_AD_TOP = 10;
+const SIDE_AD_MIN_WIDTH = 160;
+const SIDE_AD_MAX_WIDTH = 300;
+
+const SIDE_AD_SLOTS_LEFT = [
+  '6713823982', '9925889226', '1033966365', '3377058674', '1680833629',
+  '5651868228', '9184908807',
+];
+const SIDE_AD_SLOTS_RIGHT = [
+  '6704829516', '5986644219', '3140989026', '9492030565', '2567529560',
+  '4338786558', '1461341776',
+];
 
 const Stack = createNativeStackNavigator();
 
@@ -778,6 +794,49 @@ const Content = (navigationRef) =>  {
   />;
 };
 
+const ProspectProfileSideAds = ({
+  width,
+  photoCount,
+}: {
+  width: number
+  photoCount: number
+}) => {
+  const gutterWidth = (width - PROFILE_CONTENT_MAX_WIDTH) / 2;
+  const adWidth = Math.min(SIDE_AD_MAX_WIDTH, gutterWidth - 2 * SIDE_AD_GAP);
+
+  if (adWidth < SIDE_AD_MIN_WIDTH) {
+    return null;
+  }
+
+  const rowCount = Math.max(1, Math.min(photoCount, SIDE_AD_SLOTS_LEFT.length));
+
+  const column = (slots: string[], left: number) => (
+    <View
+      style={{
+        position: 'absolute',
+        top: SIDE_AD_TOP,
+        left,
+        width: adWidth,
+        gap: SIDE_AD_ROW_GAP,
+      }}
+    >
+      {slots.slice(0, rowCount).map((slot) =>
+        <ResponsiveAd key={slot} slot={slot} placeholderHeight={600} />
+      )}
+    </View>
+  );
+
+  return (
+    <>
+      {column(SIDE_AD_SLOTS_LEFT, gutterWidth - SIDE_AD_GAP - adWidth)}
+      {column(
+        SIDE_AD_SLOTS_RIGHT,
+        gutterWidth + PROFILE_CONTENT_MAX_WIDTH + SIDE_AD_GAP,
+      )}
+    </>
+  );
+};
+
 const CurriedContent = ({navigationRef, navigation, route}) => {
   navigationRef.current = navigation;
 
@@ -851,6 +910,12 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
   }, [navigation, handle, screenTitle]);
 
   const { width } = useWindowDimensions();
+
+  const showSideAds =
+    Platform.OS === 'web' &&
+    !isMobile() &&
+    !signedInUser?.hasGold &&
+    !!data?.advertiser_friendly;
 
   useEffect(() => {
     setData(undefined);
@@ -999,6 +1064,12 @@ const CurriedContent = ({navigationRef, navigation, route}) => {
                 height: '100%',
               }}
             >
+              {showSideAds &&
+                <ProspectProfileSideAds
+                  width={width}
+                  photoCount={data?.photo_uuids?.length ?? 0}
+                />
+              }
               <View
                 style={{
                   width: '100%',
@@ -1562,13 +1633,7 @@ const Body = ({
           />}
 
         {data?.advertiser_friendly &&
-          <AdSenseUnit
-            slot="3806635217"
-            style={{ display: 'block' }}
-            format="auto"
-            fullWidthResponsive
-            placeholderStyle={{ width: '100%', height: 250 }}
-          />}
+          <ResponsiveAd slot="3806635217" />}
       </View>
     </>
   );

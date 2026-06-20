@@ -115,8 +115,29 @@ const InFeedAd = ({
   </View>
 );
 
+const ResponsiveAd = ({
+  slot,
+  style,
+  placeholderHeight = 250,
+}: {
+  slot: string
+  style?: StyleProp<ViewStyle>
+  placeholderHeight?: number
+}) => (
+  <View style={style}>
+    <AdSenseUnit
+      slot={slot}
+      style={{ display: 'block', width: '100%' }}
+      format="auto"
+      fullWidthResponsive
+      placeholderStyle={{ width: '100%', height: placeholderHeight }}
+    />
+  </View>
+);
+
 export {
   AdSenseUnit,
   InFeedAd,
+  ResponsiveAd,
   IS_LOCALHOST,
 };
