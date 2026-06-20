@@ -28,6 +28,7 @@ import { DonutChart } from './donut-chart';
 import { Title } from './title';
 import { InDepthScreen } from './in-depth-screen';
 import { ButtonWithCenteredText } from './button/centered-text';
+import { AdSenseUnit } from './adsense';
 import { api } from '../api/api';
 import { cmToFeetInchesStr } from '../units/units';
 import { useSignedInUser } from '../events/signed-in-user';
@@ -695,6 +696,7 @@ type UserData = {
   star_sign: string | null,
   wants_kids: string | null,
   is_skipped: boolean,
+  advertiser_friendly: boolean,
   person_id: number,
 
   verified_age: boolean,
@@ -1557,6 +1559,15 @@ const Body = ({
           <BlockButton
             name={data?.name}
             personUuid={personUuid}
+          />}
+
+        {data?.advertiser_friendly &&
+          <AdSenseUnit
+            slot="3806635217"
+            style={{ display: 'block' }}
+            format="auto"
+            fullWidthResponsive
+            placeholderStyle={{ width: '100%', height: 250 }}
           />}
       </View>
     </>

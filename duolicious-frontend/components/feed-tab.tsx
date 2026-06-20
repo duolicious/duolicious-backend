@@ -31,6 +31,7 @@ import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
 import { OnlineIndicator } from './online-indicator';
 import { useAppTheme } from '../app-theme/app-theme';
 import { usePressableAnimation } from '../animation/animation';
+import { InFeedAd } from './adsense';
 
 const NAME_ACTION_TIME_GAP_VERTICAL = 16;
 
@@ -56,6 +57,7 @@ const DataItemBaseSchema = z.object({
   age: z.number().nullable(),
   gender: z.string(),
   location: z.string().nullable(),
+  advertiser_friendly: z.boolean(),
 });
 
 const AddedPhotoFieldsSchema = DataItemBaseSchema.extend({
@@ -124,6 +126,41 @@ type UpdatedBioFields = z.infer<typeof UpdatedBioFieldsSchema>;
 type AddedPhotoFields = z.infer<typeof AddedPhotoFieldsSchema>;
 type AddedVoiceBioFields = z.infer<typeof AddedVoiceBioFieldsSchema>;
 
+type FeedAd = {
+  type: 'ad'
+  key: string
+};
+
+type FeedListItem = DataItem | FeedAd;
+
+const FEED_AD_SLOT = '6094042738';
+
+// Interleave an ad into every gap whose two adjacent feed items are both
+// advertiser friendly. `previousItem` is the last item of the preceding page,
+// so ads are placed across page boundaries too, not just within a page.
+const withInterleavedAds = (
+  items: DataItem[],
+  previousItem: DataItem | null,
+): FeedListItem[] => {
+  const result: FeedListItem[] = [];
+
+  let previous = previousItem;
+
+  for (const item of items) {
+    if (previous?.advertiser_friendly && item.advertiser_friendly) {
+      result.push({
+        type: 'ad',
+        key: `ad-${previous.person_uuid}-${item.person_uuid}`,
+      });
+    }
+
+    result.push(item);
+    previous = item;
+  }
+
+  return result;
+};
+
 const pageMetadata = {
   lastPage: null,
   seenPersonUuids: new Set<string>()
@@ -150,7 +187,7 @@ const isDistinctItem = (item: DataItem) => {
   return result;
 };
 
-const fetchPage = async (pageNumber: number): Promise<DataItem[] | null> => {
+const fetchPage = async (pageNumber: number): Promise<FeedListItem[] | null> => {
   if (pageNumber === 1) {
     pageMetadata.lastPage = null;
     pageMetadata.seenPersonUuids = new Set();
@@ -181,12 +218,21 @@ const fetchPage = async (pageNumber: number): Promise<DataItem[] | null> => {
     return null;
   }
 
+  // The last item of the previous page, captured before `lastPage` is
+  // reassigned, so an ad can be placed across the page boundary too.
+  const previousLastItem = pageMetadata.lastPage?.at(-1) ?? null;
+
   pageMetadata.lastPage = response
     .json
     .filter(isValidDataItem)
     .filter(isDistinctItem);
 
-  return [...pageMetadata.lastPage];
+  // Ads only render on the web; don't pad the native list with empty slots.
+  if (Platform.OS !== 'web') {
+    return [...pageMetadata.lastPage];
+  }
+
+  return withInterleavedAds(pageMetadata.lastPage, previousLastItem);
 };
 
 const useNavigationToProfile = (
@@ -788,10 +834,14 @@ const FeedTab = () => {
         }
         fetchPage={fetchPage}
         contentContainerStyle={styles.listContentContainerStyle}
-        renderItem={({ item }: { item: DataItem }) =>
-          <FeedItem dataItem={item} />
+        renderItem={({ item }: { item: FeedListItem }) =>
+          item.type === 'ad'
+            ? <InFeedAd slot={FEED_AD_SLOT} style={styles.adContainer} />
+            : <FeedItem dataItem={item} />
         }
-        keyExtractor={(item: DataItem) => item.person_uuid}
+        keyExtractor={(item: FeedListItem) =>
+          item.type === 'ad' ? item.key : item.person_uuid
+        }
         onLayout={onLayout}
         onContentSizeChange={onContentSizeChange}
         onScroll={onScroll}
@@ -821,6 +871,9 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   pressableStyle: {
+    marginBottom: 20,
+  },
+  adContainer: {
     marginBottom: 20,
   },
 });

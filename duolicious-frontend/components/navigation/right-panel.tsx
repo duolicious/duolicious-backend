@@ -1,17 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { View } from 'react-native';
 import { DefaultText } from '../default-text';
 import { getRandomElement } from '../../util/util';
 import { PARTNER_URL } from '../../env/env';
 import { useSignedInUser } from '../../events/signed-in-user';
-
-const IS_LOCALHOST =
-  typeof window !== 'undefined' &&
-  /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
-
-const ADSENSE_CLIENT = 'ca-pub-2356864342428722';
-const ADSENSE_SCRIPT_SRC =
-  `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
+import { AdSenseUnit } from '../adsense';
 
 const AD_SLOTS_BY_ROUTE: Record<string, string[]> = {
   'Q&A': ['9659361574', '4220166788'],
@@ -147,63 +140,16 @@ const SponsoredRightPanelContent = () => {
   );
 };
 
-const AdSensePlaceholder = ({ slot }: { slot: string }) => (
-  <View
-    style={{
-      width: 300,
-      height: 250,
-      borderWidth: 1,
-      borderColor: '#ccc',
-      borderStyle: 'dashed',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  >
-    <DefaultText style={{ color: '#999' }}>
-      Ad placeholder (slot {slot})
-    </DefaultText>
-  </View>
-);
-
-const AdSenseUnit = ({ slot }: { slot: string }) => {
-  useEffect(() => {
-    if (IS_LOCALHOST) {
-      return;
-    }
-
-    if (!document.querySelector(`script[src="${ADSENSE_SCRIPT_SRC}"]`)) {
-      const script = document.createElement('script');
-      script.src = ADSENSE_SCRIPT_SRC;
-      script.async = true;
-      script.crossOrigin = 'anonymous';
-      document.head.appendChild(script);
-    }
-
-    try {
-      // @ts-ignore
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
-    } catch {
-    }
-  }, []);
-
-  if (IS_LOCALHOST) {
-    return <AdSensePlaceholder slot={slot}/>;
-  }
-
-  return (
-    <ins
-      className="adsbygoogle"
-      style={{ display: 'inline-block', width: 300, height: 250 }}
-      data-ad-client={ADSENSE_CLIENT}
-      data-ad-slot={slot}
-    />
-  );
-};
-
 const AdSenseRightPanelContent = ({ slots }: { slots: string[] }) => {
   return (
     <View style={{ gap: 20 }}>
-      {slots.map((slot) => <AdSenseUnit key={slot} slot={slot}/>)}
+      {slots.map((slot) =>
+        <AdSenseUnit
+          key={slot}
+          slot={slot}
+          style={{ display: 'inline-block', width: 300, height: 250 }}
+        />
+      )}
     </View>
   );
 };

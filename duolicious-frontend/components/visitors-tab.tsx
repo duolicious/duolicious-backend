@@ -1,5 +1,6 @@
 import {
   Animated as RNAnimated,
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -36,6 +37,7 @@ import { faGhost } from '@fortawesome/free-solid-svg-icons/faGhost';
 import { useTooltip } from './tooltip';
 import { happenedInLast7Days } from '../util/util';
 import { setProspectHint } from '../navigation/prospect-cache';
+import { InFeedAd } from './adsense';
 
 const friendlyTimestamp = (date: Date): string => {
   if (isToday(date)) {
@@ -103,6 +105,7 @@ const DataItemSchema = z.object({
   ]),
   is_new: z.boolean(),
   was_invisible: z.boolean(),
+  advertiser_friendly: z.boolean(),
 });
 
 const DataSchema = z.object({
@@ -126,8 +129,43 @@ const isValidData = (item: unknown): item is Data => {
 
 type SectionKey = 'visited_you' | 'you_visited';
 
+const VISITORS_AD_SLOT = '6049655173';
+
+// Row keys for ads are prefixed so `RenderItem` can tell them apart from the
+// real visitor rows (which are keyed `${sectionKey}-${person_uuid}`).
+const AD_KEY_PREFIX = 'ad:';
+
 const sectionFromIndex = (sectionIndex: number): SectionKey =>
   sectionIndex === 0 ? 'visited_you' : 'you_visited';
+
+// Build a section's row keys, inserting an ad into any gap that has two
+// advertiser-friendly items above it and two beneath it. Ads only render on
+// the web, so don't insert ad rows on other platforms.
+const sectionRowKeys = (
+  sectionKey: SectionKey,
+  items: DataItem[],
+): string[] => {
+  const keys: string[] = [];
+
+  for (let i = 0; i < items.length; i++) {
+    keys.push(`${sectionKey}-${items[i].person_uuid}`);
+
+    if (Platform.OS !== 'web') {
+      continue;
+    }
+
+    const twoAbove =
+      items[i - 1]?.advertiser_friendly && items[i].advertiser_friendly;
+    const twoBelow =
+      items[i + 1]?.advertiser_friendly && items[i + 2]?.advertiser_friendly;
+
+    if (twoAbove && twoBelow) {
+      keys.push(`${AD_KEY_PREFIX}${sectionKey}-${items[i].person_uuid}`);
+    }
+  }
+
+  return keys;
+};
 
 const setVisitorKeys = (sectionKey: SectionKey, visitorKeys: string[]) => {
   notify<string[]>(sectionKey, visitorKeys);
@@ -233,15 +271,9 @@ const setData = (data: Data) => {
     setVisitorDataItem(`you_visited-${dataItem.person_uuid}`, dataItem, true);
   }
 
-  setVisitorKeys(
-    'visited_you',
-    data.visited_you.map(d => `visited_you-${d.person_uuid}`)
-  );
+  setVisitorKeys('visited_you', sectionRowKeys('visited_you', data.visited_you));
 
-  setVisitorKeys(
-    'you_visited',
-    data.you_visited.map(d => `you_visited-${d.person_uuid}`)
-  );
+  setVisitorKeys('you_visited', sectionRowKeys('you_visited', data.you_visited));
 
   setLastVisitedAt(data.last_visited_at);
 
@@ -458,6 +490,10 @@ const VisitorsItem = ({ itemKey }: { itemKey: string }) => {
 const VisitorsItemMemo = memo(VisitorsItem);
 
 const RenderItem = ({ item }: { item: string }) => {
+  if (item.startsWith(AD_KEY_PREFIX)) {
+    return <InFeedAd slot={VISITORS_AD_SLOT} style={styles.adContainer} />;
+  }
+
   return <VisitorsItemMemo itemKey={item} />
 };
 
@@ -596,6 +632,10 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   pressableStyle: {
+    marginTop: 20,
+    width: '100%',
+  },
+  adContainer: {
     marginTop: 20,
     width: '100%',
   },
