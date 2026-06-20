@@ -12,24 +12,33 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 class AsyncLruCache:
-    def __init__(self, maxsize=1024, ttl=None, cache_condition=None):
+    def __init__(
+        self,
+        maxsize: int = 1024,
+        ttl: float | None = None,
+        cache_condition: Callable[[object], bool] | None = None,
+    ) -> None:
         self.maxsize = maxsize
         self.ttl = ttl  # seconds
         self.cache_condition = cache_condition
-        self.cache = OrderedDict()
 
     def __call__(
         self,
         func: Callable[P, Awaitable[R]]
     ) -> Callable[P, Awaitable[R]]:
+        cache: OrderedDict[
+            tuple[object, ...],
+            tuple[R, asyncio.TimerHandle | None],
+        ] = OrderedDict()
+
         @functools.wraps(func)
-        async def wrapper(*args, **kwargs):
-            key = args + tuple(sorted(kwargs.items()))
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            key: tuple[object, ...] = args + tuple(sorted(kwargs.items()))
 
             # Return the cached result if available
-            if key in self.cache:
-                self.cache.move_to_end(key)  # Mark as recently used
-                return self.cache[key][0]
+            if key in cache:
+                cache.move_to_end(key)  # Mark as recently used
+                return cache[key][0]
 
             # Compute result as it's not cached
             result = await func(*args, **kwargs)
@@ -42,14 +51,14 @@ class AsyncLruCache:
             # Cache the result with optional TTL
             if self.ttl is not None:
                 loop = asyncio.get_running_loop()
-                timer = loop.call_later(self.ttl, lambda: self.cache.pop(key, None))
-                self.cache[key] = (result, timer)
+                timer = loop.call_later(self.ttl, lambda: cache.pop(key, None))
+                cache[key] = (result, timer)
             else:
-                self.cache[key] = (result, None)
+                cache[key] = (result, None)
 
             # Manage cache size
-            if len(self.cache) > self.maxsize:
-                oldest_key, oldest_value = self.cache.popitem(last=False)
+            if len(cache) > self.maxsize:
+                oldest_key, oldest_value = cache.popitem(last=False)
                 if oldest_value[1]:
                     oldest_value[1].cancel()  # Cancel the timer if it exists
 

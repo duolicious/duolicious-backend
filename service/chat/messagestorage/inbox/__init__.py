@@ -1,5 +1,5 @@
 from batcher import Batcher
-from database import asyncdatabase
+from database import Tx, asyncdatabase
 from dataclasses import dataclass
 from lxml import etree
 import database
@@ -219,7 +219,7 @@ async def _get_inbox(query_id: str, username: str) -> list[str]:
     return messages
 
 
-def process_upsert_conversation_batch(tx, batch: list[UpsertConversationJob]):
+def process_upsert_conversation_batch(tx: Tx, batch: list[UpsertConversationJob]) -> None:
     params_seq = [
         dict(
             from_username=job.from_username,
@@ -273,13 +273,13 @@ async def maybe_mark_displayed(
     return to_username
 
 
-def _mark_displayed(from_username: str, to_username: str):
+def _mark_displayed(from_username: str, to_username: str) -> None:
     job = MarkDisplayedJob(from_username=from_username, to_username=to_username)
 
     _mark_displayed_batcher.enqueue(job)
 
 
-def _process_mark_displayed_batch(batch: list[MarkDisplayedJob]):
+def _process_mark_displayed_batch(batch: list[MarkDisplayedJob]) -> None:
     params_seq = [
         dict(
             luser=job.from_username,

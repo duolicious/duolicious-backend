@@ -3,7 +3,7 @@ from antiabuse.antispam.urldetector.tld import tlds
 import re
 import unicodedata
 from enum import Enum
-from typing import Tuple, List
+from typing import Tuple, List, Iterator
 
 class UrlType(Enum):
     NONE = 0
@@ -90,7 +90,7 @@ def has_url(
 
     matches = URL_PATTERN.findall(text)
 
-    def go():
+    def go() -> Iterator[Tuple[UrlType, str]]:
         for url, scheme, www, domain, dot, tld, port, path in matches:
             normalized_domain = f'{domain.lower()}.{tld.lower()}'
 
@@ -108,7 +108,7 @@ def has_url(
                 yield UrlType.UNSAFE, url
             elif scheme or www:
                 yield UrlType.UNSAFE, url
-            elif not re.compile('\s+').search(dot):
+            elif not re.compile(r'\s+').search(dot):
                 yield UrlType.UNSAFE, url
 
     return list(go())

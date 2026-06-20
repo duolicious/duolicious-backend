@@ -1,4 +1,15 @@
-from typing import Any, TypeVar
+from types import TracebackType
+from typing import Protocol
+from collections.abc import Iterable
+from database._row import (
+    require_row,
+    row_bool,
+    row_int,
+    row_str,
+    row_str_list,
+    row_str_or_none,
+    row_value,
+)
 import os
 import psycopg
 import random
@@ -36,12 +47,129 @@ _api_conninfo = psycopg.conninfo.make_conninfo(
     **(_coninfo_args | dict(dbname='duo_api'))
 )
 
-_api_conn  = None
+CursorQuery = str | bytes | psycopg.sql.SQL | psycopg.sql.Composed
+Row = psycopg.rows.DictRow
+
+
+class TransactionContext(Protocol):
+    def __enter__(self) -> object:
+        ...
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        ...
+
+
+class TxConnection(Protocol):
+    def transaction(self) -> TransactionContext:
+        ...
+
+
+class Tx(Protocol):
+    @property
+    def connection(self) -> psycopg.Connection[psycopg.rows.DictRow]:
+        ...
+
+    @property
+    def rowcount(self) -> int:
+        ...
+
+    def execute(
+        self,
+        query: CursorQuery,
+        params: psycopg.abc.Params | None = None,
+    ) -> "Tx":
+        ...
+
+    def require_one(
+        self,
+        query: CursorQuery,
+        params: psycopg.abc.Params | None = None,
+    ) -> Row:
+        ...
+
+    def executemany(
+        self,
+        query: CursorQuery,
+        params_seq: Iterable[psycopg.abc.Params],
+        *,
+        returning: bool = False,
+    ) -> None:
+        ...
+
+    def fetchone(self) -> Row | None:
+        ...
+
+    def fetchall(self) -> list[Row]:
+        ...
+
+    def nextset(self) -> bool | None:
+        ...
+
+    def close(self) -> None:
+        ...
+
+
+class TxCursor:
+    def __init__(self, cur: psycopg.Cursor[Row]) -> None:
+        self._cur = cur
+
+    @property
+    def connection(self) -> psycopg.Connection[Row]:
+        return self._cur.connection
+
+    @property
+    def rowcount(self) -> int:
+        return self._cur.rowcount
+
+    def execute(
+        self,
+        query: CursorQuery,
+        params: psycopg.abc.Params | None = None,
+    ) -> Tx:
+        self._cur.execute(query, params)
+        return self
+
+    def require_one(
+        self,
+        query: CursorQuery,
+        params: psycopg.abc.Params | None = None,
+    ) -> Row:
+        self.execute(query, params)
+        return require_row(self.fetchone())
+
+    def executemany(
+        self,
+        query: CursorQuery,
+        params_seq: Iterable[psycopg.abc.Params],
+        *,
+        returning: bool = False,
+    ) -> None:
+        self._cur.executemany(query, params_seq, returning=returning)
+
+    def fetchone(self) -> Row | None:
+        return self._cur.fetchone()
+
+    def fetchall(self) -> list[Row]:
+        return self._cur.fetchall()
+
+    def nextset(self) -> bool | None:
+        return self._cur.nextset()
+
+    def close(self) -> None:
+        self._cur.close()
+
+
+_api_conn: psycopg.Connection[Row] | None = None
 
 _api_conn_lock  = threading.Lock()
 
 class api_tx:
-    def __init__(self, isolation_level=_default_transaction_isolation):
+    def __init__(self, isolation_level: str = _default_transaction_isolation) -> None:
         normalized_isolation_level = isolation_level.upper()
 
         if normalized_isolation_level not in _valid_isolation_levels:
@@ -49,24 +177,28 @@ class api_tx:
 
         self.isolation_level = normalized_isolation_level
 
-        self.cur = None
+        self.conn: psycopg.Connection[Row]
+        self.cur: Tx
 
-    def __enter__(self):
+    def __enter__(self) -> Tx:
         _api_conn_lock.acquire()
 
         global _api_conn
-        if not _api_conn or _api_conn.closed:
+        conn = _api_conn
+        if conn is None or conn.closed:
             try:
-                _api_conn = psycopg.Connection.connect(
+                conn = psycopg.Connection.connect(
                     conninfo=_api_conninfo,
                     row_factory=psycopg.rows.dict_row,
                 )
+                _api_conn = conn
             except:
                 _api_conn_lock.release()
                 print(traceback.format_exc())
                 raise
 
-        self.cur = _api_conn.cursor()
+        self.conn = conn
+        self.cur = TxCursor(conn.cursor())
 
         if self.isolation_level != _default_transaction_isolation:
             try:
@@ -79,12 +211,17 @@ class api_tx:
                 raise
         return self.cur
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         try:
             if exc_type is None:
-                _api_conn.commit()
+                self.conn.commit()
             else:
-                _api_conn.rollback()
+                self.conn.rollback()
         except:
                 traceback.print_exception(exc_type, exc_val, exc_tb)
         finally:
@@ -95,10 +232,8 @@ class api_tx:
 
         _api_conn_lock.release()
 
-RowT = TypeVar('RowT')
-
-def fetchall_sets(tx: psycopg.Cursor[RowT]) -> list[RowT]:
-    result: list[RowT] = []
+def fetchall_sets(tx: Tx) -> list[Row]:
+    result: list[Row] = []
     while True:
         result.extend(tx.fetchall())
         nextset = tx.nextset()
@@ -106,7 +241,7 @@ def fetchall_sets(tx: psycopg.Cursor[RowT]) -> list[RowT]:
             break
     return result
 
-def _check_api_connection_forever():
+def _check_api_connection_forever() -> None:
     while True:
         try:
             with api_tx() as tx:

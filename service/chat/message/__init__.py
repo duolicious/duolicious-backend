@@ -66,9 +66,8 @@ def xml_to_message(parsed_xml: etree._Element) -> Message | None:
         else None
     )
 
-    to_jid = parsed_xml.attrib.get('to')
     to_bare_jid_ = to_bare_jid(parsed_xml.attrib.get('to'))
-    to_username = str(uuid.UUID(to_bare_jid_))
+    to_username = str(uuid.UUID(to_bare_jid_)) if to_bare_jid_ else None
 
     if not stanza_id:
         return None

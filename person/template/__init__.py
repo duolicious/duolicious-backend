@@ -1,4 +1,4 @@
-def otp_template(otp: str):
+def otp_template(otp: str) -> str:
     return f"""
 <!DOCTYPE html>
 <html lang="en">

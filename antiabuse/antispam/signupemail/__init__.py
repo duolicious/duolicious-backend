@@ -26,17 +26,17 @@ plus_address_domains = set([
     "zohomail.com",
 ])
 
-def check_and_update_bad_domains(email):
+def check_and_update_bad_domains(email: str) -> object:
     _, domain = email.split('@')
 
     params = dict(email=email, domain=domain)
 
     # Check if we already know about the email domain
     with api_tx() as tx:
-        domain_status = tx.execute(
+        domain_status = tx.require_one(
             Q_EMAIL_INFO,
             params=params
-        ).fetchone()['domain_status']
+        )['domain_status']
 
     if domain_status == 'registered':
         return True

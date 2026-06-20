@@ -98,7 +98,7 @@ LIMIT %(n)s
 OFFSET %(o)s
 """
 
-def init_db():
+def init_db() -> None:
     with open(_categorised_question_json_file) as f:
         categorised_questions = json.load(f)
 
@@ -109,8 +109,7 @@ def init_db():
         key=lambda q: question_to_index[q["question"]])
 
     with api_tx() as tx:
-        tx.execute('SELECT COUNT(*) FROM question')
-        if tx.fetchone()['count'] == 0:
+        if tx.require_one('SELECT COUNT(*) FROM question')['count'] == 0:
             tx.executemany(
                 """
                 INSERT INTO question (
@@ -141,14 +140,13 @@ def init_db():
     archetypeised_questions = load_questions(_archetypeised_question_json_file)
 
     with api_tx() as tx:
-        tx.execute(
+        if tx.require_one(
             """
             SELECT COUNT(*)
             FROM question
             WHERE presence_given_yes = ARRAY[]::INT[]
             """
-        )
-        if tx.fetchone()['count'] > 0:
+        )['count'] > 0:
             tx.execute(
                 """
                 CREATE TEMPORARY TABLE question_trait_pair (
@@ -223,7 +221,7 @@ def init_db():
                 """
             )
 
-def get_next_questions(s: t.SessionInfo, n: str, o: str):
+def get_next_questions(s: t.SessionInfo, n: str, o: str) -> object:
     params = dict(
         person_id=s.person_id,
         n=int(n),
@@ -233,7 +231,7 @@ def get_next_questions(s: t.SessionInfo, n: str, o: str):
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_NEXT_QUESTIONS, params).fetchall()
 
-def get_public_next_questions(n: str, o: str):
+def get_public_next_questions(n: str, o: str) -> object:
     params = dict(
         n=int(n),
         o=int(o),
@@ -242,7 +240,7 @@ def get_public_next_questions(n: str, o: str):
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_PUBLIC_NEXT_QUESTIONS, params).fetchall()
 
-def get_search_filter_questions(s: t.SessionInfo, q: str, n: str, o: str):
+def get_search_filter_questions(s: t.SessionInfo, q: str, n: str, o: str) -> object:
     params = dict(
         person_id=s.person_id,
         q=q,

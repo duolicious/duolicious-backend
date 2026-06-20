@@ -20,13 +20,12 @@ ORDER BY
 LIMIT 10
 """
 
-def init_db():
+def init_db() -> None:
     with open(_locations_json_file) as f:
         locations = json.load(f)
 
     with api_tx() as tx:
-        tx.execute("SELECT COUNT(*) FROM location")
-        if tx.fetchone()['count'] != 0:
+        if tx.require_one("SELECT COUNT(*) FROM location")['count'] != 0:
             return
 
         tx.executemany(
@@ -53,7 +52,7 @@ def init_db():
         )
 
 @lru_cache(maxsize=26**3)
-def get_search_locations(q: Optional[str]):
+def get_search_locations(q: Optional[str]) -> object:
     if q is None:
         return []
 

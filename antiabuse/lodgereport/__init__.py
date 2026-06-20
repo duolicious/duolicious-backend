@@ -1,4 +1,10 @@
-from database import api_tx
+from database import (
+    api_tx,
+    row_bool,
+    row_str,
+    row_str_list,
+    row_value,
+)
 from antiabuse.sql import (
     Q_LAST_MESSAGES,
     Q_MAKE_REPORT,
@@ -15,7 +21,6 @@ from antiabuse.lodgereport.constants import (
     TRUSTWORTHY_MIN_PEOPLE_MESSAGED,
     TRUSTWORTHY_MIN_QUESTIONS_ANSWERED,
 )
-from typing import Any
 from smtp import aws_smtp
 import traceback
 import threading
@@ -24,27 +29,35 @@ import yaml
 from io import StringIO
 import re
 import random
+from collections.abc import Mapping, Sequence
+from antiabuse.lodgereport.constants import EmailEntry
 
 
-def _repack_last_messages_in_place(last_messages: list[dict]):
+def _repack_last_messages_in_place(
+    last_messages: list[dict[str, object]],
+) -> None:
     for i in range(len(last_messages)):
         m = last_messages[i]
 
-        last_messages[i] = { m['sent_by']: m['body'] }
+        last_messages[i] = { row_str(m, 'sent_by'): row_value(m, 'body') }
 
 
-def _obj_to_yaml_string(obj):
+def _obj_to_yaml_string(obj: object) -> str:
     class IndentDumper(yaml.Dumper):
-        def increase_indent(self, flow=False, indentless=False):
-            return super(IndentDumper, self).increase_indent(flow, False)
+        def increase_indent(
+            self,
+            flow: bool = False,
+            indentless: bool = False,
+        ) -> None:
+            super(IndentDumper, self).increase_indent(flow, False)
 
     output = StringIO()
     yaml.dump(obj, output, indent=2, allow_unicode=True, Dumper=IndentDumper)
     return output.getvalue()
 
 
-def _photo_links_to_html(photo_links):
-    def link_to_html(photo_link):
+def _photo_links_to_html(photo_links: Sequence[str]) -> str:
+    def link_to_html(photo_link: str) -> str:
         return f'''
             <img src="{photo_link}" style="max-width: 200px;
             max-height: 200px; width: auto; height: auto;
@@ -58,16 +71,16 @@ def _photo_links_to_html(photo_links):
 
 
 def report_template(
-    report_obj,
+    report_obj: Sequence[Mapping[str, object]],
     reason: str,
-    last_messages: list[dict],
-):
-    reporter_token = report_obj[0]['token']
-    accused_token = report_obj[1]['token']
+    last_messages: list[dict[str, object]],
+) -> str:
+    reporter_token = row_str(report_obj[0], 'token')
+    accused_token = row_str(report_obj[1], 'token')
 
-    accused_photo_links = report_obj[1]['photo_links']
+    accused_photo_links = row_str_list(report_obj[1], 'photo_links')
 
-    object_person_id = report_obj[1]['id']
+    object_person_id = row_value(report_obj[1], 'id')
 
     _repack_last_messages_in_place(last_messages)
 
@@ -129,7 +142,7 @@ def report_template(
 """
 
 
-def _sample_email_addresses(email_entries):
+def _sample_email_addresses(email_entries: Sequence[EmailEntry]) -> str:
     # Extract the emails and their respective weights from the list of EmailEntry instances
     emails = [entry.email for entry in email_entries]
     weights = [entry.count for entry in email_entries]
@@ -140,7 +153,10 @@ def _sample_email_addresses(email_entries):
     return sampled_email
 
 
-def _automod_subject_suffix(is_automoded_bot: bool, is_shadow_banned: bool):
+def _automod_subject_suffix(
+    is_automoded_bot: bool,
+    is_shadow_banned: bool,
+) -> str:
     if is_shadow_banned:
         return ' [automoded - shadow banned]'
     if is_automoded_bot:
@@ -150,13 +166,13 @@ def _automod_subject_suffix(is_automoded_bot: bool, is_shadow_banned: bool):
 
 def _send_report_email(
     reason: str,
-    report_obj: Any,
-    last_messages: list[dict],
+    report_obj: Sequence[Mapping[str, object]],
+    last_messages: list[dict[str, object]],
     is_automoded_bot: bool,
     is_shadow_banned: bool,
-):
-    subject_person_id = report_obj[0]['id']
-    object_person_id  = report_obj[1]['id']
+) -> None:
+    subject_person_id = row_value(report_obj[0], 'id')
+    object_person_id  = row_value(report_obj[1], 'id')
 
     report_email = _sample_email_addresses(REPORT_EMAILS)
 
@@ -184,7 +200,7 @@ def lodge_report(
     reason: str,
     is_automoded_bot: bool,
     is_shadow_banned: bool,
-):
+) -> None:
     params = dict(
         subject_uuid=subject_uuid,
         object_uuid=object_uuid,
@@ -208,7 +224,7 @@ def lodge_report(
     ).start()
 
 
-def is_bot_report(reason: str):
+def is_bot_report(reason: str) -> bool:
     detection_pattern = re.compile(
         r'\b('
         r'fake|(cat\s*fish(ing)?)|scam|scammer|spam|spammer|bot|clanker|'
@@ -224,7 +240,10 @@ def is_bot_report(reason: str):
     return bool(re.search(detection_pattern, clean_reason))
 
 
-def _should_shadow_ban(has_gold: bool, trustworthy_report_reasons: list[str]):
+def _should_shadow_ban(
+    has_gold: bool,
+    trustworthy_report_reasons: list[str],
+) -> bool:
     if has_gold:
         return False
 
@@ -235,7 +254,7 @@ def _should_shadow_ban(has_gold: bool, trustworthy_report_reasons: list[str]):
     return bot_report_count >= SHADOW_BAN_REPORT_THRESHOLD
 
 
-def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str):
+def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str) -> None:
     params = dict(
         subject_uuid=subject_uuid,
         object_uuid=object_uuid,
@@ -247,11 +266,13 @@ def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str):
     is_shadow_banned = False
 
     with api_tx() as tx:
-        tx.execute(Q_INSERT_SKIPPED, params=params)
-        is_automoded_bot = tx.fetchone()['is_automoded_bot']
+        is_automoded_bot = row_bool(
+            tx.require_one(Q_INSERT_SKIPPED, params=params),
+            'is_automoded_bot',
+        )
 
         if reason:
-            row = tx.execute(
+            row = tx.require_one(
                 Q_TRUSTWORTHY_REPORTS,
                 params=dict(
                     object_uuid=object_uuid,
@@ -260,11 +281,14 @@ def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str):
                     min_people_messaged=TRUSTWORTHY_MIN_PEOPLE_MESSAGED,
                     min_questions_answered=TRUSTWORTHY_MIN_QUESTIONS_ANSWERED,
                 ),
-            ).fetchone()
+            )
 
             is_shadow_banned = _should_shadow_ban(
-                has_gold=row['has_gold'],
-                trustworthy_report_reasons=row['trustworthy_report_reasons'],
+                has_gold=row_bool(row, 'has_gold'),
+                trustworthy_report_reasons=row_str_list(
+                    row,
+                    'trustworthy_report_reasons',
+                ),
             )
 
             if is_shadow_banned:

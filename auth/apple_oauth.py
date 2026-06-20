@@ -65,7 +65,7 @@ def handle_callback(
     id_token: str,
     state: str,
     error: Optional[str],
-):
+) -> object:
     target_url = _resolve_target(state)
     if not target_url:
         return 'Invalid Apple sign-in state', 400

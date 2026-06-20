@@ -6,7 +6,8 @@ import functools
 import datetime
 import random
 import sys
-from typing import NamedTuple, List
+from collections.abc import MutableSequence
+from typing import Callable, NamedTuple, TypeVar
 import json
 import time
 import re
@@ -22,18 +23,22 @@ if not question_path:
 
 openai.organization = open(f'{Path.home()}/.openai-org-id').read().strip()
 openai.api_key = open(f'{Path.home()}/.openai-key').read().strip()
+openai_legacy = openai
 
 valid_categories = set(['values', 'sex', 'interpersonal', 'other'])
+
+T = TypeVar('T')
+
 
 class CategorisedQuestion(NamedTuple):
     question: str
     category: str
 
 class Questions(NamedTuple):
-    categorised: List[CategorisedQuestion]
-    uncategorised: List[str]
+    categorised: list[CategorisedQuestion]
+    uncategorised: list[str]
 
-def get_batch_prompt(questions: List[str]) -> str:
+def get_batch_prompt(questions: list[str]) -> str:
     if not len(questions):
         raise ValueError("list of questions can't be empty")
 
@@ -53,10 +58,10 @@ Express your answer as a JSON object in the format {'{'}1: "category", 2: "categ
 """.strip()
 
 
-def categorise_batch_once(questions: List[str]) -> List[CategorisedQuestion]:
+def categorise_batch_once(questions: list[str]) -> list[CategorisedQuestion]:
     prompt = get_batch_prompt(questions)
 
-    completion = openai.ChatCompletion.create(
+    completion = getattr(openai_legacy, 'ChatCompletion').create(
         model="gpt-4",
         messages=[
             {
@@ -97,7 +102,10 @@ response: {response}
         for q, c in zip(questions, categories)
     ]
 
-def reversible_shuffle(n):
+def reversible_shuffle(n: int) -> tuple[
+    Callable[[list[T]], list[T]],
+    Callable[[list[T]], list[T]],
+]:
     shuffled_indices1 = list(range(n))
     shuffled_indices2 = list(range(n))
     shuffle(shuffled_indices1)
@@ -106,20 +114,23 @@ def reversible_shuffle(n):
     forward_index_map = list(zip(shuffled_indices1, shuffled_indices2))
     backward_index_map = list(zip(shuffled_indices2, shuffled_indices1))
 
-    def apply_index_map(index_map, l):
+    def apply_index_map(
+        index_map: list[tuple[int, int]],
+        l: list[T],
+    ) -> list[T]:
         d = {i1: l[i2] for i1, i2 in index_map}
         return [d[i] for i in range(len(d))]
 
-    def shuffle_(l):
+    def shuffle_(l: list[T]) -> list[T]:
         return apply_index_map(forward_index_map, l)
 
-    def unshuffle_(l):
+    def unshuffle_(l: list[T]) -> list[T]:
         return apply_index_map(backward_index_map, l)
 
     return shuffle_, unshuffle_
 
-def categorise_batch(questions: List[str]) -> List[CategorisedQuestion]:
-    votes = []
+def categorise_batch(questions: list[str]) -> list[CategorisedQuestion]:
+    votes: list[list[CategorisedQuestion]] = []
     for _ in range(3):
         s, u = reversible_shuffle(len(questions))
         votes.append(u(categorise_batch_once(s(questions))))
@@ -157,7 +168,7 @@ def load_questions(path: str) -> Questions:
             j = [l.strip() for l in f.readlines()]
             return Questions(categorised=[], uncategorised=j)
 
-def save_questions(path: str, questions: Questions):
+def save_questions(path: str, questions: Questions) -> None:
     j = {
         'categorised': [
             {'question': q.question, 'category': q.category}
@@ -170,15 +181,18 @@ def save_questions(path: str, questions: Questions):
     with open(path, 'w', encoding="utf-8") as f:
         f.write(j_str)
 
-def chunker(seq, size):
+def chunker(seq: list[T], size: int) -> list[list[T]]:
     reversed_seq = list(reversed(seq))
     return [reversed_seq[pos:pos + size] for pos in range(0, len(reversed_seq), size)]
 
-def pop_n(l, n):
+def pop_n(l: MutableSequence[T], n: int) -> None:
     for _ in range(n):
         l.pop()
 
-def categorise_questions_in_place(questions: Questions, checkpoint_func):
+def categorise_questions_in_place(
+    questions: Questions,
+    checkpoint_func: Callable[[Questions], None],
+) -> None:
     for batch in chunker(questions.uncategorised, 10):
         chunk_size = len(batch)
 
@@ -192,10 +206,10 @@ def categorise_questions_in_place(questions: Questions, checkpoint_func):
             f'#categorised={len(questions.categorised)}, #uncategorised={len(questions.uncategorised)}'
         )
 
-def checkpoint_func(questions: Questions):
+def checkpoint_func(questions: Questions) -> None:
     save_questions(question_path, questions)
 
-def main():
+def main() -> None:
     questions = load_questions(question_path)
     categorise_questions_in_place(questions, checkpoint_func)
 

@@ -26,6 +26,8 @@ regex
 types-Pillow
 types-Pygments
 types-colorama
+types-Flask-Cors
+types-PyYAML
 types-pyOpenSSL
 types-regex
 types-requests

@@ -53,7 +53,7 @@ SELECT normalized_email FROM banned_person ORDER BY normalized_email
 """
 
 class Test(unittest.TestCase):
-    def test_migration(self):
+    def test_migration(self) -> None:
         with api_tx() as tx:
             tx.execute(Q_DELETE_PERSONS)
             tx.execute(Q_INSERT_PERSONS)

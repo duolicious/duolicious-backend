@@ -1,4 +1,4 @@
-from database.asyncdatabase import api_tx
+from database.asyncdatabase import api_tx, row_str, row_str_list
 from service.cron.autodeactivate2.sql import *
 from service.cron.autodeactivate2.template import emailtemplate
 from service.cron.cronutil import print_stacktrace, MAX_RANDOM_START_DELAY
@@ -8,6 +8,7 @@ import notify
 import os
 import random
 import sessioncache
+from collections.abc import Iterable
 
 DRY_RUN = os.environ.get(
     'DUO_CRON_AUTODEACTIVATE2_DRY_RUN',
@@ -21,20 +22,22 @@ AUTODEACTIVATE2_POLL_SECONDS = int(os.environ.get(
 
 print(f'Hello from cron module: {__name__}')
 
-def maybe_send_email(email: str):
+def maybe_send_email(email: str) -> None:
     if email.lower().endswith('@example.com'):
         return
 
-    send_args = dict(
-        subject="Your profile is invisible 👻",
-        body=emailtemplate(),
+    subject = "Your profile is invisible 👻"
+    body = emailtemplate()
+
+    print('autodeactivate2: sending deactivation email to', email)
+    aws_smtp.send(
+        subject=subject,
+        body=body,
         to_addr=email,
     )
 
-    print('autodeactivate2: sending deactivation email to', email)
-    aws_smtp.send(**send_args)
 
-def send_mobile_notifications(push_tokens):
+def send_mobile_notifications(push_tokens: Iterable[str]) -> None:
     for token in push_tokens:
         print('autodeactivate2: sending deactivation push notification to', token)
         notify.enqueue_mobile_notification(
@@ -46,7 +49,8 @@ def send_mobile_notifications(push_tokens):
             ),
         )
 
-async def autodeactivate2_once():
+
+async def autodeactivate2_once() -> None:
     params = dict(
         dry_run=DRY_RUN,
     )
@@ -56,12 +60,12 @@ async def autodeactivate2_once():
         rows_deactivated = await cur_deactivated.fetchall()
 
     for p in rows_deactivated:
-        for session_token_hash in p['session_token_hashes']:
+        for session_token_hash in row_str_list(p, 'session_token_hashes'):
             await asyncio.to_thread(
                 sessioncache.delete_session, session_token_hash)
 
     for p in rows_deactivated:
-        person = dict(id=p['id'], email=p['email'])
+        person = dict(id=p['id'], email=row_str(p, 'email'))
         if DRY_RUN:
             print(
                 f'  - autodeactive2: DUO_CRON_AUTODEACTIVATE2_DRY_RUN env '
@@ -71,10 +75,10 @@ async def autodeactivate2_once():
             print(f'  - autodeactive2: deactivated {person}')
 
     for p in rows_deactivated:
-        maybe_send_email(p['email'])
-        send_mobile_notifications(p['push_tokens'])
+        maybe_send_email(row_str(p, 'email'))
+        send_mobile_notifications(row_str_list(p, 'push_tokens'))
 
-async def autodeactivate2_forever():
+async def autodeactivate2_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(autodeactivate2_once)

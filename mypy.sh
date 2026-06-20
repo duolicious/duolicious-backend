@@ -25,7 +25,5 @@ if [ -n "$1" ]
 then
   python3 -m mypy "${1}"
 else
-  python3 -m mypy \
-    --exclude 'venv/|antiabuse/normalize/__init__\.py|antiabuse/antiporn/__init__\.py|antiabuse/lodgereport/__init__\.py|duoaudio/__init__\.py|service/cron/cronutil/__init__\.py|service/cron/checkphotos/__init__\.py|service/cron/notifications/test_init\.py|service/cron/verificationjobrunner/__init__\.py|person/__init__\.py|service/api/decorators\.py|questions/categorise_questions\.py|questions/archetypeise_questions\.py' \
-    .
+  python3 -m mypy .
 fi

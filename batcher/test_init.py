@@ -5,16 +5,16 @@ from batcher import Batcher
 
 class TestBatcher(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.process_fn = MagicMock()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Stop the batcher after each test
         if hasattr(self, 'batcher'):
             self.batcher.stop()
             time.sleep(0.2)  # Ensure the stop completes
 
-    def test_enqueue_and_process(self):
+    def test_enqueue_and_process(self) -> None:
         self.batcher = Batcher(
             process_fn=self.process_fn,
             flush_interval=0.1,
@@ -35,7 +35,7 @@ class TestBatcher(unittest.TestCase):
         # Check that the process_fn was called with the expected batch
         self.process_fn.assert_called_once_with([1])
 
-    def test_flush_interval_respected(self):
+    def test_flush_interval_respected(self) -> None:
         self.batcher = Batcher(
             process_fn=self.process_fn,
             flush_interval=0.2,
@@ -59,7 +59,7 @@ class TestBatcher(unittest.TestCase):
         # Check that the batch was processed
         self.process_fn.assert_called_once_with([1])
 
-    def test_dynamic_flush_interval(self):
+    def test_dynamic_flush_interval(self) -> None:
         self.batcher = Batcher(
             process_fn=self.process_fn,
             flush_interval=0.2,
@@ -91,7 +91,7 @@ class TestBatcher(unittest.TestCase):
         # Check that the batch was processed earlier due to the old interval
         self.process_fn.assert_has_calls([call([1]), call([2])])
 
-    def test_max_batch_size_respected(self):
+    def test_max_batch_size_respected(self) -> None:
         self.batcher = Batcher(
             process_fn=self.process_fn,
             flush_interval=10.0,  # Long flush interval so we rely on batch size
@@ -114,11 +114,11 @@ class TestBatcher(unittest.TestCase):
         # Check that the batch was processed due to reaching max_batch_size
         self.process_fn.assert_called_once_with([1, 2, 3])
 
-    def test_retry_on_failure(self):
+    def test_retry_on_failure(self) -> None:
         # Mock the process_fn to raise an exception on the first call
-        def failing_process(batch):
+        def failing_process(batch: object) -> None:
             if not hasattr(failing_process, 'called'):
-                failing_process.called = True
+                setattr(failing_process, 'called', True)
                 raise Exception("Simulated failure")
             self.process_fn(batch)
 
@@ -144,7 +144,7 @@ class TestBatcher(unittest.TestCase):
         # Check that the batch was retried and processed successfully
         self.process_fn.assert_called_once_with([1])
 
-    def test_no_items_enqueued_during_flush_interval(self):
+    def test_no_items_enqueued_during_flush_interval(self) -> None:
         self.batcher = Batcher(
             process_fn=self.process_fn,
             flush_interval=0.1,
@@ -162,8 +162,8 @@ class TestBatcher(unittest.TestCase):
         # Ensure that process_fn was not called since no items were enqueued
         self.process_fn.assert_not_called()
 
-    def test_empty_batch_processing(self):
-        def process_fn(batch):
+    def test_empty_batch_processing(self) -> None:
+        def process_fn(batch: list[object]) -> None:
             # Ensure that the batch is never empty
             self.assertTrue(len(batch) > 0, "Batch should not be empty")
             self.process_fn(batch)

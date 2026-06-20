@@ -3,7 +3,7 @@ from service.chat.spam import is_spam
 
 class TestIsOffensive(unittest.TestCase):
 
-    def test_spam_strings(self):
+    def test_spam_strings(self) -> None:
         self.assertFalse(
                 is_spam("I am therapist"))
 

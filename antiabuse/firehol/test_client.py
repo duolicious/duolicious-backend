@@ -13,9 +13,13 @@ from urllib.parse import parse_qs, urlparse
 from antiabuse.firehol import FireholClient
 
 
+class _StubServer(ThreadingHTTPServer):
+    matches_for: dict[str | None, list[str]]
+
+
 class _StubHandler(BaseHTTPRequestHandler):
     # Set per-test on the server instance.
-    def _json(self, status, payload):
+    def _json(self, status: int, payload: object) -> None:
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
@@ -23,46 +27,50 @@ class _StubHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         parsed = urlparse(self.path)
         if parsed.path == "/matches":
             ip = parse_qs(parsed.query).get("ip", [None])[0]
-            self._json(200, self.server.matches_for.get(ip, []))
+            matches_for = getattr(self.server, "matches_for", {})
+            self._json(200, matches_for.get(ip, []))
         else:
             self._json(404, {"error": "not found"})
 
-    def log_message(self, *args):
+    def log_message(self, *args: object) -> None:
         pass
 
 
 class FireholClientTests(unittest.TestCase):
-    def setUp(self):
-        self.server = ThreadingHTTPServer(("127.0.0.1", 0), _StubHandler)
-        self.server.matches_for = {"1.2.3.4": ["list_a", "list_b"]}
-        self._thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+    def setUp(self) -> None:
+        server = _StubServer(("127.0.0.1", 0), _StubHandler)
+        server.matches_for = {"1.2.3.4": ["list_a", "list_b"]}
+        self.server = server
+        self._thread = threading.Thread(target=server.serve_forever, daemon=True)
         self._thread.start()
-        host, port = self.server.server_address
+        host, port = server.server_address[:2]
+        if isinstance(host, bytes):
+            host = host.decode()
         self.client = FireholClient(f"http://{host}:{port}")
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.server.shutdown()
         self.server.server_close()
 
-    def test_matches_hit(self):
+    def test_matches_hit(self) -> None:
         self.assertEqual(sorted(self.client.matches("1.2.3.4")), ["list_a", "list_b"])
 
-    def test_matches_miss(self):
+    def test_matches_miss(self) -> None:
         self.assertEqual(self.client.matches("5.5.5.5"), [])
 
 
 class FireholClientFailOpenTests(unittest.TestCase):
     """A down/unreachable container must look like "not blocked"."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         # Port 1 is reserved and never listening, so connections are refused.
         self.client = FireholClient("http://127.0.0.1:1")
 
-    def test_matches_fails_open(self):
+    def test_matches_fails_open(self) -> None:
         self.assertEqual(self.client.matches("1.2.3.4"), [])
 
 

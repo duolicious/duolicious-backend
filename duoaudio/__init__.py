@@ -33,7 +33,7 @@ audio_bucket = s3.Bucket(R2_AUDIO_BUCKET_NAME)
 def put_audio_in_object_store(
     uuid: str,
     audio_file_bytes: bytes,
-):
+) -> None:
     key = f'{uuid}.aac'
 
     with ThreadPoolExecutor(max_workers=5) as executor:

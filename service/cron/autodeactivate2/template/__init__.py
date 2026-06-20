@@ -1,4 +1,4 @@
-def emailtemplate():
+def emailtemplate() -> str:
     return f"""
     <!DOCTYPE html>
     <html lang="en">

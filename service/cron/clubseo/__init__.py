@@ -5,6 +5,15 @@ from constants import (
 from database.asyncdatabase import api_tx
 from service.cron.cronutil import print_stacktrace, MAX_RANDOM_START_DELAY
 from util import is_offpeak
+from util.coerce import (
+    mapping,
+    mapping_or_empty,
+    mapping_sequence_or_empty,
+    number,
+    number_or_zero,
+    optional_str,
+    sequence_or_empty,
+)
 from service.cron.clubseo.sql import (
     Q_CLUB_STATS_BATCH,
     Q_CLUB_TOP_ANSWERS_BATCH,
@@ -22,6 +31,7 @@ import json
 import os
 import random
 import traceback
+from collections.abc import Mapping, Sequence
 
 CLUB_SEO_MAX_LOAD_PCT = float(os.environ.get(
     'DUO_CRON_CLUB_SEO_MAX_LOAD_PCT',
@@ -96,7 +106,7 @@ CLUB_SEO_MOCK_DESCRIPTION = os.environ.get('DUO_CRON_CLUB_SEO_MOCK_DESCRIPTION')
 _openai_client = AsyncOpenAI() if not CLUB_SEO_MOCK_DESCRIPTION else None
 
 
-async def refresh_club_stats_once():
+async def refresh_club_stats_once() -> None:
     if not is_offpeak(CLUB_SEO_MAX_LOAD_PCT, 'refresh_club_stats_once'):
         return
 
@@ -112,14 +122,14 @@ async def refresh_club_stats_once():
         print(f"club_stats: recomputed {row['upserted_count']} clubs")
 
 
-async def refresh_club_stats_forever():
+async def refresh_club_stats_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(refresh_club_stats_once)
         await asyncio.sleep(CLUB_STATS_POLL_SECONDS)
 
 
-async def refresh_club_top_answers_once():
+async def refresh_club_top_answers_once() -> None:
     if not is_offpeak(CLUB_SEO_MAX_LOAD_PCT, 'refresh_club_top_answers_once'):
         return
 
@@ -136,14 +146,14 @@ async def refresh_club_top_answers_once():
         print(f"club_top_answers: recomputed {row['upserted_count']} clubs")
 
 
-async def refresh_club_top_answers_forever():
+async def refresh_club_top_answers_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(refresh_club_top_answers_once)
         await asyncio.sleep(CLUB_TOP_ANSWERS_POLL_SECONDS)
 
 
-async def refresh_club_overlap_once():
+async def refresh_club_overlap_once() -> None:
     if not is_offpeak(CLUB_SEO_MAX_LOAD_PCT, 'refresh_club_overlap_once'):
         return
 
@@ -159,60 +169,67 @@ async def refresh_club_overlap_once():
     print('club_overlap: rebuilt')
 
 
-async def refresh_club_overlap_forever():
+async def refresh_club_overlap_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(refresh_club_overlap_once)
         await asyncio.sleep(CLUB_OVERLAP_POLL_SECONDS)
 
 
-def _top_pct(items):
+def _top_pct(items: Sequence[Mapping[str, object]] | None) -> list[dict[str, object]]:
     items = items or []
-    total = sum(it.get('count', 0) for it in items)
+    total = sum(number_or_zero(it.get('count')) for it in items)
     if total == 0:
         return []
     return [
-        {'label': it['label'], 'pct': round(100 * it['count'] / total)}
+        {
+            'label': it.get('label'),
+            'pct': round(100 * number_or_zero(it.get('count')) / total),
+        }
         for it in items
     ]
 
 
-def _notable_traits(traits):
+def _notable_traits(
+    traits: Sequence[Mapping[str, object]] | None,
+) -> list[dict[str, object]]:
     notable = [
         t for t in (traits or [])
-        if abs(t.get('score', 0)) >= MIN_NOTABLE_TRAIT_SCORE
+        if abs(number_or_zero(t.get('score'))) >= MIN_NOTABLE_TRAIT_SCORE
     ]
-    notable.sort(key=lambda t: abs(t['score']), reverse=True)
+    notable.sort(key=lambda t: abs(number_or_zero(t.get('score'))), reverse=True)
     return [
         {
-            'trait':     t['trait'],
-            'min_label': t['min_label'],
-            'max_label': t['max_label'],
-            'score':     t['score'],
+            'trait':     t.get('trait'),
+            'min_label': t.get('min_label'),
+            'max_label': t.get('max_label'),
+            'score':     t.get('score'),
         }
         for t in notable[:MAX_LLM_PROMPT_FACTS]
     ]
 
 
-def build_prompt_payload(stats: dict) -> dict:
-    demo = stats.get('demographics') or {}
+def build_prompt_payload(stats: Mapping[str, object]) -> dict[str, object]:
+    demo = mapping_or_empty(stats.get('demographics'))
     return {
         'club_name':        stats.get('name'),
         'member_count':     stats.get('member_count'),
         'median_age':       stats.get('median_age'),
-        'gender_mix':       _top_pct(demo.get('gender')),
-        'religion_mix':     _top_pct(demo.get('religion')),
-        'personality_lean': _notable_traits(stats.get('personality')),
-        'shared_answers':   (stats.get('top_answers') or [])[:MAX_LLM_PROMPT_FACTS],
+        'gender_mix':       _top_pct(mapping_sequence_or_empty(demo.get('gender'))),
+        'religion_mix':     _top_pct(mapping_sequence_or_empty(demo.get('religion'))),
+        'personality_lean': _notable_traits(
+            mapping_sequence_or_empty(stats.get('personality'))),
+        'shared_answers':   sequence_or_empty(
+            stats.get('top_answers'))[:MAX_LLM_PROMPT_FACTS],
     }
 
 
-def stats_hash(payload: dict) -> str:
+def stats_hash(payload: Mapping[str, object]) -> str:
     blob = json.dumps(payload, sort_keys=True, separators=(',', ':'))
     return hashlib.sha256(blob.encode('utf-8')).hexdigest()[:32]
 
 
-def build_prompt(payload: dict) -> str:
+def build_prompt(payload: Mapping[str, object]) -> str:
     # `club_name` is user-generated. Emitting the whole payload as one JSON
     # object means JSON string-escaping neutralises any quotes/braces/newlines
     # a malicious name might contain, so it can't break out of its field and
@@ -264,13 +281,15 @@ Return only the description text.
 """.strip()
 
 
-async def generate_description(payload: dict) -> str | None:
+async def generate_description(payload: Mapping[str, object]) -> str | None:
     if CLUB_SEO_MOCK_DESCRIPTION:
         return CLUB_SEO_MOCK_DESCRIPTION
 
-    assert _openai_client is not None
+    client = _openai_client
+    if client is None:
+        raise RuntimeError('OpenAI client is not configured')
     try:
-        resp = await _openai_client.chat.completions.create(
+        resp = await client.chat.completions.create(
             model=OPENAI_MODEL,
             max_tokens=300,
             timeout=45,
@@ -294,13 +313,19 @@ def is_fresh_enough(old_stats_hash: str | None, new_hash: str, age_days: float) 
     return age_days < CLUB_SEO_MAX_AGE_DAYS
 
 
-async def _process_club_seo_row(row, semaphore):
-    club_name = row['name']
-    old_hash = row['old_stats_hash']
-    # NULL age (no club_seo row yet) means infinitely stale.
-    age_days = row['age_days'] if row['age_days'] is not None else float('inf')
+async def _process_club_seo_row(
+    row: Mapping[str, object],
+    semaphore: asyncio.Semaphore,
+) -> None:
+    club_name = optional_str(row['name'])
+    if club_name is None:
+        raise RuntimeError('club name must be a string')
 
-    stats = dict(row['stats_json'])
+    old_hash = optional_str(row['old_stats_hash'])
+    # NULL age (no club_seo row yet) means infinitely stale.
+    age_days = number(row['age_days']) if row['age_days'] is not None else float('inf')
+
+    stats = dict(mapping(row['stats_json']))
     stats['top_answers'] = row['top_answers_json'] or []
     payload = build_prompt_payload(stats)
     new_hash = stats_hash(payload)
@@ -333,7 +358,7 @@ async def _process_club_seo_row(row, semaphore):
     print(f'club_seo: regenerated {club_name!r} ({len(description)} chars)')
 
 
-async def refresh_club_seo_once():
+async def refresh_club_seo_once() -> None:
     if not is_offpeak(CLUB_SEO_MAX_LOAD_PCT, 'refresh_club_seo_once'):
         return
 
@@ -360,7 +385,7 @@ async def refresh_club_seo_once():
             print(f"club_seo: unexpected error for {row['name']!r}: {res!r}")
 
 
-async def refresh_club_seo_forever():
+async def refresh_club_seo_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(refresh_club_seo_once)

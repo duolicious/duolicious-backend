@@ -32,7 +32,7 @@ ON CONFLICT (hash) DO UPDATE SET
 """
 
 
-def process_batch(batch: List[str]):
+def process_batch(batch: List[str]) -> None:
     hash_counts = Counter(batch)
 
     params_seq = [
@@ -56,5 +56,5 @@ _batcher = Batcher[str](
 _batcher.start()
 
 
-def upsert_intro_hash(hashed: str):
+def upsert_intro_hash(hashed: str) -> None:
     _batcher.enqueue(hashed)

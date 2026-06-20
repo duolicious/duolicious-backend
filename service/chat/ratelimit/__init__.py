@@ -116,7 +116,7 @@ def get_default_rate_limit(row: Row) -> DefaultRateLimit:
         return DefaultRateLimit.NONE
 
 
-def get_stanza(default_rate_limit: DefaultRateLimit, stanza_id: str) -> list[str]:
+def get_stanza(default_rate_limit: object, stanza_id: str) -> list[str]:
     if default_rate_limit == DefaultRateLimit.NONE:
         return []
     elif default_rate_limit == DefaultRateLimit.UNVERIFIED:
@@ -146,8 +146,7 @@ def pure_maybe_fetch_rate_limit(row: Row, stanza_id: str) -> list[str]:
 @AsyncLruCache(maxsize=1024, ttl=5)  # 5 seconds
 async def fetch_rate_limit_reason(from_id: int) -> Row:
     async with api_tx('read committed') as tx:
-        await tx.execute(Q_RATE_LIMIT_REASON, dict(from_id=from_id))
-        row = await tx.fetchone()
+        row = await tx.require_one(Q_RATE_LIMIT_REASON, dict(from_id=from_id))
 
     return Row(
         verification_level_id=row['verification_level_id'],

@@ -3,7 +3,7 @@ from antiabuse.antispam.urldetector import has_url, UrlType
 
 class TestContainsUrl(unittest.TestCase):
 
-    def test_url_strings(self):
+    def test_url_strings(self) -> None:
         self.assertTrue(
                 has_url("join discord.gg/example"))
 
@@ -50,7 +50,7 @@ class TestContainsUrl(unittest.TestCase):
             """buy me gifts at throne.com/anakido"""))
 
 
-    def test_non_url_strings(self):
+    def test_non_url_strings(self) -> None:
         self.assertFalse(has_url("I like your bio."))
 
         self.assertFalse(has_url("I like your bio. Common bios are boring"))
@@ -84,7 +84,7 @@ Also some clubs are just there to find people who might like me; I’m hetero un
         self.assertFalse(has_url(
             """Check out my stats.fm @example"""))
 
-    def test_tenor_match_1(self):
+    def test_tenor_match_1(self) -> None:
         haystack = "https://media.tenor.com/dxsHgu0_-QAAAAAMx/meganleigh-megaxn.gif"
 
         actual = has_url(haystack, include_safe=True, do_normalize=False)
@@ -93,7 +93,7 @@ Also some clubs are just there to find people who might like me; I’m hetero un
 
         self.assertEqual(actual, expected)
 
-    def test_tenor_match_2(self):
+    def test_tenor_match_2(self) -> None:
         needle = "https://media.tenor.com/dxsHgu0_-QAAAAAMx/meganleigh-megaxn.gif"
 
         haystack = "look at this https://media.tenor.com/dxsHgu0_-QAAAAAMx/meganleigh-megaxn.gif url"

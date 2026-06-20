@@ -3,7 +3,7 @@ from antiabuse.childsafety import potential_minor
 
 class TestPotentialMinor(unittest.TestCase):
 
-    def test_potential_minor(self):
+    def test_potential_minor(self) -> None:
         self.assertTrue(
                 potential_minor("""
 Hi
@@ -284,7 +284,7 @@ i am an aam.
                 """.strip()))
 
 
-    def test_not_potential_minor(self):
+    def test_not_potential_minor(self) -> None:
         self.assertFalse(
                 potential_minor("""
 I'm 71

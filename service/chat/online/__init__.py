@@ -86,12 +86,16 @@ async def _redis_subscribe_online(
     redis_client: redis.Redis,
     pubsub: redis.client.PubSub,
     username: str,
-):
+) -> str:
     key = FMT_KEY.format(username=username)
     val = await redis_client.get(key)
 
     await pubsub.subscribe(key)
-    return val or FMT_ONLINE_EVENT.format(
+    if isinstance(val, bytes):
+        return val.decode()
+    if isinstance(val, str):
+        return val
+    return FMT_ONLINE_EVENT.format(
         username=username,
         status=OnlineStatus.OFFLINE.value,
     )
@@ -100,7 +104,7 @@ async def _redis_subscribe_online(
 async def _redis_unsubscribe_online(
     pubsub: redis.client.PubSub,
     username: str,
-):
+) -> None:
     key = FMT_KEY.format(username=username)
     await pubsub.unsubscribe(key)
 
@@ -108,7 +112,7 @@ async def redis_publish_online(
     redis_client: redis.Redis,
     username: str,
     online: bool
-):
+) -> None:
     status = (
         OnlineStatus.ONLINE.value
         if online
@@ -145,7 +149,7 @@ async def _evict_oldest_online_subscriptions(
     pubsub: redis.client.PubSub,
     session: Session,
     limit: int,
-):
+) -> None:
     # Unsubscribe the earliest subscriptions until there's room for one more.
     while (
         session.online_subscriptions and
@@ -223,7 +227,7 @@ async def maybe_redis_unsubscribe_online(
 
 
 
-def process_batch(jobs: list[UpdateLastJob]):
+def process_batch(jobs: list[UpdateLastJob]) -> None:
     update_last_params_seq = [
         dict(person_uuid=job.session_username)
         for job in jobs
@@ -243,7 +247,7 @@ def update_last_once(
     session_username: str,
     session_token_hash: str,
     do_update_last_event: bool,
-):
+) -> None:
     _batcher.enqueue(
         UpdateLastJob(
             session_username=session_username,
@@ -258,7 +262,7 @@ async def update_online_once(
     session: Session,
     online: bool,
     do_update_last_event: bool = False,
-):
+) -> None:
     if session.username is None or session.session_token_hash is None:
         return
 
@@ -279,7 +283,7 @@ async def update_online_forever(
     redis_client: redis.Redis,
     session: Session,
     online: bool
-):
+) -> None:
     try:
         await update_online_once(
             redis_client=redis_client,

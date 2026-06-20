@@ -65,13 +65,13 @@ _apple_jwks_client = PyJWKClient(
 class _BoundedTimeoutGoogleRequest(_GoogleRequest):
     def __call__(
         self,
-        url,
-        method='GET',
-        body=None,
-        headers=None,
-        timeout=_PROVIDER_HTTP_TIMEOUT_SECONDS,
-        **kwargs,
-    ):
+        url: str,
+        method: str = 'GET',
+        body: object = None,
+        headers: object = None,
+        timeout: object = _PROVIDER_HTTP_TIMEOUT_SECONDS,
+        **kwargs: object,
+    ) -> object:
         return super().__call__(
             url, method, body, headers, timeout=timeout, **kwargs
         )

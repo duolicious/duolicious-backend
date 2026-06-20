@@ -1,5 +1,5 @@
 from urllib.parse import quote
-from typing import Callable
+from typing import Callable, Iterator
 import contextlib
 import os
 import time
@@ -8,7 +8,7 @@ OFFPEAK_FUNCTION_OVERRIDE = os.environ.get('DUO_OFFPEAK_FUNCTION_OVERRIDE', '').
 
 
 @contextlib.contextmanager
-def timed(label: str = 'block', log: Callable[[str], None] = print):
+def timed(label: str = 'block', log: Callable[[str], None] = print) -> Iterator[None]:
     """Context manager that logs how long the block took, even if it raises.
 
     `log` receives the formatted message (default `print`).
@@ -29,7 +29,7 @@ def append_query(base: str, params: dict) -> str:
     return f'{base}{sep}{encoded}' if encoded else base
 
 
-def human_readable_size_metric(size_bytes):
+def human_readable_size_metric(size_bytes: float) -> str:
     # Define suffixes for metric prefixes
     suffixes = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB']
     i = 0

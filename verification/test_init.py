@@ -1,9 +1,24 @@
 import unittest
 from verification import (
+    Failure,
+    Success,
+    VerificationResult,
     get_messages,
     process_response,
     get_system_content,
 )
+
+
+def require_success(processed: VerificationResult) -> Success:
+    if processed.success is None:
+        raise AssertionError('Expected verification success')
+    return processed.success
+
+
+def require_failure(processed: VerificationResult) -> Failure:
+    if processed.failure is None:
+        raise AssertionError('Expected verification failure')
+    return processed.failure
 
 estimated_age = 42
 
@@ -87,7 +102,7 @@ failure_content_12 = success_content_template.replace(
     '"image_1_has_person_from_image_2": 0.0')
 
 class TestProcessResponse(unittest.TestCase):
-    def test_success_1(self):
+    def test_success_1(self) -> None:
         response = success_content_1
 
         processed = process_response(response, claimed_uuids=['u2', 'u3'])
@@ -95,14 +110,14 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNone(processed.failure)
         self.assertIsNotNone(processed.success)
 
-        self.assertTrue(processed.success.is_verified_age)
-        self.assertTrue(processed.success.is_verified_gender)
-        self.assertTrue(processed.success.is_verified_ethnicity)
+        self.assertTrue(require_success(processed).is_verified_age)
+        self.assertTrue(require_success(processed).is_verified_gender)
+        self.assertTrue(require_success(processed).is_verified_ethnicity)
 
-        self.assertEqual(processed.success.verified_uuids, ['u2', 'u3'])
-        self.assertEqual(processed.success.raw_json, response)
+        self.assertEqual(require_success(processed).verified_uuids, ['u2', 'u3'])
+        self.assertEqual(require_success(processed).raw_json, response)
 
-    def test_success_2(self):
+    def test_success_2(self) -> None:
         response = success_content_2
 
         processed = process_response(response, claimed_uuids=['u2', 'u3'])
@@ -110,14 +125,14 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNone(processed.failure)
         self.assertIsNotNone(processed.success)
 
-        self.assertTrue(processed.success.is_verified_age)
-        self.assertTrue(processed.success.is_verified_gender)
-        self.assertFalse(processed.success.is_verified_ethnicity)
+        self.assertTrue(require_success(processed).is_verified_age)
+        self.assertTrue(require_success(processed).is_verified_gender)
+        self.assertFalse(require_success(processed).is_verified_ethnicity)
 
-        self.assertEqual(processed.success.verified_uuids, ['u2', 'u3'])
-        self.assertEqual(processed.success.raw_json, response)
+        self.assertEqual(require_success(processed).verified_uuids, ['u2', 'u3'])
+        self.assertEqual(require_success(processed).raw_json, response)
 
-    def test_success_3(self):
+    def test_success_3(self) -> None:
         response = success_content_3
 
         processed = process_response(response, claimed_uuids=['u2', 'u3'])
@@ -125,14 +140,14 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNone(processed.failure)
         self.assertIsNotNone(processed.success)
 
-        self.assertTrue(processed.success.is_verified_age)
-        self.assertTrue(processed.success.is_verified_gender)
-        self.assertTrue(processed.success.is_verified_ethnicity)
+        self.assertTrue(require_success(processed).is_verified_age)
+        self.assertTrue(require_success(processed).is_verified_gender)
+        self.assertTrue(require_success(processed).is_verified_ethnicity)
 
-        self.assertEqual(processed.success.verified_uuids, [])
-        self.assertEqual(processed.success.raw_json, response)
+        self.assertEqual(require_success(processed).verified_uuids, [])
+        self.assertEqual(require_success(processed).raw_json, response)
 
-    def test_failure_1(self):
+    def test_failure_1(self) -> None:
         response = failure_content_1
 
         processed = process_response(response, claimed_uuids=['u2', 'u3'])
@@ -140,11 +155,11 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNotNone(processed.failure)
         self.assertIsNone(processed.success)
 
-        self.assertEqual(processed.failure.reason,
+        self.assertEqual(require_failure(processed).reason,
             "Our AI thinks your image isn’t a real photo.")
-        self.assertEqual(processed.failure.raw_json, response)
+        self.assertEqual(require_failure(processed).raw_json, response)
 
-    def test_failure_2(self):
+    def test_failure_2(self) -> None:
         response = failure_content_2
 
         processed = process_response(response, claimed_uuids=['u2', 'u3'])
@@ -152,11 +167,11 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNotNone(processed.failure)
         self.assertIsNone(processed.success)
 
-        self.assertEqual(processed.failure.reason,
+        self.assertEqual(require_failure(processed).reason,
             "Our AI thinks your image might have been edited.")
-        self.assertEqual(processed.failure.raw_json, response)
+        self.assertEqual(require_failure(processed).raw_json, response)
 
-    def test_failure_4(self):
+    def test_failure_4(self) -> None:
         response = failure_content_4
 
         processed = process_response(response, claimed_uuids=['u2', 'u3'])
@@ -164,11 +179,11 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNotNone(processed.failure)
         self.assertIsNone(processed.success)
 
-        self.assertEqual(processed.failure.reason,
+        self.assertEqual(require_failure(processed).reason,
             "Our AI thinks your photo doesn’t have a person in it.")
-        self.assertEqual(processed.failure.raw_json, response)
+        self.assertEqual(require_failure(processed).raw_json, response)
 
-    def test_failure_5(self):
+    def test_failure_5(self) -> None:
         response = failure_content_5
 
         processed = process_response(response, claimed_uuids=['u2', 'u3'])
@@ -176,11 +191,11 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNotNone(processed.failure)
         self.assertIsNone(processed.success)
 
-        self.assertEqual(processed.failure.reason,
+        self.assertEqual(require_failure(processed).reason,
             "Our AI thinks there’s more than one person in your photo.")
-        self.assertEqual(processed.failure.raw_json, response)
+        self.assertEqual(require_failure(processed).raw_json, response)
 
-    def test_failure_6(self):
+    def test_failure_6(self) -> None:
         response = failure_content_6
 
         processed = process_response(response, claimed_uuids=['u2', 'u3'])
@@ -188,11 +203,11 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNotNone(processed.failure)
         self.assertIsNone(processed.success)
 
-        self.assertEqual(processed.failure.reason,
+        self.assertEqual(require_failure(processed).reason,
             "Our AI couldn’t verify your gender.")
-        self.assertEqual(processed.failure.raw_json, response)
+        self.assertEqual(require_failure(processed).raw_json, response)
 
-    def test_failure_7(self):
+    def test_failure_7(self) -> None:
         response = failure_content_7
 
         processed = process_response(response, claimed_uuids=['u2', 'u3'])
@@ -200,11 +215,11 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNotNone(processed.failure)
         self.assertIsNone(processed.success)
 
-        self.assertEqual(processed.failure.reason,
+        self.assertEqual(require_failure(processed).reason,
             "Our AI couldn’t verify your age.")
-        self.assertEqual(processed.failure.raw_json, response)
+        self.assertEqual(require_failure(processed).raw_json, response)
 
-    def test_failure_8(self):
+    def test_failure_8(self) -> None:
         response = failure_content_8
 
         processed = process_response(response, claimed_uuids=['u2', 'u3'])
@@ -212,11 +227,11 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNotNone(processed.failure)
         self.assertIsNone(processed.success)
 
-        self.assertEqual(processed.failure.reason,
+        self.assertEqual(require_failure(processed).reason,
             "Our AI couldn’t verify your ethnicity.")
-        self.assertEqual(processed.failure.raw_json, response)
+        self.assertEqual(require_failure(processed).raw_json, response)
 
-    def test_failure_9(self):
+    def test_failure_9(self) -> None:
         response = failure_content_9
 
         processed = process_response(response, claimed_uuids=['u2', 'u3'])
@@ -224,11 +239,11 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNotNone(processed.failure)
         self.assertIsNone(processed.success)
 
-        self.assertEqual(processed.failure.reason,
+        self.assertEqual(require_failure(processed).reason,
             "Our AI thinks you’re not smiling.")
-        self.assertEqual(processed.failure.raw_json, response)
+        self.assertEqual(require_failure(processed).raw_json, response)
 
-    def test_failure_10(self):
+    def test_failure_10(self) -> None:
         response = failure_content_10
 
         processed = process_response(response, claimed_uuids=['u2', 'u3'])
@@ -236,11 +251,11 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNotNone(processed.failure)
         self.assertIsNone(processed.success)
 
-        self.assertEqual(processed.failure.reason,
+        self.assertEqual(require_failure(processed).reason,
             "Our AI thinks you’re not touching your eyebrow.")
-        self.assertEqual(processed.failure.raw_json, response)
+        self.assertEqual(require_failure(processed).raw_json, response)
 
-    def test_failure_11(self):
+    def test_failure_11(self) -> None:
         response = failure_content_11
 
         processed = process_response(response, claimed_uuids=['u2', 'u3'])
@@ -248,13 +263,13 @@ class TestProcessResponse(unittest.TestCase):
         self.assertIsNotNone(processed.failure)
         self.assertIsNone(processed.success)
 
-        self.assertEqual(processed.failure.reason,
+        self.assertEqual(require_failure(processed).reason,
             "Our AI thinks you’re not giving the thumbs down.")
-        self.assertEqual(processed.failure.raw_json, response)
+        self.assertEqual(require_failure(processed).raw_json, response)
 
 
 class TestGetMessages(unittest.TestCase):
-    def test_get_messages_null_ethnicity(self):
+    def test_get_messages_null_ethnicity(self) -> None:
         self.maxDiff = 99999
 
         messages = get_messages(
@@ -336,7 +351,7 @@ You have been given one or more image(s) by a user attempting to verify their id
             ]
         )
 
-    def test_get_messages(self):
+    def test_get_messages(self) -> None:
         self.maxDiff = 99999
 
         messages = get_messages(
@@ -452,7 +467,7 @@ You have been given one or more image(s) by a user attempting to verify their id
         )
 
 class TestGetSystemContent(unittest.TestCase):
-    def test_get_system_content_with_ethnicity(self):
+    def test_get_system_content_with_ethnicity(self) -> None:
         self.maxDiff = 99999
 
         system_content = get_system_content(
@@ -526,7 +541,7 @@ You have been given one or more image(s) by a user attempting to verify their id
 """.strip()
         )
 
-    def test_get_system_content_without_ethnicity(self):
+    def test_get_system_content_without_ethnicity(self) -> None:
         self.maxDiff = 99999
 
         system_content = get_system_content(

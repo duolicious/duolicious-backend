@@ -31,7 +31,7 @@ OFFSET
 """
 
 
-def sign_out(session_token_hashes: Iterable[str]):
+def sign_out(session_token_hashes: Iterable[str]) -> None:
     """The one and only way to sign sessions out: delete the `duo_session`
     row(s) AND evict them from the session cache.
 
@@ -51,7 +51,7 @@ def sign_out(session_token_hashes: Iterable[str]):
         sessioncache.delete_session(session_token_hash)
 
 
-def enforce_session_limit(person_id, current_session_token_hash):
+def enforce_session_limit(person_id: int | None, current_session_token_hash: object) -> None:
     """Sign out a person's least-recently-active sessions beyond
     MAX_SIGNED_IN_SESSIONS, always keeping the current one. No-op for a session
     not yet attached to a person."""

@@ -1,3 +1,5 @@
+from typing import Iterator
+from database import Tx, row_bool
 import psycopg
 import random
 import re
@@ -70,7 +72,7 @@ def is_base_usable(base: str) -> bool:
         and base not in RESERVED_SLUGS
         and not _UUID_RE.match(base))
 
-def _candidates(base: str):
+def _candidates(base: str) -> Iterator[tuple[str, bool]]:
     """Yields (slug, is_random) to try, in order: the bare base first (when
     usable), then random numeric suffixes that grow by a digit each attempt."""
     if is_base_usable(base):
@@ -82,7 +84,15 @@ def _candidates(base: str):
         n = random.randint(lo, hi)
         yield (f'{base}{n}' if base else str(n)), True
 
-def _mint(tx, base, write_q, write_params, *, email, person_id=None) -> dict:
+def _mint(
+    tx: Tx,
+    base: str,
+    write_q: str,
+    write_params: dict[str, object],
+    *,
+    email: str,
+    person_id: int | None = None,
+) -> dict[str, object]:
     """Claim the first free candidate for `base` via `write_q`, skipping slugs
     already held by another person or reserved by another onboardee (the
     caller's own rows, identified by `person_id`/`email`, don't count). The
@@ -91,10 +101,11 @@ def _mint(tx, base, write_q, write_params, *, email, person_id=None) -> dict:
     rejection doesn't abort the caller's transaction. Returns
     {'url_slug', 'is_random'}."""
     for slug, is_random in _candidates(base):
-        taken = tx.execute(
+        row = tx.require_one(
             Q_SLUG_TAKEN,
             dict(slug=slug, email=email, person_id=person_id),
-        ).fetchone()['exists']
+        )
+        taken = row_bool(row, 'exists')
         if taken:
             continue
         try:
@@ -106,7 +117,7 @@ def _mint(tx, base, write_q, write_params, *, email, person_id=None) -> dict:
 
     raise RuntimeError(f'could not mint url_slug for base {base!r}')
 
-def reserve_onboardee_url_slug(tx, email: str, name: str) -> dict:
+def reserve_onboardee_url_slug(tx: Tx, email: str, name: str) -> dict[str, object]:
     """Reserve onboardee.url_slug for `name` and return {'url_slug', 'is_random'}.
     Persisting the reservation is what lets finish-onboarding mint exactly this
     slug and makes concurrent sign-ups treat it as taken. Re-runnable as the
@@ -118,11 +129,13 @@ def reserve_onboardee_url_slug(tx, email: str, name: str) -> dict:
         dict(email=email),
         email=email)
 
-def assign_url_slug(tx, person_id: int) -> dict:
+def assign_url_slug(tx: Tx, person_id: int) -> dict[str, object]:
     """Assigns person.url_slug from the person's display name, skipping slugs
     held by another person or reserved by an onboardee. Returns
     {'url_slug', 'is_random'}."""
     person = tx.execute(Q_SELECT_PERSON, dict(person_id=person_id)).fetchone()
+    if person is None:
+        raise RuntimeError(f'person {person_id} not found')
 
     return _mint(
         tx,

@@ -7,5 +7,5 @@ def is_allowed_club_name(club_name: str) -> bool:
     params = dict(club_name=club_name)
 
     with api_tx() as tx:
-        row = tx.execute(q, params).fetchone()
+        row = tx.require_one(q, params)
         return bool(row['is_allowed_club_name'])

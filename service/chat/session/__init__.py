@@ -27,10 +27,10 @@ AND
 
 
 class Session:
-    def __init__(self):
+    def __init__(self) -> None:
         self.connection_uuid = str(uuid.uuid4())
-        self.username = None
-        self.session_token_hash = None
+        self.username: str | None = None
+        self.session_token_hash: str | None = None
         # Ordered set (oldest first) of usernames whose online status this
         # connection is subscribed to. When the per-connection cap is reached,
         # the earliest subscriptions are evicted to make room for new ones.

@@ -73,8 +73,8 @@ _re_neg_prev = {
     'before',
 
     # Misc patterns
-    '\d+[-:.,/]',
-    '\s+\$',
+    r'\d+[-:.,/]',
+    r'\s+\$',
 }
 
 _re_neg_next = {
@@ -95,16 +95,16 @@ _re_neg_next = {
     'million', 'billion', 'thousand', 'hundred',
 
     # Misc patterns
-    'years\s+ago',
-    '%\s+',
+    r'years\s+ago',
+    r'%\s+',
     'percent',
     'more',
-    '[-:.,/]\d+',
-    '\$\s+',
+    r'[-:.,/]\d+',
+    r'\$\s+',
 }
 
 
-def excludable(text: str, match) -> bool:
+def excludable(text: str, match: re.Match[str]) -> bool:
     left_context = text[:match.start()]
     match_text = match.group()
     right_context = text[match.end():]

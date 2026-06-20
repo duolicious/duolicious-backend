@@ -44,7 +44,7 @@ class FireholClient:
     def __init__(self, base_url: str) -> None:
         self.base_url = base_url.rstrip("/")
 
-    def _get(self, path: str):
+    def _get(self, path: str) -> object:
         url = f"{self.base_url}{path}"
         with timed("FireHOL request", _log):
             try:

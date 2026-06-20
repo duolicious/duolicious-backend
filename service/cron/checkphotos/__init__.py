@@ -1,5 +1,5 @@
 # Remove unused imports
-from database.asyncdatabase import api_tx
+from database.asyncdatabase import api_tx, row_str
 from service.cron.cronutil import (
     MAX_RANDOM_START_DELAY,
     delete_images_from_object_store,
@@ -14,6 +14,7 @@ import io
 import blurhash
 import numpy
 from PIL import Image
+from collections.abc import Iterator
 
 DRY_RUN = os.environ.get(
     'DUO_CRON_CHECK_PHOTOS_DRY_RUN',
@@ -44,8 +45,8 @@ s3_client = boto3.client(
     aws_secret_access_key=R2_ACCESS_KEY_SECRET,
 )
 
-async def update_blurhashes(uuids: list[str]):
-    images = await download_450_images(uuids)
+async def update_blurhashes(uuids: list[str]) -> None:
+    images = [_require_image(image) for image in await download_450_images(uuids)]
     blurhashes = compute_blurhashes(images)
 
     params_seq = [
@@ -67,7 +68,7 @@ async def update_blurhashes(uuids: list[str]):
 
     print('checkphotos: updated blurhashes', params_seq)
 
-def list_images_in_object_store() -> list[list[str]]:
+def list_images_in_object_store() -> Iterator[list[str]]:
     print(f'checkphotos: listing images in object store')
     paginator = s3_client.get_paginator('list_objects_v2')
 
@@ -88,9 +89,16 @@ def list_images_in_object_store() -> list[list[str]]:
 
     print(f'checkphotos: fetched {count} keys in total')
 
-def list_uuids_in_object_store() -> list[list[str]]:
+def list_uuids_in_object_store() -> Iterator[list[str]]:
     for chunk in list_images_in_object_store():
         yield [key[4:-4] for key in chunk]
+
+
+def _require_image(image: io.BytesIO | None) -> io.BytesIO:
+    if image is None:
+        raise RuntimeError('expected image to exist')
+    return image
+
 
 async def resolve_uuids(uuids: list[str]) -> tuple[list[str], list[str]]:
     q_to_update = """
@@ -112,14 +120,14 @@ async def resolve_uuids(uuids: list[str]) -> tuple[list[str], list[str]]:
 
     async with api_tx() as tx:
         cur = await tx.execute(q_to_update, params)
-        to_update = await cur.fetchall()
+        rows_to_update = await cur.fetchall()
 
     async with api_tx() as tx:
         cur = await tx.execute(q_to_delete, params)
-        to_delete = await cur.fetchall()
+        rows_to_delete = await cur.fetchall()
 
-    to_update = [x['uuid'] for x in to_update]
-    to_delete = [x['uuid'] for x in to_delete]
+    to_update = [row_str(x, 'uuid') for x in rows_to_update]
+    to_delete = [row_str(x, 'uuid') for x in rows_to_delete]
 
     return to_update, to_delete
 
@@ -137,14 +145,14 @@ def compute_blurhashes(images: list[io.BytesIO]) -> list[str]:
 
     return blurhashes
 
-async def check_photos_once():
+async def check_photos_once() -> None:
     for chunk in list_uuids_in_object_store():
         uuids_to_update, uuids_to_delete = await resolve_uuids(chunk)
 
         await update_blurhashes(uuids_to_update)
         await delete_images_from_object_store(uuids_to_delete)
 
-async def check_photos_forever():
+async def check_photos_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(check_photos_once)

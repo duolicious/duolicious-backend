@@ -49,11 +49,11 @@ _email_domains_good_file = (
 _banned_club_file = (
     Path(__file__).parent.parent.parent / 'banned-club.sql')
 
-def get_ttl_hash(seconds=10):
+def get_ttl_hash(seconds: int = 10) -> int:
     """Return the same value withing `seconds` time period"""
     return round(time.time() / seconds)
 
-def migrate_unnormalized_emails():
+def migrate_unnormalized_emails() -> None:
     """
     It'll probably be necessary to call this function again if/when
     `normalize_email` normalizes more address.
@@ -112,9 +112,9 @@ def migrate_unnormalized_emails():
         tx.executemany(q, params_seq)
         print('Done updating normalized emails in `banned_person` table')
 
-def maybe_run_init():
+def maybe_run_init() -> None:
     with api_tx() as tx:
-        row = tx.execute("SELECT to_regclass('person')").fetchone()
+        row = tx.require_one("SELECT to_regclass('person')")
 
     if row ['to_regclass'] is not None:
         print('Database already initialized')
@@ -126,7 +126,7 @@ def maybe_run_init():
     with api_tx() as tx:
         tx.execute(init_sql_file)
 
-def init_db():
+def init_db() -> None:
     with open(_migrations_sql_file, 'r') as f:
         migrations_sql_file = f.read()
 
@@ -159,7 +159,7 @@ def init_db():
 
 @post('/request-otp', limiter=shared_otp_limit)
 @validate(t.PostRequestOtp)
-def post_request_otp(req: t.PostRequestOtp):
+def post_request_otp(req: t.PostRequestOtp) -> object:
     scope = "request_otp"
 
     with (
@@ -181,7 +181,7 @@ def post_request_otp(req: t.PostRequestOtp):
     expected_onboarding_status=None,
     expected_sign_in_status=False
 )
-def post_resend_otp(s: t.SessionInfo):
+def post_resend_otp(s: t.SessionInfo) -> object:
     return person.post_resend_otp(s)
 
 @apost(
@@ -190,7 +190,7 @@ def post_resend_otp(s: t.SessionInfo):
     expected_sign_in_status=False
 )
 @validate(t.PostCheckOtp)
-def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
+def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo) -> object:
     scope = "check_otp"
 
     with (
@@ -208,7 +208,7 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
 
 @post('/sign-in-with-google')
 @validate(t.PostSignInWithGoogle)
-def post_sign_in_with_google(req: t.PostSignInWithGoogle):
+def post_sign_in_with_google(req: t.PostSignInWithGoogle) -> object:
     scope = "social_sign_in"
 
     with (
@@ -224,7 +224,7 @@ def post_sign_in_with_google(req: t.PostSignInWithGoogle):
 
 @post('/sign-in-with-apple')
 @validate(t.PostSignInWithApple)
-def post_sign_in_with_apple(req: t.PostSignInWithApple):
+def post_sign_in_with_apple(req: t.PostSignInWithApple) -> object:
     scope = "social_sign_in"
 
     with (
@@ -249,7 +249,7 @@ def post_sign_in_with_apple(req: t.PostSignInWithApple):
 # callback *and* /sign-in-with-apple, and we want the per-day budget
 # to be "one sign-in = one slot" not "two slots".
 @post('/auth/apple/callback')
-def post_auth_apple_callback():
+def post_auth_apple_callback() -> object:
     scope = "apple_oauth_callback"
 
     with (
@@ -265,11 +265,12 @@ def post_auth_apple_callback():
         )
 
 @apost('/sign-out', expected_onboarding_status=None)
-def post_sign_out(s: t.SessionInfo):
-    return person.post_sign_out(s)
+def post_sign_out(s: t.SessionInfo) -> object:
+    person.post_sign_out(s)
+    return None
 
 @apost('/check-session-token', expected_onboarding_status=None)
-def post_check_session_token(s: t.SessionInfo):
+def post_check_session_token(s: t.SessionInfo) -> object:
     return person.post_check_session_token(s)
 
 @aget(
@@ -277,25 +278,26 @@ def post_check_session_token(s: t.SessionInfo):
     expected_onboarding_status=None,
     expected_sign_in_status=None,
 )
-def get_search_locations(_):
+def get_search_locations(_: object) -> object:
     return location.get_search_locations(q=request.args.get('q'))
 
 @apatch('/onboardee-info', expected_onboarding_status=False)
 @validate(t.PatchOnboardeeInfo)
-def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
+def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo) -> object:
     return person.patch_onboardee_info(req, s)
 
 @adelete('/onboardee-info', expected_onboarding_status=False)
 @validate(t.DeleteOnboardeeInfo)
-def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo):
-    return person.delete_onboardee_info(req, s)
+def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo) -> object:
+    person.delete_onboardee_info(req, s)
+    return None
 
 @apost('/finish-onboarding', expected_onboarding_status=False)
-def post_finish_onboarding(s: t.SessionInfo):
+def post_finish_onboarding(s: t.SessionInfo) -> object:
     return person.post_finish_onboarding(s)
 
 @aget('/next-questions')
-def get_next_questions(s: t.SessionInfo):
+def get_next_questions(s: t.SessionInfo) -> object:
     return question.get_next_questions(
         s=s,
         n=request.args.get('n', '10'),
@@ -303,7 +305,7 @@ def get_next_questions(s: t.SessionInfo):
     )
 
 @get('/public-next-questions')
-def get_public_next_questions():
+def get_public_next_questions() -> object:
     return question.get_public_next_questions(
         n=request.args.get('n', '10'),
         o=request.args.get('o', '0'),
@@ -311,16 +313,16 @@ def get_public_next_questions():
 
 @apost('/answer')
 @validate(t.PostAnswer)
-def post_answer(req: t.PostAnswer, s: t.SessionInfo):
+def post_answer(req: t.PostAnswer, s: t.SessionInfo) -> object:
     return qanda.post_answer(req, s)
 
 @adelete('/answer')
 @validate(t.DeleteAnswer)
-def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
+def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo) -> object:
     return qanda.delete_answer(req, s)
 
 @aget('/search')
-def get_search(s: t.SessionInfo):
+def get_search(s: t.SessionInfo) -> object:
     n = request.args.get('n')
     o = request.args.get('o')
 
@@ -355,7 +357,7 @@ def get_search(s: t.SessionInfo):
         return search.get_search(s=s, n=n, o=o, club=club)
 
 @get('/public-search')
-def get_public_search():
+def get_public_search() -> object:
     return search.get_public_search(
         n=request.args.get('n'),
         o=request.args.get('o'),
@@ -363,31 +365,31 @@ def get_public_search():
     )
 
 @get('/health', limiter=limiter.exempt)
-def get_health():
+def get_health() -> object:
     return 'status: ok'
 
 @aget('/me')
-def get_me_by_session(s: t.SessionInfo):
+def get_me_by_session(s: t.SessionInfo) -> object:
     return person.get_me(person_id_as_int=s.person_id)
 
 @get('/me/<person_id>')
-def get_me_by_id(person_id: str):
+def get_me_by_id(person_id: str) -> object:
     return person.get_me(person_id_as_str=person_id)
 
 @aget('/prospect-profile/<prospect_handle>', auth='optional')
 def get_prospect_profile(
     s: Optional[t.SessionInfo],
     prospect_handle: str,
-):
+) -> object:
     return person.get_prospect_profile(s, prospect_handle)
 
 @aget('/conversation-prospect/<prospect_uuid>')
-def get_conversation_prospect(s: t.SessionInfo, prospect_uuid: str):
+def get_conversation_prospect(s: t.SessionInfo, prospect_uuid: str) -> object:
     return person.get_conversation_prospect(s, prospect_uuid)
 
 @apost('/skip/by-uuid/<prospect_uuid>')
 @validate(t.PostSkip)
-def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
+def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str) -> object:
     limit = "1 per 5 seconds; 20 per day"
     scope = "report"
 
@@ -409,12 +411,14 @@ def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
 
 # TODO: Delete
 @apost('/unskip/<int:prospect_person_id>')
-def post_unskip(s: t.SessionInfo, prospect_person_id: int):
-    return person.post_unskip(s, prospect_person_id)
+def post_unskip(s: t.SessionInfo, prospect_person_id: int) -> object:
+    person.post_unskip(s, prospect_person_id)
+    return None
 
 @apost('/unskip/by-uuid/<prospect_uuid>')
-def post_unskip_by_uuid(s: t.SessionInfo, prospect_uuid: str):
-    return person.post_unskip_by_uuid(s, prospect_uuid)
+def post_unskip_by_uuid(s: t.SessionInfo, prospect_uuid: str) -> object:
+    person.post_unskip_by_uuid(s, prospect_uuid)
+    return None
 
 @aget(
     '/compare-personalities'
@@ -425,11 +429,11 @@ def get_compare_personalities(
     s: t.SessionInfo,
     prospect_person_id: int,
     topic: str
-):
+) -> object:
     return person.get_compare_personalities(s, prospect_person_id, topic)
 
 @aget('/compare-answers/<int:prospect_person_id>')
-def get_compare_answers(s: t.SessionInfo, prospect_person_id: int):
+def get_compare_answers(s: t.SessionInfo, prospect_person_id: int) -> object:
     return person.get_compare_answers(
         s,
         prospect_person_id,
@@ -441,42 +445,44 @@ def get_compare_answers(s: t.SessionInfo, prospect_person_id: int):
 
 @apost('/inbox-info')
 @validate(t.PostInboxInfo)
-def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo):
+def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo) -> object:
     return person.post_inbox_info(req, s)
 
 @adelete('/account')
-def delete_account(s: t.SessionInfo):
+def delete_account(s: t.SessionInfo) -> object:
     return person.delete_or_ban_account(s=s)
 
 @apost('/deactivate')
-def post_deactivate(s: t.SessionInfo):
-    return person.post_deactivate(s=s)
+def post_deactivate(s: t.SessionInfo) -> object:
+    person.post_deactivate(s=s)
+    return None
 
 @aget('/profile-info')
-def get_profile_info(s: t.SessionInfo):
+def get_profile_info(s: t.SessionInfo) -> object:
     return person.get_profile_info(s)
 
 @adelete('/profile-info')
 @validate(t.DeleteProfileInfo)
-def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
-    return person.delete_profile_info(req, s)
+def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo) -> object:
+    person.delete_profile_info(req, s)
+    return None
 
 @apatch('/profile-info')
 @validate(t.PatchProfileInfo)
-def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
+def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> object:
     return person.patch_profile_info(req, s)
 
 @aget('/search-filters')
-def get_search_filers(s: t.SessionInfo):
+def get_search_filers(s: t.SessionInfo) -> object:
     return person.get_search_filters(s)
 
 @apost('/search-filter')
 @validate(t.PostSearchFilter)
-def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
+def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo) -> object:
     return person.post_search_filter(req, s)
 
 @aget('/search-filter-questions')
-def get_search_filter_questions(s: t.SessionInfo):
+def get_search_filter_questions(s: t.SessionInfo) -> object:
     return question.get_search_filter_questions(
         s=s,
         q=request.args.get('q', ''),
@@ -486,20 +492,20 @@ def get_search_filter_questions(s: t.SessionInfo):
 
 @apost('/search-filter-answer')
 @validate(t.PostSearchFilterAnswer)
-def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo):
+def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo) -> object:
     return person.post_search_filter_answer(req, s)
 
 @aget('/search-clubs')
-def get_search_clubs(s: t.SessionInfo):
+def get_search_clubs(s: t.SessionInfo) -> object:
     return person.get_search_clubs(s=s, search_str=request.args.get('q', ''))
 
 @get('/search-public-clubs')
-def get_search_public_clubs():
+def get_search_public_clubs() -> object:
     return person.get_search_clubs(
             s=None, search_str=request.args.get('q', ''), allow_empty=True)
 
 @get('/club/<clubname:name>', merge_slashes=False)
-def get_club(name: str):
+def get_club(name: str) -> object:
     result = person.get_club(
         name=name,
         ttl_hash=get_ttl_hash(seconds=300))
@@ -508,21 +514,22 @@ def get_club(name: str):
     return result
 
 @get('/sitemap.xml')
-def get_sitemap_xml():
+def get_sitemap_xml() -> object:
     return person.get_sitemap_xml(ttl_hash=get_ttl_hash(seconds=3600))
 
 @apost('/join-club')
 @validate(t.PostJoinClub)
-def post_join_club(req: t.PostJoinClub, s: t.SessionInfo):
+def post_join_club(req: t.PostJoinClub, s: t.SessionInfo) -> object:
     return person.post_join_club(req, s)
 
 @apost('/leave-club')
 @validate(t.PostLeaveClub)
-def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo):
-    return person.post_leave_club(req, s)
+def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo) -> object:
+    person.post_leave_club(req, s)
+    return None
 
 @get('/update-notifications')
-def get_update_notifications():
+def get_update_notifications() -> object:
     return person.get_update_notifications(
         email=request.args.get('email', ''),
         type=request.args.get('type', ''),
@@ -530,7 +537,7 @@ def get_update_notifications():
     )
 
 @aget('/feed')
-def get_feed(s: t.SessionInfo):
+def get_feed(s: t.SessionInfo) -> object:
     valid_datetime = t.ValidDatetime.model_validate(
         {'datetime': request.args.get('before')}
     )
@@ -539,11 +546,11 @@ def get_feed(s: t.SessionInfo):
 
 @apost('/verification-selfie')
 @validate(t.PostVerificationSelfie)
-def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo):
+def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo) -> object:
     return person.post_verification_selfie(req, s)
 
 @apost('/verify')
-def post_verify(s: t.SessionInfo):
+def post_verify(s: t.SessionInfo) -> object:
     limit = "8 per day"
     scope = "verify"
 
@@ -558,44 +565,46 @@ def post_verify(s: t.SessionInfo):
             key_func=limiter_account,
             exempt_when=disable_account_rate_limit)
     ):
-        return person.post_verify(s)
+        person.post_verify(s)
+        return None
 
 @aget('/check-verification')
-def get_check_verification(s: t.SessionInfo):
+def get_check_verification(s: t.SessionInfo) -> object:
     return person.get_check_verification(s=s)
 
 @apost('/dismiss-donation')
-def post_dismiss_donation(s: t.SessionInfo):
-    return person.post_dismiss_donation(s=s)
+def post_dismiss_donation(s: t.SessionInfo) -> object:
+    person.post_dismiss_donation(s=s)
+    return None
 
 @get('/stats')
-def get_stats():
+def get_stats() -> object:
     return person.get_stats(
         ttl_hash=get_ttl_hash(seconds=60),
         club_name=request.args.get('club-name'))
 
 @get('/gender-stats')
-def get_gender_stats():
+def get_gender_stats() -> object:
     return person.get_gender_stats(ttl_hash=get_ttl_hash(seconds=60))
 
 @get('/admin/ban-link/<token>')
-def get_admin_ban_link(token: str):
+def get_admin_ban_link(token: str) -> object:
     return person.get_admin_ban_link(token)
 
 @get('/admin/ban/<token>')
-def get_admin_ban(token: str):
+def get_admin_ban(token: str) -> object:
     return person.get_admin_ban(token)
 
 @get('/admin/delete-photo-link/<token>')
-def get_admin_delete_photo_link(token: str):
+def get_admin_delete_photo_link(token: str) -> object:
     return person.get_admin_delete_photo_link(token)
 
 @get('/admin/delete-photo/<token>')
-def get_admin_delete_photo(token: str):
+def get_admin_delete_photo(token: str) -> object:
     return person.get_admin_delete_photo(token)
 
 @aget('/export-data-token')
-def get_export_data_token(s: t.SessionInfo):
+def get_export_data_token(s: t.SessionInfo) -> object:
     limit = "3 per day"
     scope = "export_data_token"
 
@@ -613,19 +622,20 @@ def get_export_data_token(s: t.SessionInfo):
         return person.get_export_data_token(s=s)
 
 @get('/export-data/<token>')
-def get_export_data(token: str):
+def get_export_data(token: str) -> object:
     return person.get_export_data(token=token)
 
 @post('/revenuecat')
 @validate(t.PostRevenuecat)
-def post_revenuecat(req: t.PostRevenuecat):
+def post_revenuecat(req: t.PostRevenuecat) -> object:
     return person.post_revenuecat(req)
 
 @aget('/visitors')
-def get_visitors(s: t.SessionInfo):
+def get_visitors(s: t.SessionInfo) -> object:
     return person.get_visitors(s=s)
 
 @apost('/mark-visitors-checked')
 @validate(t.PostMarkVisitorsChecked)
-def post_mark_visitors_checked(req: t.PostMarkVisitorsChecked, s: t.SessionInfo):
-    return person.post_mark_visitors_checked(req=req, s=s)
+def post_mark_visitors_checked(req: t.PostMarkVisitorsChecked, s: t.SessionInfo) -> object:
+    person.post_mark_visitors_checked(req=req, s=s)
+    return None

@@ -2,6 +2,7 @@ from async_lru_cache import AsyncLruCache
 from database.asyncdatabase import api_tx
 from lxml import etree
 from typing import Literal
+from collections.abc import Mapping
 import datetime
 
 
@@ -45,7 +46,7 @@ SELECT public_profile FROM person WHERE id = %(person_id)s
 def build_element(
     tag: str,
     text: str | None = None,
-    attrib: dict | None = None,
+    attrib: Mapping[str, str | bytes] | None = None,
     ns: str | None = None
 ) -> etree._Element:
     """
@@ -84,7 +85,7 @@ def format_datetime(dt: datetime.datetime) -> str:
     return dt.astimezone(datetime.timezone.utc).strftime(FMT_ISO_8601_TIMESTAMP)
 
 
-def to_bare_jid(jid: str | None):
+def to_bare_jid(jid: str | None) -> str | None:
     if jid is None:
         return None
 

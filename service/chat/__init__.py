@@ -1,5 +1,10 @@
 import os
-from database.asyncdatabase import api_tx, check_connections_forever
+from database.asyncdatabase import (
+    api_tx,
+    check_connections_forever,
+    row_str,
+    row_str_or_none,
+)
 import asyncio
 import duohash
 import regex
@@ -9,7 +14,8 @@ from websockets.exceptions import ConnectionClosedError
 import notify
 from async_lru_cache import AsyncLruCache
 import random
-from typing import Any, Tuple, Callable, Tuple, Iterable
+from collections.abc import Iterable, Mapping
+from typing import Tuple, Callable, Tuple
 from datetime import datetime, timezone
 from service.chat.robot9000 import Q_SELECT_INTRO_HASH, upsert_intro_hash
 from service.chat.mayberegister import maybe_register
@@ -180,13 +186,14 @@ NON_ALPHANUMERIC_RE = regex.compile(r'[^\p{L}\p{N}]')
 REPEATED_CHARACTERS_RE = regex.compile(r'(.)\1{1,}')
 
 
-async def redis_publish(channel: str, message: str):
+async def redis_publish(channel: str, message: str) -> None:
     await REDIS_WORKER_CLIENT.publish(channel, message)
 
 
-async def redis_publish_many(channel: str, messages: Iterable[str]):
+async def redis_publish_many(channel: str, messages: Iterable[str]) -> object | None:
     for message in messages:
         await redis_publish(channel, message)
+    return None
 
 
 async def redis_forward_to_websocket(
@@ -220,10 +227,10 @@ async def send_notification(
     to_username: str | None,
     message: str | None,
     is_intro: bool,
-    data: Any,
-):
+    data: object,
+) -> None:
     if from_name is None:
-        return
+        return None
 
     if to_username is None:
         return
@@ -273,11 +280,8 @@ def is_text_too_long(message: Message) -> bool:
         return False
 
 
-def is_ping(parsed_xml) -> bool:
-    try:
-        return parsed_xml.tag == 'duo_ping'
-    except:
-        return False
+def is_ping(parsed_xml: object) -> bool:
+    return getattr(parsed_xml, 'tag', None) == 'duo_ping'
 
 
 def estimated_used_count(measured_count: int, ramp_at: int = 3333) -> int:
@@ -307,7 +311,11 @@ def estimated_used_count(measured_count: int, ramp_at: int = 3333) -> int:
             measured_count * (0 + prorating_certainty) * prorating)
 
 
-@AsyncLruCache(ttl=1, cache_condition=lambda count: count > 0)
+def _positive_count(count: object) -> bool:
+    return isinstance(count, int) and count > 0
+
+
+@AsyncLruCache(ttl=1, cache_condition=_positive_count)
 async def intro_use_count(message: Message) -> int:
     if isinstance(message, AudioMessage):
         return 0
@@ -352,10 +360,14 @@ async def fetch_push_tokens(username: str) -> list[str]:
         await tx.execute(Q_SELECT_PUSH_TOKENS, dict(username=username))
         rows = await tx.fetchall()
 
-    return list({row['token'] for row in rows})
+    return list({row_str(row, 'token') for row in rows})
 
 @AsyncLruCache(ttl=10)  # 10 seconds
-async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
+async def fetch_immediate_data(
+    from_id: int,
+    to_id: int,
+    is_intro: bool,
+) -> Mapping[str, object] | None:
     q = Q_IMMEDIATE_INTRO_DATA if is_intro else Q_IMMEDIATE_CHAT_DATA
 
     async with api_tx('read committed') as tx:
@@ -366,22 +378,22 @@ async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
 
 def get_middleware(subprotocol: str) -> Middleware:
     if subprotocol == 'json':
-        def input_middleware(text: str):
+        def input_middleware(text: str) -> etree._Element | None:
             json_data = json.loads(text)
             xml_str = xmltodict.unparse(json_data, full_document=False)
             return parse_xml_or_none(xml_str)
 
-        def output_middleware(text: str):
+        def output_middleware(text: str) -> str:
             if text == '</stream:stream>':
                 return '{"stream": null}'
 
             dict_obj = xmltodict.parse(text)
             return json.dumps(dict_obj)
     else:
-        def input_middleware(text: str):
+        def input_middleware(text: str) -> etree._Element | None:
             return parse_xml_or_none(text)
 
-        def output_middleware(text: str):
+        def output_middleware(text: str) -> str:
             return text
 
     return input_middleware, output_middleware
@@ -391,14 +403,14 @@ async def process_text(
     middleware: InputMiddleware,
     pubsub: redis.client.PubSub,
     text: str
-):
+) -> object | None:
     from_username = session.username
     connection_uuid = session.connection_uuid
 
     parsed_xml = middleware(text)
 
     if parsed_xml is None:
-        return
+        return None
 
     maybe_session_response = await maybe_get_session_response(
             parsed_xml, session)
@@ -432,7 +444,7 @@ async def process_text(
         return await redis_publish_many(connection_uuid, maybe_unsubscription)
 
     if not from_username:
-        return
+        return None
 
     if maybe_register(parsed_xml, session.session_token_hash):
         return await redis_publish_many(connection_uuid, [
@@ -471,12 +483,12 @@ async def process_text(
                     to_username=displayed_to,
                 )
             ])
-        return
+        return None
 
     maybe_message = xml_to_message(parsed_xml)
 
     if not maybe_message:
-        return
+        return None
 
     stanza_id = maybe_message.stanza_id
 
@@ -485,12 +497,12 @@ async def process_text(
     from_id = await fetch_id_from_username(from_username)
 
     if not from_id:
-        return
+        return None
 
     to_id = await fetch_id_from_username(to_username)
 
     if not to_id:
-        return
+        return None
 
     # Shadow-banned senders perceive the app as normal -- validation runs as
     # usual and their own client/storage behave normally -- but nothing they
@@ -512,7 +524,7 @@ async def process_text(
     if isinstance(maybe_message, TypingMessage):
         # A shadow-banned sender's typing indicator must not reach the recipient.
         if is_shadow_banned:
-            return
+            return None
 
         return await redis_publish_many(to_username, [
             etree.tostring(
@@ -570,9 +582,10 @@ async def process_text(
                     uuid=maybe_message.audio_uuid,
                     audio_base64=maybe_message.audio_base64,
                 ):
-            return await redis_publish_many(connection_uuid, [
+            await redis_publish_many(connection_uuid, [
                 f'<duo_server_error id="{stanza_id}"/>'
             ])
+            return None
 
         audio_uuid = (
                 maybe_message.audio_uuid
@@ -597,7 +610,7 @@ async def process_text(
 
         if immediate_data is not None and not is_shadow_banned:
             await send_notification(
-                from_name=immediate_data['name'],
+                from_name=row_str_or_none(immediate_data, 'name'),
                 to_username=to_username,
                 message=maybe_message.body,
                 is_intro=is_intro,
@@ -649,6 +662,7 @@ async def process_text(
         deliver_to_recipient=not is_shadow_banned,
         callback=store_audio_and_notify,
         timestamp_microseconds=sent_at_microseconds)
+    return None
 
 
 @app.websocket("/")
