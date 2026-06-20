@@ -2,8 +2,6 @@ import asyncio
 import os
 import psycopg
 import random
-import threading
-import time
 import traceback
 from types import TracebackType
 from typing import Protocol

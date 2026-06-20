@@ -49,7 +49,7 @@ _email_domains_good_file = (
 _banned_club_file = (
     Path(__file__).parent.parent.parent / 'banned-club.sql')
 
-def get_ttl_hash(seconds: int = 10) -> object:
+def get_ttl_hash(seconds: int = 10) -> int:
     """Return the same value withing `seconds` time period"""
     return round(time.time() / seconds)
 

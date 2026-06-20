@@ -7,10 +7,12 @@ from service.cron.cronutil import print_stacktrace, MAX_RANDOM_START_DELAY
 from util import is_offpeak
 from util.coerce import (
     mapping,
-    mapping_sequence,
+    mapping_or_empty,
+    mapping_sequence_or_empty,
     number,
+    number_or_zero,
     optional_str,
-    sequence,
+    sequence_or_empty,
 )
 from service.cron.clubseo.sql import (
     Q_CLUB_STATS_BATCH,
@@ -176,13 +178,13 @@ async def refresh_club_overlap_forever() -> None:
 
 def _top_pct(items: Sequence[Mapping[str, object]] | None) -> list[dict[str, object]]:
     items = items or []
-    total = sum(number(it['count']) for it in items)
+    total = sum(number_or_zero(it.get('count')) for it in items)
     if total == 0:
         return []
     return [
         {
             'label': it.get('label'),
-            'pct': round(100 * number(it['count']) / total),
+            'pct': round(100 * number_or_zero(it.get('count')) / total),
         }
         for it in items
     ]
@@ -193,9 +195,9 @@ def _notable_traits(
 ) -> list[dict[str, object]]:
     notable = [
         t for t in (traits or [])
-        if abs(number(t['score'])) >= MIN_NOTABLE_TRAIT_SCORE
+        if abs(number_or_zero(t.get('score'))) >= MIN_NOTABLE_TRAIT_SCORE
     ]
-    notable.sort(key=lambda t: abs(number(t['score'])), reverse=True)
+    notable.sort(key=lambda t: abs(number_or_zero(t.get('score'))), reverse=True)
     return [
         {
             'trait':     t.get('trait'),
@@ -208,16 +210,17 @@ def _notable_traits(
 
 
 def build_prompt_payload(stats: Mapping[str, object]) -> dict[str, object]:
-    demo = mapping(stats['demographics'])
+    demo = mapping_or_empty(stats.get('demographics'))
     return {
-        'club_name':        stats['name'],
-        'member_count':     stats['member_count'],
-        'median_age':       stats['median_age'],
-        'gender_mix':       _top_pct(mapping_sequence(demo['gender'])),
-        'religion_mix':     _top_pct(mapping_sequence(demo['religion'])),
+        'club_name':        stats.get('name'),
+        'member_count':     stats.get('member_count'),
+        'median_age':       stats.get('median_age'),
+        'gender_mix':       _top_pct(mapping_sequence_or_empty(demo.get('gender'))),
+        'religion_mix':     _top_pct(mapping_sequence_or_empty(demo.get('religion'))),
         'personality_lean': _notable_traits(
-            mapping_sequence(stats['personality'])),
-        'shared_answers':   sequence(stats['top_answers'])[:MAX_LLM_PROMPT_FACTS],
+            mapping_sequence_or_empty(stats.get('personality'))),
+        'shared_answers':   sequence_or_empty(
+            stats.get('top_answers'))[:MAX_LLM_PROMPT_FACTS],
     }
 
 
