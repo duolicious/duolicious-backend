@@ -252,7 +252,7 @@ const AutoResizingTextInput = (props: TextInputProps) => {
     left: 0,
     right: 0,
   };
-  const inputStyle = StyleSheet.compose(props.style, inputOverlayStyle);
+  const inputStyle = StyleSheet.flatten([props.style, inputOverlayStyle]);
 
   return (
     <View style={{ flex: 1, maxHeight: height / 4 }}>
