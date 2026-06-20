@@ -2175,33 +2175,6 @@ def get_club(name: str, ttl_hash: object = None) -> object:
         'related_clubs': row['related_clubs'],
     }
 
-@lru_cache(maxsize=1)
-def get_sitemap_xml(ttl_hash: object = None) -> object:
-    with api_tx('READ COMMITTED') as tx:
-        # The 1h TTL means a single statement-timeout bricks the sitemap
-        # for the worker for the rest of the hour; give it real headroom.
-        tx.execute('SET LOCAL statement_timeout = 30000')
-        rows = tx.execute(Q_CLUB_SITEMAP).fetchall()
-
-    lines = [
-        '<?xml version="1.0" encoding="UTF-8"?>',
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-        '  <url><loc>https://duolicious.app/</loc></url>',
-        '  <url><loc>https://duolicious.app/clubs</loc></url>',
-        '  <url><loc>https://duolicious.app/about</loc></url>',
-    ]
-    for row in rows:
-        loc = f"https://duolicious.app/club/{quote(row['name'], safe='')}"
-        if row.get('lastmod'):
-            lastmod = row['lastmod'].strftime('%Y-%m-%d')
-            lines.append(f'  <url><loc>{loc}</loc><lastmod>{lastmod}</lastmod></url>')
-        else:
-            lines.append(f'  <url><loc>{loc}</loc></url>')
-    lines.append('</urlset>')
-
-    body = '\n'.join(lines)
-    return body, 200, {'Content-Type': 'application/xml; charset=utf-8'}
-
 @lru_cache()
 def get_stats(ttl_hash: object = None, club_name: Optional[str] = None) -> object:
     if club_name:

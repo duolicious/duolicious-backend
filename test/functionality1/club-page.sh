@@ -95,34 +95,6 @@ missing_club_404s () {
   ! c GET /club/this-club-does-not-exist || exit 1
 }
 
-sitemap_reflects_eligibility () {
-  echo 'The sitemap lists eligible clubs and the static pages, but not small ones'
-
-  # get_sitemap_xml is memoised for an hour, so this test makes the only
-  # /sitemap.xml call in the file.
-  reset_db
-
-  for i in $(seq 1 51); do
-    ../util/create-user.sh "sitemapper$i" 0 0
-  done
-  for i in $(seq 1 51); do
-    assume_role "sitemapper$i"
-    jc POST /join-club -d '{ "name": "gaming" }'
-  done
-
-  ../util/create-user.sh sitemap-tiny 0 0
-  assume_role sitemap-tiny
-  jc POST /join-club -d '{ "name": "sitemap-tinyclub" }'
-
-  wait_for "select 1 from club_stats where club_name = 'gaming' and (stats_json->>'member_count')::int = 51"
-  sleep 2  # let the cron see (and skip) the ineligible club
-
-  sitemap=$(c GET /sitemap.xml)
-  grep -q '<loc>https://duolicious.app/</loc>' <<< "$sitemap"
-  grep -q '/club/gaming' <<< "$sitemap"
-  ! grep -q '/club/sitemap-tinyclub' <<< "$sitemap" || exit 1
-}
-
 related_clubs_are_ranked_by_overlap () {
   echo 'A club lists overlapping clubs as related (via the club_overlap cron)'
 
@@ -159,4 +131,3 @@ club_page_is_precomputed_and_served
 small_club_is_not_a_page
 missing_club_404s
 related_clubs_are_ranked_by_overlap
-sitemap_reflects_eligibility

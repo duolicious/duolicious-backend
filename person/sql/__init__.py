@@ -2261,23 +2261,6 @@ AND
     c.count_members >= {MIN_CLUB_PAGE_MEMBERS}
 """
 
-# Inner-join club_stats so the sitemap only advertises URLs that won't 404.
-# The member-threshold gate mirrors Q_CLUB_PAGE_READ.
-Q_CLUB_SITEMAP = f"""
-SELECT
-    c.name,
-    cs.computed_at AS lastmod
-FROM
-    club c
-JOIN
-    club_stats cs ON cs.club_name = c.name
-WHERE
-    c.count_members >= {MIN_CLUB_PAGE_MEMBERS}
-ORDER BY
-    c.count_members DESC,
-    c.name
-"""
-
 Q_UPDATE_CHATS_NOTIFICATIONS = """
 WITH updated_rows AS (
     UPDATE
