@@ -19,11 +19,9 @@ from functools import lru_cache
 import time
 import sessioncache
 
-class Endpoint(Protocol):
-    __name__: str
-
-EndpointDecorator = Callable[[object], object]
-LimiterDecorator = object
+Endpoint = Callable
+EndpointDecorator = Callable[[Endpoint], Endpoint]
+LimiterDecorator = EndpointDecorator
 
 class RouteDecorator(Protocol):
     def __call__(
@@ -53,8 +51,13 @@ def _endpoint_name(func: object) -> str:
     return name if isinstance(name, str) else 'endpoint'
 
 
-def _call(func: object, *args: object, **kwargs: object) -> object:
-    return getattr(func, '__call__')(*args, **kwargs)
+def _identity_endpoint(func: Endpoint) -> Endpoint:
+    return func
+
+
+def _set_endpoint_name(func: Endpoint, name: str) -> Endpoint:
+    setattr(func, '__name__', name)
+    return func
 
 enable_mocking_file = (
     Path(__file__).parent.parent.parent /
@@ -218,36 +221,34 @@ AND
 """
 
 def account_limiter(
-    func: object,
+    func: Endpoint,
     limit: str | Callable[[], str] | None = None,
-) -> object:
+) -> Endpoint:
     _account_limiter = limiter.limit(
         limit or default_limits,
         scope="account",
         key_func=limiter_account,
         exempt_when=disable_account_rate_limit,
     )
+    limited_func = _account_limiter(func)
 
     def go1(*args: object, **kwargs: object) -> object:
-        return _call(_call(_account_limiter, func), *args, **kwargs)
+        return limited_func(*args, **kwargs)
 
-    go1.__name__ = _endpoint_name(func)
-
-    return go1
+    return _set_endpoint_name(go1, _endpoint_name(func))
 
 
-def return_empty_string(func: object) -> object:
+def return_empty_string(func: Endpoint) -> Endpoint:
     def go(*args: object, **kwargs: object) -> object:
-        result = _call(func, *args, **kwargs)
+        result = func(*args, **kwargs)
         return result if result is not None else ''
-    go.__name__ = _endpoint_name(func)
-    return go
+    return _set_endpoint_name(go, _endpoint_name(func))
 
-def validate(RequestType: object | None) -> EndpointDecorator:
-    def go2(func: object) -> object:
+def validate(RequestType: Callable | None) -> EndpointDecorator:
+    def go2(func: Endpoint) -> Endpoint:
         def go1(*args: object, **kwargs: object) -> object:
             if RequestType is None:
-                return _call(func, *args, **kwargs)
+                return func(*args, **kwargs)
             try:
                 j = request.get_json(silent=True)
                 files = request.files
@@ -256,11 +257,11 @@ def validate(RequestType: object | None) -> EndpointDecorator:
                 files_payload = { 'files': files } if files else {}
 
                 if type(j) == list:
-                    req = _call(RequestType, *j, **files_payload)
+                    req = RequestType(*j, **files_payload)
                 elif type(j) == dict:
-                    req = _call(RequestType, **{**j, **files_payload})
+                    req = RequestType(**{**j, **files_payload})
                 else:
-                    req = _call(RequestType, j, **files_payload)
+                    req = RequestType(j, **files_payload)
             except ValidationError as e:
                 json_err = e.json(
                     include_url=False,
@@ -272,9 +273,8 @@ def validate(RequestType: object | None) -> EndpointDecorator:
             except Exception as e:
                 print(traceback.format_exc())
                 return str(e), 500
-            return _call(func, req, *args, **kwargs)
-        go1.__name__ = _endpoint_name(func)
-        return go1
+            return func(req, *args, **kwargs)
+        return _set_endpoint_name(go1, _endpoint_name(func))
     return go2
 
 def require_auth(
@@ -298,11 +298,11 @@ def require_auth(
     if auth not in ('required', 'optional'):
         raise ValueError(f'auth must be "required" or "optional", got {auth!r}')
 
-    def go2(func: object) -> object:
+    def go2(func: Endpoint) -> Endpoint:
         rate_limited_func = account_limiter(func)
 
         def call_anonymous(*args: object, **kwargs: object) -> object:
-            result = _call(rate_limited_func, None, *args, **kwargs)
+            result = rate_limited_func(None, *args, **kwargs)
             return result if result is not None else ''
 
         def go1(*args: object, **kwargs: object) -> object:
@@ -361,7 +361,7 @@ def require_auth(
                 expected_sign_in_status == is_signed_in)
 
             if has_expected_onboarding_status and has_expected_sign_in_status:
-                result = _call(rate_limited_func, session_info, *args, **kwargs)
+                result = rate_limited_func(session_info, *args, **kwargs)
                 return result if result is not None else ''
             else:
                 # A token that fails the onboarding/sign-in expectations is
@@ -372,34 +372,29 @@ def require_auth(
                     return call_anonymous(*args, **kwargs)
                 return 'Unauthorized', 401
 
-        go1.__name__ = _endpoint_name(func)
-
-        return go1
+        return _set_endpoint_name(go1, _endpoint_name(func))
     return go2
 
-def make_decorator(flask_decorator: object) -> RouteDecorator:
+def make_decorator(flask_decorator: Callable) -> RouteDecorator:
     def go2(
             rule: str,
             limiter: LimiterDecorator | None = None,
             **kwargs: object
     ) -> EndpointDecorator:
-        maybe_limiter = limiter or (lambda x: x)
+        maybe_limiter = limiter or _identity_endpoint
 
-        def go1(func: object) -> object:
-            return _call(_call(
-                flask_decorator,
+        def go1(func: Endpoint) -> Endpoint:
+            return flask_decorator(
                 rule,
                 strict_slashes=False,
                 **kwargs,
-            ),
-                _call(maybe_limiter,
-                    return_empty_string(func)
-                )
-            )
+            )(maybe_limiter(return_empty_string(func)))
         return go1
     return go2
 
-def make_auth_decorator(flask_decorator: object) -> AuthRouteDecorator:
+def make_auth_decorator(
+    flask_decorator: Callable,
+) -> AuthRouteDecorator:
     def go2(
             rule: str,
             limiter: LimiterDecorator | None = None,
@@ -408,21 +403,20 @@ def make_auth_decorator(flask_decorator: object) -> AuthRouteDecorator:
             auth: str = 'required',
             **kwargs: object
     ) -> EndpointDecorator:
-        maybe_limiter = limiter or (lambda x: x)
+        maybe_limiter = limiter or _identity_endpoint
 
-        def go1(func: object) -> object:
-            return _call(_call(
-                flask_decorator,
+        def go1(func: Endpoint) -> Endpoint:
+            return flask_decorator(
                 rule,
                 strict_slashes=False,
                 **kwargs,
-            ),
-                _call(maybe_limiter,
-                    _call(require_auth(
+            )(
+                maybe_limiter(
+                    require_auth(
                         expected_onboarding_status,
                         expected_sign_in_status,
                         auth=auth,
-                    ),
+                    )(
                         return_empty_string(func)
                     )
                 )

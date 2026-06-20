@@ -176,13 +176,13 @@ async def refresh_club_overlap_forever() -> None:
 
 def _top_pct(items: Sequence[Mapping[str, object]] | None) -> list[dict[str, object]]:
     items = items or []
-    total = sum(number(it.get('count', 0)) for it in items)
+    total = sum(number(it['count']) for it in items)
     if total == 0:
         return []
     return [
         {
             'label': it.get('label'),
-            'pct': round(100 * number(it.get('count', 0)) / total),
+            'pct': round(100 * number(it['count']) / total),
         }
         for it in items
     ]
@@ -193,9 +193,9 @@ def _notable_traits(
 ) -> list[dict[str, object]]:
     notable = [
         t for t in (traits or [])
-        if abs(number(t.get('score', 0))) >= MIN_NOTABLE_TRAIT_SCORE
+        if abs(number(t['score'])) >= MIN_NOTABLE_TRAIT_SCORE
     ]
-    notable.sort(key=lambda t: abs(number(t.get('score', 0))), reverse=True)
+    notable.sort(key=lambda t: abs(number(t['score'])), reverse=True)
     return [
         {
             'trait':     t.get('trait'),
@@ -208,16 +208,16 @@ def _notable_traits(
 
 
 def build_prompt_payload(stats: Mapping[str, object]) -> dict[str, object]:
-    demo = mapping(stats.get('demographics'))
+    demo = mapping(stats['demographics'])
     return {
-        'club_name':        stats.get('name'),
-        'member_count':     stats.get('member_count'),
-        'median_age':       stats.get('median_age'),
-        'gender_mix':       _top_pct(mapping_sequence(demo.get('gender'))),
-        'religion_mix':     _top_pct(mapping_sequence(demo.get('religion'))),
+        'club_name':        stats['name'],
+        'member_count':     stats['member_count'],
+        'median_age':       stats['median_age'],
+        'gender_mix':       _top_pct(mapping_sequence(demo['gender'])),
+        'religion_mix':     _top_pct(mapping_sequence(demo['religion'])),
         'personality_lean': _notable_traits(
-            mapping_sequence(stats.get('personality'))),
-        'shared_answers':   sequence(stats.get('top_answers'))[:MAX_LLM_PROMPT_FACTS],
+            mapping_sequence(stats['personality'])),
+        'shared_answers':   sequence(stats['top_answers'])[:MAX_LLM_PROMPT_FACTS],
     }
 
 

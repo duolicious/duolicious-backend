@@ -747,7 +747,8 @@ class PostRevenuecat(BaseModel):
     raw_event_error: Optional[str] = None
 
     # one adapter reused for all validations
-    _EVENT_ADAPTER: ClassVar[TypeAdapter] = TypeAdapter(RevenuecatEvent)
+    _EVENT_ADAPTER: ClassVar[TypeAdapter[RevenuecatEvent]] = TypeAdapter(
+        RevenuecatEvent)
 
     @model_validator(mode='before')
     @classmethod
