@@ -1,7 +1,6 @@
-from typing import Any
 from dataclasses import dataclass
 from lxml import etree
-from database import asyncdatabase
+from database import Tx, asyncdatabase
 from service.chat.chatutil import (
     LSERVER,
     build_element,
@@ -144,13 +143,16 @@ def _process_query(
         "string(.//*[local-name()='max'])"
     )
 
-    if not query_id or not to_username:
+    from_username_bare = to_bare_jid(from_username)
+    to_username_bare = to_bare_jid(str(to_username))
+
+    if not query_id or not from_username_bare or not to_username_bare:
         return None
 
     return Query(
         query_id=str(query_id),
-        from_username=to_bare_jid(from_username),
-        to_username=to_bare_jid(str(to_username)),
+        from_username=from_username_bare,
+        to_username=to_username_bare,
         before=str(before_value) if before_value else None,
         max=str(max_value) if max_value else None,
     )
@@ -256,11 +258,11 @@ async def maybe_get_conversation(
     return await _get_conversation(
         query=query,
         from_username=from_username,
-        to_username=to_bare_jid(query.to_username)
+        to_username=query.to_username
     )
 
 
-def process_store_mam_message_batch(tx: Any, batch: list[StoreMamMessageJob]) -> None:
+def process_store_mam_message_batch(tx: Tx, batch: list[StoreMamMessageJob]) -> None:
     params_seq = [
         dict(
             id=microseconds_to_mam_message_id(message.timestamp_microseconds),
@@ -380,15 +382,15 @@ async def _maybe_read_receipt(viewer: str, partner: str) -> str | None:
     )
 
 
-def microseconds_to_mam_message_id(microseconds: int) -> Any:
+def microseconds_to_mam_message_id(microseconds: int) -> int:
     return microseconds << 8
 
 
-def mam_message_id_to_microseconds(mam_message_id: int) -> Any:
+def mam_message_id_to_microseconds(mam_message_id: int) -> int:
     return mam_message_id >> 8
 
 
-def microseconds_to_timestamp(microseconds: int) -> Any:
+def microseconds_to_timestamp(microseconds: int) -> str:
     # Convert microseconds to seconds.
     seconds = microseconds / 1_000_000
     # Create a UTC datetime object.
@@ -398,7 +400,7 @@ def microseconds_to_timestamp(microseconds: int) -> Any:
     return dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
 
-def mam_message_id_to_timestamp(id: int) -> Any:
+def mam_message_id_to_timestamp(id: int) -> str:
     return microseconds_to_timestamp(mam_message_id_to_microseconds(id))
 
 

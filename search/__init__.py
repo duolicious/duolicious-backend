@@ -4,10 +4,11 @@ import duotypes as t
 import sessioncache
 from qanda import personality
 from pydantic import ValidationError
-from database import api_tx
+from database import Tx, api_tx
 from qanda.question import Q_QUESTION_SCORE_VECTORS
 from rediscache import redis_cache
-from typing import Tuple, Any
+from collections.abc import Mapping, Sequence
+from typing import Literal, Tuple
 from search.sql import (
     Q_CACHED_SEARCH,
     Q_PUBLIC_SEARCH,
@@ -27,7 +28,7 @@ class ClubHttpArg:
     club: str | None
 
 
-def _quiz_search_results(tx: Any, searcher_person_id: int) -> Any:
+def _quiz_search_results(tx: Tx, searcher_person_id: int) -> object:
     params = dict(
         searcher_person_id=searcher_person_id,
     )
@@ -36,11 +37,11 @@ def _quiz_search_results(tx: Any, searcher_person_id: int) -> Any:
 
 
 def _uncached_search_results(
-    tx: Any,
+    tx: Tx,
     searcher_person_id: int,
     no: Tuple[int, int],
     gender_preference: list[int],
-) -> Any:
+) -> object:
     n, o = no
 
     params = dict(
@@ -60,7 +61,7 @@ def _uncached_search_results(
         return []
 
 
-def _cached_search_results(tx: Any, searcher_person_id: int, no: Tuple[int, int]) -> Any:
+def _cached_search_results(tx: Tx, searcher_person_id: int, no: Tuple[int, int]) -> object:
     n, o = no
 
     params = dict(
@@ -72,7 +73,10 @@ def _cached_search_results(tx: Any, searcher_person_id: int, no: Tuple[int, int]
     return tx.execute(Q_CACHED_SEARCH, params).fetchall()
 
 
-def get_search_type(n: str | None, o: str | None) -> Any:
+SearchType = Literal['quiz-search', 'uncached-search', 'cached-search']
+
+
+def get_search_type(n: str | None, o: str | None) -> tuple[SearchType, Tuple[int, int] | None]:
     n_: int | None = n if n is None else int(n)
     o_: int | None = o if o is None else int(o)
 
@@ -91,12 +95,19 @@ def get_search_type(n: str | None, o: str | None) -> Any:
         return 'cached-search', no
 
 
+def _row_int(row: Mapping[str, object], key: str) -> int:
+    value = row[key]
+    if not isinstance(value, int):
+        raise RuntimeError(f'{key} must be an integer')
+    return value
+
+
 def get_search(
     s: t.SessionInfo,
     n: str | None,
     o: str | None,
     club: ClubHttpArg | None,
-) -> Any:
+) -> object:
     search_type, no = get_search_type(n, o)
 
     if no is not None and no[0] > 10:
@@ -116,7 +127,7 @@ def get_search(
 
         rows = tx.execute(Q_SEARCH_PREFERENCE, params).fetchall()
 
-        gender_preference = [row['gender_id'] for row in rows]
+        gender_preference = [_row_int(row, 'gender_id') for row in rows]
 
 
         if search_type == 'quiz-search':
@@ -125,6 +136,8 @@ def get_search(
                 searcher_person_id=s.person_id)
 
         elif search_type == 'uncached-search':
+            if no is None:
+                raise RuntimeError('uncached search requires pagination')
             result = _uncached_search_results(
                 tx=tx,
                 searcher_person_id=s.person_id,
@@ -132,6 +145,8 @@ def get_search(
                 gender_preference=gender_preference)
 
         elif search_type == 'cached-search':
+            if no is None:
+                raise RuntimeError('cached search requires pagination')
             result = _cached_search_results(
                 tx=tx,
                 searcher_person_id=s.person_id, no=no)
@@ -150,7 +165,7 @@ def get_search(
     return result
 
 
-def get_public_search(n: str | None, o: str | None, answers: str | None = None) -> Any:
+def get_public_search(n: str | None, o: str | None, answers: str | None = None) -> object:
     n_: int = 10 if n is None else int(n)
     o_: int = 0 if o is None else int(o)
 
@@ -169,19 +184,22 @@ def get_public_search(n: str | None, o: str | None, answers: str | None = None) 
             return str(e), 400
         return _get_public_search_with_answers(req)
 
-    return _get_public_search()[o_:o_ + n_]
+    public_search = _get_public_search()
+    if not isinstance(public_search, list):
+        raise RuntimeError('public search cache returned a non-list value')
+    return public_search[o_:o_ + n_]
 
 
 @redis_cache(ttl=60)
-def _get_public_search() -> Any:
+def _get_public_search() -> Sequence[object]:
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_PUBLIC_SEARCH).fetchall()
 
 
-def _get_public_search_with_answers(req: t.PublicSearchRequest) -> Any:
+def _get_public_search_with_answers(req: t.PublicSearchRequest) -> object:
     with api_tx('READ COMMITTED') as tx:
         questions = {
-            q['id']: q
+            _row_int(q, 'id'): q
             for q in tx.execute(
                 Q_QUESTION_SCORE_VECTORS,
                 dict(question_ids=[a.question_id for a in req.answers]),
@@ -204,7 +222,7 @@ def _get_public_search_with_answers(req: t.PublicSearchRequest) -> Any:
         )).fetchall()
 
 
-def get_feed(s: t.SessionInfo, before: datetime) -> Any:
+def get_feed(s: t.SessionInfo, before: datetime) -> object:
     params = dict(
         searcher_person_id=s.person_id,
         before=before,

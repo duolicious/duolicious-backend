@@ -1,5 +1,4 @@
-from typing import Any
-def otp_template(otp: str) -> Any:
+def otp_template(otp: str) -> str:
     return f"""
 <!DOCTYPE html>
 <html lang="en">

@@ -1,4 +1,3 @@
-from typing import Any
 from database.asyncdatabase import api_tx
 from service.cron.autodeactivate2.sql import *
 from service.cron.autodeactivate2.template import emailtemplate
@@ -9,6 +8,7 @@ import notify
 import os
 import random
 import sessioncache
+from collections.abc import Iterable, Mapping
 
 DRY_RUN = os.environ.get(
     'DUO_CRON_AUTODEACTIVATE2_DRY_RUN',
@@ -26,16 +26,18 @@ def maybe_send_email(email: str) -> None:
     if email.lower().endswith('@example.com'):
         return
 
-    send_args = dict(
-        subject="Your profile is invisible 👻",
-        body=emailtemplate(),
+    subject = "Your profile is invisible 👻"
+    body = emailtemplate()
+
+    print('autodeactivate2: sending deactivation email to', email)
+    aws_smtp.send(
+        subject=subject,
+        body=body,
         to_addr=email,
     )
 
-    print('autodeactivate2: sending deactivation email to', email)
-    aws_smtp.send(**send_args)
 
-def send_mobile_notifications(push_tokens: Any) -> None:
+def send_mobile_notifications(push_tokens: Iterable[str]) -> None:
     for token in push_tokens:
         print('autodeactivate2: sending deactivation push notification to', token)
         notify.enqueue_mobile_notification(
@@ -47,6 +49,21 @@ def send_mobile_notifications(push_tokens: Any) -> None:
             ),
         )
 
+
+def _row_str(row: Mapping[str, object], key: str) -> str:
+    value = row[key]
+    if not isinstance(value, str):
+        raise RuntimeError(f'{key} must be a string')
+    return value
+
+
+def _row_str_list(row: Mapping[str, object], key: str) -> list[str]:
+    value = row[key]
+    if not isinstance(value, list) or not all(isinstance(x, str) for x in value):
+        raise RuntimeError(f'{key} must be a list of strings')
+    return value
+
+
 async def autodeactivate2_once() -> None:
     params = dict(
         dry_run=DRY_RUN,
@@ -57,12 +74,12 @@ async def autodeactivate2_once() -> None:
         rows_deactivated = await cur_deactivated.fetchall()
 
     for p in rows_deactivated:
-        for session_token_hash in p['session_token_hashes']:
+        for session_token_hash in _row_str_list(p, 'session_token_hashes'):
             await asyncio.to_thread(
                 sessioncache.delete_session, session_token_hash)
 
     for p in rows_deactivated:
-        person = dict(id=p['id'], email=p['email'])
+        person = dict(id=p['id'], email=_row_str(p, 'email'))
         if DRY_RUN:
             print(
                 f'  - autodeactive2: DUO_CRON_AUTODEACTIVATE2_DRY_RUN env '
@@ -72,8 +89,8 @@ async def autodeactivate2_once() -> None:
             print(f'  - autodeactive2: deactivated {person}')
 
     for p in rows_deactivated:
-        maybe_send_email(p['email'])
-        send_mobile_notifications(p['push_tokens'])
+        maybe_send_email(_row_str(p, 'email'))
+        send_mobile_notifications(_row_str_list(p, 'push_tokens'))
 
 async def autodeactivate2_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))

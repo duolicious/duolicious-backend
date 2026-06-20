@@ -1,4 +1,3 @@
-from typing import Any
 from lxml import etree
 import redis.asyncio as redis
 import traceback
@@ -87,12 +86,16 @@ async def _redis_subscribe_online(
     redis_client: redis.Redis,
     pubsub: redis.client.PubSub,
     username: str,
-) -> Any:
+) -> str:
     key = FMT_KEY.format(username=username)
     val = await redis_client.get(key)
 
     await pubsub.subscribe(key)
-    return val or FMT_ONLINE_EVENT.format(
+    if isinstance(val, bytes):
+        return val.decode()
+    if isinstance(val, str):
+        return val
+    return FMT_ONLINE_EVENT.format(
         username=username,
         status=OnlineStatus.OFFLINE.value,
     )

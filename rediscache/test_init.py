@@ -1,4 +1,3 @@
-from typing import Any
 import unittest
 import uuid
 from decimal import Decimal
@@ -12,13 +11,13 @@ class FakeRedis:
     """In-memory stand-in for the synchronous redis client used by rediscache."""
 
     def __init__(self) -> None:
-        self.store: dict[Any, Any] = {}
-        self.expirations: dict[Any, Any] = {}
+        self.store: dict[object, object] = {}
+        self.expirations: dict[object, object] = {}
 
-    def get(self, key: Any) -> Any:
+    def get(self, key: object) -> object:
         return self.store.get(key)
 
-    def set(self, key: Any, value: Any, ex: Any = None) -> Any:
+    def set(self, key: object, value: object, ex: object = None) -> object:
         self.store[key] = value
         self.expirations[key] = ex
         return True
@@ -27,10 +26,10 @@ class FakeRedis:
 class ExplodingRedis:
     """Stand-in whose every operation raises, like an unreachable Redis."""
 
-    def get(self, key: Any) -> None:
+    def get(self, key: object) -> None:
         raise ConnectionError("redis down")
 
-    def set(self, key: Any, value: Any, ex: Any = None) -> None:
+    def set(self, key: object, value: object, ex: object = None) -> None:
         raise ConnectionError("redis down")
 
 
@@ -46,7 +45,7 @@ class TestRedisCache(unittest.TestCase):
         call_count = 0
 
         @redis_cache(ttl=600)
-        def fetch() -> Any:
+        def fetch() -> object:
             nonlocal call_count
             call_count += 1
             return {"value": call_count}
@@ -59,7 +58,7 @@ class TestRedisCache(unittest.TestCase):
         call_count = 0
 
         @redis_cache(ttl=600)
-        def fetch(x: Any, y: int = 0) -> Any:
+        def fetch(x: int, y: int = 0) -> object:
             nonlocal call_count
             call_count += 1
             return x + y
@@ -73,7 +72,7 @@ class TestRedisCache(unittest.TestCase):
 
     def test_ttl_passed_to_redis(self) -> None:
         @redis_cache(ttl=600)
-        def fetch() -> Any:
+        def fetch() -> object:
             return "x"
 
         fetch()
@@ -83,7 +82,7 @@ class TestRedisCache(unittest.TestCase):
         u = uuid.uuid4()
 
         @redis_cache(ttl=600)
-        def fetch() -> Any:
+        def fetch() -> object:
             return [{"prospect_uuid": u, "age": Decimal("27"), "name": "Bob"}]
 
         # First call computes the real result.
@@ -102,7 +101,7 @@ class TestRedisCache(unittest.TestCase):
         call_count = 0
 
         @redis_cache(ttl=600)
-        def fetch() -> Any:
+        def fetch() -> object:
             nonlocal call_count
             call_count += 1
             return call_count
@@ -116,7 +115,7 @@ class TestRedisCache(unittest.TestCase):
         call_count = 0
 
         @redis_cache(ttl=600)
-        def fetch(obj: Any) -> Any:
+        def fetch(obj: object) -> object:
             nonlocal call_count
             call_count += 1
             return call_count

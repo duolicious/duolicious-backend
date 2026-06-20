@@ -1,14 +1,21 @@
-from typing import Any
 import unittest
+from typing import TypedDict
 from service.cron.notifications import (
     PersonNotification,
     do_send_email_notification,
 )
 
+
+class BaseNotificationKwargs(TypedDict):
+    person_uuid: str
+    name: str
+    token: str | None
+
+
 class TestDoSend(unittest.TestCase):
 
     def test_stuff(self) -> None:
-        dont_care: Any = dict(
+        dont_care: BaseNotificationKwargs = dict(
             person_uuid='0',
             name='user0',
             token=None,

@@ -16,7 +16,7 @@ import json
 import os
 import socket
 from datetime import datetime, timezone
-from typing import Union, Any
+from typing import Union
 from urllib.error import URLError
 from urllib.parse import quote
 from urllib.request import urlopen
@@ -44,7 +44,7 @@ class FireholClient:
     def __init__(self, base_url: str) -> None:
         self.base_url = base_url.rstrip("/")
 
-    def _get(self, path: str) -> Any:
+    def _get(self, path: str) -> object:
         url = f"{self.base_url}{path}"
         with timed("FireHOL request", _log):
             try:

@@ -9,14 +9,17 @@ import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
-from typing import Any
 
 from antiabuse.firehol import FireholClient
 
 
+class _StubServer(ThreadingHTTPServer):
+    matches_for: dict[str | None, list[str]]
+
+
 class _StubHandler(BaseHTTPRequestHandler):
     # Set per-test on the server instance.
-    def _json(self, status: Any, payload: Any) -> None:
+    def _json(self, status: int, payload: object) -> None:
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
@@ -28,23 +31,25 @@ class _StubHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == "/matches":
             ip = parse_qs(parsed.query).get("ip", [None])[0]
-            server: Any = self.server
-            self._json(200, server.matches_for.get(ip, []))
+            matches_for = getattr(self.server, "matches_for", {})
+            self._json(200, matches_for.get(ip, []))
         else:
             self._json(404, {"error": "not found"})
 
-    def log_message(self, *args: Any) -> None:
+    def log_message(self, *args: object) -> None:
         pass
 
 
 class FireholClientTests(unittest.TestCase):
     def setUp(self) -> None:
-        server: Any = ThreadingHTTPServer(("127.0.0.1", 0), _StubHandler)
+        server = _StubServer(("127.0.0.1", 0), _StubHandler)
         server.matches_for = {"1.2.3.4": ["list_a", "list_b"]}
         self.server = server
         self._thread = threading.Thread(target=server.serve_forever, daemon=True)
         self._thread.start()
         host, port = server.server_address[:2]
+        if isinstance(host, bytes):
+            host = host.decode()
         self.client = FireholClient(f"http://{host}:{port}")
 
     def tearDown(self) -> None:

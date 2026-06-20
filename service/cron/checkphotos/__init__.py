@@ -14,8 +14,7 @@ import io
 import blurhash
 import numpy
 from PIL import Image
-from collections.abc import Iterator
-from typing import cast
+from collections.abc import Iterator, Mapping
 
 DRY_RUN = os.environ.get(
     'DUO_CRON_CHECK_PHOTOS_DRY_RUN',
@@ -47,7 +46,7 @@ s3_client = boto3.client(
 )
 
 async def update_blurhashes(uuids: list[str]) -> None:
-    images = cast(list[io.BytesIO], await download_450_images(uuids))
+    images = [_require_image(image) for image in await download_450_images(uuids)]
     blurhashes = compute_blurhashes(images)
 
     params_seq = [
@@ -94,6 +93,20 @@ def list_uuids_in_object_store() -> Iterator[list[str]]:
     for chunk in list_images_in_object_store():
         yield [key[4:-4] for key in chunk]
 
+
+def _require_image(image: io.BytesIO | None) -> io.BytesIO:
+    if image is None:
+        raise RuntimeError('expected image to exist')
+    return image
+
+
+def _row_uuid(row: Mapping[str, object]) -> str:
+    uuid = row['uuid']
+    if not isinstance(uuid, str):
+        raise RuntimeError('uuid must be a string')
+    return uuid
+
+
 async def resolve_uuids(uuids: list[str]) -> tuple[list[str], list[str]]:
     q_to_update = """
         SELECT uuid
@@ -114,14 +127,14 @@ async def resolve_uuids(uuids: list[str]) -> tuple[list[str], list[str]]:
 
     async with api_tx() as tx:
         cur = await tx.execute(q_to_update, params)
-        to_update = await cur.fetchall()
+        rows_to_update = await cur.fetchall()
 
     async with api_tx() as tx:
         cur = await tx.execute(q_to_delete, params)
-        to_delete = await cur.fetchall()
+        rows_to_delete = await cur.fetchall()
 
-    to_update = [x['uuid'] for x in to_update]
-    to_delete = [x['uuid'] for x in to_delete]
+    to_update = [_row_uuid(x) for x in rows_to_update]
+    to_delete = [_row_uuid(x) for x in rows_to_delete]
 
     return to_update, to_delete
 

@@ -25,12 +25,13 @@ import os
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Callable
+from typing import Callable, ParamSpec
 
 import redis
 
 from duohash import sha512
 
+P = ParamSpec("P")
 
 REDIS_HOST: str = os.environ.get("DUO_REDIS_HOST", "redis")
 REDIS_PORT: int = int(os.environ.get("DUO_REDIS_PORT", 6379))
@@ -49,7 +50,7 @@ _redis = redis.Redis(
 )
 
 
-def _default(o: Any) -> str:
+def _default(o: object) -> str:
     """JSON encoder for the database types that show up in cached results,
     matching how Flask's default JSON provider renders them."""
     if isinstance(o, uuid.UUID):
@@ -61,7 +62,11 @@ def _default(o: Any) -> str:
     raise TypeError(f"Object of type {type(o).__name__} is not JSON serializable")
 
 
-def _key(func: Callable, args: tuple, kwargs: dict) -> str:
+def _key(
+    func: Callable[P, object],
+    args: tuple[object, ...],
+    kwargs: dict[str, object],
+) -> str:
     arg_payload = json.dumps(
         [args, kwargs],
         default=_default,
@@ -71,11 +76,11 @@ def _key(func: Callable, args: tuple, kwargs: dict) -> str:
     return f"{_KEY_PREFIX}{func.__module__}.{func.__qualname__}:{sha512(arg_payload)}"
 
 
-def redis_cache(ttl: int) -> Any:
+def redis_cache(ttl: int) -> Callable[[Callable[P, object]], Callable[P, object]]:
     """Cache the wrapped function's result in Redis for `ttl` seconds."""
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[P, object]) -> Callable[P, object]:
         @functools.wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> object:
             try:
                 key = _key(func, args, kwargs)
             except TypeError:
@@ -84,11 +89,11 @@ def redis_cache(ttl: int) -> Any:
                 return func(*args, **kwargs)
 
             try:
-                cached: Any = _redis.get(key)
+                cached = _redis.get(key)
             except Exception:
                 cached = None
 
-            if cached is not None:
+            if isinstance(cached, (str, bytes, bytearray)):
                 try:
                     return json.loads(cached)
                 except Exception:

@@ -1,7 +1,16 @@
 from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletion
+from openai.types.chat import (
+    ChatCompletionContentPartImageParam,
+    ChatCompletionContentPartTextParam,
+    ChatCompletionMessageParam,
+    ChatCompletionSystemMessageParam,
+    ChatCompletionUserMessageParam,
+)
+from openai.types.shared_params.response_format_json_object import (
+    ResponseFormatJSONObject,
+)
 from dataclasses import dataclass
-from typing import Literal, Any, Iterator
+from typing import Literal, Iterator
 import json
 import os
 import base64
@@ -99,8 +108,10 @@ def get_system_content(
 def get_user_content(
     proof_uuid: str,
     claimed_uuids: list[str],
-) -> list[dict[str, Any]]:
-    def go() -> Iterator[dict[str, Any]]:
+) -> list[ChatCompletionContentPartTextParam | ChatCompletionContentPartImageParam]:
+    def go() -> Iterator[
+        ChatCompletionContentPartTextParam | ChatCompletionContentPartImageParam
+    ]:
         for i, uuid in enumerate([proof_uuid] + claimed_uuids):
             yield {
               "type": "text",
@@ -331,24 +342,26 @@ def get_messages(
     claimed_age: int,
     claimed_gender: str,
     claimed_ethnicity: str | None,
-) -> Any:
+) -> list[ChatCompletionMessageParam]:
+    system_message: ChatCompletionSystemMessageParam = {
+        "role": "system",
+        "content": get_system_content(
+            num_claimed_uuids=len(claimed_uuids),
+            claimed_age=claimed_age,
+            claimed_gender=claimed_gender,
+            claimed_ethnicity=claimed_ethnicity,
+        )
+    }
+    user_message: ChatCompletionUserMessageParam = {
+        "role": "user",
+        "content": get_user_content(
+            proof_uuid,
+            claimed_uuids,
+        )
+    }
     return [
-        {
-            "role": "system",
-            "content": get_system_content(
-                num_claimed_uuids=len(claimed_uuids),
-                claimed_age=claimed_age,
-                claimed_gender=claimed_gender,
-                claimed_ethnicity=claimed_ethnicity,
-            )
-        },
-        {
-            "role": "user",
-            "content": get_user_content(
-                proof_uuid,
-                claimed_uuids,
-            )
-        },
+        system_message,
+        user_message,
     ]
 
 
@@ -373,10 +386,11 @@ async def real_verification_response(
     claimed_gender: str,
     claimed_ethnicity: str | None,
 ) -> str | None:
+    response_format: ResponseFormatJSONObject = {"type": "json_object"}
     try:
         return (await AsyncOpenAI().chat.completions.create(
             model="gpt-4.1-2025-04-14",
-            response_format={"type": "json_object"},
+            response_format=response_format,
             temperature=0.0,
             frequency_penalty=0.0,
             presence_penalty=0.0,

@@ -1,5 +1,5 @@
-from typing import Any
 from database.asyncdatabase import api_tx
+from collections.abc import Awaitable, Callable
 from concurrent.futures import ThreadPoolExecutor
 from botocore.exceptions import ClientError
 from service.cron.cronutil.sql import *
@@ -26,7 +26,7 @@ MAX_RANDOM_START_DELAY = int(os.environ.get(
     15,
 ))
 
-async def print_stacktrace(fun: Any) -> None:
+async def print_stacktrace(fun: Callable[[], Awaitable[object]]) -> None:
     try:
         await fun()
     except:
@@ -158,7 +158,7 @@ async def download_450_images(
         aws_secret_access_key=R2_ACCESS_KEY_SECRET,
     )
 
-    def download_one(uuid: str) -> Any:
+    def download_one(uuid: str) -> io.BytesIO | None:
         buffer = io.BytesIO()
         key = f'450-{uuid}.jpg'
         retries = 3
@@ -180,8 +180,9 @@ async def download_450_images(
                         return None
                 else:
                     raise
+        raise RuntimeError(f'failed to download {key}')
 
-    def download_many() -> Any:
+    def download_many() -> list[io.BytesIO | None]:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             return list(executor.map(download_one, uuids))
 

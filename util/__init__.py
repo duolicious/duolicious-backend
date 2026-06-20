@@ -1,5 +1,5 @@
 from urllib.parse import quote
-from typing import Callable, Any, Iterator
+from typing import Callable, Iterator
 import contextlib
 import os
 import time
@@ -29,7 +29,7 @@ def append_query(base: str, params: dict) -> str:
     return f'{base}{sep}{encoded}' if encoded else base
 
 
-def human_readable_size_metric(size_bytes: Any) -> Any:
+def human_readable_size_metric(size_bytes: float) -> str:
     # Define suffixes for metric prefixes
     suffixes = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB']
     i = 0

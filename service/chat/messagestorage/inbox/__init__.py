@@ -1,6 +1,5 @@
-from typing import Any
 from batcher import Batcher
-from database import asyncdatabase
+from database import Tx, asyncdatabase
 from dataclasses import dataclass
 from lxml import etree
 import database
@@ -220,7 +219,7 @@ async def _get_inbox(query_id: str, username: str) -> list[str]:
     return messages
 
 
-def process_upsert_conversation_batch(tx: Any, batch: list[UpsertConversationJob]) -> None:
+def process_upsert_conversation_batch(tx: Tx, batch: list[UpsertConversationJob]) -> None:
     params_seq = [
         dict(
             from_username=job.from_username,

@@ -1,5 +1,4 @@
 from typing import (
-    Any,
     ClassVar,
     DefaultDict,
     Dict,
@@ -9,6 +8,7 @@ from typing import (
     Literal,
     Union,
 )
+from collections.abc import MutableMapping
 from pydantic import (
     BaseModel,
     BeforeValidator,
@@ -49,11 +49,20 @@ CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42
 
 
-def _normalize_email_input(value: str) -> str:
+def _normalize_email_input(value: object) -> object:
+    if not isinstance(value, str):
+        return value
     return value.lower().strip() if value else ''
 
 
-def _normalize_club_name(value: Any) -> Any:
+def _string_field(values: MutableMapping[str, object], key: str) -> str:
+    value = values[key]
+    if not isinstance(value, str):
+        raise ValueError(f'Field {key} must be a valid string')
+    return value
+
+
+def _normalize_club_name(value: object) -> object:
     # Non-str values pass through so pydantic's type layer reports them
     # instead of this raising AttributeError.
     if not isinstance(value, str):
@@ -77,7 +86,7 @@ PendingClubName = Annotated[
 _club_name_adapter = TypeAdapter(ClubName)
 
 
-def parse_club_name(value: Any) -> Optional[str]:
+def parse_club_name(value: object) -> Optional[str]:
     """Returns the canonical club name, or None if invalid. For call
     sites that want to 404 or skip on bad input rather than raise."""
     try:
@@ -143,12 +152,16 @@ class Base64AudioFile(BaseModel):
     bytes: bytes
 
     @model_validator(mode='before')
-    def convert_base64(cls, values: Any) -> Any:
+    def convert_base64(cls, values: object) -> object:
+        if not isinstance(values, dict):
+            return values
+
         # Avoid performing transcoding a second time
         if 'base64' in values and 'bytes' in values and 'transcoded' in values:
             return values
 
-        response = transcode_and_trim_audio_from_base64(values['base64'])
+        response = transcode_and_trim_audio_from_base64(
+            _string_field(values, 'base64'))
 
         if isinstance(response, ValueError):
             raise response
@@ -175,9 +188,12 @@ class Base64File(BaseModel):
     md5_hash: str
 
     @model_validator(mode='before')
-    def convert_base64(cls, values: Any) -> Any:
+    def convert_base64(cls, values: object) -> object:
+        if not isinstance(values, dict):
+            return values
+
         try:
-            base64_value = values['base64'].split(',')[-1]
+            base64_value = _string_field(values, 'base64').split(',')[-1]
         except:
             raise ValueError('Field base64 must be a valid base64 string')
 
@@ -249,22 +265,6 @@ class PhotoAssignments(RootModel[Dict[int, int]]):
 
         return root
 
-    def dict(self, *args: Any, **kwargs: Any) -> Dict[int, int]:  # type: ignore[override]
-        """Return the underlying mapping directly, not wrapped in a root key.
-
-        This preserves the behaviour relied upon by callers such as
-        `patch_profile_info`, which expect a plain `Dict[int, int]`.
-        """
-        data = super().dict(*args, **kwargs)
-        # Support both Pydantic v1 (`__root__`) and v2 (`root`) styles.
-        if 'root' in data:
-            return data['root']
-        if '__root__' in data:
-            return data['__root__']
-        # Fallback – should not normally happen, but keeps a sensible type.
-        return data  # type: ignore[return-value]
-
-
 class Theme(BaseModel):
     title_color: str = Field(pattern=HEX_COLOR_PATTERN)
     body_color: str = Field(pattern=HEX_COLOR_PATTERN)
@@ -281,7 +281,10 @@ class SessionInfo(BaseModel):
     pending_club_name: Optional[str]
 
     @model_validator(mode='before')
-    def set_onboarded(cls, values: Any) -> Any:
+    def set_onboarded(cls, values: object) -> object:
+        if not isinstance(values, dict):
+            return values
+
         values['onboarded'] = values.get('person_id') is not None
         return values
 
@@ -326,9 +329,8 @@ class PostRequestOtp(BaseModel):
         default_factory=list, max_length=PUBLIC_ANSWER_LIMIT)
 
     @field_validator('email', mode='before')
-    def validate_email(cls, value: Any) -> Any:
-        email_str: Any = EmailStr
-        return email_str._validate(_normalize_email_input(value))
+    def validate_email(cls, value: object) -> object:
+        return _normalize_email_input(value)
 
 
 class PostCheckOtp(BaseModel):
@@ -368,7 +370,7 @@ class SocialClaims(BaseModel):
     email_verified: bool
 
     @field_validator('email', mode='before')
-    def validate_email(cls, value: Any) -> Any:
+    def validate_email(cls, value: object) -> object:
         return _normalize_email_input(value)
 
 
@@ -405,7 +407,7 @@ class PatchOnboardeeInfo(BaseModel):
         return value
 
     @field_validator('date_of_birth')
-    def age_must_be_18_or_up(cls, date_of_birth: Any) -> Any:
+    def age_must_be_18_or_up(cls, date_of_birth: Optional[str]) -> Optional[str]:
         if date_of_birth is None:
             return date_of_birth
         date_of_birth_date = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
@@ -416,7 +418,7 @@ class PatchOnboardeeInfo(BaseModel):
         return date_of_birth
 
     @field_validator('name')
-    def name_must_not_be_rude(cls, value: Any) -> Any:
+    def name_must_not_be_rude(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
             return value
         if antiabuse.antirude.displayname.is_rude(value):
@@ -424,7 +426,7 @@ class PatchOnboardeeInfo(BaseModel):
         return value
 
     @model_validator(mode='after')
-    def check_exactly_one(self) -> Any:
+    def check_exactly_one(self) -> "PatchOnboardeeInfo":
         if len(self.__pydantic_fields_set__) != 1:
             raise ValueError('Exactly one value must be set')
 
@@ -536,7 +538,7 @@ class PatchProfileInfo(BaseModel):
     theme: Optional[Theme] = None
 
     @model_validator(mode='after')
-    def check_exactly_one(self) -> Any:
+    def check_exactly_one(self) -> "PatchProfileInfo":
         if len(self.__pydantic_fields_set__) != 1:
             raise ValueError('Exactly one value must be set')
 
@@ -549,14 +551,17 @@ class PatchProfileInfo(BaseModel):
         return self
 
     @model_validator(mode='before')
-    def strip_strs(cls, values: Any) -> Any:
+    def strip_strs(cls, values: object) -> object:
+        if not isinstance(values, dict):
+            return values
+
         for key, val in values.items():
             values[key] = val.strip() if type(val) is str else val
 
         return values
 
     @field_validator('name')
-    def name_must_not_be_rude(cls, value: Any) -> Any:
+    def name_must_not_be_rude(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
             return value
         if antiabuse.antirude.displayname.is_rude(value):
@@ -564,7 +569,7 @@ class PatchProfileInfo(BaseModel):
         return value
 
     @field_validator('about')
-    def about_must_not_be_rude(cls, value: Any) -> Any:
+    def about_must_not_be_rude(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
             return value
         if antiabuse.antirude.profile.is_rude(value):
@@ -572,7 +577,7 @@ class PatchProfileInfo(BaseModel):
         return value
 
     @field_validator('about')
-    def about_must_not_have_spam(cls, value: Any) -> Any:
+    def about_must_not_have_spam(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
             return value
         if \
@@ -583,7 +588,7 @@ class PatchProfileInfo(BaseModel):
         return value
 
     @field_validator('occupation')
-    def occupation_must_not_be_rude(cls, value: Any) -> Any:
+    def occupation_must_not_be_rude(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
             return value
         if antiabuse.antirude.occupation.is_rude(value):
@@ -591,7 +596,7 @@ class PatchProfileInfo(BaseModel):
         return value
 
     @field_validator('education')
-    def education_must_not_be_rude(cls, value: Any) -> Any:
+    def education_must_not_be_rude(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
             return value
         if antiabuse.antirude.education.is_rude(value):
@@ -634,7 +639,7 @@ class PostSearchFilter(BaseModel):
     people_you_skipped: Optional[str] = None
 
     @model_validator(mode='after')
-    def check_exactly_one(self) -> Any:
+    def check_exactly_one(self) -> "PostSearchFilter":
         if len(self.__pydantic_fields_set__) != 1:
             raise ValueError('Exactly one value must be set')
 
@@ -693,12 +698,14 @@ class ValidDatetime(BaseModel):
     datetime: datetime
 
     @field_validator('datetime', mode='before')
-    def _validate_iso8601(cls, v: Any) -> Any:
+    def _validate_iso8601(cls, v: object) -> object:
         """
         Allow None or anything `datetime.fromisoformat` can parse.
         Accept the common trailing ‘Z’ (UTC) designator as well.
         """
         if isinstance(v, datetime):
+            return v
+        if not isinstance(v, str):
             return v
         try:
             return datetime.fromisoformat(v.replace('Z', '+00:00'))
@@ -736,7 +743,7 @@ class PostRevenuecat(BaseModel):
     api_version: Optional[str] = None
     event: Optional[RevenuecatEvent] = None
     # keep the raw payload for unknown types (or failed parses)
-    raw_event: Optional[Dict[str, Any]] = None
+    raw_event: Optional[Dict[str, object]] = None
     raw_event_error: Optional[str] = None
 
     # one adapter reused for all validations
@@ -744,7 +751,7 @@ class PostRevenuecat(BaseModel):
 
     @model_validator(mode='before')
     @classmethod
-    def _coerce_event(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def _coerce_event(cls, values: Dict[str, object]) -> Dict[str, object]:
         ev = values.get('event')
         if isinstance(ev, dict):
             try:

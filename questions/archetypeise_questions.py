@@ -3,18 +3,21 @@
 import statistics
 import openai
 import sys
-from typing import Any, List, NamedTuple, Optional
+from collections.abc import Callable, Mapping, MutableSequence
+from typing import NamedTuple, TypeVar
 import json
 from random import shuffle
 import re
 from multiprocessing import Pool
 import itertools
 import functools
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import time
 from pathlib import Path
 
-openai_legacy: Any = openai
+openai_legacy = openai
+
+T = TypeVar('T')
 
 class Props(NamedTuple):
     ppgy: float
@@ -27,10 +30,11 @@ class QuestionTraitPair:
     question: str
     trait: str
 
-    responses: List[int]
-    anti_responses: List[int]
+    responses: list[int]
+    anti_responses: list[int]
+    _props: Props | None = field(default=None, init=False, repr=False)
 
-    def json(self) -> Any:
+    def json(self) -> dict[str, object]:
         return dict(
             question=self.question,
             trait=self.trait,
@@ -44,10 +48,8 @@ class QuestionTraitPair:
         )
 
     def props(self) -> Props:
-        try:
-            return self._props # type: ignore
-        except AttributeError:
-            pass
+        if self._props is not None:
+            return self._props
 
         m1 = statistics.mean(self.responses)
         m2 = statistics.mean(self.anti_responses)
@@ -88,19 +90,19 @@ class QuestionTraitPair:
 
         return self._props
 
-    def presence_given_yes(self) -> Any:
+    def presence_given_yes(self) -> float:
         return self.props().ppgy
 
-    def absence_given_yes(self) -> Any:
+    def absence_given_yes(self) -> float:
         return self.props().pagy
 
-    def presence_given_no(self) -> Any:
+    def presence_given_no(self) -> float:
         return self.props().ppgn
 
-    def absence_given_no(self) -> Any:
+    def absence_given_no(self) -> float:
         return self.props().pagn
 
-    def information(self) -> Any:
+    def information(self) -> float:
         return 0.5 * (
                 abs(self.presence_given_yes() - 0.5) +
                 abs(self.absence_given_yes() - 0.5) +
@@ -108,10 +110,10 @@ class QuestionTraitPair:
                 abs(self.absence_given_no() - 0.5))
 
 class Questions(NamedTuple):
-    archetypeised: List[QuestionTraitPair]
-    unarchetypeised: List[str]
+    archetypeised: list[QuestionTraitPair]
+    unarchetypeised: list[str]
 
-    def json(self) -> Any:
+    def json(self) -> dict[str, object]:
         return dict(
             archetypeised=list_json(self.archetypeised),
             unarchetypeised=self.unarchetypeised
@@ -122,7 +124,10 @@ class Questions(NamedTuple):
         with open(path, 'w', encoding="utf-8") as f:
             f.write(j_str)
 
-def reversible_shuffle(n: Any) -> Any:
+def reversible_shuffle(n: int) -> tuple[
+    Callable[[list[T]], list[T]],
+    Callable[[list[T]], list[T]],
+]:
     shuffled_indices1 = list(range(n))
     shuffled_indices2 = list(range(n))
     shuffle(shuffled_indices1)
@@ -131,27 +136,44 @@ def reversible_shuffle(n: Any) -> Any:
     forward_index_map = list(zip(shuffled_indices1, shuffled_indices2))
     backward_index_map = list(zip(shuffled_indices2, shuffled_indices1))
 
-    def apply_index_map(index_map: Any, l: Any) -> Any:
+    def apply_index_map(
+        index_map: list[tuple[int, int]],
+        l: list[T],
+    ) -> list[T]:
         d = {i1: l[i2] for i1, i2 in index_map}
         return [d[i] for i in range(len(d))]
 
-    def shuffle_(l: Any) -> Any:
+    def shuffle_(l: list[T]) -> list[T]:
         return apply_index_map(forward_index_map, l)
 
-    def unshuffle_(l: Any) -> Any:
+    def unshuffle_(l: list[T]) -> list[T]:
         return apply_index_map(backward_index_map, l)
 
     return shuffle_, unshuffle_
 
-def list_json(xs: List) -> Any:
+def list_json(xs: list[QuestionTraitPair]) -> list[dict[str, object]]:
     return [x.json() for x in xs]
 
-def load_question_trait_pair(j: Any) -> Any:
+def _str_value(row: Mapping[str, object], key: str) -> str:
+    value = row[key]
+    if not isinstance(value, str):
+        raise RuntimeError(f'{key} must be a string')
+    return value
+
+
+def _int_list_value(row: Mapping[str, object], key: str) -> list[int]:
+    value = row[key]
+    if not isinstance(value, list) or not all(isinstance(x, int) for x in value):
+        raise RuntimeError(f'{key} must be a list of integers')
+    return value
+
+
+def load_question_trait_pair(j: Mapping[str, object]) -> QuestionTraitPair:
     return QuestionTraitPair(
-        question=j["question"],
-        trait=j["trait"],
-        responses=j["responses"],
-        anti_responses=j["anti_responses"],
+        question=_str_value(j, "question"),
+        trait=_str_value(j, "trait"),
+        responses=_int_list_value(j, "responses"),
+        anti_responses=_int_list_value(j, "anti_responses"),
     )
 
 def load_questions(path: str) -> Questions:
@@ -414,28 +436,28 @@ batch_prompt_fmt = """
 {questions}
 """.strip()
 
-def batch_question_str(questions: List[str]) -> str:
+def batch_question_str(questions: list[str]) -> str:
     return '\n'.join(f'q{i+1}. {q}' for i, q in enumerate(questions))
 
-def batch_prompt(prompt_phrase: str, questions: List[str]) -> str:
+def batch_prompt(prompt_phrase: str, questions: list[str]) -> str:
     return batch_prompt_fmt.format(
         prompt_phrase=prompt_phrase,
         questions=batch_question_str(questions),
     )
 
-def chunker(seq: Any, size: int) -> Any:
+def chunker(seq: list[T], size: int) -> list[list[T]]:
     reversed_seq = list(reversed(seq))
     return [reversed_seq[pos:pos + size] for pos in range(0, len(reversed_seq), size)]
 
-def pop_n(l: Any, n: Any) -> None:
+def pop_n(l: MutableSequence[T], n: int) -> None:
     for _ in range(n):
         l.pop()
 
 def archetypeise_batch_for_one_trait_once(
     trait: Trait,
-    questions: List[str],
+    questions: list[str],
     anti_trait: bool
-) -> List[int]:
+) -> list[int]:
     if anti_trait:
         prompt = batch_prompt(trait.anti_prompt_phrase, questions)
     else:
@@ -444,7 +466,7 @@ def archetypeise_batch_for_one_trait_once(
     completion = None
     while not completion:
         try:
-            completion = openai_legacy.ChatCompletion.create(
+            completion = getattr(openai_legacy, 'ChatCompletion').create(
                 model="gpt-4",
                 messages=[
                     {
@@ -456,7 +478,7 @@ def archetypeise_batch_for_one_trait_once(
                 max_tokens=8 * len(questions),
                 stop=['}']
             )
-        except openai_legacy.error.RateLimitError as e:
+        except getattr(openai_legacy, 'error').RateLimitError:
             time.sleep(1)
         except Exception as e:
             print(str(e))
@@ -481,8 +503,8 @@ raw_batch_response: {raw_batch_response}
 
 def archetypeise_questions_for_trait(
     trait: Trait,
-    questions: List[str],
-) -> List[QuestionTraitPair]:
+    questions: list[str],
+) -> list[QuestionTraitPair]:
     question_trait_pairs = [
         QuestionTraitPair(
             question=question,
@@ -509,20 +531,26 @@ def archetypeise_questions_for_trait(
     return question_trait_pairs
 
 class Archetypeise_questions_for_trait:
-    def __init__(self, questions: List[str]):
+    def __init__(self, questions: list[str]):
         self.questions = questions
 
-    def archetypeise_questions_for_trait(self, trait: Trait) -> Any:
+    def archetypeise_questions_for_trait(
+        self,
+        trait: Trait,
+    ) -> list[QuestionTraitPair]:
         return archetypeise_questions_for_trait(trait, self.questions)
 
-def archetypeise_batch(questions: List[str]) -> List[QuestionTraitPair]:
+def archetypeise_batch(questions: list[str]) -> list[QuestionTraitPair]:
     a = Archetypeise_questions_for_trait(questions)
     with Pool(12) as p:
         return list(itertools.chain.from_iterable(
             p.map(a.archetypeise_questions_for_trait, TRAITS)
         ))
 
-def archetypeise_questions_in_place(questions: Questions, checkpoint_func: Any) -> None:
+def archetypeise_questions_in_place(
+    questions: Questions,
+    checkpoint_func: Callable[[], None],
+) -> None:
     batch_size = 49
     for i, batch in enumerate(chunker(questions.unarchetypeised, batch_size)):
         chunk_size = len(batch)

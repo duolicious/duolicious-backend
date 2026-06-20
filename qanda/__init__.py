@@ -1,6 +1,5 @@
-from typing import Any
 import numpy
-from database import api_tx
+from database import Tx, api_tx, require_row
 import duotypes as t
 from qanda import personality
 from qanda.question import Q_QUESTION_SCORE_VECTORS
@@ -90,7 +89,14 @@ WHERE session_token_hash = %(session_token_hash)s
 """
 
 
-def _set_answer(tx: Any, person_id: int, question_id: int, answer: Any, public: Any, delete: Any) -> None:
+def _set_answer(
+    tx: Tx,
+    person_id: int,
+    question_id: int,
+    answer: bool | None,
+    public: bool | None,
+    delete: bool,
+) -> None:
     """Insert/update (or delete) one answer and recompute the person's
     personality vector on the application server. `tx` must be a writable
     transaction. The old answer is read before being overwritten."""
@@ -102,10 +108,10 @@ def _set_answer(tx: Any, person_id: int, question_id: int, answer: Any, public: 
     if question is None:
         return
 
-    scores = tx.execute(
+    scores = require_row(tx.execute(
         Q_GET_PERSONALITY_SCORES,
         dict(person_id=person_id),
-    ).fetchone()
+    ).fetchone())
 
     old = tx.execute(
         Q_GET_ANSWER,
@@ -149,7 +155,7 @@ def _set_answer(tx: Any, person_id: int, question_id: int, answer: Any, public: 
         count_answers=int(count),
     ))
 
-def post_answer(req: t.PostAnswer, s: t.SessionInfo) -> Any:
+def post_answer(req: t.PostAnswer, s: t.SessionInfo) -> object | None:
     if s.person_id is None:
         return '', 500
 
@@ -165,16 +171,18 @@ def post_answer(req: t.PostAnswer, s: t.SessionInfo) -> Any:
     with api_tx() as tx:
         _set_answer(
             tx, s.person_id, req.question_id, req.answer, req.public, delete=False)
+    return None
 
-def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo) -> Any:
+def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo) -> object | None:
     if s.person_id is None:
         return '', 500
 
     with api_tx() as tx:
         _set_answer(
             tx, s.person_id, req.question_id, None, None, delete=True)
+    return None
 
-def _flush_session_answers(tx: Any, session_token_hash: str, person_id: int) -> None:
+def _flush_session_answers(tx: Tx, session_token_hash: str, person_id: int) -> None:
     """
     Move any answers stashed against this session (collected while the user was
     unauthenticated) into the `answer` table for `person_id`, reusing the same

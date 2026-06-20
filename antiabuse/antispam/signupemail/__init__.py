@@ -1,6 +1,5 @@
-from typing import Any
 from antiabuse.antispam.signupemail.sql import *
-from database import api_tx
+from database import api_tx, require_row
 from pathlib import Path
 
 dot_insignificant_email_domains = set([
@@ -27,17 +26,17 @@ plus_address_domains = set([
     "zohomail.com",
 ])
 
-def check_and_update_bad_domains(email: str) -> Any:
+def check_and_update_bad_domains(email: str) -> object:
     _, domain = email.split('@')
 
     params = dict(email=email, domain=domain)
 
     # Check if we already know about the email domain
     with api_tx() as tx:
-        domain_status = tx.execute(
+        domain_status = require_row(tx.execute(
             Q_EMAIL_INFO,
             params=params
-        ).fetchone()['domain_status']
+        ).fetchone())['domain_status']
 
     if domain_status == 'registered':
         return True

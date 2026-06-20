@@ -1,4 +1,3 @@
-from typing import Any
 from constants import (
     MAX_LLM_PROMPT_FACTS,
     MIN_NOTABLE_TRAIT_SCORE,
@@ -23,6 +22,7 @@ import json
 import os
 import random
 import traceback
+from collections.abc import Mapping, Sequence
 
 CLUB_SEO_MAX_LOAD_PCT = float(os.environ.get(
     'DUO_CRON_CLUB_SEO_MAX_LOAD_PCT',
@@ -167,53 +167,87 @@ async def refresh_club_overlap_forever() -> None:
         await asyncio.sleep(CLUB_OVERLAP_POLL_SECONDS)
 
 
-def _top_pct(items: Any) -> Any:
+def _number(value: object) -> int | float:
+    if not isinstance(value, (int, float)):
+        return 0
+    return value
+
+
+def _optional_str(value: object) -> str | None:
+    return value if isinstance(value, str) else None
+
+
+def _top_pct(items: Sequence[Mapping[str, object]] | None) -> list[dict[str, object]]:
     items = items or []
-    total = sum(it.get('count', 0) for it in items)
+    total = sum(_number(it.get('count', 0)) for it in items)
     if total == 0:
         return []
     return [
-        {'label': it['label'], 'pct': round(100 * it['count'] / total)}
+        {
+            'label': it.get('label'),
+            'pct': round(100 * _number(it.get('count', 0)) / total),
+        }
         for it in items
     ]
 
 
-def _notable_traits(traits: Any) -> Any:
+def _notable_traits(
+    traits: Sequence[Mapping[str, object]] | None,
+) -> list[dict[str, object]]:
     notable = [
         t for t in (traits or [])
-        if abs(t.get('score', 0)) >= MIN_NOTABLE_TRAIT_SCORE
+        if abs(_number(t.get('score', 0))) >= MIN_NOTABLE_TRAIT_SCORE
     ]
-    notable.sort(key=lambda t: abs(t['score']), reverse=True)
+    notable.sort(key=lambda t: abs(_number(t.get('score', 0))), reverse=True)
     return [
         {
-            'trait':     t['trait'],
-            'min_label': t['min_label'],
-            'max_label': t['max_label'],
-            'score':     t['score'],
+            'trait':     t.get('trait'),
+            'min_label': t.get('min_label'),
+            'max_label': t.get('max_label'),
+            'score':     t.get('score'),
         }
         for t in notable[:MAX_LLM_PROMPT_FACTS]
     ]
 
 
-def build_prompt_payload(stats: dict) -> dict:
-    demo = stats.get('demographics') or {}
+def _mapping(value: object) -> Mapping[str, object]:
+    if not isinstance(value, dict):
+        return {}
+    return value
+
+
+def _mapping_sequence(value: object) -> Sequence[Mapping[str, object]] | None:
+    if not isinstance(value, list):
+        return None
+    if not all(isinstance(item, dict) for item in value):
+        return None
+    return value
+
+
+def _sequence(value: object) -> Sequence[object]:
+    return value if isinstance(value, list) else []
+
+
+def build_prompt_payload(stats: Mapping[str, object]) -> dict[str, object]:
+    demo = _mapping(stats.get('demographics'))
     return {
         'club_name':        stats.get('name'),
         'member_count':     stats.get('member_count'),
         'median_age':       stats.get('median_age'),
-        'gender_mix':       _top_pct(demo.get('gender')),
-        'religion_mix':     _top_pct(demo.get('religion')),
-        'personality_lean': _notable_traits(stats.get('personality')),
-        'shared_answers':   (stats.get('top_answers') or [])[:MAX_LLM_PROMPT_FACTS],
+        'gender_mix':       _top_pct(_mapping_sequence(demo.get('gender'))),
+        'religion_mix':     _top_pct(_mapping_sequence(demo.get('religion'))),
+        'personality_lean': _notable_traits(
+            _mapping_sequence(stats.get('personality'))),
+        'shared_answers':   _sequence(stats.get('top_answers'))[:MAX_LLM_PROMPT_FACTS],
     }
 
 
-def stats_hash(payload: dict) -> str:
+def stats_hash(payload: Mapping[str, object]) -> str:
     blob = json.dumps(payload, sort_keys=True, separators=(',', ':'))
     return hashlib.sha256(blob.encode('utf-8')).hexdigest()[:32]
 
 
-def build_prompt(payload: dict) -> str:
+def build_prompt(payload: Mapping[str, object]) -> str:
     # `club_name` is user-generated. Emitting the whole payload as one JSON
     # object means JSON string-escaping neutralises any quotes/braces/newlines
     # a malicious name might contain, so it can't break out of its field and
@@ -265,13 +299,15 @@ Return only the description text.
 """.strip()
 
 
-async def generate_description(payload: dict) -> str | None:
+async def generate_description(payload: Mapping[str, object]) -> str | None:
     if CLUB_SEO_MOCK_DESCRIPTION:
         return CLUB_SEO_MOCK_DESCRIPTION
 
-    assert _openai_client is not None
+    client = _openai_client
+    if client is None:
+        raise RuntimeError('OpenAI client is not configured')
     try:
-        resp = await _openai_client.chat.completions.create(
+        resp = await client.chat.completions.create(
             model=OPENAI_MODEL,
             max_tokens=300,
             timeout=45,
@@ -295,13 +331,19 @@ def is_fresh_enough(old_stats_hash: str | None, new_hash: str, age_days: float) 
     return age_days < CLUB_SEO_MAX_AGE_DAYS
 
 
-async def _process_club_seo_row(row: Any, semaphore: Any) -> None:
-    club_name = row['name']
-    old_hash = row['old_stats_hash']
-    # NULL age (no club_seo row yet) means infinitely stale.
-    age_days = row['age_days'] if row['age_days'] is not None else float('inf')
+async def _process_club_seo_row(
+    row: Mapping[str, object],
+    semaphore: asyncio.Semaphore,
+) -> None:
+    club_name = _optional_str(row['name'])
+    if club_name is None:
+        raise RuntimeError('club name must be a string')
 
-    stats = dict(row['stats_json'])
+    old_hash = _optional_str(row['old_stats_hash'])
+    # NULL age (no club_seo row yet) means infinitely stale.
+    age_days = _number(row['age_days']) if row['age_days'] is not None else float('inf')
+
+    stats = dict(_mapping(row['stats_json']))
     stats['top_answers'] = row['top_answers_json'] or []
     payload = build_prompt_payload(stats)
     new_hash = stats_hash(payload)

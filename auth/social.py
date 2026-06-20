@@ -18,7 +18,7 @@ Env vars:
 import os
 import secrets
 import time
-from typing import TypedDict, Any
+from typing import TypedDict
 import duotypes as t
 
 import jwt
@@ -67,11 +67,11 @@ class _BoundedTimeoutGoogleRequest(_GoogleRequest):
         self,
         url: str,
         method: str = 'GET',
-        body: Any = None,
-        headers: Any = None,
-        timeout: Any = _PROVIDER_HTTP_TIMEOUT_SECONDS,
-        **kwargs: Any,
-    ) -> Any:
+        body: object = None,
+        headers: object = None,
+        timeout: object = _PROVIDER_HTTP_TIMEOUT_SECONDS,
+        **kwargs: object,
+    ) -> object:
         return super().__call__(
             url, method, body, headers, timeout=timeout, **kwargs
         )

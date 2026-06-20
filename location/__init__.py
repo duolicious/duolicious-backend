@@ -1,7 +1,7 @@
-from database import api_tx
+from database import api_tx, require_row
 import json
 import os
-from typing import Optional, Any
+from typing import Optional
 from functools import lru_cache
 
 _locations_json_file = os.path.join(
@@ -26,7 +26,7 @@ def init_db() -> None:
 
     with api_tx() as tx:
         tx.execute("SELECT COUNT(*) FROM location")
-        if tx.fetchone()['count'] != 0:
+        if require_row(tx.fetchone())['count'] != 0:
             return
 
         tx.executemany(
@@ -53,7 +53,7 @@ def init_db() -> None:
         )
 
 @lru_cache(maxsize=26**3)
-def get_search_locations(q: Optional[str]) -> Any:
+def get_search_locations(q: Optional[str]) -> object:
     if q is None:
         return []
 

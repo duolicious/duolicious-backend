@@ -38,7 +38,7 @@ import traceback
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Dict, Iterable, Tuple, Union, Any
+from typing import Dict, Iterable, Tuple, Union
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
 
@@ -234,7 +234,7 @@ def _refresh_forever() -> None:
 # ---------------------------------------------------------------------------
 
 class _Handler(BaseHTTPRequestHandler):
-    def _send_json(self, status: int, payload: Any) -> None:
+    def _send_json(self, status: int, payload: object) -> None:
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
@@ -264,7 +264,7 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": "not found"})
 
     # Quieten the default per-request stderr logging; we do our own above.
-    def log_message(self, *args: Any) -> None:
+    def log_message(self, *args: object) -> None:
         pass
 
 

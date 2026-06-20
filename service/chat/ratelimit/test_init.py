@@ -1,4 +1,3 @@
-from typing import Any
 import unittest
 from service.chat.ratelimit import (
     get_default_rate_limit,
@@ -8,7 +7,7 @@ from service.chat.ratelimit import (
 )
 
 
-def make_row(**overrides: Any) -> Any:
+def make_row(**overrides: int) -> Row:
     """Return a Row with sensible defaults, overridden per-call."""
     defaults = dict(
         verification_level_id=1,
@@ -154,7 +153,7 @@ class TestRateLimit(unittest.TestCase):
             get_default_rate_limit(make_row(
                 verification_level_id=3,
                 recent_rude_message_count=2,
-                daily_message_count=30 / 2 - 1)),
+                daily_message_count=30 // 2 - 1)),
             DefaultRateLimit.NONE,
         )
         # At the limit (and beyond) we are rate-limited
@@ -162,7 +161,7 @@ class TestRateLimit(unittest.TestCase):
             get_default_rate_limit(make_row(
                 verification_level_id=3,
                 recent_rude_message_count=2,
-                daily_message_count=30 / 2)),
+                daily_message_count=30 // 2)),
             DefaultRateLimit.PHOTOS,
         )
 

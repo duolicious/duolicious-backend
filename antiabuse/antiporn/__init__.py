@@ -1,5 +1,5 @@
 from PIL import Image
-from typing import List, Any
+from typing import List
 import numpy as np
 import numpy.typing as npt
 import onnxruntime as ort
@@ -20,7 +20,7 @@ _MODEL = bytes(_MODEL_PARTS)
 _SESSION = ort.InferenceSession(_MODEL)
 _INPUT_NAME = _SESSION.get_inputs()[0].name
 
-def avg(*n: Any) -> Any:
+def avg(*n: float) -> float:
     return sum(n) / float(len(n))
 
 def preprocess_for_evaluation(

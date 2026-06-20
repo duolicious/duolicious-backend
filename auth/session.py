@@ -1,4 +1,4 @@
-from typing import Iterable, Any
+from typing import Iterable
 
 from constants import MAX_SIGNED_IN_SESSIONS
 from database import api_tx
@@ -51,7 +51,7 @@ def sign_out(session_token_hashes: Iterable[str]) -> None:
         sessioncache.delete_session(session_token_hash)
 
 
-def enforce_session_limit(person_id: int | None, current_session_token_hash: Any) -> None:
+def enforce_session_limit(person_id: int | None, current_session_token_hash: object) -> None:
     """Sign out a person's least-recently-active sessions beyond
     MAX_SIGNED_IN_SESSIONS, always keeping the current one. No-op for a session
     not yet attached to a person."""

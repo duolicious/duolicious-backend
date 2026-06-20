@@ -1,6 +1,7 @@
 from database import api_tx
 from dataclasses import dataclass
-from typing import Optional, Iterable, Any
+from typing import Optional, Iterable
+from lxml import etree
 from batcher import Batcher
 
 
@@ -66,7 +67,7 @@ _batcher = Batcher[DuoPushToken](
 
 _batcher.start()
 
-def maybe_register(parsed_xml: Any, session_token_hash: str | None) -> Any:
+def maybe_register(parsed_xml: etree._Element, session_token_hash: str | None) -> bool:
     if not session_token_hash:
         return False
 

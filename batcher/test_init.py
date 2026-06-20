@@ -1,4 +1,3 @@
-from typing import Any
 import unittest
 from unittest.mock import MagicMock, call
 import time
@@ -117,7 +116,7 @@ class TestBatcher(unittest.TestCase):
 
     def test_retry_on_failure(self) -> None:
         # Mock the process_fn to raise an exception on the first call
-        def failing_process(batch: Any) -> None:
+        def failing_process(batch: object) -> None:
             if not hasattr(failing_process, 'called'):
                 setattr(failing_process, 'called', True)
                 raise Exception("Simulated failure")
@@ -164,7 +163,7 @@ class TestBatcher(unittest.TestCase):
         self.process_fn.assert_not_called()
 
     def test_empty_batch_processing(self) -> None:
-        def process_fn(batch: Any) -> None:
+        def process_fn(batch: list[object]) -> None:
             # Ensure that the batch is never empty
             self.assertTrue(len(batch) > 0, "Batch should not be empty")
             self.process_fn(batch)

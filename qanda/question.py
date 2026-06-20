@@ -1,8 +1,8 @@
 import os
-from database import api_tx
+from database import api_tx, require_row
 import duotypes as t
 from questions.archetypeise_questions import load_questions
-from typing import List, Optional, Any
+from typing import List, Optional
 import json
 
 _categorised_question_json_file = os.path.join(
@@ -110,7 +110,7 @@ def init_db() -> None:
 
     with api_tx() as tx:
         tx.execute('SELECT COUNT(*) FROM question')
-        if tx.fetchone()['count'] == 0:
+        if require_row(tx.fetchone())['count'] == 0:
             tx.executemany(
                 """
                 INSERT INTO question (
@@ -148,7 +148,7 @@ def init_db() -> None:
             WHERE presence_given_yes = ARRAY[]::INT[]
             """
         )
-        if tx.fetchone()['count'] > 0:
+        if require_row(tx.fetchone())['count'] > 0:
             tx.execute(
                 """
                 CREATE TEMPORARY TABLE question_trait_pair (
@@ -223,7 +223,7 @@ def init_db() -> None:
                 """
             )
 
-def get_next_questions(s: t.SessionInfo, n: str, o: str) -> Any:
+def get_next_questions(s: t.SessionInfo, n: str, o: str) -> object:
     params = dict(
         person_id=s.person_id,
         n=int(n),
@@ -233,7 +233,7 @@ def get_next_questions(s: t.SessionInfo, n: str, o: str) -> Any:
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_NEXT_QUESTIONS, params).fetchall()
 
-def get_public_next_questions(n: str, o: str) -> Any:
+def get_public_next_questions(n: str, o: str) -> object:
     params = dict(
         n=int(n),
         o=int(o),
@@ -242,7 +242,7 @@ def get_public_next_questions(n: str, o: str) -> Any:
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_PUBLIC_NEXT_QUESTIONS, params).fetchall()
 
-def get_search_filter_questions(s: t.SessionInfo, q: str, n: str, o: str) -> Any:
+def get_search_filter_questions(s: t.SessionInfo, q: str, n: str, o: str) -> object:
     params = dict(
         person_id=s.person_id,
         q=q,

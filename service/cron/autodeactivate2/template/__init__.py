@@ -1,5 +1,4 @@
-from typing import Any
-def emailtemplate() -> Any:
+def emailtemplate() -> str:
     return f"""
     <!DOCTYPE html>
     <html lang="en">

@@ -1,4 +1,3 @@
-from typing import Any
 from database.asyncdatabase import api_tx
 from dataclasses import dataclass
 from service.cron.notifications.sql import (
@@ -60,7 +59,7 @@ def disable_mobile_notifications() -> bool:
                 return True
     return False
 
-def do_send_notification(row: PersonNotification) -> Any:
+def do_send_notification(row: PersonNotification) -> bool:
     email = row.email
     has_intro = row.has_intro
     has_chat = row.has_chat
@@ -85,7 +84,7 @@ def do_send_notification(row: PersonNotification) -> Any:
 
     return (is_intro_sendable or is_chat_sendable)
 
-def do_send_email_notification(row: PersonNotification) -> Any:
+def do_send_email_notification(row: PersonNotification) -> bool:
     is_example = row.email.lower().endswith('@example.com')
 
     return do_send_notification(row) and not is_example
@@ -95,34 +94,35 @@ async def send_email_notification(row: PersonNotification) -> None:
         print('Email notification failed because it ends with @example.com')
         return
 
-    send_args = dict(
-        subject="You have a new message 😍",
-        body=emailtemplate(
+    subject = "You have a new message 😍"
+    body = emailtemplate(
             email=row.email,
             has_intro=row.has_intro,
             has_chat=row.has_chat,
-        ),
-        to_addr=row.email,
     )
+    to_addr = row.email
 
     aws_smtp = make_aws_smtp()
-    await asyncio.to_thread(aws_smtp.send, **send_args)
+    def send() -> None:
+        aws_smtp.send(subject=subject, body=body, to_addr=to_addr)
 
-def send_mobile_notification(row: PersonNotification) -> Any:
+    await asyncio.to_thread(send)
+
+def send_mobile_notification(row: PersonNotification) -> None:
     if disable_mobile_notifications():
         print(
             'File prevented mobile notifications',
             str(_disable_mobile_notifications_file.absolute())
         )
     else:
-        return notify.enqueue_mobile_notification(
+        notify.enqueue_mobile_notification(
             token=row.token,
             title='You have a new message 😍',
             body=big_part(row.has_intro, row.has_chat),
             data={'screen': 'Inbox'},
         )
 
-async def send_notification(row: PersonNotification) -> Any:
+async def send_notification(row: PersonNotification) -> None:
     if not row.token:
         print('Sending email notification:', str(row))
         return await send_email_notification(row)

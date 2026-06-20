@@ -1,4 +1,3 @@
-from typing import Any
 import re
 
 _re_age_modifier_suffix = r'(m|f|y|yrs|y/o|y\.o|yo)'
@@ -105,7 +104,7 @@ _re_neg_next = {
 }
 
 
-def excludable(text: str, match: Any) -> bool:
+def excludable(text: str, match: re.Match[str]) -> bool:
     left_context = text[:match.start()]
     match_text = match.group()
     right_context = text[match.end():]

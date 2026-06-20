@@ -1,8 +1,7 @@
 from async_lru_cache import AsyncLruCache
-from database.asyncdatabase import api_tx
+from database.asyncdatabase import api_tx, require_row
 from enum import Enum
 from dataclasses import dataclass
-from typing import Any
 
 class DefaultRateLimit(Enum):
     NONE = 0
@@ -117,7 +116,7 @@ def get_default_rate_limit(row: Row) -> DefaultRateLimit:
         return DefaultRateLimit.NONE
 
 
-def get_stanza(default_rate_limit: Any, stanza_id: str) -> list[str]:
+def get_stanza(default_rate_limit: object, stanza_id: str) -> list[str]:
     if default_rate_limit == DefaultRateLimit.NONE:
         return []
     elif default_rate_limit == DefaultRateLimit.UNVERIFIED:
@@ -148,7 +147,7 @@ def pure_maybe_fetch_rate_limit(row: Row, stanza_id: str) -> list[str]:
 async def fetch_rate_limit_reason(from_id: int) -> Row:
     async with api_tx('read committed') as tx:
         await tx.execute(Q_RATE_LIMIT_REASON, dict(from_id=from_id))
-        row = await tx.fetchone()
+        row = require_row(await tx.fetchone())
 
     return Row(
         verification_level_id=row['verification_level_id'],
