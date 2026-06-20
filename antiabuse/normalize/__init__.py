@@ -1,3 +1,4 @@
+from typing import Any
 from confusable_homoglyphs import confusables
 import re
 import unicodedata
@@ -12,8 +13,8 @@ def remove_modifiers(text: str) -> str:
     modifier_pos = {"ADJ", "ADV"}
     was_last_token_dropped = False
 
-    def do_keep(token):
-        global was_last_token_dropped
+    def do_keep(token: Any) -> Any:
+        nonlocal was_last_token_dropped
 
         do_drop = (
                 token.pos_ in modifier_pos or
@@ -241,7 +242,7 @@ def verb_forms_for_each(
     ]
 
 
-def char_to_regex(c: str, is_initial: bool, is_final: bool, is_short: bool):
+def char_to_regex(c: str, is_initial: bool, is_final: bool, is_short: bool) -> Any:
     is_medial = not is_initial and not is_final
 
     is_elidable = is_medial and not is_short and c in _vowel_chars
@@ -338,7 +339,7 @@ def phrase_to_regex(phrase: str) -> str:
 
 
 @cache
-def phrase_to_pattern(phrase: str):
+def phrase_to_pattern(phrase: str) -> Any:
     needle = phrase_to_regex(phrase)
 
     return re.compile(
@@ -349,7 +350,7 @@ def phrase_to_pattern(phrase: str):
 
 
 @cache
-def make_sub_unless_safe(phrase: str):
+def make_sub_unless_safe(phrase: str) -> Any:
     def sub_unless_safe(match: re.Match[str]) -> str:
         matched_text = match.group(0)
 
@@ -363,7 +364,7 @@ def make_sub_unless_safe(phrase: str):
     return sub_unless_safe
 
 
-def _normalize_spelling(haystack: str, normalizeable_phrases: list[str]):
+def _normalize_spelling(haystack: str, normalizeable_phrases: list[str]) -> Any:
     for phrase in normalizeable_phrases:
         sub_unless_safe = make_sub_unless_safe(phrase)
 
@@ -374,7 +375,7 @@ def _normalize_spelling(haystack: str, normalizeable_phrases: list[str]):
     return haystack
 
 
-def _remove_zero_width_characters(s: str):
+def _remove_zero_width_characters(s: str) -> Any:
     return _zero_width_chars.sub('', s)
 
 
@@ -382,7 +383,7 @@ def normalize_string(
     s: str,
     normalizeable_phrases: list[str],
     do_remove_modifiers: bool = False
-):
+) -> Any:
     normalized_input = unicodedata.normalize('NFKD', s)
     normalized_input = ''.join(
         char for char in normalized_input if not unicodedata.combining(char)

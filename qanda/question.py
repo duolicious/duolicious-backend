@@ -2,7 +2,7 @@ import os
 from database import api_tx
 import duotypes as t
 from questions.archetypeise_questions import load_questions
-from typing import List, Optional
+from typing import List, Optional, Any
 import json
 
 _categorised_question_json_file = os.path.join(
@@ -98,7 +98,7 @@ LIMIT %(n)s
 OFFSET %(o)s
 """
 
-def init_db():
+def init_db() -> None:
     with open(_categorised_question_json_file) as f:
         categorised_questions = json.load(f)
 
@@ -223,7 +223,7 @@ def init_db():
                 """
             )
 
-def get_next_questions(s: t.SessionInfo, n: str, o: str):
+def get_next_questions(s: t.SessionInfo, n: str, o: str) -> Any:
     params = dict(
         person_id=s.person_id,
         n=int(n),
@@ -233,7 +233,7 @@ def get_next_questions(s: t.SessionInfo, n: str, o: str):
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_NEXT_QUESTIONS, params).fetchall()
 
-def get_public_next_questions(n: str, o: str):
+def get_public_next_questions(n: str, o: str) -> Any:
     params = dict(
         n=int(n),
         o=int(o),
@@ -242,7 +242,7 @@ def get_public_next_questions(n: str, o: str):
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_PUBLIC_NEXT_QUESTIONS, params).fetchall()
 
-def get_search_filter_questions(s: t.SessionInfo, q: str, n: str, o: str):
+def get_search_filter_questions(s: t.SessionInfo, q: str, n: str, o: str) -> Any:
     params = dict(
         person_id=s.person_id,
         q=q,

@@ -99,7 +99,7 @@ response: {response}
         for q, c in zip(questions, categories)
     ]
 
-def reversible_shuffle(n):
+def reversible_shuffle(n: Any) -> Any:
     shuffled_indices1 = list(range(n))
     shuffled_indices2 = list(range(n))
     shuffle(shuffled_indices1)
@@ -108,14 +108,14 @@ def reversible_shuffle(n):
     forward_index_map = list(zip(shuffled_indices1, shuffled_indices2))
     backward_index_map = list(zip(shuffled_indices2, shuffled_indices1))
 
-    def apply_index_map(index_map, l):
+    def apply_index_map(index_map: Any, l: Any) -> Any:
         d = {i1: l[i2] for i1, i2 in index_map}
         return [d[i] for i in range(len(d))]
 
-    def shuffle_(l):
+    def shuffle_(l: Any) -> Any:
         return apply_index_map(forward_index_map, l)
 
-    def unshuffle_(l):
+    def unshuffle_(l: Any) -> Any:
         return apply_index_map(backward_index_map, l)
 
     return shuffle_, unshuffle_
@@ -159,7 +159,7 @@ def load_questions(path: str) -> Questions:
             j = [l.strip() for l in f.readlines()]
             return Questions(categorised=[], uncategorised=j)
 
-def save_questions(path: str, questions: Questions):
+def save_questions(path: str, questions: Questions) -> None:
     j = {
         'categorised': [
             {'question': q.question, 'category': q.category}
@@ -172,15 +172,15 @@ def save_questions(path: str, questions: Questions):
     with open(path, 'w', encoding="utf-8") as f:
         f.write(j_str)
 
-def chunker(seq, size):
+def chunker(seq: Any, size: int) -> Any:
     reversed_seq = list(reversed(seq))
     return [reversed_seq[pos:pos + size] for pos in range(0, len(reversed_seq), size)]
 
-def pop_n(l, n):
+def pop_n(l: Any, n: Any) -> None:
     for _ in range(n):
         l.pop()
 
-def categorise_questions_in_place(questions: Questions, checkpoint_func):
+def categorise_questions_in_place(questions: Questions, checkpoint_func: Any) -> None:
     for batch in chunker(questions.uncategorised, 10):
         chunk_size = len(batch)
 
@@ -194,10 +194,10 @@ def categorise_questions_in_place(questions: Questions, checkpoint_func):
             f'#categorised={len(questions.categorised)}, #uncategorised={len(questions.uncategorised)}'
         )
 
-def checkpoint_func(questions: Questions):
+def checkpoint_func(questions: Questions) -> None:
     save_questions(question_path, questions)
 
-def main():
+def main() -> None:
     questions = load_questions(question_path)
     categorise_questions_in_place(questions, checkpoint_func)
 

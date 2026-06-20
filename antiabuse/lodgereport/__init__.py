@@ -26,16 +26,16 @@ import re
 import random
 
 
-def _repack_last_messages_in_place(last_messages: list[dict]):
+def _repack_last_messages_in_place(last_messages: list[dict]) -> None:
     for i in range(len(last_messages)):
         m = last_messages[i]
 
         last_messages[i] = { m['sent_by']: m['body'] }
 
 
-def _obj_to_yaml_string(obj):
+def _obj_to_yaml_string(obj: Any) -> Any:
     class IndentDumper(yaml.Dumper):
-        def increase_indent(self, flow=False, indentless=False):
+        def increase_indent(self, flow: bool = False, indentless: bool = False) -> Any:
             return super(IndentDumper, self).increase_indent(flow, False)
 
     output = StringIO()
@@ -43,8 +43,8 @@ def _obj_to_yaml_string(obj):
     return output.getvalue()
 
 
-def _photo_links_to_html(photo_links):
-    def link_to_html(photo_link):
+def _photo_links_to_html(photo_links: Any) -> Any:
+    def link_to_html(photo_link: Any) -> Any:
         return f'''
             <img src="{photo_link}" style="max-width: 200px;
             max-height: 200px; width: auto; height: auto;
@@ -58,10 +58,10 @@ def _photo_links_to_html(photo_links):
 
 
 def report_template(
-    report_obj,
+    report_obj: Any,
     reason: str,
     last_messages: list[dict],
-):
+) -> Any:
     reporter_token = report_obj[0]['token']
     accused_token = report_obj[1]['token']
 
@@ -129,7 +129,7 @@ def report_template(
 """
 
 
-def _sample_email_addresses(email_entries):
+def _sample_email_addresses(email_entries: Any) -> Any:
     # Extract the emails and their respective weights from the list of EmailEntry instances
     emails = [entry.email for entry in email_entries]
     weights = [entry.count for entry in email_entries]
@@ -140,7 +140,7 @@ def _sample_email_addresses(email_entries):
     return sampled_email
 
 
-def _automod_subject_suffix(is_automoded_bot: bool, is_shadow_banned: bool):
+def _automod_subject_suffix(is_automoded_bot: bool, is_shadow_banned: bool) -> Any:
     if is_shadow_banned:
         return ' [automoded - shadow banned]'
     if is_automoded_bot:
@@ -154,7 +154,7 @@ def _send_report_email(
     last_messages: list[dict],
     is_automoded_bot: bool,
     is_shadow_banned: bool,
-):
+) -> None:
     subject_person_id = report_obj[0]['id']
     object_person_id  = report_obj[1]['id']
 
@@ -184,7 +184,7 @@ def lodge_report(
     reason: str,
     is_automoded_bot: bool,
     is_shadow_banned: bool,
-):
+) -> None:
     params = dict(
         subject_uuid=subject_uuid,
         object_uuid=object_uuid,
@@ -208,7 +208,7 @@ def lodge_report(
     ).start()
 
 
-def is_bot_report(reason: str):
+def is_bot_report(reason: str) -> bool:
     detection_pattern = re.compile(
         r'\b('
         r'fake|(cat\s*fish(ing)?)|scam|scammer|spam|spammer|bot|clanker|'
@@ -224,7 +224,7 @@ def is_bot_report(reason: str):
     return bool(re.search(detection_pattern, clean_reason))
 
 
-def _should_shadow_ban(has_gold: bool, trustworthy_report_reasons: list[str]):
+def _should_shadow_ban(has_gold: bool, trustworthy_report_reasons: list[str]) -> Any:
     if has_gold:
         return False
 
@@ -235,7 +235,7 @@ def _should_shadow_ban(has_gold: bool, trustworthy_report_reasons: list[str]):
     return bot_report_count >= SHADOW_BAN_REPORT_THRESHOLD
 
 
-def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str):
+def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str) -> None:
     params = dict(
         subject_uuid=subject_uuid,
         object_uuid=object_uuid,

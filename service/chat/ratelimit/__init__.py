@@ -2,6 +2,7 @@ from async_lru_cache import AsyncLruCache
 from database.asyncdatabase import api_tx
 from enum import Enum
 from dataclasses import dataclass
+from typing import Any
 
 class DefaultRateLimit(Enum):
     NONE = 0
@@ -116,7 +117,7 @@ def get_default_rate_limit(row: Row) -> DefaultRateLimit:
         return DefaultRateLimit.NONE
 
 
-def get_stanza(default_rate_limit: DefaultRateLimit, stanza_id: str) -> list[str]:
+def get_stanza(default_rate_limit: Any, stanza_id: str) -> list[str]:
     if default_rate_limit == DefaultRateLimit.NONE:
         return []
     elif default_rate_limit == DefaultRateLimit.UNVERIFIED:

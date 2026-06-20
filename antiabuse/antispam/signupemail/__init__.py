@@ -1,3 +1,4 @@
+from typing import Any
 from antiabuse.antispam.signupemail.sql import *
 from database import api_tx
 from pathlib import Path
@@ -26,7 +27,7 @@ plus_address_domains = set([
     "zohomail.com",
 ])
 
-def check_and_update_bad_domains(email):
+def check_and_update_bad_domains(email: str) -> Any:
     _, domain = email.split('@')
 
     params = dict(email=email, domain=domain)

@@ -46,7 +46,7 @@ s3_client = boto3.client(
     aws_secret_access_key=R2_ACCESS_KEY_SECRET,
 )
 
-async def update_blurhashes(uuids: list[str]):
+async def update_blurhashes(uuids: list[str]) -> None:
     images = cast(list[io.BytesIO], await download_450_images(uuids))
     blurhashes = compute_blurhashes(images)
 
@@ -139,14 +139,14 @@ def compute_blurhashes(images: list[io.BytesIO]) -> list[str]:
 
     return blurhashes
 
-async def check_photos_once():
+async def check_photos_once() -> None:
     for chunk in list_uuids_in_object_store():
         uuids_to_update, uuids_to_delete = await resolve_uuids(chunk)
 
         await update_blurhashes(uuids_to_update)
         await delete_images_from_object_store(uuids_to_delete)
 
-async def check_photos_forever():
+async def check_photos_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(check_photos_once)

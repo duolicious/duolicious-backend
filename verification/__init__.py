@@ -1,7 +1,7 @@
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletion
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Any, Iterator
 import json
 import os
 import base64
@@ -99,8 +99,8 @@ def get_system_content(
 def get_user_content(
     proof_uuid: str,
     claimed_uuids: list[str],
-) -> list[str]:
-    def go():
+) -> list[dict[str, Any]]:
+    def go() -> Iterator[dict[str, Any]]:
         for i, uuid in enumerate([proof_uuid] + claimed_uuids):
             yield {
               "type": "text",
@@ -331,7 +331,7 @@ def get_messages(
     claimed_age: int,
     claimed_gender: str,
     claimed_ethnicity: str | None,
-):
+) -> Any:
     return [
         {
             "role": "system",

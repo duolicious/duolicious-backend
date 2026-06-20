@@ -14,7 +14,7 @@ class LastNotification:
     is_intro: bool
 
 
-def execute_query(usernames: Iterable[str], is_intro: bool):
+def execute_query(usernames: Iterable[str], is_intro: bool) -> None:
     if not usernames:
         return
 
@@ -29,7 +29,7 @@ def execute_query(usernames: Iterable[str], is_intro: bool):
         tx.executemany(q, params_seq)
 
 
-def process_batch(last_notifications: Iterable[LastNotification]):
+def process_batch(last_notifications: Iterable[LastNotification]) -> None:
     for is_intro in (True, False):
         usernames = set(
                 n.username

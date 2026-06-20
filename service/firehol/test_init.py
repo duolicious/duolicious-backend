@@ -21,6 +21,7 @@ from service.firehol import (
 )
 
 IPvXNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
+IPvXAddress = Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
 
 # ---------------------------------------------------------------------------
 # Fixture data & helpers
@@ -35,14 +36,14 @@ bad_line_should_be_ignored
 """
 
 
-def _sample_addresses(net: IPvXNetwork) -> Iterable[ipaddress._BaseAddress]:
+def _sample_addresses(net: IPvXNetwork) -> Iterable[IPvXAddress]:
     yield net.network_address
     yield net.broadcast_address
     if net.num_addresses > 2:  # midpoint
         yield net[net.num_addresses // 2]
 
 
-def _address_outside(net: IPvXNetwork) -> ipaddress._BaseAddress:
+def _address_outside(net: IPvXNetwork) -> IPvXAddress:
     if isinstance(net, ipaddress.IPv4Network):
         return ipaddress.IPv4Address(int(net.network_address) ^ (1 << 31))
     return ipaddress.IPv6Address(int(net.network_address) ^ (1 << 127))
@@ -53,7 +54,7 @@ def _address_outside(net: IPvXNetwork) -> ipaddress._BaseAddress:
 # ---------------------------------------------------------------------------
 
 class ParseBlocklistTests(unittest.TestCase):
-    def test_split_v4_and_v6(self):
+    def test_split_v4_and_v6(self) -> None:
         v4, v6 = _parse_blocklist(_SAMPLE_NETSET)
         self.assertIn("1.2.3.0/24", v4)
         self.assertIn("4.4.4.4/32", v4)
@@ -64,27 +65,27 @@ class ParseBlocklistTests(unittest.TestCase):
 class LookupTests(unittest.TestCase):
     """Exercises `lookup()` against tries built from the sample netset."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         v4, v6 = _parse_blocklist(_SAMPLE_NETSET)
         tries = _build_tries({"dummy": (v4, v6)})
         self._patcher = patch.object(firehol, "_tries", tries)
         self._patcher.start()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self._patcher.stop()
 
-    def test_ipv4_hits_and_misses(self):
+    def test_ipv4_hits_and_misses(self) -> None:
         self.assertEqual(sorted(lookup("1.2.3.4")), ["dummy"])
         self.assertEqual(sorted(lookup("4.4.4.4")), ["dummy"])
         self.assertEqual(lookup("5.5.5.5"), [])
 
-    def test_ipv6_hits_and_misses(self):
+    def test_ipv6_hits_and_misses(self) -> None:
         self.assertEqual(sorted(lookup("2001:db8::1")), ["dummy"])
         self.assertEqual(lookup("2001:dead::1"), [])
 
 
 class LookupNotLoadedTests(unittest.TestCase):
-    def test_returns_empty_before_first_build(self):
+    def test_returns_empty_before_first_build(self) -> None:
         with patch.object(firehol, "_tries", None):
             self.assertEqual(lookup("1.2.3.4"), [])
 
@@ -97,7 +98,7 @@ class PrefixTrieTests(unittest.TestCase):
     lookup_table: dict[IPvXNetwork, str]
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         random.seed(0xF1EE)
         cls.v4_trie = _PrefixTrie(32)
         cls.v6_trie = _PrefixTrie(128)
@@ -127,21 +128,21 @@ class PrefixTrieTests(unittest.TestCase):
     def _trie_for(self, net: IPvXNetwork) -> _PrefixTrie:
         return self.v4_trie if isinstance(net, ipaddress.IPv4Network) else self.v6_trie
 
-    def test_all_positive_matches(self):
+    def test_all_positive_matches(self) -> None:
         for net, expected in self.lookup_table.items():
             trie = self._trie_for(net)
             for addr in _sample_addresses(net):
                 with self.subTest(addr=str(addr), net=str(net)):
                     self.assertIn(expected, trie.search(addr))
 
-    def test_no_false_positives(self):
+    def test_no_false_positives(self) -> None:
         for net, list_name in self.lookup_table.items():
             trie = self._trie_for(net)
             addr = _address_outside(net)
             with self.subTest(addr=str(addr), net=str(net)):
                 self.assertNotIn(list_name, trie.search(addr))
 
-    def test_multiple_lists_per_prefix(self):
+    def test_multiple_lists_per_prefix(self) -> None:
         """A prefix shared by several lists returns *all* of them."""
         trie = _PrefixTrie(32)
         trie.insert("10.0.0.0/8", "list_a")
@@ -150,7 +151,7 @@ class PrefixTrieTests(unittest.TestCase):
         result = sorted(trie.search(ipaddress.IPv4Address("10.1.2.3")))
         self.assertEqual(result, ["list_a", "list_b", "list_c"])
 
-    def test_empty_trie_returns_empty_list(self):
+    def test_empty_trie_returns_empty_list(self) -> None:
         trie = _PrefixTrie(32)
         self.assertEqual(trie.search(ipaddress.IPv4Address("8.8.8.8")), [])
 

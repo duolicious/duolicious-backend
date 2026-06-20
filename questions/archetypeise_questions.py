@@ -30,7 +30,7 @@ class QuestionTraitPair:
     responses: List[int]
     anti_responses: List[int]
 
-    def json(self):
+    def json(self) -> Any:
         return dict(
             question=self.question,
             trait=self.trait,
@@ -88,19 +88,19 @@ class QuestionTraitPair:
 
         return self._props
 
-    def presence_given_yes(self):
+    def presence_given_yes(self) -> Any:
         return self.props().ppgy
 
-    def absence_given_yes(self):
+    def absence_given_yes(self) -> Any:
         return self.props().pagy
 
-    def presence_given_no(self):
+    def presence_given_no(self) -> Any:
         return self.props().ppgn
 
-    def absence_given_no(self):
+    def absence_given_no(self) -> Any:
         return self.props().pagn
 
-    def information(self):
+    def information(self) -> Any:
         return 0.5 * (
                 abs(self.presence_given_yes() - 0.5) +
                 abs(self.absence_given_yes() - 0.5) +
@@ -111,18 +111,18 @@ class Questions(NamedTuple):
     archetypeised: List[QuestionTraitPair]
     unarchetypeised: List[str]
 
-    def json(self):
+    def json(self) -> Any:
         return dict(
             archetypeised=list_json(self.archetypeised),
             unarchetypeised=self.unarchetypeised
         )
 
-    def save(self, path):
+    def save(self, path: str) -> None:
         j_str = json.dumps(self.json(), indent=2)
         with open(path, 'w', encoding="utf-8") as f:
             f.write(j_str)
 
-def reversible_shuffle(n):
+def reversible_shuffle(n: Any) -> Any:
     shuffled_indices1 = list(range(n))
     shuffled_indices2 = list(range(n))
     shuffle(shuffled_indices1)
@@ -131,22 +131,22 @@ def reversible_shuffle(n):
     forward_index_map = list(zip(shuffled_indices1, shuffled_indices2))
     backward_index_map = list(zip(shuffled_indices2, shuffled_indices1))
 
-    def apply_index_map(index_map, l):
+    def apply_index_map(index_map: Any, l: Any) -> Any:
         d = {i1: l[i2] for i1, i2 in index_map}
         return [d[i] for i in range(len(d))]
 
-    def shuffle_(l):
+    def shuffle_(l: Any) -> Any:
         return apply_index_map(forward_index_map, l)
 
-    def unshuffle_(l):
+    def unshuffle_(l: Any) -> Any:
         return apply_index_map(backward_index_map, l)
 
     return shuffle_, unshuffle_
 
-def list_json(xs: List):
+def list_json(xs: List) -> Any:
     return [x.json() for x in xs]
 
-def load_question_trait_pair(j):
+def load_question_trait_pair(j: Any) -> Any:
     return QuestionTraitPair(
         question=j["question"],
         trait=j["trait"],
@@ -423,11 +423,11 @@ def batch_prompt(prompt_phrase: str, questions: List[str]) -> str:
         questions=batch_question_str(questions),
     )
 
-def chunker(seq, size):
+def chunker(seq: Any, size: int) -> Any:
     reversed_seq = list(reversed(seq))
     return [reversed_seq[pos:pos + size] for pos in range(0, len(reversed_seq), size)]
 
-def pop_n(l, n):
+def pop_n(l: Any, n: Any) -> None:
     for _ in range(n):
         l.pop()
 
@@ -512,7 +512,7 @@ class Archetypeise_questions_for_trait:
     def __init__(self, questions: List[str]):
         self.questions = questions
 
-    def archetypeise_questions_for_trait(self, trait: Trait):
+    def archetypeise_questions_for_trait(self, trait: Trait) -> Any:
         return archetypeise_questions_for_trait(trait, self.questions)
 
 def archetypeise_batch(questions: List[str]) -> List[QuestionTraitPair]:
@@ -522,7 +522,7 @@ def archetypeise_batch(questions: List[str]) -> List[QuestionTraitPair]:
             p.map(a.archetypeise_questions_for_trait, TRAITS)
         ))
 
-def archetypeise_questions_in_place(questions: Questions, checkpoint_func):
+def archetypeise_questions_in_place(questions: Questions, checkpoint_func: Any) -> None:
     batch_size = 49
     for i, batch in enumerate(chunker(questions.unarchetypeised, batch_size)):
         chunk_size = len(batch)
@@ -538,9 +538,9 @@ def archetypeise_questions_in_place(questions: Questions, checkpoint_func):
             f'#unarchetypeised={len(questions.unarchetypeised)}'
         )
 
-def main():
+def main() -> None:
     questions = load_questions(QUESTION_PATH)
-    def checkpoint_func():
+    def checkpoint_func() -> None:
         print('Checkpointing...')
         questions.archetypeised.sort(
             key=lambda q: (q.trait, q.information()),

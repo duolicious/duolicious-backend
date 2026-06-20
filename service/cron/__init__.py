@@ -19,7 +19,7 @@ from socketserver import TCPServer
 from database.asyncdatabase import check_connections_forever
 
 class HealthCheckHandler(SimpleHTTPRequestHandler):
-    def do_GET(self):
+    def do_GET(self) -> None:
         if self.path == '/health':
             self.send_response(200)
             self.end_headers()
@@ -28,12 +28,12 @@ class HealthCheckHandler(SimpleHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
-async def http_server():
+async def http_server() -> None:
     with TCPServer(('0.0.0.0', 8080), HealthCheckHandler) as httpd:
         print("Serving health check on port 8080...", flush=True)
         await asyncio.to_thread(httpd.serve_forever)
 
-async def main():
+async def main() -> None:
     await asyncio.gather(
         # Fetched: 11k, returned: 670k <- unoptimized
         # Fetched:  1k, returned:  84k <- optimized

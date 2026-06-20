@@ -12,7 +12,7 @@ GARBAGE_RECORDS_POLL_SECONDS = int(os.environ.get(
 
 print(f'Hello from cron module: {__name__}')
 
-async def delete_garbage_records_once():
+async def delete_garbage_records_once() -> None:
     async with api_tx() as tx:
         cur = await tx.execute(Q_DELETE_GARBAGE_RECORDS)
         rows = await cur.fetchall()
@@ -25,7 +25,7 @@ async def delete_garbage_records_once():
     if count:
         print(f'Deleted {count} garbage record(s)')
 
-async def delete_garbage_records_forever():
+async def delete_garbage_records_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(delete_garbage_records_once)

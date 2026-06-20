@@ -1,14 +1,15 @@
+from typing import Any
 import unittest
 import asyncio
 from async_lru_cache import AsyncLruCache
 
 class TestAsyncLRUCache(unittest.IsolatedAsyncioTestCase):
 
-    async def test_cache_basic_functionality(self):
+    async def test_cache_basic_functionality(self) -> None:
         call_count = 0
 
         @AsyncLruCache(maxsize=2)
-        async def fetch(x):
+        async def fetch(x: Any) -> Any:
             nonlocal call_count
             call_count += 1
             return x * 2
@@ -22,11 +23,11 @@ class TestAsyncLRUCache(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await fetch(1), 2)  # Cache miss, as it was evicted
         self.assertEqual(call_count, 4)  # Function should have been called 4 times now
 
-    async def test_cache_with_ttl(self):
+    async def test_cache_with_ttl(self) -> None:
         call_count = 0
 
         @AsyncLruCache(maxsize=2, ttl=0.1)  # very short TTL
-        async def fetch(x):
+        async def fetch(x: Any) -> Any:
             nonlocal call_count
             call_count += 1
             return x * 3
@@ -39,11 +40,11 @@ class TestAsyncLRUCache(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await fetch(1), 3)  # Cache miss, as TTL expired
         self.assertEqual(call_count, 2)  # Function should have been called again
 
-    async def test_cache_with_condition(self):
+    async def test_cache_with_condition(self) -> None:
         call_count = 0
 
         @AsyncLruCache(maxsize=2, cache_condition=lambda x: x % 4 == 0)
-        async def fetch(x):
+        async def fetch(x: Any) -> Any:
             nonlocal call_count
             call_count += 1
             return x * 2
@@ -56,11 +57,11 @@ class TestAsyncLRUCache(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await fetch(1), 2)   # Should recompute, as not cached
         self.assertEqual(call_count, 3)       # Function called three times
 
-    async def test_cache_with_kwargs(self):
+    async def test_cache_with_kwargs(self) -> None:
         call_count = 0
 
         @AsyncLruCache(maxsize=2)
-        async def fetch(x, y=1):
+        async def fetch(x: Any, y: int = 1) -> Any:
             nonlocal call_count
             call_count += 1
             return x * y

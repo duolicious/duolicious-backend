@@ -180,11 +180,11 @@ NON_ALPHANUMERIC_RE = regex.compile(r'[^\p{L}\p{N}]')
 REPEATED_CHARACTERS_RE = regex.compile(r'(.)\1{1,}')
 
 
-async def redis_publish(channel: str, message: str):
+async def redis_publish(channel: str, message: str) -> None:
     await REDIS_WORKER_CLIENT.publish(channel, message)
 
 
-async def redis_publish_many(channel: str, messages: Iterable[str]):
+async def redis_publish_many(channel: str, messages: Iterable[str]) -> None:
     for message in messages:
         await redis_publish(channel, message)
 
@@ -221,7 +221,7 @@ async def send_notification(
     message: str | None,
     is_intro: bool,
     data: Any,
-):
+) -> None:
     if from_name is None:
         return
 
@@ -273,7 +273,7 @@ def is_text_too_long(message: Message) -> bool:
         return False
 
 
-def is_ping(parsed_xml) -> bool:
+def is_ping(parsed_xml: Any) -> bool:
     try:
         return parsed_xml.tag == 'duo_ping'
     except:
@@ -355,7 +355,7 @@ async def fetch_push_tokens(username: str) -> list[str]:
     return list({row['token'] for row in rows})
 
 @AsyncLruCache(ttl=10)  # 10 seconds
-async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
+async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool) -> Any:
     q = Q_IMMEDIATE_INTRO_DATA if is_intro else Q_IMMEDIATE_CHAT_DATA
 
     async with api_tx('read committed') as tx:
@@ -366,22 +366,22 @@ async def fetch_immediate_data(from_id: int, to_id: int, is_intro: bool):
 
 def get_middleware(subprotocol: str) -> Middleware:
     if subprotocol == 'json':
-        def input_middleware(text: str):
+        def input_middleware(text: str) -> Any:
             json_data = json.loads(text)
             xml_str = xmltodict.unparse(json_data, full_document=False)
             return parse_xml_or_none(xml_str)
 
-        def output_middleware(text: str):
+        def output_middleware(text: str) -> Any:
             if text == '</stream:stream>':
                 return '{"stream": null}'
 
             dict_obj = xmltodict.parse(text)
             return json.dumps(dict_obj)
     else:
-        def input_middleware(text: str):
+        def input_middleware(text: str) -> Any:
             return parse_xml_or_none(text)
 
-        def output_middleware(text: str):
+        def output_middleware(text: str) -> Any:
             return text
 
     return input_middleware, output_middleware
@@ -391,7 +391,7 @@ async def process_text(
     middleware: InputMiddleware,
     pubsub: redis.client.PubSub,
     text: str
-):
+) -> Any:
     from_username = session.username
     connection_uuid = session.connection_uuid
 

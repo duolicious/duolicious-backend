@@ -1,3 +1,4 @@
+from typing import Any
 from database.asyncdatabase import api_tx
 from service.cron.autodeactivate2.sql import *
 from service.cron.autodeactivate2.template import emailtemplate
@@ -21,7 +22,7 @@ AUTODEACTIVATE2_POLL_SECONDS = int(os.environ.get(
 
 print(f'Hello from cron module: {__name__}')
 
-def maybe_send_email(email: str):
+def maybe_send_email(email: str) -> None:
     if email.lower().endswith('@example.com'):
         return
 
@@ -34,7 +35,7 @@ def maybe_send_email(email: str):
     print('autodeactivate2: sending deactivation email to', email)
     aws_smtp.send(**send_args)
 
-def send_mobile_notifications(push_tokens):
+def send_mobile_notifications(push_tokens: Any) -> None:
     for token in push_tokens:
         print('autodeactivate2: sending deactivation push notification to', token)
         notify.enqueue_mobile_notification(
@@ -46,7 +47,7 @@ def send_mobile_notifications(push_tokens):
             ),
         )
 
-async def autodeactivate2_once():
+async def autodeactivate2_once() -> None:
     params = dict(
         dry_run=DRY_RUN,
     )
@@ -74,7 +75,7 @@ async def autodeactivate2_once():
         maybe_send_email(p['email'])
         send_mobile_notifications(p['push_tokens'])
 
-async def autodeactivate2_forever():
+async def autodeactivate2_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(autodeactivate2_once)

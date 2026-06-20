@@ -4,7 +4,7 @@ from antiabuse.normalize import (
 )
 
 class TestNormalizeString(unittest.TestCase):
-    def test_normalize_string(self):
+    def test_normalize_string(self) -> None:
         normalizeable_phrases = [
             "fuck",
             "cum",

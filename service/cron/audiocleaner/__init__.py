@@ -21,7 +21,7 @@ AUDIO_CLEANER_POLL_SECONDS = int(os.environ.get(
 
 print(f'Hello from cron module: {__name__}')
 
-async def clean_audio_once():
+async def clean_audio_once() -> None:
     params = dict(polling_interval_seconds=AUDIO_CLEANER_POLL_SECONDS)
 
     async with api_tx() as tx:
@@ -35,7 +35,7 @@ async def clean_audio_once():
         dry_run_env_var_name='DUO_CRON_AUDIO_CLEANER_DRY_RUN',
     )
 
-async def clean_audio_forever():
+async def clean_audio_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(clean_audio_once)

@@ -1,3 +1,4 @@
+from typing import Any
 from constants import (
     MAX_LLM_PROMPT_FACTS,
     MIN_NOTABLE_TRAIT_SCORE,
@@ -96,7 +97,7 @@ CLUB_SEO_MOCK_DESCRIPTION = os.environ.get('DUO_CRON_CLUB_SEO_MOCK_DESCRIPTION')
 _openai_client = AsyncOpenAI() if not CLUB_SEO_MOCK_DESCRIPTION else None
 
 
-async def refresh_club_stats_once():
+async def refresh_club_stats_once() -> None:
     if not is_offpeak(CLUB_SEO_MAX_LOAD_PCT, 'refresh_club_stats_once'):
         return
 
@@ -112,14 +113,14 @@ async def refresh_club_stats_once():
         print(f"club_stats: recomputed {row['upserted_count']} clubs")
 
 
-async def refresh_club_stats_forever():
+async def refresh_club_stats_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(refresh_club_stats_once)
         await asyncio.sleep(CLUB_STATS_POLL_SECONDS)
 
 
-async def refresh_club_top_answers_once():
+async def refresh_club_top_answers_once() -> None:
     if not is_offpeak(CLUB_SEO_MAX_LOAD_PCT, 'refresh_club_top_answers_once'):
         return
 
@@ -136,14 +137,14 @@ async def refresh_club_top_answers_once():
         print(f"club_top_answers: recomputed {row['upserted_count']} clubs")
 
 
-async def refresh_club_top_answers_forever():
+async def refresh_club_top_answers_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(refresh_club_top_answers_once)
         await asyncio.sleep(CLUB_TOP_ANSWERS_POLL_SECONDS)
 
 
-async def refresh_club_overlap_once():
+async def refresh_club_overlap_once() -> None:
     if not is_offpeak(CLUB_SEO_MAX_LOAD_PCT, 'refresh_club_overlap_once'):
         return
 
@@ -159,14 +160,14 @@ async def refresh_club_overlap_once():
     print('club_overlap: rebuilt')
 
 
-async def refresh_club_overlap_forever():
+async def refresh_club_overlap_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(refresh_club_overlap_once)
         await asyncio.sleep(CLUB_OVERLAP_POLL_SECONDS)
 
 
-def _top_pct(items):
+def _top_pct(items: Any) -> Any:
     items = items or []
     total = sum(it.get('count', 0) for it in items)
     if total == 0:
@@ -177,7 +178,7 @@ def _top_pct(items):
     ]
 
 
-def _notable_traits(traits):
+def _notable_traits(traits: Any) -> Any:
     notable = [
         t for t in (traits or [])
         if abs(t.get('score', 0)) >= MIN_NOTABLE_TRAIT_SCORE
@@ -294,7 +295,7 @@ def is_fresh_enough(old_stats_hash: str | None, new_hash: str, age_days: float) 
     return age_days < CLUB_SEO_MAX_AGE_DAYS
 
 
-async def _process_club_seo_row(row, semaphore):
+async def _process_club_seo_row(row: Any, semaphore: Any) -> None:
     club_name = row['name']
     old_hash = row['old_stats_hash']
     # NULL age (no club_seo row yet) means infinitely stale.
@@ -333,7 +334,7 @@ async def _process_club_seo_row(row, semaphore):
     print(f'club_seo: regenerated {club_name!r} ({len(description)} chars)')
 
 
-async def refresh_club_seo_once():
+async def refresh_club_seo_once() -> None:
     if not is_offpeak(CLUB_SEO_MAX_LOAD_PCT, 'refresh_club_seo_once'):
         return
 
@@ -360,7 +361,7 @@ async def refresh_club_seo_once():
             print(f"club_seo: unexpected error for {row['name']!r}: {res!r}")
 
 
-async def refresh_club_seo_forever():
+async def refresh_club_seo_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(refresh_club_seo_once)

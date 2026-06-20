@@ -17,7 +17,7 @@ NSFW_PHOTO_RUNNER_POLL_SECONDS = int(os.environ.get(
 
 print(f'Hello from cron module: {__name__}')
 
-async def predict_nsfw_photos_once():
+async def predict_nsfw_photos_once() -> None:
     async with api_tx() as tx:
         cur = await tx.execute(Q_50_UNCHECKED_PHOTOS)
         rows = await cur.fetchall()
@@ -55,7 +55,7 @@ async def predict_nsfw_photos_once():
     async with api_tx() as tx:
         await tx.executemany(Q_SET_NSFW_SCORE, params_seq)
 
-async def predict_nsfw_photos_forever():
+async def predict_nsfw_photos_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(predict_nsfw_photos_once)

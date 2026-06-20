@@ -1,6 +1,6 @@
 from database import api_tx
 from dataclasses import dataclass
-from typing import Optional, Iterable
+from typing import Optional, Iterable, Any
 from batcher import Batcher
 
 
@@ -30,7 +30,7 @@ class DuoPushToken:
     token: Optional[str]
 
 
-def execute_query(tokens: Iterable[DuoPushToken], has_token: bool):
+def execute_query(tokens: Iterable[DuoPushToken], has_token: bool) -> None:
     if not tokens:
         return
 
@@ -46,7 +46,7 @@ def execute_query(tokens: Iterable[DuoPushToken], has_token: bool):
         tx.executemany(q, params_seq)
 
 
-def process_batch(batch: Iterable[DuoPushToken]):
+def process_batch(batch: Iterable[DuoPushToken]) -> None:
     for has_token in (True, False):
         tokens = set(
             duo_push_token
@@ -66,7 +66,7 @@ _batcher = Batcher[DuoPushToken](
 
 _batcher.start()
 
-def maybe_register(parsed_xml, session_token_hash):
+def maybe_register(parsed_xml: Any, session_token_hash: str | None) -> Any:
     if not session_token_hash:
         return False
 

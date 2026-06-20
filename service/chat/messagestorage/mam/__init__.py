@@ -1,3 +1,4 @@
+from typing import Any
 from dataclasses import dataclass
 from lxml import etree
 from database import asyncdatabase
@@ -259,7 +260,7 @@ async def maybe_get_conversation(
     )
 
 
-def process_store_mam_message_batch(tx, batch: list[StoreMamMessageJob]):
+def process_store_mam_message_batch(tx: Any, batch: list[StoreMamMessageJob]) -> None:
     params_seq = [
         dict(
             id=microseconds_to_mam_message_id(message.timestamp_microseconds),
@@ -379,15 +380,15 @@ async def _maybe_read_receipt(viewer: str, partner: str) -> str | None:
     )
 
 
-def microseconds_to_mam_message_id(microseconds: int):
+def microseconds_to_mam_message_id(microseconds: int) -> Any:
     return microseconds << 8
 
 
-def mam_message_id_to_microseconds(mam_message_id: int):
+def mam_message_id_to_microseconds(mam_message_id: int) -> Any:
     return mam_message_id >> 8
 
 
-def microseconds_to_timestamp(microseconds):
+def microseconds_to_timestamp(microseconds: int) -> Any:
     # Convert microseconds to seconds.
     seconds = microseconds / 1_000_000
     # Create a UTC datetime object.
@@ -397,7 +398,7 @@ def microseconds_to_timestamp(microseconds):
     return dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
 
-def mam_message_id_to_timestamp(id: int):
+def mam_message_id_to_timestamp(id: int) -> Any:
     return microseconds_to_timestamp(mam_message_id_to_microseconds(id))
 
 

@@ -29,7 +29,7 @@ class VerificationJob:
     claimed_gender: str
     claimed_ethnicity: str | None
 
-async def do_verification_job(verification_job: VerificationJob):
+async def do_verification_job(verification_job: VerificationJob) -> None:
     async with api_tx() as tx:
         await tx.execute(
             Q_SET_VERIFICATION_JOB_RUNNING,
@@ -84,7 +84,7 @@ async def do_verification_job(verification_job: VerificationJob):
     async with api_tx() as tx:
         await tx.execute(Q_UPDATE_VERIFICATION_STATUS, params)
 
-async def verify_once():
+async def verify_once() -> None:
     async with api_tx() as tx:
         cur = await tx.execute(Q_QUEUED_VERIFICATION_JOBS)
         rows = await cur.fetchall()
@@ -105,7 +105,7 @@ async def verify_once():
     for verification_job in verification_jobs:
         await do_verification_job(verification_job)
 
-async def verify_forever():
+async def verify_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(verify_once)

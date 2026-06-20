@@ -1,3 +1,4 @@
+from typing import Any, Iterator
 import psycopg
 import random
 import re
@@ -70,7 +71,7 @@ def is_base_usable(base: str) -> bool:
         and base not in RESERVED_SLUGS
         and not _UUID_RE.match(base))
 
-def _candidates(base: str):
+def _candidates(base: str) -> Iterator[tuple[str, bool]]:
     """Yields (slug, is_random) to try, in order: the bare base first (when
     usable), then random numeric suffixes that grow by a digit each attempt."""
     if is_base_usable(base):
@@ -82,7 +83,7 @@ def _candidates(base: str):
         n = random.randint(lo, hi)
         yield (f'{base}{n}' if base else str(n)), True
 
-def _mint(tx, base, write_q, write_params, *, email, person_id=None) -> dict:
+def _mint(tx: Any, base: Any, write_q: Any, write_params: Any, *, email: str, person_id: Any = None) -> dict:
     """Claim the first free candidate for `base` via `write_q`, skipping slugs
     already held by another person or reserved by another onboardee (the
     caller's own rows, identified by `person_id`/`email`, don't count). The
@@ -106,7 +107,7 @@ def _mint(tx, base, write_q, write_params, *, email, person_id=None) -> dict:
 
     raise RuntimeError(f'could not mint url_slug for base {base!r}')
 
-def reserve_onboardee_url_slug(tx, email: str, name: str) -> dict:
+def reserve_onboardee_url_slug(tx: Any, email: str, name: str) -> dict:
     """Reserve onboardee.url_slug for `name` and return {'url_slug', 'is_random'}.
     Persisting the reservation is what lets finish-onboarding mint exactly this
     slug and makes concurrent sign-ups treat it as taken. Re-runnable as the
@@ -118,7 +119,7 @@ def reserve_onboardee_url_slug(tx, email: str, name: str) -> dict:
         dict(email=email),
         email=email)
 
-def assign_url_slug(tx, person_id: int) -> dict:
+def assign_url_slug(tx: Any, person_id: int) -> dict:
     """Assigns person.url_slug from the person's display name, skipping slugs
     held by another person or reserved by an onboardee. Returns
     {'url_slug', 'is_random'}."""

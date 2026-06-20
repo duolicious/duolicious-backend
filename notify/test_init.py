@@ -9,7 +9,7 @@ time.sleep(1.1) # Wait for the new flush interval to take effect
 
 class TestSendMobileNotification(unittest.TestCase):
 
-    def test_enqueue_mobile_notification_success(self):
+    def test_enqueue_mobile_notification_success(self) -> None:
         # Set up a sacrificial urlopen function to consume any retried
         # notifications
         with patch('urllib.request.urlopen') as mock_urlopen:
@@ -90,7 +90,7 @@ class TestSendMobileNotification(unittest.TestCase):
         self.assertEqual(request.headers['Content-type'], 'application/json')
 
 
-    def test_enqueue_mobile_notification_failure(self):
+    def test_enqueue_mobile_notification_failure(self) -> None:
         # Set up a sacrificial urlopen function to consume any retried
         # notifications
         with patch('urllib.request.urlopen') as mock_urlopen:

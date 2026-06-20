@@ -4,7 +4,7 @@ from antiabuse.antispam.phonenumberdetector import detect_phone_numbers
 
 class TestDetectPhoneNumbers(unittest.TestCase):
 
-    def test_detect_phone_numbers(self):
+    def test_detect_phone_numbers(self) -> None:
         sample_text = """
             I'm 21 years old
             I was born on 1999

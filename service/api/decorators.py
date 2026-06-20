@@ -1,3 +1,4 @@
+from typing import Any
 from database import api_tx
 from duohash import duo_uuid, sha512
 from flask import request, Flask, g
@@ -42,17 +43,17 @@ mock_ip_address_file = (
     'mock-ip-address')
 
 @lru_cache()
-def _enable_mocking(ttl_hash=None):
+def _enable_mocking(ttl_hash: Any = None) -> Any:
     if enable_mocking_file.is_file():
         with enable_mocking_file.open() as file:
             if file.read().strip() == '1':
                 return True
     return False
 
-def enable_mocking():
+def enable_mocking() -> bool:
     return _enable_mocking(ttl_hash=round(time.time()))
 
-def disable_ip_rate_limit():
+def disable_ip_rate_limit() -> bool:
     if not enable_mocking():
         return False
 
@@ -65,7 +66,7 @@ def disable_ip_rate_limit():
 
     return False
 
-def disable_account_rate_limit():
+def disable_account_rate_limit() -> bool:
     if not enable_mocking():
         return False
 
@@ -78,7 +79,7 @@ def disable_account_rate_limit():
 
     return False
 
-def mock_ip_address():
+def mock_ip_address() -> Any:
     if not enable_mocking():
         return None
 
@@ -151,7 +152,7 @@ shared_otp_limit = limiter.shared_limit(
     exempt_when=_is_private_ip,
 )
 
-def limiter_account():
+def limiter_account() -> Any:
     return getattr(g, 'normalized_email', _get_remote_address())
 
 
@@ -178,7 +179,7 @@ AND
     session_expiry > NOW()
 """
 
-def account_limiter(func, limit=None):
+def account_limiter(func: Any, limit: Any = None) -> Any:
     _account_limiter = limiter.limit(
         limit or default_limits,
         scope="account",
@@ -186,7 +187,7 @@ def account_limiter(func, limit=None):
         exempt_when=disable_account_rate_limit,
     )
 
-    def go1(*args, **kwargs):
+    def go1(*args: Any, **kwargs: Any) -> Any:
         return _account_limiter(func)(*args, **kwargs)
 
     go1.__name__ = func.__name__
@@ -194,21 +195,21 @@ def account_limiter(func, limit=None):
     return go1
 
 
-def return_empty_string(func):
-    def go(*args, **kwargs):
+def return_empty_string(func: Any) -> Any:
+    def go(*args: Any, **kwargs: Any) -> Any:
         result = func(*args, **kwargs)
         return result if result is not None else ''
     go.__name__ = func.__name__
     return go
 
-def validate(RequestType):
-    def go2(func):
-        def go1(*args, **kwargs):
+def validate(RequestType: Any) -> Any:
+    def go2(func: Any) -> Any:
+        def go1(*args: Any, **kwargs: Any) -> Any:
             if RequestType is None:
                 return func(*args, **kwargs)
             try:
-                j = request.get_json(silent=True)
-                f = request.files
+                j: Any = request.get_json(silent=True)
+                f: Any = request.files
 
                 j = j if j else {}
                 f = { 'files': f } if f else {}
@@ -235,7 +236,7 @@ def validate(RequestType):
         return go1
     return go2
 
-def require_auth(expected_onboarding_status, expected_sign_in_status, auth='required'):
+def require_auth(expected_onboarding_status: Any, expected_sign_in_status: Any, auth: str = 'required') -> Any:
     """
     Resolve the request's bearer token to a `SessionInfo` and forward it to
     `func`. With the default `auth='required'`, missing/invalid auth produces
@@ -252,14 +253,14 @@ def require_auth(expected_onboarding_status, expected_sign_in_status, auth='requ
     if auth not in ('required', 'optional'):
         raise ValueError(f'auth must be "required" or "optional", got {auth!r}')
 
-    def go2(func):
+    def go2(func: Any) -> Any:
         rate_limited_func = account_limiter(func)
 
-        def call_anonymous(*args, **kwargs):
+        def call_anonymous(*args: Any, **kwargs: Any) -> Any:
             result = rate_limited_func(None, *args, **kwargs)
             return result if result is not None else ''
 
-        def go1(*args, **kwargs):
+        def go1(*args: Any, **kwargs: Any) -> Any:
             auth_header = (request.headers.get('Authorization') or '').lower()
             try:
                 bearer, session_token = auth_header.split()
@@ -331,15 +332,15 @@ def require_auth(expected_onboarding_status, expected_sign_in_status, auth='requ
         return go1
     return go2
 
-def make_decorator(flask_decorator):
+def make_decorator(flask_decorator: Any) -> Any:
     def go2(
-            rule,
-            limiter=None,
-            **kwargs
-    ):
+            rule: Any,
+            limiter: Any = None,
+            **kwargs: Any
+    ) -> Any:
         maybe_limiter = limiter or (lambda x: x)
 
-        def go1(func):
+        def go1(func: Any) -> Any:
             return flask_decorator(
                 rule,
                 strict_slashes=False,
@@ -352,18 +353,18 @@ def make_decorator(flask_decorator):
         return go1
     return go2
 
-def make_auth_decorator(flask_decorator):
+def make_auth_decorator(flask_decorator: Any) -> Any:
     def go2(
-            rule,
-            limiter=None,
-            expected_onboarding_status=True,
-            expected_sign_in_status=True,
-            auth='required',
-            **kwargs
-    ):
+            rule: Any,
+            limiter: Any = None,
+            expected_onboarding_status: bool = True,
+            expected_sign_in_status: bool = True,
+            auth: str = 'required',
+            **kwargs: Any
+    ) -> Any:
         maybe_limiter = limiter or (lambda x: x)
 
-        def go1(func):
+        def go1(func: Any) -> Any:
             return flask_decorator(
                 rule,
                 strict_slashes=False,

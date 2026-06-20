@@ -37,12 +37,12 @@ _api_conninfo = psycopg.conninfo.make_conninfo(
     **(_coninfo_args | dict(dbname='duo_api'))
 )
 
-_api_conn = None
+_api_conn: Any = None
 
 _api_conn_lock = asyncio.Lock()
 
 class api_tx:
-    def __init__(self, isolation_level=_default_transaction_isolation):
+    def __init__(self, isolation_level: Any = _default_transaction_isolation) -> None:
         normalized_isolation_level = isolation_level.upper()
 
         if normalized_isolation_level not in _valid_isolation_levels:
@@ -50,9 +50,9 @@ class api_tx:
 
         self.isolation_level = normalized_isolation_level
 
-        self.cur = None
+        self.cur: Any = None
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Any:
         await _api_conn_lock.acquire()
 
         global _api_conn
@@ -80,7 +80,7 @@ class api_tx:
                 raise
         return self.cur
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         try:
             if exc_type is None:
                 await _api_conn.commit()
@@ -96,7 +96,7 @@ class api_tx:
 
         _api_conn_lock.release()
 
-async def _check_api_connection_forever():
+async def _check_api_connection_forever() -> None:
     while True:
         try:
             async with api_tx() as tx:
@@ -105,5 +105,5 @@ async def _check_api_connection_forever():
             print(traceback.format_exc())
         await asyncio.sleep(random.randint(30, 90))
 
-async def check_connections_forever():
+async def check_connections_forever() -> None:
     await _check_api_connection_forever()

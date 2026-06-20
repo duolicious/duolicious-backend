@@ -20,7 +20,7 @@ PROFILE_REPORTER_POLL_SECONDS = int(os.environ.get(
 
 print(f'Hello from cron module: {__name__}')
 
-async def report_profiles_once():
+async def report_profiles_once() -> None:
     async with api_tx() as tx:
         await tx.execute(Q_SELECT_UNMODERATED_PERSON_ABOUT)
         rows = await tx.fetchall()
@@ -42,7 +42,7 @@ async def report_profiles_once():
         await tx.executemany(Q_DELETE_UNMODERATED_PERSON, params_seq)
 
 
-async def report_profiles_forever():
+async def report_profiles_forever() -> None:
     await asyncio.sleep(random.randint(0, MAX_RANDOM_START_DELAY))
     while True:
         await print_stacktrace(report_profiles_once)

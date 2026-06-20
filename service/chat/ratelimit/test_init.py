@@ -1,3 +1,4 @@
+from typing import Any
 import unittest
 from service.chat.ratelimit import (
     get_default_rate_limit,
@@ -7,7 +8,7 @@ from service.chat.ratelimit import (
 )
 
 
-def make_row(**overrides):
+def make_row(**overrides: Any) -> Any:
     """Return a Row with sensible defaults, overridden per-call."""
     defaults = dict(
         verification_level_id=1,
@@ -23,7 +24,7 @@ class TestRateLimit(unittest.TestCase):
     # ──────────────────────────────────────────────────────────────
     #  PHOTOS default (verification_level_id = 3, value = 30)
     # ──────────────────────────────────────────────────────────────
-    def test_photos_default_normal(self):
+    def test_photos_default_normal(self) -> None:
         """
         recent_manual_report_count = 0 ⇒ limit = 30
         """
@@ -46,7 +47,7 @@ class TestRateLimit(unittest.TestCase):
     # ──────────────────────────────────────────────────────────────
     #  BASICS default (verification_level_id = 2, value = 20)
     # ──────────────────────────────────────────────────────────────
-    def test_basics_halved_limit(self):
+    def test_basics_halved_limit(self) -> None:
         """
         recent_manual_report_count = 1 halves the limit: 20 // 2 = 10
         """
@@ -72,7 +73,7 @@ class TestRateLimit(unittest.TestCase):
     # ──────────────────────────────────────────────────────────────
     #  UNVERIFIED default (verification_level_id = 1, value = 10)
     # ──────────────────────────────────────────────────────────────
-    def test_unverified_baseline_limit(self):
+    def test_unverified_baseline_limit(self) -> None:
         """
         recent_manual_report_count = 0 ⇒ limit = 10
         """
@@ -92,7 +93,7 @@ class TestRateLimit(unittest.TestCase):
             DefaultRateLimit.UNVERIFIED,
         )
 
-    def test_unverified_quarter_limit(self):
+    def test_unverified_quarter_limit(self) -> None:
         """
         recent_manual_report_count = 2 quarters the limit: 10 // 4 = 2
         """
@@ -118,7 +119,7 @@ class TestRateLimit(unittest.TestCase):
     # ──────────────────────────────────────────────────────────────
     #  limit == 0 branch → fallback to max(DefaultRateLimit) (PHOTOS)
     # ──────────────────────────────────────────────────────────────
-    def test_limit_zero_branch_returns_max_enum(self):
+    def test_limit_zero_branch_returns_max_enum(self) -> None:
         """When the computed limit is zero, PHOTOS is returned."""
         # UNVERIFIED: 10 // 2**4 = 0
         self.assertEqual(
@@ -142,7 +143,7 @@ class TestRateLimit(unittest.TestCase):
     # ──────────────────────────────────────────────────────────────
     #  recent_rude_message_count affects the penalty exponent
     # ──────────────────────────────────────────────────────────────
-    def test_rude_messages_reduce_limit(self):
+    def test_rude_messages_reduce_limit(self) -> None:
         """
         verification_level_id = 3 (PHOTOS, value 30)
         recent_rude_message_count = 2 → adds ⌊2 / 2⌋ = 1 to the exponent
@@ -165,7 +166,7 @@ class TestRateLimit(unittest.TestCase):
             DefaultRateLimit.PHOTOS,
         )
 
-    def test_combined_recent_and_rude_penalties(self):
+    def test_combined_recent_and_rude_penalties(self) -> None:
         """
         verification_level_id = 2 (BASICS, value 20)
         recent_manual_report_count = 1  → +1 exponent
@@ -189,7 +190,7 @@ class TestRateLimit(unittest.TestCase):
             DefaultRateLimit.BASICS,
         )
 
-    def test_rude_messages_can_force_zero_limit(self):
+    def test_rude_messages_can_force_zero_limit(self) -> None:
         """
         verification_level_id = 2 (BASICS, value 20)
         recent_rude_message_count = 10 → +⌊10 / 2⌋ = 5 exponent
@@ -206,35 +207,35 @@ class TestRateLimit(unittest.TestCase):
     # ──────────────────────────────────────────────────────────────
     #  Invalid verification_level_id
     # ──────────────────────────────────────────────────────────────
-    def test_unhandled_verification_level(self):
+    def test_unhandled_verification_level(self) -> None:
         with self.assertRaises(Exception) as cm:
             get_default_rate_limit(make_row(verification_level_id=0))
         self.assertIn('Unhandled verification_level_id', str(cm.exception))
 
     # get_stanza tests
 
-    def test_get_stanza_none(self):
+    def test_get_stanza_none(self) -> None:
         self.assertEqual(get_stanza(DefaultRateLimit.NONE, 'foo'), [])
 
-    def test_get_stanza_unverified(self):
+    def test_get_stanza_unverified(self) -> None:
         self.assertEqual(
             get_stanza(DefaultRateLimit.UNVERIFIED, 'bar'),
             ['<duo_message_blocked id="bar" reason="rate-limited-1day" subreason="unverified-basics"/>']
         )
 
-    def test_get_stanza_basics(self):
+    def test_get_stanza_basics(self) -> None:
         self.assertEqual(
             get_stanza(DefaultRateLimit.BASICS, 'baz'),
             ['<duo_message_blocked id="baz" reason="rate-limited-1day" subreason="unverified-photos"/>']
         )
 
-    def test_get_stanza_photos(self):
+    def test_get_stanza_photos(self) -> None:
         self.assertEqual(
             get_stanza(DefaultRateLimit.PHOTOS, 'qux'),
             ['<duo_message_blocked id="qux" reason="rate-limited-1day"/>']
         )
 
-    def test_get_stanza_unhandled_enum(self):
+    def test_get_stanza_unhandled_enum(self) -> None:
         class FakeLimit:
             pass
 

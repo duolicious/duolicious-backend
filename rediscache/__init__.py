@@ -71,11 +71,11 @@ def _key(func: Callable, args: tuple, kwargs: dict) -> str:
     return f"{_KEY_PREFIX}{func.__module__}.{func.__qualname__}:{sha512(arg_payload)}"
 
 
-def redis_cache(ttl: int):
+def redis_cache(ttl: int) -> Any:
     """Cache the wrapped function's result in Redis for `ttl` seconds."""
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
                 key = _key(func, args, kwargs)
             except TypeError:
@@ -84,7 +84,7 @@ def redis_cache(ttl: int):
                 return func(*args, **kwargs)
 
             try:
-                cached = _redis.get(key)
+                cached: Any = _redis.get(key)
             except Exception:
                 cached = None
 

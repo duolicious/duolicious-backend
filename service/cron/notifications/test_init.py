@@ -9,7 +9,7 @@ from typing import Any
 import asyncio
 import json
 
-def make_person_notification(**overrides) -> PersonNotification:
+def make_person_notification(**overrides: Any) -> PersonNotification:
     kwargs: dict[str, Any] = dict(
         person_uuid='2',
         last_intro_notification_seconds=1693786048,
@@ -36,9 +36,9 @@ class TestSendNotification(unittest.TestCase):
     @patch('service.cron.notifications.send_mobile_notification')
     def test_mobile_send_when_token_present(
         self,
-        mock_send_mobile_notification,
-        mock_send_email_notification,
-    ):
+        mock_send_mobile_notification: Any,
+        mock_send_email_notification: Any,
+    ) -> None:
 
         # Call the send_notification function
         asyncio.run(send_notification(person_notification))
@@ -53,9 +53,9 @@ class TestSendNotification(unittest.TestCase):
     @patch('service.cron.notifications.send_mobile_notification')
     def test_email_send_when_no_token(
         self,
-        mock_send_mobile_notification,
-        mock_send_email_notification,
-    ):
+        mock_send_mobile_notification: Any,
+        mock_send_email_notification: Any,
+    ) -> None:
         # No reachable push device (or the user was last seen on a web client):
         # the query returns a NULL token, so we email instead of pushing.
         row = make_person_notification(token=None)

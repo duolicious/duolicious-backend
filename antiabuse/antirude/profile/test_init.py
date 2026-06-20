@@ -3,7 +3,7 @@ from antiabuse.antirude.profile import is_rude
 
 class TestIsRude(unittest.TestCase):
 
-    def test_rude_strings(self):
+    def test_rude_strings(self) -> None:
         self.assertTrue(
                 is_rude("You're a nigg"))
 
@@ -16,7 +16,7 @@ class TestIsRude(unittest.TestCase):
         self.assertTrue(
                 is_rude("kill urself"))
 
-    def test_inrude_strings(self):
+    def test_inrude_strings(self) -> None:
         self.assertFalse(
                 is_rude("go hug urself please"))
 

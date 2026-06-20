@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Any
 from dataclasses import dataclass
 from database import api_tx
 from functools import lru_cache
@@ -20,7 +20,7 @@ class SetMessagedJob:
     to_id: int
 
 
-def process_set_messaged_batch(tx, batch: List[SetMessagedJob]):
+def process_set_messaged_batch(tx: Any, batch: List[SetMessagedJob]) -> None:
     distinct_messaged = set(batch)
 
     params_seq = [

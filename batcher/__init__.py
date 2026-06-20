@@ -38,14 +38,14 @@ class Batcher(Generic[T]):
         self,
         item: T,
         callback: Callable[[], None] | Callable[[], Awaitable[None]] | None = None
-    ):
+    ) -> None:
         self._queue.put(BatchItem(item, callback))
 
     def _get_flush_interval(self) -> float:
         with self._flush_interval_lock:
             return self._flush_interval
 
-    def set_flush_interval(self, flush_interval: float):
+    def set_flush_interval(self, flush_interval: float) -> None:
         with self._flush_interval_lock:
             self._flush_interval = flush_interval
 
@@ -69,7 +69,7 @@ class Batcher(Generic[T]):
 
         return batch or None
 
-    def _process_batch(self, batch: list[BatchItem[T]]):
+    def _process_batch(self, batch: list[BatchItem[T]]) -> None:
         try:
             items = [bi.item for bi in batch]
             self._process_fn(items)
@@ -96,14 +96,14 @@ class Batcher(Generic[T]):
                 for bi in batch:
                     self._queue.put(bi)
 
-    def _process_batches_forever(self):
+    def _process_batches_forever(self) -> None:
         while not self._stop_event.is_set():
             batch = self._wait_for_next_batch()
             if batch is not None:
                 self._process_batch(batch)
 
-    def start(self):
+    def start(self) -> None:
         threading.Thread(target=self._process_batches_forever, daemon=True).start()
 
-    def stop(self):
+    def stop(self) -> None:
         self._stop_event.set()

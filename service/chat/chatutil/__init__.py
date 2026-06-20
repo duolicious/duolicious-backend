@@ -1,7 +1,7 @@
 from async_lru_cache import AsyncLruCache
 from database.asyncdatabase import api_tx
 from lxml import etree
-from typing import Literal
+from typing import Literal, Any
 import datetime
 
 
@@ -84,7 +84,7 @@ def format_datetime(dt: datetime.datetime) -> str:
     return dt.astimezone(datetime.timezone.utc).strftime(FMT_ISO_8601_TIMESTAMP)
 
 
-def to_bare_jid(jid: str | None):
+def to_bare_jid(jid: str | None) -> Any:
     if jid is None:
         return None
 

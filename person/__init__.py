@@ -71,7 +71,7 @@ s3 = boto3.resource(
 
 bucket = s3.Bucket(R2_BUCKET_NAME)
 
-def init_db():
+def init_db() -> None:
     pass
 
 @dataclass
@@ -182,7 +182,7 @@ def process_image_as_bytes(
 
     return output_bytes
 
-def compute_blurhash(image: Image.Image, crop_size: CropSize | None = None):
+def compute_blurhash(image: Image.Image, crop_size: CropSize | None = None) -> Any:
     image = process_image_as_image(image, output_size=32, crop_size=crop_size)
 
     return blurhash.encode(numpy.array(image.convert("RGB")))
@@ -192,7 +192,7 @@ def put_image_in_object_store(
     base64_file: t.Base64File,
     crop_size: CropSize,
     sizes: list[Literal[None, 900, 450]] = [None, 900, 450],
-):
+) -> None:
     key_img = [
         (
             f'{size if size else "original"}-{uuid}.jpg',
@@ -227,7 +227,7 @@ def _has_gold(person_id: int) -> bool:
     return row.get('has_gold', False)
 
 
-def _send_otp(email: str, otp: str):
+def _send_otp(email: str, otp: str) -> None:
     if email.endswith('@example.com'):
         return
 
@@ -238,12 +238,12 @@ def _send_otp(email: str, otp: str):
         from_addr='noreply-otp@duolicious.app',
     )
 
-def _check_ip_blocked():
+def _check_ip_blocked() -> Any:
     if not request.remote_addr or firehol.matches(request.remote_addr):
         return 'IP address blocked', 460
     return None
 
-def _check_banned(tx, normalized_email: str):
+def _check_banned(tx: Any, normalized_email: str) -> Any:
     banned = tx.execute(Q_IS_BANNED, dict(
         normalized_email=normalized_email,
         ip_address=request.remote_addr,
@@ -252,18 +252,18 @@ def _check_banned(tx, normalized_email: str):
         return 'Banned', 461
     return None
 
-def _new_session_token():
+def _new_session_token() -> Any:
     session_token = secrets.token_hex(64)
     return session_token, sha512(session_token)
 
-def _otp_from_rows(rows):
+def _otp_from_rows(rows: Any) -> Any:
     try:
         row, *_ = rows
         return row['otp']
     except:
         return None
 
-def _handle_pending_club(tx, person_id, pending_club_name):
+def _handle_pending_club(tx: Any, person_id: int | None, pending_club_name: Any) -> Any:
     club_params = dict(
         person_id=person_id,
         club_name=pending_club_name,
@@ -275,7 +275,7 @@ def _handle_pending_club(tx, person_id, pending_club_name):
         tx.execute(Q_UPSERT_SEARCH_PREFERENCE_CLUB, club_params)
     return tx.execute(Q_GET_SESSION_CLUBS, club_params).fetchone()
 
-def post_request_otp(req: t.PostRequestOtp):
+def post_request_otp(req: t.PostRequestOtp) -> Any:
     if blocked := _check_ip_blocked():
         return blocked
 
@@ -321,7 +321,7 @@ def post_request_otp(req: t.PostRequestOtp):
 
     return dict(session_token=session_token)
 
-def post_resend_otp(s: t.SessionInfo):
+def post_resend_otp(s: t.SessionInfo) -> Any:
     if blocked := _check_ip_blocked():
         return blocked
 
@@ -345,7 +345,7 @@ def post_resend_otp(s: t.SessionInfo):
 
     _send_otp(s.email, otp)
 
-def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
+def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo) -> Any:
     if blocked := _check_ip_blocked():
         return blocked
 
@@ -380,7 +380,7 @@ def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo):
         **clubs,
     )
 
-def post_sign_out(s: t.SessionInfo):
+def post_sign_out(s: t.SessionInfo) -> None:
     sign_out([s.session_token_hash])
 
 def _sign_in_with_social(
@@ -389,7 +389,7 @@ def _sign_in_with_social(
     email: str,
     email_verified: bool,
     pending_club_name: Optional[str],
-):
+) -> Any:
     """
     Shared logic for /sign-in-with-google and /sign-in-with-apple. The
     caller is responsible for verifying the provider's JWT and passing
@@ -521,7 +521,7 @@ def post_sign_in_with_google(
     *,
     token: str,
     pending_club_name: Optional[str],
-):
+) -> Any:
     try:
         claims = verify_google_id_token(token)
     except SocialAuthError as e:
@@ -540,7 +540,7 @@ def post_sign_in_with_apple(
     token: str,
     nonce: str,
     pending_club_name: Optional[str],
-):
+) -> Any:
     try:
         claims = verify_apple_identity_token(token, expected_nonce=nonce)
     except SocialAuthError as e:
@@ -554,7 +554,7 @@ def post_sign_in_with_apple(
         pending_club_name=pending_club_name,
     )
 
-def post_check_session_token(s: t.SessionInfo):
+def post_check_session_token(s: t.SessionInfo) -> Any:
     params = dict(
         person_id=s.person_id,
         pending_club_name=s.pending_club_name,
@@ -581,7 +581,7 @@ def post_check_session_token(s: t.SessionInfo):
             **clubs,
         )
 
-def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
+def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo) -> Any:
     [field_name] = req.__pydantic_fields_set__
     field_value = req.dict()[field_name]
 
@@ -769,7 +769,7 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo):
     else:
         return f'Invalid field name {field_name}', 400
 
-def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo):
+def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo) -> None:
     params = [
         dict(email=s.email, position=position)
         for position in req.files
@@ -778,7 +778,7 @@ def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo):
     with api_tx() as tx:
         tx.executemany(Q_DELETE_ONBOARDEE_PHOTO, params)
 
-def post_finish_onboarding(s: t.SessionInfo):
+def post_finish_onboarding(s: t.SessionInfo) -> Any:
     api_params = dict(
         email=s.email,
         normalized_email=normalize_email(s.email),
@@ -809,7 +809,7 @@ def post_finish_onboarding(s: t.SessionInfo):
 def get_me(
     person_id_as_int: int | None = None,
     person_id_as_str: str | None = None,
-):
+) -> Any:
     if person_id_as_int is None and person_id_as_str is None:
         raise ValueError('pass an arg, please')
 
@@ -841,7 +841,7 @@ def get_me(
     except:
         return '', 404
 
-def get_prospect_profile(s: Optional[t.SessionInfo], prospect_handle):
+def get_prospect_profile(s: Optional[t.SessionInfo], prospect_handle: Any) -> Any:
     params = dict(
         person_id=s.person_id if s is not None else None,
         prospect_handle=prospect_handle,
@@ -888,7 +888,7 @@ def get_prospect_profile(s: Optional[t.SessionInfo], prospect_handle):
 
     return profile
 
-def get_conversation_prospect(s: t.SessionInfo, prospect_uuid: str):
+def get_conversation_prospect(s: t.SessionInfo, prospect_uuid: str) -> Any:
     params = dict(
         person_id=s.person_id,
         prospect_uuid=prospect_uuid,
@@ -907,7 +907,7 @@ def get_conversation_prospect(s: t.SessionInfo, prospect_uuid: str):
 
         return profile
 
-def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
+def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str) -> Any:
     if not s.person_uuid:
         return 'Authentication required', 401
 
@@ -918,7 +918,7 @@ def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str):
     )
 
 
-def post_unskip(s: t.SessionInfo, prospect_person_id: int):
+def post_unskip(s: t.SessionInfo, prospect_person_id: int) -> None:
     params = dict(
         subject_person_id=s.person_id,
         object_person_id=prospect_person_id,
@@ -927,7 +927,7 @@ def post_unskip(s: t.SessionInfo, prospect_person_id: int):
     with api_tx() as tx:
         tx.execute(Q_DELETE_SKIPPED, params)
 
-def post_unskip_by_uuid(s: t.SessionInfo, prospect_uuid: str):
+def post_unskip_by_uuid(s: t.SessionInfo, prospect_uuid: str) -> None:
     params = dict(
         subject_person_id=s.person_id,
         prospect_uuid=prospect_uuid,
@@ -940,7 +940,7 @@ def get_compare_personalities(
     s: t.SessionInfo,
     prospect_person_id: int,
     topic: str
-):
+) -> Any:
     url_topic_to_db_topic = {
         'mbti': 'MBTI',
         'big5': 'Big 5',
@@ -971,7 +971,7 @@ def get_compare_answers(
     topic: Optional[str],
     n: Optional[str],
     o: Optional[str],
-):
+) -> Any:
     valid_agreements = ['all', 'agree', 'disagree', 'unanswered']
     valid_topics = ['all', 'values', 'sex', 'interpersonal', 'other']
 
@@ -1003,7 +1003,7 @@ def get_compare_answers(
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_ANSWER_COMPARISON, params).fetchall()
 
-def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo):
+def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo) -> Any:
     params = dict(
         person_id=s.person_id,
         prospect_person_uuids=req.person_uuids
@@ -1019,7 +1019,7 @@ def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo):
 def delete_or_ban_account(
     s: Optional[t.SessionInfo],
     admin_ban_token: Optional[str] = None,
-):
+) -> Any:
     with api_tx() as tx:
         tx.execute('SET LOCAL statement_timeout = 30_000')  # 30 seconds
 
@@ -1054,19 +1054,19 @@ def delete_or_ban_account(
 
     return rows
 
-def post_deactivate(s: t.SessionInfo):
+def post_deactivate(s: t.SessionInfo) -> None:
     params = dict(person_id=s.person_id)
 
     with api_tx() as tx:
         tx.execute(Q_POST_DEACTIVATE, params)
 
-def get_profile_info(s: t.SessionInfo):
+def get_profile_info(s: t.SessionInfo) -> Any:
     params = dict(person_id=s.person_id)
 
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_PROFILE_INFO, params).fetchone()['j']
 
-def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
+def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo) -> None:
     files_params = [
         dict(person_id=s.person_id, position=position)
         for position in req.files or []
@@ -1086,7 +1086,7 @@ def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo):
         with api_tx() as tx:
             tx.executemany(Q_DELETE_PROFILE_INFO_AUDIO, audio_files_params)
 
-def _patch_profile_info_about(person_id: int, new_about: str):
+def _patch_profile_info_about(person_id: int, new_about: str) -> None:
     select = """
     SELECT about AS old_about FROM person WHERE id = %(person_id)s
     """
@@ -1152,7 +1152,7 @@ def _patch_profile_info_about(person_id: int, new_about: str):
 
         tx.execute(update, update_params)
 
-def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
+def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> Any:
     if not s.person_id:
         return 'Not authorized', 400
 
@@ -1606,16 +1606,16 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo):
             print(traceback.format_exc())
             return '', 500
 
-def get_search_filters(s: t.SessionInfo):
+def get_search_filters(s: t.SessionInfo) -> Any:
     return get_search_filters_by_person_id(person_id=s.person_id)
 
-def get_search_filters_by_person_id(person_id: Optional[int]):
+def get_search_filters_by_person_id(person_id: Optional[int]) -> Any:
     params = dict(person_id=person_id)
 
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_SEARCH_FILTERS, params).fetchone()['j']
 
-def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
+def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo) -> Any:
     [field_name] = req.__pydantic_fields_set__
     field_value = req.dict()[field_name]
 
@@ -1872,7 +1872,7 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo):
         tx.execute(q1, params)
         tx.execute(q2, params)
 
-def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo):
+def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo) -> Any:
     max_search_filter_answers = 20
     error = f'You can’t set more than {max_search_filter_answers} Q&A filters'
 
@@ -1984,7 +1984,7 @@ def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo):
 def get_search_clubs(
         s: Optional[t.SessionInfo],
         search_str: str,
-        allow_empty: bool = False):
+        allow_empty: bool = False) -> Any:
 
     if (search_str or '').strip():
         # A non-empty search string must be a valid club name.
@@ -2007,7 +2007,7 @@ def get_search_clubs(
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(q, params).fetchall()
 
-def post_join_club(req: t.PostJoinClub, s: t.SessionInfo):
+def post_join_club(req: t.PostJoinClub, s: t.SessionInfo) -> Any:
     params = dict(
         person_id=s.person_id,
         club_name=req.name,
@@ -2021,7 +2021,7 @@ def post_join_club(req: t.PostJoinClub, s: t.SessionInfo):
     else:
         return f"Couldn't join {req.name}", 400
 
-def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo):
+def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo) -> None:
     params = dict(
         person_id=s.person_id,
         club_name=req.name,
@@ -2030,7 +2030,7 @@ def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo):
     with api_tx() as tx:
         tx.execute(Q_LEAVE_CLUB, params)
 
-def get_update_notifications(email: str, type: str, frequency: str):
+def get_update_notifications(email: str, type: str, frequency: str) -> Any:
     params = dict(
         email=email,
         frequency=frequency,
@@ -2057,7 +2057,7 @@ def get_update_notifications(email: str, type: str, frequency: str):
     else:
         return 'Invalid email address or notification frequency', 400
 
-def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo):
+def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo) -> Any:
     base64 = req.base64_file.base64
     image = req.base64_file.image
     top = req.base64_file.top
@@ -2095,7 +2095,7 @@ def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo):
         print('Upload failed with exception:', e)
         return '', 500
 
-def post_verify(s: t.SessionInfo):
+def post_verify(s: t.SessionInfo) -> None:
     params = dict(
         person_id=s.person_id,
         status='queued',
@@ -2106,7 +2106,7 @@ def post_verify(s: t.SessionInfo):
     with api_tx() as tx:
         tx.execute(Q_UPDATE_VERIFICATION_JOB, params)
 
-def get_check_verification(s: t.SessionInfo):
+def get_check_verification(s: t.SessionInfo) -> Any:
     with api_tx() as tx:
         row = tx.execute(
             Q_CHECK_VERIFICATION,
@@ -2117,12 +2117,12 @@ def get_check_verification(s: t.SessionInfo):
         return row
     return '', 400
 
-def post_dismiss_donation(s: t.SessionInfo):
+def post_dismiss_donation(s: t.SessionInfo) -> None:
     with api_tx() as tx:
         tx.execute(Q_DISMISS_DONATION, dict(person_id=s.person_id))
 
 @lru_cache(maxsize=2048)
-def get_club(name: str, ttl_hash=None):
+def get_club(name: str, ttl_hash: Any = None) -> Any:
     club_name = t.parse_club_name(name)
     if club_name is None:
         return None
@@ -2141,7 +2141,7 @@ def get_club(name: str, ttl_hash=None):
     }
 
 @lru_cache(maxsize=1)
-def get_sitemap_xml(ttl_hash=None):
+def get_sitemap_xml(ttl_hash: Any = None) -> Any:
     with api_tx('READ COMMITTED') as tx:
         # The 1h TTL means a single statement-timeout bricks the sitemap
         # for the worker for the rest of the hour; give it real headroom.
@@ -2168,7 +2168,7 @@ def get_sitemap_xml(ttl_hash=None):
     return body, 200, {'Content-Type': 'application/xml; charset=utf-8'}
 
 @lru_cache()
-def get_stats(ttl_hash=None, club_name: Optional[str] = None):
+def get_stats(ttl_hash: Any = None, club_name: Optional[str] = None) -> Any:
     if club_name:
         q, params = Q_STATS_BY_CLUB_NAME, dict(club_name=club_name)
     else:
@@ -2178,11 +2178,11 @@ def get_stats(ttl_hash=None, club_name: Optional[str] = None):
         return tx.execute(q, params).fetchone()
 
 @lru_cache()
-def get_gender_stats(ttl_hash=None):
+def get_gender_stats(ttl_hash: Any = None) -> Any:
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GENDER_STATS).fetchone()
 
-def get_admin_ban_link(token: str):
+def get_admin_ban_link(token: str) -> Any:
     params = dict(token=token)
 
     err_invalid_token = (
@@ -2209,7 +2209,7 @@ def get_admin_ban_link(token: str):
     else:
         return err_invalid_token
 
-def get_admin_ban(token: str):
+def get_admin_ban(token: str) -> Any:
     rows = delete_or_ban_account(s=None, admin_ban_token=token)
 
     if rows:
@@ -2217,7 +2217,7 @@ def get_admin_ban(token: str):
     else:
         return 'Ban failed; User already banned or token invalid', 401
 
-def get_admin_delete_photo_link(token: str):
+def get_admin_delete_photo_link(token: str) -> Any:
     params = dict(token=token)
 
     try:
@@ -2233,7 +2233,7 @@ def get_admin_delete_photo_link(token: str):
     else:
         return 'Invalid token', 401
 
-def get_admin_delete_photo(token: str):
+def get_admin_delete_photo(token: str) -> Any:
     params = dict(token=token)
 
     with api_tx('READ COMMITTED') as tx:
@@ -2248,13 +2248,13 @@ def get_admin_delete_photo(token: str):
     else:
         return 'Photo deletion failed', 401
 
-def get_export_data_token(s: t.SessionInfo):
+def get_export_data_token(s: t.SessionInfo) -> Any:
     params = dict(person_id=s.person_id)
 
     with api_tx() as tx:
         return tx.execute(Q_INSERT_EXPORT_DATA_TOKEN, params).fetchone()
 
-def get_export_data(token: str):
+def get_export_data(token: str) -> Any:
     token_params = dict(token=token)
 
     # Fetch data from database
@@ -2306,7 +2306,7 @@ def get_export_data(token: str):
         download_name='export.json',
     )
 
-def post_revenuecat(req: t.PostRevenuecat):
+def post_revenuecat(req: t.PostRevenuecat) -> Any:
     def get_has_gold() -> Tuple[list[str], list[str]]:
         match req.event:
             case t.InitialPurchaseEvent(app_user_id=app_user_id):
@@ -2323,7 +2323,7 @@ def post_revenuecat(req: t.PostRevenuecat):
         return [], []
 
 
-    def get_has_gold_params_seq():
+    def get_has_gold_params_seq() -> Any:
         has_no_gold_uuids, has_gold_uuids = get_has_gold()
 
         has_no_gold_params_seq = [
@@ -2384,7 +2384,7 @@ def post_revenuecat(req: t.PostRevenuecat):
             ignored_uuids=sorted(ignored_uuids),
         )
 
-def get_visitors(s: t.SessionInfo):
+def get_visitors(s: t.SessionInfo) -> Any:
     with api_tx('READ COMMITTED') as tx:
         tx.execute(Q_VISITORS, dict(person_id=s.person_id))
         return tx.fetchone()['j']
@@ -2392,7 +2392,7 @@ def get_visitors(s: t.SessionInfo):
 def post_mark_visitors_checked(
     req: t.PostMarkVisitorsChecked,
     s: t.SessionInfo
-):
+) -> None:
     params = dict(
         person_id=s.person_id,
         when=req.time,

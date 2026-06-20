@@ -18,7 +18,7 @@ class Notification:
     body: str
     data: Optional[Any]
 
-def process_notification_batch(notifications: List[Notification]):
+def process_notification_batch(notifications: List[Notification]) -> None:
     data = [
         dict(
             to=notification.token,
@@ -67,8 +67,8 @@ def enqueue_mobile_notification(
     token: str | None,
     title: str,
     body: str,
-    data = None
-):
+    data: Any = None
+) -> None:
     if not token:
         return
 

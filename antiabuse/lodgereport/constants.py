@@ -1,3 +1,4 @@
+from typing import Any
 from dataclasses import dataclass
 import os
 import re
@@ -9,7 +10,7 @@ class EmailEntry:
     count: int
 
 
-def parse_email_string(email_string):
+def parse_email_string(email_string: Any) -> Any:
     # Regular expression to match an email followed optionally by a number
     pattern = r'(\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b)(?:\s+(\d+))?'
     matches = re.findall(pattern, email_string)

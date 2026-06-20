@@ -38,7 +38,7 @@ def store_message(
     callback: Callable[[], None] | Callable[[], Awaitable[None]] | None = None,
     timestamp_microseconds: int | None = None,
     deliver_to_recipient: bool = True,
-):
+) -> None:
     if timestamp_microseconds is None:
         timestamp_microseconds = int(datetime.datetime.now().timestamp() * 1_000_000)
 
@@ -83,7 +83,7 @@ def store_message(
     _store_message_batcher.enqueue(job, callback)
 
 
-def _process_store_message_batch(batch: list[StoreMessageJob]):
+def _process_store_message_batch(batch: list[StoreMessageJob]) -> None:
     store_mam_message_jobs = [
             job.store_mam_message_job
             for job in batch]

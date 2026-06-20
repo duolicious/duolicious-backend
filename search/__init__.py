@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from database import api_tx
 from qanda.question import Q_QUESTION_SCORE_VECTORS
 from rediscache import redis_cache
-from typing import Tuple
+from typing import Tuple, Any
 from search.sql import (
     Q_CACHED_SEARCH,
     Q_PUBLIC_SEARCH,
@@ -27,7 +27,7 @@ class ClubHttpArg:
     club: str | None
 
 
-def _quiz_search_results(tx, searcher_person_id: int):
+def _quiz_search_results(tx: Any, searcher_person_id: int) -> Any:
     params = dict(
         searcher_person_id=searcher_person_id,
     )
@@ -36,11 +36,11 @@ def _quiz_search_results(tx, searcher_person_id: int):
 
 
 def _uncached_search_results(
-    tx,
+    tx: Any,
     searcher_person_id: int,
     no: Tuple[int, int],
     gender_preference: list[int],
-):
+) -> Any:
     n, o = no
 
     params = dict(
@@ -60,7 +60,7 @@ def _uncached_search_results(
         return []
 
 
-def _cached_search_results(tx, searcher_person_id: int, no: Tuple[int, int]):
+def _cached_search_results(tx: Any, searcher_person_id: int, no: Tuple[int, int]) -> Any:
     n, o = no
 
     params = dict(
@@ -72,7 +72,7 @@ def _cached_search_results(tx, searcher_person_id: int, no: Tuple[int, int]):
     return tx.execute(Q_CACHED_SEARCH, params).fetchall()
 
 
-def get_search_type(n: str | None, o: str | None):
+def get_search_type(n: str | None, o: str | None) -> Any:
     n_: int | None = n if n is None else int(n)
     o_: int | None = o if o is None else int(o)
 
@@ -96,7 +96,7 @@ def get_search(
     n: str | None,
     o: str | None,
     club: ClubHttpArg | None,
-):
+) -> Any:
     search_type, no = get_search_type(n, o)
 
     if no is not None and no[0] > 10:
@@ -150,7 +150,7 @@ def get_search(
     return result
 
 
-def get_public_search(n: str | None, o: str | None, answers: str | None = None):
+def get_public_search(n: str | None, o: str | None, answers: str | None = None) -> Any:
     n_: int = 10 if n is None else int(n)
     o_: int = 0 if o is None else int(o)
 
@@ -173,12 +173,12 @@ def get_public_search(n: str | None, o: str | None, answers: str | None = None):
 
 
 @redis_cache(ttl=60)
-def _get_public_search():
+def _get_public_search() -> Any:
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_PUBLIC_SEARCH).fetchall()
 
 
-def _get_public_search_with_answers(req: t.PublicSearchRequest):
+def _get_public_search_with_answers(req: t.PublicSearchRequest) -> Any:
     with api_tx('READ COMMITTED') as tx:
         questions = {
             q['id']: q
@@ -204,7 +204,7 @@ def _get_public_search_with_answers(req: t.PublicSearchRequest):
         )).fetchall()
 
 
-def get_feed(s: t.SessionInfo, before: datetime):
+def get_feed(s: t.SessionInfo, before: datetime) -> Any:
     params = dict(
         searcher_person_id=s.person_id,
         before=before,

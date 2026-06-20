@@ -1,3 +1,4 @@
+from typing import Any
 import numpy
 from database import api_tx
 import duotypes as t
@@ -89,7 +90,7 @@ WHERE session_token_hash = %(session_token_hash)s
 """
 
 
-def _set_answer(tx, person_id: int, question_id: int, answer, public, delete):
+def _set_answer(tx: Any, person_id: int, question_id: int, answer: Any, public: Any, delete: Any) -> None:
     """Insert/update (or delete) one answer and recompute the person's
     personality vector on the application server. `tx` must be a writable
     transaction. The old answer is read before being overwritten."""
@@ -148,7 +149,7 @@ def _set_answer(tx, person_id: int, question_id: int, answer, public, delete):
         count_answers=int(count),
     ))
 
-def post_answer(req: t.PostAnswer, s: t.SessionInfo):
+def post_answer(req: t.PostAnswer, s: t.SessionInfo) -> Any:
     if s.person_id is None:
         return '', 500
 
@@ -165,7 +166,7 @@ def post_answer(req: t.PostAnswer, s: t.SessionInfo):
         _set_answer(
             tx, s.person_id, req.question_id, req.answer, req.public, delete=False)
 
-def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
+def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo) -> Any:
     if s.person_id is None:
         return '', 500
 
@@ -173,7 +174,7 @@ def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo):
         _set_answer(
             tx, s.person_id, req.question_id, None, None, delete=True)
 
-def _flush_session_answers(tx, session_token_hash: str, person_id: int):
+def _flush_session_answers(tx: Any, session_token_hash: str, person_id: int) -> None:
     """
     Move any answers stashed against this session (collected while the user was
     unauthenticated) into the `answer` table for `person_id`, reusing the same

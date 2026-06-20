@@ -1,3 +1,4 @@
+from typing import Any
 import re
 
 _re_age_modifier_suffix = r'(m|f|y|yrs|y/o|y\.o|yo)'
@@ -73,8 +74,8 @@ _re_neg_prev = {
     'before',
 
     # Misc patterns
-    '\d+[-:.,/]',
-    '\s+\$',
+    r'\d+[-:.,/]',
+    r'\s+\$',
 }
 
 _re_neg_next = {
@@ -95,16 +96,16 @@ _re_neg_next = {
     'million', 'billion', 'thousand', 'hundred',
 
     # Misc patterns
-    'years\s+ago',
-    '%\s+',
+    r'years\s+ago',
+    r'%\s+',
     'percent',
     'more',
-    '[-:.,/]\d+',
-    '\$\s+',
+    r'[-:.,/]\d+',
+    r'\$\s+',
 }
 
 
-def excludable(text: str, match) -> bool:
+def excludable(text: str, match: Any) -> bool:
     left_context = text[:match.start()]
     match_text = match.group()
     right_context = text[match.end():]

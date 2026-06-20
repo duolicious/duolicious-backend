@@ -1,3 +1,4 @@
+from typing import Any
 import unittest
 from service.cron.notifications import (
     PersonNotification,
@@ -6,8 +7,8 @@ from service.cron.notifications import (
 
 class TestDoSend(unittest.TestCase):
 
-    def test_stuff(self):
-        dont_care = dict(
+    def test_stuff(self) -> None:
+        dont_care: Any = dict(
             person_uuid='0',
             name='user0',
             token=None,

@@ -1,3 +1,4 @@
+from typing import Any
 from database.asyncdatabase import api_tx
 from concurrent.futures import ThreadPoolExecutor
 from botocore.exceptions import ClientError
@@ -25,7 +26,7 @@ MAX_RANDOM_START_DELAY = int(os.environ.get(
     15,
 ))
 
-async def print_stacktrace(fun):
+async def print_stacktrace(fun: Any) -> None:
     try:
         await fun()
     except:
@@ -35,7 +36,7 @@ async def delete_images_from_object_store(
     uuids: list[str],
     dry_run: bool = True,
     dry_run_env_var_name: str = 'dry run',
-):
+) -> None:
     # Split the uuids list into chunks of 300 since the limit is 1000 and
     # there's three objects to delete per uuid
     chunks = [uuids[i:i+200] for i in range(0, len(uuids), 200)]
@@ -93,7 +94,7 @@ async def delete_audio_from_object_store(
     uuids: list[str],
     dry_run: bool = True,
     dry_run_env_var_name: str = 'dry run',
-):
+) -> None:
     # Split the uuids list into chunks of 300 since the limit is 1000 and
     # there's three objects to delete per uuid
     chunks = [uuids[i:i+300] for i in range(0, len(uuids), 300)]
@@ -157,7 +158,7 @@ async def download_450_images(
         aws_secret_access_key=R2_ACCESS_KEY_SECRET,
     )
 
-    def download_one(uuid):
+    def download_one(uuid: str) -> Any:
         buffer = io.BytesIO()
         key = f'450-{uuid}.jpg'
         retries = 3
@@ -180,7 +181,7 @@ async def download_450_images(
                 else:
                     raise
 
-    def download_many():
+    def download_many() -> Any:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             return list(executor.map(download_one, uuids))
 

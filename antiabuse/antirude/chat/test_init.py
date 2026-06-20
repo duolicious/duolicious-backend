@@ -3,7 +3,7 @@ from antiabuse.antirude.chat import is_rude
 
 class TestIsOffensive(unittest.TestCase):
 
-    def test_rude_strings(self):
+    def test_rude_strings(self) -> None:
         self.assertTrue(is_rude("you will never b a woman"))
 
         # Results are invariant to adjective use
@@ -271,7 +271,7 @@ class TestIsOffensive(unittest.TestCase):
 
         self.assertTrue(is_rude("f00t job"))
 
-    def test_non_rude_strings(self):
+    def test_non_rude_strings(self) -> None:
         self.assertFalse(is_rude("What puzzles do you enjoy"))
 
         # the :pp emoticon doesn't trigger a false positives
@@ -394,7 +394,7 @@ There really is a Linux, and these people are using it, but it is just a part of
                 is_rude("I am therapist"))
 
     # Using Cyrillic characters
-    def test_cyrillic_substitution(self):
+    def test_cyrillic_substitution(self) -> None:
         # Substituting "a" with Cyrillic "а" (U+0430)
         self.assertTrue(is_rude("gаg me"))
         # Substituting "e" with Cyrillic "е" (U+0435)
@@ -403,7 +403,7 @@ There really is a Linux, and these people are using it, but it is just a part of
         self.assertTrue(is_rude("fuckаblе"))
 
     # Using Greek characters
-    def test_greek_substitution(self):
+    def test_greek_substitution(self) -> None:
         # Substituting "o" with Greek "ο" (U+03BF)
         self.assertTrue(is_rude("gοok"))
         # Substituting "i" with Greek "ι" (U+03B9)

@@ -1,6 +1,7 @@
+from typing import Any
 from urllib.parse import urlencode
 
-def big_part(has_intro, has_chat):
+def big_part(has_intro: bool, has_chat: bool) -> Any:
     if has_intro and has_chat:
         return 'You have new messages in your chats and intros!'
     if has_intro:
@@ -11,12 +12,12 @@ def big_part(has_intro, has_chat):
         "Our notifier is broken 😵‍💫. Please report this "
         "to support@duolicious.app")
 
-def little_part(has_intro, has_chat):
+def little_part(has_intro: bool, has_chat: bool) -> Any:
     if has_intro and has_chat:
         return 'Open the app to read them'
     return 'Open the app to read it'
 
-def frequency_url(email, type, frequency):
+def frequency_url(email: str, type: Any, frequency: Any) -> Any:
     base_url = 'https://api.duolicious.app/update-notifications'
     params = {
         'email': email,
@@ -26,7 +27,7 @@ def frequency_url(email, type, frequency):
     encoded_params = urlencode(params)
     return f'{base_url}?{encoded_params}'
 
-def emailtemplate(email, has_intro, has_chat):
+def emailtemplate(email: str, has_intro: bool, has_chat: bool) -> Any:
     return f"""
 <!DOCTYPE html>
 <html lang="en">
