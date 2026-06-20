@@ -513,10 +513,6 @@ def get_club(name: str) -> object:
         return '', 404
     return result
 
-@get('/sitemap.xml')
-def get_sitemap_xml() -> object:
-    return person.get_sitemap_xml(ttl_hash=get_ttl_hash(seconds=3600))
-
 @apost('/join-club')
 @validate(t.PostJoinClub)
 def post_join_club(req: t.PostJoinClub, s: t.SessionInfo) -> object:
