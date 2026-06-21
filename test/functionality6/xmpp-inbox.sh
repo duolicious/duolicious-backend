@@ -434,6 +434,48 @@ user1_outgoing=$(q "select count(*) from inbox where luser = '${user1uuid}' and 
 u2_to_u1_direction=$(q "select direction from inbox where luser = '${user2uuid}' and remote_bare_jid = '${user1uuid}@duolicious.app'")
 [[ "$u2_to_u1_direction" == "O" ]] || { echo "Expected user2's row about user1 to be outgoing, got '$u2_to_u1_direction'"; exit 1; }
 
+echo "The body and direction columns can be back-filled from the legacy content column"
+
+# Simulate the pre-backfill state by blanking the forward-filled `body` and
+# `direction` columns, leaving the legacy `content` XML as the only source of
+# truth, then run the one-off back-fill inside the api container (which has lxml
+# available).
+q "update inbox set body = null, direction = null"
+
+null_before=$(q "select count(*) from inbox where body is null or direction is null")
+[[ "$null_before" != "0" ]] || { echo "Expected rows to back-fill"; exit 1; }
+
+docker exec \
+  -e DUO_CRON_INBOX_BODY_BACKFILL_ENABLED=1 \
+  -e DUO_CRON_INBOX_BODY_BACKFILL_POLL_SECONDS=0 \
+  "$(docker ps | grep api- | cut -d ' ' -f 1)" \
+  python3 -c 'import asyncio; from backfill.inbox_body import backfill_inbox_body_forever; asyncio.run(backfill_inbox_body_forever())'
+
+null_body_after=$(q "select count(*) from inbox where body is null")
+[[ "$null_body_after" == "0" ]] || { echo "Expected back-fill to populate every body, found $null_body_after still null"; exit 1; }
+
+null_direction_after=$(q "select count(*) from inbox where direction is null")
+[[ "$null_direction_after" == "0" ]] || { echo "Expected back-fill to populate every direction, found $null_direction_after still null"; exit 1; }
+
+# Each conversation's inbox rows (one per participant) hold the last message
+# between the pair, so each back-filled body must appear in exactly two rows.
+for expected_body in \
+  "from user 2 to user 1" \
+  "from user 3 to user 2" \
+  "from user 3 to user 1"
+do
+  count=$(q "select count(*) from inbox where body = '$expected_body'")
+  [[ "$count" == "2" ]] || { echo "Expected 2 rows back-filled with body '$expected_body', got $count"; exit 1; }
+done
+
+# The back-filled direction must match the forward-fill: user1 only received
+# messages, and the sender's own copy of a message is outgoing.
+user1_incoming_backfilled=$(q "select count(*) from inbox where luser = '${user1uuid}' and direction = 'I'")
+[[ "$user1_incoming_backfilled" == "2" ]] || { echo "Expected user1 to have 2 incoming rows after back-fill, got $user1_incoming_backfilled"; exit 1; }
+
+u2_to_u1_backfilled=$(q "select direction from inbox where luser = '${user2uuid}' and remote_bare_jid = '${user1uuid}@duolicious.app'")
+[[ "$u2_to_u1_backfilled" == "O" ]] || { echo "Expected user2's row about user1 to be outgoing after back-fill, got '$u2_to_u1_backfilled'"; exit 1; }
+
 echo "Marking a message displayed updates the inbox"
 
 mark_displayed "$user1uuid" "$user1token" "$user2uuid"
