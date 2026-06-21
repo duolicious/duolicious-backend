@@ -55,10 +55,10 @@ test_happy_path_intros () {
   [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
 
   q "
-  insert into inbox
+  insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction)
   values
-    ('$user1id', '', '', 'inbox', '', ${time_interval}, 42),
-    ('$user2id', '', '', 'inbox', '', ${time_interval}, 0)
+    ('$user1id', '', '', 'inbox', ${time_interval}, 42, '', 'I'),
+    ('$user2id', '', '', 'inbox', ${time_interval}, 0, '', 'I')
   "
 
   sleep 2
@@ -84,10 +84,10 @@ test_happy_path_chats () {
   [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
 
   q "
-  insert into inbox
+  insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction)
   values
-    ('$user1id', '', '', 'chats', '', ${time_interval}, 42),
-    ('$user2id', '', '', 'chats', '', ${time_interval}, 0)
+    ('$user1id', '', '', 'chats', ${time_interval}, 42, '', 'I'),
+    ('$user2id', '', '', 'chats', ${time_interval}, 0, '', 'I')
   "
 
   sleep 2
@@ -126,10 +126,10 @@ test_happy_path_chat_not_deferred_by_intro () {
 
   # Insert last message
   q "
-  insert into inbox
+  insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction)
   values
-    ('$user1id', 'sender1', '', 'chats', '', ${t3}, 42),
-    ('$user1id', 'sender2', '', 'inbox', '', ${t1},  0)
+    ('$user1id', 'sender1', '', 'chats', ${t3}, 42, '', 'I'),
+    ('$user1id', 'sender2', '', 'inbox', ${t1},  0, '', 'I')
   "
   [[ "$(q "select count(*) from inbox")" = 2 ]]
 
@@ -159,10 +159,10 @@ test_sad_sent_9_minutes_ago () {
   is_inbox_empty
 
   q "
-  insert into inbox
+  insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction)
   values
-    ('$user1id', '', '', 'chats', '', ${time_interval}, 42),
-    ('$user2id', '', '', 'inbox', '', ${time_interval}, 43)
+    ('$user1id', '', '', 'chats', ${time_interval}, 42, '', 'I'),
+    ('$user2id', '', '', 'inbox', ${time_interval}, 43, '', 'I')
   "
   [[ "$(q "select count(*) from inbox")" = 2 ]]
 
@@ -181,10 +181,10 @@ test_sad_sent_11_days_ago () {
   is_inbox_empty
 
   q "
-  insert into inbox
+  insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction)
   values
-    ('$user1id', '', '', 'chats', '', ${time_interval}, 42),
-    ('$user2id', '', '', 'inbox', '', ${time_interval}, 43)
+    ('$user1id', '', '', 'chats', ${time_interval}, 42, '', 'I'),
+    ('$user2id', '', '', 'inbox', ${time_interval}, 43, '', 'I')
   "
   [[ "$(q "select count(*) from inbox")" = 2 ]]
 
@@ -203,10 +203,10 @@ test_sad_only_read_messages () {
   is_inbox_empty
 
   q "
-  insert into inbox
+  insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction)
   values
-    ('$user1id', '', '', 'chats', '', ${time_interval}, 0),
-    ('$user2id', '', '', 'inbox', '', ${time_interval}, 0)
+    ('$user1id', '', '', 'chats', ${time_interval}, 0, '', 'I'),
+    ('$user2id', '', '', 'inbox', ${time_interval}, 0, '', 'I')
   "
   [[ "$(q "select count(*) from inbox")" = 2 ]]
 
@@ -227,10 +227,10 @@ test_sad_still_online_at_poll_time () {
   q "update person set last_online_time = now() - interval '9 minutes' where uuid = '$user2id'"
 
   q "
-  insert into inbox
+  insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction)
   values
-    ('$user1id', '', '', 'chats', '', ${t1}, 42),
-    ('$user2id', '', '', 'inbox', '', ${t1}, 43)
+    ('$user1id', '', '', 'chats', ${t1}, 42, '', 'I'),
+    ('$user2id', '', '', 'inbox', ${t1}, 43, '', 'I')
   "
   [[ "$(q "select count(*) from inbox")" = 2 ]]
 
@@ -252,10 +252,10 @@ test_sad_still_online_after_message_time () {
   q "update person set last_online_time = now() - interval '11 minutes' where uuid = '$user2id'"
 
   q "
-  insert into inbox
+  insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction)
   values
-    ('$user1id', '', '', 'chats', '', ${t1}, 42),
-    ('$user2id', '', '', 'inbox', '', ${t1}, 43)
+    ('$user1id', '', '', 'chats', ${t1}, 42, '', 'I'),
+    ('$user2id', '', '', 'inbox', ${t1}, 43, '', 'I')
   "
   [[ "$(q "select count(*) from inbox")" = 2 ]]
 
@@ -281,11 +281,11 @@ test_sad_already_notified_for_particular_message () {
   [[ "$(q "select count(*) from person where uuid::text = '$user1id' and chat_seconds = 0 and intro_seconds = $t2")" = 1 ]]
 
   q "
-  insert into inbox
+  insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction)
   values
-    ('$user1id', '', '', 'chats', '', ${t1}, 42),
-    ('$user2id', '', '', 'inbox', '', ${t3}, 43),
-    ('$user3id', '', '', 'inbox', '', ${t4},  0)
+    ('$user1id', '', '', 'chats', ${t1}, 42, '', 'I'),
+    ('$user2id', '', '', 'inbox', ${t3}, 43, '', 'I'),
+    ('$user3id', '', '', 'inbox', ${t4},  0, '', 'I')
   "
   [[ "$(q "select count(*) from inbox")" = 3 ]]
 
@@ -332,10 +332,10 @@ test_sad_already_notified_for_other_intro_in_drift_period () {
 
   # Insert last message
   q "
-  insert into inbox
+  insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction)
   values
-    ('$user1id', '', '', 'inbox', '', ${t2}, 42),
-    ('$user2id', '', '', 'inbox', '', ${t2},  0)
+    ('$user1id', '', '', 'inbox', ${t2}, 42, '', 'I'),
+    ('$user2id', '', '', 'inbox', ${t2},  0, '', 'I')
   "
   [[ "$(q "select count(*) from inbox")" = 2 ]]
 
@@ -380,10 +380,10 @@ test_sad_intro_within_day_and_chat_within_past_10_minutes () {
 
   # Insert intro and chat
   q "
-  insert into inbox
+  insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction)
   values
-    ('$user1id', 'sender2', '', 'inbox', '', ${t1}, 42),
-    ('$user1id', 'sender1', '', 'chats', '', ${t4}, 43)
+    ('$user1id', 'sender2', '', 'inbox', ${t1}, 42, '', 'I'),
+    ('$user1id', 'sender1', '', 'chats', ${t4}, 43, '', 'I')
   "
   [[ "$(q "select count(*) from inbox")" = 2 ]]
 
@@ -413,10 +413,10 @@ test_sad_not_activated () {
   [[ "$(q "select count(*) from person where intro_seconds > 0 or chat_seconds > 0")" = 0 ]]
 
   q "
-  insert into inbox
+  insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction)
   values
-    ('$user1id', '', '', 'inbox', '', ${time_interval}, 42),
-    ('$user2id', '', '', 'inbox', '', ${time_interval}, 0)
+    ('$user1id', '', '', 'inbox', ${time_interval}, 42, '', 'I'),
+    ('$user2id', '', '', 'inbox', ${time_interval}, 0, '', 'I')
   "
 
   sleep 2
@@ -478,10 +478,10 @@ test_web_client_also_emailed () {
   local time_interval=$(db_now as-microseconds '- 11 minutes')
 
   q "
-  insert into inbox
+  insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction)
   values
-    ('$user1id', '', '', 'inbox', '', ${time_interval}, 42),
-    ('$user2id', '', '', 'inbox', '', ${time_interval}, 43)
+    ('$user1id', '', '', 'inbox', ${time_interval}, 42, '', 'I'),
+    ('$user2id', '', '', 'inbox', ${time_interval}, 43, '', 'I')
   "
 
   sleep 2
@@ -518,7 +518,7 @@ test_no_sessions_emailed () {
 
   local time_interval=$(db_now as-microseconds '- 11 minutes')
 
-  q "insert into inbox values ('$user1id', '', '', 'inbox', '', ${time_interval}, 42)"
+  q "insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction) values ('$user1id', '', '', 'inbox', ${time_interval}, 42, '', 'I')"
 
   sleep 2
 
@@ -551,10 +551,10 @@ test_low_active_users_notified_via_email () {
 
   q "
   INSERT INTO
-    inbox
+    inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction)
   VALUES
-    ('$user1id', '', '', 'inbox', '', ${time_interval}, 42),
-    ('$user2id', '', '', 'inbox', '', ${time_interval}, 43)
+    ('$user1id', '', '', 'inbox', ${time_interval}, 42, '', 'I'),
+    ('$user2id', '', '', 'inbox', ${time_interval}, 43, '', 'I')
   "
 
   sleep 2
@@ -589,7 +589,7 @@ test_inactive_over_8_days_pushed_and_emailed () {
 
   local time_interval=$(db_now as-microseconds '- 11 minutes')
 
-  q "insert into inbox values ('$user1id', '', '', 'inbox', '', ${time_interval}, 42)"
+  q "insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction) values ('$user1id', '', '', 'inbox', ${time_interval}, 42, '', 'I')"
 
   sleep 4
 
@@ -619,7 +619,7 @@ test_recently_active_mobile_user_pushed () {
 
   local time_interval=$(db_now as-microseconds '- 11 minutes')
 
-  q "insert into inbox values ('$user1id', '', '', 'inbox', '', ${time_interval}, 42)"
+  q "insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction) values ('$user1id', '', '', 'inbox', ${time_interval}, 42, '', 'I')"
 
   sleep 4
 
@@ -650,7 +650,7 @@ test_pushed_to_each_signed_in_device () {
 
   local time_interval=$(db_now as-microseconds '- 11 minutes')
 
-  q "insert into inbox values ('$user1id', '', '', 'inbox', '', ${time_interval}, 42)"
+  q "insert into inbox (luser, remote_bare_jid, msg_id, box, timestamp, unread_count, body, direction) values ('$user1id', '', '', 'inbox', ${time_interval}, 42, '', 'I')"
 
   sleep 4
 

@@ -178,7 +178,7 @@ async def _get_inbox(query_id: str, username: str) -> list[str]:
             else:
                 from_username, to_username = remote_username, owner_username
 
-            content_xml = message_string_to_etree(
+            message_xml = message_string_to_etree(
                 from_username=from_username,
                 to_username=to_username,
                 id=f"{row['msg_id']}",
@@ -194,7 +194,7 @@ async def _get_inbox(query_id: str, username: str) -> list[str]:
 
             # Build the 'forwarded' element
             forwarded_element = build_element('forwarded', ns='urn:xmpp:forward:0')
-            forwarded_element.extend([delay_element, content_xml])
+            forwarded_element.extend([delay_element, message_xml])
 
             # Build the 'result' element
             result_element = build_element(
