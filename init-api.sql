@@ -1682,10 +1682,11 @@ CREATE TABLE IF NOT EXISTS inbox (
     remote_bare_jid VARCHAR(250)     NOT NULL,
     msg_id VARCHAR(250),
     box VARCHAR(64)                  NOT NULL DEFAULT 'inbox',
-    content BYTEA                    NOT NULL,
+    content BYTEA,
     timestamp BIGINT                 NOT NULL,
     unread_count INT                 NOT NULL,
     displayed_at TIMESTAMP,
+    body TEXT,
     PRIMARY KEY(luser, remote_bare_jid)
 );
 
