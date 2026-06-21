@@ -80,6 +80,7 @@ def _canonical_to_lxml(tag: str, node: Canonical) -> etree._Element:
     return element
 
 
+@dataclass(frozen=True)
 class Outbound:
     def canonical(self) -> dict:
         raise NotImplementedError

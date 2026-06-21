@@ -218,6 +218,7 @@ def _try_mam(el: Element) -> MamQuery | None:
 
 
 def _try_inbox(el: Element) -> InboxQuery | None:
+    inbox: Element | None
     if el.tag == 'inbox':
         inbox = el
     elif el.tag == 'iq':

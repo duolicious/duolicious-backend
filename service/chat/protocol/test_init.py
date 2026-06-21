@@ -130,7 +130,7 @@ class TestOutboundInvariant(unittest.TestCase):
 
 
 class TestInboundParsing(unittest.TestCase):
-    def _both(self, xml: str, js: str):
+    def _both(self, xml: str, js: str) -> tuple[object, object]:
         return parse_incoming(xml, 'xmpp'), parse_incoming(js, 'json')
 
     def test_ping(self) -> None:
@@ -202,7 +202,7 @@ class TestInboundParsing(unittest.TestCase):
             f'<message type="chat" from="{U1}@{LSERVER}" to="{U2}@{LSERVER}" '
             f'id="id1" audio_base64="QQ==" xmlns="jabber:client"/>')
         msg = parse_incoming(xml, 'xmpp')
-        self.assertIsInstance(msg, AudioMessage)
+        assert isinstance(msg, AudioMessage)
         self.assertEqual(msg.audio_base64, 'QQ==')
 
     def test_mark_displayed(self) -> None:

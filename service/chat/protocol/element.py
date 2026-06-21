@@ -78,7 +78,7 @@ def _from_lxml(node: etree._Element) -> Element:
     return Element(
         tag=qname.localname,
         ns=qname.namespace,
-        attrib=tuple(node.attrib.items()),
+        attrib=tuple((str(k), str(v)) for k, v in node.attrib.items()),
         text=node.text,
         children=children,
     )
