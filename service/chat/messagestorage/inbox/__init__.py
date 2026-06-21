@@ -32,6 +32,7 @@ WITH upsert_sender AS (
         box,
         content,
         body,
+        direction,
         timestamp,
         unread_count
     )
@@ -42,6 +43,9 @@ WITH upsert_sender AS (
         'chats',
         %(content)s,
         %(body)s,
+        -- The sender's own copy: remote_bare_jid is the recipient (the To), so
+        -- the message is outgoing.
+        'O'::mam_direction,
         EXTRACT(EPOCH FROM NOW()) * 1e6,
         0
     )
@@ -51,6 +55,7 @@ WITH upsert_sender AS (
         box = 'chats',
         content = EXCLUDED.content,
         body = EXCLUDED.body,
+        direction = EXCLUDED.direction,
         timestamp = EXCLUDED.timestamp,
         unread_count = 0
 ), upsert_recipient AS (
@@ -65,6 +70,7 @@ WITH upsert_sender AS (
         box,
         content,
         body,
+        direction,
         timestamp,
         unread_count
     )
@@ -75,6 +81,9 @@ WITH upsert_sender AS (
         'inbox',
         %(content)s,
         %(body)s,
+        -- The recipient's copy: remote_bare_jid is the sender (the From), so
+        -- the message is incoming.
+        'I'::mam_direction,
         EXTRACT(EPOCH FROM NOW()) * 1e6,
         1
     WHERE
@@ -85,6 +94,7 @@ WITH upsert_sender AS (
         box = 'chats',
         content = EXCLUDED.content,
         body = EXCLUDED.body,
+        direction = EXCLUDED.direction,
         timestamp = EXCLUDED.timestamp,
         unread_count = COALESCE(inbox.unread_count, 0) + 1
 )

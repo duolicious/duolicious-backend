@@ -417,6 +417,23 @@ diff -u --color <(echo "$actual_inbox_1") <(echo "$expected_inbox_1")
 diff -u --color <(echo "$actual_inbox_2") <(echo "$expected_inbox_2")
 diff -u --color <(echo "$actual_inbox_3") <(echo "$expected_inbox_3")
 
+echo "The direction column is forward-filled when users message each other"
+
+# Every inbox row the chat service writes should now carry a direction.
+null_directions=$(q "select count(*) from inbox where direction is null")
+[[ "$null_directions" == "0" ]] || { echo "Expected no null directions, found $null_directions"; exit 1; }
+
+# user1 only ever received messages, so both of their rows are incoming ('I').
+user1_incoming=$(q "select count(*) from inbox where luser = '${user1uuid}' and direction = 'I'")
+[[ "$user1_incoming" == "2" ]] || { echo "Expected user1 to have 2 incoming rows, got $user1_incoming"; exit 1; }
+
+user1_outgoing=$(q "select count(*) from inbox where luser = '${user1uuid}' and direction = 'O'")
+[[ "$user1_outgoing" == "0" ]] || { echo "Expected user1 to have 0 outgoing rows, got $user1_outgoing"; exit 1; }
+
+# The sender's own copy of a message is outgoing ('O').
+u2_to_u1_direction=$(q "select direction from inbox where luser = '${user2uuid}' and remote_bare_jid = '${user1uuid}@duolicious.app'")
+[[ "$u2_to_u1_direction" == "O" ]] || { echo "Expected user2's row about user1 to be outgoing, got '$u2_to_u1_direction'"; exit 1; }
+
 echo "Marking a message displayed updates the inbox"
 
 mark_displayed "$user1uuid" "$user1token" "$user2uuid"
