@@ -7,6 +7,7 @@ from service.chat.chatutil import (
     LSERVER,
     build_element,
     format_timestamp,
+    message_string_to_etree,
 )
 
 INBOX_CONTENT_ENCODING = 'utf-8'
@@ -174,10 +175,24 @@ async def _get_inbox(query_id: str, username: str) -> list[str]:
     messages: list[str] = []
     for row in rows:
         try:
-            # Parse the content
-            content_bytes = row['content']
-            content_str = content_bytes.decode(INBOX_CONTENT_ENCODING)
-            content_xml = etree.fromstring(content_str)
+            body = row['body']
+            if not body:
+                continue
+
+            owner_username = row['luser']
+            remote_username = row['remote_bare_jid'].split('@', 1)[0]
+
+            if row['direction'] == 'O':
+                from_username, to_username = owner_username, remote_username
+            else:
+                from_username, to_username = remote_username, owner_username
+
+            content_xml = message_string_to_etree(
+                from_username=from_username,
+                to_username=to_username,
+                id=f"{row['msg_id']}",
+                message_body=body,
+            )
 
             # Build the 'delay' element
             delay_element = build_element(
