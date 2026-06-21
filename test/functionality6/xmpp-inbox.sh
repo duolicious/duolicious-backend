@@ -476,6 +476,49 @@ user1_incoming_backfilled=$(q "select count(*) from inbox where luser = '${user1
 u2_to_u1_backfilled=$(q "select direction from inbox where luser = '${user2uuid}' and remote_bare_jid = '${user1uuid}@duolicious.app'")
 [[ "$u2_to_u1_backfilled" == "O" ]] || { echo "Expected user2's row about user1 to be outgoing after back-fill, got '$u2_to_u1_backfilled'"; exit 1; }
 
+echo "Direction is back-filled from legacy numeric-id JIDs via the person table"
+
+# `content` predating UUID JIDs stores numeric person-id JIDs (e.g.
+# '107514@...') that don't match the row's UUID luser/remote_bare_jid, so the
+# back-fill must resolve them through the `person` table. Manufacture such a
+# row: a message whose `from` is user1's numeric person id, addressed to a fresh
+# owner, with NULL body/direction.
+user1id=$(q "select id from person where uuid = '${user1uuid}'")
+numeric_luser="numeric-jid-test-${RANDOM}"
+numeric_content='<message type="chat" from="'"${user1id}"'@duolicious.app" to="'"${numeric_luser}"'@duolicious.app" id="legacynum" xmlns="jabber:client"><body>legacy numeric jid body</body><request xmlns="urn:xmpp:receipts"/></message>'
+
+q "
+insert into inbox (luser, remote_bare_jid, msg_id, box, content, body, direction, timestamp, unread_count)
+values (
+  '${numeric_luser}',
+  '${user1uuid}@duolicious.app',
+  'legacynum',
+  'chats',
+  convert_to('${numeric_content}', 'UTF8'),
+  null,
+  null,
+  1,
+  0
+)
+"
+
+docker exec \
+  -e DUO_CRON_INBOX_BODY_BACKFILL_ENABLED=1 \
+  -e DUO_CRON_INBOX_BODY_BACKFILL_POLL_SECONDS=0 \
+  "$(docker ps | grep api- | cut -d ' ' -f 1)" \
+  python3 -c 'import asyncio; from backfill.inbox_body import backfill_inbox_body_forever; asyncio.run(backfill_inbox_body_forever())'
+
+numeric_body=$(q "select body from inbox where luser = '${numeric_luser}'")
+[[ "$numeric_body" == "legacy numeric jid body" ]] || { echo "Expected body back-filled from numeric-jid content, got '${numeric_body}'"; exit 1; }
+
+# `from` resolves (via the person table) to user1 -- the remote party -- so the
+# message is incoming for this owner.
+numeric_direction=$(q "select direction from inbox where luser = '${numeric_luser}'")
+[[ "$numeric_direction" == "I" ]] || { echo "Expected direction 'I' resolved via the person table, got '${numeric_direction}'"; exit 1; }
+
+# Remove the synthetic row so it doesn't affect later assertions.
+q "delete from inbox where luser = '${numeric_luser}'"
+
 echo "Marking a message displayed updates the inbox"
 
 mark_displayed "$user1uuid" "$user1token" "$user2uuid"
