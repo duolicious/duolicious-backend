@@ -1682,16 +1682,14 @@ CREATE TABLE IF NOT EXISTS inbox (
     remote_bare_jid VARCHAR(250)     NOT NULL,
     msg_id VARCHAR(250),
     box VARCHAR(64)                  NOT NULL DEFAULT 'inbox',
-    content BYTEA,
     timestamp BIGINT                 NOT NULL,
     unread_count INT                 NOT NULL,
     displayed_at TIMESTAMP,
-    body TEXT,
+    body TEXT                        NOT NULL,
     -- Direction of the last message, mirroring `mam_message.direction`:
     --   I - incoming, remote_bare_jid is a value from From.
     --   O - outgoing, remote_bare_jid is a value from To.
-    -- Nullable while it's forward-/back-filled alongside `body`.
-    direction mam_direction,
+    direction mam_direction          NOT NULL,
     PRIMARY KEY(luser, remote_bare_jid)
 );
 
