@@ -10,8 +10,6 @@ from service.chat.chatutil import (
     message_string_to_etree,
 )
 
-INBOX_CONTENT_ENCODING = 'utf-8'
-
 Q_GET_INBOX = f"""
 SELECT
     *
@@ -31,7 +29,6 @@ WITH upsert_sender AS (
         remote_bare_jid,
         msg_id,
         box,
-        content,
         body,
         direction,
         timestamp,
@@ -42,7 +39,6 @@ WITH upsert_sender AS (
         %(recipient_jid)s,
         %(msg_id)s,
         'chats',
-        %(content)s,
         %(body)s,
         -- The sender's own copy: remote_bare_jid is the recipient (the To), so
         -- the message is outgoing.
@@ -54,7 +50,6 @@ WITH upsert_sender AS (
     DO UPDATE SET
         msg_id = EXCLUDED.msg_id,
         box = 'chats',
-        content = EXCLUDED.content,
         body = EXCLUDED.body,
         direction = EXCLUDED.direction,
         timestamp = EXCLUDED.timestamp,
@@ -69,7 +64,6 @@ WITH upsert_sender AS (
         remote_bare_jid,
         msg_id,
         box,
-        content,
         body,
         direction,
         timestamp,
@@ -80,7 +74,6 @@ WITH upsert_sender AS (
         %(sender_jid)s,
         %(msg_id)s,
         'inbox',
-        %(content)s,
         %(body)s,
         -- The recipient's copy: remote_bare_jid is the sender (the From), so
         -- the message is incoming.
@@ -93,7 +86,6 @@ WITH upsert_sender AS (
     DO UPDATE SET
         msg_id = EXCLUDED.msg_id,
         box = 'chats',
-        content = EXCLUDED.content,
         body = EXCLUDED.body,
         direction = EXCLUDED.direction,
         timestamp = EXCLUDED.timestamp,
@@ -123,7 +115,6 @@ class UpsertConversationJob:
     from_username: str
     to_username: str
     msg_id: str
-    content: bytes
     body: str
     deliver_to_recipient: bool = True
 
@@ -259,7 +250,6 @@ def process_upsert_conversation_batch(tx: Tx, batch: list[UpsertConversationJob]
             sender_jid=f"{job.from_username}@{LSERVER}",
             recipient_jid=f"{job.to_username}@{LSERVER}",
             msg_id=job.msg_id,
-            content=job.content,
             body=job.body,
             deliver_to_recipient=job.deliver_to_recipient,
         )

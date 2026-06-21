@@ -1,5 +1,4 @@
 from service.chat.messagestorage.inbox import (
-        INBOX_CONTENT_ENCODING,
         UpsertConversationJob,
         process_upsert_conversation_batch,
 )
@@ -13,12 +12,8 @@ from batcher import Batcher
 from database import api_tx
 from service.chat.message import AudioMessage, ChatMessage
 from typing import Awaitable, Callable
-from lxml import etree
 from dataclasses import dataclass
 import datetime
-from service.chat.chatutil import (
-    message_string_to_etree,
-)
 
 
 @dataclass(frozen=True)
@@ -42,17 +37,6 @@ def store_message(
     if timestamp_microseconds is None:
         timestamp_microseconds = int(datetime.datetime.now().timestamp() * 1_000_000)
 
-    content = etree.tostring(
-        message_string_to_etree(
-            message_body=message.body,
-            to_username=to_username,
-            from_username=from_username,
-            id=msg_id,
-        ),
-        encoding='unicode',
-        pretty_print=False,
-    ).encode(INBOX_CONTENT_ENCODING)
-
     job = StoreMessageJob(
         store_mam_message_job=StoreMamMessageJob(
             timestamp_microseconds=timestamp_microseconds,
@@ -71,7 +55,6 @@ def store_message(
             from_username=from_username,
             to_username=to_username,
             msg_id=msg_id,
-            content=content,
             body=message.body,
             deliver_to_recipient=deliver_to_recipient,
         ),
