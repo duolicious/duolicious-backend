@@ -72,6 +72,7 @@ def store_message(
             to_username=to_username,
             msg_id=msg_id,
             content=content,
+            body=message.body,
             deliver_to_recipient=deliver_to_recipient,
         ),
         messaged_job=SetMessagedJob(
