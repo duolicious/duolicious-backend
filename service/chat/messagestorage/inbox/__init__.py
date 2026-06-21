@@ -31,6 +31,7 @@ WITH upsert_sender AS (
         msg_id,
         box,
         content,
+        body,
         timestamp,
         unread_count
     )
@@ -40,6 +41,7 @@ WITH upsert_sender AS (
         %(msg_id)s,
         'chats',
         %(content)s,
+        %(body)s,
         EXTRACT(EPOCH FROM NOW()) * 1e6,
         0
     )
@@ -48,6 +50,7 @@ WITH upsert_sender AS (
         msg_id = EXCLUDED.msg_id,
         box = 'chats',
         content = EXCLUDED.content,
+        body = EXCLUDED.body,
         timestamp = EXCLUDED.timestamp,
         unread_count = 0
 ), upsert_recipient AS (
@@ -61,6 +64,7 @@ WITH upsert_sender AS (
         msg_id,
         box,
         content,
+        body,
         timestamp,
         unread_count
     )
@@ -70,6 +74,7 @@ WITH upsert_sender AS (
         %(msg_id)s,
         'inbox',
         %(content)s,
+        %(body)s,
         EXTRACT(EPOCH FROM NOW()) * 1e6,
         1
     WHERE
@@ -79,6 +84,7 @@ WITH upsert_sender AS (
         msg_id = EXCLUDED.msg_id,
         box = 'chats',
         content = EXCLUDED.content,
+        body = EXCLUDED.body,
         timestamp = EXCLUDED.timestamp,
         unread_count = COALESCE(inbox.unread_count, 0) + 1
 )
@@ -107,6 +113,7 @@ class UpsertConversationJob:
     to_username: str
     msg_id: str
     content: bytes
+    body: str
     deliver_to_recipient: bool = True
 
 
@@ -228,6 +235,7 @@ def process_upsert_conversation_batch(tx: Tx, batch: list[UpsertConversationJob]
             recipient_jid=f"{job.to_username}@{LSERVER}",
             msg_id=job.msg_id,
             content=job.content,
+            body=job.body,
             deliver_to_recipient=job.deliver_to_recipient,
         )
         for job in batch
