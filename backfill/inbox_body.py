@@ -11,8 +11,14 @@ convenient in-database way to pull data out of it, so extraction has to happen
 in Python. `extract_body` mirrors the read path in
 `service.chat.message.xml_to_message` (the stripped `<body>` text), and
 `extract_direction` mirrors the write path in
-`service.chat.messagestorage.inbox` (whether the row's `remote_bare_jid` is the
-message's From -> 'I' incoming, or its To -> 'O' outgoing).
+`service.chat.messagestorage.inbox` (whether the message is from the remote
+party -> 'I' incoming, or from the owner -> 'O' outgoing).
+
+Deriving `direction` is complicated by history: legacy `content` from before
+JIDs became UUIDs stores numeric person-id JIDs (e.g. `107514@...`), which don't
+match the row's UUID `luser`/`remote_bare_jid`. Each batch therefore resolves
+those numeric ids to UUIDs via a `person` lookup, and matches against both
+participants so direction survives even when one account has since been deleted.
 
 It runs as a cron job (`backfill_inbox_body_forever`, wired into
 `service.cron`) so it can be executed by flipping an env var rather than running
@@ -97,39 +103,79 @@ def _body_from_root(root: etree._Element | None) -> str | None:
     return body or None
 
 
-def _bare_jid(jid: str | None) -> str | None:
-    """Strip any resource (`/...`) from a JID, leaving `user@domain`."""
+def _localpart(jid: str | None) -> str | None:
+    """Return a JID's localpart, dropping any resource and domain
+    (`user@domain/res` -> `user`)."""
     if not jid:
         return None
-    return jid.split('/', 1)[0] or None
+    return jid.split('/', 1)[0].split('@', 1)[0] or None
+
+
+def _resolve(localpart: str | None, id_to_uuid: dict[str, str]) -> str | None:
+    """
+    Canonicalise a JID localpart to a person UUID. Legacy `content` predating
+    the switch to UUID JIDs stores numeric person-id JIDs (e.g. `107514@...`);
+    map those to the person's UUID so they can be compared against the row's
+    (UUID-based) `luser`/`remote_bare_jid`. Already-UUID localparts -- and
+    numeric ids with no mapping (e.g. deleted accounts) -- are returned
+    unchanged.
+    """
+    if localpart is None:
+        return None
+    return id_to_uuid.get(localpart, localpart)
+
+
+def _numeric_ids_in_root(root: etree._Element | None) -> set[str]:
+    """Numeric person-id localparts in the message's `from`/`to`, which need
+    mapping to UUIDs (see `_resolve`) before they can be matched."""
+    if root is None:
+        return set()
+    ids: set[str] = set()
+    for attr in ('from', 'to'):
+        localpart = _localpart(root.get(attr))
+        if localpart is not None and localpart.isdigit():
+            ids.add(localpart)
+    return ids
 
 
 def _direction_from_root(
     root: etree._Element | None,
+    luser: str,
     remote_bare_jid: str,
+    id_to_uuid: dict[str, str],
 ) -> str | None:
     """
     Derive the `mam_direction` of the last message from the legacy `content`
-    XML's `from`/`to`, relative to the row's `remote_bare_jid`:
+    XML's `from`/`to`:
 
-      * 'I' (incoming): remote_bare_jid is the message's From.
-      * 'O' (outgoing): remote_bare_jid is the message's To.
+      * 'I' (incoming): the message is from the remote party / to the owner.
+      * 'O' (outgoing): the message is from the owner / to the remote party.
 
-    Both inbox rows of a conversation store the same message, so this yields 'I'
-    for the recipient's copy and 'O' for the sender's, matching the forward-fill
-    in `service.chat.messagestorage.inbox`. Returns `None` when neither side
-    matches (e.g. malformed content).
+    Both the message's `from`/`to` and the row's `luser`/`remote_bare_jid` are
+    canonicalised to person UUIDs (see `_resolve`) before comparing, because
+    legacy rows store numeric person-id JIDs that predate UUID JIDs. We match
+    against *both* the owner and the remote party so direction stays recoverable
+    when one participant's account has since been deleted (its numeric id no
+    longer maps to a UUID, but the other side still does). This yields 'I' for
+    the recipient's copy and 'O' for the sender's, matching the forward-fill in
+    `service.chat.messagestorage.inbox`. Returns `None` only when neither side
+    can be matched (e.g. malformed content, or both participants deleted).
     """
     if root is None:
         return None
 
-    remote = _bare_jid(remote_bare_jid)
-    if remote is None:
-        return None
+    owner = _localpart(luser)
+    remote = _localpart(remote_bare_jid)
 
-    if _bare_jid(root.get('from')) == remote:
+    from_party = _resolve(_localpart(root.get('from')), id_to_uuid)
+    to_party = _resolve(_localpart(root.get('to')), id_to_uuid)
+
+    if (remote is not None and from_party == remote) or \
+            (owner is not None and to_party == owner):
         return 'I'
-    if _bare_jid(root.get('to')) == remote:
+
+    if (owner is not None and from_party == owner) or \
+            (remote is not None and to_party == remote):
         return 'O'
 
     return None
@@ -146,13 +192,19 @@ def extract_body(content: bytes | memoryview | str | None) -> str | None:
 
 def extract_direction(
     content: bytes | memoryview | str | None,
+    luser: str,
     remote_bare_jid: str,
+    id_to_uuid: dict[str, str] | None = None,
 ) -> str | None:
     """
     Return the `mam_direction` ('I'/'O') of an `inbox.content` value relative to
-    `remote_bare_jid`, or `None` when it can't be determined.
+    the row's `luser`/`remote_bare_jid`, or `None` when it can't be determined.
+    `id_to_uuid` maps legacy numeric person ids to UUIDs (see `_resolve`); pass
+    the mapping for the message's participants, or omit it when `content`
+    already uses UUID JIDs.
     """
-    return _direction_from_root(_parse_content(content), remote_bare_jid)
+    return _direction_from_root(
+        _parse_content(content), luser, remote_bare_jid, id_to_uuid or {})
 
 
 print(f'Hello from cron module: {__name__}')
@@ -233,6 +285,22 @@ async def _connect() -> _Conn:
     )
 
 
+async def _fetch_id_to_uuid(
+    conn: _Conn,
+    numeric_ids: set[str],
+) -> dict[str, str]:
+    """Map legacy numeric person ids (as strings) to their UUIDs. Returns only
+    the ids that still exist; deleted accounts are simply absent."""
+    if not numeric_ids:
+        return {}
+    async with conn.cursor() as cur:
+        await cur.execute(
+            'SELECT id, uuid FROM person WHERE id = ANY(%(ids)s)',
+            dict(ids=[int(i) for i in numeric_ids]),
+        )
+        return {str(person_id): str(uuid) for person_id, uuid in await cur.fetchall()}
+
+
 async def _backfill_batch(
     conn: _Conn,
     after: tuple[str, str],
@@ -252,14 +320,25 @@ async def _backfill_batch(
     if not rows:
         return None
 
+    # Parse once, then resolve the numeric person-id JIDs in legacy `content`
+    # to UUIDs with a single `person` lookup for the whole batch.
+    parsed: list[tuple[str, str, etree._Element | None]] = []
+    numeric_ids: set[str] = set()
+    for luser, remote_bare_jid, content in rows:
+        root = _parse_content(content)
+        parsed.append((luser, remote_bare_jid, root))
+        numeric_ids |= _numeric_ids_in_root(root)
+
+    id_to_uuid = await _fetch_id_to_uuid(conn, numeric_ids)
+
     lusers: list[str] = []
     remote_bare_jids: list[str] = []
     bodies: list[str | None] = []
     directions: list[str | None] = []
-    for luser, remote_bare_jid, content in rows:
-        root = _parse_content(content)
+    for luser, remote_bare_jid, root in parsed:
         body = _body_from_root(root)
-        direction = _direction_from_root(root, remote_bare_jid)
+        direction = _direction_from_root(
+            root, luser, remote_bare_jid, id_to_uuid)
         if body is None and direction is None:
             continue
         lusers.append(luser)

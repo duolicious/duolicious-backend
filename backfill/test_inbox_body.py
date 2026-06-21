@@ -109,18 +109,30 @@ class TestExtractBody(unittest.TestCase):
 
 
 class TestExtractDirection(unittest.TestCase):
-    # `_content` builds a message from "a@duolicious.app" to "b@duolicious.app",
-    # so the row whose remote party is "a" received it (incoming, 'I') and the
-    # row whose remote party is "b" sent it (outgoing, 'O') -- matching the
-    # forward-fill in `service.chat.messagestorage.inbox`.
+    # `_content` builds a message from "a@duolicious.app" to "b@duolicious.app".
+    # Direction is relative to the row's owner (`luser`): the owner who received
+    # the message ("b") sees it incoming ('I'); the owner who sent it ("a") sees
+    # it outgoing ('O') -- matching the forward-fill in
+    # `service.chat.messagestorage.inbox`.
 
-    def test_incoming_when_remote_is_from(self) -> None:
+    def test_incoming_for_recipient(self) -> None:
         self.assertEqual(
-            extract_direction(_content('hi'), 'a@duolicious.app'), 'I')
+            extract_direction(
+                _content('hi'), 'b@duolicious.app', 'a@duolicious.app'),
+            'I',
+        )
 
-    def test_outgoing_when_remote_is_to(self) -> None:
+    def test_outgoing_for_sender(self) -> None:
         self.assertEqual(
-            extract_direction(_content('hi'), 'b@duolicious.app'), 'O')
+            extract_direction(
+                _content('hi'), 'a@duolicious.app', 'b@duolicious.app'),
+            'O',
+        )
+
+    def test_luser_has_no_domain(self) -> None:
+        # Real `inbox.luser` values are bare uuids with no `@domain`.
+        self.assertEqual(
+            extract_direction(_content('hi'), 'b', 'a@duolicious.app'), 'I')
 
     def test_legacy_single_quote_attributes(self) -> None:
         content = (
@@ -128,8 +140,12 @@ class TestExtractDirection(unittest.TestCase):
             "to='b@duolicious.app' id='abc' xmlns='jabber:client'>"
             "<body>hi</body></message>"
         ).encode('utf-8')
-        self.assertEqual(extract_direction(content, 'a@duolicious.app'), 'I')
-        self.assertEqual(extract_direction(content, 'b@duolicious.app'), 'O')
+        self.assertEqual(
+            extract_direction(content, 'b@duolicious.app', 'a@duolicious.app'),
+            'I')
+        self.assertEqual(
+            extract_direction(content, 'a@duolicious.app', 'b@duolicious.app'),
+            'O')
 
     def test_ignores_resource_in_jid(self) -> None:
         content = (
@@ -137,18 +153,74 @@ class TestExtractDirection(unittest.TestCase):
             'to="b@duolicious.app/web" id="x" type="chat">'
             '<body>hi</body></message>'
         ).encode('utf-8')
-        self.assertEqual(extract_direction(content, 'a@duolicious.app'), 'I')
-        self.assertEqual(extract_direction(content, 'b@duolicious.app'), 'O')
+        self.assertEqual(
+            extract_direction(content, 'b@duolicious.app', 'a@duolicious.app'),
+            'I')
+        self.assertEqual(
+            extract_direction(content, 'a@duolicious.app', 'b@duolicious.app'),
+            'O')
 
     def test_no_match_returns_none(self) -> None:
-        self.assertIsNone(extract_direction(_content('hi'), 'c@duolicious.app'))
+        # Neither participant is the owner or the remote party.
+        self.assertIsNone(
+            extract_direction(
+                _content('hi'), 'c@duolicious.app', 'd@duolicious.app'))
 
     def test_none_content(self) -> None:
-        self.assertIsNone(extract_direction(None, 'a@duolicious.app'))
+        self.assertIsNone(
+            extract_direction(None, 'a@duolicious.app', 'b@duolicious.app'))
 
     def test_undecodable(self) -> None:
         self.assertIsNone(
-            extract_direction(b'\xff\xfe not xml', 'a@duolicious.app'))
+            extract_direction(
+                b'\xff\xfe not xml', 'a@duolicious.app', 'b@duolicious.app'))
+
+
+class TestExtractDirectionLegacyNumericJids(unittest.TestCase):
+    # Legacy `content` from before JIDs became UUIDs stores numeric person-id
+    # JIDs that don't match the row's UUID `luser`/`remote_bare_jid`. The
+    # id->uuid map (built per batch from a `person` lookup) bridges them. Here
+    # person 107514 is the sender (U1) and 96557 the recipient (U2).
+    U1 = '3b17f9da-b7ed-4ead-997a-dfa082780001'
+    U2 = '464deae1-cd2f-47a4-9648-9c5a7087e200'
+    ID_TO_UUID = {'107514': U1, '96557': U2}
+
+    def _numeric_content(self) -> bytes:
+        return (
+            "<message type='chat' from='107514@duolicious.app' "
+            "to='96557@duolicious.app' id='x' xmlns='jabber:client'>"
+            "<body>hi</body></message>"
+        ).encode('utf-8')
+
+    def test_incoming_for_recipient(self) -> None:
+        self.assertEqual(
+            extract_direction(
+                self._numeric_content(), self.U2,
+                f'{self.U1}@duolicious.app', self.ID_TO_UUID),
+            'I')
+
+    def test_outgoing_for_sender(self) -> None:
+        self.assertEqual(
+            extract_direction(
+                self._numeric_content(), self.U1,
+                f'{self.U2}@duolicious.app', self.ID_TO_UUID),
+            'O')
+
+    def test_resolves_via_owner_when_remote_deleted(self) -> None:
+        # The remote party (sender, 107514) was deleted, so its id has no
+        # mapping; direction is still recovered from the owner (recipient) side.
+        self.assertEqual(
+            extract_direction(
+                self._numeric_content(), self.U2,
+                f'{self.U1}@duolicious.app', {'96557': self.U2}),
+            'I')
+
+    def test_unresolved_when_both_deleted(self) -> None:
+        # Neither participant maps to a UUID, so direction can't be determined.
+        self.assertIsNone(
+            extract_direction(
+                self._numeric_content(), self.U2,
+                f'{self.U1}@duolicious.app', {}))
 
 
 if __name__ == '__main__':
