@@ -18,15 +18,14 @@ from collections.abc import Iterable, Mapping
 from typing import Tuple, Callable, Tuple
 from datetime import datetime, timezone
 from service.chat.robot9000 import Q_SELECT_INTRO_HASH, upsert_intro_hash
-from service.chat.mayberegister import maybe_register
+from service.chat.mayberegister import register_push_token
 from service.chat.spam import is_spam_message
 from service.chat.upsertlastnotification import upsert_last_notification
-from service.chat.xmlparse import parse_xml_or_none
 from service.chat.messagestorage.inbox import (
-    maybe_get_inbox,
-    maybe_mark_displayed,
+    get_inbox,
+    mark_displayed,
 )
-from service.chat.messagestorage.mam import maybe_get_conversation
+from service.chat.messagestorage.mam import get_conversation
 from service.chat.messagestorage import store_message
 from service.chat.session import (
     Session,
@@ -41,15 +40,11 @@ from service.chat.online import (
 from service.chat.ratelimit import (
     maybe_fetch_rate_limit,
 )
-from lxml import etree
 from service.chat.chatutil import (
     fetch_is_skipped,
     fetch_is_shadow_banned,
     fetch_has_gold,
     format_timestamp,
-    message_string_to_etree,
-    read_receipt_stanza,
-    to_bare_jid,
     fetch_id_from_username,
 )
 from service.chat.message import (
@@ -57,7 +52,32 @@ from service.chat.message import (
     ChatMessage,
     Message,
     TypingMessage,
-    xml_to_message,
+)
+from service.chat.protocol import (
+    InboxQuery,
+    MamQuery,
+    MarkDisplayed,
+    Ping,
+    RegisterPushToken,
+    SessionRequest,
+    SubscribeOnline,
+    UnsubscribeOnline,
+    parse_incoming,
+)
+from service.chat.protocol.outbound import (
+    IncomingChat,
+    IncomingTyping,
+    MessageBlocked,
+    MessageDelivered,
+    MessageNotUnique,
+    MessageTooLong,
+    Outbound,
+    Pong,
+    ReadReceipt,
+    RegistrationSuccessful,
+    ServerError,
+    from_bus,
+    to_bus,
 )
 from service.chat.audiomessage import (
     transcode_and_put,
@@ -65,14 +85,12 @@ from service.chat.audiomessage import (
 import redis.asyncio as redis
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
-import xmltodict
 import json
 from constants import (
     MAX_NOTIFICATION_LENGTH,
 )
 from util import truncate_text
 from service.chat.verification import (
-    FMT_VERIFICATION_REQUIRED,
     verification_required,
 )
 
@@ -85,10 +103,6 @@ REDIS_WORKER_CLIENT: redis.Redis = redis.Redis(
         host=REDIS_HOST,
         port=REDIS_PORT,
         decode_responses=True)
-
-InputMiddleware = Callable[[str], etree._Element | None]
-OutputMiddleware = Callable[[str], str]
-Middleware = Tuple[InputMiddleware, OutputMiddleware]
 
 Q_HAS_MESSAGE = """
 SELECT
@@ -190,20 +204,24 @@ async def redis_publish(channel: str, message: str) -> None:
     await REDIS_WORKER_CLIENT.publish(channel, message)
 
 
-async def redis_publish_many(channel: str, messages: Iterable[str]) -> object | None:
+async def redis_publish_many(
+    channel: str,
+    messages: Iterable[Outbound],
+) -> object | None:
     for message in messages:
-        await redis_publish(channel, message)
+        await redis_publish(channel, to_bus(message))
     return None
 
 
 async def redis_forward_to_websocket(
     pubsub: redis.client.PubSub,
-    middleware: OutputMiddleware,
+    subprotocol: str,
     websocket: WebSocket
 ) -> None:
     """
-    Listens on the Redis subscription channel and forwards any messages
-    to the connected websocket client.
+    Listens on the Redis subscription channel and forwards any messages to the
+    connected websocket client, rendering each protocol-neutral bus payload to
+    the connection's wire format (JSON or XML).
     """
     try:
         async for message in pubsub.listen():
@@ -211,7 +229,11 @@ async def redis_forward_to_websocket(
                 continue
 
             try:
-                data = middleware(message['data'])
+                outbound = from_bus(message['data'])
+                data = (
+                    outbound.to_json()
+                    if subprotocol == 'json'
+                    else outbound.to_xml())
             except:
                 continue
 
@@ -278,10 +300,6 @@ def is_text_too_long(message: Message) -> bool:
         return len(message.body) > MAX_MESSAGE_LEN
     else:
         return False
-
-
-def is_ping(parsed_xml: object) -> bool:
-    return getattr(parsed_xml, 'tag', None) == 'duo_ping'
 
 
 def estimated_used_count(measured_count: int, ramp_at: int = 3333) -> int:
@@ -376,91 +394,74 @@ async def fetch_immediate_data(
 
     return row if row else None
 
-def get_middleware(subprotocol: str) -> Middleware:
-    if subprotocol == 'json':
-        def input_middleware(text: str) -> etree._Element | None:
-            json_data = json.loads(text)
-            xml_str = xmltodict.unparse(json_data, full_document=False)
-            return parse_xml_or_none(xml_str)
-
-        def output_middleware(text: str) -> str:
-            if text == '</stream:stream>':
-                return '{"stream": null}'
-
-            dict_obj = xmltodict.parse(text)
-            return json.dumps(dict_obj)
-    else:
-        def input_middleware(text: str) -> etree._Element | None:
-            return parse_xml_or_none(text)
-
-        def output_middleware(text: str) -> str:
-            return text
-
-    return input_middleware, output_middleware
-
 async def process_text(
     session: Session,
-    middleware: InputMiddleware,
+    protocol: str,
     pubsub: redis.client.PubSub,
     text: str
 ) -> object | None:
     from_username = session.username
     connection_uuid = session.connection_uuid
 
-    parsed_xml = middleware(text)
+    parsed = parse_incoming(text, protocol)
 
-    if parsed_xml is None:
+    if parsed is None:
         return None
 
-    maybe_session_response = await maybe_get_session_response(
-            parsed_xml, session)
+    if isinstance(parsed, SessionRequest):
+        return await redis_publish_many(
+                connection_uuid,
+                await maybe_get_session_response(parsed, session))
 
-    if maybe_session_response:
-        return await redis_publish_many(connection_uuid, maybe_session_response)
-
-    if is_ping(parsed_xml):
-        return await redis_publish_many(connection_uuid, [
-            '<duo_pong preferred_interval="10000" preferred_timeout="5000" />',
-        ])
+    if isinstance(parsed, Ping):
+        return await redis_publish_many(connection_uuid, [Pong()])
 
     # Online-status subscriptions are handled before the authentication gate so
     # that logged-out viewers can see the online status of public profiles. The
     # subscription handler itself restricts unauthenticated viewers to profiles
     # which have opted in to `public_profile`.
-    maybe_subscription = await maybe_redis_subscribe_online(
-            from_username=from_username,
-            parsed_xml=parsed_xml,
-            redis_client=REDIS_WORKER_CLIENT,
-            pubsub=pubsub,
-            session=session)
-    if maybe_subscription:
-        return await redis_publish_many(connection_uuid, maybe_subscription)
+    if isinstance(parsed, SubscribeOnline):
+        return await redis_publish_many(
+                connection_uuid,
+                await maybe_redis_subscribe_online(
+                    from_username=from_username,
+                    to_username=parsed.uuid,
+                    redis_client=REDIS_WORKER_CLIENT,
+                    pubsub=pubsub,
+                    session=session))
 
-    maybe_unsubscription = await maybe_redis_unsubscribe_online(
-            parsed_xml=parsed_xml,
-            pubsub=pubsub,
-            session=session)
-    if maybe_unsubscription:
-        return await redis_publish_many(connection_uuid, maybe_unsubscription)
+    if isinstance(parsed, UnsubscribeOnline):
+        return await redis_publish_many(
+                connection_uuid,
+                await maybe_redis_unsubscribe_online(
+                    username=parsed.uuid,
+                    pubsub=pubsub,
+                    session=session))
 
     if not from_username:
         return None
 
-    if maybe_register(parsed_xml, session.session_token_hash):
-        return await redis_publish_many(connection_uuid, [
-            '<duo_registration_successful />'
-        ])
+    if isinstance(parsed, RegisterPushToken):
+        if register_push_token(parsed, session.session_token_hash):
+            return await redis_publish_many(
+                    connection_uuid, [RegistrationSuccessful()])
+        return None
 
-    maybe_conversation = await maybe_get_conversation(parsed_xml, from_username)
-    if maybe_conversation:
-        return await redis_publish_many(connection_uuid, maybe_conversation)
+    if isinstance(parsed, MamQuery):
+        return await redis_publish_many(
+                connection_uuid,
+                await get_conversation(parsed, from_username))
 
-    maybe_inbox = await maybe_get_inbox(parsed_xml, from_username)
-    if maybe_inbox:
-        return await redis_publish_many(connection_uuid, maybe_inbox)
+    if isinstance(parsed, InboxQuery):
+        return await redis_publish_many(
+                connection_uuid,
+                await get_inbox(parsed.query_id, from_username))
 
-    displayed_to = await maybe_mark_displayed(parsed_xml, from_username)
-    if displayed_to:
+    if isinstance(parsed, MarkDisplayed):
+        displayed_to = parsed.to_username
+
+        mark_displayed(from_username=from_username, to_username=displayed_to)
+
         # Nudge the original sender that their messages were read, but only if
         # they're a gold user (only gold users can view read receipts). The
         # nudge carries no timestamp: the client stamps it with its own clock,
@@ -478,14 +479,14 @@ async def process_text(
                 not await fetch_is_shadow_banned(reader_id) and \
                 await fetch_has_gold(displayed_to):
             await redis_publish_many(displayed_to, [
-                read_receipt_stanza(
+                ReadReceipt(
                     from_username=from_username,
                     to_username=displayed_to,
                 )
             ])
         return None
 
-    maybe_message = xml_to_message(parsed_xml)
+    maybe_message = parsed if isinstance(parsed, Message) else None
 
     if not maybe_message:
         return None
@@ -513,12 +514,12 @@ async def process_text(
 
     if await verification_required(person_id=from_id):
         return await redis_publish_many(connection_uuid, [
-            FMT_VERIFICATION_REQUIRED.format(stanza_id=stanza_id)
+            MessageBlocked(stanza_id=stanza_id, reason='age-verification')
         ])
 
     if await fetch_is_skipped(from_id=from_id, to_id=to_id):
         return await redis_publish_many(connection_uuid, [
-            f'<duo_message_blocked id="{stanza_id}"/>'
+            MessageBlocked(stanza_id=stanza_id)
         ])
 
     if isinstance(maybe_message, TypingMessage):
@@ -527,21 +528,16 @@ async def process_text(
             return None
 
         return await redis_publish_many(to_username, [
-            etree.tostring(
-                message_string_to_etree(
-                    to_username=to_username,
-                    from_username=from_username,
-                    id=maybe_message.stanza_id,
-                    type='typing',
-                ),
-                encoding='unicode',
-                pretty_print=False,
+            IncomingTyping(
+                from_username=from_username,
+                to_username=to_username,
+                stanza_id=maybe_message.stanza_id,
             )
         ])
 
     if is_text_too_long(maybe_message):
         return await redis_publish_many(connection_uuid, [
-            f'<duo_message_too_long id="{stanza_id}"/>'
+            MessageTooLong(stanza_id=stanza_id)
         ])
 
     is_intro = await fetch_is_intro(from_id=from_id, to_id=to_id)
@@ -551,7 +547,7 @@ async def process_text(
             is_spam_message(maybe_message) and \
             not await fetch_is_trusted_account(from_id=from_id):
         return await redis_publish_many(connection_uuid, [
-            f'<duo_message_blocked id="{stanza_id}" reason="spam"/>'
+            MessageBlocked(stanza_id=stanza_id, reason='spam')
         ])
 
     if is_intro:
@@ -565,7 +561,10 @@ async def process_text(
     used_count = await intro_use_count(maybe_message) if is_intro else 0
     if is_intro and used_count > 0:
         return await redis_publish_many(connection_uuid, [
-            f'<duo_message_not_unique id="{stanza_id}" used_count="{estimated_used_count(used_count)}"/>'
+            MessageNotUnique(
+                stanza_id=stanza_id,
+                used_count=estimated_used_count(used_count),
+            )
         ])
 
     # The same instant is used to stamp the stored message and the delivery
@@ -583,7 +582,7 @@ async def process_text(
                     audio_base64=maybe_message.audio_base64,
                 ):
             await redis_publish_many(connection_uuid, [
-                f'<duo_server_error id="{stanza_id}"/>'
+                ServerError(stanza_id=stanza_id)
             ])
             return None
 
@@ -592,16 +591,13 @@ async def process_text(
                 if isinstance(maybe_message, AudioMessage)
                 else None)
 
-        sanitized_xml = etree.tostring(
-            message_string_to_etree(
-                to_username=to_username,
-                from_username=from_username,
-                id=maybe_message.stanza_id,
-                message_body=maybe_message.body,
-                audio_uuid=audio_uuid,
-            ),
-            encoding='unicode',
-            pretty_print=False)
+        delivery_message = IncomingChat(
+            from_username=from_username,
+            to_username=to_username,
+            stanza_id=maybe_message.stanza_id,
+            body=maybe_message.body,
+            audio_uuid=audio_uuid,
+        )
 
         immediate_data = await fetch_immediate_data(
                 from_id=from_id,
@@ -631,24 +627,19 @@ async def process_text(
                 },
             )
 
-        if isinstance(maybe_message, AudioMessage):
-            response = (
-                f'<duo_message_delivered '
-                f'id="{stanza_id}" '
-                f'audio_uuid="{maybe_message.audio_uuid}" '
-                f'stamp="{sent_at_stamp}" '
-            ).strip() + '/>'
-        else:
-            response = (
-                f'<duo_message_delivered '
-                f'id="{stanza_id}" '
-                f'stamp="{sent_at_stamp}" '
-            ).strip() + '/>'
+        response = MessageDelivered(
+            stanza_id=stanza_id,
+            stamp=sent_at_stamp,
+            audio_uuid=(
+                maybe_message.audio_uuid
+                if isinstance(maybe_message, AudioMessage)
+                else None),
+        )
 
         # Don't deliver to the recipient when the sender is shadow-banned; the
         # sender still gets their delivery receipt below.
         if not is_shadow_banned:
-            await redis_publish_many(to_username, [sanitized_xml])
+            await redis_publish_many(to_username, [delivery_message])
 
         await redis_publish_many(connection_uuid, [response])
 
@@ -676,8 +667,6 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
 
     await websocket.accept(subprotocol=subprotocol)
 
-    input_middleware, output_middleware = get_middleware(subprotocol)
-
     session = Session()
 
     redis_websocket_client: redis.Redis = redis.Redis(
@@ -695,7 +684,7 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
     update_online_task = None
 
     redis_forward_to_websocket_task = asyncio.create_task(
-            redis_forward_to_websocket(pubsub, output_middleware, websocket))
+            redis_forward_to_websocket(pubsub, subprotocol, websocket))
 
     is_subscribed_by_username = False
 
@@ -706,7 +695,7 @@ async def process_websocket_messages(websocket: WebSocket) -> None:
             await asyncio.shield(
                     process_text(
                         session=session,
-                        middleware=input_middleware,
+                        protocol=subprotocol,
                         pubsub=pubsub,
                         text=text))
 

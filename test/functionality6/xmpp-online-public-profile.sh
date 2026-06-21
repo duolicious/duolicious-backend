@@ -149,11 +149,13 @@ assert_not_subscribed "$(subscribe_and_pop "$blockd_uuid")"
 # Publish an "online" event for a person directly onto their redis channel,
 # exactly as the chat service does when that person signs in. Only connections
 # still subscribed to the channel receive it. Uses the RESP multi-bulk format so
-# the XML payload (which contains spaces) survives intact.
+# the payload (which contains spaces) survives intact. The chat service now
+# carries a protocol-neutral bus payload on the wire, which the forwarder
+# renders per connection, so we publish that JSON rather than raw XML.
 publish_online () {
   local uuid=$1
   local channel="online-${uuid}"
-  local message="<duo_online_event uuid=\"${uuid}\" status=\"online\" />"
+  local message="{\"kind\": \"OnlineEvent\", \"username\": \"${uuid}\", \"status\": \"online\"}"
 
   local payload
   printf -v payload '*3\r\n$7\r\nPUBLISH\r\n$%s\r\n%s\r\n$%s\r\n%s\r\n' \

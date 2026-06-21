@@ -5,6 +5,7 @@ from service.chat.ratelimit import (
     DefaultRateLimit,
     Row,
 )
+from service.chat.protocol.outbound import MessageBlocked
 
 
 def make_row(**overrides: int) -> Row:
@@ -219,19 +220,27 @@ class TestRateLimit(unittest.TestCase):
     def test_get_stanza_unverified(self) -> None:
         self.assertEqual(
             get_stanza(DefaultRateLimit.UNVERIFIED, 'bar'),
-            ['<duo_message_blocked id="bar" reason="rate-limited-1day" subreason="unverified-basics"/>']
+            [MessageBlocked(
+                stanza_id='bar',
+                reason='rate-limited-1day',
+                subreason='unverified-basics')]
         )
 
     def test_get_stanza_basics(self) -> None:
         self.assertEqual(
             get_stanza(DefaultRateLimit.BASICS, 'baz'),
-            ['<duo_message_blocked id="baz" reason="rate-limited-1day" subreason="unverified-photos"/>']
+            [MessageBlocked(
+                stanza_id='baz',
+                reason='rate-limited-1day',
+                subreason='unverified-photos')]
         )
 
     def test_get_stanza_photos(self) -> None:
         self.assertEqual(
             get_stanza(DefaultRateLimit.PHOTOS, 'qux'),
-            ['<duo_message_blocked id="qux" reason="rate-limited-1day"/>']
+            [MessageBlocked(
+                stanza_id='qux',
+                reason='rate-limited-1day')]
         )
 
     def test_get_stanza_unhandled_enum(self) -> None:

@@ -1,8 +1,8 @@
 from database import api_tx
 from dataclasses import dataclass
 from typing import Optional, Iterable
-from lxml import etree
 from batcher import Batcher
+from service.chat.protocol.inbound import RegisterPushToken
 
 
 Q_SET_TOKEN = """
@@ -67,22 +67,16 @@ _batcher = Batcher[DuoPushToken](
 
 _batcher.start()
 
-def maybe_register(parsed_xml: etree._Element, session_token_hash: str | None) -> bool:
+
+def register_push_token(
+    request: RegisterPushToken,
+    session_token_hash: str | None,
+) -> bool:
     if not session_token_hash:
         return False
 
-    try:
-        if parsed_xml.tag != 'duo_register_push_token':
-            raise Exception('Not a duo_register_push_token message')
+    _batcher.enqueue(DuoPushToken(
+        session_token_hash=session_token_hash,
+        token=request.token))
 
-        token = parsed_xml.attrib.get('token')
-
-        _batcher.enqueue(DuoPushToken(
-            session_token_hash=session_token_hash,
-            token=token))
-
-        return True
-    except:
-        pass
-
-    return False
+    return True

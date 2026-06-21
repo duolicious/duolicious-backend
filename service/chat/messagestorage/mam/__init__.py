@@ -1,13 +1,16 @@
 from dataclasses import dataclass
-from lxml import etree
 from database import Tx, asyncdatabase
 from service.chat.chatutil import (
     LSERVER,
-    build_element,
     fetch_has_gold,
     format_datetime,
-    read_receipt_stanza,
-    to_bare_jid,
+)
+from service.chat.protocol.inbound import MamQuery
+from service.chat.protocol.outbound import (
+    MamFin,
+    MamResult,
+    Outbound,
+    ReadReceipt,
 )
 import datetime
 import uuid
@@ -101,15 +104,6 @@ AND
 
 
 @dataclass(frozen=True)
-class Query:
-    query_id: str
-    from_username: str
-    to_username: str
-    before: str | None
-    max: str | None
-
-
-@dataclass(frozen=True)
 class StoreMamMessageJob:
     timestamp_microseconds: int
     from_username: str
@@ -120,145 +114,14 @@ class StoreMamMessageJob:
     deliver_to_recipient: bool = True
 
 
-def _process_query(
-    parsed_xml: etree._Element | None,
-    from_username: str
-) -> Query | None:
-    if parsed_xml is None:
-        return None
-
-    query_id = parsed_xml.xpath(
-        "string(.//*[local-name()='query']/@queryid)"
-    )
-
-    to_username = parsed_xml.xpath(
-        "string(.//*[local-name()='field'][@var='with']/*[local-name()='value'])"
-    )
-
-    before_value = parsed_xml.xpath(
-        "string(.//*[local-name()='before'])"
-    )
-
-    max_value = parsed_xml.xpath(
-        "string(.//*[local-name()='max'])"
-    )
-
-    from_username_bare = to_bare_jid(from_username)
-    to_username_bare = to_bare_jid(str(to_username))
-
-    if not query_id or not from_username_bare or not to_username_bare:
-        return None
-
-    return Query(
-        query_id=str(query_id),
-        from_username=from_username_bare,
-        to_username=to_username_bare,
-        before=str(before_value) if before_value else None,
-        max=str(max_value) if max_value else None,
-    )
-
-
-def _forwarded_element(
-    query: Query,
-    row_id: int,
-    forwarded_id: str,
-    message: etree._Element,
-) -> etree._Element:
-    delay = build_element(
-        'delay',
-        attrib={
-            'stamp': mam_message_id_to_timestamp(row_id),
-        },
-        ns='urn:xmpp:delay',
-    )
-
-    forwarded = build_element(
-        'forwarded',
-        ns='urn:xmpp:forward:0'
-    )
-
-    forwarded.extend([delay, message])
-
-    result = build_element(
-        'result',
-        attrib=dict(
-            queryid=query.query_id,
-            id=integer_to_binary(row_id, 32),
-        ),
-        ns='urn:xmpp:mam:2'
-    )
-
-    result.extend([forwarded])
-
-    forwarded_message = build_element(
-        'message',
-        attrib={
-            # From and to are the same because the iq query was made by
-            # `from_username`, and the result is being sent back to them
-            'from': f'{query.from_username}@{LSERVER}',
-            'to': f'{query.from_username}@{LSERVER}',
-            'id': forwarded_id,
-        },
-        ns='jabber:client',
-    )
-
-    forwarded_message.extend([result])
-
-    return forwarded_message
-
-
-def _structured_message_to_etree(
+async def get_conversation(
+    query: MamQuery,
     from_username: str,
-    to_username: str,
-    direction: str,
-    stanza_id: str | None,
-    body: str | None,
-    audio_uuid: str | None,
-) -> etree._Element:
-    message_from, message_to = (
-        (from_username, to_username)
-        if direction == 'O'
-        else (to_username, from_username)
-    )
-
-    message = build_element(
-        'message',
-        attrib={
-            'from': f'{message_from}@{LSERVER}',
-            **({'id': stanza_id} if stanza_id is not None else {}),
-            'to': f'{message_to}@{LSERVER}',
-            'type': 'chat',
-        },
-        ns='jabber:client',
-    )
-
-    if audio_uuid:
-        message.set('audio_uuid', audio_uuid)
-
-    message.extend([
-        build_element('body', text=body),
-        build_element('request', ns='urn:xmpp:receipts'),
-    ])
-
-    return message
-
-
-async def maybe_get_conversation(
-    parsed_xml: etree._Element | None,
-    from_username: str,
-) -> list[str]:
-    if parsed_xml is None:
-        return []
-
-    query = _process_query(parsed_xml, from_username=from_username)
-
-    if not query:
-        return []
-
+) -> list[Outbound]:
     return await _get_conversation(
         query=query,
         from_username=from_username,
-        to_username=query.to_username
+        to_username=query.with_username,
     )
 
 
@@ -280,10 +143,10 @@ def process_store_mam_message_batch(tx: Tx, batch: list[StoreMamMessageJob]) -> 
 
 
 async def _get_conversation(
-    query: Query,
+    query: MamQuery,
     from_username: str,
     to_username: str
-) -> list[str]:
+) -> list[Outbound]:
     before_id = (
             binary_to_integer(bytes(query.before, 'utf-8'), 32)
             if query.before
@@ -300,32 +163,29 @@ async def _get_conversation(
         await tx.execute(Q_SELECT_MESSAGE, params)
         rows = await tx.fetchall()
 
-    messages = []
+    messages: list[Outbound] = []
     for row in rows:
         row_id = row['id']
 
-        try:
-            message_etree = _structured_message_to_etree(
-                from_username=from_username,
-                to_username=to_username,
-                direction=row['direction'],
-                stanza_id=row['stanza_id'],
-                body=row['body'],
-                audio_uuid=row['audio_uuid'],
-            )
-        except Exception as e:
-            continue
+        # From and to are the same on the envelope because the iq query was
+        # made by `from_username` and the result is sent back to them.
+        if row['direction'] == 'O':
+            msg_from, msg_to = from_username, to_username
+        else:
+            msg_from, msg_to = to_username, from_username
 
-        forwarded_etree = _forwarded_element(
-            query=query,
-            row_id=row_id,
+        messages.append(MamResult(
+            viewer_username=from_username,
+            query_id=query.query_id,
+            result_id=integer_to_binary(row_id, 32).decode('ascii'),
             forwarded_id=str(uuid.uuid4()),
-            message=message_etree,
-        )
-
-        messages.append(
-                etree.tostring(
-                    forwarded_etree, encoding='unicode', pretty_print=False))
+            stamp=mam_message_id_to_timestamp(row_id),
+            msg_from_username=msg_from,
+            msg_to_username=msg_to,
+            stanza_id=row['stanza_id'],
+            body=row['body'],
+            audio_uuid=row['audio_uuid'],
+        ))
 
     # The receipt belongs under the most recent outgoing message, so it's only
     # needed on the first (most recent) page, not on older pages fetched while
@@ -337,31 +197,15 @@ async def _get_conversation(
     if receipt:
         messages.append(receipt)
 
-    iq_element = build_element(
-            'iq',
-            attrib={
-                # From and to are the same because the iq query was made by
-                # `from_username`, and the result is being sent back to them
-                'from': f'{query.from_username}@{LSERVER}',
-                'to': f'{query.from_username}@{LSERVER}',
-                'id': query.query_id,
-                'type': 'result'
-            },
-            ns='jabber:client')
-
-    iq_element.append(
-            build_element(
-                'fin',
-                ns='urn:xmpp:mam:2'))
-
-    messages.append(
-            etree.tostring(
-                iq_element, encoding='unicode', pretty_print=False))
+    messages.append(MamFin(
+        viewer_username=from_username,
+        query_id=query.query_id,
+    ))
 
     return messages
 
 
-async def _maybe_read_receipt(viewer: str, partner: str) -> str | None:
+async def _maybe_read_receipt(viewer: str, partner: str) -> Outbound | None:
     if not await fetch_has_gold(viewer):
         return None
 
@@ -375,7 +219,7 @@ async def _maybe_read_receipt(viewer: str, partner: str) -> str | None:
     if not row or not row['displayed_at']:
         return None
 
-    return read_receipt_stanza(
+    return ReadReceipt(
         from_username=partner,
         to_username=viewer,
         stamp=format_datetime(row['displayed_at']),

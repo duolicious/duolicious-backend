@@ -1,13 +1,27 @@
-from lxml import etree
+import base64
 import uuid
 from typing import List
-from service.chat.chatutil import (
-    LSERVER,
-    build_element,
-)
+
 from database.asyncdatabase import api_tx
-import base64
 from duohash import sha512
+from service.chat.jid import LSERVER
+from service.chat.protocol.inbound import (
+    IqBind,
+    IqSession,
+    SaslAuth,
+    SessionRequest,
+    StreamOpenReq,
+)
+from service.chat.protocol.outbound import (
+    AuthFailure,
+    AuthSuccess,
+    BindResult,
+    Outbound,
+    SessionResult,
+    StreamClose,
+    StreamFeatures,
+    StreamOpenResponse,
+)
 
 
 Q_CHECK_AUTH = """
@@ -37,24 +51,18 @@ class Session:
         self.online_subscriptions: dict[str, None] = {}
 
 
-async def is_authorized(parsed_xml: etree._Element, session: Session) -> bool:
+async def is_authorized(payload_b64: str | None, session: Session) -> bool:
     if session.username is not None:
         return False
 
     try:
-        # Create a safe XML parser
-        if parsed_xml.tag != '{urn:ietf:params:xml:ns:xmpp-sasl}auth':
+        if payload_b64 is None:
             return False
 
-        base64encoded = parsed_xml.text
+        decoded_bytes = base64.b64decode(payload_b64)
+        decoded_string = decoded_bytes.decode('utf-8')
 
-        if base64encoded is None:
-            return False
-
-        decodedBytes = base64.b64decode(base64encoded)
-        decodedString = decodedBytes.decode('utf-8')
-
-        _, auth_username, auth_token = decodedString.split('\0')
+        _, auth_username, auth_token = decoded_string.split('\0')
 
         # Validates that `auth_username` is a valid UUID
         uuid.UUID(auth_username)
@@ -74,185 +82,63 @@ async def is_authorized(parsed_xml: etree._Element, session: Session) -> bool:
         session.session_token_hash = auth_token_hash
 
         return True
-    except:
+    except Exception:
         pass
 
     return False
 
 
-def handle_open(parsed_xml: etree._Element, session: Session) -> List[str]:
+def handle_open(req: StreamOpenReq, session: Session) -> List[Outbound]:
     """
     Handles an <open> stanza in the XMPP framing namespace.
 
-    - If authenticated is False, returns an <open> element along with features
-      offering STARTTLS and SASL (mechanism PLAIN).
-    - If authenticated is True, returns an <open> element along with features
-      offering session and bind.
-
-    The connection id is generated randomly.
+    - When unauthenticated, offers STARTTLS and SASL (mechanism PLAIN).
+    - When authenticated, offers session and bind.
     """
-    # Check for required attributes
-    if "version" not in parsed_xml.attrib or "to" not in parsed_xml.attrib:
-        return []
-
-    # Build the server's <open> element.
-    open_attrs = {
-        "version": parsed_xml.attrib["version"],
-        "id": str(uuid.uuid4()),
-        "from": parsed_xml.attrib["to"]
-    }
-    open_elem = build_element(
-        tag="open",
-        attrib=open_attrs,
-        ns="urn:ietf:params:xml:ns:xmpp-framing"
-    )
-
-    # Build the <features> element.
-    features_elem = build_element(
-            "features", ns="http://etherx.jabber.org/streams")
-    if not session.username:
-        # Pre‑authentication features: offer STARTTLS and SASL
-        starttls_elem = build_element(
-                "starttls", ns="urn:ietf:params:xml:ns:xmpp-tls")
-        mechanisms_elem = build_element(
-                "mechanisms", ns="urn:ietf:params:xml:ns:xmpp-sasl")
-        mech_elem = build_element(
-                "mechanism", text="PLAIN")
-
-        mechanisms_elem.append(mech_elem)
-
-        features_elem.append(starttls_elem)
-        features_elem.append(mechanisms_elem)
-    else:
-        # Post‑authentication features: offer session and bind.
-        session_elem = build_element(
-                "session", ns="urn:ietf:params:xml:ns:xmpp-session")
-
-        bind_elem = build_element(
-                "bind", ns="urn:ietf:params:xml:ns:xmpp-bind")
-
-
-        features_elem.append(session_elem)
-        features_elem.append(bind_elem)
-
     return [
-            etree.tostring(
-                open_elem,
-                encoding='unicode',
-                pretty_print=False),
-
-            etree.tostring(
-                features_elem,
-                encoding='unicode',
-                pretty_print=False)]
+        StreamOpenResponse(
+            version=req.version,
+            id=str(uuid.uuid4()),
+            from_=req.to,
+        ),
+        StreamFeatures(authenticated=bool(session.username)),
+    ]
 
 
-async def handle_auth(parsed_xml: etree._Element, session: Session) -> List[str]:
+async def handle_auth(req: SaslAuth, session: Session) -> List[Outbound]:
     """
     Handles an <auth> stanza in the SASL namespace.
-
-    If the mechanism is "PLAIN", returns a <success> element.
-    Otherwise, returns a <failure> element (and a closing stream tag).
     """
-    if await is_authorized(parsed_xml, session):
-        success_elem = build_element(
-                "success",
-                ns="urn:ietf:params:xml:ns:xmpp-sasl")
+    if await is_authorized(req.payload_b64, session):
+        return [AuthSuccess()]
 
-        return [
-            etree.tostring(
-                success_elem,
-                encoding='unicode',
-                pretty_print=False)]
-    else:
-        failure_elem = build_element(
-                "failure", ns="urn:ietf:params:xml:ns:xmpp-sasl")
-
-        not_auth_elem = build_element(
-                "not-authorized")
-
-        failure_elem.append(not_auth_elem)
-
-        # The closing stream tag is provided as a string.
-        return [
-            etree.tostring(
-                failure_elem,
-                encoding='unicode',
-                pretty_print=False),
-            "</stream:stream>"]
+    return [AuthFailure(), StreamClose()]
 
 
-def handle_iq_bind(iq_id: str, session: Session) -> List[str]:
-    """
-    Handles a <bind> stanza inside an <iq> request.
-
-    Since resources are ignored, the server will respond with a <jid>
-    containing only the bare JID (without a resource).
-    """
+def handle_iq_bind(iq_id: str, session: Session) -> List[Outbound]:
     if session.username is None:
         return []  # Ignore requests from unauthenticated clients
 
-    # Construct the <iq> response with <bind> and <jid>
-    iq_elem = build_element("iq", attrib={"type": "result", "id": iq_id})
-    bind_elem = build_element("bind", ns="urn:ietf:params:xml:ns:xmpp-bind")
-
-    # Construct the <jid> response (ignoring the requested resource)
-    jid = f"{session.username}@{LSERVER}"  # Replace with actual domain
-    jid_elem = build_element("jid", text=jid)
-    bind_elem.append(jid_elem)
-    iq_elem.append(bind_elem)
-
-    return [
-        etree.tostring(iq_elem, encoding="unicode", pretty_print=False)
-    ]
+    return [BindResult(iq_id=iq_id, jid=f'{session.username}@{LSERVER}')]
 
 
-def handle_iq_session(iq_id: str, session: Session) -> List[str]:
+def handle_iq_session(iq_id: str, session: Session) -> List[Outbound]:
     if session.username is None:
         return []
 
-    # Construct the <iq> response with <bind> and <jid>
-    iq_elem = build_element("iq", attrib={"type": "result", "id": iq_id})
-
-    return [
-        etree.tostring(iq_elem, encoding="unicode", pretty_print=False)
-    ]
+    return [SessionResult(iq_id=iq_id)]
 
 
-def handle_iq(parsed_xml: etree._Element, session: Session) -> List[str]:
-    """
-    Handles an <iq> stanza, determining if it contains a <bind> request.
-    """
-    # Check if the <iq> stanza contains a <bind> element
-    bind_elem = parsed_xml.find("{urn:ietf:params:xml:ns:xmpp-bind}bind")
-
-    session_elem = parsed_xml.find("{urn:ietf:params:xml:ns:xmpp-session}session")
-
-    # Extract <iq> ID to echo it back in the response
-    iq_id = parsed_xml.attrib.get("id", "default")
-
-    if bind_elem is not None:
-        return handle_iq_bind(iq_id, session)
-    elif session_elem is not None:
-        return handle_iq_session(iq_id, session)
-    else:
-        return []
-
-
-async def maybe_get_session_response(parsed_xml: etree._Element, session: Session) -> List[str]:
-    """
-    Determines the appropriate response stanzas for a given input XML element.
-    Now includes support for <iq> stanzas containing <bind>.
-    """
-    qname = etree.QName(parsed_xml.tag)
-    tag = qname.localname
-    ns = qname.namespace
-
-    if tag == "open" and ns == "urn:ietf:params:xml:ns:xmpp-framing":
-        return handle_open(parsed_xml, session)
-    elif tag == "auth" and ns == "urn:ietf:params:xml:ns:xmpp-sasl":
-        return await handle_auth(parsed_xml, session)
-    elif tag == "iq" and ns == "jabber:client":
-        return handle_iq(parsed_xml, session)
-    else:
-        return []
+async def maybe_get_session_response(
+    request: SessionRequest,
+    session: Session,
+) -> List[Outbound]:
+    if isinstance(request, StreamOpenReq):
+        return handle_open(request, session)
+    if isinstance(request, SaslAuth):
+        return await handle_auth(request, session)
+    if isinstance(request, IqBind):
+        return handle_iq_bind(request.iq_id, session)
+    if isinstance(request, IqSession):
+        return handle_iq_session(request.iq_id, session)
+    return []

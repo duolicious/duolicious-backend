@@ -15,11 +15,6 @@ AND
 """
 
 
-FMT_VERIFICATION_REQUIRED = """
-<duo_message_blocked id="{stanza_id}" reason="age-verification"/>
-""".strip()
-
-
 @AsyncLruCache(ttl=3)  # 3 seconds
 async def verification_required(person_id: int) -> bool:
     async with api_tx('read committed') as tx:
