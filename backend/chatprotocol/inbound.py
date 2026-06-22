@@ -13,15 +13,15 @@ import secrets
 import uuid
 from dataclasses import dataclass
 
-from service.chat.jid import to_bare_jid
-from service.chat.message import (
+from chatprotocol.jid import to_bare_jid
+from chatprotocol.message import (
     AUDIO_MESSAGE_BODY,
     AudioMessage,
     ChatMessage,
     Message,
     TypingMessage,
 )
-from service.chat.protocol.element import (
+from chatprotocol.element import (
     NS_BIND,
     NS_CLIENT,
     NS_FRAMING,
@@ -92,6 +92,16 @@ class MarkDisplayed:
     to_username: str
 
 
+@dataclass(frozen=True)
+class VisitorsQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class MarkVisitorsChecked:
+    when: str | None
+
+
 SessionRequest = StreamOpenReq | SaslAuth | IqBind | IqSession
 
 Inbound = (
@@ -103,6 +113,8 @@ Inbound = (
     | MamQuery
     | InboxQuery
     | MarkDisplayed
+    | VisitorsQuery
+    | MarkVisitorsChecked
     | Message
 )
 
@@ -267,6 +279,12 @@ def _interpret(el: Element) -> Inbound | None:
 
     if el.tag == 'duo_register_push_token':
         return RegisterPushToken(token=el.get('token'))
+
+    if el.tag == 'duo_query_visitors':
+        return VisitorsQuery()
+
+    if el.tag == 'duo_mark_visitors_checked':
+        return MarkVisitorsChecked(when=el.get('when'))
 
     mam = _try_mam(el)
     if mam is not None:

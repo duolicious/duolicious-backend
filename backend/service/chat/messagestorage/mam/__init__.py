@@ -5,8 +5,8 @@ from service.chat.chatutil import (
     fetch_has_gold,
     format_datetime,
 )
-from service.chat.protocol.inbound import MamQuery
-from service.chat.protocol.outbound import (
+from chatprotocol.inbound import MamQuery
+from chatprotocol.outbound import (
     MamFin,
     MamResult,
     Outbound,

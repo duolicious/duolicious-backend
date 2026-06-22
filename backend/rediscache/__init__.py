@@ -21,33 +21,22 @@ database alone.
 
 import functools
 import json
-import os
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Callable, ParamSpec
 
-import redis
-
 from duohash import sha512
+from redisclient import make_redis_client
 
 P = ParamSpec("P")
 
-REDIS_HOST: str = os.environ.get("DUO_REDIS_HOST", "redis")
-REDIS_PORT: int = int(os.environ.get("DUO_REDIS_PORT", 6379))
-
 _KEY_PREFIX = "cached_result:"
 
-# Dedicated synchronous client, mirroring sessioncache: bounded timeouts so an
-# unreachable or slow Redis turns into a fast, swallowed error rather than
-# blocking the caller indefinitely.
-_redis = redis.Redis(
-    host=REDIS_HOST,
-    port=REDIS_PORT,
-    decode_responses=True,
-    socket_connect_timeout=1,
-    socket_timeout=1,
-)
+# Dedicated synchronous client (see `redisclient.make_redis_client`): bounded
+# timeouts so an unreachable or slow Redis turns into a fast, swallowed error
+# rather than blocking the caller indefinitely.
+_redis = make_redis_client()
 
 
 def _default(o: object) -> str:

@@ -626,10 +626,16 @@ def get_export_data(token: str) -> object:
 def post_revenuecat(req: t.PostRevenuecat) -> object:
     return person.post_revenuecat(req)
 
+# DEPRECATED: visitors are now delivered over the chat WebSocket -- a snapshot on
+# connect (the `duo_query_visitors` stanza) plus live `duo_visitor` pushes from the
+# profile-view write path. This endpoint is kept only so older clients, which still
+# poll it, keep working. Remove once those clients age out.
 @aget('/visitors')
 def get_visitors(s: t.SessionInfo) -> object:
     return person.get_visitors(s=s)
 
+# DEPRECATED: superseded by the `duo_mark_visitors_checked` chat stanza. Kept for
+# older clients that still POST here.
 @apost('/mark-visitors-checked')
 @validate(t.PostMarkVisitorsChecked)
 def post_mark_visitors_checked(req: t.PostMarkVisitorsChecked, s: t.SessionInfo) -> object:

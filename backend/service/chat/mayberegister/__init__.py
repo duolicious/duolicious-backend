@@ -2,7 +2,7 @@ from database import api_tx
 from dataclasses import dataclass
 from typing import Optional, Iterable
 from batcher import Batcher
-from service.chat.protocol.inbound import RegisterPushToken
+from chatprotocol.inbound import RegisterPushToken
 
 
 Q_SET_TOKEN = """

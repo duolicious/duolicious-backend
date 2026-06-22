@@ -10,7 +10,7 @@ from service.chat.messagestorage.setmessaged import (
         SetMessagedJob)
 from batcher import Batcher
 from database import api_tx
-from service.chat.message import AudioMessage, ChatMessage
+from chatprotocol.message import AudioMessage, ChatMessage
 from typing import Awaitable, Callable
 from dataclasses import dataclass
 import datetime

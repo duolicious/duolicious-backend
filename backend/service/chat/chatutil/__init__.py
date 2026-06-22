@@ -3,7 +3,7 @@ from database.asyncdatabase import api_tx
 
 # Re-exported from the dependency-light module so existing
 # `from service.chat.chatutil import ...` imports keep working.
-from service.chat.jid import (
+from chatprotocol.jid import (
     FMT_ISO_8601_TIMESTAMP,
     LSERVER,
     format_datetime,

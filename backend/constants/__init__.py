@@ -9,6 +9,18 @@ MAX_NOTIFICATION_LENGTH = 128
 
 ONLINE_RECENTLY_SECONDS = 12 * 60 * 60  # 12 hours
 
+# Cadence at which a live chat connection refreshes its `person.last_online_time`
+# (see `service.chat.online.update_online_forever`).
+LAST_UPDATE_INTERVAL_SECONDS = 4 * 60  # 4 minutes
+
+# A user is treated as "currently online" -- and so worth running the expensive
+# per-visitor query for, to push a real-time visitor update -- if the chat
+# server has refreshed their `person.last_online_time` this recently. Derived
+# from (and so guaranteed to stay larger than) the refresh cadence, with a
+# safety factor for jitter/batching delay, so an online user is never briefly
+# judged offline between refreshes and silently dropped from a live push.
+VISITOR_ONLINE_TIMEOUT_SECONDS = 2 * LAST_UPDATE_INTERVAL_SECONDS  # 8 minutes
+
 # Most online-status subscriptions a single chat connection may hold at once.
 # Once reached, the earliest subscriptions are evicted to make room for new
 # ones. Bounds the resources one client (possibly unauthenticated, since

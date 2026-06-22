@@ -26,8 +26,8 @@ import json
 from dataclasses import dataclass
 from lxml import etree
 
-from service.chat.jid import LSERVER
-from service.chat.protocol.element import (
+from chatprotocol.jid import LSERVER
+from chatprotocol.element import (
     NS_BIND,
     NS_CLIENT,
     NS_FRAMING,
@@ -205,6 +205,30 @@ class OnlineEvent(Outbound):
             f'<duo_online_event uuid="{self.username}" '
             f'status="{self.status}" />'
         )
+
+
+@_register
+@dataclass(frozen=True)
+class VisitorsSnapshot(Outbound):
+    payload_json: str
+
+    def canonical(self) -> dict:
+        return {'duo_visitors': self.payload_json}
+
+
+@_register
+@dataclass(frozen=True)
+class Visitor(Outbound):
+    section: str
+    item_json: str
+    last_visited_at: str | None = None
+
+    def canonical(self) -> dict:
+        attrs: dict = {'@section': self.section}
+        if self.last_visited_at is not None:
+            attrs['@last_visited_at'] = self.last_visited_at
+        attrs['#text'] = self.item_json
+        return {'duo_visitor': attrs}
 
 
 @_register
