@@ -14,10 +14,10 @@ The world's most popular open-source dating app.</p>
 <a href="https://www.reddit.com/r/duolicious/"><img src="https://img.shields.io/reddit/subreddit-subscribers/duolicious" alt="Duolicious Reddit"/></a>
 </p>
 
-**Duolicious is a personality-based dating app for meeting like-minded people** —
-and the whole thing, both the app and the servers behind it, is open source and
-right here in this repo. Free as in freedom: read it, run it, fork it, fix it.
-No swiping — just real conversations between people who actually match.
+Duolicious is a personality-based dating app for meeting like-minded people.
+There's no swiping; people connect by starting a conversation. The client and the
+servers behind it both live in this repo under the AGPL-3.0, so you're welcome to
+read how it works, run your own copy, or send a patch.
 
 Try it now in your browser at **[web.duolicious.app](https://web.duolicious.app/)**,
 or grab it on
@@ -26,7 +26,7 @@ and the
 **[App Store](https://apps.apple.com/us/app/duolicious-dating-app/id6499066647)**.
 
 <p align="center">
-<img src=".github/images/01-join.png" width="22%" alt="Join or sign in — cute dates & dank memes await">
+<img src=".github/images/01-join.png" width="22%" alt="Join or sign in">
 <img src=".github/images/03-qanda.png" width="22%" alt="Answer questions to improve your matches">
 <img src=".github/images/02-clubs.png" width="22%" alt="Search and browse matches">
 <img src=".github/images/04-feed.png" width="22%" alt="Community feed">
@@ -38,24 +38,22 @@ and the
 <img src=".github/images/08-chat.png" width="22%" alt="A conversation">
 </p>
 
-## Why people love Duolicious
+## How it works
 
-- **Matched on who you are, not just how you look.** Our question bank has over
-  **2,000** thoughtful, fun-to-answer questions covering values, faith,
-  politics, sexual compatibility and more. You don't have to answer them all —
-  Duolicious shows your best matches after your *first* answer, and the matches
-  get better with every response.
-- **Real psychological depth.** Beyond familiar traits like the MBTI,
-  Duolicious shows how you compare to others on psychometric traits like
-  attachment style and thriftiness.
-- **Conversations, not swiping.** There's no liking or swiping. People
-  introduce themselves by sending a message — and to keep things meaningful,
-  Duolicious nudges people away from low-effort openers like "hey" and "sup".
-- **Open source, free as in freedom.** The app, API, chat, and infrastructure
-  are all in this repo. Anyone can read the code, run their own instance, file
-  an issue, or send a fix.
-- **Sustainably funded.** Duolicious runs on an optional subscription that keeps
-  the servers on and the project alive. The core experience is here for everyone.
+- **Matching on answers, not just photos.** The question bank has over 2,000
+  questions covering values, faith, politics, sexual compatibility and more. You
+  don't have to answer them all — Duolicious surfaces matches after your first
+  answer, and refines them as you answer more.
+- **Psychometric traits.** Alongside familiar frameworks like the MBTI,
+  Duolicious shows how you compare to others on traits such as attachment style
+  and thriftiness.
+- **No swiping.** There's no liking or swiping. People introduce themselves by
+  sending a message, and the app discourages low-effort openers like "hey" and
+  "sup".
+- **Open source.** The app, API, chat, and infrastructure are all in this repo.
+  Anyone can read the code, run their own instance, file an issue, or send a fix.
+- **Funding.** Duolicious runs on an optional subscription that covers the
+  servers and keeps the project going. The core experience is free to use.
 
 ## What's in this repo
 
@@ -111,21 +109,19 @@ CI runs the full test suite for both halves on every push and pull request to
 
 ## Contributing
 
-Want to help strangers on the internet find love? There are several ways to
-help, and **every one of them matters:**
+There are a few ways to help:
 
-1. **Spread the word.** Tell your friends and share Duolicious on social media.
-   This is genuinely the single best way to help the app grow.
-2. **Subscribe.** A subscription keeps the servers running and the project
-   sustainable for everyone.
-3. **Send a pull request.** Pick up an [open issue](https://github.com/duolicious/duolicious/issues)
+1. **Send a pull request.** Pick up an [open issue](https://github.com/duolicious/duolicious/issues)
    or fix something that bugs you. `docker compose up` gets you a full local
    environment in one step, and developer instructions live in each half's
    `DEVELOPER.md`.
-4. **Read the `CONTRIBUTING.md`**
+2. **Read the `CONTRIBUTING.md`**
    ([backend](backend/CONTRIBUTING.md) ·
    [frontend](frontend/CONTRIBUTING.md)) for coding standards, how to run the
-   tests, and what makes a great PR.
+   tests, and what makes a good PR.
+3. **Spread the word.** Telling people and sharing Duolicious helps the app grow.
+4. **Subscribe.** A subscription helps cover the servers and keep the project
+   sustainable.
 
-New contributors are welcome — if you're not sure where to start, open an issue
+New contributors are welcome. If you're not sure where to start, open an issue
 and say hello.
