@@ -1,0 +1,117 @@
+import {
+  Animated,
+  Pressable,
+  View,
+} from 'react-native';
+import { ReactNode } from 'react';
+import { DefaultText } from './default-text';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import { useShake } from '../animation/animation';
+import { showPointOfSale } from './modal/point-of-sale-modal';
+import { useSignedInUser } from '../events/signed-in-user';
+
+const isIconDefinition = (x: any): x is IconDefinition => {
+  return x.iconName !== undefined;
+};
+
+const Icon = ({icon, textStyle}: {icon: any, textStyle?: any}) => {
+  if (isIconDefinition(icon)) {
+    return <FontAwesomeIcon
+      icon={icon}
+      size={16}
+      style={{
+        marginRight: 5,
+        ...textStyle,
+      }}
+    />
+  } else {
+    return <Ionicons
+      style={{
+        fontSize: 16,
+        marginRight: 5,
+        ...textStyle,
+      }}
+      name={icon}
+    />
+  }
+};
+
+const Basic = ({children, ...rest}: {children?: ReactNode, [key: string]: any}) => {
+  const {
+    icon,
+    style = {},
+    textStyle = {},
+    onPress,
+  } = rest;
+
+  const [shakeAnimation, startShake] = useShake();
+  const [signedInUser] = useSignedInUser();
+
+  return (
+    <Animated.View
+      style={[
+        {
+          borderColor: 'rgba(0, 0, 0, 0.4)',
+          borderWidth: 1,
+          borderRadius: 999,
+          justifyContent: 'center',
+          backgroundColor: 'rgba(255, 255, 255, 0.3)',
+          transform: [{ translateX: shakeAnimation }],
+          flexShrink: 1,
+        },
+        style
+      ]}
+    >
+      <Pressable
+        disabled={!onPress}
+        onPress={
+          () => {
+            if (!onPress) {
+              return;
+            }
+
+            const success = onPress();
+            if (success === false && signedInUser?.hasGold) {
+              startShake();
+            } else if (success === false && !signedInUser?.hasGold) {
+              startShake();
+              showPointOfSale(true);
+            }
+          }
+        }
+        style={{
+          paddingHorizontal: 10,
+          paddingVertical: 5,
+          alignItems: 'center',
+          flexDirection: 'row',
+          flexShrink: 1,
+        }}
+      >
+        {icon && <Icon icon={icon} textStyle={textStyle} />}
+        <DefaultText style={textStyle}>{children}</DefaultText>
+      </Pressable>
+    </Animated.View>
+  );
+};
+
+const Basics = ({children}: {children?: ReactNode}) => {
+  return (
+    <View
+      style={{
+        zIndex: 999,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 5,
+      }}
+    >
+      {children}
+    </View>
+  );
+};
+
+export {
+  Basic,
+  Basics,
+};

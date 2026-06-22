@@ -1,0 +1,33 @@
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+credentials.json
+
+# macOS
+.DS_Store
+
+android
+ios
+
+# iOS builds
+build-*.ipa
+
+# Android builds
+build-*.apk
+build-*.aab
+
+# Vim's temporary files
+*.swo
+*.swp
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

@@ -1,0 +1,1713 @@
+import {
+  Animated,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleProp,
+  StyleSheet,
+  TextStyle,
+  View,
+  ViewStyle,
+  useWindowDimensions,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  Fragment,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { StatusBarSpacer } from './status-bar-spacer';
+import { LogoActivityIndicator } from './logo/logo-activity-indicator';
+import { DefaultText } from './default-text';
+import { DonutChart } from './donut-chart';
+import { Title } from './title';
+import { InDepthScreen } from './in-depth-screen';
+import { ButtonWithCenteredText } from './button/centered-text';
+import { ResponsiveAd } from './adsense';
+import { api } from '../api/api';
+import { cmToFeetInchesStr } from '../units/units';
+import { useSignedInUser } from '../events/signed-in-user';
+import { postSkipped } from '../hide-and-block/hide-and-block';
+import { Pinchy } from './pinchy';
+import { Basic, Basics } from './basic';
+import { Club, Clubs } from './club';
+import { Stat, Stats } from './stat';
+import { listen, notify } from '../events/events';
+import { ReportModalInitialData } from './modal/report-modal';
+import { getProspectHint, setProspectHint } from '../navigation/prospect-cache';
+import { setBannerProspectName } from '../events/banner-prospect-name';
+import {
+  VerificationBadge,
+  DetailedVerificationBadges,
+} from './verification-badge';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
+import { faArrowLeft } from '@fortawesome/free-solid-svg-icons/faArrowLeft'
+import { faRulerVertical } from '@fortawesome/free-solid-svg-icons/faRulerVertical'
+import { faHandsPraying } from '@fortawesome/free-solid-svg-icons/faHandsPraying'
+import { faPills } from '@fortawesome/free-solid-svg-icons/faPills'
+import { faSmoking } from '@fortawesome/free-solid-svg-icons/faSmoking'
+import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
+import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
+import * as Clipboard from 'expo-clipboard';
+import { notifyLinkCopiedToast } from './toast';
+import { INVITE_URL } from '../env/env';
+import { RotateCcw, Flag, X, Share2 } from "react-native-feather";
+import Reanimated, {
+  Easing,
+  FadeOut,
+  LinearTransition,
+  useAnimatedStyle,
+  withTiming,
+} from 'react-native-reanimated';
+import { ClubItem, joinClub, leaveClub } from '../club/club';
+import * as _ from 'lodash';
+import { friendlyTimeAgo, possessive, bestTextOn, capLuminance, isUuid, isMobile } from '../util/util';
+import { useOnline } from '../chat/application-layer/hooks/online';
+import { HeartBackground } from './heart-background';
+import { AudioPlayer } from './audio-player';
+import { EnlargeablePhoto } from './enlargeable-image';
+import { commonStyles } from '../styles';
+import { useSkipped, setSkipped } from '../hide-and-block/hide-and-block';
+import { OnlineIndicator } from './online-indicator';
+import { Flair } from './badges';
+import { useAppTheme } from '../app-theme/app-theme';
+import { faChild } from '@fortawesome/free-solid-svg-icons/faChild'
+import { faChildren } from '@fortawesome/free-solid-svg-icons/faChildren'
+
+const PROFILE_CONTENT_MAX_WIDTH = 600;
+const SIDE_AD_GAP = 20;
+const SIDE_AD_ROW_GAP = 150;
+const SIDE_AD_TOP = 10;
+const SIDE_AD_MIN_WIDTH = 160;
+const SIDE_AD_MAX_WIDTH = 300;
+
+const SIDE_AD_SLOTS_LEFT = [
+  '6713823982', '9925889226', '1033966365', '3377058674', '1680833629',
+  '5651868228', '9184908807',
+];
+const SIDE_AD_SLOTS_RIGHT = [
+  '6704829516', '5986644219', '3140989026', '9492030565', '2567529560',
+  '4338786558', '1461341776',
+];
+
+const Stack = createNativeStackNavigator();
+
+const ProspectProfileScreen = () => {
+  const navigationRef = useRef(undefined);
+
+  const ProspectProfileScreen_ = useMemo(() => {
+    return Content(navigationRef);
+  }, [navigationRef]);
+
+  const InDepthScreen_ = useMemo(() => {
+    return InDepthScreen(navigationRef);
+  }, [navigationRef]);
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        presentation: 'card',
+        animation: 'slide_from_right',
+      }}
+    >
+      <Stack.Screen name="Prospect Profile" component={ProspectProfileScreen_} />
+      <Stack.Screen name="In-Depth" component={InDepthScreen_} />
+      <Stack.Screen name="Gallery Screen" component={GalleryScreen} />
+    </Stack.Navigator>
+  );
+};
+
+const GalleryScreen = ({navigation, route}: {navigation: any, route: any}) => {
+  const { photoUuid } = route.params;
+
+  return (
+    <>
+      <Pinchy uuid={photoUuid}/>
+      <StatusBarSpacer/>
+      <FloatingBackButton onPress={() => navigation.goBack()}/>
+    </>
+  );
+};
+
+// Path here must match the `Prospect Profile` route in App.tsx's linking config
+// (profiles live at the top level: /<username>).
+const buildShareableProfileUrl = (handle: string) =>
+  `${INVITE_URL}/p/${encodeURIComponent(handle)}`;
+
+const onPressShareProfile = async (personUuid: string | undefined) => {
+  if (!personUuid) return;
+  await Clipboard.setStringAsync(buildShareableProfileUrl(personUuid));
+  notifyLinkCopiedToast('Profile Link Copied!');
+};
+
+const ShareButton = ({personUuid}: {personUuid: string | undefined}) => {
+  const onPress = useCallback(() => {
+    onPressShareProfile(personUuid);
+  }, [personUuid]);
+
+  const iconStroke = 'rgba(0, 0, 0, 0.5)';
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityLabel="Copy profile link"
+      style={{
+        marginTop: 100,
+        marginBottom: 0,
+        alignSelf: 'center',
+        flexDirection: 'row',
+        gap: 7,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        padding: 8,
+        borderRadius: 5,
+      }}
+    >
+      <Share2
+        stroke={iconStroke}
+        strokeWidth={2}
+        height={18}
+        width={18}
+      />
+      <DefaultText
+        style={{
+          overflow: 'hidden',
+          textAlign: 'center',
+          color: 'rgba(0, 0, 0, 0.5)',
+        }}
+      >
+        Share profile
+      </DefaultText>
+    </Pressable>
+  );
+};
+
+const FloatingBackButton = (props: {
+  onPress?: () => void,
+  navigationRef?: any,
+  navigation?: any,
+}) => {
+  const {
+    onPress,
+    navigationRef,
+    navigation,
+  } = props;
+
+  const { appTheme } = useAppTheme();
+
+  return (
+    <Pressable
+      style={{
+        zIndex: 999,
+        borderRadius: 999,
+        marginLeft: 10,
+        marginTop: 0,
+        width: 45,
+        height: 45,
+        backgroundColor: appTheme.primaryColor,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: appTheme.secondaryColor,
+      }}
+      onPress={onPress ?? (navigationRef?.current || navigation).goBack}
+    >
+      <FontAwesomeIcon
+        icon={faArrowLeft}
+        size={24}
+        style={{
+          color: appTheme.secondaryColor,
+          // @ts-ignore
+          outline: 'none',
+        }}
+      />
+    </Pressable>
+  );
+};
+
+const FloatingProfileInteractionButton = ({
+  children,
+  onPress,
+  backgroundColor,
+}: {
+  children: ReactNode,
+  onPress: () => void,
+  backgroundColor: string,
+}) => {
+  const { appTheme } = useAppTheme();
+
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  const fadeOut = useCallback(() => {
+    Animated.timing(opacity, {
+      toValue: 0.4,
+      duration: 0,
+      useNativeDriver: false,
+    }).start();
+  }, []);
+
+  const fadeIn = useCallback(() => {
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: 50,
+      useNativeDriver: false,
+    }).start();
+  }, []);
+
+  return (
+    <Pressable
+      style={{
+        borderRadius: 999,
+        zIndex: 999,
+        marginLeft: 20,
+        marginRight: 20,
+        marginBottom: 14,
+        marginTop: 14,
+      }}
+      onPressIn={fadeOut}
+      onPressOut={fadeIn}
+      onPress={onPress}
+    >
+      <Animated.View
+        style={{
+          borderRadius: 999,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: backgroundColor,
+          opacity: opacity,
+          flexDirection: 'row',
+          borderWidth: 1,
+          borderColor: appTheme.secondaryColor,
+          height: 60,
+          width: 60,
+        }}
+      >
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+};
+
+const FloatingSkipButton = ({personUuid}: {
+  personUuid: string | null | undefined,
+}) => {
+  const { isSkipped, isLoading, isPosting } = useSkipped(personUuid);
+  const { appTheme } = useAppTheme();
+
+  const onPress = useCallback(async () => {
+    if (personUuid == null) return;
+    if (isLoading) return;
+
+    const nextIsSkippedState = !isSkipped;
+
+    await postSkipped(personUuid, nextIsSkippedState);
+  }, [isLoading, isSkipped, personUuid]);
+
+  return (
+    <FloatingProfileInteractionButton
+      onPress={onPress}
+      backgroundColor={appTheme.primaryColor}
+    >
+      {isPosting &&
+        <LogoActivityIndicator size="medium" color={appTheme.brandColor} />
+      }
+      {!isLoading && isSkipped === true && <RotateCcw
+          stroke={appTheme.brandColor}
+          strokeWidth={3}
+          height={24}
+          width={24}
+        />
+      }
+      {!isLoading && isSkipped === false && <X
+          stroke={appTheme.brandColor}
+          strokeWidth={3}
+          height={24}
+          width={24}
+        />
+      }
+    </FloatingProfileInteractionButton>
+  );
+};
+
+const FloatingSendIntroButton = ({
+  navigation,
+  personUuid,
+  name,
+  photoUuid,
+  photoBlurhash,
+}: {
+  navigation: any,
+  personUuid: string | null | undefined,
+  name: string | undefined,
+  photoUuid: string | null | undefined,
+  photoBlurhash: string | null | undefined,
+}) => {
+  const { appTheme } = useAppTheme();
+
+  const onPress = useCallback(() => {
+    if (personUuid == null) return;
+    if (name === undefined) return;
+
+    setProspectHint(personUuid, { name, photoUuid, photoBlurhash });
+    navigation.navigate('Conversation Screen', { personUuid });
+  }, [navigation, personUuid, name, photoUuid, photoBlurhash]);
+
+  return (
+    <FloatingProfileInteractionButton
+      onPress={onPress}
+      backgroundColor={appTheme.brandColor}
+    >
+      {personUuid !== undefined && name !== undefined &&
+        <FontAwesomeIcon
+          icon={faPaperPlane}
+          size={24}
+          style={{
+            color: appTheme.primaryColor,
+            // @ts-ignore
+            outline: 'none',
+          }}
+        />
+      }
+    </FloatingProfileInteractionButton>
+  );
+};
+
+const AnonymousSignInCta = ({navigation, name}: {
+  navigation: any,
+  name: string | undefined,
+}) => {
+  const { appTheme } = useAppTheme();
+  const insets = useSafeAreaInsets();
+
+  // Push Welcome (don't `reset`) so the system back button still points at
+  // the profile and the user can bail out of sign-in.
+  const onPress = useCallback(() => {
+    navigation.navigate('Welcome');
+  }, [navigation]);
+
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        bottom: insets.bottom,
+        width: '100%',
+        maxWidth: 600,
+        alignSelf: 'center',
+        zIndex: 999,
+        paddingLeft: 20,
+        paddingRight: 20,
+        paddingBottom: 14,
+        paddingTop: 14,
+      }}
+      pointerEvents="box-none"
+    >
+      <Pressable
+        onPress={onPress}
+        style={{
+          backgroundColor: appTheme.brandColor,
+          borderRadius: 999,
+          paddingVertical: 16,
+          paddingHorizontal: 20,
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'row',
+          gap: 10,
+          borderWidth: 1,
+          borderColor: appTheme.secondaryColor,
+        }}
+      >
+        <FontAwesomeIcon
+          icon={faPaperPlane}
+          size={18}
+          style={{ color: appTheme.primaryColor }}
+        />
+        <DefaultText
+          style={{
+            color: appTheme.primaryColor,
+            fontWeight: '700',
+            fontSize: 16,
+            textAlign: 'center',
+          }}
+        >
+          {name === undefined
+            ? 'Sign up to send a message'
+            : `Sign up to message ${name}`}
+        </DefaultText>
+      </Pressable>
+    </View>
+  );
+};
+
+const SeeQAndAButton = ({navigation, personUuid, name}: {
+  navigation: any,
+  personUuid: string | null | undefined,
+  name: string | undefined,
+}) => {
+  const containerStyle = useRef({
+    marginTop: 40,
+    marginLeft: 10,
+    marginRight: 10,
+  }).current;
+  const textStyle = useRef({
+    marginLeft: 35,
+    marginRight: 35,
+  }).current;
+  const iconContainerStyle = useRef<StyleProp<ViewStyle>>({
+    position: 'absolute',
+    top: 0,
+    right: 15,
+    height: '100%',
+    justifyContent: 'center',
+  }).current;
+  const iconStyle = useRef<StyleProp<TextStyle>>({
+    fontSize: 20,
+    color: 'white',
+  }).current;
+  const extraChildren = useRef(
+    <View style={iconContainerStyle}>
+      <Ionicons style={iconStyle} name="chevron-forward"/>
+    </View>
+  ).current;
+
+  const onPress = useCallback(() => {
+    navigation.navigate('In-Depth', { personUuid });
+  }, [personUuid]);
+
+  return (
+    <ButtonWithCenteredText
+      containerStyle={containerStyle}
+      textStyle={textStyle}
+      onPress={onPress}
+      extraChildren={extraChildren}
+      loading={name === undefined}
+      borderColor="rgba(255, 255, 255, 0.2)"
+      borderWidth={1}
+    >
+      {possessive(String(name))} Q&A Answers
+    </ButtonWithCenteredText>
+  );
+};
+
+const BlockButton = ({name, personUuid}: {
+  name: string | undefined,
+  personUuid: string | null | undefined,
+}) => {
+  const { isSkipped, isLoading, isPosting } = useSkipped(personUuid);
+
+  const onPress = useCallback(async () => {
+    if (personUuid == null) return;
+
+    if (isSkipped) {
+      await postSkipped(personUuid, false);
+    } else {
+      if (name === undefined) return;
+
+      const data: ReportModalInitialData = {
+        name,
+        personUuid,
+        context: 'Prospect Profile Screen',
+      };
+      notify('open-report-modal', data);
+    }
+  }, [notify, name, personUuid, isSkipped]);
+
+  const text = isSkipped ?
+    `You have skipped ${name}. Press to unskip.` :
+    `Report ${name}`;
+
+  const iconStroke = isLoading ? "transparent" : 'rgba(0, 0, 0, 0.5)';
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        marginTop: 100,
+        marginBottom: 100,
+        alignSelf: 'center',
+        flexDirection: 'row',
+        gap: 7,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        padding: 8,
+        borderRadius: 5,
+      }}
+    >
+      {isPosting &&
+        <LogoActivityIndicator size="small" color="#70f"/>
+      }
+      {!isLoading && isSkipped &&
+        <RotateCcw
+          stroke={iconStroke}
+          strokeWidth={2}
+          height={18}
+          width={18}
+        />
+      }
+      {!isLoading && !isSkipped &&
+        <Flag
+          stroke={iconStroke}
+          strokeWidth={2}
+          height={18}
+          width={18}
+        />
+      }
+      {!isLoading &&
+        <DefaultText
+          style={{
+            overflow: 'hidden',
+            textAlign: 'center',
+            color: 'rgba(0, 0, 0, 0.5)',
+          }}
+        >
+          {name === undefined ? '...' : text}
+        </DefaultText>
+      }
+    </Pressable>
+  );
+};
+
+const AllClubsItem = ({kind, kids, props}: {
+  kind: string | undefined,
+  kids: ReactNode,
+  props: any,
+}) => {
+  const propsWithoutKey = { ...props };
+  delete propsWithoutKey['key'];
+
+  if (kind === 'Title') {
+    return <Title {...propsWithoutKey}>{kids}</Title>;
+  }
+
+  if (kind === 'Club') {
+    return <Club {...propsWithoutKey}>{kids}</Club>;
+  }
+
+  throw Error('Unexpected club kind');
+};
+
+const AllClubs = ({
+  mutualClubs,
+  otherClubs,
+  mutualClubsTheme,
+  clubsTheme,
+  titleColor,
+}: {
+  mutualClubs: string[],
+  otherClubs: string[],
+  mutualClubsTheme: any,
+  clubsTheme: any,
+  titleColor: any,
+}) => {
+  const [signedInUser] = useSignedInUser();
+  const [state, setState] = useState({
+    mutualClubs: mutualClubs,
+    otherClubs: otherClubs,
+  });
+
+  useEffect(() => {
+    setState({ mutualClubs, otherClubs })
+  }, [mutualClubs, otherClubs]);
+
+  useEffect(() =>
+    listen<ClubItem[]>(
+      'updated-clubs',
+      (cs) => {
+        if (!cs) {
+          return;
+        }
+
+        setState(s => {
+          const clubs = [...new Set(cs.map(c => c.name))];
+          const prospectClubs = [...new Set([...s.otherClubs, ...s.mutualClubs])];
+
+          return {
+            mutualClubs: [..._.intersection(clubs, prospectClubs)],
+            otherClubs: [..._.difference(prospectClubs, clubs)],
+          }
+        });
+      }
+    )
+  , []);
+
+  if (state.mutualClubs.length === 0 && state.otherClubs.length === 0) {
+    return null;
+  }
+
+  // join/leave hit authenticated endpoints, so anon viewers see clubs but
+  // can't interact with them.
+  const onPressLeave = signedInUser
+    ? (clubName: string) => leaveClub(clubName)
+    : undefined;
+  const onPressJoin = signedInUser
+    ? (clubName: string) => joinClub(clubName, -1, false)
+    : undefined;
+
+  const childData = [
+    state.mutualClubs.length > 0 ? {
+      kind: 'Title',
+      props: { style: {color: titleColor, width: '100%'}},
+      kids: 'Mutual clubs' } : null,
+
+    ...state.mutualClubs.map((clubName) => ({
+        kind: 'Club',
+        props: {
+          onPress: onPressLeave && (() => onPressLeave(clubName)),
+          key: clubName,
+          name: clubName,
+          isMutual: true,
+          ...mutualClubsTheme,
+        },
+        kids: null,
+      })),
+
+      (state.otherClubs.length > 0 && state.mutualClubs.length > 0) ? {
+        kind: 'Title',
+        props: { style: {color: titleColor, width: '100%'}},
+        kids: 'Other clubs' } : null,
+
+      (state.otherClubs.length > 0 && state.mutualClubs.length === 0) ? {
+        kind: 'Title',
+        props: { style: {color: titleColor, width: '100%'}},
+        kids: 'Clubs' } : null,
+
+      ...state.otherClubs.map((clubName) => ({
+        kind: 'Club',
+        props: {
+          onPress: onPressJoin && (() => onPressJoin(clubName)),
+          key: clubName,
+          name: clubName,
+          isMutual: false,
+          ...clubsTheme,
+        },
+        kids: null,
+      })),
+  ].filter(Boolean);
+
+  return (
+    <Clubs>
+      {childData.map((d) =>
+        <Reanimated.View
+          key={
+            JSON.stringify({
+              kind: d?.kind,
+              kids: d?.kids,
+              clubName: d?.props.name,
+            })
+          }
+          style={d?.kind === 'Title' ? styles.wFull : null}
+          layout={LinearTransition.easing(Easing.out(Easing.poly(4)))}
+          exiting={FadeOut}
+        >
+          <AllClubsItem
+            kind={d?.kind}
+            kids={d?.kids}
+            props={d?.props}
+          />
+        </Reanimated.View>
+      )}
+    </Clubs>
+  );
+};
+
+type UserData = {
+  name: string,
+  url_slug: string | null,
+  person_uuid: string,
+  about: string,
+  mutual_clubs: string[],
+  other_clubs: string[],
+  gender: string,
+  match_percentage: number | null,
+  photo_uuids: string[],
+  photo_extra_exts: string[][],
+  photo_blurhashes: string[],
+  photo_verifications: boolean[],
+  audio_bio_uuid: string | null,
+  age: number | null,
+  location: string | null
+  drinking: string | null,
+  drugs: string | null,
+  ethnicity: string | null,
+  exercise: string | null,
+  has_kids: string | null,
+  height_cm: number | null,
+  long_distance: string | null,
+  looking_for: string | null,
+  occupation: string | null,
+  education: string | null,
+  orientation: string | null,
+  relationship_status: string | null,
+  religion: string | null,
+  smoking: string | null,
+  star_sign: string | null,
+  wants_kids: string | null,
+  is_skipped: boolean,
+  advertiser_friendly: boolean,
+  person_id: number,
+
+  verified_age: boolean,
+  verified_gender: boolean,
+  verified_ethnicity: boolean,
+
+  theme: {
+    title_color: string,
+    body_color: string,
+    background_color: string,
+  }
+
+  flair: string[]
+
+  // Stats
+  count_answers: number | null,
+  seconds_since_last_online: number | null,
+  seconds_since_sign_up: number | null,
+  gets_reply_percentage: number | null,
+  gives_reply_percentage: number | null,
+};
+
+const verificationLevelId = (data: UserData | null | undefined): 1 | 2 | 3 => {
+  // This should be provided by the backend instead
+
+  if (!data) {
+    return 1;
+  }
+
+  const hasVerifiedBasics = data.verified_gender && data.verified_age;
+  const hasVerififiedPhotos = data.photo_verifications.some(Boolean);
+
+  if (hasVerifiedBasics && hasVerififiedPhotos) {
+    return 3;
+  }
+
+  if (hasVerifiedBasics) {
+    return 2;
+  }
+
+  return 1;
+};
+
+const verifiedAnything = (data: UserData | null | undefined): boolean => {
+  if (!data) {
+    return false;
+  }
+
+  return Boolean(
+    data.photo_verifications.some(Boolean) ||
+    data.verified_gender ||
+    data.verified_age ||
+    data.verified_ethnicity
+  );
+};
+
+const hasAnyStats = (data: UserData | null | undefined): boolean => {
+  if (data === undefined) {
+    return true;
+  }
+
+  if (data === null) {
+    return true;
+  }
+
+  return (
+    data.count_answers !== null ||
+    data.seconds_since_last_online !== null ||
+    data.seconds_since_sign_up !== null ||
+    data.gets_reply_percentage !== null ||
+    data.gives_reply_percentage !== null
+  );
+};
+
+const Content = (navigationRef: any) =>  {
+  return (props: any) => <CurriedContent
+    navigationRef={navigationRef}
+    {...props}
+  />;
+};
+
+const ProspectProfileSideAds = ({
+  width,
+  photoCount,
+}: {
+  width: number
+  photoCount: number
+}) => {
+  const gutterWidth = (width - PROFILE_CONTENT_MAX_WIDTH) / 2;
+  const adWidth = Math.min(SIDE_AD_MAX_WIDTH, gutterWidth - 2 * SIDE_AD_GAP);
+
+  if (adWidth < SIDE_AD_MIN_WIDTH) {
+    return null;
+  }
+
+  const rowCount = Math.max(1, Math.min(photoCount, SIDE_AD_SLOTS_LEFT.length));
+
+  const column = (slots: string[], left: number) => (
+    <View
+      style={{
+        position: 'absolute',
+        top: SIDE_AD_TOP,
+        left,
+        width: adWidth,
+        gap: SIDE_AD_ROW_GAP,
+      }}
+    >
+      {slots.slice(0, rowCount).map((slot) =>
+        <ResponsiveAd key={slot} slot={slot} placeholderHeight={600} />
+      )}
+    </View>
+  );
+
+  return (
+    <>
+      {column(SIDE_AD_SLOTS_LEFT, gutterWidth - SIDE_AD_GAP - adWidth)}
+      {column(
+        SIDE_AD_SLOTS_RIGHT,
+        gutterWidth + PROFILE_CONTENT_MAX_WIDTH + SIDE_AD_GAP,
+      )}
+    </>
+  );
+};
+
+const CurriedContent = ({navigationRef, navigation, route}: {
+  navigationRef: any,
+  navigation: any,
+  route: any,
+}) => {
+  navigationRef.current = navigation;
+
+  const insets = useSafeAreaInsets();
+
+  // The route param is a "handle": either a uuid (legacy/shared links) or a
+  // url_slug. It drives the URL, the initial fetch and the caller-supplied
+  // hints (all keyed by whatever the caller navigated with). Uuid-keyed actions
+  // (skip, online presence, chat) instead need the *canonical* uuid, which we
+  // read from the fetched profile (`data.person_uuid`); when the handle is
+  // already a uuid we can use it immediately, otherwise it resolves once `data`
+  // lands.
+  const handle = route.params.personUuid;
+
+  const [signedInUser] = useSignedInUser();
+  const [data, setData] = useState<UserData | undefined>(undefined);
+
+  const personUuid = data?.person_uuid ?? (isUuid(handle) ? handle : undefined);
+
+  // `showBottomButtons` and `photoBlurhash` are intentionally NOT route params:
+  // the former is derived from who's signed in (plus an optional one-shot
+  // hint from the caller), the latter is an optimistic rendering hint stashed
+  // in prospect-cache by the navigating caller. This keeps URLs clean
+  // (`/:username`) and navigation state serializable.
+  const hint = getProspectHint(handle);
+  const isViewingSelf =
+    !!signedInUser?.personUuid && (
+      signedInUser.personUuid === personUuid ||
+      signedInUser.personUuid === handle);
+  const isAnonymousViewer = !signedInUser;
+  // Consume the `hideBottomButtons` hint when a new handle lands here so a
+  // later visit from a different context (e.g. tapping the same person's
+  // avatar in search) gets the default behaviour rather than inheriting a
+  // stale conversation hint. Tracked in state because the same screen
+  // instance can be reused with a different `handle` without remount.
+  // Initialised lazily from the cache to avoid a one-frame flash of the
+  // bottom buttons before the consuming effect runs.
+  const [hideBottomButtonsHint, setHideBottomButtonsHint] = useState(
+    () => !!getProspectHint(handle)?.hideBottomButtons,
+  );
+  useEffect(() => {
+    const h = getProspectHint(handle);
+    if (h?.hideBottomButtons) {
+      setHideBottomButtonsHint(true);
+      setProspectHint(handle, { hideBottomButtons: false });
+    } else {
+      setHideBottomButtonsHint(false);
+    }
+  }, [handle]);
+  const showAuthedBottomButtons =
+    !isAnonymousViewer && !isViewingSelf && !hideBottomButtonsHint;
+  const photoBlurhashParam = hint?.photoBlurhash;
+
+  const { appThemeName, appTheme } = useAppTheme();
+  // Wait for `data` to resolve so the CTA doesn't briefly flash before
+  // `notFound` flips on for 404'd profiles.
+  const showAnonymousSignInCta =
+    isAnonymousViewer && !!data && !hideBottomButtonsHint;
+  const personId = data?.person_id;
+  const [notFound, setNotFound] = useState(false);
+  useSkipped(personUuid, () => navigation.popToTop());
+
+  // Surface the prospect's name in the browser tab. We prefer the freshly
+  // fetched name but fall back to the optimistic hint while the API is in
+  // flight so the title doesn't briefly read "Duolicious" before snapping
+  // to the name. App.tsx's `documentTitle.formatter` reads `options.title`.
+  const screenTitle = data?.name ?? getProspectHint(handle)?.name;
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: screenTitle });
+    setBannerProspectName(handle, screenTitle);
+  }, [navigation, handle, screenTitle]);
+
+  const { width } = useWindowDimensions();
+
+  const showSideAds =
+    Platform.OS === 'web' &&
+    !isMobile() &&
+    !signedInUser?.hasGold &&
+    !!data?.advertiser_friendly;
+
+  useEffect(() => {
+    setData(undefined);
+    setNotFound(false);
+    (async () => {
+      // The skip cache is keyed by the canonical uuid. When the handle is a
+      // uuid we can show the "fetching" state immediately; for a slug we settle
+      // it once the profile (which carries `person_uuid`) lands.
+      if (isUuid(handle)) {
+        setSkipped(handle, { networkState: 'fetching' });
+      }
+      const response = await api('get', `/prospect-profile/${handle}`);
+      setData(response?.json);
+      setNotFound(response.clientError);
+      const canonicalUuid = response?.json?.person_uuid ?? (
+        isUuid(handle) ? handle : undefined);
+      if (canonicalUuid) {
+        setSkipped(
+          canonicalUuid,
+          {
+            isSkipped: response?.json?.is_skipped ?? false,
+            networkState: 'settled',
+          }
+        );
+        // Make `personId` / `name` available to sibling screens (e.g. In-Depth,
+        // navigated to by the canonical uuid) so they don't have to refetch
+        // this endpoint just to resolve the numeric id required by `/compare-*`
+        // APIs.
+        setProspectHint(canonicalUuid, {
+          personId: response.json.person_id,
+          name: response.json.name,
+        });
+      }
+    })();
+  }, [handle]);
+
+  const photoUuid = data === undefined ?
+    undefined :
+    data.photo_uuids.length === 0 ?
+    null :
+    data.photo_uuids[0];
+
+  const photoUuids = data?.photo_uuids;
+
+  const photoExtraExts = data?.photo_extra_exts;
+
+  const photoBlurhashes = data?.photo_blurhashes;
+
+  const imageVerifications = data?.photo_verifications;
+
+  const photoUuid0 = (() => {
+    if (photoUuids === undefined) {
+      return undefined;
+    }
+    if (photoUuids.length === 0) {
+      return null;
+    }
+    return photoUuids[0];
+  })();
+
+  const photoExtraExts0 = (() => {
+    if (photoExtraExts === undefined) {
+      return undefined;
+    }
+    if (photoExtraExts.length === 0) {
+      return null;
+    }
+    return photoExtraExts[0];
+  })();
+
+  const photoBlurhash0 = (() => {
+    if (photoBlurhashParam) {
+      return photoBlurhashParam;
+    }
+    if (photoBlurhashes === undefined) {
+      return undefined;
+    }
+    if (photoBlurhashes.length === 0) {
+      return null;
+    }
+    return photoBlurhashes[0];
+  })();
+
+  const imageVerification0 = imageVerifications && imageVerifications[0];
+
+  const uncappedBackgroundColor = data?.theme?.background_color
+      ?? appTheme.primaryColor;
+
+  const backgroundColor = appThemeName === 'dark'
+    ? capLuminance(uncappedBackgroundColor)
+    : uncappedBackgroundColor;
+
+  const animatedStyle = useAnimatedStyle(
+    () => ({ backgroundColor: withTiming(backgroundColor) }),
+    [backgroundColor]
+  );
+
+  return (
+    <>
+      {notFound &&
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: '#70f',
+            paddingHorizontal: 30,
+            gap: 14,
+          }}
+        >
+          {/* Anon 404s are ambiguous (private OR nonexistent) so we show a
+              sign-in CTA instead of "Profile not found". */}
+          <DefaultText
+            style={{
+              fontWeight: '900',
+              fontSize: 26,
+              color: appTheme.primaryColor,
+              textAlign: 'center',
+            }}
+          >
+            {isAnonymousViewer
+              ? 'Sign in to view this profile'
+              : 'Profile not found'}
+          </DefaultText>
+          {isAnonymousViewer &&
+            <DefaultText
+              style={{
+                fontSize: 16,
+                color: appTheme.primaryColor,
+                opacity: 0.85,
+                textAlign: 'center',
+              }}
+            >
+              This profile is only visible to signed-in users, or it may
+              not exist.
+            </DefaultText>
+          }
+        </View>
+      }
+      {!notFound && <>
+        <ScrollView style={{ backgroundColor }}>
+          <Reanimated.View style={animatedStyle}>
+            <HeartBackground
+              style={{
+                width: '100%',
+                height: '100%',
+              }}
+            >
+              {showSideAds &&
+                <ProspectProfileSideAds
+                  width={width}
+                  photoCount={data?.photo_uuids?.length ?? 0}
+                />
+              }
+              <View
+                style={{
+                  width: '100%',
+                  maxWidth: 600,
+                  alignSelf: 'center',
+                  paddingBottom:
+                    showAnonymousSignInCta && Platform.OS === 'web' ? 200 : 100,
+                }}
+              >
+                <EnlargeablePhoto
+                  photoUuid={photoUuid0}
+                  photoExtraExts={photoExtraExts0}
+                  photoBlurhash={photoBlurhash0}
+                  isPrimary={true}
+                  isVerified={imageVerification0}
+                  style={
+                    width > 600 ?
+                    commonStyles.primaryEnlargeablePhotoBigScreen :
+                    undefined
+                  }
+                />
+                <ProspectUserDetails
+                  navigation={navigation}
+                  personId={personId}
+                  personUuid={personUuid}
+                  name={data?.name}
+                  age={data?.age}
+                  gender={data?.gender}
+                  userLocation={data?.location}
+                  verified={verificationLevelId(data) > 1}
+                  matchPercentage={data?.match_percentage}
+                  titleColor={data?.theme?.title_color}
+                  bodyColor={data?.theme?.body_color}
+                />
+                <Body
+                  navigation={navigation}
+                  personUuid={personUuid}
+                  data={data}
+                />
+              </View>
+            </HeartBackground>
+          </Reanimated.View>
+        </ScrollView>
+        {showAuthedBottomButtons &&
+          <View
+            style={{
+              position: 'absolute',
+              bottom: insets.bottom,
+              width: '100%',
+              maxWidth: 600,
+              alignSelf: 'center',
+              zIndex: 999,
+              overflow: 'visible',
+              justifyContent: 'center',
+              flexDirection: 'row',
+            }}
+            pointerEvents="box-none"
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+              }}
+            >
+              <FloatingSkipButton
+                personUuid={personUuid}
+              />
+              <FloatingSendIntroButton
+                navigation={navigation}
+                personUuid={personUuid}
+                name={data?.name}
+                photoUuid={photoUuid}
+                photoBlurhash={photoBlurhash0}
+              />
+            </View>
+          </View>
+        }
+        {showAnonymousSignInCta && Platform.OS !== 'web' &&
+          <AnonymousSignInCta
+            navigation={navigation}
+            name={data?.name}
+          />
+        }
+      </>}
+      {(!isAnonymousViewer || Platform.OS === 'web') &&
+        <View
+          style={{
+            position: 'absolute',
+            height: 0,
+            width: '100%',
+            maxWidth: 600,
+            alignSelf: 'center',
+            zIndex: 999,
+          }}
+        >
+          <StatusBarSpacer/>
+          <FloatingBackButton navigationRef={navigationRef}/>
+        </View>
+      }
+    </>
+  );
+};
+
+const ProspectUserDetails = ({
+  navigation,
+  personId,
+  personUuid,
+  name,
+  age,
+  gender,
+  userLocation,
+  verified,
+  matchPercentage,
+  titleColor,
+  bodyColor,
+}: {
+  navigation: any,
+  personId: number | undefined,
+  personUuid: string | null | undefined,
+  name: string | undefined,
+  age: number | null | undefined,
+  gender: string | undefined,
+  userLocation: string | null | undefined,
+  verified: boolean,
+  matchPercentage: number | null | undefined,
+  titleColor: string | undefined,
+  bodyColor: string | undefined,
+}) => {
+  const onPressDonutChart = useCallback(() => {
+    if (personId === undefined) return;
+    if (name === undefined) return;
+
+    navigation.navigate('In-Depth', { personUuid });
+  }, [navigation, personUuid, personId, name]);
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        margin: 10,
+        gap: 10,
+      }}
+    >
+      <View
+        style={{
+          flexShrink: 1,
+          gap: 8,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            flexShrink: 1,
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <OnlineIndicator
+            personUuid={personUuid}
+            size={14}
+            borderWidth={1}
+          />
+          <DefaultText
+            style={{
+              fontWeight: 900,
+              fontSize: 24,
+              flexShrink: 1,
+              color: titleColor,
+            }}
+          >
+            {/* The non-breaking space prevents the UI from jumping around too */}
+            {/* much while the content loads */}
+            {name ?? '\u00A0'}
+          </DefaultText>
+          {verified &&
+            <VerificationBadge/>
+          }
+        </View>
+        <View>
+          <DefaultText
+            style={{
+              textAlign: 'left',
+              fontSize: 16,
+              fontWeight: 700,
+              color: bodyColor,
+            }}
+          >
+            {[
+              age,
+              gender,
+            ].filter(Boolean).join(' • ')}
+            {'\u2002'}
+          </DefaultText>
+          <DefaultText
+            style={{
+              textAlign: 'left',
+              fontSize: 16,
+              fontWeight: 700,
+              color: bodyColor,
+            }}
+          >
+            <FontAwesomeIcon
+              icon={faLocationDot}
+              style={{
+                transform: [ { translateY: 2 } ],
+              }}
+              color={bodyColor}
+            />
+            {'\u2002'}
+            {userLocation === null ? 'Private location' : userLocation}
+          </DefaultText>
+        </View>
+      </View>
+      {/* `null` = backend omitted the score (anon viewer); `undefined` =
+          still loading and should render the chart faded. */}
+      {matchPercentage !== null &&
+        <DonutChart
+          percentage={matchPercentage}
+          onPress={onPressDonutChart}
+          textStyle={{
+            color: titleColor,
+          }}
+        >
+          <DefaultText
+            style={{
+              paddingBottom: 5,
+              fontWeight: '500',
+              fontSize: 10,
+              opacity: matchPercentage === undefined ? 0 : 1,
+              color: titleColor,
+            }}
+          >
+            See Why ›
+          </DefaultText>
+        </DonutChart>
+      }
+    </View>
+  );
+};
+
+const Body = ({
+  navigation,
+  personUuid,
+  data,
+}: {
+  navigation: any,
+  personUuid: string,
+  data: UserData | undefined,
+}) => {
+  const { appThemeName, appTheme } = useAppTheme();
+  const [signedInUser] = useSignedInUser();
+  const isOnline = useOnline(personUuid);
+
+  const photoUuid1 = data?.photo_uuids && data?.photo_uuids[1];
+  const photoUuid2 = data?.photo_uuids && data?.photo_uuids[2];
+  const photoUuid3 = data?.photo_uuids && data?.photo_uuids[3];
+  const photoUuid4 = data?.photo_uuids && data?.photo_uuids[4];
+  const photoUuid5 = data?.photo_uuids && data?.photo_uuids[5];
+  const photoUuid6 = data?.photo_uuids && data?.photo_uuids[6];
+
+  const photoExtraExts1 = data?.photo_extra_exts && data?.photo_extra_exts[1];
+  const photoExtraExts2 = data?.photo_extra_exts && data?.photo_extra_exts[2];
+  const photoExtraExts3 = data?.photo_extra_exts && data?.photo_extra_exts[3];
+  const photoExtraExts4 = data?.photo_extra_exts && data?.photo_extra_exts[4];
+  const photoExtraExts5 = data?.photo_extra_exts && data?.photo_extra_exts[5];
+  const photoExtraExts6 = data?.photo_extra_exts && data?.photo_extra_exts[6];
+
+  const photoBlurhash1 = data?.photo_blurhashes && data?.photo_blurhashes[1];
+  const photoBlurhash2 = data?.photo_blurhashes && data?.photo_blurhashes[2];
+  const photoBlurhash3 = data?.photo_blurhashes && data?.photo_blurhashes[3];
+  const photoBlurhash4 = data?.photo_blurhashes && data?.photo_blurhashes[4];
+  const photoBlurhash5 = data?.photo_blurhashes && data?.photo_blurhashes[5];
+  const photoBlurhash6 = data?.photo_blurhashes && data?.photo_blurhashes[6];
+
+  const imageVerification1 = data?.photo_verifications && data?.photo_verifications[1] || false;
+  const imageVerification2 = data?.photo_verifications && data?.photo_verifications[2] || false;
+  const imageVerification3 = data?.photo_verifications && data?.photo_verifications[3] || false;
+  const imageVerification4 = data?.photo_verifications && data?.photo_verifications[4] || false;
+  const imageVerification5 = data?.photo_verifications && data?.photo_verifications[5] || false;
+  const imageVerification6 = data?.photo_verifications && data?.photo_verifications[6] || false;
+
+  // Compare on UUID rather than the numeric `personId` we lift out of `data`,
+  // so the "Block" button doesn't briefly render before the API response lands.
+  const isViewingSelf =
+    !!signedInUser?.personUuid && signedInUser.personUuid === personUuid;
+
+  const uncappedBackgroundColor = data?.theme?.background_color
+      ?? appTheme.primaryColor;
+
+  const backgroundColor = appThemeName === 'dark'
+    ? capLuminance(uncappedBackgroundColor)
+    : uncappedBackgroundColor;
+
+  const basicsTheme = {
+    textStyle: {
+      color: data?.theme?.body_color,
+    },
+  };
+
+  const clubsTheme = {
+    textStyle: {
+      color: data?.theme?.body_color,
+    },
+  };
+
+  const mutualClubsTheme = {
+    ...basicsTheme,
+    style: {
+      borderColor: clubsTheme.textStyle.color,
+    },
+  };
+
+  const statsTheme = {
+    textStyle: {
+      color: data?.theme?.body_color,
+    },
+  };
+
+  return (
+    <>
+      <View
+        style={{
+          paddingTop: 10,
+          paddingLeft: 10,
+          paddingRight: 10,
+          marginBottom: 20,
+        }}
+      >
+        <Flair flair={data?.flair ?? []} />
+        {data?.audio_bio_uuid &&
+          <AudioPlayer
+            name={data?.name}
+            uuid={data?.audio_bio_uuid}
+            presentation="profile"
+          />
+        }
+        <Title style={{color: data?.theme?.title_color}}>Basics</Title>
+        <Basics>
+          {data?.orientation &&
+            <Basic {...basicsTheme} icon="person">{data.orientation}</Basic>}
+
+          {data?.ethnicity &&
+            <Basic {...basicsTheme} icon="globe-outline">{data.ethnicity}</Basic>}
+
+          {data?.relationship_status &&
+            <Basic {...basicsTheme} icon="heart">{data.relationship_status}</Basic>}
+
+          {data?.occupation &&
+            <Basic {...basicsTheme} icon="briefcase">{data.occupation}</Basic>}
+
+          {data?.education &&
+            <Basic {...basicsTheme} icon="school">{data.education}</Basic>}
+
+          {data?.has_kids === 'Yes' &&
+            <Basic {...basicsTheme} icon={faChild}>Has kids</Basic>}
+          {data?.has_kids === 'No' &&
+            <Basic {...basicsTheme} icon={faChild}>Doesn’t have kids</Basic>}
+
+          {data?.wants_kids === 'Yes' &&
+            <Basic {...basicsTheme} icon={faChildren}>Wants kids</Basic>}
+          {data?.wants_kids === 'No' &&
+            <Basic {...basicsTheme} icon={faChildren}>Doesn’t want kids</Basic>}
+          {data?.wants_kids === 'Maybe' &&
+            <Basic {...basicsTheme} icon={faChildren}>Maybe wants kids</Basic>}
+
+          {data?.looking_for &&
+            <Basic {...basicsTheme} icon="eye">Looking for {data.looking_for.toLowerCase()}</Basic>}
+
+          {data?.smoking === 'Yes' &&
+            <Basic {...basicsTheme} icon={faSmoking}>Smokes</Basic>}
+          {data?.smoking === 'No' &&
+            <Basic {...basicsTheme} icon={faSmoking}>Doesn’t smoke</Basic>}
+
+          {data?.drinking &&
+            <Basic {...basicsTheme} icon="wine">{data.drinking} drinks</Basic>}
+
+          {data?.drugs === 'Yes' &&
+            <Basic {...basicsTheme} icon={faPills}>Does drugs</Basic>}
+          {data?.drugs === 'No' &&
+            <Basic {...basicsTheme} icon={faPills}>Doesn’t do drugs</Basic>}
+
+          {data?.religion &&
+            <Basic {...basicsTheme} icon={faHandsPraying}>{data.religion}</Basic>}
+
+          {data?.long_distance === 'Yes' &&
+            <Basic {...basicsTheme} icon="globe">Open to long distance</Basic>}
+          {data?.long_distance === 'No' &&
+            <Basic {...basicsTheme} icon="globe">Not open to long distance</Basic>}
+
+          {data?.star_sign &&
+            <Basic {...basicsTheme} icon="star">{data.star_sign}</Basic>}
+
+          {data?.exercise &&
+            <Basic {...basicsTheme} icon="barbell">{data.exercise} exercises</Basic>}
+
+          {data?.height_cm && signedInUser?.units === 'Metric' &&
+            <Basic {...basicsTheme} icon={faRulerVertical}>{data.height_cm} cm</Basic>}
+          {data?.height_cm && signedInUser?.units === 'Imperial' &&
+            <Basic {...basicsTheme} icon={faRulerVertical}>{cmToFeetInchesStr(data.height_cm)}</Basic>}
+        </Basics>
+
+        {verifiedAnything(data) && <>
+          <Title style={{color: data?.theme?.title_color}}>Verification</Title>
+          <DetailedVerificationBadges
+            photos={(data?.photo_verifications ?? []).some(Boolean)}
+            gender={data?.verified_gender ?? false}
+            age={data?.verified_age ?? false}
+            ethnicity={data?.verified_ethnicity ?? false}
+            style={{
+              marginBottom: 5,
+            }}
+          />
+          <DefaultText
+            style={{
+              color: bestTextOn(backgroundColor),
+              opacity: 0.5,
+              marginBottom: 10,
+            }}
+          >
+            Verification is based on selfies analyzed by our AI. Verified
+            photos are most accurate.
+          </DefaultText>
+        </>}
+
+        <EnlargeablePhoto
+          photoUuid={photoUuid1}
+          photoExtraExts={photoExtraExts1}
+          photoBlurhash={photoBlurhash1}
+          style={commonStyles.secondaryEnlargeablePhoto}
+          innerStyle={commonStyles.secondaryEnlargeablePhotoInner}
+          isPrimary={false}
+          isVerified={imageVerification1}
+        />
+
+        {!data?.name &&
+          <Title style={{color: data?.theme?.title_color}}>About ...</Title>
+        }
+        {!!data?.name && !!data?.about && data.about.trim() &&
+          <>
+            <Title style={{color: data?.theme?.title_color}}>About {data.name}</Title>
+            <DefaultText style={{color: data?.theme?.body_color}} selectable={true}>
+              {data.about}
+            </DefaultText>
+          </>
+        }
+
+        <EnlargeablePhoto
+          photoUuid={photoUuid2}
+          photoExtraExts={photoExtraExts2}
+          photoBlurhash={photoBlurhash2}
+          style={commonStyles.secondaryEnlargeablePhoto}
+          innerStyle={commonStyles.secondaryEnlargeablePhotoInner}
+          isPrimary={false}
+          isVerified={imageVerification2}
+        />
+
+        <EnlargeablePhoto
+          photoUuid={photoUuid3}
+          photoExtraExts={photoExtraExts3}
+          photoBlurhash={photoBlurhash3}
+          style={commonStyles.secondaryEnlargeablePhoto}
+          innerStyle={commonStyles.secondaryEnlargeablePhotoInner}
+          isPrimary={false}
+          isVerified={imageVerification3}
+        />
+
+        <AllClubs
+          mutualClubs={data?.mutual_clubs ?? []}
+          otherClubs={data?.other_clubs ?? []}
+          mutualClubsTheme={mutualClubsTheme}
+          clubsTheme={clubsTheme}
+          titleColor={data?.theme?.title_color}
+        />
+
+        <EnlargeablePhoto
+          photoUuid={photoUuid4}
+          photoExtraExts={photoExtraExts4}
+          photoBlurhash={photoBlurhash4}
+          style={commonStyles.secondaryEnlargeablePhoto}
+          innerStyle={commonStyles.secondaryEnlargeablePhotoInner}
+          isPrimary={false}
+          isVerified={imageVerification4}
+        />
+
+        <EnlargeablePhoto
+          photoUuid={photoUuid5}
+          photoExtraExts={photoExtraExts5}
+          photoBlurhash={photoBlurhash5}
+          style={commonStyles.secondaryEnlargeablePhoto}
+          innerStyle={commonStyles.secondaryEnlargeablePhotoInner}
+          isPrimary={false}
+          isVerified={imageVerification5}
+        />
+
+        <EnlargeablePhoto
+          photoUuid={photoUuid6}
+          photoExtraExts={photoExtraExts6}
+          photoBlurhash={photoBlurhash6}
+          style={commonStyles.secondaryEnlargeablePhoto}
+          innerStyle={commonStyles.secondaryEnlargeablePhotoInner}
+          isPrimary={false}
+          isVerified={imageVerification6}
+        />
+
+        {hasAnyStats(data) && <>
+          <Title style={{color: data?.theme?.title_color}}>Stats</Title>
+          <Stats>
+            {data?.seconds_since_last_online !== null &&
+              <Stat {...statsTheme}>
+                <DefaultText disableTheme style={{ fontWeight: '700' }}>
+                  Last Online: {}
+                </DefaultText>
+                {
+                  data === undefined ?
+                  'Loading...' :
+                  isOnline === 'online' ?
+                  'Now' :
+                  `${friendlyTimeAgo(data.seconds_since_last_online)} ago`
+                }
+              </Stat>
+            }
+            {data?.count_answers !== null &&
+              <Stat {...statsTheme}>
+                <DefaultText disableTheme style={{ fontWeight: '700' }}>
+                  Q&A Answers: {}
+                </DefaultText>
+                {data?.count_answers ?? 'Loading...'}
+              </Stat>
+            }
+            {data && !_.isNil(data.gives_reply_percentage) &&
+              <Stat {...statsTheme}>
+                <DefaultText disableTheme style={{ fontWeight: '700' }}>
+                  Gives Replies To: {}
+                </DefaultText>
+                {Math.round(data.gives_reply_percentage)}% of intros
+              </Stat>
+            }
+            {data && !_.isNil(data.gets_reply_percentage) &&
+              <Stat {...statsTheme}>
+                <DefaultText disableTheme style={{ fontWeight: '700' }}>
+                  Gets Replies To: {}
+                </DefaultText>
+                {Math.round(data.gets_reply_percentage)}% of intros
+              </Stat>
+            }
+            {data?.seconds_since_sign_up !== null &&
+              <Stat {...statsTheme}>
+                <DefaultText disableTheme style={{ fontWeight: '700' }}>
+                  Account Age: {}
+                </DefaultText>
+                {
+                  data === undefined ?
+                  'Loading...' :
+                  friendlyTimeAgo(data.seconds_since_sign_up)
+                }
+              </Stat>
+            }
+          </Stats>
+        </>}
+
+        {!!data?.count_answers && !!signedInUser &&
+          <SeeQAndAButton
+            navigation={navigation}
+            personUuid={personUuid}
+            name={data?.name}
+          />}
+        <ShareButton personUuid={data?.url_slug ?? personUuid}/>
+        {!isViewingSelf && !!signedInUser &&
+          <BlockButton
+            name={data?.name}
+            personUuid={personUuid}
+          />}
+
+        {data?.advertiser_friendly &&
+          <ResponsiveAd slot="3806635217" />}
+      </View>
+    </>
+  );
+};
+
+const styles = StyleSheet.create({
+  wFull: {
+    width: '100%',
+  },
+  audioPlayerMiddleText: {
+    fontWeight: 700,
+    flex: 3,
+    ...(Platform.OS === 'web' ? {
+      wordBreak: 'break-all',
+    } : {}),
+    textAlign: 'center',
+  },
+});
+
+export {
+  FloatingBackButton,
+  GalleryScreen,
+  InDepthScreen,
+  ProspectProfileScreen,
+};
