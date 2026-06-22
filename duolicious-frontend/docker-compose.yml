@@ -1,0 +1,23 @@
+# Dev service for the Duolicious frontend (Expo web dev server).
+#
+# Paths resolve relative to this file's directory, so it works both on its
+# own (run from duolicious-frontend/) and when pulled into the root stack
+# via `include`.
+services:
+  frontend:
+    build:
+      context: .
+    ports:
+      - "8081:8081"
+    volumes:
+      # Bind-mount the source for hot reload, but keep the image's
+      # node_modules (with patch-package applied) via an anonymous volume.
+      - .:/app
+      - /app/node_modules
+    environment:
+      BROWSER: none
+      EXPO_NO_TELEMETRY: "1"
+      # The frontend's env defaults already point at the backend's published
+      # localhost ports (api :5000, chat :5443, s3mock :9090, status :8080).
+      # Browser requests run on the host, so no DUO_* overrides are needed
+      # for the default local stack.

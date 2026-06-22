@@ -11,33 +11,8 @@
 #   - MailHog (email): http://localhost:8025
 #   - Mock S3:         http://localhost:9090
 #
-# The backend services are defined once, authoritatively, in
-# duolicious-backend/docker-compose.yml and pulled in via `include` (its
-# build contexts and volume mounts resolve relative to that file's own
-# directory). This file only adds the frontend service on top.
-#
 # Requires Docker Compose v2.20+ (for `include`).
 
 include:
   - duolicious-backend/docker-compose.yml
-
-services:
-  frontend:
-    build:
-      context: ./duolicious-frontend
-    ports:
-      - "8081:8081"
-    volumes:
-      # Bind-mount the source for hot reload, but keep the image's
-      # node_modules (with patch-package applied) via an anonymous volume.
-      - ./duolicious-frontend:/app
-      - /app/node_modules
-    environment:
-      BROWSER: none
-      EXPO_NO_TELEMETRY: "1"
-      # The frontend's env defaults already point at the backend's published
-      # localhost ports (api :5000, chat :5443, s3mock :9090, status :8080).
-      # Browser requests run on the host, so no DUO_* overrides are needed
-      # for the default local stack.
-    depends_on:
-      - api
+  - duolicious-frontend/docker-compose.yml
