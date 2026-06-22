@@ -2,6 +2,7 @@ from async_lru_cache import AsyncLruCache
 from database.asyncdatabase import api_tx
 from enum import Enum
 from dataclasses import dataclass
+from service.chat.protocol.outbound import MessageBlocked, Outbound
 
 class DefaultRateLimit(Enum):
     NONE = 0
@@ -116,28 +117,28 @@ def get_default_rate_limit(row: Row) -> DefaultRateLimit:
         return DefaultRateLimit.NONE
 
 
-def get_stanza(default_rate_limit: object, stanza_id: str) -> list[str]:
+def get_stanza(default_rate_limit: object, stanza_id: str) -> list[Outbound]:
     if default_rate_limit == DefaultRateLimit.NONE:
         return []
     elif default_rate_limit == DefaultRateLimit.UNVERIFIED:
-        return [
-                f'<duo_message_blocked id="{stanza_id}" '
-                f'reason="rate-limited-1day" '
-                f'subreason="unverified-basics"/>']
+        return [MessageBlocked(
+                stanza_id=stanza_id,
+                reason='rate-limited-1day',
+                subreason='unverified-basics')]
     elif default_rate_limit == DefaultRateLimit.BASICS:
-        return [
-                f'<duo_message_blocked id="{stanza_id}" '
-                f'reason="rate-limited-1day" '
-                f'subreason="unverified-photos"/>']
+        return [MessageBlocked(
+                stanza_id=stanza_id,
+                reason='rate-limited-1day',
+                subreason='unverified-photos')]
     elif default_rate_limit == DefaultRateLimit.PHOTOS:
-        return [
-                f'<duo_message_blocked id="{stanza_id}" '
-                f'reason="rate-limited-1day"/>']
+        return [MessageBlocked(
+                stanza_id=stanza_id,
+                reason='rate-limited-1day')]
     else:
         raise Exception(f'Unhandled rate limit reason {default_rate_limit}')
 
 
-def pure_maybe_fetch_rate_limit(row: Row, stanza_id: str) -> list[str]:
+def pure_maybe_fetch_rate_limit(row: Row, stanza_id: str) -> list[Outbound]:
     default_rate_limit = get_default_rate_limit(row)
 
     return get_stanza(default_rate_limit, stanza_id)
@@ -156,7 +157,7 @@ async def fetch_rate_limit_reason(from_id: int) -> Row:
     )
 
 
-async def maybe_fetch_rate_limit(from_id: int, stanza_id: str) -> list[str]:
+async def maybe_fetch_rate_limit(from_id: int, stanza_id: str) -> list[Outbound]:
     row = await fetch_rate_limit_reason(from_id=from_id)
 
     return pure_maybe_fetch_rate_limit(row, stanza_id)

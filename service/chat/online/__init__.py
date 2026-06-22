@@ -1,4 +1,3 @@
-from lxml import etree
 import redis.asyncio as redis
 import traceback
 from service.chat.chatutil import (
@@ -10,15 +9,23 @@ from enum import Enum
 from commonsql import Q_UPDATE_LAST
 from batcher import Batcher
 from service.chat.session import Session
+from service.chat.protocol.outbound import (
+    OnlineEvent,
+    Outbound,
+    SubscribeBad,
+    SubscribeOk,
+    UnsubscribeBad,
+    UnsubscribeOk,
+    from_bus,
+    to_bus,
+)
 from database import api_tx
 import asyncio
-import traceback
 import time
 from functools import lru_cache
 from pathlib import Path
 from dataclasses import dataclass
 from constants import ONLINE_RECENTLY_SECONDS, MAX_ONLINE_SUBSCRIPTIONS
-from util import truncate_text
 
 LAST_UPDATE_INTERVAL_SECONDS = 4 * 60  # 4 minutes
 
@@ -50,14 +57,6 @@ def max_online_subscriptions() -> int:
 
 FMT_KEY = 'online-{username}'
 
-FMT_ONLINE_EVENT = '<duo_online_event uuid="{username}" status="{status}" />'
-
-FMT_SUB_OK  = '<duo_subscribe_successful uuid="{username}" />'
-FMT_SUB_BAD = '<duo_subscribe_unsuccessful uuid="{username}" />'
-
-FMT_UNSUB_OK  = '<duo_unsubscribe_successful uuid="{username}" />'
-FMT_UNSUB_BAD = '<duo_unsubscribe_unsuccessful uuid="{username}" />'
-
 
 class OnlineStatus(Enum):
     ONLINE = 'online'
@@ -86,19 +85,24 @@ async def _redis_subscribe_online(
     redis_client: redis.Redis,
     pubsub: redis.client.PubSub,
     username: str,
-) -> str:
+) -> OnlineEvent:
     key = FMT_KEY.format(username=username)
     val = await redis_client.get(key)
 
     await pubsub.subscribe(key)
+
     if isinstance(val, bytes):
-        return val.decode()
+        val = val.decode()
+
     if isinstance(val, str):
-        return val
-    return FMT_ONLINE_EVENT.format(
-        username=username,
-        status=OnlineStatus.OFFLINE.value,
-    )
+        try:
+            event = from_bus(val)
+            if isinstance(event, OnlineEvent):
+                return event
+        except Exception:
+            pass
+
+    return OnlineEvent(username=username, status=OnlineStatus.OFFLINE.value)
 
 
 async def _redis_unsubscribe_online(
@@ -119,7 +123,7 @@ async def redis_publish_online(
         else OnlineStatus.ONLINE_RECENTLY.value)
 
     key = FMT_KEY.format(username=username)
-    val = FMT_ONLINE_EVENT.format(username=username, status=status)
+    val = to_bus(OnlineEvent(username=username, status=status))
 
     async with redis_client.pipeline(transaction=True) as pipe:
         pipe.publish(key, val)
@@ -162,24 +166,16 @@ async def _evict_oldest_online_subscriptions(
 
 async def maybe_redis_subscribe_online(
     from_username: str | None,
-    parsed_xml: etree._Element,
+    to_username: str,
     redis_client: redis.Redis,
     pubsub: redis.client.PubSub,
     session: Session,
-) -> list[str]:
-    if parsed_xml.tag != 'duo_subscribe_online':
-        return []
-
-    to_username = parsed_xml.attrib.get('uuid')
-
-    if not to_username:
-        return []
-
+) -> list[Outbound]:
     try:
         if not await should_subscribe(
                 from_username=from_username,
                 to_username=to_username):
-            return [FMT_SUB_BAD.format(username=to_username)]
+            return [SubscribeBad(username=to_username)]
 
         if to_username not in session.online_subscriptions:
             await _evict_oldest_online_subscriptions(
@@ -189,7 +185,7 @@ async def maybe_redis_subscribe_online(
             session.online_subscriptions[to_username] = None
 
         return [
-            FMT_SUB_OK.format(username=to_username),
+            SubscribeOk(username=to_username),
             await _redis_subscribe_online(
                     redis_client=redis_client,
                     pubsub=pubsub,
@@ -197,22 +193,14 @@ async def maybe_redis_subscribe_online(
         ]
     except:
         print(traceback.format_exc())
-        return [FMT_SUB_BAD.format(username=to_username)]
+        return [SubscribeBad(username=to_username)]
 
 
 async def maybe_redis_unsubscribe_online(
-    parsed_xml: etree._Element,
+    username: str,
     pubsub: redis.client.PubSub,
     session: Session,
-) -> list[str]:
-    if parsed_xml.tag != 'duo_unsubscribe_online':
-        return []
-
-    username = parsed_xml.attrib.get('uuid')
-
-    if not username:
-        return []
-
+) -> list[Outbound]:
     try:
         session.online_subscriptions.pop(username, None)
 
@@ -220,10 +208,10 @@ async def maybe_redis_unsubscribe_online(
                 pubsub=pubsub,
                 username=username)
 
-        return [FMT_UNSUB_OK.format(username=username)]
+        return [UnsubscribeOk(username=username)]
     except:
         print(traceback.format_exc())
-        return [FMT_UNSUB_BAD.format(username=username)]
+        return [UnsubscribeBad(username=username)]
 
 
 
