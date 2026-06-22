@@ -14,5 +14,5 @@
 # Requires Docker Compose v2.20+ (for `include`).
 
 include:
-  - duolicious-backend/docker-compose.yml
-  - duolicious-frontend/docker-compose.yml
+  - backend/docker-compose.yml
+  - frontend/docker-compose.yml

@@ -9,11 +9,11 @@ on:
       - main
 
 # All run-steps below execute from the backend subdirectory, so the
-# relative paths inherited from the original duolicious-backend repo
+# relative paths inherited from the original backend repo
 # (./mypy.sh, ./test/...) resolve unchanged.
 defaults:
   run:
-    working-directory: duolicious-backend
+    working-directory: backend
 
 jobs:
   mypy:

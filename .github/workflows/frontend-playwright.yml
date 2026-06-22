@@ -9,7 +9,7 @@ on:
 
 defaults:
   run:
-    working-directory: duolicious-frontend
+    working-directory: frontend
 
 jobs:
   test:
@@ -34,5 +34,5 @@ jobs:
       if: always()
       with:
         name: playwright-report
-        path: duolicious-frontend/playwright-report/
+        path: frontend/playwright-report/
         retention-days: 30

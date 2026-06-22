@@ -9,7 +9,7 @@ on:
 
 defaults:
   run:
-    working-directory: duolicious-frontend
+    working-directory: frontend
 
 jobs:
   publish:
@@ -79,4 +79,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: a73a8f703a9a1eefac56f84ca6a4c9ac
           projectName: duolicious
-          directory: duolicious-frontend/dist
+          directory: frontend/dist

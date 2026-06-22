@@ -14,8 +14,8 @@ This monorepo contains both halves of Duolicious:
 
 | Directory | What it is |
 | --- | --- |
-| [`duolicious-backend/`](duolicious-backend/) | The API, chat, cron and supporting services (Python + Postgres). See its [README](duolicious-backend/README.md) and [DEVELOPER.md](duolicious-backend/DEVELOPER.md). |
-| [`duolicious-frontend/`](duolicious-frontend/) | The cross-platform app (Expo / React Native, with a web build). See its [README](duolicious-frontend/README.md) and [DEVELOPER.md](duolicious-frontend/DEVELOPER.md). |
+| [`backend/`](backend/) | The API, chat, cron and supporting services (Python + Postgres). See its [README](backend/README.md) and [DEVELOPER.md](backend/DEVELOPER.md). |
+| [`frontend/`](frontend/) | The cross-platform app (Expo / React Native, with a web build). See its [README](frontend/README.md) and [DEVELOPER.md](frontend/DEVELOPER.md). |
 
 ## Quickstart — run the whole app
 
@@ -43,7 +43,7 @@ configuration.
 To seed a test user once the API is healthy:
 
 ```bash
-(cd duolicious-backend && ./test/util/create-user.sh alice 30 1 true)
+(cd backend && ./test/util/create-user.sh alice 30 1 true)
 ```
 
 ## Working on just one half
@@ -70,6 +70,6 @@ contribute!
 2. Raise a pull request. Developer instructions live in each half's
    `DEVELOPER.md`.
 3. Read the relevant `CONTRIBUTING.md`
-   ([backend](duolicious-backend/CONTRIBUTING.md) ·
-   [frontend](duolicious-frontend/CONTRIBUTING.md)) for coding standards, how
+   ([backend](backend/CONTRIBUTING.md) ·
+   [frontend](frontend/CONTRIBUTING.md)) for coding standards, how
    to run tests, and what makes a great PR.

@@ -1,7 +1,7 @@
 # Dev service for the Duolicious frontend (Expo web dev server).
 #
 # Paths resolve relative to this file's directory, so it works both on its
-# own (run from duolicious-frontend/) and when pulled into the root stack
+# own (run from frontend/) and when pulled into the root stack
 # via `include`.
 services:
   frontend:
