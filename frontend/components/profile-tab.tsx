@@ -852,7 +852,7 @@ const AboutDuolicious = () => {
         About
       </Title>
       <DefaultText
-        onPress={() => Linking.openURL('https://github.com/duolicious')}
+        onPress={() => Linking.openURL('https://github.com/duolicious/duolicious')}
         style={{
           textAlign: 'center',
           color: '#999',
