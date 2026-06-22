@@ -1,25 +1,4 @@
-<p align="center">
-<img src="https://avatars.githubusercontent.com/u/134650848?s=100&v=4" alt="Duolicious Hearts Logo" >
-<h3 align="center">Duolicious Backend</h3>
-<p align="center">
-The backend of the world's most popular open-source dating app.</p>
-</p>
-
-<p align="center">
-<a href="https://github.com/duolicious/duolicious-backend/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/duolicious/duolicious-backend/.github%2Fworkflows%2Ftest.yml?label=Tests" alt="Build status"/></a>
-<a href="https://duolicious.app/"><img src="https://img.shields.io/badge/Based-True--love_pilled-7700ff" alt="Based and true-love pilled"/></a>
-</p>
-
-<p align="center">
-<a href="https://x.com/duoliciousapp"><img src="https://img.shields.io/twitter/follow/duoliciousapp" alt="Duolicious Twitter"/></a>
-<a href="https://www.reddit.com/r/duolicious/"><img src="https://img.shields.io/reddit/subreddit-subscribers/duolicious" alt="Duolicious Reddit"/></a>
-</p>
-
-## Screenshots
-
-There's screenshots of the app at https://github.com/duolicious.
-
-## Quickstart (copy & paste)
+## Quickstart
 
 Requirements: Docker (with Compose), jq, curl, ffmpeg, zstd
 
@@ -68,11 +47,3 @@ Run an entire test suite (e.g. all tests in functionality1):
 Prefer Docker? You already started everything with `docker compose up -d`.
 
 Prefer running the services from source (hot reload)? See the "Local development" section in [DEVELOPER.md](DEVELOPER.md).
-
-## Contributing
-
-Want to help strangers on the internet find love? There's three ways you can contribute!
-
-1. Tell your friends about Duolicious and share on social media! This is the best way to make it grow.
-2. Raise a pull request. Developer instructions can be found at [DEVELOPER.md](DEVELOPER.md).
-3. Read our [CONTRIBUTING guide](CONTRIBUTING.md) for coding standards, how to run tests, and what makes a great PR.
