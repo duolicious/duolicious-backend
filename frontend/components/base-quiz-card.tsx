@@ -32,7 +32,7 @@ type Direction = 'left' | 'right' | 'up' | 'down' | 'none'
 type SwipeHandler = (direction: Direction) => void
 type CardLeftScreenHandler = (direction: Direction) => void
 
-interface API {
+interface BaseQuizCardRef {
   /**
    * Programmatically trigger a swipe of the card in one of the valid directions `'left'`, `'right'`, `'up'` and `'down'`. This function, `swipe`, can be called on a reference of the BaseQuizCard instance.
    *
@@ -47,7 +47,7 @@ interface API {
 }
 
 interface Props {
-  ref?: Ref<API>
+  ref?: Ref<BaseQuizCardRef>
 
   /**
    * Callback that will be executed when a swipe has been completed. It will be called with a single string denoting which direction the swipe was in: `'left'`, `'right'`, `'up'` or `'down'`.
@@ -99,11 +99,30 @@ interface Props {
 
 const { height, width } = Dimensions.get('window');
 
+const noTextSelect: ViewStyle & { userSelect?: 'none' } = { userSelect: 'none' };
+
 const settings = {
   maxTilt: 20, // in deg
   rotationPower: 50,
   swipeThreshold: 0.5 // need to update this threshold for RN (1.5 seems reasonable...?)
 }
+
+type SpringConfig = {
+  duration?: number;
+  friction?: number;
+  tension?: number;
+};
+
+type SpringStartParams = {
+  x?: number;
+  y?: number;
+  rot?: number;
+  config?: SpringConfig;
+  immediate?: boolean;
+  onResolve?: () => void;
+};
+
+type SpringStarter = { start: (args: SpringStartParams) => void };
 
 // physical properties of the spring
 const physics = {
@@ -142,7 +161,7 @@ const diagonal = () => pythagoras(height, width)
 
 const animateOut = async (
   gesture: { x: number; y: number },
-  setSpringTarget: React.MutableRefObject<{ start: (args: any) => void }>,
+  setSpringTarget: React.MutableRefObject<SpringStarter>,
   dir?: Direction
 ) => {
   const normalizedGesture = (() => {
@@ -174,9 +193,7 @@ const animateOut = async (
 }
 
 const animateBack = (
-  setSpringTarget: React.MutableRefObject<
-    { start: (args: any) => void }
-  >
+  setSpringTarget: React.MutableRefObject<SpringStarter>
 ) => {
   return new Promise((resolve) => {
     setSpringTarget.current.start({
@@ -184,7 +201,7 @@ const animateBack = (
       y: 0,
       rot: 0,
       config: physics.animateBack,
-      onResolve: resolve,
+      onResolve: () => resolve(undefined),
     });
   });
 }
@@ -227,7 +244,7 @@ function createSpringStarter(
     x?: number;
     y?: number;
     rot?: number;
-    config?: any;
+    config?: SpringConfig;
     immediate?: boolean;
     onResolve?: () => void;
   }) => {
@@ -294,7 +311,7 @@ const BaseQuizCard = forwardRef(
       rightComponent,
       downComponent
     }: Props,
-    ref: React.Ref<API>
+    ref: React.Ref<BaseQuizCardRef>
   ) => {
     // True only while the card is flicked away / leaving the screen. A
     // spring-back to center does NOT set this, so the card can be re-grabbed
@@ -347,9 +364,7 @@ const BaseQuizCard = forwardRef(
 
     const handleSwipeReleased = useCallback(
       async (
-        setSpringTarget: React.MutableRefObject<
-          { start: (args: any) => void }
-        >,
+        setSpringTarget: React.MutableRefObject<SpringStarter>,
         gesture: PanResponderGestureState
       ) => {
         // Check if this is a swipe
@@ -480,7 +495,7 @@ const BaseQuizCard = forwardRef(
       <Animated.View
         {...panResponder.panHandlers}
         style={[
-          { userSelect: 'none' } as any,
+          noTextSelect,
           cardStyle,
           containerStyle
         ]}
@@ -509,5 +524,6 @@ const BaseQuizCard = forwardRef(
 
 export {
   BaseQuizCard,
+  BaseQuizCardRef,
   Direction,
 }

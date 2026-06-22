@@ -28,7 +28,7 @@ const notifyOwnLastMessageAt = (
 // for: clear it. Our own outgoing messages aren't echoed back on this stream
 // (the controller reports them from `sendMessage` instead), and the archived
 // history is reconciled whenever the conversation is fetched.
-const clearOwnLastMessageOnIncoming = (doc: any) => {
+const clearOwnLastMessageOnIncoming = (doc: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
   const message = doc?.message;
 
   if (!message || message['@type'] !== 'chat') {
@@ -62,7 +62,7 @@ listen(EV_CHAT_WS_RECEIVE, clearOwnLastMessageOnIncoming);
 //    We stamp them with the local clock, but only when they acknowledge a
 //    message newer than what we've already recorded, so a re-open (which fires
 //    another nudge) doesn't make the read time creep forward.
-const resolveReadReceipt = (doc: any) => {
+const resolveReadReceipt = (doc: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
   const message = doc?.message;
 
   if (!message || message['@type'] !== 'read-receipt') {

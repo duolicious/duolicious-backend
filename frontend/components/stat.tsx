@@ -1,3 +1,5 @@
+import { ReactNode } from 'react';
+import { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import { Basic, Basics } from './basic';
 
 const Stat = ({
@@ -5,9 +7,9 @@ const Stat = ({
   style,
   textStyle,
 }: {
-  children: any,
-  style?: any,
-  textStyle?: any,
+  children: ReactNode,
+  style?: StyleProp<ViewStyle>,
+  textStyle?: StyleProp<TextStyle>,
 }) => {
   return (
     <Basic

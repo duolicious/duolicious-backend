@@ -135,7 +135,7 @@ const useOnline = (personUuid: string | null | undefined): OnlineStatus => {
   return onlineStatus;
 };
 
-const onReceive = async (doc: any) => {
+const onReceive = async (doc: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
   try {
     const {
       duo_online_event: {

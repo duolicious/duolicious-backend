@@ -3,6 +3,7 @@ import {
   View,
   StyleProp,
   TextStyle,
+  ViewStyle,
 } from 'react-native';
 import {
   ReactNode,
@@ -12,7 +13,11 @@ import {
 import { DefaultText } from './default-text';
 import { useAppTheme } from '../app-theme/app-theme';
 
-const CheckChip = ({label, ...props}: {label?: ReactNode, [key: string]: any}) => {
+const CheckChip = ({label, ...props}: {
+  label?: ReactNode,
+  initialCheckedState?: boolean,
+  onChange?: (checked: boolean) => void,
+}) => {
   const {
     onChange = () => {}
   } = props;
@@ -71,7 +76,7 @@ const CheckChip = ({label, ...props}: {label?: ReactNode, [key: string]: any}) =
   );
 };
 
-const CheckChips = ({children, ...props}: {children?: ReactNode, [key: string]: any}) => {
+const CheckChips = ({children, ...props}: {children?: ReactNode, style?: ViewStyle}) => {
   return (
     <View
       style={{

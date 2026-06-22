@@ -1,3 +1,4 @@
+import { NavigationState, PartialState } from '@react-navigation/native';
 import { storeKv } from './kv-storage';
 
 // One-shot reader for the pre-`last_path` navigation state. We no longer
@@ -5,7 +6,7 @@ import { storeKv } from './kv-storage';
 // stored a full navigation tree under `navigation_state`. Reading it through
 // this helper migrates and discards the legacy blob in a single call so it
 // doesn't sit around in storage forever (it's tens of KB of stale state).
-const consumeLegacyNavigationState = async (): Promise<any | null> => {
+const consumeLegacyNavigationState = async (): Promise<PartialState<NavigationState> | null> => {
   const result = await storeKv('navigation_state');
   if (!result) return null;
 

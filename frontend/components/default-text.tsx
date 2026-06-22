@@ -1,8 +1,10 @@
 import {
+  StyleSheet,
   Text,
   TextProps,
+  TextStyle,
 } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { AnimatedStyle } from 'react-native-reanimated';
 import { useAppTheme } from '../app-theme/app-theme';
 
 const montserratFontFamily: Record<string, string> = {
@@ -19,31 +21,32 @@ const montserratFontFamily: Record<string, string> = {
 
 const DefaultText = (props: TextProps & {
   animated?: boolean,
-  disableTheme?: boolean
+  disableTheme?: boolean,
+  animatedStyle?: AnimatedStyle<TextStyle>,
 }) => {
   const { appTheme } = useAppTheme();
 
-  const fontWeight = (props?.style as any)?.fontWeight;
-  const fontFamily = (props?.style as any)?.fontFamily;
+  const { animatedStyle, ...rest } = props;
+
+  const flatStyle = StyleSheet.flatten(props.style);
+  const fontWeight = flatStyle?.fontWeight;
+  const fontFamily = flatStyle?.fontFamily;
   const { disableTheme = false } = props;
 
   const montserratFont: string | undefined = (
-    montserratFontFamily[fontWeight] || 'MontserratRegular');
+    montserratFontFamily[fontWeight ?? ''] || 'MontserratRegular');
 
-  const props_ = {
-    style: [
-      { fontFamily: fontFamily || montserratFont },
-      (disableTheme ? { } : { color: appTheme.secondaryColor }),
-      props.style,
-      { fontWeight: undefined },
-    ]
-  };
+  const baseStyle = [
+    { fontFamily: fontFamily || montserratFont },
+    (disableTheme ? { } : { color: appTheme.secondaryColor }),
+    props.style,
+  ];
 
   if (props.animated) {
     return (
       <Animated.Text
         selectable={false}
-        {...{...props, ...props_}}
+        {...{...rest, style: [...baseStyle, animatedStyle, { fontWeight: undefined }]}}
       >
         {props.children}
       </Animated.Text>
@@ -52,7 +55,7 @@ const DefaultText = (props: TextProps & {
     return (
       <Text
         selectable={false}
-        {...{...props, ...props_}}
+        {...{...rest, style: [...baseStyle, { fontWeight: undefined }]}}
       >
         {props.children}
       </Text>

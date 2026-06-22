@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import {
   MutableRefObject,
+  RefObject,
   createRef,
   memo,
   useCallback,
@@ -20,7 +21,7 @@ import {
   NoMoreCards,
   QuizCard,
 } from './quiz-card';
-import { Direction } from './base-quiz-card';
+import { BaseQuizCardRef, Direction } from './base-quiz-card';
 import { Avatar } from './avatar';
 import { DonutChart } from './donut-chart';
 import { DefaultText } from './default-text';
@@ -85,19 +86,27 @@ type QuestionCardData = {
   noCount: number
 };
 
+type NextQuestion = {
+  id: number
+  question: string
+  topic: string
+  count_yes: number
+  count_no: number
+};
+
 const fetchNextQuestions = async (
   n: number = 10,
   o: number = 0,
   isPublic: boolean = false,
 ): Promise<QuestionCardData[]> => {
   const endpoint = isPublic ? '/public-next-questions' : '/next-questions';
-  const response = await api('GET', `${endpoint}?n=${n}&o=${o}`);
+  const response = await api<NextQuestion[]>('GET', `${endpoint}?n=${n}&o=${o}`);
 
   if (!response.ok) {
     return [];
   }
 
-  return response.json.map((q: any) => ({
+  return response.json.map((q) => ({
     id: q.id,
     question: q.question,
     topic: q.topic,
@@ -162,6 +171,16 @@ const prospectState = (
   };
 };
 
+type SearchResult = {
+  prospect_person_id: number
+  prospect_uuid: string
+  url_slug: string | null
+  profile_photo_uuid: string
+  profile_photo_blurhash: string
+  match_percentage: number
+  verification_required_to_view: 'photos' | 'basics' | null
+};
+
 const fetchNBestProspects = async (
   n: number,
   refreshNeighborhood: boolean,
@@ -169,22 +188,22 @@ const fetchNBestProspects = async (
   answers: AnonymousAnswer[] = [],
 ): Promise<ProspectState[]> => {
   const response = isPublic ?
-    await japi(
+    await japi<SearchResult[]>(
       'get',
       `/public-search?answers=${
         encodeURIComponent(JSON.stringify(answers))
       }&n=${n}&o=0`,
     ) :
     refreshNeighborhood || n > 1 ?
-    await japi('get', `/search?n=${n}&o=0`) :
-    await japi('get', '/search');
+    await japi<SearchResult[]>('get', `/search?n=${n}&o=0`) :
+    await japi<SearchResult[]>('get', '/search');
 
   if (!response.ok) {
     return [];
   }
 
   response.json.reverse();
-  return response.json.map((x: any) => prospectState(
+  return response.json.map((x) => prospectState(
     x.prospect_person_id,
     x.prospect_uuid,
     x.url_slug,
@@ -214,7 +233,7 @@ type BaseCardState = {
   onChangeAnswerPublicly: ((answerPublicly: boolean) => void) | undefined
   preventSwipe: Direction[]
   scale: Animated.Value
-  ref: any
+  ref: RefObject<BaseQuizCardRef | null>
 };
 
 type UnfetchedCardState = BaseCardState & {
@@ -289,7 +308,7 @@ const unfetchedCard = (): UnfetchedCardState => {
     onChangeAnswerPublicly: undefined,
     preventSwipe: ['up'],
     scale: scale,
-    ref: createRef(),
+    ref: createRef<BaseQuizCardRef>(),
   };
 };
 
@@ -790,7 +809,7 @@ const QuizCardStack_ = ({
 const QuizCardStackMemo = memo(QuizCardStack_);
 
 const QuizCardStack = (props: {
-  innerRef: MutableRefObject<ApiInterface>,
+  innerRef: MutableRefObject<ApiInterface | undefined>,
   onTopCardChanged?: () => void,
   onSwipe: (direction: Direction) => void,
 }) => {
@@ -824,7 +843,7 @@ const QuizCardStack = (props: {
       }
       const topCardRef = topCard.ref.current;
       if (topCardRef) {
-        topCard.ref.current.swipe(direction);
+        topCardRef.swipe(direction);
       }
     }
     async restoreCard() {
@@ -844,7 +863,7 @@ const QuizCardStack = (props: {
         stateRef.topCardIndex - 1
       ];
 
-      previouslySwipedCard.ref.current.restoreCard();
+      previouslySwipedCard.ref.current?.restoreCard();
 
       const previousSwipeDirection = previouslySwipedCard.swipeDirection;
 

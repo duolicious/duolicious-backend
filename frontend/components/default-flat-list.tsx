@@ -9,8 +9,12 @@ import {
 } from 'react-native';
 import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import {
+  ComponentType,
   ForwardedRef,
+  MutableRefObject,
+  ReactElement,
   Ref,
+  RefCallback,
   forwardRef,
   memo,
   useCallback,
@@ -179,7 +183,7 @@ type DefaultFlatListProps<ItemT> =
       hideListHeaderComponentWhenLoading?: boolean,
       dataKey?: string,
       disableRefresh?: boolean,
-      innerRef?: any,
+      innerRef?: RefCallback<FlatList<ItemT>> | MutableRefObject<FlatList<ItemT> | null>,
     },
     | "ListEmptyComponent"
     | "ListFooterComponent"
@@ -200,7 +204,7 @@ type DefaultFlashListProps<ItemT> =
       hideListHeaderComponentWhenLoading?: boolean,
       dataKey?: string,
       disableRefresh?: boolean,
-      innerRef?: any,
+      innerRef?: RefCallback<FlashListRef<ItemT>> | MutableRefObject<FlashListRef<ItemT> | null>,
     },
     | "ListEmptyComponent"
     | "ListFooterComponent"
@@ -230,7 +234,7 @@ const ListHeaderComponent = memo(({
   isLoading: boolean,
   hideListHeaderComponentWhenEmpty: boolean,
   hideListHeaderComponentWhenLoading: boolean,
-  ListHeaderComponent: any,
+  ListHeaderComponent: ComponentType | ReactElement | null | undefined,
 }) => {
   if (isEmpty && isLoading && hideListHeaderComponentWhenLoading) {
     return <></>;
@@ -276,7 +280,7 @@ const ListFooterComponent = memo(({
 }: {
   isComplete: boolean,
   isEmpty: boolean,
-  EndTextNotice: any,
+  EndTextNotice: ComponentType | ReactElement | null | undefined,
 }) => {
   if (isComplete && isEmpty) {
     return <></>;
@@ -545,13 +549,13 @@ const UntypedDefaultFlashList = <ItemT,>(props: DefaultFlashListProps<ItemT>, re
 const TypedDefaultFlatList =
   forwardRef(UntypedDefaultFlatList) as <ItemT>(
     props: DefaultFlatListProps<ItemT> &
-           React.RefAttributes<FlatList<ItemT>>
+           React.RefAttributes<{ refresh: () => void }>
   ) => React.ReactElement | null;
 
 const TypedDefaultFlashList =
   forwardRef(UntypedDefaultFlashList) as <ItemT>(
     props: DefaultFlashListProps<ItemT> &
-           React.RefAttributes<FlashListRef<ItemT>>
+           React.RefAttributes<{ refresh: () => void }>
   ) => React.ReactElement | null;
 
 const DefaultFlatList =

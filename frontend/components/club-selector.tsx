@@ -7,6 +7,8 @@ import {
 } from 'react-native';
 import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { ProfileParamList } from '../navigation/linking';
 import {
   useCallback,
   useEffect,
@@ -33,7 +35,7 @@ const SelectedClub = ({
   onPress,
 }: {
   clubItem: ClubItem
-  onPress?: (clubItem: ClubItem) => any
+  onPress?: (clubItem: ClubItem) => void
 }) => {
   const { appThemeName } = useAppTheme();
 
@@ -73,7 +75,7 @@ const UnselectedClub = ({
   isAtQuota,
 }: {
   clubItem: ClubItem
-  onPress: (clubItem: ClubItem) => any
+  onPress: (clubItem: ClubItem) => void
   isAtQuota: boolean
 }) => {
   const [shakeAnimation, startShake] = useShake();
@@ -150,7 +152,7 @@ const fetchClubItems = async (q: string): Promise<ClubItem[]> => {
     .replace(/\u201C/g, `"`)
     .replace(/\u201D/g, `"`);
 
-  const response = await api(
+  const response = await api<ClubItem[]>(
     'get',
     `/search-clubs?q=${encodeURIComponent(cleanQ)}`
   );
@@ -158,7 +160,7 @@ const fetchClubItems = async (q: string): Promise<ClubItem[]> => {
   return response.ok ? response.json : [];
 };
 
-const ClubSelector = ({navigation}: {navigation: any}) => {
+const ClubSelector = ({navigation}: NativeStackScreenProps<ProfileParamList, 'Club Selector'>) => {
   const { appTheme } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [selectedClubs, setSelectedClubs] = useState(

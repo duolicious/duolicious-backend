@@ -1,3 +1,4 @@
+import { TextStyle, ViewStyle } from 'react-native';
 import { Basic, Basics } from './basic';
 
 const Club = ({
@@ -9,9 +10,9 @@ const Club = ({
 }: {
   name: string,
   isMutual: boolean,
-  style?: any,
-  textStyle?: any,
-  onPress?: any,
+  style?: ViewStyle,
+  textStyle?: TextStyle,
+  onPress?: () => void,
 }) => {
   return (
     <Basic

@@ -1,8 +1,10 @@
 import {
   Animated,
   Pressable,
+  ViewStyle,
 } from 'react-native';
 import {
+  ComponentProps,
   useCallback,
   useRef,
 } from 'react';
@@ -19,12 +21,12 @@ const TopNavBarButton = ({
   label,
   style,
 }: {
-  onPress: any
-  iconName: any
+  onPress: () => void
+  iconName: ComponentProps<typeof Ionicons>['name']
   secondary: boolean
   position: 'left' | 'right' | null
   label?: string,
-  style?: any,
+  style?: ViewStyle,
 }) => {
   const opacity = useRef(new Animated.Value(1)).current;
 

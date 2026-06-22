@@ -1,29 +1,26 @@
 import {
-  View,
-} from 'react-native';
-import {
+  ForwardedRef,
+  SetStateAction,
   forwardRef,
   useCallback,
   useImperativeHandle,
   useState
 } from 'react';
+import {
+  View,
+} from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { DefaultText } from '../components/default-text';
-
-
-interface DatePickerProps {
-  input: any;
-  setIsLoading: (isLoading: boolean) => void;
-  onSubmitSuccess: () => void;
-}
+import { OptionGroupDate } from '../data/option-groups';
+import type { InputProps, SubmitHandle } from './option-screen';
 
 const DatePicker = forwardRef((
   {
     input,
     setIsLoading,
     onSubmitSuccess
-  }: DatePickerProps,
-  ref: any
+  }: InputProps<OptionGroupDate>,
+  ref: ForwardedRef<SubmitHandle>
 ) => {
   const [isDayOpen, setIsDayOpen] = useState(false);
   const [isMonthOpen, setIsMonthOpen] = useState(false);
@@ -61,17 +58,17 @@ const DatePicker = forwardRef((
 
   useImperativeHandle(ref, () => ({ submit }), [submit]);
 
-  const setOpenDay = useCallback((value: any) => {
+  const setOpenDay = useCallback((value: SetStateAction<boolean>) => {
     setIsInvalid(false);
     setIsDayOpen(value);
   }, []);
 
-  const setOpenMonth = useCallback((value: any) => {
+  const setOpenMonth = useCallback((value: SetStateAction<boolean>) => {
     setIsInvalid(false);
     setIsMonthOpen(value);
   }, []);
 
-  const setOpenYear = useCallback((value: any) => {
+  const setOpenYear = useCallback((value: SetStateAction<boolean>) => {
     setIsInvalid(false);
     setIsYearOpen(value);
   }, []);

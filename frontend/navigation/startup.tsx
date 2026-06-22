@@ -1,12 +1,11 @@
-import { Linking, Platform } from 'react-native';
+import { Linking as RNLinking, Platform } from 'react-native';
+import { NavigationState, PartialState } from '@react-navigation/native';
 import { lastPath } from '../kv-storage/last-path';
 import { consumeLegacyNavigationState } from '../kv-storage/navigation-state';
+import { ClubItem } from '../club/club';
+import type { Linking } from './linking';
 
-type LinkingLike = {
-  config: any;
-  getStateFromPath: (path: string, options: any) => any;
-  getPathFromState: (state: any, options: any) => string;
-};
+type NavState = PartialState<NavigationState>;
 
 const ensureLeadingSlash = (p: string): string => {
   if (!p) return '/';
@@ -33,7 +32,7 @@ const PUBLIC_TOP_LEVEL_ROUTES = new Set([
   'Welcome',
 ]);
 
-const isPublicTopRoute = (state: any): boolean => {
+const isPublicTopRoute = (state: NavState): boolean => {
   const topRoute = state?.routes?.[0]?.name;
   return typeof topRoute === 'string' && PUBLIC_TOP_LEVEL_ROUTES.has(topRoute);
 };
@@ -51,7 +50,7 @@ const HOME_BACK_TAB_FOR_TOP_ROUTE: Record<string, string> = {
   'Prospect Profile Screen': 'Search',
 };
 
-const withHomeBackStack = (state: any, isAuthenticated: boolean = true): any => {
+const withHomeBackStack = (state: NavState, isAuthenticated: boolean = true): NavState => {
   const routes = state?.routes;
   if (!Array.isArray(routes) || routes.length === 0) return state;
   const topName = routes[0]?.name;
@@ -84,7 +83,7 @@ const getUrlPath = async (): Promise<string | null> => {
     return `${window.location.pathname}${window.location.search ?? ''}`;
   }
 
-  const initialUrl = await Linking.getInitialURL();
+  const initialUrl = await RNLinking.getInitialURL();
   if (!initialUrl) return null;
 
   const url = new URL(initialUrl);
@@ -92,13 +91,14 @@ const getUrlPath = async (): Promise<string | null> => {
 };
 
 export async function getUrlInitialState(
-  linking: LinkingLike,
-): Promise<any | null> {
+  linking: Linking,
+): Promise<NavState | null> {
   try {
     const rawPath = await getUrlPath();
     if (isRootPath(rawPath)) return null;
 
     const state = linking.getStateFromPath(rawPath as string, linking.config);
+    if (!state) return null;
 
     // Some legacy URLs (e.g. `/me`, `/welcome`) normalize down to `/` inside
     // `linking.getStateFromPath`. Treat those as "no deep link" so the
@@ -119,13 +119,13 @@ export async function getUrlInitialState(
 }
 
 export async function getPersistedState(
-  linking: LinkingLike,
-): Promise<any | null> {
+  linking: Linking,
+): Promise<NavState | null> {
   const stored = await lastPath();
 
-  const fromPath = (p: string): any | null => {
+  const fromPath = (p: string): NavState | null => {
     try {
-      return linking.getStateFromPath(p, linking.config);
+      return linking.getStateFromPath(p, linking.config) ?? null;
     } catch {
       return null;
     }
@@ -164,15 +164,15 @@ export async function getPersistedState(
 }
 
 export type StartupNavResult = {
-  initialState: any;
-  postLoginRedirectState: any | null;
+  initialState: NavState;
+  postLoginRedirectState: NavState | null;
 };
 
 export async function computeStartupNavigationState(args: {
-  linking: LinkingLike;
+  linking: Linking;
   isAuthenticated: boolean;
-  notification: { screen: string; params: any } | null;
-  pendingClub: any | null;
+  notification: { screen: string; params: Record<string, unknown> } | null;
+  pendingClub: ClubItem | null;
 }): Promise<StartupNavResult> {
   const { linking, isAuthenticated, notification, pendingClub } = args;
 

@@ -235,7 +235,7 @@ const InboxTabNavBar = ({
   const [isOnline, setIsOnline] = useState(false);
 
   useLayoutEffect(() => {
-    return listen(
+    return listen<boolean>(
       'chat-is-online',
       (data) => setIsOnline(data ?? false),
       true,

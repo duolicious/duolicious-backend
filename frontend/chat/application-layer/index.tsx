@@ -223,9 +223,9 @@ const conversationListToMap = (
 
 const populateConversationList = (
   conversationList: Conversation[],
-  apiData: any,
+  apiData: any, // eslint-disable-line @typescript-eslint/no-explicit-any
 ): void => {
-  const personUuidToInfo = apiData.reduce((obj: Record<string, any>, item: any) => {
+  const personUuidToInfo = apiData.reduce((obj: Record<string, any>, item: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     obj[item.person_uuid] = item;
     return obj;
   }, {});
@@ -567,7 +567,7 @@ const sendMessage = async (
     | { status: Exclude<MessageStatus, 'sent' | 'sending' | 'timeout' | 'not unique'> }
     | { status: 'sent', audioUuid?: string, stamp?: string };
 
-  const responseDetector = (doc: any): MessageDetectionResult | null => {
+  const responseDetector = (doc: any): MessageDetectionResult | null => { // eslint-disable-line @typescript-eslint/no-explicit-any
     const detectors: (() => MessageDetectionResult | false)[] = [
       () => doc.duo_message_delivered?.['@id'] === id &&
         {
@@ -781,7 +781,7 @@ const onReceiveMessage = (
   otherPersonUuid?: string,
   doMarkDisplayed?: boolean,
 ): (() => void) | undefined => {
-  const unpackDoc = (doc: any) => {
+  const unpackDoc = (doc: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     try {
       const {
         message: {
@@ -827,7 +827,7 @@ const onReceiveMessage = (
     return null;
   };
 
-  const _onReceiveMessage = async (doc: any) => {
+  const _onReceiveMessage = async (doc: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     const unpacked = unpackDoc(doc);
 
     if (!unpacked) {
@@ -915,7 +915,7 @@ const fetchConversation = async (
     }
   };
 
-  const responseDetector = (doc: any): ChatMessage | null => {
+  const responseDetector = (doc: any): ChatMessage | null => { // eslint-disable-line @typescript-eslint/no-explicit-any
     try {
       const {
         message: {
@@ -968,7 +968,7 @@ const fetchConversation = async (
     }
   };
 
-  const sentinelDetector = (doc: any) => {
+  const sentinelDetector = (doc: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     if (!credentials) {
       return false;
     }
@@ -1059,7 +1059,7 @@ const refreshInbox = async (
     }
   };
 
-  const responseDetector = (doc: any): Conversation | null => {
+  const responseDetector = (doc: any): Conversation | null => { // eslint-disable-line @typescript-eslint/no-explicit-any
     try {
       const {
         message: {
@@ -1113,7 +1113,7 @@ const refreshInbox = async (
     }
   };
 
-  const sentinelDetector = (doc: any): boolean => {
+  const sentinelDetector = (doc: any): boolean => { // eslint-disable-line @typescript-eslint/no-explicit-any
     const expectedDoc = {
       iq: {
         '@id': queryId,
@@ -1154,7 +1154,7 @@ const registerPushToken = async (token: string | null) => {
     { duo_register_push_token: { '@token': token } } :
     { duo_register_push_token: null };
 
-  const responseDetector = (doc: any): true | null => {
+  const responseDetector = (doc: any): true | null => { // eslint-disable-line @typescript-eslint/no-explicit-any
     if (_.isEqual(doc, { duo_registration_successful: null })) {
       return true;
     } else {

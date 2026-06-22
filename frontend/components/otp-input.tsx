@@ -37,7 +37,7 @@ const OtpInput = (props: Props) => {
       isFocused: false,
     }))
   );
-  const inputRefs = useRef<any>([]);
+  const inputRefs = useRef<(TextInput | null)[]>([]);
 
   const copyStateObj = (stateObj: State) => {
     return stateObj.map(digitState => ({...digitState}));
@@ -64,7 +64,7 @@ const OtpInput = (props: Props) => {
   };
 
   const moveFocusToIndex = (i: number) => {
-    inputRefs.current[clampedInputRefsIndex(i)].focus()
+    inputRefs.current[clampedInputRefsIndex(i)]?.focus()
   };
 
   const onKeyPress = (i: number) => ({nativeEvent: {key: keyValue}}: NativeSyntheticEvent<TextInputKeyPressEventData>) => {

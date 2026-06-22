@@ -1,6 +1,6 @@
 import { possessive, secToMinSec } from '../util/util';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, View, Pressable, StyleSheet } from 'react-native';
+import { Platform, View, Pressable, StyleSheet, ViewStyle } from 'react-native';
 import {
   AudioStatus,
   setAudioModeAsync,
@@ -63,16 +63,16 @@ type AudioPlayerProps = {
   name: string | null | undefined,
   uuid: string | null | undefined,
   presentation: 'profile'
-  style?: any
+  style?: ViewStyle
 } | {
   uuid: string | null | undefined,
   presentation: 'feed',
-  style?: any
+  style?: ViewStyle
 } | {
   uuid: string | null | undefined,
   sending: boolean,
   presentation: 'conversation',
-  style?: any
+  style?: ViewStyle
 };
 
 const AudioPlayer = (props: AudioPlayerProps) => {

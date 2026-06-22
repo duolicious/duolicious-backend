@@ -2,7 +2,9 @@ import React from 'react';
 import {
   Animated,
   Pressable,
+  TextStyle,
   View,
+  ViewStyle,
 } from 'react-native';
 import {
   useCallback,
@@ -11,13 +13,13 @@ import {
 import { DefaultText } from './default-text';
 import Svg, { Circle } from "react-native-svg";
 
-const DonutChart = ({percentage, ...rest}: {percentage?: number, [key: string]: any}) => {
-  const {
-    children,
-    style,
-    onPress,
-    textStyle,
-  } = rest;
+const DonutChart = ({percentage, children, style, onPress, textStyle}: {
+  percentage?: number,
+  children?: React.ReactNode,
+  style?: ViewStyle,
+  onPress?: () => void,
+  textStyle?: TextStyle,
+}) => {
 
   const size = 80;
   const strokeWidth = 8;

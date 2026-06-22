@@ -18,7 +18,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+  createNativeStackNavigator,
+} from '@react-navigation/native-stack';
+import type { RootParamList, WelcomeParamList } from '../navigation/linking';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultText } from './default-text';
 import { DefaultTextInput } from './default-text-input';
@@ -45,6 +50,14 @@ import { setOptionScreenPayload } from '../navigation/option-screen-store';
 import { showSignUp } from './modal/sign-up-modal';
 import { lastEvent, listen } from '../events/events';
 import { anonymousAnswers } from '../events/anonymous-answers';
+
+type StatsResponse = {
+  num_active_users: number,
+};
+
+type SessionTokenResponse = {
+  session_token: string,
+};
 
 const useInModal = () =>
   useState(() => lastEvent<boolean>('show-sign-up') ?? false)[0];
@@ -226,7 +239,7 @@ const WelcomeScreen = () => {
   );
 };
 
-const InviteScreen = ({navigation, route}: {navigation: any, route: any}) => {
+const InviteScreen = ({navigation, route}: NativeStackScreenProps<RootParamList, 'Invite Screen'>) => {
   const [loading, setLoading] = useState(false);
   const [signedInUser] = useSignedInUser();
 
@@ -280,7 +293,7 @@ const InviteScreen = ({navigation, route}: {navigation: any, route: any}) => {
 
   useEffect(() => {
     const updateNumUsers = async () => {
-      const response = await japi(
+      const response = await japi<StatsResponse>(
           'GET',
           '/stats?club-name=' + encodeURIComponent(clubName));
 
@@ -624,7 +637,7 @@ const useNumActiveUsers = (initial: number | undefined) => {
   useEffect(() => {
     if (numUsers !== undefined) return;
     (async () => {
-      const response = await japi('GET', '/stats');
+      const response = await japi<StatsResponse>('GET', '/stats');
       if (response.ok) setNumUsers(response.json.num_active_users);
     })();
   }, [numUsers]);
@@ -643,12 +656,12 @@ const finishSocialSignIn = async ({
   setLoginStatus,
 }: {
   endpoint: '/sign-in-with-google' | '/sign-in-with-apple',
-  body: Record<string, any>,
+  body: Record<string, unknown>,
   clubName: string | undefined,
-  navigation: any,
+  navigation: NativeStackNavigationProp<WelcomeParamList>,
   setLoginStatus: (s: string) => void,
 }) => {
-  const response = await japi(
+  const response = await japi<SessionTokenResponse>(
     'post',
     endpoint,
     {
@@ -699,7 +712,7 @@ const finishSocialSignIn = async ({
   }
 };
 
-const WelcomeScreen_ = ({navigation, route}: {navigation: any, route: any}) => {
+const WelcomeScreen_ = ({navigation, route}: NativeStackScreenProps<WelcomeParamList, 'Welcome Screen'>) => {
   const clubName_ = (route.params?.clubName) as string | undefined;
   const numUsers = useNumActiveUsers(route.params?.numUsers);
   const inModal = useInModal();
@@ -923,7 +936,7 @@ const WelcomeScreen_ = ({navigation, route}: {navigation: any, route: any}) => {
   );
 };
 
-const EmailScreen_ = ({navigation, route}: {navigation: any, route: any}) => {
+const EmailScreen_ = ({navigation, route}: NativeStackScreenProps<WelcomeParamList, 'Welcome Email Screen'>) => {
   const clubName_ = (route.params?.clubName) as string | undefined;
 
   const [email, setEmail] = useState("");
@@ -947,7 +960,7 @@ const EmailScreen_ = ({navigation, route}: {navigation: any, route: any}) => {
 
     Keyboard.dismiss();
 
-    const response = await japi(
+    const response = await japi<SessionTokenResponse>(
       'post',
       '/request-otp',
       {

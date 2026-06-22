@@ -11,13 +11,13 @@ const unpackNotificationResponse = (
 
   const data = response.notification.request.content.data;
   const screen = data?.screen as string;
-  const params = data?.params as any;
+  const params = data?.params as Record<string, unknown>;
 
   return { screen, params };
 }
 
 const useNotificationObserverOnMobile = (
-  func: (screen: string, params: any) => void,
+  func: (screen: string, params: Record<string, unknown>) => void,
   deps?: React.DependencyList | undefined,
 ) => {
   if (Platform.OS === 'web') {

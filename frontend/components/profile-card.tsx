@@ -1,9 +1,13 @@
 import {
   GestureResponderEvent,
   ImageBackground as RNImageBackground,
+  ImageResizeMode,
+  ImageSourcePropType,
   Platform,
   Pressable,
+  StyleProp,
   View,
+  ViewStyle,
 } from 'react-native';
 import {
   memo,
@@ -17,13 +21,21 @@ import { DefaultText } from './default-text';
 import {
   IMAGES_URL,
 } from '../env/env';
-import { useNavigation } from '@react-navigation/native';
+import {
+  CompositeNavigationProp,
+  NavigationProp,
+  useNavigation,
+} from '@react-navigation/native';
+import type { HomeParamList, RootParamList } from '../navigation/linking';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { listen } from '../events/events';
 import { makeLinkProps } from '../util/navigation'
 import { X } from "react-native-feather";
 import { PageItem } from './search-tab';
-import { ImageBackground as ExpoImageBackground } from 'expo-image';
+import {
+  ImageBackground as ExpoImageBackground,
+  ImageBackgroundProps,
+} from 'expo-image';
 import { VerificationBadge } from './verification-badge';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
@@ -39,15 +51,9 @@ import { setProspectHint } from '../navigation/prospect-cache';
 // The React Native ImageBackground implementation doesn't have that issue, but
 // it also doesn't support blurhashes, so we need to combine them if we want to
 // have blurhashes and (the appearance of) bug-free operation
-const ImageBackground = (props: {
-  children?: React.ReactNode,
-  placeholder?: any,
-  source?: any,
-  style?: any,
-  transition?: any,
-  contentFit?: any,
-  onLoad?: () => void,
-}) => {
+const ImageBackground = (
+  props: Omit<ImageBackgroundProps, 'onLoad'> & { onLoad?: () => void },
+) => {
   if (Platform.OS !== 'android') {
     return <ExpoImageBackground {...props} />;
   }
@@ -62,6 +68,20 @@ const ImageBackground = (props: {
     onLoad,
   } = props;
 
+  const resizeMode: ImageResizeMode =
+    contentFit === 'cover' ? 'cover' :
+    contentFit === 'fill' ? 'stretch' :
+    'contain';
+
+  const fadeDuration =
+    typeof transition === 'number' ? transition : transition?.duration;
+
+  const rnSource: ImageSourcePropType | undefined =
+    typeof source === 'number' ? source :
+    (!!source && typeof source === 'object' && 'uri' in source &&
+      typeof source.uri === 'string') ? { uri: source.uri } :
+    undefined;
+
   return (
     <ExpoImageBackground
       placeholder={placeholder}
@@ -71,13 +91,13 @@ const ImageBackground = (props: {
       placeholderContentFit={contentFit}
     >
       <RNImageBackground
-        source={source}
+        source={rnSource}
         style={{
           width: '100%',
           height: '100%',
         }}
-        resizeMode={contentFit}
-        fadeDuration={transition?.duration ?? transition ?? undefined}
+        resizeMode={resizeMode}
+        fadeDuration={fadeDuration}
         onLoad={onLoad}
       >
         {children}
@@ -100,7 +120,7 @@ const PhotoOrSkeleton_ = ({
   photoExtraExts?: string[] | null,
   showGradient?: boolean,
   forceExpoImage?: boolean,
-  style?: any,
+  style?: StyleProp<ViewStyle>,
   onLoad?: () => void,
 }) => {
   const {
@@ -219,7 +239,10 @@ const ProfileCard = ({
     setProspectMessagedPersonState,
   ] = useState(prospectMessagedPerson);
 
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<CompositeNavigationProp<
+    NavigationProp<HomeParamList>,
+    NavigationProp<RootParamList>
+  >>();
 
   const itemOnPress = useCallback((e: GestureResponderEvent) => {
     e.preventDefault();
@@ -412,7 +435,7 @@ const UserDetails = ({name, age, matchPercentage, verified, ...rest}: {
   age: number,
   matchPercentage: number,
   verified: boolean,
-  containerStyle?: any,
+  containerStyle?: ViewStyle,
 }) => {
   const {
     containerStyle,

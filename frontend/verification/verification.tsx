@@ -20,6 +20,17 @@ type VerificationEvent = {
   message?: string
 };
 
+type GetVerificationResponse = {
+  status?: VerificationStatus
+  message?: string
+  verified_photos?: {
+    [position: string]: boolean
+  }
+  verified_gender?: boolean
+  verified_age?: boolean
+  verified_ethnicity?: boolean
+};
+
 const EV_UPDATED_VERIFICATION = 'updated-verification';
 
 const notifyUpdatedVerification = (e: VerificationEvent) => {
@@ -69,7 +80,7 @@ const verificationWatcher = async () => {
       continue;
     }
 
-    const response = await japi('get', '/check-verification');
+    const response = await japi<GetVerificationResponse>('get', '/check-verification');
 
     if (!response.ok) {
       console.error('Verification response not ok:', response);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { DefaultText } from './default-text';
 import { listen, notify } from '../events/events';
@@ -26,7 +26,7 @@ const Tooltip = ({
   children,
   style,
 }: {
-  children: any,
+  children: ReactNode,
   style?: object,
 }) => {
   return (

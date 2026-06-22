@@ -14,6 +14,16 @@ import {
   GOOGLE_WEB_CLIENT_ID,
 } from '../env/env';
 
+const errorMessage = (e: unknown): string | undefined =>
+  typeof e === 'object' && e !== null && 'message' in e && typeof e.message === 'string'
+    ? e.message
+    : undefined;
+
+const errorCode = (e: unknown): string | undefined =>
+  typeof e === 'object' && e !== null && 'code' in e && typeof e.code === 'string'
+    ? e.code
+    : undefined;
+
 // Required so that the OAuth redirect dismisses the in-app browser
 // session on iOS / Android. Calling this once at module load is the
 // pattern documented by Expo.
@@ -151,11 +161,11 @@ export const useGoogleSignIn = (): {
             reason: 'No id_token in token response',
           });
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
         settle(id, {
           ok: false,
           cancelled: false,
-          reason: e?.message ?? 'Token exchange failed',
+          reason: errorMessage(e) ?? 'Token exchange failed',
         });
       }
     })();
@@ -292,13 +302,13 @@ const signInWithAppleNative = async (): Promise<AppleSignInResult> => {
       identityToken: credential.identityToken ?? '',
       nonce,
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     // ERR_REQUEST_CANCELED is the documented code for the user dismissing
     // the system sheet; don't surface that as an error.
-    if (e?.code === 'ERR_REQUEST_CANCELED') {
+    if (errorCode(e) === 'ERR_REQUEST_CANCELED') {
       return { ok: false, cancelled: true };
     }
-    return { ok: false, cancelled: false, reason: e?.message ?? 'Apple sign-in failed' };
+    return { ok: false, cancelled: false, reason: errorMessage(e) ?? 'Apple sign-in failed' };
   }
 };
 
@@ -319,8 +329,8 @@ const signInWithAppleAndroid = async (): Promise<AppleSignInResult> => {
   let result: WebBrowser.WebBrowserAuthSessionResult;
   try {
     result = await WebBrowser.openAuthSessionAsync(authUrl, APPLE_ANDROID_RETURN_URL);
-  } catch (e: any) {
-    return { ok: false, cancelled: false, reason: e?.message ?? 'Apple sign-in failed' };
+  } catch (e: unknown) {
+    return { ok: false, cancelled: false, reason: errorMessage(e) ?? 'Apple sign-in failed' };
   }
 
   if (result.type === 'cancel' || result.type === 'dismiss') {

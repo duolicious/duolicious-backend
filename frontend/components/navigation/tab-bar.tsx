@@ -4,6 +4,7 @@ import {
   Animated,
   View,
 } from 'react-native';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { DefaultText } from '../default-text';
 import { useInboxStats } from '../../chat/application-layer/hooks/inbox-stats';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,10 +15,10 @@ import { showSignUp } from '../modal/sign-up-modal';
 import { PUBLIC_TAB_NAMES } from './public-tabs';
 
 const Tab = ({ navigation, state, route, descriptors, index, numUnread }: {
-  navigation: any
-  state: any
-  route: any
-  descriptors: any
+  navigation: BottomTabBarProps['navigation']
+  state: BottomTabBarProps['state']
+  route: BottomTabBarProps['state']['routes'][number]
+  descriptors: BottomTabBarProps['descriptors']
   index: number
   numUnread: number
 }) => {
@@ -44,7 +45,7 @@ const Tab = ({ navigation, state, route, descriptors, index, numUnread }: {
 
   const { options } = descriptors[route.key];
   const label =
-    options.tabBarLabel !== undefined
+    typeof options.tabBarLabel === 'string'
       ? options.tabBarLabel
       : options.title !== undefined
       ? options.title
@@ -69,7 +70,7 @@ const Tab = ({ navigation, state, route, descriptors, index, numUnread }: {
 
     if (!isFocused && !event.defaultPrevented) {
       // The `merge: true` option makes sure that the params inside the tab screen are preserved
-      navigation.navigate({ name: route.name, merge: true });
+      navigation.navigate({ name: route.name, params: undefined, merge: true });
     }
   };
 
@@ -88,7 +89,7 @@ const Tab = ({ navigation, state, route, descriptors, index, numUnread }: {
         accessibilityRole="button"
         accessibilityState={isFocused ? { selected: true } : {}}
         accessibilityLabel={options.tabBarAccessibilityLabel}
-        testID={options.tabBarTestID}
+        testID={options.tabBarButtonTestID}
         style={{
           width: '100%',
           height: '100%',
@@ -126,9 +127,9 @@ const Tab = ({ navigation, state, route, descriptors, index, numUnread }: {
 };
 
 const TabBar = ({state, descriptors, navigation}: {
-  state: any
-  descriptors: any
-  navigation: any
+  state: BottomTabBarProps['state']
+  descriptors: BottomTabBarProps['descriptors']
+  navigation: BottomTabBarProps['navigation']
 }) => {
   const insets = useSafeAreaInsets();
 
@@ -157,7 +158,7 @@ const TabBar = ({state, descriptors, navigation}: {
           overflow: 'visible',
         }}
       >
-        {state.routes.map((route: any, index: number) =>
+        {state.routes.map((route, index) =>
           <Tab
             key={index}
             navigation={navigation}

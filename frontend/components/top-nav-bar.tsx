@@ -1,5 +1,6 @@
 import {
   View,
+  ViewStyle,
 } from 'react-native';
 import { StatusBarSpacer } from './status-bar-spacer';
 import { DefaultText } from './default-text';
@@ -8,8 +9,8 @@ import { isMobile } from '../util/util';
 import { useAppTheme } from '../app-theme/app-theme';
 
 const TopNavBar = (props: {
-  containerStyle?: any,
-  style?: any,
+  containerStyle?: ViewStyle,
+  style?: ViewStyle,
   backgroundColor?: string,
   children?: React.ReactNode,
 }) => {
@@ -44,7 +45,7 @@ const TopNavBar = (props: {
 };
 
 const DuoliciousTopNavBar = (props: {
-  style?: any,
+  style?: ViewStyle,
   backgroundColor?: string,
   textColor?: string,
   children?: React.ReactNode,

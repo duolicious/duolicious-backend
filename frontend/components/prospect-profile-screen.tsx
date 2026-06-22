@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Fragment,
+  MutableRefObject,
   ReactNode,
   useCallback,
   useEffect,
@@ -21,7 +22,13 @@ import {
   useRef,
   useState,
 } from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+  createNativeStackNavigator,
+} from '@react-navigation/native-stack';
+import { CompositeNavigationProp, CompositeScreenProps } from '@react-navigation/native';
+import type { ProspectParamList, RootParamList } from '../navigation/linking';
 import { StatusBarSpacer } from './status-bar-spacer';
 import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import { DefaultText } from './default-text';
@@ -81,6 +88,18 @@ import { useAppTheme } from '../app-theme/app-theme';
 import { faChild } from '@fortawesome/free-solid-svg-icons/faChild'
 import { faChildren } from '@fortawesome/free-solid-svg-icons/faChildren'
 
+type ProspectNavigation = NativeStackNavigationProp<ProspectParamList>;
+type ProspectNavigationRef = MutableRefObject<ProspectNavigation | undefined>;
+
+type ProspectScreenNavigation = CompositeNavigationProp<
+  NativeStackNavigationProp<ProspectParamList>,
+  NativeStackNavigationProp<RootParamList>
+>;
+type ProspectScreenProps = CompositeScreenProps<
+  NativeStackScreenProps<ProspectParamList, 'Prospect Profile'>,
+  NativeStackScreenProps<RootParamList>
+>;
+
 const PROFILE_CONTENT_MAX_WIDTH = 600;
 const SIDE_AD_GAP = 20;
 const SIDE_AD_ROW_GAP = 150;
@@ -100,7 +119,7 @@ const SIDE_AD_SLOTS_RIGHT = [
 const Stack = createNativeStackNavigator();
 
 const ProspectProfileScreen = () => {
-  const navigationRef = useRef(undefined);
+  const navigationRef = useRef<ProspectNavigation | undefined>(undefined);
 
   const ProspectProfileScreen_ = useMemo(() => {
     return Content(navigationRef);
@@ -125,7 +144,7 @@ const ProspectProfileScreen = () => {
   );
 };
 
-const GalleryScreen = ({navigation, route}: {navigation: any, route: any}) => {
+const GalleryScreen = ({navigation, route}: NativeStackScreenProps<ProspectParamList, 'Gallery Screen'>) => {
   const { photoUuid } = route.params;
 
   return (
@@ -191,8 +210,8 @@ const ShareButton = ({personUuid}: {personUuid: string | undefined}) => {
 
 const FloatingBackButton = (props: {
   onPress?: () => void,
-  navigationRef?: any,
-  navigation?: any,
+  navigationRef?: ProspectNavigationRef,
+  navigation?: ProspectNavigation,
 }) => {
   const {
     onPress,
@@ -217,7 +236,7 @@ const FloatingBackButton = (props: {
         borderWidth: 1,
         borderColor: appTheme.secondaryColor,
       }}
-      onPress={onPress ?? (navigationRef?.current || navigation).goBack}
+      onPress={onPress ?? (navigationRef?.current || navigation)?.goBack}
     >
       <FontAwesomeIcon
         icon={faArrowLeft}
@@ -343,7 +362,7 @@ const FloatingSendIntroButton = ({
   photoUuid,
   photoBlurhash,
 }: {
-  navigation: any,
+  navigation: ProspectScreenNavigation,
   personUuid: string | null | undefined,
   name: string | undefined,
   photoUuid: string | null | undefined,
@@ -380,7 +399,7 @@ const FloatingSendIntroButton = ({
 };
 
 const AnonymousSignInCta = ({navigation, name}: {
-  navigation: any,
+  navigation: ProspectScreenNavigation,
   name: string | undefined,
 }) => {
   const { appTheme } = useAppTheme();
@@ -446,7 +465,7 @@ const AnonymousSignInCta = ({navigation, name}: {
 };
 
 const SeeQAndAButton = ({navigation, personUuid, name}: {
-  navigation: any,
+  navigation: ProspectScreenNavigation,
   personUuid: string | null | undefined,
   name: string | undefined,
 }) => {
@@ -477,6 +496,7 @@ const SeeQAndAButton = ({navigation, personUuid, name}: {
   ).current;
 
   const onPress = useCallback(() => {
+    if (!personUuid) return;
     navigation.navigate('In-Depth', { personUuid });
   }, [personUuid]);
 
@@ -572,23 +592,31 @@ const BlockButton = ({name, personUuid}: {
   );
 };
 
-const AllClubsItem = ({kind, kids, props}: {
-  kind: string | undefined,
-  kids: ReactNode,
-  props: any,
-}) => {
-  const propsWithoutKey = { ...props };
-  delete propsWithoutKey['key'];
+type AllClubsChild =
+  | { kind: 'Title', kids: ReactNode, props: { style?: TextStyle } }
+  | { kind: 'Club', kids: ReactNode, props: {
+      onPress?: () => void,
+      key: string,
+      name: string,
+      isMutual: boolean,
+      style?: ViewStyle,
+      textStyle?: TextStyle,
+    } };
 
-  if (kind === 'Title') {
-    return <Title {...propsWithoutKey}>{kids}</Title>;
+const AllClubsItem = ({child}: {child: AllClubsChild}) => {
+  if (child.kind === 'Title') {
+    return <Title style={child.props.style}>{child.kids}</Title>;
   }
 
-  if (kind === 'Club') {
-    return <Club {...propsWithoutKey}>{kids}</Club>;
-  }
-
-  throw Error('Unexpected club kind');
+  return (
+    <Club
+      name={child.props.name}
+      isMutual={child.props.isMutual}
+      style={child.props.style}
+      textStyle={child.props.textStyle}
+      onPress={child.props.onPress}
+    />
+  );
 };
 
 const AllClubs = ({
@@ -600,9 +628,9 @@ const AllClubs = ({
 }: {
   mutualClubs: string[],
   otherClubs: string[],
-  mutualClubsTheme: any,
-  clubsTheme: any,
-  titleColor: any,
+  mutualClubsTheme: { style?: ViewStyle, textStyle?: TextStyle },
+  clubsTheme: { style?: ViewStyle, textStyle?: TextStyle },
+  titleColor: string | undefined,
 }) => {
   const [signedInUser] = useSignedInUser();
   const [state, setState] = useState({
@@ -648,13 +676,13 @@ const AllClubs = ({
     ? (clubName: string) => joinClub(clubName, -1, false)
     : undefined;
 
-  const childData = [
+  const childData: (AllClubsChild | null)[] = [
     state.mutualClubs.length > 0 ? {
       kind: 'Title',
       props: { style: {color: titleColor, width: '100%'}},
       kids: 'Mutual clubs' } : null,
 
-    ...state.mutualClubs.map((clubName) => ({
+    ...state.mutualClubs.map((clubName): AllClubsChild => ({
         kind: 'Club',
         props: {
           onPress: onPressLeave && (() => onPressLeave(clubName)),
@@ -676,7 +704,7 @@ const AllClubs = ({
         props: { style: {color: titleColor, width: '100%'}},
         kids: 'Clubs' } : null,
 
-      ...state.otherClubs.map((clubName) => ({
+      ...state.otherClubs.map((clubName): AllClubsChild => ({
         kind: 'Club',
         props: {
           onPress: onPressJoin && (() => onPressJoin(clubName)),
@@ -687,28 +715,24 @@ const AllClubs = ({
         },
         kids: null,
       })),
-  ].filter(Boolean);
+  ];
 
   return (
     <Clubs>
-      {childData.map((d) =>
+      {childData.filter((c): c is AllClubsChild => c !== null).map((d) =>
         <Reanimated.View
           key={
             JSON.stringify({
-              kind: d?.kind,
-              kids: d?.kids,
-              clubName: d?.props.name,
+              kind: d.kind,
+              kids: d.kids,
+              clubName: d.kind === 'Club' ? d.props.name : undefined,
             })
           }
-          style={d?.kind === 'Title' ? styles.wFull : null}
+          style={d.kind === 'Title' ? styles.wFull : null}
           layout={LinearTransition.easing(Easing.out(Easing.poly(4)))}
           exiting={FadeOut}
         >
-          <AllClubsItem
-            kind={d?.kind}
-            kids={d?.kids}
-            props={d?.props}
-          />
+          <AllClubsItem child={d} />
         </Reanimated.View>
       )}
     </Clubs>
@@ -823,8 +847,8 @@ const hasAnyStats = (data: UserData | null | undefined): boolean => {
   );
 };
 
-const Content = (navigationRef: any) =>  {
-  return (props: any) => <CurriedContent
+const Content = (navigationRef: ProspectNavigationRef) =>  {
+  return (props: ProspectScreenProps) => <CurriedContent
     navigationRef={navigationRef}
     {...props}
   />;
@@ -873,10 +897,8 @@ const ProspectProfileSideAds = ({
   );
 };
 
-const CurriedContent = ({navigationRef, navigation, route}: {
-  navigationRef: any,
-  navigation: any,
-  route: any,
+const CurriedContent = ({navigationRef, navigation, route}: ProspectScreenProps & {
+  navigationRef: ProspectNavigationRef,
 }) => {
   navigationRef.current = navigation;
 
@@ -967,7 +989,7 @@ const CurriedContent = ({navigationRef, navigation, route}: {
       if (isUuid(handle)) {
         setSkipped(handle, { networkState: 'fetching' });
       }
-      const response = await api('get', `/prospect-profile/${handle}`);
+      const response = await api<UserData>('get', `/prospect-profile/${handle}`);
       setData(response?.json);
       setNotFound(response.clientError);
       const canonicalUuid = response?.json?.person_uuid ?? (
@@ -1225,7 +1247,7 @@ const ProspectUserDetails = ({
   titleColor,
   bodyColor,
 }: {
-  navigation: any,
+  navigation: ProspectScreenNavigation,
   personId: number | undefined,
   personUuid: string | null | undefined,
   name: string | undefined,
@@ -1240,6 +1262,7 @@ const ProspectUserDetails = ({
   const onPressDonutChart = useCallback(() => {
     if (personId === undefined) return;
     if (name === undefined) return;
+    if (!personUuid) return;
 
     navigation.navigate('In-Depth', { personUuid });
   }, [navigation, personUuid, personId, name]);
@@ -1356,8 +1379,8 @@ const Body = ({
   personUuid,
   data,
 }: {
-  navigation: any,
-  personUuid: string,
+  navigation: ProspectScreenNavigation,
+  personUuid: string | undefined,
   data: UserData | undefined,
 }) => {
   const { appThemeName, appTheme } = useAppTheme();
@@ -1711,3 +1734,4 @@ export {
   InDepthScreen,
   ProspectProfileScreen,
 };
+export type { ProspectNavigationRef };

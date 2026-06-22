@@ -55,12 +55,26 @@ import { askedForReviewBefore } from '../../kv-storage/asked-for-review-before';
 import { MessageDivider }  from './message-divider';
 import * as _ from 'lodash';
 import { Input } from './input';
+import {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+} from '@react-navigation/native-stack';
+import type { RootParamList } from '../../navigation/linking';
 import { useDraftMessage } from '../../chat/application-layer/hooks/draft-message';
 import { GifPickedEvent } from '../../components/modal/gif-picker-modal';
 import { useSkipped } from '../../hide-and-block/hide-and-block';
 import { OnlineIndicator } from '../online-indicator';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { getProspectHint, setProspectHint } from '../../navigation/prospect-cache';
+
+type ConversationProspectResponse = {
+  name?: string,
+  photo_uuid?: string | null,
+  photo_blurhash?: string | null,
+  is_available?: boolean,
+  is_skipped?: boolean,
+  url_slug?: string | null,
+};
 
 const firstMamId = (messageIds: string[] | null): string => {
   if (!messageIds) {
@@ -104,7 +118,7 @@ const Menu = ({
   setIsSkipped,
   closeFn,
 }: {
-  navigation: any,
+  navigation: NativeStackNavigationProp<RootParamList>,
   name: string | undefined,
   personUuid: string,
   isSkipped: boolean | undefined,
@@ -296,7 +310,7 @@ const ConversationScreenNavBar = ({
   isSkipped,
   setIsSkipped,
 }: {
-  navigation: any,
+  navigation: NativeStackNavigationProp<RootParamList>,
   personUuid: string,
   urlSlug: string | null,
   isAvailableUser: boolean,
@@ -439,7 +453,7 @@ const ConversationScreenNavBar = ({
   );
 };
 
-const ConversationScreen = ({navigation, route}: {navigation: any, route: any}) => {
+const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootParamList, 'Conversation Screen'>) => {
   const { appTheme } = useAppTheme();
   const [isActive, setIsActive] = useState(AppState.currentState === 'active');
   const [isOnline, setIsOnline] = useState(false);
@@ -491,7 +505,7 @@ const ConversationScreen = ({navigation, route}: {navigation: any, route: any}) 
 
     let cancelled = false;
     (async () => {
-      const response = await api('get', `/conversation-prospect/${personUuid}`);
+      const response = await api<ConversationProspectResponse>('get', `/conversation-prospect/${personUuid}`);
       if (cancelled) return;
       if (!response.ok) {
         // Hard-deleted prospects 404 here. Mark them unavailable so the
@@ -706,7 +720,7 @@ const ConversationScreen = ({navigation, route}: {navigation: any, route: any}) 
   }, []);
 
   useLayoutEffect(() => {
-    return listen(
+    return listen<boolean>(
       'chat-is-online',
       (data) => setIsOnline(data ?? false),
       true,

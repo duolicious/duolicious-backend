@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { CSSProperties, useEffect } from 'react';
 import { Platform, StyleProp, View, ViewStyle } from 'react-native';
 import { DefaultText } from './default-text';
 
@@ -46,7 +46,7 @@ const AdSenseUnit = ({
   placeholderStyle,
 }: {
   slot: string
-  style?: any
+  style?: CSSProperties
   format?: string
   layoutKey?: string
   fullWidthResponsive?: boolean

@@ -31,7 +31,7 @@ const isMobile = () => {
 
 /* Compare arrays as they would be in Python
  */
-const compareArrays = (arrA: any[], arrB: any[]): number => {
+const compareArrays = (arrA: number[], arrB: number[]): number => {
   let minLength = Math.min(arrA.length, arrB.length);
 
   for (let i = 0; i < minLength; i++) {
@@ -47,7 +47,7 @@ const compareArrays = (arrA: any[], arrB: any[]): number => {
 
 const assert = (x: boolean) => { if (!x) throw new Error('Assertion failed')};
 
-const jsonParseSilently = (text: string): any => {
+const jsonParseSilently = (text: string): unknown => {
   try {
     return JSON.parse(text);
   } catch {

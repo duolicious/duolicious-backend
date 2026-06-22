@@ -1,5 +1,6 @@
 import {
   View,
+  ViewStyle,
 } from 'react-native';
 import {
   forwardRef,
@@ -8,8 +9,27 @@ import {
 } from 'react';
 
 import { LabelledSlider } from './labelled-slider';
+import { Scale } from '../scales/scales';
 
-const RangeSlider = forwardRef((props: any, ref) => {
+type LabelledSliderHandle = {
+  setValue: (value: number) => void,
+  getValue: () => number,
+};
+
+type RangeSliderProps = {
+  minimumValue: number,
+  maximumValue: number,
+  containerStyle?: ViewStyle,
+  unitsLabel?: string,
+  onLowerValueChange: (value: number) => void,
+  onUpperValueChange: (value: number) => void,
+  initialLowerValue: number | null,
+  initialUpperValue: number | null,
+  valueRewriter?: (x: number) => number | string,
+  scale?: Scale,
+};
+
+const RangeSlider = forwardRef((props: RangeSliderProps, ref) => {
   const {
     minimumValue,
     maximumValue,
@@ -23,8 +43,8 @@ const RangeSlider = forwardRef((props: any, ref) => {
     scale,
   } = props;
 
-  const upperRef = useRef<any>(null);
-  const lowerRef = useRef<any>(null);
+  const upperRef = useRef<LabelledSliderHandle | null>(null);
+  const lowerRef = useRef<LabelledSliderHandle | null>(null);
 
   const _onLowerValueChange = (value: number) => {
     onLowerValueChange(value);
@@ -42,12 +62,12 @@ const RangeSlider = forwardRef((props: any, ref) => {
     }
   };
 
-  const setValues = (values: {lowerValue: any, upperValue: any}) => {
-    if (upperRef.current && values.upperValue !== undefined) {
+  const setValues = (values: {lowerValue: number | null, upperValue: number | null}) => {
+    if (upperRef.current && values.upperValue != null) {
       upperRef.current.setValue(values.upperValue);
     }
 
-    if (lowerRef.current && values.lowerValue !== undefined) {
+    if (lowerRef.current && values.lowerValue != null) {
       lowerRef.current.setValue(values.lowerValue);
     }
   };

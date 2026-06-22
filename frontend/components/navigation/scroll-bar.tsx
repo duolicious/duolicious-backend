@@ -295,7 +295,7 @@ const Scrollbar = () => {
    * Handle mouse wheel scrolling on web. We again read the “current” offsets
    * from refs, and if we can scroll, we convert deltaY to a newScrollY.
    */
-  const handleWheel = (e: any) => {
+  const handleWheel = (e: { deltaY: number; preventDefault?: () => void }) => {
     if (Platform.OS !== 'web') {
       return;
     }

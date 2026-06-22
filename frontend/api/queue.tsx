@@ -1,5 +1,5 @@
 class PromiseQueue {
-  private queue: (() => Promise<any>)[] = [];
+  private queue: (() => Promise<void>)[] = [];
   private isProcessing = false;
 
   addTask<T>(task: () => Promise<T>): Promise<T> {

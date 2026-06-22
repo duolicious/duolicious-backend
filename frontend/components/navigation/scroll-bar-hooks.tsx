@@ -11,7 +11,7 @@ import { isMobile } from '../../util/util';
 import { notify } from '../../events/events';
 import { ScrollViewData } from '../navigation/scroll-bar';
 
-const findDomNode = (x: any, maxRecursionDepth = 99) => {
+const findDomNode = (x: any, maxRecursionDepth = 99) => { // eslint-disable-line @typescript-eslint/no-explicit-any
   if (isMobile()) {
     return null;
   }
@@ -111,7 +111,7 @@ const useScrollbar = (controller: string) => {
       )
     },
     showsVerticalScrollIndicator: isMobile(),
-    observeListRef: (node: any): void => {
+    observeListRef: (node: any): void => { // eslint-disable-line @typescript-eslint/no-explicit-any
       if (isMobile()) {
         return;
       }
