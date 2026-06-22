@@ -1,3 +1,5 @@
+name: Backend Tests
+
 on:
   push:
     branches:
@@ -5,6 +7,13 @@ on:
   pull_request:
     branches:
       - main
+
+# All run-steps below execute from the backend subdirectory, so the
+# relative paths inherited from the original duolicious-backend repo
+# (./mypy.sh, ./test/...) resolve unchanged.
+defaults:
+  run:
+    working-directory: duolicious-backend
 
 jobs:
   mypy:
@@ -21,7 +30,7 @@ jobs:
 
     steps:
       - name: Check Out Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run functionality tests
         run: ./test/util/with-container.sh ./test/functionality.sh 1
@@ -39,7 +48,7 @@ jobs:
 
     steps:
       - name: Check Out Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run functionality tests
         run: ./test/util/with-container.sh ./test/functionality.sh 2
@@ -60,7 +69,7 @@ jobs:
 
     steps:
       - name: Check Out Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run functionality tests
         run: ./test/util/with-container.sh ./test/functionality.sh 3
@@ -78,7 +87,7 @@ jobs:
 
     steps:
       - name: Check Out Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run functionality tests
         run: ./test/util/with-container.sh ./test/functionality.sh 4
@@ -96,7 +105,7 @@ jobs:
 
     steps:
       - name: Check Out Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run functionality tests
         run: ./test/util/with-container.sh ./test/functionality.sh 5
@@ -114,7 +123,7 @@ jobs:
 
     steps:
       - name: Check Out Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run functionality tests
         run: ./test/util/with-container.sh ./test/functionality.sh 6
@@ -132,7 +141,7 @@ jobs:
 
     steps:
       - name: Check Out Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run unit tests
         run: ./test/util/with-container.sh ./test/unit/unit.sh --no-sudo

@@ -1,4 +1,12 @@
+name: Backend Publish
+
 on: [push]
+
+# Docker builds run from the backend subdirectory, so `-f api.Dockerfile .`
+# uses duolicious-backend/ as the build context exactly as before.
+defaults:
+  run:
+    working-directory: duolicious-backend
 
 jobs:
   build-api:
@@ -6,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - id: 'auth'
         uses: 'google-github-actions/auth@v1'
@@ -35,7 +43,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - id: 'auth'
         uses: 'google-github-actions/auth@v1'
@@ -64,7 +72,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - id: 'auth'
         uses: 'google-github-actions/auth@v1'
@@ -93,7 +101,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - id: 'auth'
         uses: 'google-github-actions/auth@v1'

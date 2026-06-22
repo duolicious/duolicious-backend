@@ -1,4 +1,4 @@
-name: Playwright Tests
+name: Frontend Playwright Tests
 on:
   push:
     branches:
@@ -6,6 +6,11 @@ on:
   pull_request:
     branches:
       - main
+
+defaults:
+  run:
+    working-directory: duolicious-frontend
+
 jobs:
   test:
     timeout-minutes: 60
@@ -23,9 +28,11 @@ jobs:
       run: npx playwright install --with-deps
     - name: Run Playwright tests
       run: npx playwright test
+    # upload-artifact's `path` is resolved from the workspace root, not the
+    # job's working-directory, so it must include the subdirectory prefix.
     - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: playwright-report
-        path: playwright-report/
+        path: duolicious-frontend/playwright-report/
         retention-days: 30

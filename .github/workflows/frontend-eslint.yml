@@ -1,4 +1,4 @@
-name: Type Checks
+name: Frontend ESLint
 on:
   push:
     branches:
@@ -6,6 +6,11 @@ on:
   pull_request:
     branches:
       - main
+
+defaults:
+  run:
+    working-directory: duolicious-frontend
+
 jobs:
   test:
     timeout-minutes: 60
@@ -19,6 +24,6 @@ jobs:
       run: |
         npm ci
         npx patch-package
-    - name: Run type checks
+    - name: Run lint
       run: |
-        npm run typecheck
+        npm run lint

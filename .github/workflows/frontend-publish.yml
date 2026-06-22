@@ -1,3 +1,4 @@
+name: Frontend Publish
 on:
   push:
     branches:
@@ -5,6 +6,10 @@ on:
   pull_request:
     branches:
       - main
+
+defaults:
+  run:
+    working-directory: duolicious-frontend
 
 jobs:
   publish:
@@ -67,9 +72,11 @@ jobs:
           DUO_GOOGLE_WEB_CLIENT_ID: 443037492722-11ai555h9htk0h5jb7dt2er5rdbpfvp1.apps.googleusercontent.com
           DUO_APPLE_WEB_CLIENT_ID: app.duolicious.web
           DUO_APPLE_REDIRECT_URI: https://api.duolicious.app/auth/apple/callback
+      # pages-action's `directory` is resolved from the workspace root, not
+      # the job's working-directory, so it must include the subdir prefix.
       - uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: a73a8f703a9a1eefac56f84ca6a4c9ac
           projectName: duolicious
-          directory: dist
+          directory: duolicious-frontend/dist
