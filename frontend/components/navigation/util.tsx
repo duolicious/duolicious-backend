@@ -5,7 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSignedInUser } from '../../events/signed-in-user';
 import { isMobile } from '../../util/util';
 import { DefaultText } from '../default-text';
-import { useNumVisitors } from '../visitors-tab';
+import { useNumVisitors } from '../../chat/application-layer/hooks/visitors';
 
 const NumberBadge = ({ num, left, borderColor, backgroundColor, color, cap = 99 }: {
   num: number
@@ -119,13 +119,15 @@ const LabelToIcon = ({
       {label === 'Visitors' &&
         <View>
           <Ionicons style={{...iconStyle}} name={visitorsIcon}/>
-          <NumberBadge
-            num={numVisitors}
-            left={Math.round(fontSize * 0.85)}
-            borderColor={indicatorBorderColor}
-            backgroundColor={indicatorBackgroundColor}
-            color={indicatorColor}
-          />
+          {!isFocused &&
+            <NumberBadge
+              num={numVisitors}
+              left={Math.round(fontSize * 0.85)}
+              borderColor={indicatorBorderColor}
+              backgroundColor={indicatorBackgroundColor}
+              color={indicatorColor}
+            />
+          }
         </View>
       }
       {label === 'Feed' &&

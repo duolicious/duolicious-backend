@@ -1,12 +1,12 @@
 import {
   Animated as RNAnimated,
-  Platform,
   Pressable,
   StyleSheet,
   View,
+  GestureResponderEvent,
 } from 'react-native';
 import { LogoActivityIndicator } from './logo/logo-activity-indicator';
-import { memo, useCallback, useEffect, useState, useRef } from 'react';
+import { memo, useCallback, useState, useRef } from 'react';
 import { DefaultText } from './default-text';
 import { TopNavBar } from './top-nav-bar';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
@@ -17,22 +17,18 @@ import { CompositeNavigationProp, useNavigation, useFocusEffect } from '@react-n
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { HomeParamList, RootParamList } from '../navigation/linking';
-import { japi } from '../api/api';
 import { useSkipped } from '../hide-and-block/hide-and-block';
 import { useAppTheme } from '../app-theme/app-theme';
 import { usePressableAnimation } from '../animation/animation';
 import { ButtonGroup } from './button-group';
 import Animated from 'react-native-reanimated';
-import * as _ from 'lodash';
-import { z } from 'zod';
-import { listen, notify, lastEvent } from '../events/events';
+import { notify } from '../events/events';
 import {
   format,
   isThisYear,
   isToday,
   isYesterday,
 } from 'date-fns'
-import { GestureResponderEvent } from 'react-native';
 import { ReportModalInitialData } from './modal/report-modal';
 import { Flag } from "react-native-feather";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -41,6 +37,16 @@ import { useTooltip } from './tooltip';
 import { happenedInLast7Days } from '../util/util';
 import { setProspectHint } from '../navigation/prospect-cache';
 import { InFeedAd } from './adsense';
+import {
+  AD_KEY_PREFIX,
+  DataItem,
+  SectionKey,
+  markVisitorChecked,
+  markVisitorsChecked,
+  useLastVisitedAt,
+  useVisitorDataItem,
+  useVisitorKeys,
+} from '../chat/application-layer/hooks/visitors';
 
 const friendlyTimestamp = (date: Date): string => {
   if (isToday(date)) {
@@ -61,262 +67,11 @@ const friendlyTimestamp = (date: Date): string => {
   }
 };
 
-// Event keys
-const EVENT_NUM_VISITORS = 'num-visitors';
-
-const EVENT_VISITORS_LAST_VISITED_AT = 'visitors-last-visited-at';
-
-// Keep public setter for badge count
-const setNumVisitors = (num: number) => {
-  notify<number>(EVENT_NUM_VISITORS, num);
-};
-
-const useNumVisitors = () => {
-  const initialNumVisitors = lastEvent<number>(EVENT_NUM_VISITORS) ?? 0;
-  const [numVisitors, setNumVisitors_] = useState(initialNumVisitors);
-
-  useEffect(() => {
-    listen<number>(
-      EVENT_NUM_VISITORS,
-      (x) => {
-        if(x !== undefined) {
-          setNumVisitors_(x);
-        }
-      }
-    );
-  }, []);
-
-  return numVisitors;
-};
-
-const DataItemSchema = z.object({
-  person_uuid: z.string(),
-  url_slug: z.string().nullable(),
-  photo_uuid: z.string().nullable(),
-  photo_blurhash: z.string().nullable(),
-  time: z.string(),
-  name: z.string(),
-  age: z.number().nullable(),
-  gender: z.string(),
-  location: z.string().nullable(),
-  is_verified: z.boolean(),
-  match_percentage: z.number(),
-  verification_required_to_view: z.union([
-    z.literal('photos'),
-    z.literal('basics'),
-    z.null(),
-  ]),
-  is_new: z.boolean(),
-  was_invisible: z.boolean(),
-  advertiser_friendly: z.boolean(),
-});
-
-const DataSchema = z.object({
-  visited_you: z.array(DataItemSchema),
-  you_visited: z.array(DataItemSchema),
-  last_visited_at: z.string().nullable(),
-});
-
-type DataItem = z.infer<typeof DataItemSchema>;
-type Data = z.infer<typeof DataSchema>;
-
-const isValidData = (item: unknown): item is Data => {
-  const result = DataSchema.safeParse(item);
-
-  if (!result.success) {
-    console.warn(result.error);
-  }
-
-  return result.success;
-};
-
-type SectionKey = 'visited_you' | 'you_visited';
 
 const VISITORS_AD_SLOT = '6049655173';
 
-// Row keys for ads are prefixed so `RenderItem` can tell them apart from the
-// real visitor rows (which are keyed `${sectionKey}-${person_uuid}`).
-const AD_KEY_PREFIX = 'ad:';
-
 const sectionFromIndex = (sectionIndex: number): SectionKey =>
   sectionIndex === 0 ? 'visited_you' : 'you_visited';
-
-// Build a section's row keys, inserting an ad into any gap that has two
-// advertiser-friendly items above it and two beneath it. Ads only render on
-// the web, so don't insert ad rows on other platforms.
-const sectionRowKeys = (
-  sectionKey: SectionKey,
-  items: DataItem[],
-): string[] => {
-  const keys: string[] = [];
-
-  for (let i = 0; i < items.length; i++) {
-    keys.push(`${sectionKey}-${items[i].person_uuid}`);
-
-    if (Platform.OS !== 'web') {
-      continue;
-    }
-
-    const twoAbove =
-      items[i - 1]?.advertiser_friendly && items[i].advertiser_friendly;
-    const twoBelow =
-      items[i + 1]?.advertiser_friendly && items[i + 2]?.advertiser_friendly;
-
-    if (twoAbove && twoBelow) {
-      keys.push(`${AD_KEY_PREFIX}${sectionKey}-${items[i].person_uuid}`);
-    }
-  }
-
-  return keys;
-};
-
-const setVisitorKeys = (sectionKey: SectionKey, visitorKeys: string[]) => {
-  notify<string[]>(sectionKey, visitorKeys);
-};
-
-const setLastVisitedAt = (lastVisitedAt: string | null) => {
-  notify<string | null>(EVENT_VISITORS_LAST_VISITED_AT, lastVisitedAt);
-};
-
-const useLastVisitedAt = (): string | null => {
-  const initial = lastEvent<string>(EVENT_VISITORS_LAST_VISITED_AT) ?? null;
-
-  const [lastVisitedAt, setLastVisitedAt] = useState(initial);
-
-  useEffect(() => {
-    return listen<string>(
-      EVENT_VISITORS_LAST_VISITED_AT,
-      (x) => {
-        if (x === undefined) {
-          return;
-        }
-
-        setLastVisitedAt(x);
-      },
-    );
-  }, []);
-
-  return lastVisitedAt;
-};
-
-const useVisitorKeys = (sectionKey: SectionKey): string[] | null => {
-  const initial = lastEvent<string[]>(sectionKey) ?? null;
-
-  const [visitorKeys, setVisitorKeys] = useState<string[] | null>(initial);
-
-  useEffect(() => {
-    return listen<string[]>(
-      sectionKey,
-      (newItem) => {
-        if (!newItem) {
-          return;
-        }
-
-        setVisitorKeys((prev) => _.isEqual(prev, newItem) ? prev : newItem);
-      },
-      true,
-    );
-  }, [sectionKey]);
-
-  return visitorKeys;
-};
-
-const setVisitorDataItem = (
-  key: string,
-  dataItem: DataItem,
-  ignoreEarlierVisit: boolean
-) => {
-  if (!ignoreEarlierVisit) {
-    notify<DataItem>(key, dataItem);
-    return;
-  }
-
-  const lastVisitTime = new Date(lastEvent<DataItem>(key)?.time ?? 0);
-  const thisVisitTime = new Date(dataItem.time);
-
-  if (thisVisitTime > lastVisitTime) {
-    notify<DataItem>(key, dataItem);
-  }
-};
-
-const useVisitorDataItem = (key: string): DataItem => {
-  const initial = lastEvent<DataItem>(key);
-
-  if (!initial) {
-    throw new Error('item key not found');
-  }
-
-  const [item, setItem] = useState<DataItem>(initial);
-
-  useEffect(() => {
-    return listen<DataItem>(
-      key,
-      (newItem) => {
-        if (!newItem) {
-          return;
-        }
-
-        setItem((prev) => _.isEqual(prev, newItem) ? prev : newItem);
-      },
-    );
-  }, [key]);
-
-  return item;
-};
-
-// Notify updates to the visitors store
-const setData = (data: Data) => {
-  for (let dataItem of data.visited_you) {
-    setVisitorDataItem(`visited_you-${dataItem.person_uuid}`, dataItem, true);
-  }
-
-  for (let dataItem of data.you_visited) {
-    setVisitorDataItem(`you_visited-${dataItem.person_uuid}`, dataItem, true);
-  }
-
-  setVisitorKeys('visited_you', sectionRowKeys('visited_you', data.visited_you));
-
-  setVisitorKeys('you_visited', sectionRowKeys('you_visited', data.you_visited));
-
-  setLastVisitedAt(data.last_visited_at);
-
-  setNumVisitors(data.visited_you.filter(d => d.is_new).length);
-};
-
-const fetchVisitors = async (): Promise<void> => {
-  const response = await japi('get', '/visitors', undefined, { maxRetries: 0 });
-
-  if (!response.ok) {
-    return;
-  }
-
-  if (!isValidData(response.json)) {
-    return;
-  }
-
-  setData(response.json);
-};
-
-const markVisitorsCheckedAsync = async (time: string) => {
-  await japi('post', '/mark-visitors-checked', { time });
-  setNumVisitors(0);
-};
-
-const markVisitorsChecked = (time: string) => {
-  markVisitorsCheckedAsync(time);
-};
-
-const markVisitorChecked = (personUuid: string) => {
-  const key = `visited_you-${personUuid}`;
-
-  const dataItem = lastEvent<DataItem>(key);
-
-  if (!dataItem) {
-    return;
-  }
-
-  setVisitorDataItem(key, { ...dataItem, is_new: false }, false);
-};
 
 const useNavigationToProfile = (
   personUuid: string,
@@ -360,6 +115,15 @@ const useNavigationToProfile = (
 
 const VisitorsItem = ({ itemKey }: { itemKey: string }) => {
   const dataItem = useVisitorDataItem(itemKey);
+
+  if (!dataItem) {
+    return null;
+  }
+
+  return <VisitorsItemContent dataItem={dataItem} />;
+};
+
+const VisitorsItemContent = ({ dataItem }: { dataItem: DataItem }) => {
   const { appTheme } = useAppTheme();
 
   const { isSkipped } = useSkipped(dataItem.person_uuid);
@@ -667,6 +431,4 @@ const styles = StyleSheet.create({
 
 export {
   VisitorsTab,
-  fetchVisitors,
-  useNumVisitors,
 };
