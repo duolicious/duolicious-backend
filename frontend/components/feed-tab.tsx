@@ -10,11 +10,13 @@ import { useScrollbar } from './navigation/scroll-bar-hooks';
 import { Avatar } from './avatar';
 import { getShortElapsedTime, isMobile, assertNever, capLuminance } from '../util/util';
 import { makeLinkProps } from '../util/navigation';
-import { GestureResponderEvent, Pressable, Animated } from 'react-native';
+import { GestureResponderEvent, Pressable, Animated, ViewStyle } from 'react-native';
 import { EnlargeablePhoto } from './enlargeable-image';
 import { commonStyles } from '../styles';
 import { VerificationBadge } from './verification-badge';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootParamList } from '../navigation/linking';
 import { japi } from '../api/api';
 import { DefaultFlatList, DefaultFlashList } from './default-flat-list';
 import { z } from 'zod';
@@ -239,7 +241,7 @@ const useNavigationToProfile = (
   handle: string,
   photoBlurhash: string | null
 ) => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
 
   return useCallback((e: GestureResponderEvent) => {
     e.preventDefault();
@@ -256,7 +258,7 @@ const useNavigationToProfile = (
 };
 
 const useNavigationToProfileGallery = (photoUuid: string) => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
 
   return useCallback(() => {
     navigation.navigate(
@@ -276,7 +278,7 @@ const useNavigationToConversation = (
   photoBlurhash: string | null,
   quote: string,
 ) => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
 
   return useCallback((e: GestureResponderEvent) => {
     e.preventDefault();
@@ -309,7 +311,7 @@ const AgeGenderLocation = ({
   gender: string
   userLocation: string | null
   doUseOnline: boolean
-  style?: any
+  style?: ViewStyle
 }) => {
   const { appTheme } = useAppTheme();
 
@@ -422,7 +424,7 @@ const ActionTime = ({
 }: {
   action: Action
   time: Date
-  style?: any
+  style?: ViewStyle
 }) => {
   const { appTheme } = useAppTheme();
 
@@ -800,7 +802,7 @@ const FeedTab = () => {
     observeListRef,
   } = useScrollbar('traits');
 
-  const listRef = useRef<any>(undefined);
+  const listRef = useRef<{ refresh: () => void } | null>(null);
 
   const onPressRefresh = useCallback(() => {
     const refresh = listRef?.current?.refresh;

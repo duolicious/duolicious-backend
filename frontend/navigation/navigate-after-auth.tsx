@@ -2,7 +2,7 @@ import { navigationContainerRef } from '../App';
 import { getTopRouteName } from './linking';
 
 export const navigateAfterAuth = (
-  pendingClub: any,
+  pendingClub: unknown,
   { preserveLocation }: { preserveLocation: boolean },
 ) => {
   if (!navigationContainerRef.current) return;

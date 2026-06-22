@@ -17,18 +17,18 @@ import { useAppTheme } from '../app-theme/app-theme';
 
 const LocationSelector = ({onChangeText, ...rest}: {
   onChangeText: (text: string) => void,
-  [key: string]: any,
+  currentValue?: string | null,
 }) => {
   const { appTheme } = useAppTheme();
   const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState<string[] | null>(null);
+  const [items, setItems] = useState<string[] | null | undefined>(null);
   const [text, setText] = useState(rest.currentValue ?? "");
   const [displayResults, setDisplayResults] = useState(false);
 
   const getSuggestions = useCallback(_.debounce(async (q: string) => {
     let json;
     try {
-      const response = await japi(
+      const response = await japi<string[]>(
         'get',
         '/search-locations?q=' + encodeURIComponent(q),
       );

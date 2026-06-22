@@ -40,7 +40,7 @@ const connectChatWebSocket = (): void => {
   };
 
   ws.onmessage = (event: MessageEvent) => {
-    notify<any>(EV_CHAT_WS_RECEIVE, jsonParseSilently(event.data));
+    notify<any>(EV_CHAT_WS_RECEIVE, jsonParseSilently(event.data)); // eslint-disable-line @typescript-eslint/no-explicit-any
   };
 
   // This seems to get called after the app has been backgrounded for some time.
@@ -69,7 +69,7 @@ type Send = {
   // When only a responseDetector is provided.
   <T>(params: {
     data: object;
-    responseDetector: (input: any) => MustIncludeNull<T>;
+    responseDetector: (input: any) => MustIncludeNull<T>; // eslint-disable-line @typescript-eslint/no-explicit-any
     sentinelDetector?: never;
     timeoutMs?: number;
   }): Promise<NonNullable<T> | 'timeout'>;
@@ -77,8 +77,8 @@ type Send = {
   // When both responseDetector and sentinelDetector are provided.
   <T>(params: {
     data: object;
-    responseDetector: (input: any) => MustIncludeNull<T>;
-    sentinelDetector: (input: any) => boolean;
+    responseDetector: (input: any) => MustIncludeNull<T>; // eslint-disable-line @typescript-eslint/no-explicit-any
+    sentinelDetector: (input: any) => boolean; // eslint-disable-line @typescript-eslint/no-explicit-any
     timeoutMs?: number;
   }): Promise<NonNullable<T>[] | 'timeout'>;
 
@@ -98,8 +98,8 @@ const send: Send = async <T,>({
   timeoutMs = 5000,
 }: {
   data: object,
-  responseDetector?: (input: any) => T | null,
-  sentinelDetector?: (input: any) => boolean,
+  responseDetector?: (input: any) => T | null, // eslint-disable-line @typescript-eslint/no-explicit-any
+  sentinelDetector?: (input: any) => boolean, // eslint-disable-line @typescript-eslint/no-explicit-any
   timeoutMs?: number
 }) => {
   if (ws?.readyState !== WebSocket.OPEN) {
@@ -120,7 +120,7 @@ const send: Send = async <T,>({
       resolve(value);
     };
 
-    const responseHandler = (parsed: any): void => {
+    const responseHandler = (parsed: any): void => { // eslint-disable-line @typescript-eslint/no-explicit-any
       if (!responseDetector) {
         return;
       }
@@ -136,7 +136,7 @@ const send: Send = async <T,>({
       }
     };
 
-    const sentinelHandler = (parsed: any): void => {
+    const sentinelHandler = (parsed: any): void => { // eslint-disable-line @typescript-eslint/no-explicit-any
       if (!sentinelDetector) {
         return;
       }
@@ -177,7 +177,7 @@ const send: Send = async <T,>({
 const pingServer = async () => {
   const data = { duo_ping: null };
 
-  const responseDetector = (doc: any): Pong | null => {
+  const responseDetector = (doc: any): Pong | null => { // eslint-disable-line @typescript-eslint/no-explicit-any
     try {
       const {
         duo_pong: {

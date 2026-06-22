@@ -1,5 +1,6 @@
 import { useLayoutEffect, useState } from 'react';
 import { listen, notify, lastEvent } from './events';
+import type { ClubItem } from '../club/club';
 
 // The GET /profile-info response uses space-separated keys for some fields
 // (e.g. 'looking for') while the PATCH endpoint and DB columns use snake_case
@@ -20,16 +21,42 @@ const SPACE_TO_SNAKE: Record<string, string> = {
   'browse invisibly': 'browse_invisibly',
 };
 
-const normalizeKeys = (raw: any): any => {
+const normalizeKeys = (
+  raw: ProfileInfo | undefined,
+): ProfileInfo | undefined => {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
-  const out: any = {};
+  const out: ProfileInfo = {};
   for (const [k, v] of Object.entries(raw)) {
     out[SPACE_TO_SNAKE[k] ?? k] = v;
   }
   return out;
 };
 
-type ProfileInfo = Record<string, any>;
+type ProfileInfoTheme = {
+  title_color?: string;
+  body_color?: string;
+  background_color?: string;
+};
+
+type ProfileInfo = {
+  name?: string;
+  about?: string;
+  url_slug?: string | null;
+  height?: number;
+  theme?: ProfileInfoTheme;
+  clubs?: ClubItem[];
+  public_profile?: string;
+  photo?: { [position: string]: string | null };
+  photo_extra_exts?: { [position: string]: string[] };
+  photo_blurhash?: { [position: string]: string | null };
+  photo_verification?: { [position: string]: boolean };
+  verified_gender?: boolean;
+  verified_age?: boolean;
+  verified_ethnicity?: boolean;
+  audio_bio?: string | null;
+  audio_bio_max_seconds?: number;
+  [key: string]: unknown;
+};
 
 const EVENT_KEY = 'profile-info';
 

@@ -13,7 +13,7 @@ import {
 } from 'react';
 import { DefaultText } from './default-text';
 import { TopNavBar } from './top-nav-bar';
-import { ButtonForOption } from './button/option';
+import { ButtonForOption, ButtonForOptionProps } from './button/option';
 import { Title } from './title';
 import {
   OptionGroup,
@@ -27,7 +27,11 @@ import {
   isOptionGroupRangeSlider,
   isOptionGroupSlider,
 } from '../data/option-groups';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import {
+  NativeStackScreenProps,
+  createNativeStackNavigator,
+} from '@react-navigation/native-stack';
+import type { SearchFilterParamList } from '../navigation/linking';
 import { OptionScreen } from './option-screen';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultTextInput } from './default-text-input';
@@ -47,12 +51,15 @@ import {
   getSearchFilterAnswers,
 } from '../navigation/search-filter-state';
 import {
+  SearchFilters,
   patchSearchFilters,
   setSearchFilters,
   useSearchFilters,
 } from '../events/search-filters';
 
-const getCurrentValueAsLabel = (og: OptionGroup<OptionGroupInputs> | undefined) => {
+const getCurrentValueAsLabel = (
+  og: OptionGroup<OptionGroupInputs> | undefined,
+): string | undefined => {
   if (!og) return undefined;
 
   const currentValue = getCurrentValue(og.input);
@@ -110,7 +117,7 @@ const getCurrentValueAsLabel = (og: OptionGroup<OptionGroupInputs> | undefined) 
       return `${currentMin ?? 'any'}–${currentMax ?? 'any'}`;
     }
   } else {
-    return currentValue;
+    return typeof currentValue === 'string' ? currentValue : undefined;
   }
 };
 
@@ -123,7 +130,7 @@ const fetchQuestionSearch = async (q: string): Promise<AnswerItem[]> => {
   const resultsPerPage = 25;
   const offset = 0;
 
-  const response = await api(
+  const response = await api<SearchFilterAnswer[]>(
     'get',
     `/search-filter-questions` +
     `?q=${encodeURIComponent(q)}&n=${resultsPerPage}&o=${offset}`,
@@ -161,7 +168,7 @@ const SearchFilterScreen = () => {
   );
 };
 
-const SearchFilterScreen_ = ({navigation}: {navigation: any}) => {
+const SearchFilterScreen_ = ({navigation}: NativeStackScreenProps<SearchFilterParamList, 'Search Filter Tab'>) => {
   const { appTheme } = useAppTheme();
   const [signedInUser] = useSignedInUser();
   const isLocked = useIsWebLoggedOut();
@@ -191,7 +198,7 @@ const SearchFilterScreen_ = ({navigation}: {navigation: any}) => {
     });
   }, []);
 
-  const Button_ = useCallback((props: any) => {
+  const Button_ = useCallback((props: ButtonForOptionProps) => {
     if (isLocked) {
       return <ButtonForOption
         onPress={promptSignUp}
@@ -216,7 +223,7 @@ const SearchFilterScreen_ = ({navigation}: {navigation: any}) => {
     const isImperial = signedInUser?.units === 'Imperial';
 
     if (isOptionGroupCheckChips(og.input)) {
-      const checked: string[] = value ?? [];
+      const checked: string[] = Array.isArray(value) ? value : [];
       return _.merge({}, og, { input: { checkChips: {
         values: og.input.checkChips.values.map((v) => ({
           ...v,
@@ -232,15 +239,19 @@ const SearchFilterScreen_ = ({navigation}: {navigation: any}) => {
       } } });
     }
     if (og.title === 'Age' && isOptionGroupRangeSlider(og.input)) {
+      const ageValue: { min_age?: unknown; max_age?: unknown } =
+        value && typeof value === 'object' ? value : {};
       return _.merge({}, og, { input: { rangeSlider: {
-        currentMin: value?.min_age,
-        currentMax: value?.max_age,
+        currentMin: ageValue.min_age,
+        currentMax: ageValue.max_age,
       } } });
     }
     if (og.title === 'Height' && isOptionGroupRangeSlider(og.input)) {
+      const heightValue: { min_height_cm?: unknown; max_height_cm?: unknown } =
+        value && typeof value === 'object' ? value : {};
       return _.merge({}, og, { input: { rangeSlider: {
-        currentMin: value?.min_height_cm,
-        currentMax: value?.max_height_cm,
+        currentMin: heightValue.min_height_cm,
+        currentMax: heightValue.max_height_cm,
         unitsLabel: isImperial ? "ft'in\"" : 'cm',
         valueRewriter: isImperial ? cmToFeetInchesStr : undefined,
       } } });
@@ -256,7 +267,7 @@ const SearchFilterScreen_ = ({navigation}: {navigation: any}) => {
       return;
     }
     (async () => {
-      const response = await api('get', '/search-filters');
+      const response = await api<SearchFilters>('get', '/search-filters');
       if (response.json) {
         setSearchFilters(response.json);
       }
@@ -395,7 +406,7 @@ const SearchFilterScreen_ = ({navigation}: {navigation: any}) => {
   );
 };
 
-const QandQFilterScreen = ({navigation}: {navigation: any}) => {
+const QandQFilterScreen = ({navigation}: NativeStackScreenProps<SearchFilterParamList, 'Q&A Filter Screen'>) => {
   const { appTheme } = useAppTheme();
   const insets = useSafeAreaInsets();
 
@@ -413,7 +424,8 @@ const QandQFilterScreen = ({navigation}: {navigation: any}) => {
     if (getSearchFilterAnswers().length > 0) return;
     let cancelled = false;
     (async () => {
-      const response = await api('get', '/search-filters');
+      const response = await api<{ answer?: SearchFilterAnswer[] }>(
+        'get', '/search-filters');
       const fetched: AnswerItem[] = response?.json?.answer ?? [];
       if (cancelled || fetched.length === 0) return;
       setSearchFilterAnswers(fetched);

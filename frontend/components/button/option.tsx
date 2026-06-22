@@ -2,14 +2,31 @@ import {
   Animated,
   Pressable,
 } from 'react-native';
+import { FC } from 'react';
+import { NavigationProp, ParamListBase } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
 import { DefaultText } from '../default-text';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { usePressableAnimation } from '../../animation/animation';
 import { setOptionScreenPayload } from '../../navigation/option-screen-store';
+import { OptionGroup, OptionGroupInputs } from '../../data/option-groups';
 
-const ButtonForOption = (props: any) => {
+type ButtonForOptionProps = {
+  onPress?: () => void;
+  onSubmitSuccess?: () => void;
+  label?: string;
+  icon?: FC<{ color?: string }>;
+  optionGroups?: OptionGroup<OptionGroupInputs>[];
+  setting?: string;
+  noSettingText?: string;
+  showSkipButton?: boolean;
+  navigationScreen?: string;
+  navigation?: NavigationProp<ParamListBase>;
+  loading?: boolean;
+};
+
+const ButtonForOption = (props: ButtonForOptionProps) => {
   const {
     onPress,
     onSubmitSuccess,
@@ -37,7 +54,7 @@ const ButtonForOption = (props: any) => {
   }
 
   const Icon_ = icon ?? (optionGroups ? optionGroups[0]?.Icon : undefined);
-  const label_ = label ?? optionGroups[0].title
+  const label_ = label ?? optionGroups?.[0]?.title
 
   const { appTheme } = useAppTheme();
   const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
@@ -46,6 +63,9 @@ const ButtonForOption = (props: any) => {
   // store-derived values; memoizing would freeze them at first-render values
   // and re-clicking a button would push stale data into the OptionScreen.
   const onPress_ = onPress ?? (() => {
+    if (!navigation || !navigationScreen || !optionGroups) {
+      return;
+    }
     // Stash the non-serializable payload (option-group definitions, callbacks)
     // in an in-memory store so navigation params stay URL-safe. The target
     // OptionScreen reads the payload using its own route name as the key.
@@ -139,4 +159,5 @@ const ButtonForOption = (props: any) => {
 
 export {
   ButtonForOption,
+  ButtonForOptionProps,
 };

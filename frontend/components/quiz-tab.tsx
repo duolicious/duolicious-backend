@@ -1,13 +1,17 @@
 import {
   View,
   StyleSheet,
+  ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   useRef,
 } from 'react';
-import { ButtonWithCenteredText } from './button/centered-text';
-import { QuizCardStack } from './quiz-card-stack';
+import {
+  ButtonWithCenteredText,
+  ButtonWithCenteredTextApi,
+} from './button/centered-text';
+import { ApiInterface, QuizCardStack } from './quiz-card-stack';
 import {
   Check,
   FastForward,
@@ -15,22 +19,30 @@ import {
   X,
 } from "react-native-feather";
 
+interface UndoNoYesSkipApi {
+  setIsUndoEnabled(value: boolean): void
+  setIsSwipeEnabled(value: boolean): void
+  doYesPressAnimation(): void
+  doNoPressAnimation(): void
+  doSkipPressAnimation(): void
+}
+
 const QuizTab = () => {
-  const stackRef = useRef<any>(undefined);
+  const stackRef = useRef<ApiInterface | undefined>(undefined);
 
-  const inputElementsRef = useRef<any>(undefined);
+  const inputElementsRef = useRef<UndoNoYesSkipApi | undefined>(undefined);
 
-  const onPressUndo      = () => { stackRef.current.undo() };
-  const onPressNo        = () => { stackRef.current.no() };
-  const onPressYes       = () => { stackRef.current.yes() };
-  const onPressSkip      = () => { stackRef.current.skip() };
+  const onPressUndo      = () => { stackRef.current?.undo() };
+  const onPressNo        = () => { stackRef.current?.no() };
+  const onPressYes       = () => { stackRef.current?.yes() };
+  const onPressSkip      = () => { stackRef.current?.skip() };
 
   const onTopCardChanged = () => {
-    inputElementsRef.current.setIsUndoEnabled(
+    inputElementsRef.current?.setIsUndoEnabled(
       !!(stackRef.current && stackRef.current.canUndo())
     );
 
-    inputElementsRef.current.setIsSwipeEnabled(
+    inputElementsRef.current?.setIsSwipeEnabled(
       !!(stackRef.current && stackRef.current.canSwipe())
     );
   };
@@ -66,17 +78,17 @@ const QuizTab = () => {
 };
 
 const UndoNoYesSkip = (props: {
-  innerRef: React.MutableRefObject<any>,
+  innerRef: React.MutableRefObject<UndoNoYesSkipApi | undefined>,
   onPressUndo: () => void,
   onPressNo: () => void,
   onPressYes: () => void,
   onPressSkip: () => void,
-  style?: any,
+  style?: ViewStyle,
 }) => {
-  const undoButtonRef = useRef<any>(undefined);
-  const noButtonRef = useRef<any>(undefined);
-  const yesButtonRef = useRef<any>(undefined);
-  const skipButtonRef = useRef<any>(undefined);
+  const undoButtonRef = useRef<ButtonWithCenteredTextApi | undefined>(undefined);
+  const noButtonRef = useRef<ButtonWithCenteredTextApi | undefined>(undefined);
+  const yesButtonRef = useRef<ButtonWithCenteredTextApi | undefined>(undefined);
+  const skipButtonRef = useRef<ButtonWithCenteredTextApi | undefined>(undefined);
 
   const {
     innerRef,
@@ -86,7 +98,7 @@ const UndoNoYesSkip = (props: {
     onPressSkip,
   } = props;
 
-  class Api {
+  class Api implements UndoNoYesSkipApi {
     setIsUndoEnabled(value: boolean) {
       if (undoButtonRef.current) undoButtonRef.current.isEnabled(value);
     }

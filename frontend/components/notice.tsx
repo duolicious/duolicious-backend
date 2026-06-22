@@ -1,17 +1,20 @@
 import {
   Pressable,
+  StyleProp,
   View,
+  ViewStyle,
 } from 'react-native';
 import {
+  ReactNode,
   createElement
 } from 'react';
 import { useAppTheme } from '../app-theme/app-theme';
 
-const Notice = ({children, ...rest}: {children?: React.ReactNode, [key: string]: any}) => {
-  const {
-    onPress,
-    style,
-  } = rest;
+const Notice = ({children, onPress, style}: {
+  children?: ReactNode,
+  onPress?: () => void,
+  style?: StyleProp<ViewStyle>,
+}) => {
 
   const { appTheme } = useAppTheme();
 

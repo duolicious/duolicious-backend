@@ -1,6 +1,7 @@
+import { TextStyle } from 'react-native';
 import { DefaultText } from './default-text';
 
-const Title = ({children, ...rest}: {children?: React.ReactNode, [key: string]: any}) => {
+const Title = ({children, style}: {children?: React.ReactNode, style?: TextStyle}) => {
   return (
     <DefaultText
       style={{
@@ -8,7 +9,7 @@ const Title = ({children, ...rest}: {children?: React.ReactNode, [key: string]: 
         fontWeight: '700',
         marginBottom: 5,
         marginTop: 20,
-        ...rest.style,
+        ...style,
       }}
     >
       {children}

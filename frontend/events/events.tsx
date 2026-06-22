@@ -1,3 +1,5 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+
 type Listener<T = any> = (data?: T) => void;
 
 type ListenersWithLastEvent<T = any> = {

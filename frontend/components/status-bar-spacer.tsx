@@ -1,7 +1,7 @@
-import { Platform, View } from 'react-native';
+import { Platform, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const StatusBarSpacer = (props: { extraHeight?: number, style?: any }) => {
+const StatusBarSpacer = (props: { extraHeight?: number, style?: ViewStyle }) => {
   const insets = useSafeAreaInsets();
   const extraHeight = props.extraHeight ?? (Platform.OS === 'ios' ? 0 : 10);
 

@@ -1,7 +1,7 @@
 import { AppThemeName } from '../app-theme/app-theme';
 import { storeKv } from './kv-storage';
 
-const valueToAppThemeName = (x: any): AppThemeName => {
+const valueToAppThemeName = (x: unknown): AppThemeName => {
   if (x === 'dark') {
     return 'dark';
   } else {

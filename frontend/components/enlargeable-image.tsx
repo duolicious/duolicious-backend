@@ -1,9 +1,11 @@
 import { useCallback } from 'react';
-import { GestureResponderEvent, Pressable } from 'react-native';
+import { GestureResponderEvent, Pressable, StyleProp, ViewStyle } from 'react-native';
 import { PhotoOrSkeleton } from './profile-card';
 import { VerificationBadge } from './verification-badge';
 import * as _ from 'lodash';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProspectParamList } from '../navigation/linking';
 import { Image as ExpoImage } from 'expo-image';
 import { IMAGES_URL } from '../env/env';
 
@@ -20,13 +22,13 @@ const EnlargeablePhoto = ({
   photoUuid: string | undefined | null
   photoExtraExts?: string[] | undefined | null
   photoBlurhash: string | undefined | null
-  style?: any
-  innerStyle?: any
+  style?: StyleProp<ViewStyle>
+  innerStyle?: StyleProp<ViewStyle>
   isPrimary: boolean
   isVerified?: boolean
   onPress?: () => void
 }) => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<ProspectParamList>>();
 
   const internalOnPress = useCallback((event: GestureResponderEvent) => {
     event.stopPropagation();

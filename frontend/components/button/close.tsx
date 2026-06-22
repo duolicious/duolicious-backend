@@ -1,4 +1,4 @@
-import { Pressable } from 'react-native';
+import { Pressable, ViewStyle } from 'react-native';
 import { X } from "react-native-feather";
 import { useAppTheme } from '../../app-theme/app-theme';
 
@@ -7,7 +7,7 @@ const Close = ({
   style = { top: 10, right: 10 },
 }: {
   onPress: () => void,
-  style?: any,
+  style?: ViewStyle | null,
 }) => {
   const { appTheme } = useAppTheme();
 

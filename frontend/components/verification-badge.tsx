@@ -1,5 +1,7 @@
 import {
+  StyleProp,
   View,
+  ViewStyle,
 } from 'react-native';
 import { DefaultText } from './default-text';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
@@ -14,7 +16,7 @@ const VerificationBadge = ({
   color = '#1d9bf0',
 }: {
   size?: number
-  style?: any
+  style?: StyleProp<ViewStyle>
   color?: string
 }) => {
   return (
@@ -106,7 +108,7 @@ const DetailedVerificationBadges = ({
   gender: boolean
   age: boolean
   ethnicity: boolean
-  style?: any
+  style?: StyleProp<ViewStyle>
 }) => {
   const verifications = [
     { name: 'Photos',    verified: photos },

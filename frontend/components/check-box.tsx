@@ -79,7 +79,14 @@ const CheckBoxLayout = ({
   );
 };
 
-const CheckBox = ({children, ...rest}: { children: React.ReactNode, [key: string]: any }) => {
+const CheckBox = ({children, ...rest}: {
+  children: React.ReactNode,
+  initialValue?: boolean,
+  value?: boolean,
+  labelPosition?: 'left' | 'right',
+  containerStyle?: ViewStyle,
+  onValueChange?: (value: boolean) => void,
+}) => {
   const {
     initialValue,
     value,
@@ -113,7 +120,13 @@ const CheckBox = ({children, ...rest}: { children: React.ReactNode, [key: string
   );
 };
 
-const StatelessCheckBox = ({children, ...rest}: { children: React.ReactNode, [key: string]: any }) => {
+const StatelessCheckBox = ({children, ...rest}: {
+  children: React.ReactNode,
+  value: boolean,
+  labelPosition?: 'left' | 'right',
+  containerStyle?: ViewStyle,
+  onValueChange: (value: boolean) => void,
+}) => {
   const {
     value,
     labelPosition = 'right',

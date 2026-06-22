@@ -41,6 +41,23 @@ type TabNavigationEventMap = {
   };
 };
 
+type WebNavigatorBuilder = ReturnType<
+  typeof useNavigationBuilder<
+    TabNavigationState<ParamListBase>,
+    TabRouterOptions,
+    TabActionHelpers<ParamListBase>,
+    TabNavigationOptions,
+    TabNavigationEventMap
+  >
+>;
+
+type WebBarProps = {
+  state: WebNavigatorBuilder['state'];
+  navigation: WebNavigatorBuilder['navigation'];
+  descriptors: WebNavigatorBuilder['descriptors'];
+  tabBarStyle: StyleProp<ViewStyle>;
+};
+
 // The props accepted by the component is a combination of 3 things
 type Props<Navigation> = DefaultNavigatorOptions<
   ParamListBase,
@@ -132,10 +149,11 @@ function WebNavigator<Navigation>({
   );
 };
 
-function createWebNavigator(config?: any) {
+function createWebNavigator(config?: unknown) {
   return createNavigatorFactory(WebNavigator)(config);
 }
 
 export {
   createWebNavigator,
+  WebBarProps,
 };

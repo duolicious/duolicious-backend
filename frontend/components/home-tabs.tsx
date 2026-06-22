@@ -1,5 +1,8 @@
 import { Platform } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import {
+  BottomTabBarProps,
+  createBottomTabNavigator,
+} from '@react-navigation/bottom-tabs';
 import { createWebNavigator } from './navigation/web-navigator';
 import { TabBar } from './navigation/tab-bar';
 import { SearchTab } from './search-tab';
@@ -24,7 +27,7 @@ const HomeTabs = () => {
         headerShown: false,
         animation: 'shift',
       }}
-      tabBar={(props: any) => <TabBar {...props} />}
+      tabBar={(props: BottomTabBarProps) => <TabBar {...props} />}
 
       // Without this, tabs appear blank about 5% of the time when switching
       // between them. ChatGPT suggests the react-native-screens and

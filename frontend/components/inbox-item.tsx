@@ -9,6 +9,8 @@ import {
 import { DefaultText } from './default-text';
 import { Avatar } from './avatar';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootParamList } from '../navigation/linking';
 import { friendlyTimestamp } from '../util/util';
 import { VerificationBadge } from './verification-badge';
 import { usePressableAnimation } from '../animation/animation';
@@ -37,7 +39,7 @@ const IntrosItem = ({
   isAvailableUser: boolean
   isVerified: boolean
 }) => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
 
   const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
 
@@ -169,7 +171,7 @@ const ChatsItem = ({
   isAvailableUser: boolean
   isVerified: boolean
 }) => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
 
   const { backgroundColor, onPressIn, onPressOut } = usePressableAnimation();
 

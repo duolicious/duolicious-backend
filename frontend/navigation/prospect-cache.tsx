@@ -51,11 +51,14 @@ export const setProspectHint = (
   // by an earlier interaction. To deliberately clear a previously-set field,
   // pass `null` (which we keep) or `false` for booleans.
   const next: ProspectHint = { ...existing };
-  for (const key of Object.keys(hint) as (keyof ProspectHint)[]) {
+  const copyDefined = <K extends keyof ProspectHint>(key: K) => {
     const value = hint[key];
     if (value !== undefined) {
-      (next as any)[key] = value;
+      next[key] = value;
     }
+  };
+  for (const key of Object.keys(hint) as (keyof ProspectHint)[]) {
+    copyDefined(key);
   }
   touch(personUuid, next);
 };

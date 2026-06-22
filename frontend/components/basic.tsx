@@ -1,9 +1,13 @@
 import {
   Animated,
   Pressable,
+  StyleProp,
+  StyleSheet,
+  TextStyle,
   View,
+  ViewStyle,
 } from 'react-native';
-import { ReactNode } from 'react';
+import { ComponentProps, ReactNode } from 'react';
 import { DefaultText } from './default-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
@@ -12,33 +16,48 @@ import { useShake } from '../animation/animation';
 import { showPointOfSale } from './modal/point-of-sale-modal';
 import { useSignedInUser } from '../events/signed-in-user';
 
-const isIconDefinition = (x: any): x is IconDefinition => {
+type IoniconsName = ComponentProps<typeof Ionicons>['name'];
+type BasicIcon = IconDefinition | IoniconsName;
+
+const isIconDefinition = (x: any): x is IconDefinition => { // eslint-disable-line @typescript-eslint/no-explicit-any
   return x.iconName !== undefined;
 };
 
-const Icon = ({icon, textStyle}: {icon: any, textStyle?: any}) => {
+const Icon = ({icon, textStyle}: {
+  icon: BasicIcon,
+  textStyle?: StyleProp<TextStyle>,
+}) => {
   if (isIconDefinition(icon)) {
+    const color = StyleSheet.flatten(textStyle)?.color;
     return <FontAwesomeIcon
       icon={icon}
       size={16}
+      color={typeof color === 'string' ? color : undefined}
       style={{
         marginRight: 5,
-        ...textStyle,
       }}
     />
   } else {
     return <Ionicons
-      style={{
-        fontSize: 16,
-        marginRight: 5,
-        ...textStyle,
-      }}
+      style={[
+        {
+          fontSize: 16,
+          marginRight: 5,
+        },
+        textStyle,
+      ]}
       name={icon}
     />
   }
 };
 
-const Basic = ({children, ...rest}: {children?: ReactNode, [key: string]: any}) => {
+const Basic = ({children, ...rest}: {
+  children?: ReactNode,
+  icon?: BasicIcon,
+  style?: StyleProp<ViewStyle>,
+  textStyle?: StyleProp<TextStyle>,
+  onPress?: () => boolean | void,
+}) => {
   const {
     icon,
     style = {},

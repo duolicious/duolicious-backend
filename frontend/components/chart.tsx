@@ -67,7 +67,7 @@ const Chart = ({name1, percentage1, name2, percentage2, ...props}: {
   const maxLabel_ = maxLabel ? `100%` : '100%';
 
   const Tick = useCallback(({position, color, ...props}: {
-    position?: any,
+    position?: number,
     color: string,
     label?: string | null,
     labelPercentage?: number,
@@ -79,13 +79,14 @@ const Chart = ({name1, percentage1, name2, percentage2, ...props}: {
     const position_ = position && Math.round(position);
     const extraHeight_ = extraHeight || 0;
 
+    const labelPos = position_ ?? 0;
     const labelPosition: {
       left: DimensionValue
     } | {
       right: DimensionValue
-    } = position_ < 50 ?
-      {left: `${position_}%`} :
-      {right: `${100 - position_}%`};
+    } = labelPos < 50 ?
+      {left: `${labelPos}%`} :
+      {right: `${100 - labelPos}%`};
 
     return <>
       {

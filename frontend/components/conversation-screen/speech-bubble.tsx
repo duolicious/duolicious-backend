@@ -38,6 +38,8 @@ import { useSignedInUser } from '../../events/signed-in-user';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootParamList } from '../../navigation/linking';
 import { assertNever, formatCount } from '../../util/util';
 import { useAppTheme } from '../../app-theme/app-theme';
 
@@ -208,7 +210,7 @@ const MessageStatusComponent = ({
 
   const isPressable = verificationStatuses.includes(messageStatus);
 
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
 
   const onHandlerStateChange = useCallback(({ nativeEvent }: HandlerStateChangeEvent<TapGestureHandlerEventPayload>) => {
     if (!isPressable) {

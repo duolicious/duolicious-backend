@@ -195,7 +195,7 @@ type OptionGroupInputs
 
 type OptionGroup<T extends OptionGroupInputs> = {
   title: string,
-  Icon?: any,
+  Icon?: FC<{ color?: string }>,
   description: string | FC,
   input: T,
   scrollView?: boolean,
@@ -215,63 +215,63 @@ const hasExactKeys = (obj: object, keys: string[]) => {
     return true;
 }
 
-const isOptionGroupButtons = (x: any): x is OptionGroupButtons => {
+const isOptionGroupButtons = (x: OptionGroupInputs): x is OptionGroupButtons => {
   return hasExactKeys(x, ['buttons']);
 }
 
-const isOptionGroupLocationSelector = (x: any): x is OptionGroupLocationSelector => {
+const isOptionGroupLocationSelector = (x: OptionGroupInputs): x is OptionGroupLocationSelector => {
   return hasExactKeys(x, ['locationSelector']);
 }
 
-const isOptionGroupSlider = (x: any): x is OptionGroupSlider => {
+const isOptionGroupSlider = (x: OptionGroupInputs): x is OptionGroupSlider => {
   return hasExactKeys(x, ['slider']);
 };
 
-const isOptionGroupRangeSlider = (x: any): x is OptionGroupRangeSlider => {
+const isOptionGroupRangeSlider = (x: OptionGroupInputs): x is OptionGroupRangeSlider => {
   return hasExactKeys(x, ['rangeSlider']);
 }
 
-const isOptionGroupGivenName = (x: any): x is OptionGroupGivenName => {
+const isOptionGroupGivenName = (x: OptionGroupInputs): x is OptionGroupGivenName => {
   return hasExactKeys(x, ['givenName']);
 }
 
-const isOptionGroupDate = (x: any): x is OptionGroupDate => {
+const isOptionGroupDate = (x: OptionGroupInputs): x is OptionGroupDate => {
   return hasExactKeys(x, ['date']);
 }
 
-const isOptionGroupPhotos = (x: any): x is OptionGroupPhotos => {
+const isOptionGroupPhotos = (x: OptionGroupInputs): x is OptionGroupPhotos => {
   return hasExactKeys(x, ['photos']);
 }
 
-const isOptionGroupTextLong = (x: any): x is OptionGroupTextLong => {
+const isOptionGroupTextLong = (x: OptionGroupInputs): x is OptionGroupTextLong => {
   return hasExactKeys(x, ['textLong']);
 }
 
-const isOptionGroupTextShort = (x: any): x is OptionGroupTextShort => {
+const isOptionGroupTextShort = (x: OptionGroupInputs): x is OptionGroupTextShort => {
   return hasExactKeys(x, ['textShort']);
 }
 
-const isOptionGroupOtp = (x: any): x is OptionGroupOtp => {
+const isOptionGroupOtp = (x: OptionGroupInputs): x is OptionGroupOtp => {
   return hasExactKeys(x, ['otp']);
 }
 
-const isOptionGroupVerificationChecker = (x: any): x is OptionGroupVerificationChecker => {
+const isOptionGroupVerificationChecker = (x: OptionGroupInputs): x is OptionGroupVerificationChecker => {
   return hasExactKeys(x, ['verificationChecker']);
 }
 
-const isOptionGroupThemePicker = (x: any): x is OptionGroupThemePicker => {
+const isOptionGroupThemePicker = (x: OptionGroupInputs): x is OptionGroupThemePicker => {
   return hasExactKeys(x, ['themePicker']);
 }
 
-const isOptionGroupNone = (x: any): x is OptionGroupNone => {
+const isOptionGroupNone = (x: OptionGroupInputs): x is OptionGroupNone => {
   return hasExactKeys(x, ['none']);
 }
 
-const isOptionGroupCheckChips = (x: any): x is OptionGroupCheckChips => {
+const isOptionGroupCheckChips = (x: OptionGroupInputs): x is OptionGroupCheckChips => {
   return hasExactKeys(x, ['checkChips']);
 }
 
-const getCurrentValue = (x: OptionGroupInputs | undefined) => {
+const getCurrentValue = (x: OptionGroupInputs) => {
   if (isOptionGroupButtons(x))
     return x.buttons.currentValue;
 

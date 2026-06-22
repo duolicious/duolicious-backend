@@ -19,7 +19,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
 import { OnlineIndicator } from './online-indicator';
 import { useAppTheme } from '../app-theme/app-theme';
-import { useNavigation } from '@react-navigation/native';
+import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { HomeParamList, RootParamList } from '../navigation/linking';
 import { setProspectHint } from '../navigation/prospect-cache';
 
 const Avatar = ({
@@ -45,7 +48,10 @@ const Avatar = ({
 }) => {
   const { appTheme } = useAppTheme();
 
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<CompositeNavigationProp<
+    BottomTabNavigationProp<HomeParamList>,
+    NativeStackNavigationProp<RootParamList>
+  >>();
 
   // The profile URL prefers the username (url_slug); the uuid is the fallback
   // for not-yet-backfilled users and shared links.

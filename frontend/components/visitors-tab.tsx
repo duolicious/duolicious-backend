@@ -13,7 +13,10 @@ import { useScrollbar } from './navigation/scroll-bar-hooks';
 import { Avatar } from './avatar';
 import { commonStyles } from '../styles';
 import { VerificationBadge } from './verification-badge';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { CompositeNavigationProp, useNavigation, useFocusEffect } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { HomeParamList, RootParamList } from '../navigation/linking';
 import { japi } from '../api/api';
 import { useSkipped } from '../hide-and-block/hide-and-block';
 import { useAppTheme } from '../app-theme/app-theme';
@@ -321,7 +324,10 @@ const useNavigationToProfile = (
   photoBlurhash: string | null,
   verificationRequired: boolean
 ) => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<CompositeNavigationProp<
+    BottomTabNavigationProp<HomeParamList>,
+    NativeStackNavigationProp<RootParamList>
+  >>();
 
   // Profile links prefer the username (url_slug), falling back to the uuid.
   const handle = urlSlug || personUuid;

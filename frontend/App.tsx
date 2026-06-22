@@ -10,7 +10,11 @@ import {
 } from 'react';
 import {
   DefaultTheme,
+  InitialState,
   NavigationContainer,
+  NavigationState,
+  ParamListBase,
+  PartialState,
   createNavigationContainerRef,
   getPathFromState as rnGetPathFromState,
 } from '@react-navigation/native';
@@ -67,21 +71,39 @@ verificationWatcher();
 
 ExpoSplashScreen.preventAutoHideAsync();
 
+type StatusResponse = {
+  api_version: number;
+  statuses: string[];
+  status_index: number;
+};
+
+type CheckSessionTokenResponse = {
+  onboarded?: boolean;
+  clubs?: ClubItem[];
+  person_id?: number;
+  person_uuid?: string;
+  pending_club?: ClubItem | null;
+  units?: string;
+  estimated_end_date?: string;
+  name?: string | null;
+  has_gold?: boolean;
+};
+
 const Stack = createNativeStackNavigator();
 
 const otpDestination = { value: '' };
 const isImagePickerOpen = { value: false };
 
-const navigationContainerRef = createNavigationContainerRef<any>();
+const navigationContainerRef = createNavigationContainerRef<ParamListBase>();
 
 const App = () => {
-  const [initialState, setInitialState] = useState<any>(undefined);
+  const [initialState, setInitialState] = useState<InitialState | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("ok");
   const [signedInUser] = useSignedInUser();
   const [bannerVisible, setBannerVisible] = useState(false);
   const [bannerProspectHandle, setBannerProspectHandle] = useState<string | undefined>(undefined);
-  const pendingPostLoginStateRef = useRef<any | null>(null);
+  const pendingPostLoginStateRef = useRef<PartialState<NavigationState> | null>(null);
   useAppThemeLoader();
   const { appTheme } = useAppTheme();
 
@@ -158,14 +180,22 @@ const App = () => {
     // Log into XMPP
     login(existingPersonUuid, existingSessionToken);
 
-    const response = await japi(
+    const response = await japi<CheckSessionTokenResponse>(
       'post',
       '/check-session-token',
       undefined,
       { retryOnTransientError: true }
     );
 
-    if (response.clientError || response?.json?.onboarded === false) {
+    const json = response.json;
+
+    if (
+      response.clientError ||
+      !json ||
+      json.onboarded === false ||
+      json.person_id === undefined ||
+      json.person_uuid === undefined
+    ) {
       await sessionPersonUuid(null);
       await sessionToken(null);
       await lastPath(null);
@@ -176,23 +206,21 @@ const App = () => {
       return;
     }
 
-    const clubs: ClubItem[] = response?.json?.clubs;
-    const personId = response?.json?.person_id as number;
-    const personUuid = response?.json?.person_uuid as string;
-    const pendingClub = response?.json?.pending_club as ClubItem | null;
+    const clubs = json.clubs;
+    const pendingClub = json.pending_club ?? null;
 
     setSignedInUser({
-      personId: personId,
-      personUuid: personUuid,
-      units: response?.json?.units === 'Imperial' ? 'Imperial' : 'Metric',
+      personId: json.person_id,
+      personUuid: json.person_uuid,
+      units: json.units === 'Imperial' ? 'Imperial' : 'Metric',
       sessionToken: existingSessionToken,
       pendingClub: pendingClub,
-      estimatedEndDate: new Date(response?.json?.estimated_end_date),
-      name: response?.json?.name,
-      hasGold: response?.json?.has_gold,
+      estimatedEndDate: new Date(json.estimated_end_date ?? NaN),
+      name: json.name ?? null,
+      hasGold: json.has_gold ?? false,
     });
 
-    notify<ClubItem[]>('updated-clubs', clubs);
+    notify<ClubItem[] | undefined>('updated-clubs', clubs);
 
     await applyStartupNav(true, pendingClub);
   }, [linking]);
@@ -233,7 +261,7 @@ const App = () => {
     }
   }, []);
 
-  const recomputeBannerVisible = useCallback((state?: any) => {
+  const recomputeBannerVisible = useCallback((state?: NavigationState) => {
     const rootState = state ?? navigationContainerRef.current?.getRootState?.();
     setBannerVisible(isWebLoggedOut() && isBannerRoute(rootState));
     setBannerProspectHandle(focusedProspectHandle(rootState));
@@ -271,7 +299,7 @@ const App = () => {
       return;
     }
 
-    const j: any = await response.json();
+    const j: StatusResponse = await response.json();
     const apiVersion = j.api_version;
     const reportedStatus = j.statuses[j.status_index];
 
@@ -356,7 +384,7 @@ const App = () => {
     loadApp();
   }, []);
 
-  const onNavigationStateChange = useCallback(async (state: any) => {
+  const onNavigationStateChange = useCallback(async (state: NavigationState) => {
     if (!state) return;
 
     recomputeBannerVisible(state);
@@ -397,7 +425,7 @@ const App = () => {
       // on here is that `Home` is always the implicit root of the path tree,
       // so any path produced by getPathFromState round-trips back to a
       // valid state via getStateFromPath.
-      const path = rnGetPathFromState(state, linking.config as any);
+      const path = rnGetPathFromState(state, linking.config);
       if (typeof path === 'string') {
         await lastPath(path.startsWith('/') ? path : `/${path}`);
       }
@@ -418,7 +446,7 @@ const App = () => {
     (stats?.numUnreadChats ?? 0) +
     (stats?.numUnreadIntros ?? 0);
 
-  useNotificationObserverOnMobile((screen: string, params: any) => {
+  useNotificationObserverOnMobile((screen: string, params: Record<string, unknown>) => {
     const navigationContainer = navigationContainerRef.current;
 
     if (!navigationContainer) return;
@@ -442,6 +470,10 @@ const App = () => {
     return <UtilityScreen serverStatus={serverStatus} />
   }
 
+  const rehydratedInitialState = initialState ?
+    { ...initialState, stale: true as const } :
+    undefined;
+
   return (
     <ErrorBoundary onError={onError}>
       <SafeAreaProvider>
@@ -451,11 +483,7 @@ const App = () => {
             <NavigationContainer
               ref={navigationContainerRef}
               linking={linking}
-              initialState={
-                initialState ?
-                { ...initialState, stale: true } :
-                undefined
-              }
+              initialState={rehydratedInitialState}
               onReady={onNavigationReady}
               onStateChange={onNavigationStateChange}
               theme={{

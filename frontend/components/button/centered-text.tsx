@@ -153,4 +153,5 @@ const ButtonWithCenteredText = (props: ButtonWithCenteredTextProps) => {
 
 export {
   ButtonWithCenteredText,
+  ButtonWithCenteredTextApi,
 }

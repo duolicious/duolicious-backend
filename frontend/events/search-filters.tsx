@@ -4,8 +4,9 @@ import { listen, notify, lastEvent } from './events';
 import { markSearchResultsStale } from './stale-search-results';
 import type { SearchFilterAnswer } from '../navigation/search-filter-state';
 
-type SearchFilters = Record<string, any> & {
+type SearchFilters = {
   answer?: SearchFilterAnswer[];
+  [key: string]: unknown;
 };
 
 const EVENT_KEY = 'search-filters';
@@ -18,7 +19,7 @@ const setSearchFilters = (next: SearchFilters | undefined) => {
   notify<SearchFilters | undefined>(EVENT_KEY, next);
 };
 
-const filterValueChanged = (next: any, prev: any): boolean => {
+const filterValueChanged = (next: unknown, prev: unknown): boolean => {
   if (Array.isArray(next) && Array.isArray(prev)) {
     return _.xorWith(next, prev, _.isEqual).length > 0;
   }

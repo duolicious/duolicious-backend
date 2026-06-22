@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import {
   Pressable,
-  StyleProp,
   Text,
   View,
-  ViewStyle,
   ScrollView,
 } from 'react-native';
 import { DefaultText } from '../default-text';
 import { CommonActions } from '@react-navigation/native';
+import type { WebBarProps } from './web-navigator';
 import { Logo16 } from '../logo';
 import { LabelToIcon } from './util';
 import { useInboxStats } from '../../chat/application-layer/hooks/inbox-stats';
@@ -51,11 +50,9 @@ const Logo = () => {
   );
 };
 
-const NavigationItems = ({state, navigation, descriptors}: {
-  state: any
-  navigation: any
-  descriptors: any
-}) => {
+const NavigationItems = ({state, navigation, descriptors}:
+  Pick<WebBarProps, 'state' | 'navigation' | 'descriptors'>
+) => {
   const { appThemeName } = useAppTheme();
   const isWebLoggedOut = useIsWebLoggedOut();
 
@@ -72,12 +69,10 @@ const NavigationItems = ({state, navigation, descriptors}: {
         flex: 1,
       }}
     >
-      {state.routes.map((route: any, index: number) => {
+      {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
         const label =
-          options.tabBarLabel !== undefined
-            ? options.tabBarLabel
-            : options.title !== undefined
+          options.title !== undefined
             ? options.title
             : route.name;
 
@@ -180,12 +175,7 @@ const NavigationItems = ({state, navigation, descriptors}: {
   );
 };
 
-const WebBar = ({state, navigation, tabBarStyle, descriptors}: {
-  state: any
-  navigation: any
-  tabBarStyle: StyleProp<ViewStyle>
-  descriptors: any
-}) => {
+const WebBar = ({state, navigation, tabBarStyle, descriptors}: WebBarProps) => {
   const { appThemeName } = useAppTheme();
 
   return (
