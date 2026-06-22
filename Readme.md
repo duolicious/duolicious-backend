@@ -9,6 +9,7 @@ The world's most popular open-source dating app.</p>
 <a href="https://web.duolicious.app/"><img src="https://img.shields.io/badge/web-web.duolicious.app-7700ff" alt="Duolicious on the web"/></a>
 <a href="https://play.google.com/store/apps/details?id=app.duolicious"><img src="https://img.shields.io/badge/Google%20Play-app.duolicious-7700ff?logo=googleplay&logoColor=white" alt="Duolicious on Google Play"/></a>
 <a href="https://apps.apple.com/us/app/duolicious-dating-app/id6499066647"><img src="https://img.shields.io/badge/App%20Store-Duolicious-7700ff?logo=appstore&logoColor=white" alt="Duolicious on the App Store"/></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-7700ff" alt="AGPL-3.0 licensed"/></a>
 <a href="https://x.com/duoliciousapp"><img src="https://img.shields.io/twitter/follow/duoliciousapp" alt="Duolicious Twitter"/></a>
 <a href="https://www.reddit.com/r/duolicious/"><img src="https://img.shields.io/reddit/subreddit-subscribers/duolicious" alt="Duolicious Reddit"/></a>
 </p>
@@ -26,15 +27,15 @@ and the
 
 <p align="center">
 <img src=".github/images/01-join.png" width="22%" alt="Join or sign in — cute dates & dank memes await">
-<img src=".github/images/02-clubs.png" width="22%" alt="Browse matches and clubs">
 <img src=".github/images/03-qanda.png" width="22%" alt="Answer questions to improve your matches">
+<img src=".github/images/02-clubs.png" width="22%" alt="Search and browse matches">
 <img src=".github/images/04-feed.png" width="22%" alt="Community feed">
 </p>
 <p align="center">
 <img src=".github/images/05-inbox.png" width="22%" alt="Chat inbox">
-<img src=".github/images/08-chat.png" width="22%" alt="A conversation">
 <img src=".github/images/06-visitors.png" width="22%" alt="See who visited your profile">
 <img src=".github/images/07-profile.png" width="22%" alt="Your profile and verification">
+<img src=".github/images/08-chat.png" width="22%" alt="A conversation">
 </p>
 
 ## Why people love Duolicious
