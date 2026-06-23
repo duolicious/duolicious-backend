@@ -1,6 +1,10 @@
 import Constants from 'expo-constants';
 
 
+export const DEEP_LINK_HOSTNAME: string =
+  Constants.expoConfig?.extra?.deepLinkHostname
+  ?? 'get.duolicious.app';
+
 export const API_URL = Constants.expoConfig?.extra?.apiUrl
   ?? 'http://localhost:5000';
 
@@ -76,4 +80,4 @@ export const APPLE_REDIRECT_URI: string =
 // backend's `DUO_APPLE_ANDROID_REDIRECT_URL` env var.
 export const APPLE_ANDROID_RETURN_URL: string =
   Constants.expoConfig?.extra?.appleAndroidReturnUrl ??
-  'https://get.duolicious.app/';
+  `https://${DEEP_LINK_HOSTNAME}/`;
