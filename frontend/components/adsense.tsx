@@ -2,9 +2,8 @@ import { CSSProperties, useEffect } from 'react';
 import { Platform, StyleProp, View, ViewStyle } from 'react-native';
 import { DefaultText } from './default-text';
 
-const IS_LOCALHOST =
-  typeof window !== 'undefined' &&
-  /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+const IS_LOCALHOST = /^(localhost|127\.0\.0\.1|\[::1\])$/
+  .test(window?.location?.hostname ?? '');
 
 const ADSENSE_CLIENT = 'ca-pub-2356864342428722';
 const ADSENSE_SCRIPT_SRC =
