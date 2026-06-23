@@ -3,6 +3,8 @@ import { ExpoConfig } from 'expo/config';
 // In SDK 46 and lower, use the following import instead:
 // import { ExpoConfig } from '@expo/config-types';
 
+const DEEP_LINK_HOSTNAME = 'get.duolicious.app';
+
 const config: ExpoConfig = {
   name: 'Duolicious',
   slug: 'duolicious',
@@ -45,6 +47,7 @@ const config: ExpoConfig = {
     appleWebClientId: process.env.DUO_APPLE_WEB_CLIENT_ID,
     appleRedirectUri: process.env.DUO_APPLE_REDIRECT_URI,
     appleAndroidReturnUrl: process.env.DUO_APPLE_ANDROID_RETURN_URL,
+    deepLinkHostname: DEEP_LINK_HOSTNAME,
   },
   web: {
     favicon: "./assets/favicon.png"
@@ -56,7 +59,7 @@ const config: ExpoConfig = {
     // other third-party sign-in option. The capability is added by the
     // expo-apple-authentication plugin below.
     usesAppleSignIn: true,
-    associatedDomains: ["applinks:get.duolicious.app"],
+    associatedDomains: [`applinks:${DEEP_LINK_HOSTNAME}`],
     appStoreUrl: "https://apps.apple.com/us/app/duolicious-dating-app/id6499066647",
     infoPlist: {
       NSMicrophoneUsageDescription: "This app uses the microphone to capture audio for updating and sharing on your profile.",
@@ -78,7 +81,7 @@ const config: ExpoConfig = {
         data: [
           {
             scheme: "https",
-            host: "get.duolicious.app"
+            host: DEEP_LINK_HOSTNAME
           }
         ],
         category: ["BROWSABLE", "DEFAULT"]

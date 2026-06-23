@@ -10,6 +10,7 @@ import {
 } from '@react-navigation/native';
 import { UUID_REGEX_SOURCE } from '../util/util';
 import { getSignedInUser, isWebLoggedOut } from '../events/signed-in-user';
+import { DEEP_LINK_HOSTNAME } from '../env/env';
 
 type WelcomeParamList = {
   'Welcome Screen': { clubName?: string; numUsers?: number } | undefined;
@@ -187,7 +188,7 @@ const createLinking = () => {
       ? (typeof window !== 'undefined' && window.location?.origin
           ? [window.location.origin]
           : [])
-      : ['https://get.duolicious.app', 'app.duolicious://'];
+      : [`https://${DEEP_LINK_HOSTNAME}`, 'app.duolicious://'];
 
   const getStateFromPath: typeof rnGetStateFromPath = (path, options) => {
     let normalized = path.replace(/\/{2,}/g, '/');
