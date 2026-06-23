@@ -258,12 +258,22 @@ const applyVisitorDelta = (
   item: DataItem,
   lastVisitedAt: string | null,
 ) => {
-  const others = currentData[section]
-    .filter((d) => d.person_uuid !== item.person_uuid);
+  const exists = currentData[section]
+    .some((d) => d.person_uuid === item.person_uuid);
 
-  // Newest first, matching the server's ORDER BY updated_at DESC.
-  const merged = [item, ...others]
-    .sort((a, b) => (a.time > b.time ? -1 : a.time < b.time ? 1 : 0));
+  // The "You Visited" list is your own browsing history. Re-visiting a profile
+  // that's already listed would otherwise yank it to the top, which is
+  // disorienting when you navigate back. Refresh its content (timestamp,
+  // was_invisible, ...) in place but keep its position; the section re-sorts by
+  // recency on the next full snapshot. New profiles still surface at the top,
+  // and "Visited You" keeps reordering live.
+  const merged =
+    section === 'you_visited' && exists
+      ? currentData[section].map(
+          (d) => d.person_uuid === item.person_uuid ? item : d)
+      : [item, ...currentData[section].filter(
+          (d) => d.person_uuid !== item.person_uuid)]
+          .sort((a, b) => (a.time > b.time ? -1 : a.time < b.time ? 1 : 0));
 
   setData({
     ...currentData,
