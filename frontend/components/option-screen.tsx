@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   Animated,
   LayoutChangeEvent,
   NativeScrollEvent,
@@ -240,6 +241,7 @@ const Slider = forwardRef((props: InputProps<OptionGroupSlider>, ref) => {
 
 const GivenName = forwardRef((props: InputProps<OptionGroupGivenName>, ref) => {
   const [isInvalid, setIsInvalid] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
   const [slugPreview, setSlugPreview] = useState('');
   const [slugTaken, setSlugTaken] = useState(false);
   const inputValueRef = useRef<string>('');
@@ -265,6 +267,9 @@ const GivenName = forwardRef((props: InputProps<OptionGroupGivenName>, ref) => {
     // matches the name we checked, a newer check is (or will be) in flight for
     // the current value.
     if (name !== inputValueRef.current) return;
+    // The response settles the in-flight check, so the "checking" indicator can
+    // give way to the validity error or slug preview below.
+    setIsChecking(false);
     // Same response drives both the validity error and the slug preview: an
     // invalid name (too short/long, not a real name) comes back !ok, so we can
     // surface "not a real name" as the user types instead of only on submit.
@@ -282,6 +287,10 @@ const GivenName = forwardRef((props: InputProps<OptionGroupGivenName>, ref) => {
     setIsInvalid(false);
     setSlugPreview('');
     setSlugTaken(false);
+    // Show the "checking" indicator the moment there's something to check, so
+    // the user gets immediate feedback through the debounce and network delay
+    // (an empty name is never checked, so it shows nothing).
+    setIsChecking(!!value.trim());
     checkAvailability(value);
   }, []);
 
@@ -314,29 +323,51 @@ const GivenName = forwardRef((props: InputProps<OptionGroupGivenName>, ref) => {
           input above never jumps. The height holds three lines — enough for the
           longest "taken" message; numberOfLines caps very long slugs. */}
       <View style={{ height: 54, marginTop: 15, justifyContent: 'center' }}>
-        <DefaultText
-          numberOfLines={3}
-          style={{
-            fontSize: 14,
-            textAlign: 'center',
-            color: 'white',
-            lineHeight: 18,
-            marginHorizontal: 20,
-            opacity: (isInvalid || !!slugPreview) ? 1 : 0,
-          }}
-        >
-          {isInvalid
-            ? 'That doesn’t look like a real name 🤨'
-            : slugPreview
-              ? <>
-                  Your username will be {}
-                  <DefaultText style={{ fontWeight: 700 }} disableTheme={true}>
-                    {slugPreview}
-                  </DefaultText>
-                  {slugTaken && ` (${inputValueRef.current} is taken)`}
-                </>
-              : null}
-        </DefaultText>
+        {isChecking
+          ? <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                marginHorizontal: 20,
+              }}
+            >
+              <ActivityIndicator size="small" color="white" />
+              <DefaultText
+                style={{
+                  fontSize: 14,
+                  textAlign: 'center',
+                  color: 'white',
+                  lineHeight: 18,
+                }}
+              >
+                Generating username…
+              </DefaultText>
+            </View>
+          : <DefaultText
+              numberOfLines={3}
+              style={{
+                fontSize: 14,
+                textAlign: 'center',
+                color: 'white',
+                lineHeight: 18,
+                marginHorizontal: 20,
+                opacity: (isInvalid || !!slugPreview) ? 1 : 0,
+              }}
+            >
+              {isInvalid
+                ? 'That doesn’t look like a real name 🤨'
+                : slugPreview
+                  ? <>
+                      Your username will be {}
+                      <DefaultText style={{ fontWeight: 700 }} disableTheme={true}>
+                        {slugPreview}
+                      </DefaultText>
+                      {slugTaken && ` (${inputValueRef.current} is taken)`}
+                    </>
+                  : null}
+            </DefaultText>}
       </View>
     </>
   );
