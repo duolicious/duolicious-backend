@@ -35,6 +35,7 @@ import { LOGARITHMIC_SCALE, Scale } from "../scales/scales";
 import { VerificationBadge } from '../components/verification-badge';
 import { patchProfileInfo } from '../events/profile-info';
 import { patchSearchFilters, SearchFilters } from '../events/search-filters';
+import { markSearchResultsStale } from '../events/stale-search-results';
 import { DefaultText } from '../components/default-text';
 import {
   Linking,
@@ -550,6 +551,7 @@ const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
         if (ok) {
           patchProfileInfo({ gender });
           notifyUpdatedVerification({ gender: false });
+          markSearchResultsStale();
         }
         return ok;
       },
@@ -605,7 +607,10 @@ const locationOptionGroup: OptionGroup<OptionGroupLocationSelector> = {
     locationSelector: {
       submit: async (location: string) => {
         const ok = (await japi('patch', '/profile-info', { location })).ok;
-        if (ok) patchProfileInfo({ location });
+        if (ok) {
+          patchProfileInfo({ location });
+          markSearchResultsStale();
+        }
         return ok;
       },
     }
