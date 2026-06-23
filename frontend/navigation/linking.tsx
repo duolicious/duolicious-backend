@@ -183,9 +183,11 @@ const linkingConfig: LinkingOptions<RootParamList>['config'] = {
 
 const createLinking = () => {
   const prefixes =
-    Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin
-      ? [window.location.origin]
-      : [];
+    Platform.OS === 'web'
+      ? (typeof window !== 'undefined' && window.location?.origin
+          ? [window.location.origin]
+          : [])
+      : ['https://get.duolicious.app', 'app.duolicious://'];
 
   const getStateFromPath: typeof rnGetStateFromPath = (path, options) => {
     let normalized = path.replace(/\/{2,}/g, '/');
