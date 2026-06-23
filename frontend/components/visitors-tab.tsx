@@ -43,6 +43,7 @@ import {
   SectionKey,
   markVisitorChecked,
   markVisitorsChecked,
+  suppressYouVisitedReorder,
   useLastVisitedAt,
   useVisitorDataItem,
   useVisitorKeys,
@@ -73,11 +74,15 @@ const VISITORS_AD_SLOT = '6049655173';
 const sectionFromIndex = (sectionIndex: number): SectionKey =>
   sectionIndex === 0 ? 'visited_you' : 'you_visited';
 
+const sectionFromKey = (itemKey: string): SectionKey =>
+  itemKey.startsWith('you_visited-') ? 'you_visited' : 'visited_you';
+
 const useNavigationToProfile = (
   personUuid: string,
   urlSlug: string | null,
   photoBlurhash: string | null,
-  verificationRequired: boolean
+  verificationRequired: boolean,
+  section: SectionKey,
 ) => {
   const navigation = useNavigation<CompositeNavigationProp<
     BottomTabNavigationProp<HomeParamList>,
@@ -95,6 +100,12 @@ const useNavigationToProfile = (
     } else if (personUuid) {
       markVisitorChecked(personUuid);
 
+      // Opening a profile straight from the "You Visited" list shouldn't yank it
+      // to the top when you navigate back; suppress that one reorder.
+      if (section === 'you_visited') {
+        suppressYouVisitedReorder(personUuid);
+      }
+
       setProspectHint(handle, { photoBlurhash });
       return navigation.navigate(
         'Prospect Profile Screen',
@@ -105,7 +116,7 @@ const useNavigationToProfile = (
       );
     }
 
-  }, [personUuid, handle, photoBlurhash, verificationRequired]);
+  }, [personUuid, handle, photoBlurhash, verificationRequired, section]);
 
   return {
     onPress,
@@ -120,10 +131,18 @@ const VisitorsItem = ({ itemKey }: { itemKey: string }) => {
     return null;
   }
 
-  return <VisitorsItemContent dataItem={dataItem} />;
+  return (
+    <VisitorsItemContent dataItem={dataItem} section={sectionFromKey(itemKey)} />
+  );
 };
 
-const VisitorsItemContent = ({ dataItem }: { dataItem: DataItem }) => {
+const VisitorsItemContent = ({
+  dataItem,
+  section,
+}: {
+  dataItem: DataItem;
+  section: SectionKey;
+}) => {
   const { appTheme } = useAppTheme();
 
   const { isSkipped } = useSkipped(dataItem.person_uuid);
@@ -133,6 +152,7 @@ const VisitorsItemContent = ({ dataItem }: { dataItem: DataItem }) => {
     dataItem.url_slug,
     dataItem.photo_blurhash,
     dataItem.verification_required_to_view !== null,
+    section,
   );
   const { viewRef, props } = useTooltip('You were invisible');
 

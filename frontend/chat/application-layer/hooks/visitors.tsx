@@ -252,28 +252,50 @@ const maxTimestamp = (
   return a > b ? a : b;
 };
 
+// Newest first, matching the server's ORDER BY updated_at DESC.
+const byVisitTimeDesc = (a: DataItem, b: DataItem): number =>
+  a.time > b.time ? -1 : a.time < b.time ? 1 : 0;
+
+// Return a copy of `items` with `item`'s row content refreshed (timestamp,
+// was_invisible, ...) if it's already present, or `item` added if it's new. The
+// existing order is left untouched.
+const mergeVisitor = (items: DataItem[], item: DataItem): DataItem[] =>
+  items.some((d) => d.person_uuid === item.person_uuid)
+    ? items.map((d) => d.person_uuid === item.person_uuid ? item : d)
+    : [item, ...items];
+
+// Return a copy of `items` ordered newest first.
+const sortByRecency = (items: DataItem[]): DataItem[] =>
+  [...items].sort(byVisitTimeDesc);
+
+// person_uuids whose next `you_visited` delta should keep its current position
+// instead of jumping to the top. Set when a profile is opened directly from the
+// "You Visited" list (where the reorder would be disorienting on back-nav), and
+// consumed by the matching delta.
+const youVisitedReorderSuppressions = new Set<string>();
+
+const suppressYouVisitedReorder = (personUuid: string) => {
+  youVisitedReorderSuppressions.add(personUuid);
+};
+
 // Merge a single live visitor into the cached snapshot, then re-dispatch.
 const applyVisitorDelta = (
   section: SectionKey,
   item: DataItem,
   lastVisitedAt: string | null,
 ) => {
-  const exists = currentData[section]
-    .some((d) => d.person_uuid === item.person_uuid);
+  // The visited row's content is always refreshed (or inserted when new); only
+  // the reorder to the front is suppressed. That happens for a `you_visited`
+  // delta whose visit was started from the "You Visited" list itself, where
+  // jumping to the top is disorienting on back-nav. `Set.delete` tests and
+  // consumes the one-shot flag; the section guard stops a `visited_you` delta
+  // from consuming a flag meant for the matching `you_visited` delta.
+  const preserveOrder =
+    section === 'you_visited' &&
+    youVisitedReorderSuppressions.delete(item.person_uuid);
 
-  // The "You Visited" list is your own browsing history. Re-visiting a profile
-  // that's already listed would otherwise yank it to the top, which is
-  // disorienting when you navigate back. Refresh its content (timestamp,
-  // was_invisible, ...) in place but keep its position; the section re-sorts by
-  // recency on the next full snapshot. New profiles still surface at the top,
-  // and "Visited You" keeps reordering live.
-  const merged =
-    section === 'you_visited' && exists
-      ? currentData[section].map(
-          (d) => d.person_uuid === item.person_uuid ? item : d)
-      : [item, ...currentData[section].filter(
-          (d) => d.person_uuid !== item.person_uuid)]
-          .sort((a, b) => (a.time > b.time ? -1 : a.time < b.time ? 1 : 0));
+  const withVisit = mergeVisitor(currentData[section], item);
+  const merged = preserveOrder ? withVisit : sortByRecency(withVisit);
 
   setData({
     ...currentData,
@@ -358,6 +380,7 @@ listen(
   'signed-in-user',
   (user) => {
     if (!user) {
+      youVisitedReorderSuppressions.clear();
       setData(emptyData());
     }
   },
@@ -371,6 +394,7 @@ export {
   SectionKey,
   markVisitorChecked,
   markVisitorsChecked,
+  suppressYouVisitedReorder,
   useLastVisitedAt,
   useNumVisitors,
   useVisitorDataItem,
