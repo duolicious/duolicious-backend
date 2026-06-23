@@ -42,17 +42,12 @@ Redis is treated as a best-effort accelerator: any Redis error degrades to a
 cache miss / no-op so authentication keeps working off Postgres alone.
 """
 
-import os
 import time
 from typing import cast
 
-import redis
-
 import duotypes
+from redisclient import make_redis_client
 
-
-REDIS_HOST: str = os.environ.get("DUO_REDIS_HOST", "redis")
-REDIS_PORT: int = int(os.environ.get("DUO_REDIS_PORT", 6379))
 
 # Upper bound on how long a resolved session may be served from cache without
 # being re-read from Postgres. Mutations we can hook invalidate immediately;
@@ -61,24 +56,11 @@ SESSION_CACHE_TTL_SECONDS: int = 60
 
 _KEY_PREFIX = "cached_duo_session:"
 
-# Dedicated synchronous client. The rate limiter talks to Redis through its own
-# storage URI and the chat service uses redis.asyncio; this is the only blocking
-# client the Flask API uses directly, so give it its own connection pool.
-#
-# The timeouts are not optional. Every public function below swallows Redis
-# errors and degrades to a cache miss / no-op, but that fallback only works if a
-# call actually *returns*. Without socket timeouts a slow or unreachable Redis
-# blocks the caller indefinitely. That's merely a slow request on the (threaded)
-# Flask side, but `autodeactivate2` calls `delete_session` from inside the cron's
-# single asyncio event loop, where one blocking call freezes *every* cron job.
-# Bounding both timeouts turns a Redis stall into a fast, swallowed error.
-_redis = redis.Redis(
-    host=REDIS_HOST,
-    port=REDIS_PORT,
-    decode_responses=True,
-    socket_connect_timeout=1,
-    socket_timeout=1,
-)
+# Dedicated synchronous client (see `redisclient.make_redis_client` for the
+# connection settings and the rationale behind the bounded timeouts -- they're
+# what lets every function below degrade to a cache miss / no-op instead of
+# blocking indefinitely on a slow Redis).
+_redis = make_redis_client()
 
 
 def _key(session_token_hash: str) -> str:

@@ -47,24 +47,30 @@ from service.chat.chatutil import (
     format_timestamp,
     fetch_id_from_username,
 )
-from service.chat.message import (
+from chatprotocol.message import (
     AudioMessage,
     ChatMessage,
     Message,
     TypingMessage,
 )
-from service.chat.protocol import (
+from chatprotocol import (
     InboxQuery,
     MamQuery,
     MarkDisplayed,
+    MarkVisitorsChecked,
     Ping,
     RegisterPushToken,
     SessionRequest,
     SubscribeOnline,
     UnsubscribeOnline,
+    VisitorsQuery,
     parse_incoming,
 )
-from service.chat.protocol.outbound import (
+from service.chat.visitors import (
+    get_visitors_snapshot,
+    mark_visitors_checked,
+)
+from chatprotocol.outbound import (
     IncomingChat,
     IncomingTyping,
     MessageBlocked,
@@ -456,6 +462,15 @@ async def process_text(
         return await redis_publish_many(
                 connection_uuid,
                 await get_inbox(parsed.query_id, from_username))
+
+    if isinstance(parsed, VisitorsQuery):
+        return await redis_publish_many(
+                connection_uuid,
+                await get_visitors_snapshot(from_username))
+
+    if isinstance(parsed, MarkVisitorsChecked):
+        await mark_visitors_checked(username=from_username, when=parsed.when)
+        return None
 
     if isinstance(parsed, MarkDisplayed):
         displayed_to = parsed.to_username

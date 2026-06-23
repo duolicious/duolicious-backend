@@ -1,5 +1,5 @@
 from antiabuse.antispam.urldetector import has_url, UrlType
-from service.chat.message import (
+from chatprotocol.message import (
     Message,
     ChatMessage,
 )

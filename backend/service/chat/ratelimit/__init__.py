@@ -2,7 +2,7 @@ from async_lru_cache import AsyncLruCache
 from database.asyncdatabase import api_tx
 from enum import Enum
 from dataclasses import dataclass
-from service.chat.protocol.outbound import MessageBlocked, Outbound
+from chatprotocol.outbound import MessageBlocked, Outbound
 
 class DefaultRateLimit(Enum):
     NONE = 0

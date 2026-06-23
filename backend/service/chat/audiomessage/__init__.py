@@ -2,7 +2,7 @@ from duoaudio import (
     put_audio_in_object_store,
     transcode_and_trim_audio_from_base64,
 )
-from service.chat.message import AudioMessage
+from chatprotocol.message import AudioMessage
 import secrets
 import traceback
 

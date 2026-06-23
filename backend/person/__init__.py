@@ -16,6 +16,8 @@ from person.sql import *
 from search.sql import *
 from commonsql import *
 from qanda import _flush_session_answers
+from constants import VISITOR_ONLINE_TIMEOUT_SECONDS
+from visitorspush import publish_visit
 from person.template import otp_template
 import traceback
 import re
@@ -875,6 +877,7 @@ def get_prospect_profile(s: Optional[t.SessionInfo], prospect_handle: object) ->
         # The handle may have been a url_slug; resolve to the real uuid so the
         # message-stats query (which keys on person.uuid) gets a valid value.
         prospect_uuid = api_row.get('prospect_uuid')
+        prospect_id = api_row.get('prospect_id')
 
     if s is None:
         # Reply-rate stats count replies *to* %(person_id)s, so they're
@@ -901,6 +904,22 @@ def get_prospect_profile(s: Optional[t.SessionInfo], prospect_handle: object) ->
         )
 
     profile.update(message_stats)
+
+    if s.person_id is not None and s.person_uuid is not None and \
+            prospect_id is not None and prospect_uuid is not None:
+        seconds_since_last_online = profile.get('seconds_since_last_online')
+        prospect_online = (
+            seconds_since_last_online is not None and
+            seconds_since_last_online < VISITOR_ONLINE_TIMEOUT_SECONDS
+        )
+
+        publish_visit(
+            viewer_id=s.person_id,
+            viewer_uuid=s.person_uuid,
+            prospect_id=prospect_id,
+            prospect_uuid=str(prospect_uuid),
+            prospect_online=prospect_online,
+        )
 
     return profile
 

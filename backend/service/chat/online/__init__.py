@@ -9,7 +9,7 @@ from enum import Enum
 from commonsql import Q_UPDATE_LAST
 from batcher import Batcher
 from service.chat.session import Session
-from service.chat.protocol.outbound import (
+from chatprotocol.outbound import (
     OnlineEvent,
     Outbound,
     SubscribeBad,
@@ -25,9 +25,11 @@ import time
 from functools import lru_cache
 from pathlib import Path
 from dataclasses import dataclass
-from constants import ONLINE_RECENTLY_SECONDS, MAX_ONLINE_SUBSCRIPTIONS
-
-LAST_UPDATE_INTERVAL_SECONDS = 4 * 60  # 4 minutes
+from constants import (
+    LAST_UPDATE_INTERVAL_SECONDS,
+    MAX_ONLINE_SUBSCRIPTIONS,
+    ONLINE_RECENTLY_SECONDS,
+)
 
 _TEST_INPUT_DIR = Path(__file__).parents[3] / 'test' / 'input'
 

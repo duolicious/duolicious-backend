@@ -3,28 +3,30 @@ import unittest
 
 import xmltodict
 
-from service.chat.jid import LSERVER
-from service.chat.message import (
+from chatprotocol.jid import LSERVER
+from chatprotocol.message import (
     AudioMessage,
     ChatMessage,
     TypingMessage,
 )
-from service.chat.protocol import outbound
-from service.chat.protocol.inbound import (
+from chatprotocol import outbound
+from chatprotocol.inbound import (
     InboxQuery,
     IqBind,
     IqSession,
     MamQuery,
     MarkDisplayed,
+    MarkVisitorsChecked,
     Ping,
     RegisterPushToken,
     SaslAuth,
     StreamOpenReq,
     SubscribeOnline,
     UnsubscribeOnline,
+    VisitorsQuery,
     parse_incoming,
 )
-from service.chat.protocol.outbound import (
+from chatprotocol.outbound import (
     AuthFailure,
     AuthSuccess,
     BindResult,
@@ -51,12 +53,28 @@ from service.chat.protocol.outbound import (
     SubscribeOk,
     UnsubscribeBad,
     UnsubscribeOk,
+    Visitor,
+    VisitorsSnapshot,
     from_bus,
     to_bus,
 )
 
 U1 = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
 U2 = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+
+# A visitor item carrying characters that must survive XML escaping (`&`, `<`).
+_VISITOR_ITEM_JSON = json.dumps({
+    'person_uuid': U2,
+    'name': 'Alé & <co>',
+    'age': 25,
+    'is_new': True,
+    'match_percentage': 50,
+})
+_VISITORS_PAYLOAD_JSON = json.dumps({
+    'visited_you': [],
+    'you_visited': [],
+    'last_visited_at': None,
+})
 
 # One representative instance of every outbound stanza.
 OUTBOUND_SAMPLES = [
@@ -67,6 +85,12 @@ OUTBOUND_SAMPLES = [
     UnsubscribeOk(username=U1),
     UnsubscribeBad(username=U1),
     OnlineEvent(username=U1, status='online'),
+    VisitorsSnapshot(payload_json=_VISITORS_PAYLOAD_JSON),
+    Visitor(section='visited_you', item_json=_VISITOR_ITEM_JSON),
+    Visitor(
+        section='you_visited',
+        item_json=_VISITOR_ITEM_JSON,
+        last_visited_at='2020-01-01T00:00:00.000000Z'),
     MessageBlocked(stanza_id='id1'),
     MessageBlocked(stanza_id='id1', reason='spam'),
     MessageBlocked(stanza_id='id1', reason='rate-limited-1day', subreason='unverified-photos'),
@@ -224,6 +248,27 @@ class TestInboundParsing(unittest.TestCase):
         x = parse_incoming(xml, 'xmpp')
         self.assertEqual(
             x, MamQuery(query_id='7', with_username=U2, before=None, max='3'))
+
+    def test_query_visitors(self) -> None:
+        x, j = self._both(
+            '<duo_query_visitors/>', '{"duo_query_visitors": null}')
+        self.assertEqual(x, VisitorsQuery())
+        self.assertEqual(j, VisitorsQuery())
+
+    def test_mark_visitors_checked(self) -> None:
+        x, j = self._both(
+            '<duo_mark_visitors_checked when="2020-01-01T00:00:00.000000Z"/>',
+            '{"duo_mark_visitors_checked": '
+            '{"@when": "2020-01-01T00:00:00.000000Z"}}')
+        self.assertEqual(x, MarkVisitorsChecked(when='2020-01-01T00:00:00.000000Z'))
+        self.assertEqual(j, MarkVisitorsChecked(when='2020-01-01T00:00:00.000000Z'))
+
+    def test_mark_visitors_checked_no_when(self) -> None:
+        x, j = self._both(
+            '<duo_mark_visitors_checked/>',
+            '{"duo_mark_visitors_checked": null}')
+        self.assertEqual(x, MarkVisitorsChecked(when=None))
+        self.assertEqual(j, MarkVisitorsChecked(when=None))
 
     def test_inbox_query(self) -> None:
         xml = (

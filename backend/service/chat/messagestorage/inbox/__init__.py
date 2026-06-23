@@ -6,7 +6,7 @@ from service.chat.chatutil import (
     LSERVER,
     format_timestamp,
 )
-from service.chat.protocol.outbound import (
+from chatprotocol.outbound import (
     InboxFin,
     InboxResult,
     Outbound,

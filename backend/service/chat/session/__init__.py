@@ -4,15 +4,15 @@ from typing import List
 
 from database.asyncdatabase import api_tx
 from duohash import sha512
-from service.chat.jid import LSERVER
-from service.chat.protocol.inbound import (
+from chatprotocol.jid import LSERVER
+from chatprotocol.inbound import (
     IqBind,
     IqSession,
     SaslAuth,
     SessionRequest,
     StreamOpenReq,
 )
-from service.chat.protocol.outbound import (
+from chatprotocol.outbound import (
     AuthFailure,
     AuthSuccess,
     BindResult,
