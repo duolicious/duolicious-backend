@@ -317,6 +317,7 @@ const fetchedCard = (
   question: QuestionCardData,
 ): FetchedCardState => ({
   ...card,
+  onChangeAnswerPublicly: undefined,
   isFetched: true,
   questionNumber: question.id,
   questionText: question.question,

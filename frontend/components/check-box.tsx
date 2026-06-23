@@ -39,7 +39,15 @@ const Box = ({ value, style }: { value: boolean, style?: ViewStyle }) => {
   return (
     <Animated.View style={[styles.box, boxStyle, style]}>
       <Animated.View style={checkStyle}>
-        <FontAwesomeIcon icon={faCheck} size={SIZE - 4} color="white" />
+        <FontAwesomeIcon
+          icon={faCheck}
+          size={SIZE - 4}
+          color="white"
+          style={{
+            // @ts-ignore – 'outline' is a web-only style prop
+            outline: 'none'
+          }}
+        />
       </Animated.View>
     </Animated.View>
   );

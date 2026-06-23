@@ -446,8 +446,8 @@ const DisplayNameAndAboutPerson = ({data}: {data: ProfileInfo}) => {
             textAlign: 'center',
           }}
         >
-          Changing your display name changes your username – Your current
-          username is {}
+          {`Changing your display name changes your username\xa0–\xa0Your `}
+          current username is {}
           <DefaultText style={{ fontWeight: 700 }} disableTheme={true}>
             {nameSlug}
           </DefaultText>
