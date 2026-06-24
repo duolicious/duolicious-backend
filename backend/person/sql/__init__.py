@@ -962,18 +962,10 @@ WITH prospect_base AS (
                 object_person_id  = (SELECT id FROM prospect)
         ) AS j
 ), advertiser_friendly AS (
-    SELECT
-        (
-            NOT EXISTS (
-                SELECT 1
-                FROM skipped
-                WHERE
-                    object_person_id = (SELECT id FROM prospect) AND
-                    reported
-            )
-        AND
-            (SELECT sign_up_time FROM prospect) < NOW() - INTERVAL '1 month'
-        ) AS j
+    -- Ads have been removed; this is kept as a constant so existing native
+    -- clients (which validate this field) keep working without the DB spending
+    -- time computing it.
+    SELECT FALSE AS j
 ), clubs AS (
     SELECT
         prospect_person_club.club_name,
