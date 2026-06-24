@@ -36,9 +36,7 @@ import { faGhost } from '@fortawesome/free-solid-svg-icons/faGhost';
 import { useTooltip } from './tooltip';
 import { happenedInLast7Days } from '../util/util';
 import { setProspectHint } from '../navigation/prospect-cache';
-import { InFeedAd } from './adsense';
 import {
-  AD_KEY_PREFIX,
   DataItem,
   SectionKey,
   markVisitorChecked,
@@ -68,8 +66,6 @@ const friendlyTimestamp = (date: Date): string => {
   }
 };
 
-
-const VISITORS_AD_SLOT = '6049655173';
 
 const sectionFromIndex = (sectionIndex: number): SectionKey =>
   sectionIndex === 0 ? 'visited_you' : 'you_visited';
@@ -280,10 +276,6 @@ const VisitorsItemContent = ({
 const VisitorsItemMemo = memo(VisitorsItem);
 
 const RenderItem = ({ item }: { item: string }) => {
-  if (item.startsWith(AD_KEY_PREFIX)) {
-    return <InFeedAd slot={VISITORS_AD_SLOT} style={styles.adContainer} />;
-  }
-
   return <VisitorsItemMemo itemKey={item} />
 };
 
@@ -422,10 +414,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   pressableStyle: {
-    marginTop: 20,
-    width: '100%',
-  },
-  adContainer: {
     marginTop: 20,
     width: '100%',
   },

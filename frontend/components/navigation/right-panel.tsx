@@ -3,14 +3,6 @@ import { View } from 'react-native';
 import { DefaultText } from '../default-text';
 import { getRandomElement } from '../../util/util';
 import { PARTNER_URL } from '../../env/env';
-import { useSignedInUser } from '../../events/signed-in-user';
-import { AdSenseUnit } from '../adsense';
-
-const AD_SLOTS_BY_ROUTE: Record<string, string[]> = {
-  'Q&A': ['9659361574', '4220166788'],
-  'Inbox': ['7936050512', '2520072307'],
-  'Visitors': ['2715513425', '7461673725'],
-};
 
 type Partner = {
   name: string
@@ -140,29 +132,10 @@ const SponsoredRightPanelContent = () => {
   );
 };
 
-const AdSenseRightPanelContent = ({ slots }: { slots: string[] }) => {
-  return (
-    <View style={{ gap: 20 }}>
-      {slots.map((slot) =>
-        <AdSenseUnit
-          key={slot}
-          slot={slot}
-          style={{ display: 'inline-block', width: 300, height: 250 }}
-        />
-      )}
-    </View>
-  );
-};
-
-const RightPanelContent = ({ routeName }: { routeName?: string }) => {
-  const [signedInUser] = useSignedInUser();
+const RightPanelContent = () => {
   const rand = useRef(Math.random()).current;
 
-  const adSlots = routeName ? AD_SLOTS_BY_ROUTE[routeName] : undefined;
-
-  if (adSlots && !signedInUser?.hasGold) {
-    return <AdSenseRightPanelContent slots={adSlots}/>;
-  } else if (rand < 0.2) {
+  if (rand < 0.2) {
     return <DuoliciousRightPanelContent/>;
   } else {
     return <SponsoredRightPanelContent/>;
@@ -177,7 +150,7 @@ const RightPanel = ({ routeName }: { routeName?: string }) => {
         padding: 20,
       }}
     >
-      <RightPanelContent key={routeName} routeName={routeName}/>
+      <RightPanelContent key={routeName}/>
     </View>
   );
 };
