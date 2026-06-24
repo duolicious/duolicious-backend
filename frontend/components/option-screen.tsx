@@ -55,6 +55,7 @@ import {
   OptionGroupTextShort,
   OptionGroupThemePicker,
   OptionGroupVerificationChecker,
+  getCurrentValue,
   isOptionGroupButtons,
   isOptionGroupCheckChips,
   isOptionGroupDate,
@@ -1544,6 +1545,33 @@ const OptionScreen = ({navigation, route}: NativeStackScreenProps<ParamListBase>
   // history entry that you can pop off.
   const thisOptionGroup = optionGroups[0];
 
+  // The bottom button doubles as "Skip" (advance without changing anything) and
+  // a destructive "Clear answer". Only treat it as a clear when the field
+  // actually supports clearing *and* currently holds a value to lose, so we
+  // don't mislabel a no-op or wipe data the user didn't mean to touch.
+  const thisInput = thisOptionGroup?.input;
+
+  let clearField: (() => Promise<boolean>) | undefined = undefined;
+  if (thisInput && isOptionGroupButtons(thisInput)) {
+    clearField = thisInput.buttons.clear;
+  } else if (thisInput && isOptionGroupSlider(thisInput)) {
+    clearField = thisInput.slider.clear;
+  } else if (thisInput && isOptionGroupTextShort(thisInput)) {
+    clearField = thisInput.textShort.clear;
+  }
+
+  const currentValue = thisInput ? getCurrentValue(thisInput) : undefined;
+
+  let fieldHasValue = false;
+  if (typeof currentValue === 'number') {
+    fieldHasValue = true;
+  } else if (typeof currentValue === 'string') {
+    fieldHasValue = currentValue !== '' && currentValue !== 'Unanswered';
+  }
+
+  const canClearField = clearField !== undefined;
+  const isClearAction = showSkipButton && canClearField && fieldHasValue;
+
   const inputRef = useRef<SubmitHandle | null>(null);
 
   const _onSubmitSuccess = useCallback(async () => {
@@ -1581,12 +1609,12 @@ const OptionScreen = ({navigation, route}: NativeStackScreenProps<ParamListBase>
       return;
     }
     const skip = inputRef.current?.skip;
-    if (skip) {
+    if (skip && isClearAction) {
       skip();
     } else {
       _onSubmitSuccess();
     }
-  }, [isLoading, inputRef.current, _onSubmitSuccess]);
+  }, [isLoading, inputRef.current, isClearAction, _onSubmitSuccess]);
 
   const checkIsBottom = useCallback((nativeEvent: NativeScrollEvent) => {
     const isCloseToBottom = (
@@ -1627,6 +1655,17 @@ const OptionScreen = ({navigation, route}: NativeStackScreenProps<ParamListBase>
 
   if (!input) {
     throw Error('Expected input to be defined');
+  }
+
+  let bottomButtonLabel = 'Continue';
+  if (buttonLabel) {
+    bottomButtonLabel = buttonLabel;
+  } else if (!showSkipButton) {
+    bottomButtonLabel = 'Continue';
+  } else if (isClearAction) {
+    bottomButtonLabel = 'Clear answer';
+  } else {
+    bottomButtonLabel = 'Skip';
   }
 
   return (
@@ -1800,7 +1839,7 @@ const OptionScreen = ({navigation, route}: NativeStackScreenProps<ParamListBase>
               width: '90%',
             }}
           >
-            {buttonLabel ?? (showSkipButton ? 'Skip' : 'Continue')}
+            {bottomButtonLabel}
           </ButtonWithCenteredText>
         </View>
       </KeyboardDismissingView>
