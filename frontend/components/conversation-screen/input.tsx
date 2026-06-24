@@ -309,6 +309,7 @@ const QuotePreview = ({ quote }: { quote: QuoteType | null }) => {
         alignItems: 'center',
         gap: 10,
         backgroundColor: appTheme.primaryColor,
+        zIndex: -1,
       }}
     >
       <View style={{ flex: 1 }}>
@@ -792,7 +793,13 @@ const Input = ({
   return (
     <KeyboardAvoidingView behavior="padding">
       <QuotePreview quote={quote} />
-      <View style={styles.container} onLayout={onLayout}>
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: appTheme.primaryColor }
+        ]}
+        onLayout={onLayout}
+      >
         {/* Input wrapper: position relative so we can overlay the cancel overlay */}
         <View style={styles.inputWrapper}>
           <Animated.View
