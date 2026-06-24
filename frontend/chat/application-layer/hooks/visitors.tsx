@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
 import { z } from 'zod';
 import * as _ from 'lodash';
 import {
@@ -36,7 +35,6 @@ const DataItemSchema = z.object({
   ]),
   is_new: z.boolean(),
   was_invisible: z.boolean(),
-  advertiser_friendly: z.boolean(),
 });
 
 const DataSchema = z.object({
@@ -70,38 +68,11 @@ const isValidDataItem = (item: unknown): item is DataItem => {
   return result.success;
 };
 
-// Row keys for ads are prefixed so the UI can tell them apart from the real
-// visitor rows (which are keyed `${sectionKey}-${person_uuid}`).
-const AD_KEY_PREFIX = 'ad:';
-
-// Build a section's row keys, inserting an ad into any gap that has two
-// advertiser-friendly items above it and two beneath it. Ads only render on
-// the web, so don't insert ad rows on other platforms.
 const sectionRowKeys = (
   sectionKey: SectionKey,
   items: DataItem[],
-): string[] => {
-  const keys: string[] = [];
-
-  for (let i = 0; i < items.length; i++) {
-    keys.push(`${sectionKey}-${items[i].person_uuid}`);
-
-    if (Platform.OS !== 'web') {
-      continue;
-    }
-
-    const twoAbove =
-      items[i - 1]?.advertiser_friendly && items[i].advertiser_friendly;
-    const twoBelow =
-      items[i + 1]?.advertiser_friendly && items[i + 2]?.advertiser_friendly;
-
-    if (twoAbove && twoBelow) {
-      keys.push(`${AD_KEY_PREFIX}${sectionKey}-${items[i].person_uuid}`);
-    }
-  }
-
-  return keys;
-};
+): string[] =>
+  items.map((item) => `${sectionKey}-${item.person_uuid}`);
 
 const setNumVisitors = (num: number) => {
   notify<number>(EVENT_NUM_VISITORS, num);
@@ -389,7 +360,6 @@ listen(
 listen(EV_CHAT_WS_RECEIVE, onReceive);
 
 export {
-  AD_KEY_PREFIX,
   DataItem,
   SectionKey,
   markVisitorChecked,
