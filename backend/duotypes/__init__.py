@@ -47,6 +47,29 @@ register_heif_opener()
 
 CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
 CLUB_MAX_LEN = 42
+PATCH_PROFILE_INFO_LOOKUP_BASICS = frozenset({
+    'orientation',
+    'ethnicity',
+    'looking_for',
+    'smoking',
+    'drinking',
+    'drugs',
+    'long_distance',
+    'relationship_status',
+    'has_kids',
+    'wants_kids',
+    'exercise',
+    'religion',
+    'star_sign',
+})
+PATCH_PROFILE_INFO_NULL_BASICS = frozenset({
+    'occupation',
+    'education',
+    'height',
+})
+PATCH_PROFILE_INFO_NULLABLE_FIELDS = (
+    PATCH_PROFILE_INFO_LOOKUP_BASICS | PATCH_PROFILE_INFO_NULL_BASICS
+)
 
 
 def _normalize_email_input(value: object) -> object:
@@ -545,7 +568,7 @@ class PatchProfileInfo(BaseModel):
         [field_name] = self.__pydantic_fields_set__
         field_value = getattr(self, field_name)
 
-        if field_value is None:
+        if field_value is None and field_name not in PATCH_PROFILE_INFO_NULLABLE_FIELDS:
             raise ValueError(f'Field {field_name} must not be None')
 
         return self

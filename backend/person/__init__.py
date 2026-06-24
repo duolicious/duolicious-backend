@@ -1199,6 +1199,9 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> object:
     else:
         field_value = req.dict()[field_name]
 
+    if field_value is None and field_name in t.PATCH_PROFILE_INFO_LOOKUP_BASICS:
+        field_value = 'Unanswered'
+
     params = dict(
         person_id=s.person_id,
         field_value=field_value,

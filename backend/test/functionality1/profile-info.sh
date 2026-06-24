@@ -406,6 +406,56 @@ test_verification_required () {
   [[ "$(q "select COUNT(*) from person where verification_required")" -eq 1 ]]
 }
 
+get_field () {
+  set +x
+  c GET /profile-info | jq -r ".[\"${1//_/\ }\"]"
+}
+
+# Clears a basics field by sending null, then asserts GET returns $2.
+test_clear_field () {
+  local field_name=$1
+  local cleared_value=$2
+
+  jc PATCH /profile-info -d '{ "'"$field_name"'": null }'
+  [[ "$(get_field "$field_name")" == "$cleared_value" ]]
+}
+
+# Asserts that clearing $1 (by sending null) is rejected and leaves it unchanged.
+test_clear_rejected () {
+  local field_name=$1
+  local unchanged_value=$2
+
+  ! jc PATCH /profile-info -d '{ "'"$field_name"'": null }' || exit 1
+  [[ "$(get_field "$field_name")" == "$unchanged_value" ]]
+}
+
+test_clear () {
+  # Lookup-table basics clear to "Unanswered".
+  test_set orientation Asexual            && test_clear_field orientation Unanswered
+  test_set ethnicity 'Pacific Islander'   && test_clear_field ethnicity Unanswered
+  test_set looking_for 'Short-term dating' && test_clear_field looking_for Unanswered
+  test_set smoking Yes                    && test_clear_field smoking Unanswered
+  test_set drinking Often                 && test_clear_field drinking Unanswered
+  test_set drugs No                       && test_clear_field drugs Unanswered
+  test_set long_distance Yes              && test_clear_field long_distance Unanswered
+  test_set relationship_status Single     && test_clear_field relationship_status Unanswered
+  test_set has_kids No                    && test_clear_field has_kids Unanswered
+  test_set wants_kids Yes                 && test_clear_field wants_kids Unanswered
+  test_set exercise Often                 && test_clear_field exercise Unanswered
+  test_set religion Zoroastrian           && test_clear_field religion Unanswered
+  test_set star_sign Sagittarius          && test_clear_field star_sign Unanswered
+
+  # Free-text/numeric basics clear to null.
+  test_set occupation 'Wallnut milker'    && test_clear_field occupation null
+  test_set education MIT                   && test_clear_field education null
+  test_set height 184                      && test_clear_field height null
+
+  # Gender and location can't be cleared.
+  test_set gender Woman                    && test_clear_rejected gender Woman
+  test_set location "New York, New York, United States" \
+    && test_clear_rejected location "New York, New York, United States"
+}
+
 
 test_set name "Jeff" false && exit 1
 test_set name "Jeff" true
@@ -454,5 +504,7 @@ test_verification_loss_photo_changed
 test_verification_loss_photo_removed
 
 test_verification_required
+
+test_clear
 
 test_flair
