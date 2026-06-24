@@ -121,7 +121,7 @@ type InputProps<T extends OptionGroupInputs> = {
   theme?: 'dark' | 'light'
 };
 
-type SubmitHandle = { submit: () => void };
+type SubmitHandle = { submit: () => void; skip?: () => void };
 
 const Buttons = forwardRef((props: InputProps<OptionGroupButtons>, ref) => {
   const [, render] = useState({});
@@ -144,7 +144,23 @@ const Buttons = forwardRef((props: InputProps<OptionGroupButtons>, ref) => {
     props.setIsLoading(false);
   }, []);
 
-  useImperativeHandle(ref, () => ({ submit }), []);
+  const skip = useCallback(async () => {
+    const clear = props.input.buttons.clear;
+    if (!clear) return;
+
+    props.setIsLoading(true);
+
+    const ok = await clear();
+    ok && props.onSubmitSuccess();
+
+    props.setIsLoading(false);
+  }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({ submit, ...(props.input.buttons.clear ? { skip } : {}) }),
+    [],
+  );
 
   return (
     <>
@@ -170,7 +186,7 @@ const Buttons = forwardRef((props: InputProps<OptionGroupButtons>, ref) => {
             marginRight: 20,
           }}
         >
-          Done
+          Continue
         </ButtonWithCenteredText>
       }
     </>
@@ -203,7 +219,23 @@ const Slider = forwardRef((props: InputProps<OptionGroupSlider>, ref) => {
     props.setIsLoading(false);
   }, []);
 
-  useImperativeHandle(ref, () => ({ submit }), []);
+  const skip = useCallback(async () => {
+    const clear = props.input.slider.clear;
+    if (!clear) return;
+
+    props.setIsLoading(true);
+
+    const ok = await clear();
+    ok && props.onSubmitSuccess();
+
+    props.setIsLoading(false);
+  }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({ submit, ...(props.input.slider.clear ? { skip } : {}) }),
+    [],
+  );
 
   return (
     <>
@@ -232,7 +264,7 @@ const Slider = forwardRef((props: InputProps<OptionGroupSlider>, ref) => {
             marginRight: 20,
           }}
         >
-          Done
+          Continue
         </ButtonWithCenteredText>
       }
     </>
@@ -502,7 +534,7 @@ const LocationSelector = forwardRef((props: InputProps<OptionGroupLocationSelect
             marginRight: 20,
           }}
         >
-          Done
+          Continue
         </ButtonWithCenteredText>
       }
     </>
@@ -701,7 +733,25 @@ const TextShort = forwardRef((props: InputProps<OptionGroupTextShort>, ref) => {
     props.setIsLoading(false);
   }, []);
 
-  useImperativeHandle(ref, () => ({ submit }), []);
+  const skip = useCallback(async () => {
+    const clear = props.input.textShort.clear;
+    if (!clear) return;
+
+    setIsInvalid(false);
+    props.setIsLoading(true);
+
+    const ok = await clear();
+    setIsInvalid(!ok);
+    ok && props.onSubmitSuccess();
+
+    props.setIsLoading(false);
+  }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({ submit, ...(props.input.textShort.clear ? { skip } : {}) }),
+    [],
+  );
 
   return (
     <>
@@ -736,7 +786,7 @@ const TextShort = forwardRef((props: InputProps<OptionGroupTextShort>, ref) => {
           marginRight: 20,
         }}
       >
-        Done
+        Continue
       </ButtonWithCenteredText>
     </>
   );
@@ -808,7 +858,7 @@ const CheckChips = forwardRef((props: InputProps<OptionGroupCheckChips>, ref) =>
             marginRight: 20,
           }}
         >
-          Done
+          Continue
         </ButtonWithCenteredText>
       }
     </>
@@ -1527,10 +1577,15 @@ const OptionScreen = ({navigation, route}: NativeStackScreenProps<ParamListBase>
   }, [isLoading, inputRef.current]);
 
   const onPressSkip = useCallback(() => {
-    // TODO: Uncomment this once skip works properly
-    // const skip = inputRef.current?.skip;
-    // !isLoading && skip && skip();
-    _onSubmitSuccess();
+    if (isLoading) {
+      return;
+    }
+    const skip = inputRef.current?.skip;
+    if (skip) {
+      skip();
+    } else {
+      _onSubmitSuccess();
+    }
   }, [isLoading, inputRef.current, _onSubmitSuccess]);
 
   const checkIsBottom = useCallback((nativeEvent: NativeScrollEvent) => {
