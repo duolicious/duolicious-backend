@@ -39,6 +39,10 @@ expected=$(jq -r . << EOF
   "about": "",
   "advertiser_friendly": false,
   "age": 26,
+  "age_preference": {
+    "max_age": 30,
+    "min_age": 22
+  },
   "audio_bio_uuid": null,
   "count_answers": 0,
   "drinking": null,
@@ -50,6 +54,18 @@ expected=$(jq -r . << EOF
     "gold"
   ],
   "gender": "Other",
+  "gender_preference": [
+    "Man",
+    "Woman",
+    "Agender",
+    "Femboy",
+    "Intersex",
+    "Non-binary",
+    "Transgender",
+    "Trans woman",
+    "Trans man",
+    "Other"
+  ],
   "gets_reply_percentage": null,
   "gives_reply_percentage": null,
   "has_kids": null,
@@ -116,6 +132,10 @@ expected=$(jq -r . << EOF
   "about": "",
   "advertiser_friendly": false,
   "age": 26,
+  "age_preference": {
+    "max_age": 30,
+    "min_age": 22
+  },
   "audio_bio_uuid": null,
   "count_answers": 0,
   "drinking": null,
@@ -127,6 +147,18 @@ expected=$(jq -r . << EOF
     "gold"
   ],
   "gender": "Other",
+  "gender_preference": [
+    "Man",
+    "Woman",
+    "Agender",
+    "Femboy",
+    "Intersex",
+    "Non-binary",
+    "Transgender",
+    "Trans woman",
+    "Trans man",
+    "Other"
+  ],
   "gets_reply_percentage": null,
   "gives_reply_percentage": null,
   "has_kids": null,
