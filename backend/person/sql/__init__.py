@@ -952,6 +952,18 @@ WITH prospect_base AS (
     SELECT star_sign.name AS j
     FROM star_sign JOIN prospect ON star_sign_id = star_sign.id
     WHERE star_sign.name != 'Unanswered'
+), pref_gender AS (
+    SELECT COALESCE(array_agg(g.name ORDER BY g.id), ARRAY[]::TEXT[]) AS j
+    FROM search_preference_gender JOIN public.gender AS g
+    ON search_preference_gender.gender_id = g.id
+    WHERE search_preference_gender.person_id = (SELECT id FROM prospect)
+), pref_age AS (
+    SELECT json_build_object(
+        'min_age', min_age,
+        'max_age', max_age
+    ) AS j
+    FROM search_preference_age
+    WHERE person_id = (SELECT id FROM prospect)
 ), is_skipped AS (
     SELECT
         EXISTS (
@@ -1053,6 +1065,8 @@ SELECT
         'exercise',               (SELECT j             FROM exercise),
         'religion',               (SELECT j             FROM religion),
         'star_sign',              (SELECT j             FROM star_sign),
+        'gender_preference',      (SELECT j             FROM pref_gender),
+        'age_preference',         (SELECT j             FROM pref_age),
 
         -- Clubs
         'mutual_clubs',           (SELECT j             FROM mutual_clubs_json),
