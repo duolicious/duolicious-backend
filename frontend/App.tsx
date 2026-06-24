@@ -26,7 +26,7 @@ import { HomeTabs } from './components/home-tabs';
 import { SplashScreen } from './components/splash-screen';
 import { ConversationScreen } from './components/conversation-screen/conversation-screen';
 import { ServerStatus, UtilityScreen } from './components/utility-screen';
-import { ProspectProfileScreen } from './components/prospect-profile-screen';
+import { ProspectProfileScreen } from './components/prospect-profile-screen/prospect-profile-screen';
 import { InviteScreen, WelcomeScreen } from './components/welcome-screen';
 import { sessionToken, sessionPersonUuid } from './kv-storage/session-token';
 import { lastPath } from './kv-storage/last-path';

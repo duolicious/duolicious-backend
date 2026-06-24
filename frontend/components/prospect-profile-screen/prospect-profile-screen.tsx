@@ -28,30 +28,35 @@ import {
   createNativeStackNavigator,
 } from '@react-navigation/native-stack';
 import { CompositeNavigationProp, CompositeScreenProps } from '@react-navigation/native';
-import type { ProspectParamList, RootParamList } from '../navigation/linking';
-import { StatusBarSpacer } from './status-bar-spacer';
-import { LogoActivityIndicator } from './logo/logo-activity-indicator';
-import { DefaultText } from './default-text';
-import { DonutChart } from './donut-chart';
-import { Title } from './title';
-import { InDepthScreen } from './in-depth-screen';
-import { ButtonWithCenteredText } from './button/centered-text';
-import { api } from '../api/api';
-import { cmToFeetInchesStr } from '../units/units';
-import { useSignedInUser } from '../events/signed-in-user';
-import { postSkipped } from '../hide-and-block/hide-and-block';
-import { Pinchy } from './pinchy';
-import { Basic, Basics } from './basic';
-import { Club, Clubs } from './club';
-import { Stat, Stats } from './stat';
-import { listen, notify } from '../events/events';
-import { ReportModalInitialData } from './modal/report-modal';
-import { getProspectHint, setProspectHint } from '../navigation/prospect-cache';
-import { setBannerProspectName } from '../events/banner-prospect-name';
+import type { ProspectParamList, RootParamList } from '../../navigation/linking';
+import { StatusBarSpacer } from '../status-bar-spacer';
+import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
+import { DefaultText } from '../default-text';
+import { DonutChart } from '../donut-chart';
+import { Title } from '../title';
+import {
+  lookingForDescription,
+  lookingForEmoji,
+  shouldShowLookingFor,
+} from './looking-for';
+import { InDepthScreen } from '../in-depth-screen';
+import { ButtonWithCenteredText } from '../button/centered-text';
+import { api } from '../../api/api';
+import { cmToFeetInchesStr } from '../../units/units';
+import { useSignedInUser } from '../../events/signed-in-user';
+import { postSkipped } from '../../hide-and-block/hide-and-block';
+import { Pinchy } from '../pinchy';
+import { Basic, Basics } from '../basic';
+import { Club, Clubs } from '../club';
+import { Stat, Stats } from '../stat';
+import { listen, notify } from '../../events/events';
+import { ReportModalInitialData } from '../modal/report-modal';
+import { getProspectHint, setProspectHint } from '../../navigation/prospect-cache';
+import { setBannerProspectName } from '../../events/banner-prospect-name';
 import {
   VerificationBadge,
   DetailedVerificationBadges,
-} from './verification-badge';
+} from '../verification-badge';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons/faArrowLeft'
@@ -62,8 +67,8 @@ import { faSmoking } from '@fortawesome/free-solid-svg-icons/faSmoking'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
 import * as Clipboard from 'expo-clipboard';
-import { notifyLinkCopiedToast } from './toast';
-import { INVITE_URL } from '../env/env';
+import { notifyLinkCopiedToast } from '../toast';
+import { INVITE_URL } from '../../env/env';
 import { RotateCcw, Flag, X, Share2 } from "react-native-feather";
 import Reanimated, {
   Easing,
@@ -72,18 +77,18 @@ import Reanimated, {
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
-import { ClubItem, joinClub, leaveClub } from '../club/club';
+import { ClubItem, joinClub, leaveClub } from '../../club/club';
 import * as _ from 'lodash';
-import { friendlyTimeAgo, possessive, bestTextOn, capLuminance, isUuid } from '../util/util';
-import { useOnline } from '../chat/application-layer/hooks/online';
-import { HeartBackground } from './heart-background';
-import { AudioPlayer } from './audio-player';
-import { EnlargeablePhoto } from './enlargeable-image';
-import { commonStyles } from '../styles';
-import { useSkipped, setSkipped } from '../hide-and-block/hide-and-block';
-import { OnlineIndicator } from './online-indicator';
-import { Flair } from './badges';
-import { useAppTheme } from '../app-theme/app-theme';
+import { friendlyTimeAgo, possessive, bestTextOn, capLuminance, isUuid } from '../../util/util';
+import { useOnline } from '../../chat/application-layer/hooks/online';
+import { HeartBackground } from '../heart-background';
+import { AudioPlayer } from '../audio-player';
+import { EnlargeablePhoto } from '../enlargeable-image';
+import { commonStyles } from '../../styles';
+import { useSkipped, setSkipped } from '../../hide-and-block/hide-and-block';
+import { OnlineIndicator } from '../online-indicator';
+import { Flair } from '../badges';
+import { useAppTheme } from '../../app-theme/app-theme';
 import { faChild } from '@fortawesome/free-solid-svg-icons/faChild'
 import { faChildren } from '@fortawesome/free-solid-svg-icons/faChildren'
 
@@ -746,6 +751,8 @@ type UserData = {
   height_cm: number | null,
   long_distance: string | null,
   looking_for: string | null,
+  gender_preference: string[] | null,
+  age_preference: { min_age: number | null, max_age: number | null } | null,
   occupation: string | null,
   education: string | null,
   orientation: string | null,
@@ -826,6 +833,31 @@ const hasAnyStats = (data: UserData | null | undefined): boolean => {
     data.seconds_since_sign_up !== null ||
     data.gets_reply_percentage !== null ||
     data.gives_reply_percentage !== null
+  );
+};
+
+// Whether any Basics pill would render. Returns true while data is still
+// loading so the section doesn't flicker in once the response lands.
+const hasAnyBasics = (data: UserData | null | undefined): boolean => {
+  if (data === undefined || data === null) {
+    return true;
+  }
+
+  return Boolean(
+    data.orientation ||
+    data.ethnicity ||
+    data.relationship_status ||
+    data.occupation ||
+    data.education ||
+    data.has_kids ||
+    data.wants_kids ||
+    data.smoking ||
+    data.drinking ||
+    data.drugs ||
+    data.religion ||
+    data.star_sign ||
+    data.exercise ||
+    data.height_cm
   );
 };
 
@@ -1354,6 +1386,16 @@ const Body = ({
     ? capLuminance(uncappedBackgroundColor)
     : uncappedBackgroundColor;
 
+  const lookingForInk = bestTextOn(backgroundColor);
+  const lookingForCardColors = {
+    backgroundColor: lookingForInk === '#ffffff'
+      ? 'rgba(255, 255, 255, 0.10)'
+      : 'rgba(0, 0, 0, 0.05)',
+    borderColor: lookingForInk === '#ffffff'
+      ? 'rgba(255, 255, 255, 0.18)'
+      : 'rgba(0, 0, 0, 0.12)',
+  };
+
   const basicsTheme = {
     textStyle: {
       color: data?.theme?.body_color,
@@ -1390,6 +1432,47 @@ const Body = ({
         }}
       >
         <Flair flair={data?.flair ?? []} />
+        {shouldShowLookingFor(data) &&
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 14,
+              paddingVertical: 14,
+              paddingHorizontal: 16,
+              marginTop: 20,
+              marginBottom: 5,
+              borderRadius: 15,
+              borderWidth: 1,
+              ...lookingForCardColors,
+            }}
+          >
+            <DefaultText style={{ fontSize: 34, lineHeight: 40 }}>
+              {lookingForEmoji(data)}
+            </DefaultText>
+            <View style={{ flex: 1 }}>
+              <DefaultText
+                style={{
+                  color: data?.theme?.title_color,
+                }}
+              >
+                Looking for
+              </DefaultText>
+              <DefaultText
+                style={{
+                  flexShrink: 1,
+                  fontSize: 16,
+                  lineHeight: 22,
+                  color: data?.theme?.body_color,
+                  fontWeight: 700,
+                }}
+              >
+                {data ? lookingForDescription(data) : ''}
+              </DefaultText>
+            </View>
+          </View>
+        }
+
         {data?.audio_bio_uuid &&
           <AudioPlayer
             name={data?.name}
@@ -1397,6 +1480,8 @@ const Body = ({
             presentation="profile"
           />
         }
+
+        {hasAnyBasics(data) && <>
         <Title style={{color: data?.theme?.title_color}}>Basics</Title>
         <Basics>
           {data?.orientation &&
@@ -1426,9 +1511,6 @@ const Body = ({
           {data?.wants_kids === 'Maybe' &&
             <Basic {...basicsTheme} icon={faChildren}>Maybe wants kids</Basic>}
 
-          {data?.looking_for &&
-            <Basic {...basicsTheme} icon="eye">Looking for {data.looking_for.toLowerCase()}</Basic>}
-
           {data?.smoking === 'Yes' &&
             <Basic {...basicsTheme} icon={faSmoking}>Smokes</Basic>}
           {data?.smoking === 'No' &&
@@ -1445,11 +1527,6 @@ const Body = ({
           {data?.religion &&
             <Basic {...basicsTheme} icon={faHandsPraying}>{data.religion}</Basic>}
 
-          {data?.long_distance === 'Yes' &&
-            <Basic {...basicsTheme} icon="globe">Open to long distance</Basic>}
-          {data?.long_distance === 'No' &&
-            <Basic {...basicsTheme} icon="globe">Not open to long distance</Basic>}
-
           {data?.star_sign &&
             <Basic {...basicsTheme} icon="star">{data.star_sign}</Basic>}
 
@@ -1461,6 +1538,7 @@ const Body = ({
           {data?.height_cm && signedInUser?.units === 'Imperial' &&
             <Basic {...basicsTheme} icon={faRulerVertical}>{cmToFeetInchesStr(data.height_cm)}</Basic>}
         </Basics>
+        </>}
 
         {verifiedAnything(data) && <>
           <Title style={{color: data?.theme?.title_color}}>Verification</Title>
