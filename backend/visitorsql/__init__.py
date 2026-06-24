@@ -43,17 +43,10 @@ visited_pass_3 AS (
 
         prospect.verification_level_id > 1 AS is_verified,
 
-        (
-            NOT EXISTS (
-                SELECT 1
-                FROM skipped
-                WHERE
-                    object_person_id = prospect.id AND
-                    reported
-            )
-        AND
-            prospect.sign_up_time < now() - interval '1 month'
-        ) AS advertiser_friendly,
+        -- Ads have been removed; this is kept as a constant so existing native
+        -- clients (which validate this field) keep working without the DB
+        -- spending time computing it.
+        FALSE AS advertiser_friendly,
 
         CLAMP(
             0,
