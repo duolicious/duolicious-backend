@@ -5,9 +5,11 @@ import { useAppTheme } from '../../app-theme/app-theme';
 const Close = ({
   onPress,
   style = { top: 10, right: 10 },
+  color,
 }: {
   onPress: () => void,
   style?: ViewStyle | null,
+  color?: string,
 }) => {
   const { appTheme } = useAppTheme();
 
@@ -20,7 +22,7 @@ const Close = ({
       }}
     >
       <X
-        stroke={appTheme.secondaryColor}
+        stroke={color ?? appTheme.secondaryColor}
         strokeWidth={3}
         height={24}
         width={24}
