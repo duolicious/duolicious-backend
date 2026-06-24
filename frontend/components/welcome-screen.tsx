@@ -28,6 +28,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultText } from './default-text';
 import { DefaultTextInput } from './default-text-input';
 import { ButtonWithCenteredText } from './button/centered-text';
+import { Close } from './button/close';
 import { createAccountOptionGroups } from '../data/option-groups';
 import { OptionScreen } from './option-screen';
 import { StatusBarSpacer } from './status-bar-spacer';
@@ -250,6 +251,18 @@ const InviteScreen = ({navigation, route}: NativeStackScreenProps<RootParamList,
     throw new Error('clubName should be a string');
   }
 
+  const dismiss = () => {
+    if (signedInUser) {
+      navigation.reset({ routes: [{ name: 'Home' }] });
+    } else if (Platform.OS === 'web') {
+      navigation.reset({
+        routes: [{ name: 'Home', state: { routes: [{ name: 'Search' }] } }],
+      });
+    } else {
+      navigation.reset({ routes: [{ name: 'Welcome' }] });
+    }
+  };
+
   const submit = async () => {
     if (signedInUser) {
       setLoading(true);
@@ -369,8 +382,10 @@ const InviteScreen = ({navigation, route}: NativeStackScreenProps<RootParamList,
               elevation: 3,
               paddingTop: 20,
               width: '100%',
+              overflow: 'hidden',
             }}
           >
+            <Close onPress={dismiss} color="black" />
             <View
               style={{
                 alignSelf: 'center',
