@@ -57,6 +57,7 @@ type OptionGroupButtons = {
   buttons: {
     values: string[],
     submit: (input: string) => Promise<boolean>
+    clear?: () => Promise<boolean>
     currentValue?: string,
   }
 };
@@ -104,6 +105,7 @@ type OptionGroupTextLong = {
 type OptionGroupTextShort = {
   textShort: {
     submit: (input: string) => Promise<boolean>
+    clear?: () => Promise<boolean>
     currentValue?: string,
     invalidMsg?: string
   }
@@ -157,6 +159,7 @@ type OptionGroupSlider = {
     step: number,
     unitsLabel: string,
     submit: (input: number | null) => Promise<boolean>,
+    clear?: () => Promise<boolean>,
     addPlusAtMax?: boolean,
     defaultValue: number,
     valueRewriter?: (v: number) => string,
@@ -529,6 +532,19 @@ const DeactivationDescription = () => (
   </DefaultText>
 );
 
+const clearProfileField = (
+  field: string,
+  localValue: 'Unanswered' | null,
+  onCleared?: () => void,
+) => async (): Promise<boolean> => {
+  const ok = (await japi('patch', '/profile-info', { [field]: null })).ok;
+  if (ok) {
+    patchProfileInfo({ [field]: localValue });
+    onCleared?.();
+  }
+  return ok;
+};
+
 const genderOptionGroup: OptionGroup<OptionGroupButtons> = {
   title: 'Gender',
   Icon: ({ color = 'black' }) => (
@@ -589,6 +605,11 @@ const ethnicityOptionGroup: OptionGroup<OptionGroupButtons> = {
         }
         return ok;
       },
+      clear: clearProfileField(
+        'ethnicity',
+        'Unanswered',
+        () => notifyUpdatedVerification({ ethnicity: false }),
+      ),
     }
   },
 };
@@ -630,6 +651,7 @@ const orientationOptionGroup: OptionGroup<OptionGroupButtons> = {
         if (ok) patchProfileInfo({ orientation });
         return ok;
       },
+      clear: clearProfileField('orientation', 'Unanswered'),
     }
   },
 };
@@ -646,6 +668,7 @@ const lookingForOptionGroup: OptionGroup<OptionGroupButtons> = {
         if (ok) patchProfileInfo({ looking_for: lookingFor });
         return ok;
       },
+      clear: clearProfileField('looking_for', 'Unanswered'),
     }
   }
 };
@@ -666,6 +689,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (ok) patchProfileInfo({ occupation });
           return ok;
         },
+        clear: clearProfileField('occupation', null),
         invalidMsg: 'Try again',
       }
     }
@@ -681,6 +705,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (ok) patchProfileInfo({ education });
           return ok;
         },
+        clear: clearProfileField('education', null),
         invalidMsg: 'Try again',
       }
     }
@@ -707,6 +732,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (ok) patchProfileInfo({ height });
           return ok;
         },
+        clear: clearProfileField('height', null),
       },
     },
   },
@@ -729,6 +755,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (ok) patchProfileInfo({ smoking });
           return ok;
         },
+        clear: clearProfileField('smoking', 'Unanswered'),
       }
     },
   },
@@ -744,6 +771,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (ok) patchProfileInfo({ drinking });
           return ok;
         },
+        clear: clearProfileField('drinking', 'Unanswered'),
       }
     },
   },
@@ -765,6 +793,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (ok) patchProfileInfo({ drugs });
           return ok;
         },
+        clear: clearProfileField('drugs', 'Unanswered'),
       }
     },
   },
@@ -780,6 +809,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (ok) patchProfileInfo({ long_distance: longDistance });
           return ok;
         },
+        clear: clearProfileField('long_distance', 'Unanswered'),
       }
     },
   },
@@ -797,6 +827,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (ok) patchProfileInfo({ relationship_status: relationshipStatus });
           return ok;
         },
+        clear: clearProfileField('relationship_status', 'Unanswered'),
       }
     }
   },
@@ -818,6 +849,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (ok) patchProfileInfo({ has_kids: hasKids });
           return ok;
         },
+        clear: clearProfileField('has_kids', 'Unanswered'),
       }
     },
   },
@@ -839,6 +871,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (ok) patchProfileInfo({ wants_kids: wantsKids });
           return ok;
         },
+        clear: clearProfileField('wants_kids', 'Unanswered'),
       }
     },
   },
@@ -854,6 +887,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (ok) patchProfileInfo({ exercise });
           return ok;
         },
+        clear: clearProfileField('exercise', 'Unanswered'),
       }
     },
   },
@@ -875,6 +909,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (ok) patchProfileInfo({ religion });
           return ok;
         },
+        clear: clearProfileField('religion', 'Unanswered'),
       }
     },
   },
@@ -890,6 +925,7 @@ const basicsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           if (ok) patchProfileInfo({ star_sign: starSign });
           return ok;
         },
+        clear: clearProfileField('star_sign', 'Unanswered'),
       }
     },
   },
