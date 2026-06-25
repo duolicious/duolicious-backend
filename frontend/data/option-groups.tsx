@@ -24,6 +24,7 @@ import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
 import { faImage } from '@fortawesome/free-solid-svg-icons/faImage'
 import { faCalendar } from '@fortawesome/free-solid-svg-icons/faCalendar'
+import { faHeart } from '@fortawesome/free-solid-svg-icons/faHeart'
 import { faGhost } from '@fortawesome/free-solid-svg-icons/faGhost'
 import { faGlobe } from '@fortawesome/free-solid-svg-icons/faGlobe'
 import { faChild } from '@fortawesome/free-solid-svg-icons/faChild'
@@ -2152,6 +2153,49 @@ const privacySettingsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
             )
           ).ok;
           if (ok) patchProfileInfo({ show_my_age: showMyAge });
+          return ok;
+        },
+      }
+    },
+  },
+  {
+    title: 'Show My Looking For',
+    Icon: ({ color = 'black' }) => (
+      <FontAwesomeIcon
+        icon={faHeart}
+        size={14}
+        style={{ color }}
+      />
+    ),
+    description: () => {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const [signedInUser] = useSignedInUser();
+
+      return (
+        <DefaultText style={descriptionStyle.style}>
+          Would you like your ‘Looking For’ section to appear on your profile?
+          {!signedInUser?.hasGold && ' Unlock this feature with Gold.'}
+        </DefaultText>
+      )
+    },
+    input: {
+      buttons: {
+        values: yesNo,
+        submit: async (showMyLookingFor: string) => {
+          const { hasGold = false } = getSignedInUser() ?? {};
+          if (!hasGold) {
+            showPointOfSale(true);
+            return false;
+          }
+
+          const ok = (
+            await japi(
+              'patch',
+              '/profile-info',
+              { show_my_looking_for: showMyLookingFor }
+            )
+          ).ok;
+          if (ok) patchProfileInfo({ show_my_looking_for: showMyLookingFor });
           return ok;
         },
       }

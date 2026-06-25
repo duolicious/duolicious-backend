@@ -752,6 +752,7 @@ type UserData = {
   looking_for: string | null,
   gender_preference: string[] | null,
   age_preference: { min_age: number | null, max_age: number | null } | null,
+  show_my_looking_for: string | null,
   occupation: string | null,
   education: string | null,
   orientation: string | null,
@@ -1431,44 +1432,46 @@ const Body = ({
         }}
       >
         <Flair flair={data?.flair ?? []} />
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 14,
-            paddingVertical: 14,
-            paddingHorizontal: 16,
-            marginTop: 20,
-            marginBottom: 5,
-            borderRadius: 15,
-            borderWidth: 1,
-            ...lookingForCardColors,
-          }}
-        >
-          <DefaultText style={{ fontSize: 34, lineHeight: 40 }}>
-            {lookingForEmoji(data)}
-          </DefaultText>
-          <View style={{ flex: 1 }}>
-            <DefaultText
-              style={{
-                color: data?.theme?.title_color,
-              }}
-            >
-              Looking for
+        {data?.show_my_looking_for === 'Yes' &&
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 14,
+              paddingVertical: 14,
+              paddingHorizontal: 16,
+              marginTop: 20,
+              marginBottom: 5,
+              borderRadius: 15,
+              borderWidth: 1,
+              ...lookingForCardColors,
+            }}
+          >
+            <DefaultText style={{ fontSize: 34, lineHeight: 40 }}>
+              {lookingForEmoji(data)}
             </DefaultText>
-            <DefaultText
-              style={{
-                flexShrink: 1,
-                fontSize: 16,
-                lineHeight: 22,
-                color: data?.theme?.body_color,
-                fontWeight: 700,
-              }}
-            >
-              {data ? lookingForDescription(data) : ''}
-            </DefaultText>
+            <View style={{ flex: 1 }}>
+              <DefaultText
+                style={{
+                  color: data?.theme?.title_color,
+                }}
+              >
+                Looking for
+              </DefaultText>
+              <DefaultText
+                style={{
+                  flexShrink: 1,
+                  fontSize: 16,
+                  lineHeight: 22,
+                  color: data?.theme?.body_color,
+                  fontWeight: 700,
+                }}
+              >
+                {data ? lookingForDescription(data) : ''}
+              </DefaultText>
+            </View>
           </View>
-        </View>
+        }
 
         {data?.audio_bio_uuid &&
           <AudioPlayer
