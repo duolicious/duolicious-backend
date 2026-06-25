@@ -17,6 +17,7 @@ const SPACE_TO_SNAKE: Record<string, string> = {
   'public profile': 'public_profile',
   'show my location': 'show_my_location',
   'show my age': 'show_my_age',
+  'show my looking for': 'show_my_looking_for',
   'hide me from strangers': 'hide_me_from_strangers',
   'browse invisibly': 'browse_invisibly',
 };
