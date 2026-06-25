@@ -484,6 +484,7 @@ test_set intros Weekly
 test_set verification_level 'Basics only'
 test_set show_my_location Yes
 test_set show_my_age No
+test_set show_my_looking_for No
 test_set hide_me_from_strangers Yes
 test_set browse_invisibly Yes
 

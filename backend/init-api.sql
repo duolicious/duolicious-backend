@@ -310,6 +310,7 @@ CREATE TABLE IF NOT EXISTS person (
     -- Privacy Settings
     show_my_location BOOLEAN NOT NULL DEFAULT TRUE,
     show_my_age BOOLEAN NOT NULL DEFAULT TRUE,
+    show_my_looking_for BOOLEAN NOT NULL DEFAULT TRUE,
     hide_me_from_strangers BOOLEAN NOT NULL DEFAULT FALSE,
     browse_invisibly BOOLEAN NOT NULL DEFAULT FALSE,
     -- Opt-in: every user (new or existing) starts private and must flip the

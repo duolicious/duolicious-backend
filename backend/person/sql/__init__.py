@@ -912,6 +912,7 @@ WITH prospect_base AS (
     SELECT looking_for.name AS j
     FROM looking_for JOIN prospect ON looking_for_id = looking_for.id
     WHERE looking_for.name != 'Unanswered'
+    AND prospect.show_my_looking_for
 ), smoking AS (
     SELECT yes_no_optional.name AS j
     FROM yes_no_optional JOIN prospect ON smoking_id = yes_no_optional.id
@@ -928,6 +929,7 @@ WITH prospect_base AS (
     SELECT yes_no_optional.name AS j
     FROM yes_no_optional JOIN prospect ON long_distance_id = yes_no_optional.id
     WHERE yes_no_optional.name != 'Unanswered'
+    AND prospect.show_my_looking_for
 ), relationship_status AS (
     SELECT relationship_status.name AS j
     FROM relationship_status JOIN prospect ON relationship_status_id = relationship_status.id
@@ -957,6 +959,7 @@ WITH prospect_base AS (
     FROM search_preference_gender JOIN public.gender AS g
     ON search_preference_gender.gender_id = g.id
     WHERE search_preference_gender.person_id = (SELECT id FROM prospect)
+    AND (SELECT show_my_looking_for FROM prospect)
 ), pref_age AS (
     SELECT json_build_object(
         'min_age', min_age,
@@ -964,6 +967,7 @@ WITH prospect_base AS (
     ) AS j
     FROM search_preference_age
     WHERE person_id = (SELECT id FROM prospect)
+    AND (SELECT show_my_looking_for FROM prospect)
 ), is_skipped AS (
     SELECT
         EXISTS (
@@ -1067,6 +1071,7 @@ SELECT
         'star_sign',              (SELECT j             FROM star_sign),
         'gender_preference',      (SELECT j             FROM pref_gender),
         'age_preference',         (SELECT j             FROM pref_age),
+        'show_my_looking_for',    (SELECT CASE WHEN show_my_looking_for THEN 'Yes' ELSE 'No' END FROM prospect),
 
         -- Clubs
         'mutual_clubs',           (SELECT j             FROM mutual_clubs_json),
@@ -1733,6 +1738,11 @@ WITH photo_ AS (
         CASE WHEN show_my_age THEN 'Yes' ELSE 'No' END AS j
     FROM person
     WHERE id = %(person_id)s
+), show_my_looking_for AS (
+    SELECT
+        CASE WHEN show_my_looking_for THEN 'Yes' ELSE 'No' END AS j
+    FROM person
+    WHERE id = %(person_id)s
 ), hide_me_from_strangers AS (
     SELECT
         CASE WHEN hide_me_from_strangers THEN 'Yes' ELSE 'No' END AS j
@@ -1804,6 +1814,7 @@ SELECT
         'public profile',         (SELECT j FROM public_profile),
         'show my location',       (SELECT j FROM show_my_location),
         'show my age',            (SELECT j FROM show_my_age),
+        'show my looking for',    (SELECT j FROM show_my_looking_for),
         'hide me from strangers', (SELECT j FROM hide_me_from_strangers),
         'browse invisibly',       (SELECT j FROM browse_invisibly),
 
@@ -3016,6 +3027,7 @@ WITH updated_person_with_gold AS (
 
         show_my_location = DEFAULT,
         show_my_age = DEFAULT,
+        show_my_looking_for = DEFAULT,
         hide_me_from_strangers = DEFAULT,
         browse_invisibly = DEFAULT
     WHERE

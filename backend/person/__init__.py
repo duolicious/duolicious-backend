@@ -1575,6 +1575,16 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> object:
             CASE WHEN %(field_value)s = 'Yes' THEN TRUE ELSE FALSE END)
         WHERE id = %(person_id)s
         """
+    elif field_name == 'show_my_looking_for':
+        if not _has_gold(person_id=s.person_id):
+            return 'Requires gold', 403
+
+        q1 = """
+        UPDATE person
+        SET show_my_looking_for = (
+            CASE WHEN %(field_value)s = 'Yes' THEN TRUE ELSE FALSE END)
+        WHERE id = %(person_id)s
+        """
     elif field_name == 'hide_me_from_strangers':
         if not _has_gold(person_id=s.person_id):
             return 'Requires gold', 403
