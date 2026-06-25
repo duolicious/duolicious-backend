@@ -178,6 +178,7 @@ expiration_resets_settings() {
   jc PATCH /profile-info -d '{ "theme": { "title_color": "#111111", "body_color": "#222222", "background_color": "#333333" } }'
   jc PATCH /profile-info -d '{ "show_my_location": "No" }'
   jc PATCH /profile-info -d '{ "show_my_age": "No" }'
+  jc PATCH /profile-info -d '{ "show_my_looking_for": "No" }'
   jc PATCH /profile-info -d '{ "hide_me_from_strangers": "Yes" }'
   jc PATCH /profile-info -d '{ "browse_invisibly": "Yes" }'
 
@@ -186,6 +187,7 @@ expiration_resets_settings() {
   [[ "$(q "select background_color from person where uuid = '$useruuid'::uuid")" == "#333333" ]]
   [[ "$(q "select show_my_location from person where uuid = '$useruuid'::uuid")" == f ]]
   [[ "$(q "select show_my_age from person where uuid = '$useruuid'::uuid")" == f ]]
+  [[ "$(q "select show_my_looking_for from person where uuid = '$useruuid'::uuid")" == f ]]
   [[ "$(q "select hide_me_from_strangers from person where uuid = '$useruuid'::uuid")" == t ]]
   [[ "$(q "select browse_invisibly from person where uuid = '$useruuid'::uuid")" == t ]]
 
@@ -202,6 +204,7 @@ expiration_resets_settings() {
   [[ "$(q "select background_color from person where uuid = '$useruuid'::uuid")" == "#ffffff" ]]
   [[ "$(q "select show_my_location from person where uuid = '$useruuid'::uuid")" == t ]]
   [[ "$(q "select show_my_age from person where uuid = '$useruuid'::uuid")" == t ]]
+  [[ "$(q "select show_my_looking_for from person where uuid = '$useruuid'::uuid")" == t ]]
   [[ "$(q "select hide_me_from_strangers from person where uuid = '$useruuid'::uuid")" == f ]]
   [[ "$(q "select browse_invisibly from person where uuid = '$useruuid'::uuid")" == f ]]
 }
@@ -224,6 +227,7 @@ premium_features_require_gold() {
   jc PATCH /profile-info -d '{ "browse_invisibly": "Yes" }' && exit 1
   jc PATCH /profile-info -d '{ "show_my_location": "No" }' && exit 1
   jc PATCH /profile-info -d '{ "show_my_age": "No" }' && exit 1
+  jc PATCH /profile-info -d '{ "show_my_looking_for": "No" }' && exit 1
   jc PATCH /profile-info -d '{ "hide_me_from_strangers": "Yes" }' && exit 1
 
   return 0

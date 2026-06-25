@@ -555,6 +555,7 @@ class PatchProfileInfo(BaseModel):
     verification_level: Optional[str] = None
     show_my_location: Optional[str] = None
     show_my_age: Optional[str] = None
+    show_my_looking_for: Optional[str] = None
     hide_me_from_strangers: Optional[str] = None
     browse_invisibly: Optional[str] = None
     public_profile: Optional[str] = None

@@ -90,6 +90,7 @@ expected=$(jq -r . << EOF
   "religion": null,
   "seconds_since_last_online": null,
   "seconds_since_sign_up": null,
+  "show_my_looking_for": "Yes",
   "smoking": null,
   "star_sign": null,
   "theme": {
@@ -183,6 +184,7 @@ expected=$(jq -r . << EOF
   "religion": null,
   "seconds_since_last_online": null,
   "seconds_since_sign_up": null,
+  "show_my_looking_for": "Yes",
   "smoking": null,
   "star_sign": null,
   "theme": {
@@ -230,6 +232,24 @@ gives_reply_percentage=$(
 [[ "$gets_reply_percentage" = '20.0' ]]
 
 [[ "$gives_reply_percentage" = 'null' ]]
+
+
+
+# When user2 hides their "Looking For" section, the dating-preference fields are
+# withheld from the profile and the `show_my_looking_for` flag flips to "No".
+q "update person set show_my_looking_for = false where name = 'user2'"
+
+hidden_looking_for=$(
+  c GET /prospect-profile/$user2_uuid \
+    | jq -c '{
+        show_my_looking_for,
+        gender_preference,
+        age_preference,
+        looking_for,
+        long_distance
+      }')
+
+[[ "$hidden_looking_for" = '{"show_my_looking_for":"No","gender_preference":[],"age_preference":null,"looking_for":null,"long_distance":null}' ]]
 
 
 
