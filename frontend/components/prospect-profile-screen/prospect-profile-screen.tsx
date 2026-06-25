@@ -37,7 +37,6 @@ import { Title } from '../title';
 import {
   lookingForDescription,
   lookingForEmoji,
-  shouldShowLookingFor,
 } from './looking-for';
 import { InDepthScreen } from '../in-depth-screen';
 import { ButtonWithCenteredText } from '../button/centered-text';
@@ -1432,46 +1431,44 @@ const Body = ({
         }}
       >
         <Flair flair={data?.flair ?? []} />
-        {shouldShowLookingFor(data) &&
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 14,
-              paddingVertical: 14,
-              paddingHorizontal: 16,
-              marginTop: 20,
-              marginBottom: 5,
-              borderRadius: 15,
-              borderWidth: 1,
-              ...lookingForCardColors,
-            }}
-          >
-            <DefaultText style={{ fontSize: 34, lineHeight: 40 }}>
-              {lookingForEmoji(data)}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 14,
+            paddingVertical: 14,
+            paddingHorizontal: 16,
+            marginTop: 20,
+            marginBottom: 5,
+            borderRadius: 15,
+            borderWidth: 1,
+            ...lookingForCardColors,
+          }}
+        >
+          <DefaultText style={{ fontSize: 34, lineHeight: 40 }}>
+            {lookingForEmoji(data)}
+          </DefaultText>
+          <View style={{ flex: 1 }}>
+            <DefaultText
+              style={{
+                color: data?.theme?.title_color,
+              }}
+            >
+              Looking for
             </DefaultText>
-            <View style={{ flex: 1 }}>
-              <DefaultText
-                style={{
-                  color: data?.theme?.title_color,
-                }}
-              >
-                Looking for
-              </DefaultText>
-              <DefaultText
-                style={{
-                  flexShrink: 1,
-                  fontSize: 16,
-                  lineHeight: 22,
-                  color: data?.theme?.body_color,
-                  fontWeight: 700,
-                }}
-              >
-                {data ? lookingForDescription(data) : ''}
-              </DefaultText>
-            </View>
+            <DefaultText
+              style={{
+                flexShrink: 1,
+                fontSize: 16,
+                lineHeight: 22,
+                color: data?.theme?.body_color,
+                fontWeight: 700,
+              }}
+            >
+              {data ? lookingForDescription(data) : ''}
+            </DefaultText>
           </View>
-        }
+        </View>
 
         {data?.audio_bio_uuid &&
           <AudioPlayer

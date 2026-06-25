@@ -90,33 +90,15 @@ const lookingForSubject = (data: LookingForData): string => {
     return goal;
   }
 
+  // With nothing at all to narrow the search, a bare "people" reads as a
+  // shrug; "all kinds of people" frames the openness as a positive instead.
+  if (wantsEveryGender && !ageText && !goal) {
+    return 'all kinds of people';
+  }
+
   const goalText = goal ? `for ${goal}` : '';
 
   return [peopleText, ageText, goalText].filter(Boolean).join(' ');
-};
-
-// Whether the "Looking For" section is worth showing. A profile whose
-// preferences leave them open to everyone (every gender, the full age range, no
-// stated goal and no long-distance answer) has nothing informative to say, so
-// the section is hidden. Returns true while data is still loading.
-const shouldShowLookingFor = (data?: LookingForData | null): boolean => {
-  if (!data) {
-    return true;
-  }
-
-  const genderPref = data.gender_preference ?? [];
-  const hasGenderPref =
-    genderPref.length > 0 && genderPref.length < TOTAL_GENDER_COUNT;
-
-  const minAge = data.age_preference?.min_age ?? 18;
-  const maxAge = data.age_preference?.max_age ?? 99;
-  const hasAgePref = minAge > 18 || maxAge < 99;
-
-  const hasGoal = Boolean(data.looking_for);
-  const hasLongDistance =
-    data.long_distance === 'Yes' || data.long_distance === 'No';
-
-  return hasGenderPref || hasAgePref || hasGoal || hasLongDistance;
 };
 
 const describeLongDistance = (data: LookingForData): string | null => {
@@ -140,5 +122,4 @@ export {
   describeLongDistance,
   lookingForDescription,
   lookingForEmoji,
-  shouldShowLookingFor,
 };

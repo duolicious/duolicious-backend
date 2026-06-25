@@ -4,7 +4,6 @@ import {
   describeLongDistance,
   lookingForDescription,
   lookingForEmoji,
-  shouldShowLookingFor,
 } from './looking-for';
 
 const ALL_GENDERS = [
@@ -25,15 +24,17 @@ const NDASH = '\u2013';
 
 describe('lookingForDescription', () => {
   describe('genders', () => {
-    test('says "people" when every gender is selected', () => {
+    test('says "all kinds of people" when every gender is selected', () => {
       const data: LookingForData = { gender_preference: ALL_GENDERS };
-      expect(lookingForDescription(data)).toBe('people');
+      expect(lookingForDescription(data)).toBe('all kinds of people');
     });
 
-    test('says "people" when no gender preference is set (accept-all default)', () => {
-      expect(lookingForDescription({ gender_preference: [] })).toBe('people');
-      expect(lookingForDescription({ gender_preference: null })).toBe('people');
-      expect(lookingForDescription({})).toBe('people');
+    test('says "all kinds of people" when no gender preference is set (accept-all default)', () => {
+      expect(lookingForDescription({ gender_preference: [] }))
+        .toBe('all kinds of people');
+      expect(lookingForDescription({ gender_preference: null }))
+        .toBe('all kinds of people');
+      expect(lookingForDescription({})).toBe('all kinds of people');
     });
 
     test('pluralizes a single gender', () => {
@@ -182,37 +183,6 @@ describe('describeLongDistance', () => {
   test('returns null when unanswered', () => {
     expect(describeLongDistance({ long_distance: null })).toBeNull();
     expect(describeLongDistance({})).toBeNull();
-  });
-});
-
-describe('shouldShowLookingFor', () => {
-  test('hides the section when open to everyone with nothing stated', () => {
-    expect(shouldShowLookingFor({})).toBe(false);
-    expect(shouldShowLookingFor({
-      gender_preference: ALL_GENDERS,
-      age_preference: { min_age: 18, max_age: 99 },
-      looking_for: null,
-      long_distance: null,
-    })).toBe(false);
-    expect(shouldShowLookingFor({
-      gender_preference: [],
-      age_preference: { min_age: null, max_age: null },
-    })).toBe(false);
-  });
-
-  test('shows the section when any preference narrows things or is stated', () => {
-    expect(shouldShowLookingFor({ gender_preference: ['Woman'] })).toBe(true);
-    expect(shouldShowLookingFor({
-      age_preference: { min_age: 25, max_age: 99 },
-    })).toBe(true);
-    expect(shouldShowLookingFor({ looking_for: 'Friends' })).toBe(true);
-    expect(shouldShowLookingFor({ long_distance: 'Yes' })).toBe(true);
-    expect(shouldShowLookingFor({ long_distance: 'No' })).toBe(true);
-  });
-
-  test('stays visible while data is still loading', () => {
-    expect(shouldShowLookingFor(null)).toBe(true);
-    expect(shouldShowLookingFor(undefined)).toBe(true);
   });
 });
 
