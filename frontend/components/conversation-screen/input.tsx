@@ -316,11 +316,14 @@ const QuotePreview = ({ quote }: { quote: QuoteType | null }) => {
       </View>
       <X
         onPress={() => setQuote(null)}
-        hitSlop={10}
+        hitSlop={100}
         strokeWidth={3}
         stroke={appTheme.secondaryColor}
         height={26}
         width={26}
+        style={{
+          cursor: 'pointer',
+        }}
       />
     </Animated.View>
   )

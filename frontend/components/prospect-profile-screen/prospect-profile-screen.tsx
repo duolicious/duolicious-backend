@@ -64,6 +64,7 @@ import { faHandsPraying } from '@fortawesome/free-solid-svg-icons/faHandsPraying
 import { faPills } from '@fortawesome/free-solid-svg-icons/faPills'
 import { faSmoking } from '@fortawesome/free-solid-svg-icons/faSmoking'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
+import { faReply } from '@fortawesome/free-solid-svg-icons/faReply'
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
 import * as Clipboard from 'expo-clipboard';
 import { notifyLinkCopiedToast } from '../toast';
@@ -90,6 +91,8 @@ import { Flair } from '../badges';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { faChild } from '@fortawesome/free-solid-svg-icons/faChild'
 import { faChildren } from '@fortawesome/free-solid-svg-icons/faChildren'
+import { AboutText } from './about-reply';
+import { useQuote } from '../conversation-screen/quote';
 
 type ProspectNavigation = NativeStackNavigationProp<ProspectParamList>;
 type ProspectNavigationRef = MutableRefObject<ProspectNavigation | undefined>;
@@ -249,6 +252,21 @@ const FloatingProfileInteractionButton = ({
 }) => {
   const { appTheme } = useAppTheme();
 
+  const ref = useRef<View>(null);
+
+  // On web, pressing a non-editable element collapses the current text
+  // selection (its default `mousedown` behavior). That wipes the quote derived
+  // from the selected profile text before `onPress` can navigate. Prevent the
+  // default so the selection survives the press.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const node = ref.current as unknown as HTMLElement | null;
+    if (!node) return;
+    const onMouseDown = (e: MouseEvent) => e.preventDefault();
+    node.addEventListener('mousedown', onMouseDown);
+    return () => node.removeEventListener('mousedown', onMouseDown);
+  }, []);
+
   const opacity = useRef(new Animated.Value(1)).current;
 
   const fadeOut = useCallback(() => {
@@ -269,6 +287,7 @@ const FloatingProfileInteractionButton = ({
 
   return (
     <Pressable
+      ref={ref}
       style={{
         borderRadius: 999,
         zIndex: 999,
@@ -357,6 +376,8 @@ const FloatingSendIntroButton = ({
 }) => {
   const { appTheme } = useAppTheme();
 
+  const quote = useQuote();
+
   const onPress = useCallback(() => {
     if (personUuid == null) return;
     if (name === undefined) return;
@@ -372,7 +393,7 @@ const FloatingSendIntroButton = ({
     >
       {personUuid !== undefined && name !== undefined &&
         <FontAwesomeIcon
-          icon={faPaperPlane}
+          icon={quote ? faReply : faPaperPlane}
           size={24}
           style={{
             color: appTheme.primaryColor,
@@ -919,6 +940,7 @@ const CurriedContent = ({navigationRef, navigation, route}: ProspectScreenProps 
       setHideBottomButtonsHint(false);
     }
   }, [handle]);
+
   const showAuthedBottomButtons =
     !isAnonymousViewer && !isViewingSelf && !hideBottomButtonsHint;
   const photoBlurhashParam = hint?.photoBlurhash;
@@ -1579,9 +1601,11 @@ const Body = ({
         {!!data?.name && !!data?.about && data.about.trim() &&
           <>
             <Title style={{color: data?.theme?.title_color}}>About {data.name}</Title>
-            <DefaultText style={{color: data?.theme?.body_color}} selectable={true}>
-              {data.about}
-            </DefaultText>
+            <AboutText
+              name={data.name}
+              about={data.about}
+              color={data?.theme?.body_color}
+            />
           </>
         }
 
