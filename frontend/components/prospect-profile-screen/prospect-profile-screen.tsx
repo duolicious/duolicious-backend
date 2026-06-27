@@ -1151,6 +1151,7 @@ const CurriedContent = ({navigationRef, navigation, route}: ProspectScreenProps 
                   navigation={navigation}
                   personUuid={personUuid}
                   data={data}
+                  canReply={showAuthedBottomButtons}
                 />
               </View>
             </HeartBackground>
@@ -1359,10 +1360,12 @@ const Body = ({
   navigation,
   personUuid,
   data,
+  canReply = false,
 }: {
   navigation: ProspectScreenNavigation,
   personUuid: string | undefined,
   data: UserData | undefined,
+  canReply?: boolean,
 }) => {
   const { appThemeName, appTheme } = useAppTheme();
   const [signedInUser] = useSignedInUser();
@@ -1605,6 +1608,7 @@ const Body = ({
               name={data.name}
               about={data.about}
               color={data?.theme?.body_color}
+              canReply={canReply}
             />
           </>
         }
