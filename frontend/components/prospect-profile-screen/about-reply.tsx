@@ -153,14 +153,14 @@ const AboutText = ({
   }, [isFocused]);
 
   return (
-    <>
+    <View style={{ position: 'relative', zIndex: 1, marginBottom: 20 }}>
       {
         Platform.OS === 'web'
           ? <WebAboutText key={remountKey} {...props} />
           : <NativeAboutText key={remountKey} {...props} />
       }
-      {canReply && <AboutReplyHint name={name} color={props.color} />}
-    </>
+      {canReply && <AboutReplyHint color={props.color} />}
+    </View>
   );
 };
 

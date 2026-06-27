@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import Animated, {
   Easing,
-  FadeInDown,
+  FadeIn,
   FadeOut,
   useAnimatedStyle,
   useSharedValue,
@@ -15,6 +15,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useIsFocused } from '@react-navigation/native';
+import Svg, { Polygon, Polyline } from 'react-native-svg';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faHighlighter } from '@fortawesome/free-solid-svg-icons/faHighlighter';
 import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
@@ -31,22 +32,15 @@ const safeInkOn = (bg: string): string => {
   }
 };
 
-const AboutReplyHint = ({
-  name,
-  color,
-}: {
-  name: string,
-  color: string,
-}) => {
+const AboutReplyHint = ({ color }: { color: string }) => {
   const [visible, setVisible] = useState(false);
   const quote = useQuote();
   const isFocused = useIsFocused();
 
-  const isActive =
-    !!quote && quote.attribution === name && !!quote.text.trim();
-
   // Gently bob the hint up and down so it reads as a floating call-to-action,
-  // distinct from the static profile content around it.
+  // distinct from the static profile content around it. The bob lives on its
+  // own inner view so its transform doesn't fight the enter/exit layout
+  // animations applied to the outer view.
   const bob = useSharedValue(0);
 
   useEffect(() => {
@@ -65,18 +59,23 @@ const AboutReplyHint = ({
   }));
 
   useEffect(() => {
-    let mounted = true;
+    let active = true;
 
     (async () => {
       const alreadySeen = await seenReplyHint();
-      if (!mounted || alreadySeen) return;
+      if (!active || alreadySeen) return;
 
       setVisible(true);
-      seenReplyHint(true);
     })();
 
-    return () => { mounted = false; };
+    return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (quote) {
+      seenReplyHint(true);
+    }
+  }, [Boolean(quote)]);
 
   useEffect(() => {
     if (!isFocused) {
@@ -84,7 +83,11 @@ const AboutReplyHint = ({
     }
   }, [isFocused]);
 
-  const dismiss = useCallback(() => setVisible(false), []);
+  // ...or by tapping the hint to dismiss it.
+  const dismiss = useCallback(() => {
+    setVisible(false);
+    seenReplyHint(true);
+  }, []);
 
   if (!visible) {
     return null;
@@ -95,24 +98,49 @@ const AboutReplyHint = ({
 
   return (
     <Animated.View
-      entering={FadeInDown}
+      pointerEvents="box-none"
+      entering={FadeIn}
       exiting={FadeOut}
-      style={[{ marginTop: 10, alignItems: 'flex-start' }, bobStyle]}
+      style={{
+        position: 'absolute',
+        top: '100%',
+        left: 5,
+        right: -5,
+        marginTop: 10,
+        zIndex: 10,
+        elevation: 10,
+      }}
     >
-      <View
-        style={{
-          width: 0,
-          height: 0,
-          borderLeftWidth: 7,
-          borderRightWidth: 7,
-          borderBottomWidth: 9,
-          borderLeftColor: 'transparent',
-          borderRightColor: 'transparent',
-          borderBottomColor: bubbleColor,
-          marginLeft: 16,
-          marginBottom: -1,
-        }}
-      />
+      <Animated.View style={[{ alignItems: 'flex-start' }, bobStyle]}>
+      {/*
+        The pointer is a single SVG shape rather than two stacked CSS-border
+        triangles. Stacked triangles leave an internal horizontal seam between
+        the border-colored and fill-colored layers that shimmers at fractional
+        `bob` positions. Here the fill is one polygon and only the two slanted
+        edges are stroked (the base is left open), so there's no internal seam
+        and nothing horizontal to shimmer. It's lifted above the bubble and its
+        base overlaps the bubble's top edge so the fill covers the bubble's top
+        border line where they join.
+      */}
+      <View style={{ marginLeft: 16, marginBottom: -3, zIndex: 2 }}>
+        <Svg width={18} height={11}>
+          {/*
+            The fill extends all the way down to the base (y=10) so it buries
+            the bubble's 1px top border and never shimmers. The stroked edges,
+            however, stop 1px short (y=9) so the angled outline lines up with
+            the top of the bubble's borders instead of overshooting downward.
+          */}
+          <Polygon points="9,1 1,10 17,10" fill={bubbleColor} />
+          <Polyline
+            points="1.9,9 9,1 16.1,9"
+            fill="none"
+            stroke={inkColor}
+            strokeWidth={1}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      </View>
       <Pressable
         onPress={dismiss}
         style={{
@@ -120,14 +148,17 @@ const AboutReplyHint = ({
           alignItems: 'center',
           gap: 8,
           backgroundColor: bubbleColor,
+          borderWidth: 1,
+          borderColor: inkColor,
           paddingVertical: 9,
           paddingHorizontal: 12,
           borderRadius: 8,
+          zIndex: 1,
           ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
         }}
       >
         <FontAwesomeIcon
-          icon={isActive ? faReply : faHighlighter}
+          icon={quote ? faReply : faHighlighter}
           size={14}
           style={{ color: inkColor }}
         />
@@ -138,11 +169,12 @@ const AboutReplyHint = ({
             flexShrink: 1,
           }}
         >
-          {isActive
+          {quote
             ? 'Nice! – now tap the reply button at the bottom of the screen to quote your selection'
             : 'Tip: highlight any text on this profile to reply to it'}
         </DefaultText>
       </Pressable>
+      </Animated.View>
     </Animated.View>
   );
 };
