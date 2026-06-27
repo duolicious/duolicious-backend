@@ -12,6 +12,7 @@ const KEYS = [
   'navigation_state',
   'draft_messages',
   'person_uuid',
+  'seen_reply_hint',
   'session_token',
   'was_review_requested',
 ] as const;

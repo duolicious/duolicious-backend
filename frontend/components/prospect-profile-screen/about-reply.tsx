@@ -8,6 +8,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { DefaultText, defaultFontFamily, defaultFontSize } from '../default-text';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { setQuote } from '../conversation-screen/quote';
+import { AboutReplyHint } from './about-reply-hint';
 
 const WebAboutText = ({
   name,
@@ -119,10 +120,12 @@ const AboutText = ({
   name,
   about,
   color,
+  canReply = false,
 }: {
   name: string,
   about: string,
   color: string | undefined,
+  canReply?: boolean,
 }) => {
   const { appTheme } = useAppTheme();
 
@@ -149,11 +152,16 @@ const AboutText = ({
     }
   }, [isFocused]);
 
-  if (Platform.OS === 'web') {
-    return <WebAboutText key={remountKey} {...props} />;
-  } else {
-    return <NativeAboutText key={remountKey} {...props} />;
-  }
+  return (
+    <>
+      {
+        Platform.OS === 'web'
+          ? <WebAboutText key={remountKey} {...props} />
+          : <NativeAboutText key={remountKey} {...props} />
+      }
+      {canReply && <AboutReplyHint name={name} color={props.color} />}
+    </>
+  );
 };
 
 export {
