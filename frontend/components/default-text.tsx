@@ -19,6 +19,9 @@ const montserratFontFamily: Record<string, string> = {
   '900': 'MontserratBlack',
 };
 
+const defaultFontFamily = 'MontserratRegular';
+const defaultFontSize = 14;
+
 const DefaultText = (props: TextProps & {
   animated?: boolean,
   disableTheme?: boolean,
@@ -34,7 +37,7 @@ const DefaultText = (props: TextProps & {
   const { disableTheme = false } = props;
 
   const montserratFont: string | undefined = (
-    montserratFontFamily[fontWeight ?? ''] || 'MontserratRegular');
+    montserratFontFamily[fontWeight ?? ''] || defaultFontFamily);
 
   const baseStyle = [
     { fontFamily: fontFamily || montserratFont },
@@ -65,4 +68,6 @@ const DefaultText = (props: TextProps & {
 
 export {
   DefaultText,
+  defaultFontFamily,
+  defaultFontSize,
 };

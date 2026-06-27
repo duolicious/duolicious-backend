@@ -25,9 +25,7 @@ import Animated, {
   withSequence,
   runOnJS,
   FadeIn,
-  FadeInDown,
   FadeOut,
-  FadeOutDown,
 } from 'react-native-reanimated';
 import {
   ComposedGesture,
@@ -297,8 +295,6 @@ const QuotePreview = ({ quote }: { quote: QuoteType | null }) => {
 
   return (
     <Animated.View
-      entering={FadeInDown}
-      exiting={FadeOutDown}
       style={{
         width: '100%',
         maxWidth: 600,
@@ -320,11 +316,14 @@ const QuotePreview = ({ quote }: { quote: QuoteType | null }) => {
       </View>
       <X
         onPress={() => setQuote(null)}
-        hitSlop={10}
+        hitSlop={100}
         strokeWidth={3}
         stroke={appTheme.secondaryColor}
         height={26}
         width={26}
+        style={{
+          cursor: 'pointer',
+        }}
       />
     </Animated.View>
   )
