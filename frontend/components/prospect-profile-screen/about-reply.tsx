@@ -153,7 +153,7 @@ const AboutText = ({
   }, [isFocused]);
 
   return (
-    <View style={{ position: 'relative', zIndex: 1, marginBottom: 20 }}>
+    <View style={{ position: 'relative', zIndex: 1000, marginBottom: 20 }}>
       {
         Platform.OS === 'web'
           ? <WebAboutText key={remountKey} {...props} />
