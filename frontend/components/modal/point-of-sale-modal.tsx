@@ -157,7 +157,7 @@ const Offering = ({
     return `Try ${numUnits} ${formattedUnits} Free`
   })();
 
-  const subtitle = 'Please support Duolicious 🥺 👉👈';
+  const subtitle = `You’re gonna need ${productName} for that...`;
 
   const onPress = async () => {
     setHasError(false);
