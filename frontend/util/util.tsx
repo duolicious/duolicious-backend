@@ -247,6 +247,18 @@ const bestTextOn = (bg: string, bias: number = 0): '#000000' | '#ffffff' => {
   return weightedWhite >= weightedBlack ? '#ffffff' : '#000000';
 };
 
+const safeBestTextOn = (
+  bg: string,
+  fallback: string,
+  bias: number = 0,
+): string => {
+  try {
+    return bestTextOn(bg, bias);
+  } catch {
+    return fallback;
+  }
+};
+
 /**
  * Cap a color's WCAG relative luminance to a maximum value.
  * If the color's luminance <= maxL, it's returned unchanged.
@@ -404,6 +416,7 @@ export {
   pluralize,
   getLuminance,
   bestTextOn,
+  safeBestTextOn,
   capLuminance,
   formatCount,
   happenedInLast7Days,

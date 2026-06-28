@@ -46,6 +46,7 @@ import { useSignedInUser } from '../../events/signed-in-user';
 import { postSkipped } from '../../hide-and-block/hide-and-block';
 import { Pinchy } from '../pinchy';
 import { Basic, Basics } from '../basic';
+import { themedSurface, legibleSurface } from '../../app-theme/surface';
 import { Club, Clubs } from '../club';
 import { Stat, Stats } from '../stat';
 import { listen, notify } from '../../events/events';
@@ -66,6 +67,7 @@ import { faSmoking } from '@fortawesome/free-solid-svg-icons/faSmoking'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
 import { faReply } from '@fortawesome/free-solid-svg-icons/faReply'
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
+import { faUser } from '@fortawesome/free-solid-svg-icons/faUser'
 import * as Clipboard from 'expo-clipboard';
 import { notifyLinkCopiedToast } from '../toast';
 import { INVITE_URL } from '../../env/env';
@@ -157,41 +159,59 @@ const onPressShareProfile = async (personUuid: string | undefined) => {
   notifyLinkCopiedToast('Profile Link Copied!');
 };
 
-const ShareButton = ({personUuid}: {personUuid: string | undefined}) => {
+const profilePillButtonStyle = (
+  surface: ReturnType<typeof legibleSurface>,
+  pressed: boolean,
+): ViewStyle => ({
+  marginTop: 100,
+  alignSelf: 'center',
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 7,
+  paddingVertical: 8,
+  paddingHorizontal: 14,
+  borderWidth: 1,
+  borderBottomWidth: 3,
+  borderRadius: 999,
+  backgroundColor: surface.backgroundColor,
+  borderColor: surface.borderColor,
+  opacity: pressed ? 0.6 : 1,
+});
+
+const profilePillButtonTextStyle = (
+  surface: ReturnType<typeof legibleSurface>,
+): TextStyle => ({
+  overflow: 'hidden',
+  textAlign: 'center',
+  color: surface.color,
+});
+
+const ShareButton = ({personUuid, backgroundColor}: {
+  personUuid: string | undefined,
+  backgroundColor: string,
+}) => {
   const onPress = useCallback(() => {
     onPressShareProfile(personUuid);
   }, [personUuid]);
 
-  const iconStroke = 'rgba(0, 0, 0, 0.5)';
+  const surface = legibleSurface(backgroundColor);
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityLabel="Copy profile link"
-      style={{
-        marginTop: 100,
+      style={({ pressed }) => ({
+        ...profilePillButtonStyle(surface, pressed),
         marginBottom: 0,
-        alignSelf: 'center',
-        flexDirection: 'row',
-        gap: 7,
-        backgroundColor: 'rgba(255, 255, 255, 0.3)',
-        padding: 8,
-        borderRadius: 5,
-      }}
+      })}
     >
       <Share2
-        stroke={iconStroke}
+        stroke={surface.color}
         strokeWidth={2}
         height={18}
         width={18}
       />
-      <DefaultText
-        style={{
-          overflow: 'hidden',
-          textAlign: 'center',
-          color: 'rgba(0, 0, 0, 0.5)',
-        }}
-      >
+      <DefaultText style={profilePillButtonTextStyle(surface)}>
         Share profile
       </DefaultText>
     </Pressable>
@@ -523,11 +543,13 @@ const SeeQAndAButton = ({navigation, personUuid, name}: {
   );
 };
 
-const BlockButton = ({name, personUuid}: {
+const BlockButton = ({name, personUuid, backgroundColor}: {
   name: string | undefined,
   personUuid: string | null | undefined,
+  backgroundColor: string,
 }) => {
   const { isSkipped, isLoading, isPosting } = useSkipped(personUuid);
+  const surface = legibleSurface(backgroundColor);
 
   const onPress = useCallback(async () => {
     if (personUuid == null) return;
@@ -550,21 +572,15 @@ const BlockButton = ({name, personUuid}: {
     `You have skipped ${name}. Press to unskip.` :
     `Report ${name}`;
 
-  const iconStroke = isLoading ? "transparent" : 'rgba(0, 0, 0, 0.5)';
+  const iconStroke = isLoading ? "transparent" : surface.color;
 
   return (
     <Pressable
       onPress={onPress}
-      style={{
-        marginTop: 100,
+      style={({ pressed }) => ({
+        ...profilePillButtonStyle(surface, pressed),
         marginBottom: 100,
-        alignSelf: 'center',
-        flexDirection: 'row',
-        gap: 7,
-        backgroundColor: 'rgba(255, 255, 255, 0.3)',
-        padding: 8,
-        borderRadius: 5,
-      }}
+      })}
     >
       {isPosting &&
         <LogoActivityIndicator size="small" color="#70f"/>
@@ -586,13 +602,7 @@ const BlockButton = ({name, personUuid}: {
         />
       }
       {!isLoading &&
-        <DefaultText
-          style={{
-            overflow: 'hidden',
-            textAlign: 'center',
-            color: 'rgba(0, 0, 0, 0.5)',
-          }}
-        >
+        <DefaultText style={profilePillButtonTextStyle(surface)}>
           {name === undefined ? '...' : text}
         </DefaultText>
       }
@@ -1241,6 +1251,10 @@ const ProspectUserDetails = ({
   titleColor: string | undefined,
   bodyColor: string | undefined,
 }) => {
+  const { appTheme } = useAppTheme();
+
+  const metaColor = bodyColor ?? appTheme.hintColor;
+
   const onPressDonutChart = useCallback(() => {
     if (personId === undefined) return;
     if (name === undefined) return;
@@ -1262,7 +1276,7 @@ const ProspectUserDetails = ({
       <View
         style={{
           flexShrink: 1,
-          gap: 8,
+          gap: 5,
         }}
       >
         <View
@@ -1281,7 +1295,8 @@ const ProspectUserDetails = ({
           <DefaultText
             style={{
               fontWeight: 900,
-              fontSize: 24,
+              fontSize: 26,
+              letterSpacing: -0.5,
               flexShrink: 1,
               color: titleColor,
             }}
@@ -1294,15 +1309,23 @@ const ProspectUserDetails = ({
             <VerificationBadge/>
           }
         </View>
-        <View>
+        <View style={{ gap: 2 }}>
           <DefaultText
             style={{
               textAlign: 'left',
-              fontSize: 16,
-              fontWeight: 700,
-              color: bodyColor,
+              fontSize: 15,
+              fontWeight: 500,
+              color: metaColor,
             }}
           >
+            <FontAwesomeIcon
+              icon={faUser}
+              style={{
+                transform: [ { translateY: 2 } ],
+                marginRight: 6,
+              }}
+              color={metaColor}
+            />
             {[
               age,
               gender,
@@ -1312,19 +1335,19 @@ const ProspectUserDetails = ({
           <DefaultText
             style={{
               textAlign: 'left',
-              fontSize: 16,
-              fontWeight: 700,
-              color: bodyColor,
+              fontSize: 15,
+              fontWeight: 500,
+              color: metaColor,
             }}
           >
             <FontAwesomeIcon
               icon={faLocationDot}
               style={{
                 transform: [ { translateY: 2 } ],
+                marginRight: 6,
               }}
-              color={bodyColor}
+              color={metaColor}
             />
-            {'\u2002'}
             {userLocation === null ? 'Private location' : userLocation}
           </DefaultText>
         </View>
@@ -1411,15 +1434,11 @@ const Body = ({
     ? capLuminance(uncappedBackgroundColor)
     : uncappedBackgroundColor;
 
-  const lookingForInk = bestTextOn(backgroundColor);
-  const lookingForCardColors = {
-    backgroundColor: lookingForInk === '#ffffff'
-      ? 'rgba(255, 255, 255, 0.10)'
-      : 'rgba(0, 0, 0, 0.05)',
-    borderColor: lookingForInk === '#ffffff'
-      ? 'rgba(255, 255, 255, 0.18)'
-      : 'rgba(0, 0, 0, 0.12)',
-  };
+  const lookingForCardColors = themedSurface(
+    appThemeName,
+    appTheme.surface,
+    data?.theme?.body_color,
+  );
 
   const basicsTheme = {
     textStyle: {
@@ -1467,7 +1486,7 @@ const Body = ({
               paddingHorizontal: 16,
               marginTop: 20,
               marginBottom: 5,
-              borderRadius: 15,
+              borderRadius: 12,
               borderWidth: 1,
               ...lookingForCardColors,
             }}
@@ -1478,7 +1497,7 @@ const Body = ({
             <View style={{ flex: 1 }}>
               <DefaultText
                 style={{
-                  color: data?.theme?.title_color,
+                  color: data?.theme?.body_color,
                 }}
               >
                 Looking for
@@ -1503,6 +1522,7 @@ const Body = ({
             name={data?.name}
             uuid={data?.audio_bio_uuid}
             presentation="profile"
+            bodyColor={data?.theme?.body_color}
           />
         }
 
@@ -1733,11 +1753,15 @@ const Body = ({
             personUuid={personUuid}
             name={data?.name}
           />}
-        <ShareButton personUuid={data?.url_slug ?? personUuid}/>
+        <ShareButton
+          personUuid={data?.url_slug ?? personUuid}
+          backgroundColor={backgroundColor}
+        />
         {!isViewingSelf && !!signedInUser &&
           <BlockButton
             name={data?.name}
             personUuid={personUuid}
+            backgroundColor={backgroundColor}
           />}
       </View>
     </>

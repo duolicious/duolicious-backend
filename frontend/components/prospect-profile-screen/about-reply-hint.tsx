@@ -22,15 +22,7 @@ import { faReply } from '@fortawesome/free-solid-svg-icons/faReply';
 import { DefaultText } from '../default-text';
 import { useQuote } from '../conversation-screen/quote';
 import { seenReplyHint } from '../../kv-storage/seen-reply-hint';
-import { bestTextOn } from '../../util/util';
-
-const safeInkOn = (bg: string): string => {
-  try {
-    return bestTextOn(bg);
-  } catch {
-    return '#ffffff';
-  }
-};
+import { safeBestTextOn } from '../../util/util';
 
 const AboutReplyHint = ({ color }: { color: string }) => {
   const [visible, setVisible] = useState(false);
@@ -94,7 +86,7 @@ const AboutReplyHint = ({ color }: { color: string }) => {
   }
 
   const bubbleColor = color;
-  const inkColor = safeInkOn(bubbleColor);
+  const inkColor = safeBestTextOn(bubbleColor, '#ffffff');
 
   return (
     <Animated.View

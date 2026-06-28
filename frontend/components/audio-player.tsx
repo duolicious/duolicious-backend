@@ -1,4 +1,4 @@
-import { possessive, secToMinSec } from '../util/util';
+import { possessive, secToMinSec, safeBestTextOn } from '../util/util';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, View, Pressable, StyleSheet, ViewStyle } from 'react-native';
 import {
@@ -9,6 +9,8 @@ import {
 import { AUDIO_URL } from '../env/env';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultText } from './default-text';
+import { useAppTheme } from '../app-theme/app-theme';
+import { themedSurface } from '../app-theme/surface';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -63,6 +65,7 @@ type AudioPlayerProps = {
   name: string | null | undefined,
   uuid: string | null | undefined,
   presentation: 'profile'
+  bodyColor?: string
   style?: ViewStyle
 } | {
   uuid: string | null | undefined,
@@ -76,6 +79,8 @@ type AudioPlayerProps = {
 };
 
 const AudioPlayer = (props: AudioPlayerProps) => {
+  const { appThemeName, appTheme } = useAppTheme();
+
   // Deferred load: scrolling past dozens of messages shouldn't fetch them all.
   const player = useAudioPlayer(null);
   const hasLoaded = useRef(false);
@@ -217,27 +222,41 @@ const AudioPlayer = (props: AudioPlayerProps) => {
     }
   })();
 
+  const bodyColor = props.presentation === 'profile' ? props.bodyColor : undefined;
+
+  const isConversation = props.presentation === 'conversation';
+  const surface = isConversation
+    ? {
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        borderColor: 'rgba(0, 0, 0, 0.1)',
+      }
+    : themedSurface(appThemeName, appTheme.surface, bodyColor);
+
+  const playButtonColor = bodyColor ?? appTheme.secondaryColor;
+  const playIconColor = bodyColor
+    ? safeBestTextOn(bodyColor, appTheme.primaryColor)
+    : appTheme.primaryColor;
+
   return (
     <View
       style={{
         width: '100%',
-        maxWidth: props.presentation === 'conversation' ? 275 : undefined,
+        maxWidth: isConversation ? 275 : undefined,
         marginTop: 20,
         flexDirection: 'row',
-        backgroundColor: 'rgba(255, 255, 255, 0.3)',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderColor: 'rgba(0, 0, 0, 0.1)',
         borderWidth: 1,
-        borderRadius: props.presentation === 'conversation' ? 999 : 10,
+        borderRadius: isConversation ? 999 : 12,
         padding: 12,
         gap: 20,
+        ...surface,
         ...props.style,
       }}
     >
       <Pressable
         style={{
-          backgroundColor: 'black',
+          backgroundColor: playButtonColor,
           borderRadius: 999,
           height: 36,
           width: 36,
@@ -258,17 +277,17 @@ const AudioPlayer = (props: AudioPlayerProps) => {
             alignItems: 'center',
           }}
         >
-          <Ionicons style={{ fontSize: 24, color: 'white' }} name={playIcon} />
+          <Ionicons style={{ fontSize: 24, color: playIconColor }} name={playIcon} />
         </View>
       </Pressable>
 
       <View style={styles.middleContainer}>
         <DefaultText
-          style={
-            showLoader
-              ? {...styles.middleText, ...styles.transparent}
-              : {...styles.middleText}
-          }
+          style={[
+            styles.middleText,
+            showLoader ? styles.transparent : null,
+            bodyColor ? { color: bodyColor } : null,
+          ]}
         >
           {middleText}
         </DefaultText>
@@ -279,11 +298,14 @@ const AudioPlayer = (props: AudioPlayerProps) => {
       </View>
 
       <DefaultText
-        style={{
-          textAlign: 'right',
-          paddingRight: props.presentation === 'conversation' ? 10 : 5,
-          width: 50,
-        }}
+        style={[
+          {
+            textAlign: 'right',
+            paddingRight: props.presentation === 'conversation' ? 10 : 5,
+            width: 50,
+          },
+          bodyColor ? { color: bodyColor } : null,
+        ]}
       >
         {`${minutes}:${seconds}`}
       </DefaultText>
