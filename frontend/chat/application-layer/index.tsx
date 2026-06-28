@@ -14,6 +14,7 @@ import {
   send,
 } from '../websocket-layer';
 import { notifyOwnLastMessageAt } from './hooks/read-receipt';
+import { ingestMamReaction } from './hooks/reaction';
 
 const AUDIO_MESSAGE = 'Audio message';
 
@@ -109,7 +110,7 @@ type ChatBaseMessage = {
   to: string
   fromCurrentUser: boolean
   id: string
-  mamId?: string | undefined
+  mamId?: string
   timestamp: Date
 };
 
@@ -565,7 +566,7 @@ const sendMessage = async (
   type MessageDetectionResult =
     | { status: 'not unique', usedCount: number }
     | { status: Exclude<MessageStatus, 'sent' | 'sending' | 'timeout' | 'not unique'> }
-    | { status: 'sent', audioUuid?: string, stamp?: string };
+    | { status: 'sent', audioUuid?: string, stamp?: string, mamId?: string };
 
   const responseDetector = (doc: any): MessageDetectionResult | null => { // eslint-disable-line @typescript-eslint/no-explicit-any
     const detectors: (() => MessageDetectionResult | false)[] = [
@@ -574,6 +575,7 @@ const sendMessage = async (
           status: 'sent',
           audioUuid: doc.duo_message_delivered?.['@audio_uuid'],
           stamp: doc.duo_message_delivered?.['@stamp'],
+          mamId: doc.duo_message_delivered?.['@mam_id'],
         },
       () => doc.duo_message_blocked?.['@reason'] === 'offensive' &&
         { status: 'offensive' },
@@ -657,6 +659,7 @@ const sendMessage = async (
         from: personUuidToJid(credentials.username),
         to: personUuidToJid(recipientPersonUuid),
         id,
+        mamId: response.mamId || undefined,
         audioUuid: response.audioUuid,
         timestamp,
         fromCurrentUser: true,
@@ -681,6 +684,7 @@ const sendMessage = async (
         from: personUuidToJid(credentials.username),
         to: personUuidToJid(recipientPersonUuid),
         id,
+        mamId: response.mamId || undefined,
         text,
         timestamp,
         fromCurrentUser: true,
@@ -790,6 +794,7 @@ const onReceiveMessage = (
           '@to': to,
           '@id': id,
           '@audio_uuid': audioUuid,
+          '@mam_id': mamId,
           body: text,
         }
       } = doc;
@@ -798,6 +803,7 @@ const onReceiveMessage = (
         from: from as string,
         to: to as string,
         id: id as string,
+        mamId: (mamId || undefined) as string | undefined,
       };
 
       if (type === 'chat' && audioUuid) {
@@ -931,6 +937,8 @@ const fetchConversation = async (
                 '@from': from,
                 '@to': to,
                 '@audio_uuid': audioUuid,
+                '@reaction': reaction,
+                '@reaction_from': reactionFrom,
                 'body': text,
               }
             }
@@ -940,6 +948,8 @@ const fetchConversation = async (
 
       assert(receivedQueryId === queryId);
 
+      ingestMamReaction(mamId, reaction, reactionFrom);
+
       if (audioUuid) {
         return {
           type: 'chat-audio',
@@ -947,7 +957,7 @@ const fetchConversation = async (
           from: from,
           to: to,
           id: id,
-          mamId: mamId ? mamId : undefined,
+          mamId: mamId || undefined,
           timestamp: new Date(timestamp),
           fromCurrentUser: jidMatchesSignedInUser(from),
         };
@@ -958,7 +968,7 @@ const fetchConversation = async (
           from: from,
           to: to,
           id: id,
-          mamId: mamId ? mamId : undefined,
+          mamId: mamId || undefined,
           timestamp: new Date(timestamp),
           fromCurrentUser: jidMatchesSignedInUser(from),
         };

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { listen, lastEvent, notify } from '../../../events/events';
+import { useRetained } from '../../../events/use-retained';
 import { EV_CHAT_WS_RECEIVE } from '../../websocket-layer';
 import { useSignedInUser } from '../../../events/signed-in-user';
 
@@ -99,27 +99,14 @@ const resolveReadReceipt = (doc: any) => { // eslint-disable-line @typescript-es
 
 listen(EV_CHAT_WS_RECEIVE, resolveReadReceipt);
 
-const useRetainedDate = (key: string): Date | null => {
-  const [value, setValue] = useState<Date | null>(
-    lastEvent<Date | null>(key) ?? null
-  );
-
-  useEffect(() => {
-    setValue(lastEvent<Date | null>(key) ?? null);
-    return listen<Date | null>(key, (v) => setValue(v ?? null), true);
-  }, [key]);
-
-  return value;
-};
-
 /**
  * The time the other person last read our message, but only while our message
  * is the conversation's last one. Null when there's nothing to show: they
  * haven't read it, our message isn't the last one, or we haven't sent one.
  */
 const useReadReceipt = (personUuid: string): Date | null => {
-  const readAt = useRetainedDate(readAtEventKey(personUuid));
-  const ownLastMessageAt = useRetainedDate(ownLastMessageEventKey(personUuid));
+  const readAt = useRetained<Date>(readAtEventKey(personUuid));
+  const ownLastMessageAt = useRetained<Date>(ownLastMessageEventKey(personUuid));
 
   return readAt && ownLastMessageAt && readAt >= ownLastMessageAt
     ? readAt
@@ -135,7 +122,7 @@ const useReadReceipt = (personUuid: string): Date | null => {
  */
 const useReadReceiptUpsell = (personUuid: string): boolean => {
   const [signedInUser] = useSignedInUser();
-  const ownLastMessageAt = useRetainedDate(ownLastMessageEventKey(personUuid));
+  const ownLastMessageAt = useRetained<Date>(ownLastMessageEventKey(personUuid));
 
   return !signedInUser?.hasGold && !!ownLastMessageAt;
 };

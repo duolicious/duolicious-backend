@@ -1,19 +1,19 @@
-import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { DefaultText } from './default-text';
 import { listen, notify } from '../events/events';
 import { isMobile } from '../util/util';
+import {
+  AnchorMeasurement,
+  AnchoredOverlay,
+  tooltipAnchorStyle,
+  useAnchorMeasurement,
+  useWindowOverlayDimensions,
+} from './anchored-overlay';
 
 type TooltipState = {
   text: string
-  measurement: {
-    x: number
-    y: number
-    width: number
-    height: number
-    pageX: number
-    pageY: number
-  },
+  measurement: AnchorMeasurement,
 } | null | undefined;
 
 const EVENT_KEY = 'tooltip';
@@ -50,7 +50,7 @@ const Tooltip = ({
 
 const TooltipListener = () => {
   const [state, setState] = useState<TooltipState>(null);
-  const { width: windowWidth } = useWindowDimensions();
+  const windowDimensions = useWindowOverlayDimensions();
 
   useEffect(() => {
     listen<TooltipState>(EVENT_KEY, setState);
@@ -71,62 +71,26 @@ const TooltipListener = () => {
     }
   };
 
-  const horizontalDirection: 'left' | 'right' =
-    state.measurement.pageX > windowWidth / 2
-    ? 'left'
-    : 'right';
-
   return (
-    <View
-      style={{
-        position: 'absolute',
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
-      }}
-      {...props}
-    >
-      <View
-        style={{
-          position: 'absolute',
-
-          ...(horizontalDirection === 'right' ? {
-            left: state.measurement.pageX,
-            paddingLeft: Math.max(0, state.measurement.width - 4),
-          } : {
-            right: windowWidth - state.measurement.pageX - state.measurement.width,
-            paddingRight: Math.max(0, state.measurement.width - 4),
-          }),
-
-          top: state.measurement.pageY,
-          paddingTop: Math.max(0, state.measurement.height - 4),
-        }}
-      >
+    <AnchoredOverlay visible={!!state} overlayProps={props}>
+      <View style={tooltipAnchorStyle(state.measurement, windowDimensions)}>
         <Tooltip>{state.text}</Tooltip>
       </View>
-    </View>
+    </AnchoredOverlay>
   );
 };
 
 const useTooltip = (text: string) => {
-  const viewRef = useRef<View>(null);
+  const { anchorRef: viewRef, measureAnchor } = useAnchorMeasurement();
 
   const showTooltip = useCallback(() => {
-    viewRef.current?.measure((x, y, width, height, pageX, pageY) => {
+    measureAnchor((measurement) => {
       setTooltip({
         text,
-        measurement: {
-          x,
-          y,
-          width,
-          height,
-          pageX,
-          pageY,
-        }
+        measurement,
       });
     });
-  }, [text]);
+  }, [measureAnchor, text]);
 
   const onStartShouldSetResponder = useCallback(() => true, []);
 
