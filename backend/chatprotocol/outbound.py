@@ -105,8 +105,10 @@ def to_bus(obj: Outbound) -> str:
 
 def from_bus(serialized: str) -> Outbound:
     payload = json.loads(serialized)
-    kind = payload.pop('kind')
-    return _REGISTRY[kind](**payload)
+    cls = _REGISTRY[payload.pop('kind')]
+    field_names = {field.name for field in dataclasses.fields(cls)}
+    kwargs = {k: v for k, v in payload.items() if k in field_names}
+    return cls(**kwargs)
 
 
 def _jid(username: str) -> str:
