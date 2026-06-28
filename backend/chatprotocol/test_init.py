@@ -152,6 +152,14 @@ class TestOutboundInvariant(unittest.TestCase):
             with self.subTest(stanza=type(sample).__name__):
                 self.assertEqual(from_bus(to_bus(sample)), sample)
 
+    def test_bus_ignores_unknown_fields(self) -> None:
+        serialized = json.dumps({
+            'kind': 'ServerError',
+            'stanza_id': 'id1',
+            'field_from_the_future': 'ignored',
+        })
+        self.assertEqual(from_bus(serialized), ServerError(stanza_id='id1'))
+
 
 class TestInboundParsing(unittest.TestCase):
     def _both(self, xml: str, js: str) -> tuple[object, object]:
