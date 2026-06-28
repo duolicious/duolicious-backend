@@ -36,4 +36,11 @@ class AudioMessage(BaseMessage):
     audio_uuid: str
 
 
+@dataclass(frozen=True)
+class ReactionMessage:
+    stanza_id: str
+    target_mam_message_id: int
+    emoji: str
+
+
 Message = ChatMessage | TypingMessage | AudioMessage

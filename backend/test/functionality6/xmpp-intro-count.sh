@@ -81,7 +81,7 @@ EOF
 )
 
 diff -u --color --ignore-trailing-space \
-  <(curl -sX GET http://localhost:3001/pop | jq -r 'del(.duo_message_delivered."@stamp")') \
+  <(curl -sX GET http://localhost:3001/pop | jq -r 'del(.duo_message_delivered."@stamp", .duo_message_delivered."@mam_id")') \
   <(jq -r <<< "$expected")
 
 [[ "$(hash_used_count)" = 1 ]]
@@ -160,7 +160,7 @@ EOF
 )
 
 diff -u --color --ignore-trailing-space \
-  <(curl -sX GET http://localhost:3001/pop | jq -r 'del(.duo_message_delivered."@stamp")') \
+  <(curl -sX GET http://localhost:3001/pop | jq -r 'del(.duo_message_delivered."@stamp", .duo_message_delivered."@mam_id")') \
   <(jq -r <<< "$expected")
 
 [[ "$(q "select used_count from intro_hash order by last_used_at desc limit 1")" = 1 ]]

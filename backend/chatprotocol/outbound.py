@@ -295,24 +295,25 @@ class MessageDelivered(Outbound):
     stanza_id: str
     stamp: str
     audio_uuid: str | None = None
+    mam_id: str | None = None
 
     def canonical(self) -> dict:
         attrs: dict = {'@id': self.stanza_id}
         if self.audio_uuid is not None:
             attrs['@audio_uuid'] = self.audio_uuid
+        if self.mam_id is not None:
+            attrs['@mam_id'] = self.mam_id
         attrs['@stamp'] = self.stamp
         return {'duo_message_delivered': attrs}
 
     def to_xml(self) -> str:
+        parts = [f'<duo_message_delivered id="{self.stanza_id}"']
         if self.audio_uuid is not None:
-            return (
-                f'<duo_message_delivered id="{self.stanza_id}" '
-                f'audio_uuid="{self.audio_uuid}" stamp="{self.stamp}"/>'
-            )
-        return (
-            f'<duo_message_delivered id="{self.stanza_id}" '
-            f'stamp="{self.stamp}"/>'
-        )
+            parts.append(f' audio_uuid="{self.audio_uuid}"')
+        if self.mam_id is not None:
+            parts.append(f' mam_id="{self.mam_id}"')
+        parts.append(f' stamp="{self.stamp}"/>')
+        return ''.join(parts)
 
 
 @_register
@@ -349,6 +350,7 @@ class IncomingChat(Outbound):
     stanza_id: str
     body: str
     audio_uuid: str | None = None
+    mam_id: str | None = None
 
     def canonical(self) -> dict:
         message: dict = {
@@ -360,6 +362,8 @@ class IncomingChat(Outbound):
         }
         if self.audio_uuid is not None:
             message['@audio_uuid'] = self.audio_uuid
+        if self.mam_id is not None:
+            message['@mam_id'] = self.mam_id
         message['body'] = self.body
         message['request'] = {'@xmlns': NS_RECEIPTS}
         return {'message': message}
@@ -404,6 +408,47 @@ class ReadReceipt(Outbound):
 
 @_register
 @dataclass(frozen=True)
+class IncomingReaction(Outbound):
+    from_username: str
+    to_username: str
+    mam_id: str
+    emoji: str
+    stamp: str
+
+    def canonical(self) -> dict:
+        return {'duo_reaction': {
+            '@from': _jid(self.from_username),
+            '@to': _jid(self.to_username),
+            '@mam_id': self.mam_id,
+            '@emoji': self.emoji,
+            '@stamp': self.stamp,
+        }}
+
+
+@_register
+@dataclass(frozen=True)
+class ReactionDelivered(Outbound):
+    stanza_id: str
+    stamp: str
+
+    def canonical(self) -> dict:
+        return {'duo_reaction_delivered': {
+            '@id': self.stanza_id,
+            '@stamp': self.stamp,
+        }}
+
+
+@_register
+@dataclass(frozen=True)
+class ReactionBlocked(Outbound):
+    stanza_id: str
+
+    def canonical(self) -> dict:
+        return {'duo_reaction_blocked': {'@id': self.stanza_id}}
+
+
+@_register
+@dataclass(frozen=True)
 class MamResult(Outbound):
     viewer_username: str
     query_id: str
@@ -415,6 +460,8 @@ class MamResult(Outbound):
     stanza_id: str | None
     body: str
     audio_uuid: str | None = None
+    reaction: str | None = None
+    reaction_from: str | None = None
 
     def canonical(self) -> dict:
         inner: dict = {
@@ -427,6 +474,9 @@ class MamResult(Outbound):
         inner['@type'] = 'chat'
         if self.audio_uuid is not None:
             inner['@audio_uuid'] = self.audio_uuid
+        if self.reaction is not None:
+            inner['@reaction'] = self.reaction
+            inner['@reaction_from'] = self.reaction_from
         inner['body'] = self.body
         inner['request'] = {'@xmlns': NS_RECEIPTS}
 

@@ -3,3 +3,6 @@
 -- turns it off.
 ALTER TABLE person
     ADD COLUMN IF NOT EXISTS show_my_looking_for BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE mam_message
+    ADD COLUMN IF NOT EXISTS reaction TEXT;
