@@ -30,7 +30,7 @@ import { ProspectProfileScreen } from './components/prospect-profile-screen/pros
 import { InviteScreen, WelcomeScreen } from './components/welcome-screen';
 import { sessionToken, sessionPersonUuid } from './kv-storage/session-token';
 import { lastPath } from './kv-storage/last-path';
-import { clearAllKv } from './kv-storage/kv-storage';
+import { clearAllKvExceptSessionToken } from './kv-storage/kv-storage';
 import { japi, SUPPORTED_API_VERSIONS } from './api/api';
 import { login, logout } from './chat/application-layer';
 import { useInboxStats } from './chat/application-layer/hooks/inbox-stats';
@@ -360,7 +360,7 @@ const App = () => {
   }, [fetchServerStatusState]);
 
   const onError = useCallback(async () => {
-    await clearAllKv();
+    await clearAllKvExceptSessionToken();
 
     loadApp();
   }, []);
