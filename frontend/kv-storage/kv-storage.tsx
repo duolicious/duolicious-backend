@@ -111,7 +111,28 @@ const clearAllKv = async () => {
   }
 };
 
+const clearAllKvExceptSessionToken = async () => {
+  let sessionToken: string | null | void = null;
+
+  try {
+    sessionToken = await storeKv('session_token');
+  } catch (error) {
+    console.error(error);
+  }
+
+  await clearAllKv();
+
+  if (sessionToken) {
+    try {
+      await storeKv('session_token', sessionToken);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+};
+
 export {
   storeKv,
   clearAllKv,
+  clearAllKvExceptSessionToken,
 }
