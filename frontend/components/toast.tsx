@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  SharedValue,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -24,6 +25,37 @@ const SLIDE_DURATION = 300;
 const HOLD_DURATION = 3000;
 const SWIPE_DISMISS_THRESHOLD = 20;
 
+const slideOut = (
+  translateY: SharedValue<number>,
+  onDismiss: () => void,
+  duration: number = SLIDE_DURATION,
+) => {
+  'worklet';
+  translateY.value = withTiming(HIDDEN_POSITION, { duration }, (finished) => {
+    if (finished) {
+      runOnJS(onDismiss)();
+    }
+  });
+};
+
+const slideInAndHold = (
+  translateY: SharedValue<number>,
+  onDismiss: () => void,
+) => {
+  'worklet';
+  translateY.value = withSequence(
+    withTiming(0, { duration: SLIDE_DURATION }),
+    withDelay(
+      HOLD_DURATION,
+      withTiming(HIDDEN_POSITION, { duration: SLIDE_DURATION }, (finished) => {
+        if (finished) {
+          runOnJS(onDismiss)();
+        }
+      }),
+    ),
+  );
+};
+
 const Toast: React.FC = () => {
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(HIDDEN_POSITION);
@@ -31,24 +63,7 @@ const Toast: React.FC = () => {
   const [toastQueue, setToastQueue] = useState<React.FC[]>([]);
   const [currentToast, setCurrentToast] = useState<React.FC | null>(null);
 
-  const dismiss = () => setCurrentToast(null);
-
-  const slideOut = (duration: number = SLIDE_DURATION) => {
-    'worklet';
-    return withTiming(HIDDEN_POSITION, { duration }, (finished) => {
-      if (finished) {
-        runOnJS(dismiss)();
-      }
-    });
-  };
-
-  const slideInAndHold = () => {
-    'worklet';
-    translateY.value = withSequence(
-      withTiming(0, { duration: SLIDE_DURATION }),
-      withDelay(HOLD_DURATION, slideOut()),
-    );
-  };
+  const dismiss = useCallback(() => setCurrentToast(null), []);
 
   const swipeUp = useMemo(
     () => Gesture.Pan()
@@ -61,12 +76,12 @@ const Toast: React.FC = () => {
       .onEnd((e) => {
         'worklet';
         if (e.translationY < -SWIPE_DISMISS_THRESHOLD) {
-          translateY.value = slideOut(SLIDE_DURATION / 2);
+          slideOut(translateY, dismiss, SLIDE_DURATION / 2);
         } else {
-          slideInAndHold();
+          slideInAndHold(translateY, dismiss);
         }
       }),
-    [],
+    [translateY, dismiss],
   );
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -91,7 +106,7 @@ const Toast: React.FC = () => {
     }
 
     translateY.value = HIDDEN_POSITION;
-    slideInAndHold();
+    slideInAndHold(translateY, dismiss);
   }, [currentToast === null]);
 
   useEffect(() => {
