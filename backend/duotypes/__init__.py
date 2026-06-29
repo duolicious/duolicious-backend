@@ -45,7 +45,7 @@ from duohash import md5
 
 register_heif_opener()
 
-CLUB_PATTERN = r"""^[a-zA-Z0-9/#'"_-]+( [a-zA-Z0-9/#'"_-]+)*$"""
+CLUB_PATTERN = r"""^[a-zA-Z0-9/#'":_-]+( [a-zA-Z0-9/#'":_-]+)*$"""
 CLUB_MAX_LEN = 42
 PATCH_PROFILE_INFO_LOOKUP_BASICS = frozenset({
     'orientation',
