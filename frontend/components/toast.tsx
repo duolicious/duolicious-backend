@@ -1,5 +1,14 @@
-import { useEffect, useState, useRef } from 'react';
-import { Animated, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { listen, notify } from '../events/events';
 import { RenderedHoc } from './rendered-hoc';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,13 +18,59 @@ import { faLink } from '@fortawesome/free-solid-svg-icons/faLink';
 
 const SOMETHING_WENT_WRONG = "Something went wrong";
 
+const HIDDEN_POSITION = -500;
+const SLIDE_DURATION = 300;
+const HOLD_DURATION = 3000;
+const SWIPE_DISMISS_THRESHOLD = 20;
+
 const Toast: React.FC = () => {
-  const initialPosition = -500;
   const insets = useSafeAreaInsets();
-  const animation = useRef(new Animated.Value(initialPosition)).current;
+  const translateY = useSharedValue(HIDDEN_POSITION);
 
   const [toastQueue, setToastQueue] = useState<React.FC[]>([]);
   const [currentToast, setCurrentToast] = useState<React.FC | null>(null);
+
+  const dismiss = () => setCurrentToast(null);
+
+  const slideOut = (duration: number = SLIDE_DURATION) => {
+    'worklet';
+    return withTiming(HIDDEN_POSITION, { duration }, (finished) => {
+      if (finished) {
+        runOnJS(dismiss)();
+      }
+    });
+  };
+
+  const slideInAndHold = () => {
+    'worklet';
+    translateY.value = withSequence(
+      withTiming(0, { duration: SLIDE_DURATION }),
+      withDelay(HOLD_DURATION, slideOut()),
+    );
+  };
+
+  const swipeUp = useMemo(
+    () => Gesture.Pan()
+      .onUpdate((e) => {
+        'worklet';
+        if (e.translationY < 0) {
+          translateY.value = e.translationY;
+        }
+      })
+      .onEnd((e) => {
+        'worklet';
+        if (e.translationY < -SWIPE_DISMISS_THRESHOLD) {
+          translateY.value = slideOut(SLIDE_DURATION / 2);
+        } else {
+          slideInAndHold();
+        }
+      }),
+    [],
+  );
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   useEffect(() => {
     const head = toastQueue[0];
@@ -32,29 +87,8 @@ const Toast: React.FC = () => {
       return;
     }
 
-    animation.setValue(initialPosition);
-
-    const slideIn = Animated.timing(animation, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    });
-
-    const holdPosition = Animated.timing(animation, {
-      toValue: 0,
-      duration: 3000,
-      useNativeDriver: true,
-    });
-
-    const slideOut = Animated.timing(animation, {
-      toValue: initialPosition,
-      duration: 300,
-      useNativeDriver: true,
-    });
-
-    Animated.sequence([slideIn, holdPosition, slideOut]).start(
-      () => setCurrentToast(null)
-    );
+    translateY.value = HIDDEN_POSITION;
+    slideInAndHold();
   }, [currentToast === null]);
 
   useEffect(() => {
@@ -68,17 +102,24 @@ const Toast: React.FC = () => {
   if (currentToast) {
     return (
       <Animated.View
-        style={{
-          position: 'absolute',
-          top: insets.top,
-          left: 0,
-          right: 0,
-          alignItems: 'center',
-          justifyContent: 'center',
-          transform: [{ translateY: animation }],
-        }}
+        pointerEvents="box-none"
+        style={[
+          {
+            position: 'absolute',
+            top: insets.top,
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+          animatedStyle,
+        ]}
       >
-        <RenderedHoc Hoc={currentToast}/>
+        <GestureDetector gesture={swipeUp}>
+          <View>
+            <RenderedHoc Hoc={currentToast}/>
+          </View>
+        </GestureDetector>
       </Animated.View>
     );
   } else {
@@ -90,7 +131,7 @@ const ToastContainer = ({children}: {children?: React.ReactNode}) => {
   return (
     <View
       style={{
-        marginTop: 70,
+        marginTop: 10,
         marginHorizontal: 10,
         alignItems: 'center',
         justifyContent: 'center',
