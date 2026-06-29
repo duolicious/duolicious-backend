@@ -10,10 +10,10 @@ from service.chat.messagestorage.setmessaged import (
         SetMessagedJob)
 from batcher import Batcher
 from database import api_tx
+from chatprotocol.timestamp import now_microseconds
 from chatprotocol.message import AudioMessage, ChatMessage
 from typing import Awaitable, Callable
 from dataclasses import dataclass
-import datetime
 
 
 @dataclass(frozen=True)
@@ -35,7 +35,7 @@ def store_message(
     deliver_to_recipient: bool = True,
 ) -> None:
     if timestamp_microseconds is None:
-        timestamp_microseconds = int(datetime.datetime.now().timestamp() * 1_000_000)
+        timestamp_microseconds = now_microseconds()
 
     job = StoreMessageJob(
         store_mam_message_job=StoreMamMessageJob(

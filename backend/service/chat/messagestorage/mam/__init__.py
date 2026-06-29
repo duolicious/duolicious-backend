@@ -4,15 +4,19 @@ from service.chat.chatutil import (
     LSERVER,
     fetch_has_gold,
     format_datetime,
+    format_timestamp,
 )
 from chatprotocol.inbound import MamQuery
+from chatprotocol.mam_id import (
+    decode_mam_id,
+    encode_mam_id,
+)
 from chatprotocol.outbound import (
     MamFin,
     MamResult,
     Outbound,
     ReadReceipt,
 )
-import datetime
 import uuid
 
 
@@ -63,7 +67,8 @@ WITH page AS (
         mam_message.direction,
         mam_message.stanza_id,
         mam_message.body,
-        mam_message.audio_uuid
+        mam_message.audio_uuid,
+        mam_message.reaction
     FROM
         mam_message
     JOIN
@@ -147,10 +152,7 @@ async def _get_conversation(
     from_username: str,
     to_username: str
 ) -> list[Outbound]:
-    before_id = (
-            binary_to_integer(bytes(query.before, 'utf-8'), 32)
-            if query.before
-            else None)
+    before_id = decode_mam_id(query.before) if query.before else None
 
     params = dict(
         from_username=from_username,
@@ -174,10 +176,15 @@ async def _get_conversation(
         else:
             msg_from, msg_to = to_username, from_username
 
+        reaction = row['reaction']
+        reaction_from = None
+        if reaction is not None:
+            reaction_from = 'self' if row['direction'] == 'I' else 'other'
+
         messages.append(MamResult(
             viewer_username=from_username,
             query_id=query.query_id,
-            result_id=integer_to_binary(row_id, 32).decode('ascii'),
+            result_id=encode_mam_id(row_id),
             forwarded_id=str(uuid.uuid4()),
             stamp=mam_message_id_to_timestamp(row_id),
             msg_from_username=msg_from,
@@ -185,6 +192,8 @@ async def _get_conversation(
             stanza_id=row['stanza_id'],
             body=row['body'],
             audio_uuid=row['audio_uuid'],
+            reaction=reaction,
+            reaction_from=reaction_from,
         ))
 
     # The receipt belongs under the most recent outgoing message, so it's only
@@ -234,45 +243,16 @@ def mam_message_id_to_microseconds(mam_message_id: int) -> int:
     return mam_message_id >> 8
 
 
-def microseconds_to_timestamp(microseconds: int) -> str:
-    # Convert microseconds to seconds.
-    seconds = microseconds / 1_000_000
-    # Create a UTC datetime object.
-    dt = datetime.datetime.utcfromtimestamp(seconds)
-    # Format the datetime to the desired ISO 8601 format with microseconds and a
-    # trailing 'Z'.
-    return dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+def sibling_mam_id(mam_message_id: int) -> int:
+    """
+    The id of the *other* archive copy of the same message. A message is stored
+    as two rows whose ids differ only in the low bit: the sender copy is
+    `microseconds_to_mam_message_id(...)` and the recipient copy is that `+ 1`
+    (see `Q_INSERT_MESSAGE`). Toggling the low bit therefore maps either copy to
+    its sibling.
+    """
+    return mam_message_id ^ 1
 
 
 def mam_message_id_to_timestamp(id: int) -> str:
-    return microseconds_to_timestamp(mam_message_id_to_microseconds(id))
-
-
-def integer_to_binary(number: int, base: int) -> bytes:
-    if not (2 <= base <= 36):
-        raise ValueError("Base must be between 2 and 36")
-
-    # Special case for 0
-    if number == 0:
-        return b"0"
-
-    digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    sign = "-" if number < 0 else ""
-    number = abs(number)
-
-    result = []
-    while number:
-        number, rem = divmod(number, base)
-        result.append(digits[rem])
-
-    return (sign + "".join(reversed(result))).encode("ascii")
-
-
-def binary_to_integer(binary: bytes, base: int) -> int:
-    """
-    Converts a binary (bytes) representation to an integer in the given base.
-    Equivalent to Erlang's `binary_to_integer/2`.
-    """
-    if not (2 <= base <= 36):
-        raise ValueError("Base must be between 2 and 36")
-    return int(binary.decode(), base)
+    return format_timestamp(mam_message_id_to_microseconds(id))

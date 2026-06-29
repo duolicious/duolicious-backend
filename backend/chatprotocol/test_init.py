@@ -4,9 +4,11 @@ import unittest
 import xmltodict
 
 from chatprotocol.jid import LSERVER
+from chatprotocol.mam_id import decode_mam_id
 from chatprotocol.message import (
     AudioMessage,
     ChatMessage,
+    ReactionMessage,
     TypingMessage,
 )
 from chatprotocol import outbound
@@ -33,6 +35,7 @@ from chatprotocol.outbound import (
     InboxFin,
     InboxResult,
     IncomingChat,
+    IncomingReaction,
     IncomingTyping,
     MamFin,
     MamResult,
@@ -42,6 +45,8 @@ from chatprotocol.outbound import (
     MessageTooLong,
     OnlineEvent,
     Pong,
+    ReactionBlocked,
+    ReactionDelivered,
     ReadReceipt,
     RegistrationSuccessful,
     ServerError,
@@ -98,10 +103,20 @@ OUTBOUND_SAMPLES = [
     MessageNotUnique(stanza_id='id2', used_count=1),
     MessageDelivered(stanza_id='id1', stamp='2020-01-01T00:00:00.000000Z'),
     MessageDelivered(stanza_id='id1', stamp='2020-01-01T00:00:00.000000Z', audio_uuid='au'),
+    MessageDelivered(stanza_id='id1', stamp='2020-01-01T00:00:00.000000Z', mam_id='ABCD'),
     ServerError(stanza_id='id1'),
     IncomingChat(from_username=U1, to_username=U2, stanza_id='id1', body='hi'),
     IncomingChat(from_username=U1, to_username=U2, stanza_id='id1', body='hi', audio_uuid='au'),
+    IncomingChat(from_username=U1, to_username=U2, stanza_id='id1', body='hi', mam_id='ABCD'),
     IncomingTyping(from_username=U1, to_username=U2, stanza_id='id1'),
+    IncomingReaction(
+        from_username=U1, to_username=U2, mam_id='ABCD', emoji='\u2764\ufe0f',
+        stamp='2020-01-01T00:00:00.000000Z'),
+    IncomingReaction(
+        from_username=U1, to_username=U2, mam_id='ABCD', emoji='',
+        stamp='2020-01-01T00:00:00.000000Z'),
+    ReactionDelivered(stanza_id='id1', stamp='2020-01-01T00:00:00.000000Z'),
+    ReactionBlocked(stanza_id='id1'),
     ReadReceipt(from_username=U1, to_username=U2),
     ReadReceipt(from_username=U1, to_username=U2, stamp='2020-01-01T00:00:00.000000Z'),
     MamResult(
@@ -112,6 +127,11 @@ OUTBOUND_SAMPLES = [
         viewer_username=U1, query_id='7', result_id='ABCD', forwarded_id='fwd',
         stamp='2020-01-01T00:00:00.000000Z', msg_from_username=U1,
         msg_to_username=U2, stanza_id='id1', body='hi', audio_uuid='au'),
+    MamResult(
+        viewer_username=U1, query_id='7', result_id='ABCD', forwarded_id='fwd',
+        stamp='2020-01-01T00:00:00.000000Z', msg_from_username=U1,
+        msg_to_username=U2, stanza_id='id1', body='hi',
+        reaction='\U0001f44d', reaction_from='self'),
     MamFin(viewer_username=U1, query_id='7'),
     InboxResult(
         owner_username=U1, msg_id='123', inner_from_username=U1,
@@ -236,6 +256,59 @@ class TestInboundParsing(unittest.TestCase):
         msg = parse_incoming(xml, 'xmpp')
         assert isinstance(msg, AudioMessage)
         self.assertEqual(msg.audio_base64, 'QQ==')
+
+    def test_reaction(self) -> None:
+        xml = (
+            f'<duo_reaction to="{U2}@{LSERVER}" id="r1" mam_id="ABCD" '
+            f'emoji="\u2764\ufe0f"/>')
+        js = (
+            f'{{"duo_reaction": {{"@to": "{U2}@{LSERVER}", "@id": "r1", '
+            f'"@mam_id": "ABCD", "@emoji": "\u2764\ufe0f"}}}}')
+        x, j = self._both(xml, js)
+        target_mam_message_id = decode_mam_id('ABCD')
+        assert target_mam_message_id is not None
+        expected = ReactionMessage(
+            stanza_id='r1', target_mam_message_id=target_mam_message_id,
+            emoji='\u2764\ufe0f')
+        self.assertEqual(x, expected)
+        self.assertEqual(j, expected)
+
+    def test_reaction_target_is_mam_id_not_to_jid(self) -> None:
+        xml = f'<duo_reaction id="r1" mam_id="ABCD" emoji="\u2764\ufe0f"/>'
+        x = parse_incoming(xml, 'xmpp')
+        target_mam_message_id = decode_mam_id('ABCD')
+        assert target_mam_message_id is not None
+        self.assertEqual(
+            x,
+            ReactionMessage(
+                stanza_id='r1',
+                target_mam_message_id=target_mam_message_id,
+                emoji='\u2764\ufe0f'))
+
+    def test_reaction_clear(self) -> None:
+        xml = f'<duo_reaction to="{U2}@{LSERVER}" id="r1" mam_id="ABCD" emoji=""/>'
+        x = parse_incoming(xml, 'xmpp')
+        target_mam_message_id = decode_mam_id('ABCD')
+        assert target_mam_message_id is not None
+        self.assertEqual(
+            x,
+            ReactionMessage(
+                stanza_id='r1',
+                target_mam_message_id=target_mam_message_id,
+                emoji=''))
+
+    def test_reaction_rejects_bad_mam_id(self) -> None:
+        # 'W' is outside the base-32 alphabet (0-9, A-V).
+        xml = f'<duo_reaction to="{U2}@{LSERVER}" id="r1" mam_id="WXYZ" emoji="\u2764"/>'
+        self.assertIsNone(parse_incoming(xml, 'xmpp'))
+
+    def test_reaction_rejects_signed_mam_id(self) -> None:
+        xml = f'<duo_reaction to="{U2}@{LSERVER}" id="r1" mam_id="-1" emoji="\u2764"/>'
+        self.assertIsNone(parse_incoming(xml, 'xmpp'))
+
+    def test_reaction_rejects_ascii_emoji(self) -> None:
+        xml = f'<duo_reaction to="{U2}@{LSERVER}" id="r1" mam_id="ABCD" emoji="lol"/>'
+        self.assertIsNone(parse_incoming(xml, 'xmpp'))
 
     def test_mark_displayed(self) -> None:
         xml = (

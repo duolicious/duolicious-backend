@@ -15,7 +15,6 @@ import notify
 from async_lru_cache import AsyncLruCache
 import random
 from collections.abc import Iterable, Mapping
-from typing import Tuple, Callable, Tuple
 from datetime import datetime, timezone
 from service.chat.robot9000 import Q_SELECT_INTRO_HASH, upsert_intro_hash
 from service.chat.mayberegister import register_push_token
@@ -25,8 +24,17 @@ from service.chat.messagestorage.inbox import (
     get_inbox,
     mark_displayed,
 )
-from service.chat.messagestorage.mam import get_conversation
+from service.chat.messagestorage.mam import (
+    get_conversation,
+    microseconds_to_mam_message_id,
+    sibling_mam_id,
+)
+from chatprotocol.mam_id import encode_mam_id
 from service.chat.messagestorage import store_message
+from service.chat.messagestorage.reaction import (
+    fetch_reaction_partner,
+    store_reaction,
+)
 from service.chat.session import (
     Session,
     maybe_get_session_response,
@@ -45,12 +53,14 @@ from service.chat.chatutil import (
     fetch_is_shadow_banned,
     fetch_has_gold,
     format_timestamp,
+    now_microseconds,
     fetch_id_from_username,
 )
 from chatprotocol.message import (
     AudioMessage,
     ChatMessage,
     Message,
+    ReactionMessage,
     TypingMessage,
 )
 from chatprotocol import (
@@ -72,6 +82,7 @@ from service.chat.visitors import (
 )
 from chatprotocol.outbound import (
     IncomingChat,
+    IncomingReaction,
     IncomingTyping,
     MessageBlocked,
     MessageDelivered,
@@ -79,6 +90,8 @@ from chatprotocol.outbound import (
     MessageTooLong,
     Outbound,
     Pong,
+    ReactionBlocked,
+    ReactionDelivered,
     ReadReceipt,
     RegistrationSuccessful,
     ServerError,
@@ -400,6 +413,92 @@ async def fetch_immediate_data(
 
     return row if row else None
 
+
+async def _chat_interaction_blocked(
+    from_id: int,
+    to_id: int,
+) -> tuple[bool, str | None]:
+    """
+    Whether `from_id` may not currently interact with `to_id` (whether sending a
+    message or reacting to one), as `(blocked, reason)`. `reason` is the
+    client-facing `MessageBlocked` reason (None for a generic block) and is only
+    meaningful when `blocked` is True. Each caller renders its own stanza
+    (`MessageBlocked` or `ReactionBlocked`); only the gating rules are shared.
+    """
+    if await verification_required(person_id=from_id):
+        return True, 'age-verification'
+
+    if await fetch_is_skipped(from_id=from_id, to_id=to_id):
+        return True, None
+
+    return False, None
+
+
+async def _handle_reaction(
+    parsed: ReactionMessage,
+    from_username: str,
+    connection_uuid: str,
+) -> None:
+    async def reject() -> None:
+        await redis_publish_many(connection_uuid, [
+            ReactionBlocked(stanza_id=parsed.stanza_id)
+        ])
+
+    reactor_copy_id = parsed.target_mam_message_id
+
+    from_id = await fetch_id_from_username(from_username)
+    if not from_id:
+        return None
+
+    partner_username = await fetch_reaction_partner(
+        reactor_username=from_username,
+        reactor_copy_id=reactor_copy_id,
+    )
+    if partner_username is None:
+        return await reject()
+
+    partner_id = await fetch_id_from_username(partner_username)
+    if partner_id is None:
+        return await reject()
+
+    is_blocked, _ = await _chat_interaction_blocked(
+        from_id=from_id,
+        to_id=partner_id,
+    )
+    if is_blocked:
+        return await reject()
+
+    is_shadow_banned = await fetch_is_shadow_banned(from_id)
+
+    stored = await store_reaction(
+        reactor_username=from_username,
+        partner_username=partner_username,
+        reactor_copy_id=reactor_copy_id,
+        emoji=parsed.emoji,
+        deliver_to_recipient=not is_shadow_banned,
+    )
+
+    if not stored:
+        return await reject()
+
+    stamp = format_timestamp(now_microseconds())
+
+    if not is_shadow_banned:
+        await redis_publish_many(partner_username, [
+            IncomingReaction(
+                from_username=from_username,
+                to_username=partner_username,
+                mam_id=encode_mam_id(sibling_mam_id(reactor_copy_id)),
+                emoji=parsed.emoji,
+                stamp=stamp,
+            )
+        ])
+
+    await redis_publish_many(connection_uuid, [
+        ReactionDelivered(stanza_id=parsed.stanza_id, stamp=stamp)
+    ])
+
+
 async def process_text(
     session: Session,
     protocol: str,
@@ -501,6 +600,14 @@ async def process_text(
             ])
         return None
 
+    if isinstance(parsed, ReactionMessage):
+        await _handle_reaction(
+            parsed=parsed,
+            from_username=from_username,
+            connection_uuid=connection_uuid,
+        )
+        return None
+
     maybe_message = parsed if isinstance(parsed, Message) else None
 
     if not maybe_message:
@@ -527,14 +634,13 @@ async def process_text(
     # so their conversation history persists when they navigate back to it.
     is_shadow_banned = await fetch_is_shadow_banned(from_id)
 
-    if await verification_required(person_id=from_id):
+    is_blocked, block_reason = await _chat_interaction_blocked(
+        from_id=from_id,
+        to_id=to_id,
+    )
+    if is_blocked:
         return await redis_publish_many(connection_uuid, [
-            MessageBlocked(stanza_id=stanza_id, reason='age-verification')
-        ])
-
-    if await fetch_is_skipped(from_id=from_id, to_id=to_id):
-        return await redis_publish_many(connection_uuid, [
-            MessageBlocked(stanza_id=stanza_id)
+            MessageBlocked(stanza_id=stanza_id, reason=block_reason)
         ])
 
     if isinstance(maybe_message, TypingMessage):
@@ -586,7 +692,7 @@ async def process_text(
     # receipt, so the sender's client can timestamp its own message in server
     # time (rather than its possibly-skewed local clock). This keeps read
     # receipts, which are compared against this timestamp, accurate.
-    sent_at_microseconds = int(datetime.now().timestamp() * 1_000_000)
+    sent_at_microseconds = now_microseconds()
     sent_at_stamp = format_timestamp(sent_at_microseconds)
 
     async def store_audio_and_notify() -> None:
@@ -606,12 +712,17 @@ async def process_text(
                 if isinstance(maybe_message, AudioMessage)
                 else None)
 
+        sender_copy_id = microseconds_to_mam_message_id(sent_at_microseconds)
+        sender_mam_id = encode_mam_id(sender_copy_id)
+        recipient_mam_id = encode_mam_id(sibling_mam_id(sender_copy_id))
+
         delivery_message = IncomingChat(
             from_username=from_username,
             to_username=to_username,
             stanza_id=maybe_message.stanza_id,
             body=maybe_message.body,
             audio_uuid=audio_uuid,
+            mam_id=recipient_mam_id,
         )
 
         immediate_data = await fetch_immediate_data(
@@ -649,6 +760,7 @@ async def process_text(
                 maybe_message.audio_uuid
                 if isinstance(maybe_message, AudioMessage)
                 else None),
+            mam_id=sender_mam_id,
         )
 
         # Don't deliver to the recipient when the sender is shadow-banned; the

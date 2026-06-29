@@ -10,15 +10,18 @@ then `_interpret` classifies it into exactly one semantic dataclass (or
 from __future__ import annotations
 
 import secrets
-import uuid
 from dataclasses import dataclass
 
-from chatprotocol.jid import to_bare_jid
+import regex
+
+from chatprotocol.jid import jid_to_username, to_bare_jid
+from chatprotocol.mam_id import decode_mam_id
 from chatprotocol.message import (
     AUDIO_MESSAGE_BODY,
     AudioMessage,
     ChatMessage,
     Message,
+    ReactionMessage,
     TypingMessage,
 )
 from chatprotocol.element import (
@@ -116,7 +119,59 @@ Inbound = (
     | VisitorsQuery
     | MarkVisitorsChecked
     | Message
+    | ReactionMessage
 )
+
+
+_MAX_EMOJI_LEN = 16
+
+_EMOJI_ELEMENT = r'''
+    (?:
+        [\U0001F1E6-\U0001F1FF]{2}
+      | [0-9#*]\uFE0F?\u20E3
+      | \p{Extended_Pictographic}\p{Emoji_Modifier}?\uFE0F?\u20E3?
+    )
+    (?:
+        \u200D
+        (?:
+            [0-9#*]\uFE0F?\u20E3
+          | \p{Extended_Pictographic}\p{Emoji_Modifier}?\uFE0F?\u20E3?
+        )
+    )*
+'''
+_EMOJI_RE = regex.compile(_EMOJI_ELEMENT, regex.VERBOSE)
+
+
+def _is_valid_reaction_emoji(emoji: str) -> bool:
+    if emoji == '':
+        return True
+
+    if len(emoji) > _MAX_EMOJI_LEN:
+        return False
+
+    return _EMOJI_RE.fullmatch(emoji) is not None
+
+
+def reaction_from_element(el: Element) -> ReactionMessage | None:
+    stanza_id = el.get('id')
+    stanza_id = stanza_id if stanza_id and len(stanza_id) <= 250 else None
+
+    mam_id = el.get('mam_id')
+    target_mam_message_id = decode_mam_id(mam_id) if mam_id else None
+    emoji = el.get('emoji') or ''
+
+    if not stanza_id:
+        return None
+    if target_mam_message_id is None:
+        return None
+    if not _is_valid_reaction_emoji(emoji):
+        return None
+
+    return ReactionMessage(
+        stanza_id=stanza_id,
+        target_mam_message_id=target_mam_message_id,
+        emoji=emoji,
+    )
 
 
 def message_from_element(el: Element) -> Message | None:
@@ -137,11 +192,7 @@ def message_from_element(el: Element) -> Message | None:
         else None
     )
 
-    to_bare = to_bare_jid(el.get('to'))
-    try:
-        to_username = str(uuid.UUID(to_bare)) if to_bare else None
-    except Exception:
-        to_username = None
+    to_username = jid_to_username(el.get('to'))
 
     if not stanza_id:
         return None
@@ -285,6 +336,9 @@ def _interpret(el: Element) -> Inbound | None:
 
     if el.tag == 'duo_mark_visitors_checked':
         return MarkVisitorsChecked(when=el.get('when'))
+
+    if el.tag == 'duo_reaction':
+        return reaction_from_element(el)
 
     mam = _try_mam(el)
     if mam is not None:

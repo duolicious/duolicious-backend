@@ -1,15 +1,13 @@
 """
-Dependency-light JID and timestamp helpers.
+Dependency-light JID helpers.
 
 Kept free of database/redis imports so the protocol layer (and unit tests) can
 use them without pulling in the rest of the service.
 """
-import datetime
+import uuid
 
 
 LSERVER = 'duolicious.app'
-
-FMT_ISO_8601_TIMESTAMP = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 
 def to_bare_jid(jid: str | None) -> str | None:
@@ -22,20 +20,16 @@ def to_bare_jid(jid: str | None) -> str | None:
         return None
 
 
-def format_timestamp(microseconds: int) -> str:
+def jid_to_username(jid: str | None) -> str | None:
     """
-    Converts a timestamp in microseconds to an ISO 8601 string.
+    Extracts the bare JID's local part and returns it iff it's a valid UUID
+    (our usernames are UUIDs), else None.
     """
-    timestamp_sec = microseconds / 1e6
-    dt = datetime.datetime.utcfromtimestamp(timestamp_sec)
-    return dt.strftime(FMT_ISO_8601_TIMESTAMP)
+    bare = to_bare_jid(jid)
+    if bare is None:
+        return None
 
-
-def format_datetime(dt: datetime.datetime) -> str:
-    """
-    Converts a datetime to an ISO 8601 string in UTC. Naive datetimes (e.g. the
-    `TIMESTAMP` columns, which store UTC) are assumed to be in UTC.
-    """
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=datetime.timezone.utc)
-    return dt.astimezone(datetime.timezone.utc).strftime(FMT_ISO_8601_TIMESTAMP)
+    try:
+        return str(uuid.UUID(bare))
+    except Exception:
+        return None
