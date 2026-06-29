@@ -314,11 +314,7 @@ const QuotePreview = ({ quote }: { quote: QuoteType | null }) => {
           backgroundColor="#eee"
         />
       </View>
-      <Pressable
-        onPress={() => setQuote(null)}
-        hitSlop={100}
-        style={{ cursor: 'pointer' }}
-      >
+      <Pressable onPress={() => setQuote(null)} style={{ cursor: 'pointer' }}>
         <X
           strokeWidth={3}
           stroke={appTheme.secondaryColor}
