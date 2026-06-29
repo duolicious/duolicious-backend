@@ -31,7 +31,7 @@ const SocialBadges = () => {
         </a>
       </li>
       <li>
-        <a target="_blank" href="https://github.com/duolicious">
+        <a target="_blank" href="https://github.com/duolicious/duolicious">
           <img src={githubIcon.uri} style={{ height: '20px' }} />
         </a>
       </li>
