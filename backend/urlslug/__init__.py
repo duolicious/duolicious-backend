@@ -17,6 +17,12 @@ RESERVED_SLUGS = {
     'settings', 'clubs', 'invites', 'filters', 'edit',
     # Legacy URLs the web client rewrites to the root.
     'me', 'welcome',
+    # Not a route: the Google OAuth redirect (`app.duolicious:/oauthredirect`)
+    # is delivered to the Android app as a deep link, where it would otherwise
+    # match the top-level profile slug. The web client collapses it to the root
+    # (see linking.tsx); reserving it here stops anyone from minting a profile
+    # that the deep link would shadow.
+    'oauthredirect',
 }
 
 # Number of randomly-suffixed candidates to try before giving up. Each attempt

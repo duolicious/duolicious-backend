@@ -107,6 +107,13 @@ onboard feed@example.com "Feed"
 slug_feed=$(q "select url_slug from person where email='feed@example.com'")
 [[ "$slug_feed" =~ ^feed[0-9]+$ ]]
 
+# The Google OAuth redirect path (`app.duolicious:/oauthredirect`) reaches the
+# Android app as a deep link, so it's reserved too — a bare "oauthredirect" slug
+# would be shadowed by it.
+onboard oauthredirect@example.com "oauthredirect"
+slug_oauthredirect=$(q "select url_slug from person where email='oauthredirect@example.com'")
+[[ "$slug_oauthredirect" =~ ^oauthredirect[0-9]+$ ]]
+
 # --- Lookup resolves by slug and by uuid -------------------------------------
 alice_uuid=$(q "select uuid from person where email='alice@example.com'")
 alice_id=$(q "select id from person where email='alice@example.com'")
