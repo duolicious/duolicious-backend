@@ -265,6 +265,30 @@ empty_club_search_string () {
   [[ "$results" == "$expected" ]]
 }
 
+club_name_with_colon () {
+  echo 'A club name may contain a colon (e.g. a bible verse)'
+
+  q "delete from person"
+  q "delete from person_club"
+  q "delete from club"
+
+  ../util/create-user.sh user1 0 0
+  ../util/create-user.sh user2 0 0
+
+  assume_role user1
+  jc POST /join-club -d '{ "name": "John 3:16" }'
+
+  # Stored in normalized (lower-cased) form, with the colon preserved.
+  [[ "$(q "select name from club")" == "john 3:16" ]]
+
+  # The colon survives the round-trip through the search query string too
+  # (curl -G --data-urlencode encodes the colon and space as %3A / %20).
+  # Search as a non-member, since a user's own clubs are excluded from results.
+  assume_role user2
+  results=$(c GET /search-clubs -G --data-urlencode 'q=John 3:16')
+  [[ -n "$(jq -r '.[] | select(.name == "john 3:16" and .count_members == 1)' <<< "$results")" ]]
+}
+
 public_club_search () {
   echo 'Public club search returns something'
 
@@ -313,3 +337,4 @@ club_quota_with_gold
 club_count_when_deleted
 club_count_when_activated_or_deactivated
 banned_clubs
+club_name_with_colon
