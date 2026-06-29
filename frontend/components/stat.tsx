@@ -15,7 +15,7 @@ const Stat = ({
     <Basic
       style={[
         {
-          borderRadius: 5,
+          borderRadius: 8,
         },
         style,
       ]}

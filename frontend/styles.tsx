@@ -3,14 +3,14 @@ import { StyleSheet } from 'react-native';
 const commonStyles = StyleSheet.create({
   primaryEnlargeablePhotoBigScreen: {
     overflow: 'hidden',
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   secondaryEnlargeablePhoto: {
-    borderRadius: 10,
+    borderRadius: 12,
     overflow: 'hidden',
-    marginTop: 10,
-    marginBottom: 10,
+    marginTop: 12,
+    marginBottom: 12,
   },
   secondaryEnlargeablePhotoInner: {
   },

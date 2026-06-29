@@ -15,6 +15,8 @@ import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { useShake } from '../animation/animation';
 import { showPointOfSale } from './modal/point-of-sale-modal';
 import { useSignedInUser } from '../events/signed-in-user';
+import { useAppTheme } from '../app-theme/app-theme';
+import { themedSurface } from '../app-theme/surface';
 
 type IoniconsName = ComponentProps<typeof Ionicons>['name'];
 type BasicIcon = IconDefinition | IoniconsName;
@@ -34,7 +36,7 @@ const Icon = ({icon, textStyle}: {
       size={16}
       color={typeof color === 'string' ? color : undefined}
       style={{
-        marginRight: 5,
+        marginRight: 6,
       }}
     />
   } else {
@@ -42,7 +44,7 @@ const Icon = ({icon, textStyle}: {
       style={[
         {
           fontSize: 16,
-          marginRight: 5,
+          marginRight: 6,
         },
         textStyle,
       ]}
@@ -67,16 +69,23 @@ const Basic = ({children, ...rest}: {
 
   const [shakeAnimation, startShake] = useShake();
   const [signedInUser] = useSignedInUser();
+  const { appThemeName, appTheme } = useAppTheme();
+
+  const chrome = themedSurface(
+    appThemeName,
+    appTheme.surface,
+    StyleSheet.flatten(textStyle)?.color,
+  );
 
   return (
     <Animated.View
       style={[
         {
-          borderColor: 'rgba(0, 0, 0, 0.4)',
+          borderColor: chrome.borderColor,
           borderWidth: 1,
           borderRadius: 999,
           justifyContent: 'center',
-          backgroundColor: 'rgba(255, 255, 255, 0.3)',
+          backgroundColor: chrome.backgroundColor,
           transform: [{ translateX: shakeAnimation }],
           flexShrink: 1,
         },
@@ -101,8 +110,8 @@ const Basic = ({children, ...rest}: {
           }
         }
         style={{
-          paddingHorizontal: 10,
-          paddingVertical: 5,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
           alignItems: 'center',
           flexDirection: 'row',
           flexShrink: 1,
@@ -122,7 +131,7 @@ const Basics = ({children}: {children?: ReactNode}) => {
         zIndex: 999,
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 5,
+        gap: 7,
       }}
     >
       {children}

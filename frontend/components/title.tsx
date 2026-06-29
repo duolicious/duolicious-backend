@@ -5,10 +5,11 @@ const Title = ({children, style}: {children?: React.ReactNode, style?: TextStyle
   return (
     <DefaultText
       style={{
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: '700',
-        marginBottom: 5,
-        marginTop: 20,
+        letterSpacing: 0.2,
+        marginBottom: 8,
+        marginTop: 24,
         ...style,
       }}
     >

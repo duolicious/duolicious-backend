@@ -7,6 +7,13 @@ import { assertNever } from '../util/util';
 
 type AppThemeName = 'light' | 'dark';
 
+// A translucent panel layered over content (basics, stats, the "looking for"
+// card, the profile audio player, ...). See ./surface for how it's resolved.
+type Surface = {
+  backgroundColor: string
+  borderColor: string
+};
+
 type AppTheme = {
   primaryColor: string
   secondaryColor: string
@@ -18,6 +25,7 @@ type AppTheme = {
     borderRightColor: string
     borderBottomColor: string
   },
+  surface: Surface
   interactiveBorderColor: string
   quizCardColor: string
   quizCardBackgroundColor: string
@@ -43,6 +51,10 @@ const APP_THEME: AppThemes = {
       borderRightColor: '#dddddd',
       borderBottomColor: '#dddddd',
     },
+    surface: {
+      backgroundColor: 'rgba(255, 255, 255, 0.5)',
+      borderColor: 'rgba(0, 0, 0, 0.12)',
+    },
     interactiveBorderColor: '#dddddd',
     quizCardBackgroundColor: '#ffffff',
     quizCardColor: '#7700ff',
@@ -63,6 +75,10 @@ const APP_THEME: AppThemes = {
       borderLeftColor: '#000000',
       borderRightColor: '#000000',
       borderBottomColor: '#000000',
+    },
+    surface: {
+      backgroundColor: 'rgba(255, 255, 255, 0.07)',
+      borderColor: 'rgba(255, 255, 255, 0.16)',
     },
     interactiveBorderColor: '#000000',
     quizCardBackgroundColor: '#2c2c33',
@@ -144,6 +160,7 @@ export {
   AppTheme,
   AppThemeName,
   AppThemes,
+  Surface,
   useAppThemeLoader,
   setAppThemeName,
   useAppTheme,
