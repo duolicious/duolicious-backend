@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DefaultText } from './default-text';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faLink } from '@fortawesome/free-solid-svg-icons/faLink';
+import { useAppTheme } from '../app-theme/app-theme';
 
 const SOMETHING_WENT_WRONG = "Something went wrong";
 
@@ -77,7 +78,9 @@ const Toast: React.FC = () => {
     const tail = toastQueue.slice(1);
 
     if (currentToast === null && head) {
-      setCurrentToast(head);
+      // `head` is a component; wrap it so React's setter stores it rather than
+      // invoking it as a state updater.
+      setCurrentToast(() => head);
       setToastQueue(tail);
     }
   }, [toastQueue.length, currentToast]);
@@ -128,6 +131,8 @@ const Toast: React.FC = () => {
 };
 
 const ToastContainer = ({children}: {children?: React.ReactNode}) => {
+  const { appTheme } = useAppTheme();
+
   return (
     <View
       style={{
@@ -135,7 +140,7 @@ const ToastContainer = ({children}: {children?: React.ReactNode}) => {
         marginHorizontal: 10,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'white',
+        backgroundColor: appTheme.primaryColor,
         borderRadius: 999,
         paddingVertical: 10,
         paddingHorizontal: 20,
@@ -156,11 +161,13 @@ const ToastContainer = ({children}: {children?: React.ReactNode}) => {
 };
 
 const SomethingWentWrongToast = () => {
+  const { appTheme } = useAppTheme();
+
   return (
     <ToastContainer>
       <DefaultText
         style={{
-          color: 'black',
+          color: appTheme.secondaryColor,
           fontWeight: '700',
           textAlign: 'center',
         }}
@@ -188,14 +195,18 @@ const ValidationErrorToast = ({error}: {error: string}) => {
 };
 
 const notifyLinkCopiedToast = (label: string) => {
-  const Toast: React.FC = () => (
-    <ToastContainer>
-      <FontAwesomeIcon icon={faLink} color="black" size={24} />
-      <DefaultText style={{ color: 'black', fontWeight: '700' }}>
-        {label}
-      </DefaultText>
-    </ToastContainer>
-  );
+  const Toast: React.FC = () => {
+    const { appTheme } = useAppTheme();
+
+    return (
+      <ToastContainer>
+        <FontAwesomeIcon icon={faLink} color={appTheme.secondaryColor} size={24} />
+        <DefaultText style={{ color: appTheme.secondaryColor, fontWeight: '700' }}>
+          {label}
+        </DefaultText>
+      </ToastContainer>
+    );
+  };
   notify<React.FC>('toast', Toast);
 };
 

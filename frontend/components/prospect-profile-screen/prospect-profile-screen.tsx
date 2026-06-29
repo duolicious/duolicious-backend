@@ -1322,15 +1322,14 @@ const ProspectUserDetails = ({
               icon={faUser}
               style={{
                 transform: [ { translateY: 2 } ],
-                marginRight: 6,
               }}
               color={metaColor}
             />
+            {'\u2002'}
             {[
               age,
               gender,
             ].filter(Boolean).join(' • ')}
-            {'\u2002'}
           </DefaultText>
           <DefaultText
             style={{
@@ -1344,10 +1343,10 @@ const ProspectUserDetails = ({
               icon={faLocationDot}
               style={{
                 transform: [ { translateY: 2 } ],
-                marginRight: 6,
               }}
               color={metaColor}
             />
+            {'\u2002'}
             {userLocation === null ? 'Private location' : userLocation}
           </DefaultText>
         </View>
