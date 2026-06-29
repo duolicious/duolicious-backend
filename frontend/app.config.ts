@@ -117,6 +117,8 @@ const config: ExpoConfig = {
     ],
     "expo-image",
     "expo-web-browser",
+    "expo-asset",
+    "expo-audio",
   ],
 };
 
