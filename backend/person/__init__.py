@@ -22,7 +22,7 @@ from person.template import otp_template
 import traceback
 import re
 from smtp import aws_smtp
-from webcompat import request, send_file
+from starlette.responses import Response
 from dataclasses import dataclass
 import psycopg
 from functools import lru_cache
@@ -240,15 +240,19 @@ def _send_otp(email: str, otp: str) -> None:
         from_addr='noreply-otp@duolicious.app',
     )
 
-def _check_ip_blocked() -> object:
-    if not request.remote_addr or firehol.matches(request.remote_addr):
+def _check_ip_blocked(remote_addr: Optional[str]) -> object:
+    if not remote_addr or firehol.matches(remote_addr):
         return 'IP address blocked', 460
     return None
 
-def _check_banned(tx: Tx, normalized_email: str) -> object:
+def _check_banned(
+    tx: Tx,
+    normalized_email: str,
+    remote_addr: Optional[str],
+) -> object:
     banned = tx.execute(Q_IS_BANNED, dict(
         normalized_email=normalized_email,
-        ip_address=request.remote_addr,
+        ip_address=remote_addr,
     )).fetchone()
     if banned:
         return 'Banned', 461
@@ -291,8 +295,11 @@ def _str_value(value: object, field_name: str) -> str:
     return value
 
 
-def post_request_otp(req: t.PostRequestOtp) -> object:
-    if blocked := _check_ip_blocked():
+def post_request_otp(
+    req: t.PostRequestOtp,
+    remote_addr: Optional[str],
+) -> object:
+    if blocked := _check_ip_blocked(remote_addr):
         return blocked
 
     if not check_and_update_bad_domains(req.email):
@@ -314,12 +321,12 @@ def post_request_otp(req: t.PostRequestOtp) -> object:
         pending_club_name=req.pending_club_name,
         is_dev=DUO_ENV == 'dev',
         session_token_hash=session_token_hash,
-        ip_address=request.remote_addr,
+        ip_address=remote_addr,
         answers=answers,
     )
 
     with api_tx() as tx:
-        if banned := _check_banned(tx, normalized):
+        if banned := _check_banned(tx, normalized, remote_addr):
             return banned
 
         rows = tx.execute(Q_INSERT_DUO_SESSION, params).fetchall()
@@ -337,8 +344,11 @@ def post_request_otp(req: t.PostRequestOtp) -> object:
 
     return dict(session_token=session_token)
 
-def post_resend_otp(s: t.SessionInfo) -> object:
-    if blocked := _check_ip_blocked():
+def post_resend_otp(
+    s: t.SessionInfo,
+    remote_addr: Optional[str],
+) -> object:
+    if blocked := _check_ip_blocked(remote_addr):
         return blocked
 
     normalized = normalize_email(s.email)
@@ -347,11 +357,11 @@ def post_resend_otp(s: t.SessionInfo) -> object:
         normalized_email=normalized,
         is_dev=DUO_ENV == 'dev',
         session_token_hash=s.session_token_hash,
-        ip_address=request.remote_addr,
+        ip_address=remote_addr,
     )
 
     with api_tx() as tx:
-        if banned := _check_banned(tx, normalized):
+        if banned := _check_banned(tx, normalized, remote_addr):
             return banned
         rows = tx.execute(Q_UPDATE_OTP, params).fetchall()
 
@@ -362,8 +372,12 @@ def post_resend_otp(s: t.SessionInfo) -> object:
     _send_otp(s.email, otp)
     return None
 
-def post_check_otp(req: t.PostCheckOtp, s: t.SessionInfo) -> object:
-    if blocked := _check_ip_blocked():
+def post_check_otp(
+    req: t.PostCheckOtp,
+    s: t.SessionInfo,
+    remote_addr: Optional[str],
+) -> object:
+    if blocked := _check_ip_blocked(remote_addr):
         return blocked
 
     params = dict(
@@ -406,13 +420,14 @@ def _sign_in_with_social(
     email: str,
     email_verified: bool,
     pending_club_name: Optional[str],
+    remote_addr: Optional[str],
 ) -> object:
     """
     Shared logic for /sign-in-with-google and /sign-in-with-apple. The
     caller is responsible for verifying the provider's JWT and passing
     canonical claim values.
     """
-    if blocked := _check_ip_blocked():
+    if blocked := _check_ip_blocked(remote_addr):
         return blocked
 
     session_token, session_token_hash = _new_session_token()
@@ -420,7 +435,7 @@ def _sign_in_with_social(
 
     with api_tx() as tx:
         # 0. Banned-person guard (mirrors `_OTP_CTE`).
-        if banned := _check_banned(tx, normalized):
+        if banned := _check_banned(tx, normalized, remote_addr):
             return banned
 
         # 1. Resolve to an existing person via (provider, sub) first; on
@@ -497,7 +512,7 @@ def _sign_in_with_social(
             person_id=person_id,
             email=email,
             pending_club_name=pending_club_name,
-            ip_address=request.remote_addr,
+            ip_address=remote_addr,
             pending_social_provider=pending_provider,
             pending_social_sub=pending_sub,
         ))
@@ -538,6 +553,7 @@ def post_sign_in_with_google(
     *,
     token: str,
     pending_club_name: Optional[str],
+    remote_addr: Optional[str],
 ) -> object:
     try:
         claims = verify_google_id_token(token)
@@ -550,6 +566,7 @@ def post_sign_in_with_google(
         email=claims.email,
         email_verified=claims.email_verified,
         pending_club_name=pending_club_name,
+        remote_addr=remote_addr,
     )
 
 def post_sign_in_with_apple(
@@ -557,6 +574,7 @@ def post_sign_in_with_apple(
     token: str,
     nonce: str,
     pending_club_name: Optional[str],
+    remote_addr: Optional[str],
 ) -> object:
     try:
         claims = verify_apple_identity_token(token, expected_nonce=nonce)
@@ -569,6 +587,7 @@ def post_sign_in_with_apple(
         email=claims.email,
         email_verified=claims.email_verified,
         pending_club_name=pending_club_name,
+        remote_addr=remote_addr,
     )
 
 def post_check_session_token(s: t.SessionInfo) -> object:
@@ -2340,16 +2359,15 @@ def get_export_data(token: str) -> object:
 
     exported_bytes = exported_string.encode()
 
-    exported_bytesio = io.BytesIO(exported_bytes)
-
-    return send_file(
-        exported_bytesio,
-        mimetype='text/json',
-        as_attachment=True,
-        download_name='export.json',
+    return Response(
+        content=exported_bytes,
+        media_type='text/json',
+        headers={
+            'Content-Disposition': 'attachment; filename="export.json"',
+        },
     )
 
-def post_revenuecat(req: t.PostRevenuecat) -> object:
+def post_revenuecat(req: t.PostRevenuecat, auth_header: str) -> object:
     def get_has_gold() -> Tuple[list[str], list[str]]:
         match req.event:
             case t.InitialPurchaseEvent(app_user_id=app_user_id):
@@ -2391,7 +2409,6 @@ def post_revenuecat(req: t.PostRevenuecat) -> object:
 
 
     try:
-        auth_header = request.headers.get("Authorization", "")
         bearer, revenuecat_token = auth_header.split()
         if bearer.lower() != 'bearer':
             raise Exception()

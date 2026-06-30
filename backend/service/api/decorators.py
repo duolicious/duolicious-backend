@@ -31,13 +31,6 @@ from limits import parse_many
 from limits.storage import storage_from_string
 from limits.strategies import FixedWindowRateLimiter
 
-from webcompat import (
-    RequestData,
-    g,
-    request,
-    reset_context,
-    set_context,
-)
 from antiabuse.antispam.signupemail import normalize_email
 from functools import lru_cache
 import sessioncache
@@ -117,7 +110,9 @@ def _enable_mocking(ttl_hash: int | None = None) -> bool:
 def enable_mocking() -> bool:
     return _enable_mocking(ttl_hash=round(time.time()))
 
-def disable_ip_rate_limit() -> bool:
+# `request` is accepted (and ignored) so these match the uniform
+# `exempt_when(request)` signature the rate limiter calls them with.
+def disable_ip_rate_limit(request: Request | None = None) -> bool:
     if not enable_mocking():
         return False
 
@@ -130,7 +125,7 @@ def disable_ip_rate_limit() -> bool:
 
     return False
 
-def disable_account_rate_limit() -> bool:
+def disable_account_rate_limit(request: Request | None = None) -> bool:
     if not enable_mocking():
         return False
 
@@ -157,28 +152,38 @@ def mock_ip_address() -> str | None:
 
     return None
 
-def _is_private_ip() -> bool:
+def client_ip(request: Request) -> str | None:
+    """The requesting client's IP, honouring X-Forwarded-For with a single
+    trusted hop (the right-most entry, matching the old werkzeug
+    ProxyFix(x_for=1)), falling back to the socket peer. No mock override —
+    this is the real address used for ban / firehol checks."""
+    xff = request.headers.get('x-forwarded-for')
+    if xff:
+        parts = [p.strip() for p in xff.split(',') if p.strip()]
+        if parts:
+            return parts[-1]
+    return request.client.host if request.client else None
+
+def _is_private_ip(request: Request) -> bool:
     """
-    Check if the given IP address is private.
-    :param ip: IP address in string format
-    :return: True if IP is private, False otherwise
+    Check if the requesting IP address is private.
     """
     if disable_ip_rate_limit():
         return True
 
-    _remote_addr = mock_ip_address() or request.remote_addr or "127.0.0.1"
+    _remote_addr = mock_ip_address() or client_ip(request) or "127.0.0.1"
 
     try:
         return ipaddress.ip_address(_remote_addr).is_private
     except ValueError:
         return False
 
-def _get_remote_address() -> str:
+def _get_remote_address(request: Request) -> str:
     """
-    :return: the ip address for the current request
-     (or 127.0.0.1 if none found)
+    :return: the ip address used for rate-limit keys for the current request
+     (mock-aware, or 127.0.0.1 if none found)
     """
-    return mock_ip_address() or request.remote_addr or "127.0.0.1"
+    return mock_ip_address() or client_ip(request) or "127.0.0.1"
 
 CORS_ORIGINS = os.environ.get('DUO_CORS_ORIGINS', '*')
 REDIS_HOST: str = os.environ.get("DUO_REDIS_HOST", "redis")
@@ -199,14 +204,25 @@ class RateLimitExceeded(Exception):
     pass
 
 
+LimitValue = str | Callable[[], str]
+ScopeArg = str | Callable[[], str] | None
+KeyFunc = Callable[[Request], str]
+ExemptWhen = Callable[[Request], bool]
+
+
 class _Limit:
+    """Decorator form of a rate limit, used to attach a shared/account limit to
+    a route (`limiter.shared_limit(...)` / `account_limiter`). The wrapped
+    endpoint receives `request` as its first argument, which is what the limit
+    is keyed on."""
+
     def __init__(
         self,
         limiter: 'Limiter',
-        limit_value: str | Callable[[], str],
-        scope: str | Callable[[], str] | None,
-        key_func: Callable[[], str] | None,
-        exempt_when: Callable[[], bool] | None,
+        limit_value: LimitValue,
+        scope: ScopeArg,
+        key_func: KeyFunc | None,
+        exempt_when: ExemptWhen | None,
     ) -> None:
         self._limiter = limiter
         self._limit_value = limit_value
@@ -214,37 +230,16 @@ class _Limit:
         self._key_func = key_func
         self._exempt_when = exempt_when
 
-    def _check(self) -> None:
-        if self._exempt_when is not None and self._exempt_when():
-            return
-
-        value = (
-            self._limit_value()
-            if callable(self._limit_value)
-            else self._limit_value)
-        scope = self._scope() if callable(self._scope) else self._scope
-        key = self._key_func() if self._key_func else _get_remote_address()
-
-        for item in parse_many(value):
-            if not self._limiter._strategy.hit(item, scope or '', key):
-                raise RateLimitExceeded()
-
-    # Context-manager form: `with limiter.limit(...):`
-    def __enter__(self) -> '_Limit':
-        self._check()
-        return self
-
-    def __exit__(self, *exc: object) -> None:
-        # Never suppress exceptions raised in the `with` body. (Returning a
-        # plain `bool` would let mypy treat the block as exception-swallowing,
-        # which then reports the enclosing handler as missing a return.)
-        return None
-
-    # Decorator form: `limiter.limit(...)(func)`
     def __call__(self, func: Endpoint) -> Endpoint:
-        def go(*args: object, **kwargs: object) -> object:
-            self._check()
-            return func(*args, **kwargs)
+        def go(request: Request, *args: object, **kwargs: object) -> object:
+            self._limiter.check(
+                request,
+                self._limit_value,
+                scope=self._scope,
+                key_func=self._key_func,
+                exempt_when=self._exempt_when,
+            )
+            return func(request, *args, **kwargs)
         return _set_endpoint_name(go, _endpoint_name(func))
 
 
@@ -266,40 +261,71 @@ class Limiter:
 
     def __init__(
         self,
-        key_func: Callable[[], str],
+        key_func: KeyFunc,
         default_limits: list[str],
         storage_uri: str,
-        default_limits_exempt_when: Callable[[], bool],
+        default_limits_exempt_when: ExemptWhen,
     ) -> None:
         self._default_key_func = key_func
         self._default_limits = default_limits
         self._default_exempt_when = default_limits_exempt_when
         self._strategy = FixedWindowRateLimiter(storage_from_string(storage_uri))
 
+    def _enforce(
+        self,
+        request: Request,
+        limit_value: LimitValue,
+        scope: ScopeArg,
+        key_func: KeyFunc | None,
+        exempt_when: ExemptWhen | None,
+    ) -> None:
+        if exempt_when is not None and exempt_when(request):
+            return
+
+        value = limit_value() if callable(limit_value) else limit_value
+        scope_str = scope() if callable(scope) else scope
+        key = key_func(request) if key_func else _get_remote_address(request)
+
+        for item in parse_many(value):
+            if not self._strategy.hit(item, scope_str or '', key):
+                raise RateLimitExceeded()
+
     def limit(
         self,
-        limit_value: str | Callable[[], str],
-        scope: str | Callable[[], str] | None = None,
-        key_func: Callable[[], str] | None = None,
-        exempt_when: Callable[[], bool] | None = None,
+        limit_value: LimitValue,
+        scope: ScopeArg = None,
+        key_func: KeyFunc | None = None,
+        exempt_when: ExemptWhen | None = None,
     ) -> _Limit:
         return _Limit(self, limit_value, scope, key_func, exempt_when)
 
     def shared_limit(
         self,
-        limit_value: str | Callable[[], str],
-        scope: str | Callable[[], str],
-        exempt_when: Callable[[], bool] | None = None,
+        limit_value: LimitValue,
+        scope: ScopeArg,
+        exempt_when: ExemptWhen | None = None,
     ) -> _Limit:
         return _Limit(self, limit_value, scope, None, exempt_when)
 
-    def check_default(self, endpoint_name: str) -> None:
+    def check(
+        self,
+        request: Request,
+        limit_value: LimitValue,
+        scope: ScopeArg = None,
+        key_func: KeyFunc | None = None,
+        exempt_when: ExemptWhen | None = None,
+    ) -> None:
+        """Inline rate-limit check used from within a handler (replaces the old
+        `with limiter.limit(...):` blocks). Raises `RateLimitExceeded`."""
+        self._enforce(request, limit_value, scope, key_func, exempt_when)
+
+    def check_default(self, request: Request, endpoint_name: str) -> None:
         """Apply the global per-endpoint default limits, keyed on the remote
         address (flask_limiter applies these to every non-exempt view)."""
-        if self._default_exempt_when is not None and self._default_exempt_when():
+        if self._default_exempt_when is not None and self._default_exempt_when(request):
             return
 
-        key = self._default_key_func()
+        key = self._default_key_func(request)
         for value in self._default_limits:
             for item in parse_many(value):
                 if not self._strategy.hit(item, endpoint_name, key):
@@ -328,9 +354,9 @@ shared_otp_limit = limiter.shared_limit(
     exempt_when=_is_private_ip,
 )
 
-def limiter_account() -> str:
-    email = getattr(g, 'normalized_email', None)
-    return email if isinstance(email, str) else _get_remote_address()
+def limiter_account(request: Request) -> str:
+    email = getattr(request.state, 'normalized_email', None)
+    return email if isinstance(email, str) else _get_remote_address(request)
 
 
 # ---------------------------------------------------------------------------
@@ -383,9 +409,9 @@ app.add_middleware(MaxBodySizeMiddleware, max_size=constants.MAX_CONTENT_LENGTH)
 #
 # Handlers return Flask-style values: dict/list (-> JSON), str (-> text/html),
 # None (-> empty body), `(body, status)` tuples, or a Starlette `Response`
-# (e.g. from send_file/redirect). We serialise JSON the way Flask's default
-# provider did (Decimal/UUID -> str, dates -> HTTP-date, sorted keys, trailing
-# newline) to keep responses byte-comparable for clients.
+# (e.g. a RedirectResponse or a file download). We serialise JSON the way Flask's
+# default provider did (Decimal/UUID -> str, dates -> HTTP-date, sorted keys,
+# trailing newline) to keep responses byte-comparable for clients.
 #
 # JSON is pretty-printed (indent=2, the same shape as `jq`'s output, which the
 # functionality test suite compares against). This is identical in dev and
@@ -500,22 +526,19 @@ def return_empty_string(func: Endpoint) -> Endpoint:
 
 def validate(RequestType: Callable | None) -> EndpointDecorator:
     def go2(func: Endpoint) -> Endpoint:
-        def go1(*args: object, **kwargs: object) -> object:
+        def go1(request: Request, *args: object, **kwargs: object) -> object:
             if RequestType is None:
-                return func(*args, **kwargs)
+                return func(request, *args, **kwargs)
             try:
-                j = request.get_json(silent=True)
-                files = request.files
-
+                j = request.state.json_body
                 j = j if j else {}
-                files_payload = { 'files': files } if files else {}
 
                 if isinstance(j, list):
-                    req = RequestType(*j, **files_payload)
+                    req = RequestType(*j)
                 elif isinstance(j, dict):
-                    req = RequestType(**{**j, **files_payload})
+                    req = RequestType(**j)
                 else:
-                    req = RequestType(j, **files_payload)
+                    req = RequestType(j)
             except ValidationError as e:
                 json_err = e.json(
                     include_url=False,
@@ -527,7 +550,7 @@ def validate(RequestType: Callable | None) -> EndpointDecorator:
             except Exception as e:
                 print(traceback.format_exc())
                 return str(e), 500
-            return func(req, *args, **kwargs)
+            return func(request, req, *args, **kwargs)
         return _set_endpoint_name(go1, _endpoint_name(func))
     return go2
 
@@ -555,11 +578,13 @@ def require_auth(
     def go2(func: Endpoint) -> Endpoint:
         rate_limited_func = account_limiter(func)
 
-        def call_anonymous(*args: object, **kwargs: object) -> object:
-            result = rate_limited_func(None, *args, **kwargs)
+        def call_anonymous(
+            request: Request, *args: object, **kwargs: object
+        ) -> object:
+            result = rate_limited_func(request, None, *args, **kwargs)
             return result if result is not None else ''
 
-        def go1(*args: object, **kwargs: object) -> object:
+        def go1(request: Request, *args: object, **kwargs: object) -> object:
             auth_header = (request.headers.get('Authorization') or '').lower()
             try:
                 bearer, session_token = auth_header.split()
@@ -567,7 +592,7 @@ def require_auth(
                     raise Exception()
             except:
                 if auth == 'optional':
-                    return call_anonymous(*args, **kwargs)
+                    return call_anonymous(request, *args, **kwargs)
                 return 'Missing or malformed authorization header', 400
 
             session_token_hash = sha512(session_token)
@@ -595,10 +620,10 @@ def require_auth(
                 )
 
             if session_info is not None:
-                g.normalized_email = normalize_email(session_info.email)
+                request.state.normalized_email = normalize_email(session_info.email)
             else:
                 if auth == 'optional':
-                    return call_anonymous(*args, **kwargs)
+                    return call_anonymous(request, *args, **kwargs)
                 return 'Invalid session token', 401
 
             is_onboarded = session_info.person_id is not None
@@ -615,7 +640,7 @@ def require_auth(
                 expected_sign_in_status == is_signed_in)
 
             if has_expected_onboarding_status and has_expected_sign_in_status:
-                result = rate_limited_func(session_info, *args, **kwargs)
+                result = rate_limited_func(request, session_info, *args, **kwargs)
                 return result if result is not None else ''
             else:
                 # A token that fails the onboarding/sign-in expectations is
@@ -623,7 +648,7 @@ def require_auth(
                 # Otherwise a half-onboarded user couldn't see public
                 # endpoints they're entitled to, which would be surprising.
                 if auth == 'optional':
-                    return call_anonymous(*args, **kwargs)
+                    return call_anonymous(request, *args, **kwargs)
                 return 'Unauthorized', 401
 
         return _set_endpoint_name(go1, _endpoint_name(func))
@@ -665,39 +690,38 @@ def _register(
     path = _flask_rule_to_starlette(rule)
     endpoint_name = _endpoint_name(wrapped)
 
-    def _dispatch_sync(data: RequestData) -> Response:
-        tokens = set_context(data)
+    def _dispatch_sync(request: Request) -> Response:
         try:
+            if not skip_default:
+                limiter.check_default(request, endpoint_name)
+            result = wrapped(request, **request.path_params)
+        except RateLimitExceeded:
+            return _make_response(('Too Many Requests', 429))
+        return _make_response(result)
+
+    async def asgi_endpoint(request: Request) -> Response:
+        # Handlers are synchronous and run in a threadpool, so the request body
+        # (an async read) is consumed up-front and the parsed forms stashed on
+        # `request.state` for the sync code to read.
+        raw_body = await request.body()
+
+        json_body: object = None
+        if raw_body:
             try:
-                if not skip_default:
-                    limiter.check_default(endpoint_name)
-                result = wrapped(**data.path_params)
-            except RateLimitExceeded:
-                return _make_response(('Too Many Requests', 429))
-            return _make_response(result)
-        finally:
-            reset_context(tokens)
+                json_body = json.loads(raw_body)
+            except Exception:
+                json_body = None
 
-    async def asgi_endpoint(req: Request) -> Response:
-        raw_body = await req.body()
-
-        form = None
-        content_type = req.headers.get('content-type', '')
+        form: dict = {}
+        content_type = request.headers.get('content-type', '')
         if 'application/x-www-form-urlencoded' in content_type:
             form = dict(parse_qsl(
                 raw_body.decode('utf-8', 'ignore'), keep_blank_values=True))
 
-        data = RequestData(
-            method=req.method,
-            query_params=req.query_params,
-            headers=req.headers,
-            client_host=req.client.host if req.client else None,
-            raw_body=raw_body,
-            form=form,
-            path_params=dict(req.path_params),
-        )
+        request.state.json_body = json_body
+        request.state.form = form
 
-        return await run_in_threadpool(_dispatch_sync, data)
+        return await run_in_threadpool(_dispatch_sync, request)
 
     app.router.routes.append(
         Route(path, asgi_endpoint, methods=[method]))
