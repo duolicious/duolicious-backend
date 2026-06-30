@@ -1,8 +1,23 @@
--- Gold-only "Show My 'Looking For'" privacy setting. Defaults to TRUE so
--- existing profiles keep showing their "Looking For" section until the owner
--- turns it off.
-ALTER TABLE person
-    ADD COLUMN IF NOT EXISTS show_my_looking_for BOOLEAN NOT NULL DEFAULT TRUE;
-
-ALTER TABLE mam_message
-    ADD COLUMN IF NOT EXISTS reaction TEXT;
+CREATE OR REPLACE FUNCTION
+    mark_club_stats_dirty()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        INSERT INTO club_stats_dirty (club_name)
+        SELECT OLD.club_name
+        WHERE EXISTS (SELECT 1 FROM club WHERE name = OLD.club_name)
+        ON CONFLICT DO NOTHING;
+        RETURN OLD;
+    ELSIF TG_OP = 'UPDATE' THEN
+        IF OLD.activated IS DISTINCT FROM NEW.activated THEN
+            INSERT INTO club_stats_dirty (club_name) VALUES (NEW.club_name)
+            ON CONFLICT DO NOTHING;
+        END IF;
+        RETURN NEW;
+    ELSE
+        INSERT INTO club_stats_dirty (club_name) VALUES (NEW.club_name)
+        ON CONFLICT DO NOTHING;
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;

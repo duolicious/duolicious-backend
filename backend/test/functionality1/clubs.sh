@@ -228,6 +228,40 @@ banned_clubs () {
   ! jc POST /join-club -d '{ "name": "did you know I HATE MINORITIES" }' || exit 1
 }
 
+deleting_populated_banned_club () {
+  echo "A populated club whose name gets banned is deleted without a FK violation"
+
+  q "delete from person"
+  q "delete from person_club"
+  q "delete from club_stats_dirty"
+  q "delete from club"
+
+  ../util/create-user.sh user1 0 0
+  ../util/create-user.sh user2 0 0
+
+  assume_role user1
+  jc POST /join-club -d '{ "name": "soon-banned-club" }'
+
+  assume_role user2
+  jc POST /join-club -d '{ "name": "soon-banned-club" }'
+
+  [[ "$(q "select count(*) from club where name = 'soon-banned-club'")" == "1" ]]
+
+  q "insert into banned_club (name) values ('soon-banned-club') on conflict do nothing"
+
+  # Mirrors the cleanup at the end of banned-club.sql. Deleting the club
+  # cascades to its person_club rows, firing trigger_mark_club_stats_dirty;
+  # the trigger must not re-reference the club row being deleted in the same
+  # statement, or this raises a foreign key violation.
+  out=$(q "delete from club using banned_club where club.name = banned_club.name" 2>&1)
+  ! grep -qiE 'error|violat' <<< "$out" || { echo "$out"; exit 1; }
+
+  [[ "$(q "select count(*) from club where name = 'soon-banned-club'")" == "0" ]]
+  [[ "$(q "select count(*) from club_stats_dirty where club_name = 'soon-banned-club'")" == "0" ]]
+
+  q "delete from banned_club where name = 'soon-banned-club'"
+}
+
 empty_club_search_string () {
   echo 'An empty search string returns the most popular clubs'
 
@@ -337,4 +371,5 @@ club_quota_with_gold
 club_count_when_deleted
 club_count_when_activated_or_deactivated
 banned_clubs
+deleting_populated_banned_club
 club_name_with_colon

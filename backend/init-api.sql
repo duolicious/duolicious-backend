@@ -1605,7 +1605,9 @@ CREATE OR REPLACE FUNCTION
 RETURNS TRIGGER AS $$
 BEGIN
     IF TG_OP = 'DELETE' THEN
-        INSERT INTO club_stats_dirty (club_name) VALUES (OLD.club_name)
+        INSERT INTO club_stats_dirty (club_name)
+        SELECT OLD.club_name
+        WHERE EXISTS (SELECT 1 FROM club WHERE name = OLD.club_name)
         ON CONFLICT DO NOTHING;
         RETURN OLD;
     ELSIF TG_OP = 'UPDATE' THEN
