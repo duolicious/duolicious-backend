@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Optional
-from flask import request
+from webcompat import request
 import duotypes as t
 import location
 import person

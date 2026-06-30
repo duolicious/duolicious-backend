@@ -22,7 +22,7 @@ from person.template import otp_template
 import traceback
 import re
 from smtp import aws_smtp
-from flask import request, send_file
+from webcompat import request, send_file
 from dataclasses import dataclass
 import psycopg
 from functools import lru_cache

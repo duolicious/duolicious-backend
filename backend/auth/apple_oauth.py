@@ -35,7 +35,7 @@ Env vars:
 import os
 from typing import Optional
 
-from flask import redirect
+from webcompat import redirect
 
 from util import append_query
 
