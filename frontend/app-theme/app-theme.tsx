@@ -31,6 +31,9 @@ type AppTheme = {
   quizCardBackgroundColor: string
   speechBubbleOtherUserBackgroundColor: string
   speechBubbleOtherUserColor: string
+  reactionBarBackgroundColor: string
+  reactionBarBorderColor: string
+  reactionSelectedBackgroundColor: string
   brandColor: string
   avatarBackgroundColor: string
   avatarColor: string
@@ -60,6 +63,9 @@ const APP_THEME: AppThemes = {
     quizCardColor: '#7700ff',
     speechBubbleOtherUserBackgroundColor: '#eeeeee',
     speechBubbleOtherUserColor: '#000000',
+    reactionBarBackgroundColor: '#ffffff',
+    reactionBarBorderColor: '#cccccc',
+    reactionSelectedBackgroundColor: '#ebd9ff',
     brandColor: '#7700ff',
     avatarBackgroundColor: '#f1e5ff',
     avatarColor: 'rgba(119, 0, 255, 0.2)',
@@ -85,6 +91,9 @@ const APP_THEME: AppThemes = {
     quizCardColor: '#000000',
     speechBubbleOtherUserBackgroundColor: '#2a2b35',
     speechBubbleOtherUserColor: '#ffffff',
+    reactionBarBackgroundColor: '#3a3b45',
+    reactionBarBorderColor: '#54555f',
+    reactionSelectedBackgroundColor: '#5d5e66',
     brandColor: '#ffffff',
     avatarBackgroundColor: '#2a2b35',
     avatarColor: '#ffffff',

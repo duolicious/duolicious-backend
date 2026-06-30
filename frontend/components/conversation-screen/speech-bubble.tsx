@@ -18,6 +18,10 @@ import { isMobile } from '../../util/util';
 import { AudioPlayer } from '../audio-player';
 import { MessageStatus } from '../../chat/application-layer';
 import { useMessage } from '../../chat/application-layer/hooks/message';
+import {
+  sendReactionAndNotify,
+  useReaction,
+} from '../../chat/application-layer/hooks/reaction';
 import { onReceiveMessage, Message } from '../../chat/application-layer';
 import { Gesture, GestureDetector, HandlerStateChangeEvent, TapGestureHandler, TapGestureHandlerEventPayload, State } from 'react-native-gesture-handler';
 import Animated, {
@@ -42,6 +46,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootParamList } from '../../navigation/linking';
 import { assertNever, formatCount } from '../../util/util';
 import { useAppTheme } from '../../app-theme/app-theme';
+import {
+  ReactionChip,
+  ReactionMenu,
+} from './reaction-controls';
+import { useAnchorMeasurement } from '../anchored-overlay';
 
 const currentUserBackgroundColor = '#70f';
 
@@ -288,9 +297,53 @@ const SpeechBubble = ({
 
   const [isHovering, setIsHovering] = useState(false);
   const [doShowTimestamp, setDoShowTimestamp] = useState(false);
+  const [showReactionBar, setShowReactionBar] = useState(false);
   const [speechBubbleImageError, setSpeechBubbleImageError] = useState(false);
+  const {
+    anchor: reactionAnchor,
+    anchorRef: reactionAnchorRef,
+    measureAnchor: measureReactionAnchor,
+  } = useAnchorMeasurement();
   const message = useMessage(messageId);
   const [signedInUser] = useSignedInUser();
+
+  const chatMessage =
+    message && message.message.type !== 'typing'
+      ? message.message
+      : undefined;
+
+  const mamId = chatMessage?.mamId;
+
+  const reaction = useReaction(mamId);
+
+  const canReact = !!chatMessage && !chatMessage.fromCurrentUser && !!mamId;
+
+  const pickReaction = useCallback((emoji: string) => {
+    setShowReactionBar(false);
+
+    if (!mamId) {
+      return;
+    }
+
+    const next = reaction?.emoji === emoji ? '' : emoji;
+
+    sendReactionAndNotify(mamId, next);
+  }, [mamId, reaction?.emoji]);
+
+  const clearOwnReaction = useCallback(() => {
+    if (!mamId || reaction?.reactionFrom !== 'self') {
+      return;
+    }
+
+    sendReactionAndNotify(mamId, '');
+  }, [mamId, reaction?.reactionFrom]);
+
+  const openReactionBar = useCallback(() => {
+    haptics();
+
+    measureReactionAnchor();
+    setShowReactionBar(true);
+  }, [measureReactionAnchor]);
 
   const doRenderUrlAsImage = (
     message &&
@@ -323,6 +376,7 @@ const SpeechBubble = ({
     : appTheme.speechBubbleOtherUserColor;
 
   const showTimestamp = useCallback(() => {
+    setShowReactionBar(false);
     setDoShowTimestamp(t => !t);
   }, [setDoShowTimestamp]);
 
@@ -387,7 +441,15 @@ const SpeechBubble = ({
       runOnJS(showTimestamp)()
     });
 
-  const gesture = Gesture.Exclusive(pan, tap);
+  const longPress = Gesture
+    .LongPress()
+    .enabled(isMobile() && canReact)
+    .minDuration(300)
+    .onStart(() => {
+      runOnJS(openReactionBar)()
+    });
+
+  const gesture = Gesture.Exclusive(longPress, pan, tap);
 
   const gestureStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
@@ -425,119 +487,151 @@ const SpeechBubble = ({
         },
       ]}
     >
-      <GestureDetector
-        gesture={gesture}
-        touchAction="pan-y"
+      <View
+        style={{
+          position: 'relative',
+          width: '100%',
+          alignItems: message.message.fromCurrentUser ? 'flex-end' : 'flex-start',
+          zIndex: showReactionBar || isHovering ? 1 : 0,
+        }}
+        /* @ts-ignore */
+        onContextMenu={
+          canReact && isMobile() && Platform.OS === 'web'
+            ? (e: any) => e.preventDefault() // eslint-disable-line @typescript-eslint/no-explicit-any
+            : undefined
+        }
       >
-        <Animated.View
-          style={[
-            {
-              flexDirection: 'row',
-              gap: 5,
-              alignItems: 'flex-end',
-              ...(doRenderUrlAsImage ? {
-                width: '66%',
-              }: {
-                maxWidth: '80%',
-              })
-            },
-            animatedContainerStyle,
-            gestureStyle
-          ]}
+        <ReactionMenu
+          visible={canReact && (showReactionBar || (isHovering && !isMobile()))}
+          showDismissLayer={canReact && showReactionBar}
+          anchor={reactionAnchor}
+          selected={reaction?.emoji}
+          onPick={pickReaction}
+          onDismiss={() => setShowReactionBar(false)}
+          onHoverChange={isMobile() ? undefined : setIsHovering}
+        />
+        <GestureDetector
+          gesture={gesture}
+          touchAction="pan-y"
         >
-          {!message.message.fromCurrentUser && avatarUuid &&
-            <Image
-              source={{ uri: `${IMAGES_URL}/450-${avatarUuid}.jpg` }}
-              transition={150}
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: 9999,
-              }}
-            />
-          }
-          {message.message.type === 'chat-text' &&
-            <View
-              style={{
-                borderRadius: 10,
-                backgroundColor: backgroundColor,
-                gap: 10,
+          <Animated.View
+            ref={reactionAnchorRef}
+            style={[
+              {
+                flexDirection: 'row',
+                gap: 5,
+                alignItems: 'flex-end',
                 ...(doRenderUrlAsImage ? {
-                  width: '100%',
+                  width: '66%',
                 }: {
-                  padding: 10,
-                  flexShrink: 1,
-                }),
-                overflow: 'hidden',
-              }}
-              /* @ts-ignore */
-              onMouseEnter={() => setIsHovering(true)}
-              onMouseLeave={() => setIsHovering(false)}
-              /* @ts-ignore */
-              onClick={isMobile() ? undefined : () => {
-                if (window.getSelection()?.toString()) {
-                  return;
-                }
-                showTimestamp();
-              }}
-            >
-              {doRenderUrlAsImage &&
-                <AutoResizingGif
-                  uri={message.message.text}
-                  onError={() => setSpeechBubbleImageError(true)}
-                  requirePress={isMobile()}
-                />
-              }
-              {!doRenderUrlAsImage &&
-                <FormattedText
-                  text={message.message.text}
-                  color={textColor}
-                  fontSize={isEmojiOnly(message.message.text) ? 50 : defaultFontSize}
-                />
-              }
-              {!doRenderUrlAsImage && !isMobile() &&
-                <View
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    right: 0,
-                    height: 32,
-                    width: 32,
-                    opacity: isHovering ? 1 : 0,
-                    borderBottomLeftRadius: 10,
-                    backgroundColor,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                  }}
-                  /* @ts-ignore */
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setQuoteToThisSpeechBubble();
-                  }}
-                >
-                  <FontAwesomeIcon
-                    icon={faReply}
-                    size={20}
-                    color={textColor}
-                    style={{
-                      /* @ts-ignore */
-                      outline: 'none',
-                    }}
+                  maxWidth: '80%',
+                })
+              },
+              animatedContainerStyle,
+              gestureStyle
+            ]}
+          >
+            {!message.message.fromCurrentUser && avatarUuid &&
+              <Image
+                source={{ uri: `${IMAGES_URL}/450-${avatarUuid}.jpg` }}
+                transition={150}
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 9999,
+                }}
+              />
+            }
+            {message.message.type === 'chat-text' &&
+              <View
+                style={{
+                  borderRadius: 10,
+                  backgroundColor: backgroundColor,
+                  gap: 10,
+                  ...(doRenderUrlAsImage ? {
+                    width: '100%',
+                  }: {
+                    padding: 10,
+                    flexShrink: 1,
+                  }),
+                  overflow: 'hidden',
+                }}
+                /* @ts-ignore */
+                onMouseEnter={() => setIsHovering(true)}
+                onMouseLeave={() => setIsHovering(false)}
+                /* @ts-ignore */
+                onClick={isMobile() ? undefined : () => {
+                  if (window.getSelection()?.toString()) {
+                    return;
+                  }
+                  showTimestamp();
+                }}
+              >
+                {doRenderUrlAsImage &&
+                  <AutoResizingGif
+                    uri={message.message.text}
+                    onError={() => setSpeechBubbleImageError(true)}
+                    requirePress={isMobile()}
                   />
-                </View>
-              }
-            </View>
-          }
-          {message.message.type === 'chat-audio' &&
-            <AudioPlayer
-              sending={message.status === 'sending'}
-              uuid={message.message.audioUuid}
-              presentation="conversation"
-            />
-          }
-        </Animated.View>
-      </GestureDetector>
+                }
+                {!doRenderUrlAsImage &&
+                  <FormattedText
+                    text={message.message.text}
+                    color={textColor}
+                    fontSize={isEmojiOnly(message.message.text) ? 50 : defaultFontSize}
+                  />
+                }
+                {!doRenderUrlAsImage && !isMobile() &&
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      height: 32,
+                      width: 32,
+                      opacity: isHovering ? 1 : 0,
+                      borderBottomLeftRadius: 10,
+                      backgroundColor,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                    }}
+                    /* @ts-ignore */
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setQuoteToThisSpeechBubble();
+                    }}
+                  >
+                    <FontAwesomeIcon
+                      icon={faReply}
+                      size={20}
+                      color={textColor}
+                      style={{
+                        /* @ts-ignore */
+                        outline: 'none',
+                      }}
+                    />
+                  </View>
+                }
+              </View>
+            }
+            {message.message.type === 'chat-audio' &&
+              <AudioPlayer
+                sending={message.status === 'sending'}
+                uuid={message.message.audioUuid}
+                presentation="conversation"
+              />
+            }
+          </Animated.View>
+        </GestureDetector>
+      </View>
+      {reaction &&
+        <ReactionChip
+          emoji={reaction.emoji}
+          alignSelf={message.message.fromCurrentUser ? 'flex-end' : 'flex-start'}
+          onPress={reaction.reactionFrom === 'self' ? clearOwnReaction : undefined}
+        />
+      }
       {doShowTimestamp &&
         <DefaultText
           selectable={true}
