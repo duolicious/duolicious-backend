@@ -360,16 +360,17 @@ async def _get_public_search() -> Sequence[object]:
         return await row_tx.fetchall()
 
 
-def get_feed(s: t.SessionInfo, before: datetime) -> object:
+async def get_feed(s: t.SessionInfo, before: datetime) -> object:
     params = dict(
         searcher_person_id=s.person_id,
         before=before,
     )
 
-    with api_tx('READ COMMITTED') as tx:
-        tx.execute('SET LOCAL jit = off')
-        tx.execute("SET LOCAL work_mem = '32MB'")
+    async with async_api_tx('READ COMMITTED') as tx:
+        await tx.execute('SET LOCAL jit = off')
+        await tx.execute("SET LOCAL work_mem = '32MB'")
 
-        rows = tx.execute(Q_FEED, params).fetchall()
+        row_tx = await tx.execute(Q_FEED, params)
+        rows = await row_tx.fetchall()
 
     return [row['j'] for row in rows]

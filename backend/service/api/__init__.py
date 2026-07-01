@@ -711,13 +711,18 @@ async def get_update_notifications(
         frequency=request.query_params.get('frequency', ''),
     )
 
-@aget('/feed')
-def get_feed(request: Request, s: t.SessionInfo) -> object:
+@app.get('/feed')
+@duo_route
+async def get_feed(
+    request: Request,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('get_feed')),
+) -> object:
     valid_datetime = t.ValidDatetime.model_validate(
         {'datetime': request.query_params.get('before')}
     )
 
-    return search.get_feed(s=s, before=valid_datetime.datetime)
+    return await search.get_feed(s=s, before=valid_datetime.datetime)
 
 @apost('/verification-selfie')
 @validate(t.PostVerificationSelfie)
