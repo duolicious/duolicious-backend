@@ -90,7 +90,7 @@ WHERE session_token_hash = %(session_token_hash)s
 """
 
 
-async def post_answer_async(req: t.PostAnswer, s: t.SessionInfo) -> object | None:
+async def post_answer(req: t.PostAnswer, s: t.SessionInfo) -> object | None:
     if s.person_id is None:
         return '', 500
 
@@ -104,20 +104,20 @@ async def post_answer_async(req: t.PostAnswer, s: t.SessionInfo) -> object | Non
         await tx.execute(Q_ADD_YES_NO_COUNT, params_add_yes_no_count)
 
     async with async_api_tx() as tx:
-        await _set_answer_async(
+        await _set_answer(
             tx, s.person_id, req.question_id, req.answer, req.public, delete=False)
     return None
 
-async def delete_answer_async(req: t.DeleteAnswer, s: t.SessionInfo) -> object | None:
+async def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo) -> object | None:
     if s.person_id is None:
         return '', 500
 
     async with async_api_tx() as tx:
-        await _set_answer_async(
+        await _set_answer(
             tx, s.person_id, req.question_id, None, None, delete=True)
     return None
 
-async def _set_answer_async(
+async def _set_answer(
     tx: AsyncTx,
     person_id: int,
     question_id: int,
@@ -183,7 +183,7 @@ async def _set_answer_async(
     ))
 
 
-async def _flush_session_answers_async(
+async def _flush_session_answers(
     tx: AsyncTx,
     session_token_hash: str,
     person_id: int,
@@ -206,7 +206,7 @@ async def _flush_session_answers_async(
             add_no=1 if answer['answer'] is False else 0,
         ))
 
-        await _set_answer_async(
+        await _set_answer(
             tx,
             person_id,
             answer['question_id'],

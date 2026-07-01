@@ -33,7 +33,7 @@ OFFSET
 """
 
 
-async def sign_out_async(session_token_hashes: Iterable[str]) -> None:
+async def sign_out(session_token_hashes: Iterable[str]) -> None:
     """Async counterpart to `sign_out` for native FastAPI routes."""
     hashes = [h for h in session_token_hashes if h]
     if not hashes:
@@ -46,7 +46,7 @@ async def sign_out_async(session_token_hashes: Iterable[str]) -> None:
         await run_in_threadpool(sessioncache.delete_session, session_token_hash)
 
 
-async def enforce_session_limit_async(
+async def enforce_session_limit(
     person_id: int | None,
     current_session_token_hash: object,
 ) -> None:
@@ -64,4 +64,4 @@ async def enforce_session_limit_async(
         ))
         over_limit: list[AsyncRow] = await over_limit_tx.fetchall()
 
-    await sign_out_async(row['session_token_hash'] for row in over_limit)
+    await sign_out(row['session_token_hash'] for row in over_limit)

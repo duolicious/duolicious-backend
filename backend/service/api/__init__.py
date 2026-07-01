@@ -5,7 +5,7 @@ from fastapi import Body, Depends, Path as FastApiPath
 from starlette.requests import Request
 from starlette.concurrency import run_in_threadpool
 import duotypes as t
-from antiabuse.lodgereport import skip_by_uuid_async
+from antiabuse.lodgereport import skip_by_uuid
 import location
 import person
 import qanda
@@ -329,7 +329,7 @@ async def get_next_questions(
     s: t.SessionInfo = Depends(require_session()),
     _default_limited: None = Depends(default_rate_limit('get_next_questions')),
 ) -> object:
-    return await question.get_next_questions_async(
+    return await question.get_next_questions(
         s=s,
         n=request.query_params.get('n', '10'),
         o=request.query_params.get('o', '0'),
@@ -341,7 +341,7 @@ async def get_public_next_questions(
     request: Request,
     _default_limited: None = Depends(default_rate_limit('get_public_next_questions')),
 ) -> object:
-    return await question.get_public_next_questions_async(
+    return await question.get_public_next_questions(
         n=request.query_params.get('n', '10'),
         o=request.query_params.get('o', '0'),
     )
@@ -354,7 +354,7 @@ async def post_answer(
     s: t.SessionInfo = Depends(require_session()),
     _default_limited: None = Depends(default_rate_limit('post_answer')),
 ) -> object:
-    return await qanda.post_answer_async(req, s)
+    return await qanda.post_answer(req, s)
 
 @app.delete('/answer')
 @duo_route
@@ -364,7 +364,7 @@ async def delete_answer(
     s: t.SessionInfo = Depends(require_session()),
     _default_limited: None = Depends(default_rate_limit('delete_answer')),
 ) -> object:
-    return await qanda.delete_answer_async(req, s)
+    return await qanda.delete_answer(req, s)
 
 @app.get('/search')
 @duo_route
@@ -407,7 +407,7 @@ async def get_search(
             exempt_when=disable_account_rate_limit,
         )
 
-    return await search.get_search_async(s=s, n=n, o=o, club=club)
+    return await search.get_search(s=s, n=n, o=o, club=club)
 
 @app.get('/public-search')
 @duo_route
@@ -415,7 +415,7 @@ async def get_public_search(
     request: Request,
     _default_limited: None = Depends(default_rate_limit('get_public_search')),
 ) -> object:
-    return await search.get_public_search_async(
+    return await search.get_public_search(
         n=request.query_params.get('n'),
         o=request.query_params.get('o'),
         answers=request.query_params.get('answers'),
@@ -434,7 +434,7 @@ async def get_prospect_profile(
     s: Optional[t.SessionInfo] = Depends(optional_require_session()),
     _default_limited: None = Depends(default_rate_limit('get_prospect_profile')),
 ) -> object:
-    return await person.get_prospect_profile_async(s, prospect_handle)
+    return await person.get_prospect_profile(s, prospect_handle)
 
 @app.get('/conversation-prospect/{prospect_uuid}')
 @duo_route
@@ -444,7 +444,7 @@ async def get_conversation_prospect(
     s: t.SessionInfo = Depends(require_session()),
     _default_limited: None = Depends(default_rate_limit('get_conversation_prospect')),
 ) -> object:
-    return await person.get_conversation_prospect_async(s, prospect_uuid)
+    return await person.get_conversation_prospect(s, prospect_uuid)
 
 @app.post('/skip/by-uuid/{prospect_uuid}')
 @duo_route
@@ -473,7 +473,7 @@ async def post_skip_by_uuid(
             key_func=limiter_account,
             exempt_when=disable_account_rate_limit)
 
-    await skip_by_uuid_async(
+    await skip_by_uuid(
         subject_uuid=cast(str, s.person_uuid),
         object_uuid=prospect_uuid,
         reason=req.report_reason or '',
@@ -536,7 +536,7 @@ async def delete_account(
     s: t.SessionInfo = Depends(require_session()),
     _default_limited: None = Depends(default_rate_limit('delete_account')),
 ) -> object:
-    return await person.delete_or_ban_account_async(s=s)
+    return await person.delete_or_ban_account(s=s)
 
 @app.post('/deactivate')
 @duo_route
@@ -632,7 +632,7 @@ async def get_search_clubs(
     s: t.SessionInfo = Depends(require_session()),
     _default_limited: None = Depends(default_rate_limit('get_search_clubs')),
 ) -> object:
-    return await person.get_search_clubs_async(
+    return await person.get_search_clubs(
         s=s,
         search_str=request.query_params.get('q', ''),
     )
@@ -645,7 +645,7 @@ async def get_search_public_clubs(
         default_rate_limit('get_search_public_clubs')
     ),
 ) -> object:
-    return await person.get_search_clubs_async(
+    return await person.get_search_clubs(
         s=None,
         search_str=request.query_params.get('q', ''),
         allow_empty=True,

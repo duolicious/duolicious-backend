@@ -222,7 +222,7 @@ def init_db() -> None:
                 """
             )
 
-async def get_next_questions_async(s: t.SessionInfo, n: str, o: str) -> object:
+async def get_next_questions(s: t.SessionInfo, n: str, o: str) -> object:
     params = dict(
         person_id=s.person_id,
         n=int(n),
@@ -233,7 +233,7 @@ async def get_next_questions_async(s: t.SessionInfo, n: str, o: str) -> object:
         row_tx = await tx.execute(Q_GET_NEXT_QUESTIONS, params)
         return await row_tx.fetchall()
 
-async def get_public_next_questions_async(n: str, o: str) -> object:
+async def get_public_next_questions(n: str, o: str) -> object:
     params = dict(
         n=int(n),
         o=int(o),

@@ -4,8 +4,8 @@ from database.asyncdatabase import Row as AsyncRow, Tx as AsyncTx, api_tx as asy
 from collections.abc import Mapping, Sequence
 from typing import Optional, Tuple, Literal, cast
 from urlslug import (
-    assign_url_slug_async,
-    reserve_onboardee_url_slug_async,
+    assign_url_slug,
+    reserve_onboardee_url_slug,
 )
 import duotypes as t
 import json
@@ -20,9 +20,9 @@ import asyncboto
 from person.sql import *
 from search.sql import *
 from commonsql import *
-from qanda import _flush_session_answers_async
+from qanda import _flush_session_answers
 from constants import VISITOR_ONLINE_TIMEOUT_SECONDS
-from visitorspush import publish_visit_async
+from visitorspush import publish_visit
 from person.template import otp_template
 import traceback
 import re
@@ -43,7 +43,7 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 from duoaudio import put_audio_in_object_store_async
 from person.aboutdiff import diff_addition_with_context
-from auth.session import sign_out_async, enforce_session_limit_async
+from auth.session import sign_out, enforce_session_limit
 from auth.social import (
     SocialAuthError,
     verify_apple_identity_token,
@@ -229,7 +229,7 @@ async def put_image_in_object_store(
         for key, img in key_img
     ])
 
-async def _has_gold_async(person_id: int) -> bool:
+async def _has_gold(person_id: int) -> bool:
     async with async_api_tx() as tx:
         row = await tx.require_one(Q_HAS_GOLD, dict(person_id=person_id))
     return row.get('has_gold', False)
@@ -265,7 +265,7 @@ def _otp_from_rows(rows: Sequence[Mapping[str, object]]) -> str | None:
     except:
         return None
 
-async def _handle_pending_club_async(
+async def _handle_pending_club(
     tx: AsyncTx,
     person_id: int | None,
     pending_club_name: str | None,
@@ -396,18 +396,18 @@ async def post_check_otp(
         if not row:
             return 'Invalid OTP', 401
 
-        clubs = await _handle_pending_club_async(
+        clubs = await _handle_pending_club(
             tx, s.person_id, s.pending_club_name)
 
         await tx.execute(Q_UPDATE_LAST, dict(person_uuid=row['person_uuid']))
 
         if row['person_id'] is not None:
-            await _flush_session_answers_async(
+            await _flush_session_answers(
                 tx, s.session_token_hash, row['person_id'])
 
     await run_in_threadpool(sessioncache.delete_session, s.session_token_hash)
 
-    await enforce_session_limit_async(row['person_id'], s.session_token_hash)
+    await enforce_session_limit(row['person_id'], s.session_token_hash)
 
     return dict(
         onboarded=row['person_id'] is not None,
@@ -416,9 +416,9 @@ async def post_check_otp(
     )
 
 async def post_sign_out(s: t.SessionInfo) -> None:
-    await sign_out_async([s.session_token_hash])
+    await sign_out([s.session_token_hash])
 
-async def _sign_in_with_social_async(
+async def _sign_in_with_social(
     provider: str,
     sub: str,
     email: str,
@@ -520,13 +520,13 @@ async def _sign_in_with_social_async(
                 name=None,
             )
 
-        clubs = await _handle_pending_club_async(
+        clubs = await _handle_pending_club(
             tx, person_id, pending_club_name)
 
         if profile.get('person_uuid'):
             await tx.execute(Q_UPDATE_LAST, dict(person_uuid=profile['person_uuid']))
 
-    await enforce_session_limit_async(person_id, session_token_hash)
+    await enforce_session_limit(person_id, session_token_hash)
 
     return dict(
         session_token=session_token,
@@ -546,7 +546,7 @@ async def post_sign_in_with_google(
     except SocialAuthError as e:
         return f'Invalid Google token: {e}', 401
 
-    return await _sign_in_with_social_async(
+    return await _sign_in_with_social(
         provider='google',
         sub=claims.sub,
         email=claims.email,
@@ -567,7 +567,7 @@ async def post_sign_in_with_apple(
     except SocialAuthError as e:
         return f'Invalid Apple token: {e}', 401
 
-    return await _sign_in_with_social_async(
+    return await _sign_in_with_social(
         provider='apple',
         sub=claims.sub,
         email=claims.email,
@@ -628,7 +628,7 @@ async def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo) -> o
 
         async with async_api_tx() as tx:
             await tx.execute(q_set_onboardee_field, name_params)
-            return await reserve_onboardee_url_slug_async(tx, s.email, name)
+            return await reserve_onboardee_url_slug(tx, s.email, name)
     elif field_name == 'date_of_birth':
         params = dict(
             email=s.email,
@@ -817,13 +817,13 @@ async def post_finish_onboarding(s: t.SessionInfo) -> object:
             person_id=row['person_id'],
         ))
 
-        clubs = await _handle_pending_club_async(
+        clubs = await _handle_pending_club(
             tx,
             row['person_id'],
             s.pending_club_name,
         )
 
-        await _flush_session_answers_async(
+        await _flush_session_answers(
             tx,
             s.session_token_hash,
             row['person_id'],
@@ -833,7 +833,7 @@ async def post_finish_onboarding(s: t.SessionInfo) -> object:
 
     return dict(**row, **clubs)
 
-async def get_prospect_profile_async(
+async def get_prospect_profile(
     s: Optional[t.SessionInfo],
     prospect_handle: object,
 ) -> object:
@@ -897,7 +897,7 @@ async def get_prospect_profile_async(
             seconds_since_last_online < VISITOR_ONLINE_TIMEOUT_SECONDS
         )
 
-        await publish_visit_async(
+        await publish_visit(
             viewer_id=s.person_id,
             viewer_uuid=s.person_uuid,
             prospect_id=prospect_id,
@@ -907,7 +907,7 @@ async def get_prospect_profile_async(
 
     return profile
 
-async def get_conversation_prospect_async(s: t.SessionInfo, prospect_uuid: str) -> object:
+async def get_conversation_prospect(s: t.SessionInfo, prospect_uuid: str) -> object:
     params = dict(
         person_id=s.person_id,
         prospect_uuid=prospect_uuid,
@@ -1018,7 +1018,7 @@ async def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo) -> object:
         row_tx = await tx.execute(Q_INBOX_INFO, params)
         return await row_tx.fetchall()
 
-async def delete_or_ban_account_async(
+async def delete_or_ban_account(
     s: Optional[t.SessionInfo],
     admin_ban_token: Optional[str] = None,
 ) -> object:
@@ -1057,7 +1057,7 @@ async def delete_or_ban_account_async(
 
         await tx.executemany(Q_DELETE_ACCOUNT, params_seq=rows)
 
-    await sign_out_async(session_token_hashes)
+    await sign_out(session_token_hashes)
 
     return rows
 
@@ -1093,7 +1093,7 @@ async def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo) -> Non
         async with async_api_tx() as tx:
             await tx.executemany(Q_DELETE_PROFILE_INFO_AUDIO, audio_files_params)
 
-async def _patch_profile_info_about_async(
+async def _patch_profile_info_about(
     person_id: int,
     new_about: str,
 ) -> None:
@@ -1346,7 +1346,7 @@ async def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> objec
             person_id = %(person_id)s
         """
     elif field_name == 'name':
-        if not await _has_gold_async(person_id=s.person_id):
+        if not await _has_gold(person_id=s.person_id):
             return 'Requires gold', 403
 
         async with async_api_tx() as tx:
@@ -1354,11 +1354,11 @@ async def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> objec
                 "UPDATE person SET name = %(field_value)s WHERE id = %(person_id)s",
                 params,
             )
-            slug = await assign_url_slug_async(tx, s.person_id)
+            slug = await assign_url_slug(tx, s.person_id)
 
         return slug
     elif field_name == 'about':
-        await _patch_profile_info_about_async(
+        await _patch_profile_info_about(
             s.person_id,
             _str_value(field_value, field_name),
         )
@@ -1533,7 +1533,7 @@ async def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> objec
         verification_level.name = %(field_value)s
         """
     elif field_name == 'show_my_location':
-        if not await _has_gold_async(person_id=s.person_id):
+        if not await _has_gold(person_id=s.person_id):
             return 'Requires gold', 403
 
         q1 = """
@@ -1543,7 +1543,7 @@ async def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> objec
         WHERE id = %(person_id)s
         """
     elif field_name == 'show_my_age':
-        if not await _has_gold_async(person_id=s.person_id):
+        if not await _has_gold(person_id=s.person_id):
             return 'Requires gold', 403
 
         q1 = """
@@ -1553,7 +1553,7 @@ async def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> objec
         WHERE id = %(person_id)s
         """
     elif field_name == 'show_my_looking_for':
-        if not await _has_gold_async(person_id=s.person_id):
+        if not await _has_gold(person_id=s.person_id):
             return 'Requires gold', 403
 
         q1 = """
@@ -1563,7 +1563,7 @@ async def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> objec
         WHERE id = %(person_id)s
         """
     elif field_name == 'hide_me_from_strangers':
-        if not await _has_gold_async(person_id=s.person_id):
+        if not await _has_gold(person_id=s.person_id):
             return 'Requires gold', 403
 
         q1 = """
@@ -1573,7 +1573,7 @@ async def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> objec
         WHERE id = %(person_id)s
         """
     elif field_name == 'browse_invisibly':
-        if not await _has_gold_async(person_id=s.person_id):
+        if not await _has_gold(person_id=s.person_id):
             return 'Requires gold', 403
 
         q1 = """
@@ -1590,7 +1590,7 @@ async def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> objec
         WHERE id = %(person_id)s
         """
     elif field_name == 'theme':
-        if not await _has_gold_async(person_id=s.person_id):
+        if not await _has_gold(person_id=s.person_id):
             return 'Requires gold', 403
 
         try:
@@ -1644,9 +1644,9 @@ async def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> objec
     return None
 
 async def get_search_filters(s: t.SessionInfo) -> object:
-    return await get_search_filters_by_person_id_async(person_id=s.person_id)
+    return await get_search_filters_by_person_id(person_id=s.person_id)
 
-async def get_search_filters_by_person_id_async(
+async def get_search_filters_by_person_id(
     person_id: Optional[int],
 ) -> object:
     params = dict(person_id=person_id)
@@ -2025,7 +2025,7 @@ async def post_search_filter_answer(
         else:
             return dict(answer=answer)
 
-async def get_search_clubs_async(
+async def get_search_clubs(
         s: Optional[t.SessionInfo],
         search_str: str,
         allow_empty: bool = False) -> object:
@@ -2246,7 +2246,7 @@ async def get_admin_ban_link(token: str) -> object:
         return err_invalid_token
 
 async def get_admin_ban(token: str) -> object:
-    rows = await delete_or_ban_account_async(s=None, admin_ban_token=token)
+    rows = await delete_or_ban_account(s=None, admin_ban_token=token)
 
     if rows:
         return f'Banned {rows}'
@@ -2309,7 +2309,7 @@ async def get_export_data(token: str) -> object:
 
     person_id = cast(Optional[int], params['person_id'])
 
-    search_filters = await get_search_filters_by_person_id_async(
+    search_filters = await get_search_filters_by_person_id(
         person_id=person_id,
     )
 

@@ -255,7 +255,7 @@ def _should_shadow_ban(
     return bot_report_count >= SHADOW_BAN_REPORT_THRESHOLD
 
 
-async def skip_by_uuid_async(subject_uuid: str, object_uuid: str, reason: str) -> None:
+async def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str) -> None:
     params = dict(
         subject_uuid=subject_uuid,
         object_uuid=object_uuid,

@@ -30,7 +30,7 @@ class ClubHttpArg:
     club: str | None
 
 
-async def _quiz_search_results_async(
+async def _quiz_search_results(
     tx: AsyncTx,
     searcher_person_id: int,
 ) -> object:
@@ -42,7 +42,7 @@ async def _quiz_search_results_async(
     return await row_tx.fetchall()
 
 
-async def _uncached_search_results_async(
+async def _uncached_search_results(
     tx: AsyncTx,
     searcher_person_id: int,
     no: Tuple[int, int],
@@ -66,7 +66,7 @@ async def _uncached_search_results_async(
         return []
 
 
-async def _cached_search_results_async(
+async def _cached_search_results(
     tx: AsyncTx,
     searcher_person_id: int,
     no: Tuple[int, int],
@@ -105,7 +105,7 @@ def get_search_type(n: str | None, o: str | None) -> tuple[SearchType, Tuple[int
         return 'cached-search', no
 
 
-async def get_search_async(
+async def get_search(
     s: t.SessionInfo,
     n: str | None,
     o: str | None,
@@ -134,14 +134,14 @@ async def get_search_async(
         gender_preference = [row_int(row, 'gender_id') for row in rows]
 
         if search_type == 'quiz-search':
-            result = await _quiz_search_results_async(
+            result = await _quiz_search_results(
                 tx=tx,
                 searcher_person_id=s.person_id)
 
         elif search_type == 'uncached-search':
             if no is None:
                 raise RuntimeError('uncached search requires pagination')
-            result = await _uncached_search_results_async(
+            result = await _uncached_search_results(
                 tx=tx,
                 searcher_person_id=s.person_id,
                 no=no,
@@ -150,7 +150,7 @@ async def get_search_async(
         elif search_type == 'cached-search':
             if no is None:
                 raise RuntimeError('cached search requires pagination')
-            result = await _cached_search_results_async(
+            result = await _cached_search_results(
                 tx=tx,
                 searcher_person_id=s.person_id,
                 no=no)
@@ -164,7 +164,7 @@ async def get_search_async(
     return result
 
 
-async def get_public_search_async(
+async def get_public_search(
     n: str | None,
     o: str | None,
     answers: str | None = None,
@@ -185,7 +185,7 @@ async def get_public_search_async(
             req = t.PublicSearchRequest(answers=json.loads(answers), n=n_, o=o_)
         except (ValueError, ValidationError) as e:
             return str(e), 400
-        return await _get_public_search_with_answers_async(req)
+        return await _get_public_search_with_answers(req)
 
     public_search = await _get_public_search()
     if not isinstance(public_search, list):
@@ -193,7 +193,7 @@ async def get_public_search_async(
     return public_search[o_:o_ + n_]
 
 
-async def _get_public_search_with_answers_async(req: t.PublicSearchRequest) -> object:
+async def _get_public_search_with_answers(req: t.PublicSearchRequest) -> object:
     async with async_api_tx('READ COMMITTED') as tx:
         questions = {
             row_int(q, 'id'): q

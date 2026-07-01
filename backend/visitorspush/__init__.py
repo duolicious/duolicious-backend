@@ -8,7 +8,7 @@ from visitorsql import Q_VISITOR_ITEM
 _async_redis = make_async_redis_client()
 
 
-async def _publish_async(channel: str, section: str, item: dict) -> None:
+async def _publish(channel: str, section: str, item: dict) -> None:
     try:
         await _async_redis.publish(
             channel,
@@ -22,7 +22,7 @@ async def _publish_async(channel: str, section: str, item: dict) -> None:
         print(traceback.format_exc())
 
 
-async def publish_visit_async(
+async def publish_visit(
     viewer_id: int,
     viewer_uuid: str,
     prospect_id: int,
@@ -53,9 +53,9 @@ async def publish_visit_async(
                 owner_item = owner_row.get('j') if owner_row else None
 
         if viewer_item:
-            await _publish_async(viewer_uuid, 'you_visited', viewer_item)
+            await _publish(viewer_uuid, 'you_visited', viewer_item)
 
         if owner_item:
-            await _publish_async(prospect_uuid, 'visited_you', owner_item)
+            await _publish(prospect_uuid, 'visited_you', owner_item)
     except Exception:
         print(traceback.format_exc())

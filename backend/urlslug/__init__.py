@@ -91,7 +91,7 @@ def _candidates(base: str) -> Iterator[tuple[str, bool]]:
         n = random.randint(lo, hi)
         yield (f'{base}{n}' if base else str(n)), True
 
-async def _mint_async(
+async def _mint(
     tx: AsyncTx,
     base: str,
     write_q: str,
@@ -118,20 +118,20 @@ async def _mint_async(
 
     raise RuntimeError(f'could not mint url_slug for base {base!r}')
 
-async def reserve_onboardee_url_slug_async(
+async def reserve_onboardee_url_slug(
     tx: AsyncTx,
     email: str,
     name: str,
 ) -> dict[str, object]:
     """Async counterpart to `reserve_onboardee_url_slug`."""
-    return await _mint_async(
+    return await _mint(
         tx,
         slug_base(name),
         Q_UPDATE_ONBOARDEE_SLUG,
         dict(email=email),
         email=email)
 
-async def assign_url_slug_async(
+async def assign_url_slug(
     tx: AsyncTx,
     person_id: int,
 ) -> dict[str, object]:
@@ -143,7 +143,7 @@ async def assign_url_slug_async(
     if person is None:
         raise RuntimeError(f'person {person_id} not found')
 
-    return await _mint_async(
+    return await _mint(
         tx,
         slug_base(person['name']),
         Q_UPDATE_PERSON_SLUG,
