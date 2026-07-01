@@ -1,16 +1,16 @@
 import json
 import traceback
 from database.asyncdatabase import api_tx as async_api_tx
-from redisclient import make_async_redis_client
+from redisclient import make_redis_client
 from chatprotocol.outbound import Visitor, to_bus
 from visitorsql import Q_VISITOR_ITEM
 
-_async_redis = make_async_redis_client()
+_redis = make_redis_client()
 
 
 async def _publish(channel: str, section: str, item: dict) -> None:
     try:
-        await _async_redis.publish(
+        await _redis.publish(
             channel,
             to_bus(Visitor(
                 section=section,

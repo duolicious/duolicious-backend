@@ -3,7 +3,6 @@ from typing import Iterable
 from constants import MAX_SIGNED_IN_SESSIONS
 from database import api_tx
 from database.asyncdatabase import Row as AsyncRow, Tx as AsyncTx, api_tx as async_api_tx
-from starlette.concurrency import run_in_threadpool
 import sessioncache
 
 
@@ -43,7 +42,7 @@ async def sign_out(session_token_hashes: Iterable[str]) -> None:
         await tx.execute(Q_SIGN_OUT_SESSIONS, dict(session_token_hashes=hashes))
 
     for session_token_hash in hashes:
-        await run_in_threadpool(sessioncache.delete_session, session_token_hash)
+        await sessioncache.delete_session(session_token_hash)
 
 
 async def enforce_session_limit(

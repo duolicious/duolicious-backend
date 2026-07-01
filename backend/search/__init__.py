@@ -7,10 +7,9 @@ from pydantic import ValidationError
 from database import Tx, api_tx, row_int
 from database.asyncdatabase import Tx as AsyncTx, api_tx as async_api_tx
 from qanda.question import Q_QUESTION_SCORE_VECTORS
-from rediscache import async_redis_cache
+from rediscache import redis_cache
 from collections.abc import Sequence
 from typing import Literal, Tuple
-from starlette.concurrency import run_in_threadpool
 from search.sql import (
     Q_CACHED_SEARCH,
     Q_PUBLIC_SEARCH,
@@ -159,7 +158,7 @@ async def get_search(
             raise Exception('Unexpected quiz type')
 
     if s.pending_club_name is not None:
-        await run_in_threadpool(sessioncache.delete_session, s.session_token_hash)
+        await sessioncache.delete_session(s.session_token_hash)
 
     return result
 
@@ -219,7 +218,7 @@ async def _get_public_search_with_answers(req: t.PublicSearchRequest) -> object:
         ))).fetchall()
 
 
-@async_redis_cache(ttl=60)
+@redis_cache(ttl=60)
 async def _get_public_search() -> Sequence[object]:
     async with async_api_tx('READ COMMITTED') as tx:
         row_tx = await tx.execute(Q_PUBLIC_SEARCH)

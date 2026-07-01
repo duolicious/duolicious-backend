@@ -61,8 +61,7 @@ async def autodeactivate2_once() -> None:
 
     for p in rows_deactivated:
         for session_token_hash in row_str_list(p, 'session_token_hashes'):
-            await asyncio.to_thread(
-                sessioncache.delete_session, session_token_hash)
+            await sessioncache.delete_session(session_token_hash)
 
     for p in rows_deactivated:
         person = dict(id=p['id'], email=row_str(p, 'email'))

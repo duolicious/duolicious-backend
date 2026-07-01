@@ -405,7 +405,7 @@ async def post_check_otp(
             await _flush_session_answers(
                 tx, s.session_token_hash, row['person_id'])
 
-    await run_in_threadpool(sessioncache.delete_session, s.session_token_hash)
+    await sessioncache.delete_session(s.session_token_hash)
 
     await enforce_session_limit(row['person_id'], s.session_token_hash)
 
@@ -829,7 +829,7 @@ async def post_finish_onboarding(s: t.SessionInfo) -> object:
             row['person_id'],
         )
 
-    await run_in_threadpool(sessioncache.delete_session, s.session_token_hash)
+    await sessioncache.delete_session(s.session_token_hash)
 
     return dict(**row, **clubs)
 

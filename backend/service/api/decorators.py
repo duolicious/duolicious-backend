@@ -451,9 +451,8 @@ def require_session(
     expected_sign_in_status: bool | None = True,
 ) -> Callable[[Request], Awaitable[duotypes.SessionInfo]]:
     """Async auth dependency factory. Resolves the bearer token to a
-    `SessionInfo` (async DB lookup, sync sessioncache offloaded to a thread)
-    and enforces the expected
-    onboarding/sign-in status, raising `AuthError` otherwise."""
+    `SessionInfo` (async sessioncache lookup, async DB fallback) and enforces
+    the expected onboarding/sign-in status, raising `AuthError` otherwise."""
     async def dependency(request: Request) -> duotypes.SessionInfo:
         auth_header = (request.headers.get('Authorization') or '').lower()
         try:
@@ -465,10 +464,9 @@ def require_session(
 
         session_token_hash = sha512(session_token)
 
-        # sessioncache is a fast *sync* Redis get/set; offload it so it doesn't
-        # block the event loop. The session-row fallback uses the async DB.
-        session_info = await run_in_threadpool(
-            sessioncache.get_session, session_token_hash)
+        # sessioncache is a fast, best-effort async Redis get/set. The
+        # session-row fallback uses the async DB.
+        session_info = await sessioncache.get_session(session_token_hash)
 
         if session_info is None:
             async with async_api_tx('READ COMMITTED') as tx:
@@ -485,8 +483,7 @@ def require_session(
                     session_token_hash=session_token_hash,
                     pending_club_name=row['pending_club_name'],
                 )
-                await run_in_threadpool(
-                    sessioncache.put_session,
+                await sessioncache.put_session(
                     session_info,
                     row['session_expiry_epoch'])
 
@@ -527,8 +524,7 @@ def optional_require_session(
 
         session_token_hash = sha512(session_token)
 
-        session_info = await run_in_threadpool(
-            sessioncache.get_session, session_token_hash)
+        session_info = await sessioncache.get_session(session_token_hash)
 
         if session_info is None:
             async with async_api_tx('READ COMMITTED') as tx:
@@ -545,8 +541,7 @@ def optional_require_session(
                     session_token_hash=session_token_hash,
                     pending_club_name=row['pending_club_name'],
                 )
-                await run_in_threadpool(
-                    sessioncache.put_session,
+                await sessioncache.put_session(
                     session_info,
                     row['session_expiry_epoch'])
 
