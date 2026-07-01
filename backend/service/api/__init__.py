@@ -3,6 +3,7 @@ from typing import Optional, cast
 from urllib.parse import parse_qsl
 from fastapi import Depends
 from starlette.requests import Request
+from starlette.concurrency import run_in_threadpool
 import duotypes as t
 import location
 import person
@@ -374,8 +375,13 @@ async def delete_answer(
 ) -> object:
     return await qanda.delete_answer_async(req, s)
 
-@aget('/search')
-def get_search(request: Request, s: t.SessionInfo) -> object:
+@app.get('/search')
+@duo_route
+async def get_search(
+    request: Request,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('get_search')),
+) -> object:
     n = request.query_params.get('n')
     o = request.query_params.get('o')
 
@@ -394,19 +400,23 @@ def get_search(request: Request, s: t.SessionInfo) -> object:
     scope = json.dumps([search_type, lowerClub])
 
     if search_type == 'uncached-search':
-        limiter.check(
+        await run_in_threadpool(
+            limiter.check,
             request,
             limit,
             scope=scope,
-            exempt_when=disable_ip_rate_limit)
-        limiter.check(
+            exempt_when=disable_ip_rate_limit,
+        )
+        await run_in_threadpool(
+            limiter.check,
             request,
             limit,
             scope=scope,
             key_func=limiter_account,
-            exempt_when=disable_account_rate_limit)
+            exempt_when=disable_account_rate_limit,
+        )
 
-    return search.get_search(s=s, n=n, o=o, club=club)
+    return await search.get_search_async(s=s, n=n, o=o, club=club)
 
 @get('/public-search')
 def get_public_search(request: Request) -> object:

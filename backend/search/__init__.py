@@ -5,10 +5,12 @@ import sessioncache
 from qanda import personality
 from pydantic import ValidationError
 from database import Tx, api_tx, row_int
+from database.asyncdatabase import Tx as AsyncTx, api_tx as async_api_tx
 from qanda.question import Q_QUESTION_SCORE_VECTORS
 from rediscache import redis_cache
 from collections.abc import Sequence
 from typing import Literal, Tuple
+from starlette.concurrency import run_in_threadpool
 from search.sql import (
     Q_CACHED_SEARCH,
     Q_PUBLIC_SEARCH,
@@ -36,6 +38,18 @@ def _quiz_search_results(tx: Tx, searcher_person_id: int) -> object:
     return tx.execute(Q_QUIZ_SEARCH, params).fetchall()
 
 
+async def _quiz_search_results_async(
+    tx: AsyncTx,
+    searcher_person_id: int,
+) -> object:
+    params = dict(
+        searcher_person_id=searcher_person_id,
+    )
+
+    row_tx = await tx.execute(Q_QUIZ_SEARCH, params)
+    return await row_tx.fetchall()
+
+
 def _uncached_search_results(
     tx: Tx,
     searcher_person_id: int,
@@ -61,6 +75,30 @@ def _uncached_search_results(
         return []
 
 
+async def _uncached_search_results_async(
+    tx: AsyncTx,
+    searcher_person_id: int,
+    no: Tuple[int, int],
+    gender_preference: list[int],
+) -> object:
+    n, o = no
+
+    params = dict(
+        searcher_person_id=searcher_person_id,
+        n=n,
+        o=o,
+        gender_preference=gender_preference,
+    )
+
+    try:
+        await tx.execute(Q_UNCACHED_SEARCH_1, params)
+        await tx.execute(Q_UNCACHED_SEARCH_2, params)
+        row_tx = await tx.execute(Q_CACHED_SEARCH, params)
+        return await row_tx.fetchall()
+    except psycopg.errors.QueryCanceled:
+        return []
+
+
 def _cached_search_results(tx: Tx, searcher_person_id: int, no: Tuple[int, int]) -> object:
     n, o = no
 
@@ -71,6 +109,23 @@ def _cached_search_results(tx: Tx, searcher_person_id: int, no: Tuple[int, int])
     )
 
     return tx.execute(Q_CACHED_SEARCH, params).fetchall()
+
+
+async def _cached_search_results_async(
+    tx: AsyncTx,
+    searcher_person_id: int,
+    no: Tuple[int, int],
+) -> object:
+    n, o = no
+
+    params = dict(
+        searcher_person_id=searcher_person_id,
+        n=n,
+        o=o,
+    )
+
+    row_tx = await tx.execute(Q_CACHED_SEARCH, params)
+    return await row_tx.fetchall()
 
 
 SearchType = Literal['quiz-search', 'uncached-search', 'cached-search']
@@ -154,6 +209,65 @@ def get_search(
     # was nothing pending to clear.
     if s.pending_club_name is not None:
         sessioncache.delete_session(s.session_token_hash)
+
+    return result
+
+
+async def get_search_async(
+    s: t.SessionInfo,
+    n: str | None,
+    o: str | None,
+    club: ClubHttpArg | None,
+) -> object:
+    search_type, no = get_search_type(n, o)
+
+    if no is not None and no[0] > 10:
+        return 'n must be less than or equal to 10', 400
+
+    if s.person_id is None:
+        return '', 500
+
+    params = dict(
+        person_id=s.person_id,
+        club_name=club.club if club else None,
+        do_modify=club is not None,
+    )
+
+    async with async_api_tx('READ COMMITTED') as tx:
+        await tx.execute('SET LOCAL statement_timeout = 10000') # 10 seconds
+
+        row_tx = await tx.execute(Q_SEARCH_PREFERENCE, params)
+        rows = await row_tx.fetchall()
+
+        gender_preference = [row_int(row, 'gender_id') for row in rows]
+
+        if search_type == 'quiz-search':
+            result = await _quiz_search_results_async(
+                tx=tx,
+                searcher_person_id=s.person_id)
+
+        elif search_type == 'uncached-search':
+            if no is None:
+                raise RuntimeError('uncached search requires pagination')
+            result = await _uncached_search_results_async(
+                tx=tx,
+                searcher_person_id=s.person_id,
+                no=no,
+                gender_preference=gender_preference)
+
+        elif search_type == 'cached-search':
+            if no is None:
+                raise RuntimeError('cached search requires pagination')
+            result = await _cached_search_results_async(
+                tx=tx,
+                searcher_person_id=s.person_id,
+                no=no)
+
+        else:
+            raise Exception('Unexpected quiz type')
+
+    if s.pending_club_name is not None:
+        await run_in_threadpool(sessioncache.delete_session, s.session_token_hash)
 
     return result
 
