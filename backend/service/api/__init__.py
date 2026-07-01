@@ -686,14 +686,15 @@ async def post_join_club(
 ) -> object:
     return await person.post_join_club(req, s)
 
-@apost('/leave-club')
-@validate(t.PostLeaveClub)
-def post_leave_club(
+@app.post('/leave-club')
+@duo_route
+async def post_leave_club(
     request: Request,
     req: t.PostLeaveClub,
-    s: t.SessionInfo,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('post_leave_club')),
 ) -> object:
-    person.post_leave_club(req, s)
+    await person.post_leave_club(req, s)
     return None
 
 @get('/update-notifications')

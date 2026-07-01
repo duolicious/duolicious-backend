@@ -2305,14 +2305,14 @@ async def post_join_club(req: t.PostJoinClub, s: t.SessionInfo) -> object:
     else:
         return f"Couldn't join {req.name}", 400
 
-def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo) -> None:
+async def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo) -> None:
     params = dict(
         person_id=s.person_id,
         club_name=req.name,
     )
 
-    with api_tx() as tx:
-        tx.execute(Q_LEAVE_CLUB, params)
+    async with async_api_tx() as tx:
+        await tx.execute(Q_LEAVE_CLUB, params)
 
 def get_update_notifications(email: str, type: str, frequency: str) -> object:
     params = dict(
