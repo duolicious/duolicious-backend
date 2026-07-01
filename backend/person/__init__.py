@@ -1249,6 +1249,49 @@ def delete_or_ban_account(
 
     return rows
 
+async def delete_or_ban_account_async(
+    s: Optional[t.SessionInfo],
+    admin_ban_token: Optional[str] = None,
+) -> object:
+    async with async_api_tx() as tx:
+        await tx.execute('SET LOCAL statement_timeout = 30_000')  # 30 seconds
+
+        if admin_ban_token:
+            row_tx = await tx.execute(
+                Q_ADMIN_BAN,
+                params=dict(token=admin_ban_token)
+            )
+            rows = await row_tx.fetchall()
+        elif s:
+            rows = [
+                dict(
+                    person_id=s.person_id,
+                    person_uuid=s.person_uuid
+                )
+            ]
+        else:
+            raise ValueError('At least one parameter must not be None')
+
+        person_ids = [r['person_id'] for r in rows if r['person_id'] is not None]
+        if person_ids:
+            row_tx = await tx.execute(
+                Q_SELECT_SESSION_TOKEN_HASHES_BY_PERSON_ID,
+                params=dict(person_ids=person_ids),
+            )
+            session_token_rows = await row_tx.fetchall()
+            session_token_hashes = [
+                r['session_token_hash']
+                for r in session_token_rows
+            ]
+        else:
+            session_token_hashes = []
+
+        await tx.executemany(Q_DELETE_ACCOUNT, params_seq=rows)
+
+    await sign_out_async(session_token_hashes)
+
+    return rows
+
 def post_deactivate(s: t.SessionInfo) -> None:
     params = dict(person_id=s.person_id)
 

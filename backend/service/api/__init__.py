@@ -540,9 +540,14 @@ async def post_inbox_info(
 ) -> object:
     return await person.post_inbox_info(req, s)
 
-@adelete('/account')
-def delete_account(request: Request, s: t.SessionInfo) -> object:
-    return person.delete_or_ban_account(s=s)
+@app.delete('/account')
+@duo_route
+async def delete_account(
+    request: Request,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('delete_account')),
+) -> object:
+    return await person.delete_or_ban_account_async(s=s)
 
 @apost('/deactivate')
 def post_deactivate(request: Request, s: t.SessionInfo) -> object:
