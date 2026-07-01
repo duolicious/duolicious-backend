@@ -2411,9 +2411,9 @@ async def get_check_verification(s: t.SessionInfo) -> object:
         return row
     return '', 400
 
-def post_dismiss_donation(s: t.SessionInfo) -> None:
-    with api_tx() as tx:
-        tx.execute(Q_DISMISS_DONATION, dict(person_id=s.person_id))
+async def post_dismiss_donation(s: t.SessionInfo) -> None:
+    async with async_api_tx() as tx:
+        await tx.execute(Q_DISMISS_DONATION, dict(person_id=s.person_id))
 
 @AsyncLruCache(maxsize=2048)
 async def get_club(name: str, ttl_hash: object = None) -> object:
