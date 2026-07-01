@@ -2454,18 +2454,19 @@ async def get_gender_stats(ttl_hash: object = None) -> object:
         row_tx = await tx.execute(Q_GENDER_STATS)
         return await row_tx.fetchone()
 
-def get_admin_ban_link(token: str) -> object:
+async def get_admin_ban_link(token: str) -> object:
     params = dict(token=token)
 
     err_invalid_token = (
         'Invalid token. User might have already been banned', 401)
 
     try:
-        with api_tx() as tx:
-            row = tx.execute(
+        async with async_api_tx() as tx:
+            row_tx = await tx.execute(
                 Q_ADMIN_TOKEN_TO_UUID,
                 params,
-            ).fetchone()
+            )
+            row = await row_tx.fetchone()
             if row is None:
                 raise TypeError()
             person_uuid = row['person_uuid']
@@ -2473,8 +2474,9 @@ def get_admin_ban_link(token: str) -> object:
         return err_invalid_token
 
     try:
-        with api_tx('READ COMMITTED') as tx:
-            rows = tx.execute(Q_CHECK_ADMIN_BAN_TOKEN, params).fetchall()
+        async with async_api_tx('READ COMMITTED') as tx:
+            row_tx = await tx.execute(Q_CHECK_ADMIN_BAN_TOKEN, params)
+            rows = await row_tx.fetchall()
     except psycopg.errors.InvalidTextRepresentation:
         return err_invalid_token
 

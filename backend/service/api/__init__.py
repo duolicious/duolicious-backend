@@ -797,9 +797,14 @@ async def get_gender_stats(
 ) -> object:
     return await person.get_gender_stats(ttl_hash=get_ttl_hash(seconds=60))
 
-@get('/admin/ban-link/<token>')
-def get_admin_ban_link(request: Request, token: str) -> object:
-    return person.get_admin_ban_link(token)
+@app.get('/admin/ban-link/{token}')
+@duo_route
+async def get_admin_ban_link(
+    request: Request,
+    token: str,
+    _default_limited: None = Depends(default_rate_limit('get_admin_ban_link')),
+) -> object:
+    return await person.get_admin_ban_link(token)
 
 @get('/admin/ban/<token>')
 def get_admin_ban(request: Request, token: str) -> object:
