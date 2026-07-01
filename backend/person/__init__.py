@@ -2472,15 +2472,16 @@ async def get_admin_delete_photo_link(token: str) -> object:
     else:
         return 'Invalid token', 401
 
-def get_admin_delete_photo(token: str) -> object:
+async def get_admin_delete_photo(token: str) -> object:
     params = dict(token=token)
 
-    with api_tx('READ COMMITTED') as tx:
-        rows = tx.execute(Q_ADMIN_DELETE_PHOTO, params).fetchall()
+    async with async_api_tx('READ COMMITTED') as tx:
+        row_tx = await tx.execute(Q_ADMIN_DELETE_PHOTO, params)
+        rows = await row_tx.fetchall()
 
         if rows:
             params = dict(person_id=rows[0]['person_id'])
-            tx.execute(Q_UPDATE_VERIFICATION_LEVEL, params)
+            await tx.execute(Q_UPDATE_VERIFICATION_LEVEL, params)
 
     if rows:
         return f'Deleted photo {rows}'
