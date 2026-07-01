@@ -228,21 +228,19 @@ async def post_sign_in_with_google(
         remote_addr=client_ip(request),
     )
 
-@post('/sign-in-with-apple')
-@validate(t.PostSignInWithApple)
-def post_sign_in_with_apple(
+@app.post('/sign-in-with-apple')
+@duo_route
+async def post_sign_in_with_apple(
     request: Request,
     req: t.PostSignInWithApple,
-) -> object:
-    scope = "social_sign_in"
-
-    limiter.check(
-        request,
+    _default_limited: None = Depends(default_rate_limit('post_sign_in_with_apple')),
+    _limited: None = Depends(rate_limit(
         auth_rate_limit,
-        scope=scope,
-        exempt_when=disable_ip_rate_limit)
-
-    return person.post_sign_in_with_apple(
+        scope='social_sign_in',
+        exempt_when=disable_ip_rate_limit,
+    )),
+) -> object:
+    return await person.post_sign_in_with_apple(
         token=req.identity_token,
         nonce=req.nonce,
         pending_club_name=req.pending_club_name,

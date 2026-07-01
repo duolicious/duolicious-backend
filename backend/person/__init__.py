@@ -719,7 +719,7 @@ async def post_sign_in_with_google(
         remote_addr=remote_addr,
     )
 
-def post_sign_in_with_apple(
+async def post_sign_in_with_apple(
     *,
     token: str,
     nonce: str,
@@ -731,7 +731,7 @@ def post_sign_in_with_apple(
     except SocialAuthError as e:
         return f'Invalid Apple token: {e}', 401
 
-    return _sign_in_with_social(
+    return await _sign_in_with_social_async(
         provider='apple',
         sub=claims.sub,
         email=claims.email,
