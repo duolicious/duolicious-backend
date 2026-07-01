@@ -2435,15 +2435,19 @@ async def get_club(name: str, ttl_hash: object = None) -> object:
         'related_clubs': row['related_clubs'],
     }
 
-@lru_cache()
-def get_stats(ttl_hash: object = None, club_name: Optional[str] = None) -> object:
+@AsyncLruCache()
+async def get_stats(
+    ttl_hash: object = None,
+    club_name: Optional[str] = None,
+) -> object:
     if club_name:
         q, params = Q_STATS_BY_CLUB_NAME, dict(club_name=club_name)
     else:
         q, params = Q_STATS, None
 
-    with api_tx('READ COMMITTED') as tx:
-        return tx.execute(q, params).fetchone()
+    async with async_api_tx('READ COMMITTED') as tx:
+        row_tx = await tx.execute(q, params)
+        return await row_tx.fetchone()
 
 @lru_cache()
 def get_gender_stats(ttl_hash: object = None) -> object:

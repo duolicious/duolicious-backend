@@ -779,9 +779,13 @@ async def post_dismiss_donation(
     await person.post_dismiss_donation(s=s)
     return None
 
-@get('/stats')
-def get_stats(request: Request) -> object:
-    return person.get_stats(
+@app.get('/stats')
+@duo_route
+async def get_stats(
+    request: Request,
+    _default_limited: None = Depends(default_rate_limit('get_stats')),
+) -> object:
+    return await person.get_stats(
         ttl_hash=get_ttl_hash(seconds=60),
         club_name=request.query_params.get('club-name'))
 
