@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
+from urllib.parse import parse_qsl
 from fastapi import Depends
 from starlette.requests import Request
 import duotypes as t
@@ -247,29 +248,34 @@ async def post_sign_in_with_apple(
         remote_addr=client_ip(request),
     )
 
-# Apple Sign-In web/Android OAuth callback. Must be a `@post` (not
-# `@apost`) — the request comes from Apple's authorize endpoint as an
-# unauthenticated form_post, with no bearer token. See
-# `auth/apple_oauth.py` for the rationale.
+# Apple Sign-In web/Android OAuth callback. This remains unauthenticated:
+# Apple POSTs a form body here, which we convert into a redirect response for
+# the client-controlled return URL. See `auth/apple_oauth.py` for the rationale.
 #
 # This is on its own scope so it doesn't double-bill against
 # `social_sign_in`: a single web/Android Apple sign-in hits this
 # callback *and* /sign-in-with-apple, and we want the per-day budget
 # to be "one sign-in = one slot" not "two slots".
-@post('/auth/apple/callback')
-def post_auth_apple_callback(request: Request) -> object:
-    scope = "apple_oauth_callback"
-
-    limiter.check(
-        request,
+@app.post('/auth/apple/callback')
+@duo_route
+async def post_auth_apple_callback(
+    request: Request,
+    _default_limited: None = Depends(default_rate_limit('post_auth_apple_callback')),
+    _limited: None = Depends(rate_limit(
         auth_rate_limit,
-        scope=scope,
-        exempt_when=disable_ip_rate_limit)
-
+        scope='apple_oauth_callback',
+        exempt_when=disable_ip_rate_limit,
+    )),
+) -> object:
+    raw_body = await request.body()
+    form = dict(parse_qsl(
+        raw_body.decode('utf-8', 'ignore'),
+        keep_blank_values=True,
+    ))
     return apple_oauth.handle_callback(
-        id_token=request.state.form.get('id_token', ''),
-        state=request.state.form.get('state', ''),
-        error=request.state.form.get('error'),
+        id_token=cast(str, form.get('id_token') or ''),
+        state=cast(str, form.get('state') or ''),
+        error=cast(Optional[str], form.get('error')),
     )
 
 @apost('/sign-out', expected_onboarding_status=None)
