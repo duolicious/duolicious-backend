@@ -559,9 +559,14 @@ async def post_deactivate(
     await person.post_deactivate(s=s)
     return None
 
-@aget('/profile-info')
-def get_profile_info(request: Request, s: t.SessionInfo) -> object:
-    return person.get_profile_info(s)
+@app.get('/profile-info')
+@duo_route
+async def get_profile_info(
+    request: Request,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('get_profile_info')),
+) -> object:
+    return await person.get_profile_info(s)
 
 @adelete('/profile-info')
 @validate(t.DeleteProfileInfo)

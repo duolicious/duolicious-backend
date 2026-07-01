@@ -1298,11 +1298,11 @@ async def post_deactivate(s: t.SessionInfo) -> None:
     async with async_api_tx() as tx:
         await tx.execute(Q_POST_DEACTIVATE, params)
 
-def get_profile_info(s: t.SessionInfo) -> object:
+async def get_profile_info(s: t.SessionInfo) -> object:
     params = dict(person_id=s.person_id)
 
-    with api_tx('READ COMMITTED') as tx:
-        return tx.require_one(Q_GET_PROFILE_INFO, params)['j']
+    async with async_api_tx('READ COMMITTED') as tx:
+        return (await tx.require_one(Q_GET_PROFILE_INFO, params))['j']
 
 def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo) -> None:
     files_params = [
