@@ -1,6 +1,6 @@
 import os
 from database import Tx, api_tx, fetchall_sets
-from database.asyncdatabase import api_tx as async_api_tx
+from database.asyncdatabase import Tx as AsyncTx, api_tx as async_api_tx
 from collections.abc import Mapping, Sequence
 from typing import Optional, Tuple, Literal, cast
 from urlslug import assign_url_slug, reserve_onboardee_url_slug
@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from person.sql import *
 from search.sql import *
 from commonsql import *
-from qanda import _flush_session_answers
+from qanda import _flush_session_answers, _flush_session_answers_async
 from constants import VISITOR_ONLINE_TIMEOUT_SECONDS
 from visitorspush import publish_visit
 from person.template import otp_template
@@ -24,6 +24,7 @@ import traceback
 import re
 from smtp import aws_smtp
 from starlette.responses import Response
+from starlette.concurrency import run_in_threadpool
 from dataclasses import dataclass
 import psycopg
 from functools import lru_cache
@@ -290,6 +291,23 @@ def _handle_pending_club(
     return tx.require_one(Q_GET_SESSION_CLUBS, club_params)
 
 
+async def _handle_pending_club_async(
+    tx: AsyncTx,
+    person_id: int | None,
+    pending_club_name: str | None,
+) -> Mapping[str, object]:
+    club_params = dict(
+        person_id=person_id,
+        club_name=pending_club_name,
+        pending_club_name=pending_club_name,
+        do_modify=True,
+    )
+    if person_id is not None and pending_club_name is not None:
+        await tx.execute(Q_JOIN_CLUB, club_params)
+        await tx.execute(Q_UPSERT_SEARCH_PREFERENCE_CLUB, club_params)
+    return await tx.require_one(Q_GET_SESSION_CLUBS, club_params)
+
+
 def _str_value(value: object, field_name: str) -> str:
     if not isinstance(value, str):
         raise ValueError(f'Field {field_name} must be a string')
@@ -382,7 +400,7 @@ async def post_resend_otp(
     _send_otp(s.email, otp)
     return None
 
-def post_check_otp(
+async def post_check_otp(
     req: t.PostCheckOtp,
     s: t.SessionInfo,
     remote_addr: Optional[str],
@@ -396,24 +414,27 @@ def post_check_otp(
         pending_club_name=s.pending_club_name,
     )
 
-    with api_tx() as tx:
-        tx.execute(Q_MAYBE_DELETE_ONBOARDEE, params)
-        tx.execute(Q_MAYBE_SIGN_IN, params)
-        row = tx.fetchone()
+    async with async_api_tx() as tx:
+        await tx.execute(Q_MAYBE_DELETE_ONBOARDEE, params)
+        await tx.execute(Q_MAYBE_SIGN_IN, params)
+        row = await tx.fetchone()
 
         if not row:
             return 'Invalid OTP', 401
 
-        clubs = _handle_pending_club(tx, s.person_id, s.pending_club_name)
+        clubs = await _handle_pending_club_async(
+            tx, s.person_id, s.pending_club_name)
 
-        tx.execute(Q_UPDATE_LAST, dict(person_uuid=row['person_uuid']))
+        await tx.execute(Q_UPDATE_LAST, dict(person_uuid=row['person_uuid']))
 
         if row['person_id'] is not None:
-            _flush_session_answers(tx, s.session_token_hash, row['person_id'])
+            await _flush_session_answers_async(
+                tx, s.session_token_hash, row['person_id'])
 
-    sessioncache.delete_session(s.session_token_hash)
+    await run_in_threadpool(sessioncache.delete_session, s.session_token_hash)
 
-    enforce_session_limit(row['person_id'], s.session_token_hash)
+    await run_in_threadpool(
+        enforce_session_limit, row['person_id'], s.session_token_hash)
 
     return dict(
         onboarded=row['person_id'] is not None,

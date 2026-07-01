@@ -28,9 +28,9 @@ from service.api.decorators import (
     post,
     put,
     require_session,
+    rate_limit,
     validate,
     limiter,
-    shared_otp_limit,
     shared_otp_limit_dependency,
     disable_ip_rate_limit,
     disable_account_rate_limit,
@@ -186,32 +186,29 @@ async def post_resend_otp(
 ) -> object:
     return await person.post_resend_otp(s, client_ip(request))
 
-@apost(
-    '/check-otp',
-    expected_onboarding_status=None,
-    expected_sign_in_status=False
-)
-@validate(t.PostCheckOtp)
-def post_check_otp(
+@app.post('/check-otp')
+@duo_route
+async def post_check_otp(
     request: Request,
     req: t.PostCheckOtp,
-    s: t.SessionInfo,
-) -> object:
-    scope = "check_otp"
-
-    limiter.check(
-        request,
+    s: t.SessionInfo = Depends(require_session(
+        expected_onboarding_status=None,
+        expected_sign_in_status=False,
+    )),
+    _default_limited: None = Depends(default_rate_limit('post_check_otp')),
+    _ip_limited: None = Depends(rate_limit(
         auth_rate_limit,
-        scope=scope,
-        exempt_when=disable_ip_rate_limit)
-    limiter.check(
-        request,
+        scope='check_otp',
+        exempt_when=disable_ip_rate_limit,
+    )),
+    _account_limited: None = Depends(rate_limit(
         auth_rate_limit,
-        scope=scope,
+        scope='check_otp',
         key_func=limiter_account,
-        exempt_when=disable_account_rate_limit)
-
-    return person.post_check_otp(req, s, client_ip(request))
+        exempt_when=disable_account_rate_limit,
+    )),
+) -> object:
+    return await person.post_check_otp(req, s, client_ip(request))
 
 @post('/sign-in-with-google')
 @validate(t.PostSignInWithGoogle)
