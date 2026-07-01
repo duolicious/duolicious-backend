@@ -865,8 +865,12 @@ async def get_export_data(
 ) -> object:
     return await person.get_export_data(token=token)
 
-@post('/revenuecat')
-@validate(t.PostRevenuecat)
-def post_revenuecat(request: Request, req: t.PostRevenuecat) -> object:
-    return person.post_revenuecat(
+@app.post('/revenuecat')
+@duo_route
+async def post_revenuecat(
+    request: Request,
+    req: t.PostRevenuecat,
+    _default_limited: None = Depends(default_rate_limit('post_revenuecat')),
+) -> object:
+    return await person.post_revenuecat(
         req, request.headers.get('Authorization', ''))

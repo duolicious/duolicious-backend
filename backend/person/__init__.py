@@ -1,5 +1,5 @@
 import os
-from database import Tx, api_tx, fetchall_sets
+from database import Tx, api_tx
 from database.asyncdatabase import Row as AsyncRow, Tx as AsyncTx, api_tx as async_api_tx
 from collections.abc import Mapping, Sequence
 from typing import Optional, Tuple, Literal, cast
@@ -2540,7 +2540,7 @@ async def get_export_data(token: str) -> object:
         },
     )
 
-def post_revenuecat(req: t.PostRevenuecat, auth_header: str) -> object:
+async def post_revenuecat(req: t.PostRevenuecat, auth_header: str) -> object:
     def get_has_gold() -> Tuple[list[str], list[str]]:
         match req.event:
             case t.InitialPurchaseEvent(app_user_id=app_user_id):
@@ -2590,25 +2590,24 @@ def post_revenuecat(req: t.PostRevenuecat, auth_header: str) -> object:
 
     has_gold_params_seq = get_has_gold_params_seq()
 
-    with api_tx() as tx:
-        tx.execute(
+    async with async_api_tx() as tx:
+        await tx.execute(
             Q_SELECT_REVENUECAT_AUTHORIZED,
             dict(token_hash_revenuecat=sha512(revenuecat_token)),
         )
-        if not tx.fetchone():
+        if not await tx.fetchone():
             return 'Unauthorized', 401
 
         if not has_gold_params_seq:
             return 'Payload ignored because of its format', 200
 
-        tx.executemany(
-            Q_UPDATE_GOLD_FROM_REVENUECAT,
-            has_gold_params_seq,
-            returning=True
-        )
+        updated_rows = []
+        for params in has_gold_params_seq:
+            row_tx = await tx.execute(Q_UPDATE_GOLD_FROM_REVENUECAT, params)
+            updated_rows.extend(await row_tx.fetchall())
 
         all_uuids = set(str(x['person_uuid']) for x in has_gold_params_seq)
-        updated_uuids = set(str(x['person_uuid']) for x in fetchall_sets(tx))
+        updated_uuids = set(str(x['person_uuid']) for x in updated_rows)
         ignored_uuids = all_uuids - updated_uuids
 
         return dict(
