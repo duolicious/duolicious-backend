@@ -1,6 +1,6 @@
 import os
 from database import Tx, api_tx, fetchall_sets
-from database.asyncdatabase import Tx as AsyncTx, api_tx as async_api_tx
+from database.asyncdatabase import Row as AsyncRow, Tx as AsyncTx, api_tx as async_api_tx
 from collections.abc import Mapping, Sequence
 from typing import Optional, Tuple, Literal, cast
 from urlslug import assign_url_slug, reserve_onboardee_url_slug
@@ -580,7 +580,126 @@ def _sign_in_with_social(
         **clubs,
     )
 
-def post_sign_in_with_google(
+
+async def _sign_in_with_social_async(
+    provider: str,
+    sub: str,
+    email: str,
+    email_verified: bool,
+    pending_club_name: Optional[str],
+    remote_addr: Optional[str],
+) -> object:
+    """
+    Async counterpart to `_sign_in_with_social` for native FastAPI routes.
+    """
+    if blocked := _check_ip_blocked(remote_addr):
+        return blocked
+
+    session_token, session_token_hash = _new_session_token()
+    normalized = normalize_email(email)
+
+    async with async_api_tx() as tx:
+        await tx.execute(Q_IS_BANNED, dict(
+            normalized_email=normalized,
+            ip_address=remote_addr,
+        ))
+        if await tx.fetchone():
+            return 'Banned', 461
+
+        row_tx = await tx.execute(Q_LOOKUP_SOCIAL_IDENTITY, dict(
+            provider=provider,
+            provider_sub=sub,
+        ))
+        row: AsyncRow | None = await row_tx.fetchone()
+        person_id: int | None = row['person_id'] if row else None
+
+        needs_email_match = person_id is None and email
+
+        if needs_email_match and not email_verified:
+            existing_tx = await tx.execute(Q_LOOKUP_PERSON_BY_EMAIL, dict(
+                normalized_email=normalized,
+                email=email,
+            ))
+            existing: AsyncRow | None = await existing_tx.fetchone()
+            return (
+                'An account already exists for this email. Sign in '
+                'with the email link to confirm ownership, then try '
+                'social sign-in again.'
+                if existing else
+                'Your email address is not verified with the sign-in '
+                'provider. Verify it and try again.',
+                409,
+            )
+
+        email_match: AsyncRow | None = None
+        if needs_email_match:
+            email_match_tx = await tx.execute(Q_LOOKUP_PERSON_BY_EMAIL, dict(
+                normalized_email=normalized,
+                email=email,
+            ))
+            email_match = await email_match_tx.fetchone()
+
+        if email_match:
+            person_id = email_match['person_id']
+            await tx.execute(Q_INSERT_SOCIAL_IDENTITY, dict(
+                provider=provider,
+                provider_sub=sub,
+                person_id=person_id,
+                email=email,
+            ))
+
+        if person_id is None and not email:
+            return 'Provider did not return an email', 400
+
+        pending_provider = None
+        pending_sub = None
+        if person_id is None:
+            await tx.execute(Q_UPSERT_ONBOARDEE_FOR_SOCIAL, dict(email=email))
+            pending_provider = provider
+            pending_sub = sub
+
+        await tx.execute(Q_INSERT_DUO_SESSION_SOCIAL, dict(
+            session_token_hash=session_token_hash,
+            person_id=person_id,
+            email=email,
+            pending_club_name=pending_club_name,
+            ip_address=remote_addr,
+            pending_social_provider=pending_provider,
+            pending_social_sub=pending_sub,
+        ))
+
+        if person_id is not None:
+            profile = await tx.require_one(Q_AFTER_SOCIAL_SIGN_IN, dict(
+                person_id=person_id,
+            ))
+        else:
+            profile = dict(
+                person_id=None,
+                person_uuid=None,
+                has_gold=False,
+                units=None,
+                do_show_donation_nag=False,
+                estimated_end_date=None,
+                name=None,
+            )
+
+        clubs = await _handle_pending_club_async(
+            tx, person_id, pending_club_name)
+
+        if profile.get('person_uuid'):
+            await tx.execute(Q_UPDATE_LAST, dict(person_uuid=profile['person_uuid']))
+
+    await run_in_threadpool(
+        enforce_session_limit, person_id, session_token_hash)
+
+    return dict(
+        session_token=session_token,
+        onboarded=person_id is not None,
+        **profile,
+        **clubs,
+    )
+
+async def post_sign_in_with_google(
     *,
     token: str,
     pending_club_name: Optional[str],
@@ -591,7 +710,7 @@ def post_sign_in_with_google(
     except SocialAuthError as e:
         return f'Invalid Google token: {e}', 401
 
-    return _sign_in_with_social(
+    return await _sign_in_with_social_async(
         provider='google',
         sub=claims.sub,
         email=claims.email,

@@ -210,21 +210,19 @@ async def post_check_otp(
 ) -> object:
     return await person.post_check_otp(req, s, client_ip(request))
 
-@post('/sign-in-with-google')
-@validate(t.PostSignInWithGoogle)
-def post_sign_in_with_google(
+@app.post('/sign-in-with-google')
+@duo_route
+async def post_sign_in_with_google(
     request: Request,
     req: t.PostSignInWithGoogle,
-) -> object:
-    scope = "social_sign_in"
-
-    limiter.check(
-        request,
+    _default_limited: None = Depends(default_rate_limit('post_sign_in_with_google')),
+    _limited: None = Depends(rate_limit(
         auth_rate_limit,
-        scope=scope,
-        exempt_when=disable_ip_rate_limit)
-
-    return person.post_sign_in_with_google(
+        scope='social_sign_in',
+        exempt_when=disable_ip_rate_limit,
+    )),
+) -> object:
+    return await person.post_sign_in_with_google(
         token=req.id_token,
         pending_club_name=req.pending_club_name,
         remote_addr=client_ip(request),
