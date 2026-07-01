@@ -232,15 +232,6 @@ class api_tx:
 
         _api_conn_lock.release()
 
-def fetchall_sets(tx: Tx) -> list[Row]:
-    result: list[Row] = []
-    while True:
-        result.extend(tx.fetchall())
-        nextset = tx.nextset()
-        if nextset is None:
-            break
-    return result
-
 def _check_api_connection_forever() -> None:
     while True:
         try:
