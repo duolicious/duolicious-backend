@@ -278,9 +278,14 @@ async def post_auth_apple_callback(
         error=cast(Optional[str], form.get('error')),
     )
 
-@apost('/sign-out', expected_onboarding_status=None)
-def post_sign_out(request: Request, s: t.SessionInfo) -> object:
-    person.post_sign_out(s)
+@app.post('/sign-out')
+@duo_route
+async def post_sign_out(
+    request: Request,
+    s: t.SessionInfo = Depends(require_session(expected_onboarding_status=None)),
+    _default_limited: None = Depends(default_rate_limit('post_sign_out')),
+) -> object:
+    await person.post_sign_out(s)
     return None
 
 @apost('/check-session-token', expected_onboarding_status=None)

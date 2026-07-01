@@ -42,7 +42,7 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 from duoaudio import put_audio_in_object_store
 from person.aboutdiff import diff_addition_with_context
-from auth.session import sign_out, enforce_session_limit
+from auth.session import sign_out, sign_out_async, enforce_session_limit, enforce_session_limit_async
 from auth.social import (
     SocialAuthError,
     verify_apple_identity_token,
@@ -442,8 +442,8 @@ async def post_check_otp(
         **clubs,
     )
 
-def post_sign_out(s: t.SessionInfo) -> None:
-    sign_out([s.session_token_hash])
+async def post_sign_out(s: t.SessionInfo) -> None:
+    await sign_out_async([s.session_token_hash])
 
 def _sign_in_with_social(
     provider: str,
@@ -689,8 +689,7 @@ async def _sign_in_with_social_async(
         if profile.get('person_uuid'):
             await tx.execute(Q_UPDATE_LAST, dict(person_uuid=profile['person_uuid']))
 
-    await run_in_threadpool(
-        enforce_session_limit, person_id, session_token_hash)
+    await enforce_session_limit_async(person_id, session_token_hash)
 
     return dict(
         session_token=session_token,

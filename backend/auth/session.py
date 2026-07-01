@@ -2,6 +2,8 @@ from typing import Iterable
 
 from constants import MAX_SIGNED_IN_SESSIONS
 from database import api_tx
+from database.asyncdatabase import Row as AsyncRow, Tx as AsyncTx, api_tx as async_api_tx
+from starlette.concurrency import run_in_threadpool
 import sessioncache
 
 
@@ -51,6 +53,19 @@ def sign_out(session_token_hashes: Iterable[str]) -> None:
         sessioncache.delete_session(session_token_hash)
 
 
+async def sign_out_async(session_token_hashes: Iterable[str]) -> None:
+    """Async counterpart to `sign_out` for native FastAPI routes."""
+    hashes = [h for h in session_token_hashes if h]
+    if not hashes:
+        return
+
+    async with async_api_tx('READ COMMITTED') as tx:
+        await tx.execute(Q_SIGN_OUT_SESSIONS, dict(session_token_hashes=hashes))
+
+    for session_token_hash in hashes:
+        await run_in_threadpool(sessioncache.delete_session, session_token_hash)
+
+
 def enforce_session_limit(person_id: int | None, current_session_token_hash: object) -> None:
     """Sign out a person's least-recently-active sessions beyond
     MAX_SIGNED_IN_SESSIONS, always keeping the current one. No-op for a session
@@ -71,3 +86,24 @@ def enforce_session_limit(person_id: int | None, current_session_token_hash: obj
         ]
 
     sign_out(over_limit)
+
+
+async def enforce_session_limit_async(
+    person_id: int | None,
+    current_session_token_hash: object,
+) -> None:
+    """Async counterpart to `enforce_session_limit` for native routes."""
+    if person_id is None:
+        return
+
+    async with async_api_tx('READ COMMITTED') as tx:
+        over_limit_tx = await tx.execute(Q_OVER_LIMIT_SESSIONS, dict(
+            person_id=person_id,
+            current_session_token_hash=current_session_token_hash,
+            # The current session is excluded above and always kept, so keep
+            # it plus the (MAX - 1) most-recently-active others.
+            keep=MAX_SIGNED_IN_SESSIONS - 1,
+        ))
+        over_limit: list[AsyncRow] = await over_limit_tx.fetchall()
+
+    await sign_out_async(row['session_token_hash'] for row in over_limit)
