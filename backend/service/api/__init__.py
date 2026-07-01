@@ -676,14 +676,15 @@ async def get_club(
         return '', 404
     return result
 
-@apost('/join-club')
-@validate(t.PostJoinClub)
-def post_join_club(
+@app.post('/join-club')
+@duo_route
+async def post_join_club(
     request: Request,
     req: t.PostJoinClub,
-    s: t.SessionInfo,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('post_join_club')),
 ) -> object:
-    return person.post_join_club(req, s)
+    return await person.post_join_club(req, s)
 
 @apost('/leave-club')
 @validate(t.PostLeaveClub)

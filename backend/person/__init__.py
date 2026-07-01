@@ -2290,14 +2290,15 @@ async def get_search_clubs_async(
         row_tx = await tx.execute(q, params)
         return await row_tx.fetchall()
 
-def post_join_club(req: t.PostJoinClub, s: t.SessionInfo) -> object:
+async def post_join_club(req: t.PostJoinClub, s: t.SessionInfo) -> object:
     params = dict(
         person_id=s.person_id,
         club_name=req.name,
     )
 
-    with api_tx() as tx:
-        rows = tx.execute(Q_JOIN_CLUB, params).fetchall()
+    async with async_api_tx() as tx:
+        row_tx = await tx.execute(Q_JOIN_CLUB, params)
+        rows = await row_tx.fetchall()
 
     if rows:
         return f"Joined {req.name}", 200
