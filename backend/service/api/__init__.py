@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional, cast
 from urllib.parse import parse_qsl
-from fastapi import Body, Depends
+from fastapi import Body, Depends, Path as FastApiPath
 from starlette.requests import Request
 from starlette.concurrency import run_in_threadpool
 import duotypes as t
@@ -502,18 +502,16 @@ async def post_unskip_by_uuid(
     await person.post_unskip_by_uuid(s, prospect_uuid)
     return None
 
-@aget(
-    '/compare-personalities'
-    '/<int:prospect_person_id>'
-    '/<any(mbti, big5, attachment, politics, other):topic>'
-)
-def get_compare_personalities(
+@app.get('/compare-personalities/{prospect_person_id:int}/{topic}')
+@duo_route
+async def get_compare_personalities(
     request: Request,
-    s: t.SessionInfo,
     prospect_person_id: int,
-    topic: str
+    topic: str = FastApiPath(pattern='^(mbti|big5|attachment|politics|other)$'),
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('get_compare_personalities')),
 ) -> object:
-    return person.get_compare_personalities(s, prospect_person_id, topic)
+    return await person.get_compare_personalities(s, prospect_person_id, topic)
 
 @aget('/compare-answers/<int:prospect_person_id>')
 def get_compare_answers(

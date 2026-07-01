@@ -1128,7 +1128,7 @@ async def post_unskip_by_uuid(s: t.SessionInfo, prospect_uuid: str) -> None:
     async with async_api_tx() as tx:
         await tx.execute(Q_DELETE_SKIPPED_BY_UUID, params)
 
-def get_compare_personalities(
+async def get_compare_personalities(
     s: t.SessionInfo,
     prospect_person_id: int,
     topic: str
@@ -1153,8 +1153,9 @@ def get_compare_personalities(
         topic=db_topic,
     )
 
-    with api_tx('READ COMMITTED') as tx:
-        return tx.execute(Q_SELECT_PERSONALITY, params).fetchall()
+    async with async_api_tx('READ COMMITTED') as tx:
+        row_tx = await tx.execute(Q_SELECT_PERSONALITY, params)
+        return await row_tx.fetchall()
 
 def get_compare_answers(
     s: t.SessionInfo,
