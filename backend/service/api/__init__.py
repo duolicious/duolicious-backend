@@ -568,14 +568,15 @@ async def get_profile_info(
 ) -> object:
     return await person.get_profile_info(s)
 
-@adelete('/profile-info')
-@validate(t.DeleteProfileInfo)
-def delete_profile_info(
+@app.delete('/profile-info')
+@duo_route
+async def delete_profile_info(
     request: Request,
     req: t.DeleteProfileInfo,
-    s: t.SessionInfo,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('delete_profile_info')),
 ) -> object:
-    person.delete_profile_info(req, s)
+    await person.delete_profile_info(req, s)
     return None
 
 @apatch('/profile-info')

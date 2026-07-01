@@ -1304,7 +1304,7 @@ async def get_profile_info(s: t.SessionInfo) -> object:
     async with async_api_tx('READ COMMITTED') as tx:
         return (await tx.require_one(Q_GET_PROFILE_INFO, params))['j']
 
-def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo) -> None:
+async def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo) -> None:
     files_params = [
         dict(person_id=s.person_id, position=position)
         for position in req.files or []
@@ -1316,13 +1316,13 @@ def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo) -> None:
     ]
 
     if files_params:
-        with api_tx() as tx:
-            tx.executemany(Q_DELETE_PROFILE_INFO_PHOTO, files_params)
-            tx.execute(Q_UPDATE_VERIFICATION_LEVEL, files_params[0])
+        async with async_api_tx() as tx:
+            await tx.executemany(Q_DELETE_PROFILE_INFO_PHOTO, files_params)
+            await tx.execute(Q_UPDATE_VERIFICATION_LEVEL, files_params[0])
 
     if audio_files_params:
-        with api_tx() as tx:
-            tx.executemany(Q_DELETE_PROFILE_INFO_AUDIO, audio_files_params)
+        async with async_api_tx() as tx:
+            await tx.executemany(Q_DELETE_PROFILE_INFO_AUDIO, audio_files_params)
 
 def _patch_profile_info_about(person_id: int, new_about: str) -> None:
     select = """
