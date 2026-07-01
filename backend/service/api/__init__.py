@@ -736,24 +736,24 @@ async def post_verification_selfie(
 ) -> object:
     return await person.post_verification_selfie(req, s)
 
-@apost('/verify')
-def post_verify(request: Request, s: t.SessionInfo) -> object:
-    limit = "8 per day"
-    scope = "verify"
-
-    limiter.check(
-        request,
-        limit,
-        scope=scope,
-        exempt_when=disable_ip_rate_limit)
-    limiter.check(
-        request,
-        limit,
-        scope=scope,
+@app.post('/verify')
+@duo_route
+async def post_verify(
+    request: Request,
+    s: t.SessionInfo = Depends(require_session()),
+    _ip_limited: None = Depends(rate_limit(
+        "8 per day",
+        scope="verify",
+        exempt_when=disable_ip_rate_limit,
+    )),
+    _account_limited: None = Depends(rate_limit(
+        "8 per day",
+        scope="verify",
         key_func=limiter_account,
-        exempt_when=disable_account_rate_limit)
-
-    person.post_verify(s)
+        exempt_when=disable_account_rate_limit,
+    )),
+) -> object:
+    await person.post_verify(s)
     return None
 
 # Reference example of the FastAPI-native, fully-async endpoint style we're

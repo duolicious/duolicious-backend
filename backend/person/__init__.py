@@ -2391,7 +2391,7 @@ async def post_verification_selfie(
 
     return None
 
-def post_verify(s: t.SessionInfo) -> None:
+async def post_verify(s: t.SessionInfo) -> None:
     params = dict(
         person_id=s.person_id,
         status='queued',
@@ -2399,8 +2399,8 @@ def post_verify(s: t.SessionInfo) -> None:
         expected_previous_status='uploading-photo',
     )
 
-    with api_tx() as tx:
-        tx.execute(Q_UPDATE_VERIFICATION_JOB, params)
+    async with async_api_tx() as tx:
+        await tx.execute(Q_UPDATE_VERIFICATION_JOB, params)
 
 async def get_check_verification(s: t.SessionInfo) -> object:
     async with async_api_tx() as tx:
