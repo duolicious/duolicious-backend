@@ -491,13 +491,15 @@ async def post_skip_by_uuid(
     )
     return None
 
-@apost('/unskip/by-uuid/<prospect_uuid>')
-def post_unskip_by_uuid(
+@app.post('/unskip/by-uuid/{prospect_uuid}')
+@duo_route
+async def post_unskip_by_uuid(
     request: Request,
-    s: t.SessionInfo,
     prospect_uuid: str,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('post_unskip_by_uuid')),
 ) -> object:
-    person.post_unskip_by_uuid(s, prospect_uuid)
+    await person.post_unskip_by_uuid(s, prospect_uuid)
     return None
 
 @aget(

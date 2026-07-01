@@ -1119,14 +1119,14 @@ async def get_conversation_prospect_async(s: t.SessionInfo, prospect_uuid: str) 
 
         return profile
 
-def post_unskip_by_uuid(s: t.SessionInfo, prospect_uuid: str) -> None:
+async def post_unskip_by_uuid(s: t.SessionInfo, prospect_uuid: str) -> None:
     params = dict(
         subject_person_id=s.person_id,
         prospect_uuid=prospect_uuid,
     )
 
-    with api_tx() as tx:
-        tx.execute(Q_DELETE_SKIPPED_BY_UUID, params)
+    async with async_api_tx() as tx:
+        await tx.execute(Q_DELETE_SKIPPED_BY_UUID, params)
 
 def get_compare_personalities(
     s: t.SessionInfo,
