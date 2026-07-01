@@ -782,6 +782,64 @@ def require_session(
     return dependency
 
 
+def optional_require_session(
+    expected_onboarding_status: bool | None = True,
+    expected_sign_in_status: bool | None = True,
+) -> Callable[[Request], Awaitable[duotypes.SessionInfo | None]]:
+    """Optional async session dependency. Missing or invalid auth yields None."""
+    async def dependency(request: Request) -> duotypes.SessionInfo | None:
+        auth_header = (request.headers.get('Authorization') or '').lower()
+        try:
+            bearer, session_token = auth_header.split()
+            if bearer != 'bearer':
+                raise ValueError
+        except Exception:
+            return None
+
+        session_token_hash = sha512(session_token)
+
+        session_info = await run_in_threadpool(
+            sessioncache.get_session, session_token_hash)
+
+        if session_info is None:
+            async with async_api_tx('READ COMMITTED') as tx:
+                await tx.execute(
+                    Q_GET_SESSION,
+                    dict(session_token_hash=session_token_hash))
+                row = await tx.fetchone()
+            if row:
+                session_info = duotypes.SessionInfo(
+                    email=row['email'],
+                    person_id=row['person_id'],
+                    person_uuid=row['person_uuid'],
+                    signed_in=row['signed_in'],
+                    session_token_hash=session_token_hash,
+                    pending_club_name=row['pending_club_name'],
+                )
+                await run_in_threadpool(
+                    sessioncache.put_session,
+                    session_info,
+                    row['session_expiry_epoch'])
+
+        if session_info is None:
+            return None
+
+        is_onboarded = session_info.person_id is not None
+        ok_onboarding = (
+            expected_onboarding_status is None
+            or expected_onboarding_status == is_onboarded)
+        ok_sign_in = (
+            expected_sign_in_status is None
+            or expected_sign_in_status == session_info.signed_in)
+        if not (ok_onboarding and ok_sign_in):
+            return None
+
+        request.state.normalized_email = normalize_email(session_info.email)
+        return session_info
+
+    return dependency
+
+
 def default_rate_limit(
     endpoint_name: str,
 ) -> Callable[[Request], Awaitable[None]]:

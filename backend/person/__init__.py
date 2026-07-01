@@ -22,7 +22,7 @@ from search.sql import *
 from commonsql import *
 from qanda import _flush_session_answers, _flush_session_answers_async
 from constants import VISITOR_ONLINE_TIMEOUT_SECONDS
-from visitorspush import publish_visit
+from visitorspush import publish_visit_async
 from person.template import otp_template
 import traceback
 import re
@@ -1029,18 +1029,22 @@ async def post_finish_onboarding(s: t.SessionInfo) -> object:
 
     return dict(**row, **clubs)
 
-def get_prospect_profile(s: Optional[t.SessionInfo], prospect_handle: object) -> object:
+async def get_prospect_profile_async(
+    s: Optional[t.SessionInfo],
+    prospect_handle: object,
+) -> object:
     params = dict(
         person_id=s.person_id if s is not None else None,
         prospect_handle=prospect_handle,
     )
 
-    with api_tx('READ COMMITTED') as tx:
-        api_row = tx.execute(Q_SELECT_PROSPECT_PROFILE, params).fetchone()
+    async with async_api_tx('READ COMMITTED') as tx:
+        row_tx = await tx.execute(Q_SELECT_PROSPECT_PROFILE, params)
+        api_row = await row_tx.fetchone()
         if not api_row:
             return '', 404
 
-        profile = api_row.get('j')
+        profile = cast(dict[str, object] | None, api_row.get('j'))
         if not profile:
             return '', 404
 
@@ -1060,13 +1064,16 @@ def get_prospect_profile(s: Optional[t.SessionInfo], prospect_handle: object) ->
 
     # Timeout in case someone with lots of messages hogs CPU time
     try:
-        with api_tx('READ COMMITTED') as tx:
-            tx.execute('SET LOCAL statement_timeout = 1000') # 1 second
-
-            message_stats = tx.execute(
+        async with async_api_tx('READ COMMITTED') as tx:
+            await tx.execute('SET LOCAL statement_timeout = 1000') # 1 second
+            message_stats_tx = await tx.execute(
                 Q_MESSAGE_STATS,
                 dict(prospect_uuid=prospect_uuid),
-            ).fetchone()
+            )
+            message_stats = cast(
+                dict[str, object],
+                await message_stats_tx.fetchone(),
+            )
     except psycopg.errors.QueryCanceled:
         message_stats = dict(
             gets_reply_percentage=None,
@@ -1077,13 +1084,16 @@ def get_prospect_profile(s: Optional[t.SessionInfo], prospect_handle: object) ->
 
     if s.person_id is not None and s.person_uuid is not None and \
             prospect_id is not None and prospect_uuid is not None:
-        seconds_since_last_online = profile.get('seconds_since_last_online')
+        seconds_since_last_online = cast(
+            float | None,
+            profile.get('seconds_since_last_online'),
+        )
         prospect_online = (
             seconds_since_last_online is not None and
             seconds_since_last_online < VISITOR_ONLINE_TIMEOUT_SECONDS
         )
 
-        publish_visit(
+        await publish_visit_async(
             viewer_id=s.person_id,
             viewer_uuid=s.person_uuid,
             prospect_id=prospect_id,

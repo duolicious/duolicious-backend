@@ -30,6 +30,7 @@ from service.api.decorators import (
     patch,
     post,
     put,
+    optional_require_session,
     require_session,
     rate_limit,
     validate,
@@ -435,13 +436,15 @@ async def get_public_search(
 async def get_health(request: Request) -> object:
     return 'status: ok'
 
-@aget('/prospect-profile/<prospect_handle>', auth='optional')
-def get_prospect_profile(
+@app.get('/prospect-profile/{prospect_handle}')
+@duo_route
+async def get_prospect_profile(
     request: Request,
-    s: Optional[t.SessionInfo],
     prospect_handle: str,
+    s: Optional[t.SessionInfo] = Depends(optional_require_session()),
+    _default_limited: None = Depends(default_rate_limit('get_prospect_profile')),
 ) -> object:
-    return person.get_prospect_profile(s, prospect_handle)
+    return await person.get_prospect_profile_async(s, prospect_handle)
 
 @aget('/conversation-prospect/<prospect_uuid>')
 def get_conversation_prospect(
