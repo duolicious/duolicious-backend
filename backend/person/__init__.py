@@ -1891,7 +1891,7 @@ async def get_search_filters_by_person_id_async(
     async with async_api_tx('READ COMMITTED') as tx:
         return (await tx.require_one(Q_GET_SEARCH_FILTERS, params))['j']
 
-def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo) -> object:
+async def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo) -> object:
     [field_name] = req.__pydantic_fields_set__
     field_value = req.dict()[field_name]
 
@@ -1904,7 +1904,7 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo) -> object:
         field_value=field_value,
     )
 
-    with api_tx() as tx:
+    async with async_api_tx() as tx:
         if field_name == 'gender':
             q1 = """
             DELETE FROM search_preference_gender
@@ -2145,8 +2145,8 @@ def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo) -> object:
         else:
             return f'Invalid field name {field_name}', 400
 
-        tx.execute(q1, params)
-        tx.execute(q2, params)
+        await tx.execute(q1, params)
+        await tx.execute(q2, params)
 
     return None
 

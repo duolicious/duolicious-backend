@@ -598,14 +598,15 @@ async def get_search_filers(
 ) -> object:
     return await person.get_search_filters(s)
 
-@apost('/search-filter')
-@validate(t.PostSearchFilter)
-def post_search_filter(
+@app.post('/search-filter')
+@duo_route
+async def post_search_filter(
     request: Request,
     req: t.PostSearchFilter,
-    s: t.SessionInfo,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('post_search_filter')),
 ) -> object:
-    return person.post_search_filter(req, s)
+    return await person.post_search_filter(req, s)
 
 @aget('/search-filter-questions')
 def get_search_filter_questions(request: Request, s: t.SessionInfo) -> object:
