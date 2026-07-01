@@ -2488,11 +2488,12 @@ async def get_admin_delete_photo(token: str) -> object:
     else:
         return 'Photo deletion failed', 401
 
-def get_export_data_token(s: t.SessionInfo) -> object:
+async def get_export_data_token(s: t.SessionInfo) -> object:
     params = dict(person_id=s.person_id)
 
-    with api_tx() as tx:
-        return tx.execute(Q_INSERT_EXPORT_DATA_TOKEN, params).fetchone()
+    async with async_api_tx() as tx:
+        row_tx = await tx.execute(Q_INSERT_EXPORT_DATA_TOKEN, params)
+        return await row_tx.fetchone()
 
 def get_export_data(token: str) -> object:
     token_params = dict(token=token)

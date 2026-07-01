@@ -837,24 +837,24 @@ async def get_admin_delete_photo(
 ) -> object:
     return await person.get_admin_delete_photo(token)
 
-@aget('/export-data-token')
-def get_export_data_token(request: Request, s: t.SessionInfo) -> object:
-    limit = "3 per day"
-    scope = "export_data_token"
-
-    limiter.check(
-        request,
-        limit,
-        scope=scope,
-        exempt_when=disable_ip_rate_limit)
-    limiter.check(
-        request,
-        limit,
-        scope=scope,
+@app.get('/export-data-token')
+@duo_route
+async def get_export_data_token(
+    request: Request,
+    s: t.SessionInfo = Depends(require_session()),
+    _ip_limited: None = Depends(rate_limit(
+        "3 per day",
+        scope="export_data_token",
+        exempt_when=disable_ip_rate_limit,
+    )),
+    _account_limited: None = Depends(rate_limit(
+        "3 per day",
+        scope="export_data_token",
         key_func=limiter_account,
-        exempt_when=disable_account_rate_limit)
-
-    return person.get_export_data_token(s=s)
+        exempt_when=disable_account_rate_limit,
+    )),
+) -> object:
+    return await person.get_export_data_token(s=s)
 
 @get('/export-data/<token>')
 def get_export_data(request: Request, token: str) -> object:
