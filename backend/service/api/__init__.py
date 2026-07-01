@@ -354,19 +354,25 @@ async def get_public_next_questions(
         o=request.query_params.get('o', '0'),
     )
 
-@apost('/answer')
-@validate(t.PostAnswer)
-def post_answer(request: Request, req: t.PostAnswer, s: t.SessionInfo) -> object:
-    return qanda.post_answer(req, s)
+@app.post('/answer')
+@duo_route
+async def post_answer(
+    request: Request,
+    req: t.PostAnswer,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('post_answer')),
+) -> object:
+    return await qanda.post_answer_async(req, s)
 
-@adelete('/answer')
-@validate(t.DeleteAnswer)
-def delete_answer(
+@app.delete('/answer')
+@duo_route
+async def delete_answer(
     request: Request,
     req: t.DeleteAnswer,
-    s: t.SessionInfo,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('delete_answer')),
 ) -> object:
-    return qanda.delete_answer(req, s)
+    return await qanda.delete_answer_async(req, s)
 
 @aget('/search')
 def get_search(request: Request, s: t.SessionInfo) -> object:
