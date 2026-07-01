@@ -1839,12 +1839,6 @@ async def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> objec
 async def get_search_filters(s: t.SessionInfo) -> object:
     return await get_search_filters_by_person_id_async(person_id=s.person_id)
 
-def get_search_filters_by_person_id(person_id: Optional[int]) -> object:
-    params = dict(person_id=person_id)
-
-    with api_tx('READ COMMITTED') as tx:
-        return tx.require_one(Q_GET_SEARCH_FILTERS, params)['j']
-
 async def get_search_filters_by_person_id_async(
     person_id: Optional[int],
 ) -> object:
@@ -2495,23 +2489,26 @@ async def get_export_data_token(s: t.SessionInfo) -> object:
         row_tx = await tx.execute(Q_INSERT_EXPORT_DATA_TOKEN, params)
         return await row_tx.fetchone()
 
-def get_export_data(token: str) -> object:
+async def get_export_data(token: str) -> object:
     token_params = dict(token=token)
 
     # Fetch data from database
-    with api_tx('read committed') as tx:
-        params = tx.execute(Q_CHECK_EXPORT_DATA_TOKEN, token_params).fetchone()
+    async with async_api_tx('read committed') as tx:
+        row_tx = await tx.execute(Q_CHECK_EXPORT_DATA_TOKEN, token_params)
+        params = await row_tx.fetchone()
 
     if not params:
         return 'Invalid token. Link might have expired.', 401
 
-    with api_tx('read committed') as tx:
-        tx.execute('SET LOCAL statement_timeout = 30000') # 30 seconds
-        raw_data = tx.require_one(Q_EXPORT_API_DATA, params)['j']
+    async with async_api_tx('read committed') as tx:
+        await tx.execute('SET LOCAL statement_timeout = 30000') # 30 seconds
+        raw_data = (await tx.require_one(Q_EXPORT_API_DATA, params))['j']
 
-    person_id = params['person_id']
+    person_id = cast(Optional[int], params['person_id'])
 
-    search_filters = get_search_filters_by_person_id(person_id=person_id)
+    search_filters = await get_search_filters_by_person_id_async(
+        person_id=person_id,
+    )
 
     # Redact sensitive fields
     for person in raw_data['person']:

@@ -856,9 +856,14 @@ async def get_export_data_token(
 ) -> object:
     return await person.get_export_data_token(s=s)
 
-@get('/export-data/<token>')
-def get_export_data(request: Request, token: str) -> object:
-    return person.get_export_data(token=token)
+@app.get('/export-data/{token}')
+@duo_route
+async def get_export_data(
+    request: Request,
+    token: str,
+    _default_limited: None = Depends(default_rate_limit('get_export_data')),
+) -> object:
+    return await person.get_export_data(token=token)
 
 @post('/revenuecat')
 @validate(t.PostRevenuecat)
