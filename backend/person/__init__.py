@@ -1197,18 +1197,19 @@ async def get_compare_answers(
         row_tx = await tx.execute(Q_ANSWER_COMPARISON, params)
         return await row_tx.fetchall()
 
-def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo) -> object:
+async def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo) -> object:
     params = dict(
         person_id=s.person_id,
         prospect_person_uuids=req.person_uuids
     )
 
-    with api_tx('READ COMMITTED') as tx:
+    async with async_api_tx('READ COMMITTED') as tx:
         # The query is cheap (a few thousand index-only-scanned rows) but its
         # estimated cost crosses the default jit_optimize/inline thresholds for
         # users with large inboxes, so JIT spends ~1s compiling for no benefit.
-        tx.execute('SET LOCAL jit = off')
-        return tx.execute(Q_INBOX_INFO, params).fetchall()
+        await tx.execute('SET LOCAL jit = off')
+        row_tx = await tx.execute(Q_INBOX_INFO, params)
+        return await row_tx.fetchall()
 
 def delete_or_ban_account(
     s: Optional[t.SessionInfo],

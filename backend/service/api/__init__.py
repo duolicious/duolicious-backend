@@ -530,14 +530,15 @@ async def get_compare_answers(
         o=request.query_params.get('o', '0'),
     )
 
-@apost('/inbox-info')
-@validate(t.PostInboxInfo)
-def post_inbox_info(
+@app.post('/inbox-info')
+@duo_route
+async def post_inbox_info(
     request: Request,
     req: t.PostInboxInfo,
-    s: t.SessionInfo,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('post_inbox_info')),
 ) -> object:
-    return person.post_inbox_info(req, s)
+    return await person.post_inbox_info(req, s)
 
 @adelete('/account')
 def delete_account(request: Request, s: t.SessionInfo) -> object:
