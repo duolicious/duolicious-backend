@@ -15,7 +15,8 @@ from duohash import sha512
 from PIL import Image
 import io
 import boto3
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import asyncio
+import asyncboto
 from person.sql import *
 from search.sql import *
 from commonsql import *
@@ -40,7 +41,7 @@ import numpy
 from async_lru_cache import AsyncLruCache
 from datetime import datetime, timezone
 from urllib.parse import quote
-from duoaudio import put_audio_in_object_store, put_audio_in_object_store_async
+from duoaudio import put_audio_in_object_store_async
 from person.aboutdiff import diff_addition_with_context
 from auth.session import sign_out, sign_out_async, enforce_session_limit, enforce_session_limit_async
 from auth.social import (
@@ -192,54 +193,41 @@ def compute_blurhash(image: Image.Image, crop_size: CropSize | None = None) -> o
 
     return blurhash.encode(numpy.array(image.convert("RGB")))
 
-def put_image_in_object_store(
+async def put_image_in_object_store(
     uuid: str,
     base64_file: t.Base64File,
     crop_size: CropSize,
     sizes: list[Literal[None, 900, 450]] = [None, 900, 450],
 ) -> None:
-    key_img = [
-        (
-            f'{size if size else "original"}-{uuid}.jpg',
-            process_image_as_bytes(
-                base64_file=base64_file,
-                format='jpeg',
-                output_size=size,
-                crop_size=None if size is None else crop_size
+    def process() -> list[tuple[str, io.BytesIO]]:
+        key_img = [
+            (
+                f'{size if size else "original"}-{uuid}.jpg',
+                process_image_as_bytes(
+                    base64_file=base64_file,
+                    format='jpeg',
+                    output_size=size,
+                    crop_size=None if size is None else crop_size
+                )
             )
-        )
-        for size in sizes
-    ]
+            for size in sizes
+        ]
 
-    if base64_file.image.format == 'GIF' and None in sizes:
-        key_img.append((
-            f'{uuid}.gif',
-            process_image_as_bytes(base64_file=base64_file, format='raw')
-        ))
+        if base64_file.image.format == 'GIF' and None in sizes:
+            key_img.append((
+                f'{uuid}.gif',
+                process_image_as_bytes(base64_file=base64_file, format='raw')
+            ))
 
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        futures = {
-            executor.submit(bucket.put_object, Key=key, Body=img)
-            for key, img in key_img}
+        return key_img
 
-        for future in as_completed(futures):
-            future.result()
+    # Image processing is CPU-bound, so keep it off the event loop.
+    key_img = await run_in_threadpool(process)
 
-
-async def put_image_in_object_store_async(
-    uuid: str,
-    base64_file: t.Base64File,
-    crop_size: CropSize,
-    sizes: list[Literal[None, 900, 450]] = [None, 900, 450],
-) -> None:
-    """Async wrapper for `put_image_in_object_store`."""
-    await run_in_threadpool(
-        put_image_in_object_store,
-        uuid,
-        base64_file,
-        crop_size,
-        sizes,
-    )
+    await asyncio.gather(*[
+        asyncboto.put_object(bucket, Key=key, Body=img)
+        for key, img in key_img
+    ])
 
 async def _has_gold_async(person_id: int) -> bool:
     async with async_api_tx() as tx:
@@ -797,7 +785,7 @@ async def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo) -> o
             await tx.execute(q_set_onboardee_field, params)
 
         try:
-            await put_image_in_object_store_async(
+            await put_image_in_object_store(
                 uuid,
                 base64_file,
                 crop_size,
@@ -1639,7 +1627,7 @@ async def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> objec
 
     if uuid and base64_file and crop_size:
         try:
-            await put_image_in_object_store_async(uuid, base64_file, crop_size)
+            await put_image_in_object_store(uuid, base64_file, crop_size)
         except:
             print(traceback.format_exc())
             return '', 500
@@ -2158,7 +2146,7 @@ async def post_verification_selfie(
             await tx.execute(Q_UPDATE_VERIFICATION_JOB, params_bad)
 
     try:
-        await put_image_in_object_store_async(
+        await put_image_in_object_store(
             photo_uuid, req.base64_file, crop_size, sizes=[450])
     except Exception as e:
         print('Upload failed with exception:', e)
