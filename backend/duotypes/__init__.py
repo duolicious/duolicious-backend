@@ -195,7 +195,6 @@ class Base64AudioFile(BaseModel):
         values['transcoded'] = transcoded
 
         return values
-
     class Config:
         arbitrary_types_allowed = True
 
@@ -788,7 +787,3 @@ class PostRevenuecat(BaseModel):
                 values['raw_event_error'] = str(e)
                 values['event'] = None
         return values
-
-
-class PostMarkVisitorsChecked(BaseModel):
-    time: Optional[datetime] = None

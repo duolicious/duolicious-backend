@@ -973,15 +973,6 @@ def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str) -> 
     return None
 
 
-def post_unskip(s: t.SessionInfo, prospect_person_id: int) -> None:
-    params = dict(
-        subject_person_id=s.person_id,
-        object_person_id=prospect_person_id,
-    )
-
-    with api_tx() as tx:
-        tx.execute(Q_DELETE_SKIPPED, params)
-
 def post_unskip_by_uuid(s: t.SessionInfo, prospect_uuid: str) -> None:
     params = dict(
         subject_person_id=s.person_id,
@@ -2443,18 +2434,3 @@ def post_revenuecat(req: t.PostRevenuecat, auth_header: str) -> object:
             updated_uuids=sorted(updated_uuids),
             ignored_uuids=sorted(ignored_uuids),
         )
-
-def get_visitors(s: t.SessionInfo) -> object:
-    with api_tx('READ COMMITTED') as tx:
-        return tx.require_one(Q_VISITORS, dict(person_id=s.person_id))['j']
-
-def post_mark_visitors_checked(
-    req: t.PostMarkVisitorsChecked,
-    s: t.SessionInfo
-) -> None:
-    params = dict(
-        person_id=s.person_id,
-        when=req.time,
-    )
-    with api_tx('READ COMMITTED') as tx:
-        tx.execute(Q_MARK_VISITORS_CHECKED, params)

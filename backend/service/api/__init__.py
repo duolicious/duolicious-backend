@@ -444,16 +444,6 @@ def post_skip_by_uuid(
 
     return person.post_skip_by_uuid(req, s, prospect_uuid)
 
-# TODO: Delete
-@apost('/unskip/<int:prospect_person_id>')
-def post_unskip(
-    request: Request,
-    s: t.SessionInfo,
-    prospect_person_id: int,
-) -> object:
-    person.post_unskip(s, prospect_person_id)
-    return None
-
 @apost('/unskip/by-uuid/<prospect_uuid>')
 def post_unskip_by_uuid(
     request: Request,
@@ -708,23 +698,3 @@ def get_export_data(request: Request, token: str) -> object:
 def post_revenuecat(request: Request, req: t.PostRevenuecat) -> object:
     return person.post_revenuecat(
         req, request.headers.get('Authorization', ''))
-
-# DEPRECATED: visitors are now delivered over the chat WebSocket -- a snapshot on
-# connect (the `duo_query_visitors` stanza) plus live `duo_visitor` pushes from the
-# profile-view write path. This endpoint is kept only so older clients, which still
-# poll it, keep working. Remove once those clients age out.
-@aget('/visitors')
-def get_visitors(request: Request, s: t.SessionInfo) -> object:
-    return person.get_visitors(s=s)
-
-# DEPRECATED: superseded by the `duo_mark_visitors_checked` chat stanza. Kept for
-# older clients that still POST here.
-@apost('/mark-visitors-checked')
-@validate(t.PostMarkVisitorsChecked)
-def post_mark_visitors_checked(
-    request: Request,
-    req: t.PostMarkVisitorsChecked,
-    s: t.SessionInfo,
-) -> object:
-    person.post_mark_visitors_checked(req=req, s=s)
-    return None

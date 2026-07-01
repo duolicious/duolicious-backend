@@ -1,7 +1,6 @@
 import constants
 from constants import MIN_CLUB_PAGE_MEMBERS, MAX_RELATED_CLUBS
 from commonsql import Q_IS_ALLOWED_CLUB_NAME, Q_COMPUTED_FLAIR
-from visitorsql import Q_VISITORS, Q_MARK_VISITORS_CHECKED
 
 MAX_CLUB_SEARCH_RESULTS = 20
 
@@ -1206,13 +1205,6 @@ FROM
     person
 WHERE
     id = %(person_id)s
-"""
-
-Q_DELETE_SKIPPED = """
-DELETE FROM skipped
-WHERE
-    subject_person_id = %(subject_person_id)s AND
-    object_person_id = %(object_person_id)s
 """
 
 Q_DELETE_SKIPPED_BY_UUID = """
