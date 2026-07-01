@@ -2288,6 +2288,33 @@ def get_search_clubs(
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(q, params).fetchall()
 
+async def get_search_clubs_async(
+        s: Optional[t.SessionInfo],
+        search_str: str,
+        allow_empty: bool = False) -> object:
+
+    if (search_str or '').strip():
+        # A non-empty search string must be a valid club name.
+        search_string = t.parse_club_name(search_str)
+        if search_string is None:
+            return []
+    elif allow_empty:
+        # Empty string is allowed and yields the most popular clubs.
+        search_string = ''
+    else:
+        return []
+
+    params = dict(
+        person_id=s.person_id if s else None,
+        search_string=search_string,
+    )
+
+    q = Q_SEARCH_CLUBS if search_string else Q_TOP_CLUBS
+
+    async with async_api_tx('READ COMMITTED') as tx:
+        row_tx = await tx.execute(q, params)
+        return await row_tx.fetchall()
+
 def post_join_club(req: t.PostJoinClub, s: t.SessionInfo) -> object:
     params = dict(
         person_id=s.person_id,

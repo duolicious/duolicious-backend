@@ -636,9 +636,17 @@ async def post_search_filter_answer(
 ) -> object:
     return await person.post_search_filter_answer(req, s)
 
-@aget('/search-clubs')
-def get_search_clubs(request: Request, s: t.SessionInfo) -> object:
-    return person.get_search_clubs(s=s, search_str=request.query_params.get('q', ''))
+@app.get('/search-clubs')
+@duo_route
+async def get_search_clubs(
+    request: Request,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('get_search_clubs')),
+) -> object:
+    return await person.get_search_clubs_async(
+        s=s,
+        search_str=request.query_params.get('q', ''),
+    )
 
 @get('/search-public-clubs')
 def get_search_public_clubs(request: Request) -> object:
