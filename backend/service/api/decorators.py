@@ -1,15 +1,16 @@
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import is_dataclass, asdict
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from email.utils import format_datetime
-from typing import Protocol
+from typing import Protocol, cast
 from urllib.parse import parse_qsl
 from uuid import UUID
 from database import api_tx
 from duohash import sha512
 import constants
 import duotypes
+import inspect
 import os
 from pathlib import Path
 import ipaddress
@@ -690,17 +691,23 @@ def _register(
     path = _flask_rule_to_starlette(rule)
     endpoint_name = _endpoint_name(wrapped)
 
-    def _dispatch_sync(request: Request) -> Response:
-        try:
-            if not skip_default:
-                limiter.check_default(request, endpoint_name)
-            result = wrapped(request, **request.path_params)
-        except RateLimitExceeded:
-            return _make_response(('Too Many Requests', 429))
-        return _make_response(result)
+    def _run_chain(request: Request) -> object:
+        # Runs the synchronous decorator chain (default-limit check, auth,
+        # validation, rate-limit, handler) in a threadpool worker.
+        #
+        # For a plain `def` handler this returns the handler's final value. For
+        # an `async def` handler it returns the handler's *un-awaited* coroutine
+        # -- calling an async function doesn't run its body -- which the caller
+        # then awaits on the event loop. The upshot: the blocking auth/rate-limit
+        # work always runs in the threadpool (off the loop), while an async
+        # handler's own `await`s (async DB, S3, HTTP) run on the loop. Sync
+        # handlers are unaffected.
+        if not skip_default:
+            limiter.check_default(request, endpoint_name)
+        return wrapped(request, **request.path_params)
 
     async def asgi_endpoint(request: Request) -> Response:
-        # Handlers are synchronous and run in a threadpool, so the request body
+        # Handlers may be synchronous (run in a threadpool) so the request body
         # (an async read) is consumed up-front and the parsed forms stashed on
         # `request.state` for the sync code to read.
         raw_body = await request.body()
@@ -721,7 +728,15 @@ def _register(
         request.state.json_body = json_body
         request.state.form = form
 
-        return await run_in_threadpool(_dispatch_sync, request)
+        try:
+            result = await run_in_threadpool(_run_chain, request)
+            # `async def` handlers return a coroutine from the (threadpooled)
+            # chain; await it here so its body runs on the event loop.
+            if inspect.isawaitable(result):
+                result = await cast(Awaitable[object], result)
+        except RateLimitExceeded:
+            return _make_response(('Too Many Requests', 429))
+        return _make_response(result)
 
     app.router.routes.append(
         Route(path, asgi_endpoint, methods=[method]))
