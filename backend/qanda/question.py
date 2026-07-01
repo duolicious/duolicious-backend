@@ -1,5 +1,6 @@
 import os
 from database import api_tx
+from database.asyncdatabase import api_tx as async_api_tx
 import duotypes as t
 from questions.archetypeise_questions import load_questions
 from typing import List, Optional
@@ -230,6 +231,17 @@ def get_next_questions(s: t.SessionInfo, n: str, o: str) -> object:
 
     with api_tx('READ COMMITTED') as tx:
         return tx.execute(Q_GET_NEXT_QUESTIONS, params).fetchall()
+
+async def get_next_questions_async(s: t.SessionInfo, n: str, o: str) -> object:
+    params = dict(
+        person_id=s.person_id,
+        n=int(n),
+        o=int(o),
+    )
+
+    async with async_api_tx('READ COMMITTED') as tx:
+        row_tx = await tx.execute(Q_GET_NEXT_QUESTIONS, params)
+        return await row_tx.fetchall()
 
 def get_public_next_questions(n: str, o: str) -> object:
     params = dict(

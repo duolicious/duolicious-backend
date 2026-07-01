@@ -330,9 +330,14 @@ async def post_finish_onboarding(
 ) -> object:
     return await person.post_finish_onboarding(s)
 
-@aget('/next-questions')
-def get_next_questions(request: Request, s: t.SessionInfo) -> object:
-    return question.get_next_questions(
+@app.get('/next-questions')
+@duo_route
+async def get_next_questions(
+    request: Request,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('get_next_questions')),
+) -> object:
+    return await question.get_next_questions_async(
         s=s,
         n=request.query_params.get('n', '10'),
         o=request.query_params.get('o', '0'),
