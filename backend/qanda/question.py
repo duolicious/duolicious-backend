@@ -222,16 +222,6 @@ def init_db() -> None:
                 """
             )
 
-def get_next_questions(s: t.SessionInfo, n: str, o: str) -> object:
-    params = dict(
-        person_id=s.person_id,
-        n=int(n),
-        o=int(o)
-    )
-
-    with api_tx('READ COMMITTED') as tx:
-        return tx.execute(Q_GET_NEXT_QUESTIONS, params).fetchall()
-
 async def get_next_questions_async(s: t.SessionInfo, n: str, o: str) -> object:
     params = dict(
         person_id=s.person_id,
@@ -242,15 +232,6 @@ async def get_next_questions_async(s: t.SessionInfo, n: str, o: str) -> object:
     async with async_api_tx('READ COMMITTED') as tx:
         row_tx = await tx.execute(Q_GET_NEXT_QUESTIONS, params)
         return await row_tx.fetchall()
-
-def get_public_next_questions(n: str, o: str) -> object:
-    params = dict(
-        n=int(n),
-        o=int(o),
-    )
-
-    with api_tx('READ COMMITTED') as tx:
-        return tx.execute(Q_GET_PUBLIC_NEXT_QUESTIONS, params).fetchall()
 
 async def get_public_next_questions_async(n: str, o: str) -> object:
     params = dict(

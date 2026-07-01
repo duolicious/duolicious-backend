@@ -5,7 +5,6 @@ from collections.abc import Mapping, Sequence
 from typing import Optional, Tuple, Literal, cast
 from urlslug import (
     assign_url_slug_async,
-    reserve_onboardee_url_slug,
     reserve_onboardee_url_slug_async,
 )
 import duotypes as t
@@ -20,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from person.sql import *
 from search.sql import *
 from commonsql import *
-from qanda import _flush_session_answers, _flush_session_answers_async
+from qanda import _flush_session_answers_async
 from constants import VISITOR_ONLINE_TIMEOUT_SECONDS
 from visitorspush import publish_visit_async
 from person.template import otp_template
@@ -264,19 +263,6 @@ def _check_ip_blocked(remote_addr: Optional[str]) -> object:
         return 'IP address blocked', 460
     return None
 
-def _check_banned(
-    tx: Tx,
-    normalized_email: str,
-    remote_addr: Optional[str],
-) -> object:
-    banned = tx.execute(Q_IS_BANNED, dict(
-        normalized_email=normalized_email,
-        ip_address=remote_addr,
-    )).fetchone()
-    if banned:
-        return 'Banned', 461
-    return None
-
 def _new_session_token() -> tuple[str, str]:
     session_token = secrets.token_hex(64)
     return session_token, sha512(session_token)
@@ -290,23 +276,6 @@ def _otp_from_rows(rows: Sequence[Mapping[str, object]]) -> str | None:
         return otp
     except:
         return None
-
-def _handle_pending_club(
-    tx: Tx,
-    person_id: int | None,
-    pending_club_name: str | None,
-) -> Mapping[str, object]:
-    club_params = dict(
-        person_id=person_id,
-        club_name=pending_club_name,
-        pending_club_name=pending_club_name,
-        do_modify=True,
-    )
-    if person_id is not None and pending_club_name is not None:
-        tx.execute(Q_JOIN_CLUB, club_params)
-        tx.execute(Q_UPSERT_SEARCH_PREFERENCE_CLUB, club_params)
-    return tx.require_one(Q_GET_SESSION_CLUBS, club_params)
-
 
 async def _handle_pending_club_async(
     tx: AsyncTx,
@@ -329,19 +298,6 @@ def _str_value(value: object, field_name: str) -> str:
     if not isinstance(value, str):
         raise ValueError(f'Field {field_name} must be a string')
     return value
-
-
-async def _reserve_onboardee_url_slug_async(
-    email: str,
-    name: str,
-) -> dict[str, object]:
-    async with async_api_tx() as tx:
-        return await reserve_onboardee_url_slug_async(tx, email, name)
-
-
-def _reserve_onboardee_url_slug_sync(email: str, name: str) -> dict[str, object]:
-    with api_tx() as tx:
-        return reserve_onboardee_url_slug(tx, email, name)
 
 
 async def post_request_otp(
@@ -474,142 +430,6 @@ async def post_check_otp(
 
 async def post_sign_out(s: t.SessionInfo) -> None:
     await sign_out_async([s.session_token_hash])
-
-def _sign_in_with_social(
-    provider: str,
-    sub: str,
-    email: str,
-    email_verified: bool,
-    pending_club_name: Optional[str],
-    remote_addr: Optional[str],
-) -> object:
-    """
-    Shared logic for /sign-in-with-google and /sign-in-with-apple. The
-    caller is responsible for verifying the provider's JWT and passing
-    canonical claim values.
-    """
-    if blocked := _check_ip_blocked(remote_addr):
-        return blocked
-
-    session_token, session_token_hash = _new_session_token()
-    normalized = normalize_email(email)
-
-    with api_tx() as tx:
-        # 0. Banned-person guard (mirrors `_OTP_CTE`).
-        if banned := _check_banned(tx, normalized, remote_addr):
-            return banned
-
-        # 1. Resolve to an existing person via (provider, sub) first; on
-        #    miss, fall back to an email match against `person`.
-        row = tx.execute(Q_LOOKUP_SOCIAL_IDENTITY, dict(
-            provider=provider,
-            provider_sub=sub,
-        )).fetchone()
-        person_id = row['person_id'] if row else None
-
-        # Auto-link / collision check requires a verified email — without
-        # it we'd risk creating an onboardee that later crashes on
-        # `person.email`'s UNIQUE constraint at /finish-onboarding, and
-        # we'd risk handing someone else's account to an unverified
-        # claimant. Reject the whole sign-in up front. 409 (Conflict)
-        # lets the client distinguish this from a bad-token 401 and
-        # surface a clear "verify your email first" message.
-        needs_email_match = person_id is None and email
-
-        if needs_email_match and not email_verified:
-            existing = tx.execute(Q_LOOKUP_PERSON_BY_EMAIL, dict(
-                normalized_email=normalized,
-                email=email,
-            )).fetchone()
-            return (
-                'An account already exists for this email. Sign in '
-                'with the email link to confirm ownership, then try '
-                'social sign-in again.'
-                if existing else
-                'Your email address is not verified with the sign-in '
-                'provider. Verify it and try again.',
-                409,
-            )
-
-        # Auto-link: a verified social email matches an existing person.
-        # Record the social identity so future sign-ins hit
-        # Q_LOOKUP_SOCIAL_IDENTITY directly.
-        email_match = tx.execute(Q_LOOKUP_PERSON_BY_EMAIL, dict(
-            normalized_email=normalized,
-            email=email,
-        )).fetchone() if needs_email_match else None
-
-        if email_match:
-            person_id = email_match['person_id']
-            tx.execute(Q_INSERT_SOCIAL_IDENTITY, dict(
-                provider=provider,
-                provider_sub=sub,
-                person_id=person_id,
-                email=email,
-            ))
-
-        # 2. New user with no email? We can't proceed — Apple should always
-        #    include `email` in the identity token, but if it doesn't and
-        #    there's no existing link, we can't create an onboardee row
-        #    (the table is keyed by email).
-        if person_id is None and not email:
-            return 'Provider did not return an email', 400
-
-        # 3. New user: ensure an onboardee row, then carry the pending
-        #    social identity on the session so /finish-onboarding can
-        #    promote it to `social_identity` once the person row exists.
-        # The user picks their display name in the onboarding wizard;
-        # we deliberately don't seed it from the provider's `name` claim.
-        pending_provider = None
-        pending_sub = None
-        if person_id is None:
-            tx.execute(Q_UPSERT_ONBOARDEE_FOR_SOCIAL, dict(email=email))
-            pending_provider = provider
-            pending_sub = sub
-
-        # 4. Mint the session — already signed in.
-        tx.execute(Q_INSERT_DUO_SESSION_SOCIAL, dict(
-            session_token_hash=session_token_hash,
-            person_id=person_id,
-            email=email,
-            pending_club_name=pending_club_name,
-            ip_address=remote_addr,
-            pending_social_provider=pending_provider,
-            pending_social_sub=pending_sub,
-        ))
-
-        # 5. For existing users, bump sign-in metadata + reactivation
-        #    club counts; for new users, return a stub profile.
-        if person_id is not None:
-            profile = tx.require_one(Q_AFTER_SOCIAL_SIGN_IN, dict(
-                person_id=person_id,
-            ))
-        else:
-            profile = dict(
-                person_id=None,
-                person_uuid=None,
-                has_gold=False,
-                units=None,
-                do_show_donation_nag=False,
-                estimated_end_date=None,
-                name=None,
-            )
-
-        # 6. Same pending-club-join handling as the OTP path.
-        clubs = _handle_pending_club(tx, person_id, pending_club_name)
-
-        if profile.get('person_uuid'):
-            tx.execute(Q_UPDATE_LAST, dict(person_uuid=profile['person_uuid']))
-
-    enforce_session_limit(person_id, session_token_hash)
-
-    return dict(
-        session_token=session_token,
-        onboarded=person_id is not None,
-        **profile,
-        **clubs,
-    )
-
 
 async def _sign_in_with_social_async(
     provider: str,
