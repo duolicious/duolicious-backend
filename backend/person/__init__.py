@@ -1103,15 +1103,15 @@ async def get_prospect_profile_async(
 
     return profile
 
-def get_conversation_prospect(s: t.SessionInfo, prospect_uuid: str) -> object:
+async def get_conversation_prospect_async(s: t.SessionInfo, prospect_uuid: str) -> object:
     params = dict(
         person_id=s.person_id,
         prospect_uuid=prospect_uuid,
     )
 
-    with api_tx('READ COMMITTED') as tx:
-        api_row = tx.execute(
-            Q_SELECT_CONVERSATION_PROSPECT, params
+    async with async_api_tx('READ COMMITTED') as tx:
+        api_row = await (
+            await tx.execute(Q_SELECT_CONVERSATION_PROSPECT, params)
         ).fetchone()
         if not api_row:
             return '', 404

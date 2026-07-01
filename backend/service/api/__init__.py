@@ -446,13 +446,15 @@ async def get_prospect_profile(
 ) -> object:
     return await person.get_prospect_profile_async(s, prospect_handle)
 
-@aget('/conversation-prospect/<prospect_uuid>')
-def get_conversation_prospect(
+@app.get('/conversation-prospect/{prospect_uuid}')
+@duo_route
+async def get_conversation_prospect(
     request: Request,
-    s: t.SessionInfo,
     prospect_uuid: str,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('get_conversation_prospect')),
 ) -> object:
-    return person.get_conversation_prospect(s, prospect_uuid)
+    return await person.get_conversation_prospect_async(s, prospect_uuid)
 
 @apost('/skip/by-uuid/<prospect_uuid>')
 @validate(t.PostSkip)
