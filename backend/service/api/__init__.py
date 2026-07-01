@@ -430,8 +430,9 @@ async def get_public_search(
         answers=request.query_params.get('answers'),
     )
 
-@get('/health', limiter=limiter.exempt)
-def get_health(request: Request) -> object:
+@app.get('/health')
+@duo_route
+async def get_health(request: Request) -> object:
     return 'status: ok'
 
 @aget('/me')
