@@ -2565,15 +2565,6 @@ WHERE
     person.id = %(person_id)s
 """
 
-Q_DISMISS_DONATION = """
-UPDATE
-    person
-SET
-    last_nag_time = NOW()
-WHERE
-    id = %(person_id)s
-"""
-
 Q_INSERT_EXPORT_DATA_TOKEN = """
 INSERT INTO export_data_token (
     person_id

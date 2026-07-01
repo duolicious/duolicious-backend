@@ -758,16 +758,6 @@ async def get_check_verification(
 ) -> object:
     return await person.get_check_verification(s)
 
-@app.post('/dismiss-donation')
-@duo_route
-async def post_dismiss_donation(
-    request: Request,
-    s: t.SessionInfo = Depends(require_session()),
-    _default_limited: None = Depends(default_rate_limit('post_dismiss_donation')),
-) -> object:
-    await person.post_dismiss_donation(s=s)
-    return None
-
 @app.get('/stats')
 @duo_route
 async def get_stats(
