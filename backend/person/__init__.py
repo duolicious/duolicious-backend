@@ -2456,13 +2456,13 @@ async def get_admin_ban(token: str) -> object:
     else:
         return 'Ban failed; User already banned or token invalid', 401
 
-def get_admin_delete_photo_link(token: str) -> object:
+async def get_admin_delete_photo_link(token: str) -> object:
     params = dict(token=token)
 
     try:
-        with api_tx('READ COMMITTED') as tx:
-            tx.execute(Q_CHECK_ADMIN_DELETE_PHOTO_TOKEN, params)
-            rows = tx.fetchall()
+        async with async_api_tx('READ COMMITTED') as tx:
+            await tx.execute(Q_CHECK_ADMIN_DELETE_PHOTO_TOKEN, params)
+            rows = await tx.fetchall()
     except psycopg.errors.InvalidTextRepresentation:
         return 'Invalid token', 401
 
