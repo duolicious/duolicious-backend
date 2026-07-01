@@ -5,11 +5,11 @@ from decimal import Decimal
 from email.utils import format_datetime
 from typing import ParamSpec, cast
 from uuid import UUID
-from database import api_tx
-from database.asyncdatabase import api_tx as async_api_tx
+from database import api_tx, check_connections_forever
 from duohash import sha512
 import constants
 import duotypes
+import asyncio
 import inspect
 import os
 from pathlib import Path
@@ -32,6 +32,9 @@ from limits.strategies import FixedWindowRateLimiter
 
 from antiabuse.antispam.signupemail import normalize_email
 from functools import lru_cache, wraps
+from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
+from batcher import start_all
 import sessioncache
 
 enable_mocking_file = (
@@ -250,7 +253,20 @@ def limiter_account(request: Request) -> str:
 # ASGI app + middleware
 # ---------------------------------------------------------------------------
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # Start any registered batch consumers on the running loop and keep the DB
+    # connection warm (the old sync `database` module started the keepalive on
+    # import; the async module leaves that to the entrypoint).
+    await start_all()
+    connection_check_task = asyncio.create_task(check_connections_forever())
+    try:
+        yield
+    finally:
+        connection_check_task.cancel()
+
+
+app = FastAPI(lifespan=lifespan)
 
 # Disable Starlette's default 307 trailing-slash redirect (routes match their
 # exact path only).
@@ -400,7 +416,7 @@ AND
 #       _limited: None = Depends(default_rate_limit('get_thing')),
 #       s: duotypes.SessionInfo = Depends(require_session()),
 #   ) -> object:
-#       async with async_api_tx() as tx:
+#       async with api_tx() as tx:
 #           ...
 #       return result            # plain value, same convention as manual handlers
 # ---------------------------------------------------------------------------
@@ -469,7 +485,7 @@ def require_session(
         session_info = await sessioncache.get_session(session_token_hash)
 
         if session_info is None:
-            async with async_api_tx('READ COMMITTED') as tx:
+            async with api_tx('READ COMMITTED') as tx:
                 await tx.execute(
                     Q_GET_SESSION,
                     dict(session_token_hash=session_token_hash))
@@ -527,7 +543,7 @@ def optional_require_session(
         session_info = await sessioncache.get_session(session_token_hash)
 
         if session_info is None:
-            async with async_api_tx('READ COMMITTED') as tx:
+            async with api_tx('READ COMMITTED') as tx:
                 await tx.execute(
                     Q_GET_SESSION,
                     dict(session_token_hash=session_token_hash))

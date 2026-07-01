@@ -1,6 +1,5 @@
 import os
 from database import api_tx
-from database.asyncdatabase import api_tx as async_api_tx
 import duotypes as t
 from questions.archetypeise_questions import load_questions
 from typing import List, Optional
@@ -99,7 +98,7 @@ LIMIT %(n)s
 OFFSET %(o)s
 """
 
-def init_db() -> None:
+async def init_db() -> None:
     with open(_categorised_question_json_file) as f:
         categorised_questions = json.load(f)
 
@@ -109,9 +108,9 @@ def init_db() -> None:
     categorised_questions["categorised"].sort(
         key=lambda q: question_to_index[q["question"]])
 
-    with api_tx() as tx:
-        if tx.require_one('SELECT COUNT(*) FROM question')['count'] == 0:
-            tx.executemany(
+    async with api_tx() as tx:
+        if (await tx.require_one('SELECT COUNT(*) FROM question'))['count'] == 0:
+            await tx.executemany(
                 """
                 INSERT INTO question (
                     question,
@@ -140,15 +139,15 @@ def init_db() -> None:
 
     archetypeised_questions = load_questions(_archetypeised_question_json_file)
 
-    with api_tx() as tx:
-        if tx.require_one(
+    async with api_tx() as tx:
+        if (await tx.require_one(
             """
             SELECT COUNT(*)
             FROM question
             WHERE presence_given_yes = ARRAY[]::INT[]
             """
-        )['count'] > 0:
-            tx.execute(
+        ))['count'] > 0:
+            await tx.execute(
                 """
                 CREATE TEMPORARY TABLE question_trait_pair (
                     question_id SMALLSERIAL NOT NULL,
@@ -165,7 +164,7 @@ def init_db() -> None:
                 )
                 """
             )
-            tx.executemany(
+            await tx.executemany(
                 """
                 INSERT INTO question_trait_pair (
                     question_id,
@@ -200,7 +199,7 @@ def init_db() -> None:
                     for question in archetypeised_questions.archetypeised
                 ]
             )
-            tx.execute(
+            await tx.execute(
                 """
                 UPDATE question
                 SET
@@ -229,7 +228,7 @@ async def get_next_questions(s: t.SessionInfo, n: str, o: str) -> object:
         o=int(o),
     )
 
-    async with async_api_tx('READ COMMITTED') as tx:
+    async with api_tx('READ COMMITTED') as tx:
         row_tx = await tx.execute(Q_GET_NEXT_QUESTIONS, params)
         return await row_tx.fetchall()
 
@@ -239,7 +238,7 @@ async def get_public_next_questions(n: str, o: str) -> object:
         o=int(o),
     )
 
-    async with async_api_tx('READ COMMITTED') as tx:
+    async with api_tx('READ COMMITTED') as tx:
         row_tx = await tx.execute(Q_GET_PUBLIC_NEXT_QUESTIONS, params)
         return await row_tx.fetchall()
 
@@ -256,6 +255,6 @@ async def get_search_filter_questions(
         o=int(o),
     )
 
-    async with async_api_tx('READ COMMITTED') as tx:
+    async with api_tx('READ COMMITTED') as tx:
         row_tx = await tx.execute(Q_GET_SEARCH_FILTER_QUESTIONS, params)
         return await row_tx.fetchall()

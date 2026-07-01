@@ -5,7 +5,6 @@ from database import (
     row_str_list,
     row_value,
 )
-from database.asyncdatabase import api_tx as async_api_tx
 from antiabuse.sql import (
     Q_LAST_MESSAGES,
     Q_MAKE_REPORT,
@@ -195,7 +194,7 @@ def _send_report_email(
         print(traceback.format_exc())
 
 
-def lodge_report(
+async def lodge_report(
     subject_uuid: str,
     object_uuid: str,
     reason: str,
@@ -208,10 +207,10 @@ def lodge_report(
         reason=reason,
     )
 
-    with api_tx() as tx:
-        last_messages = tx.execute(Q_LAST_MESSAGES, params=params).fetchall()
+    async with api_tx() as tx:
+        last_messages = await (await tx.execute(Q_LAST_MESSAGES, params=params)).fetchall()
 
-        report_obj = tx.execute(Q_MAKE_REPORT, params=params).fetchall()
+        report_obj = await (await tx.execute(Q_MAKE_REPORT, params=params)).fetchall()
 
     threading.Thread(
         target=_send_report_email,
@@ -266,7 +265,7 @@ async def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str) -> None
 
     is_shadow_banned = False
 
-    async with async_api_tx() as tx:
+    async with api_tx() as tx:
         is_automoded_bot = row_bool(
             await tx.require_one(Q_INSERT_SKIPPED, params=params),
             'is_automoded_bot',
@@ -296,7 +295,7 @@ async def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str) -> None
                 await tx.execute(Q_SHADOW_BAN, params=params)
 
     if reason:
-        lodge_report(
+        await lodge_report(
             subject_uuid=subject_uuid,
             object_uuid=object_uuid,
             reason=reason,

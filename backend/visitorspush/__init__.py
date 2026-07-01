@@ -1,6 +1,6 @@
 import json
 import traceback
-from database.asyncdatabase import api_tx as async_api_tx
+from database import api_tx
 from redisclient import make_redis_client
 from chatprotocol.outbound import Visitor, to_bus
 from visitorsql import Q_VISITOR_ITEM
@@ -33,7 +33,7 @@ async def publish_visit(
         return
 
     try:
-        async with async_api_tx('READ COMMITTED') as tx:
+        async with api_tx('READ COMMITTED') as tx:
             viewer_row_tx = await tx.execute(Q_VISITOR_ITEM, dict(
                 person_id=viewer_id,
                 subject_person_id=viewer_id,

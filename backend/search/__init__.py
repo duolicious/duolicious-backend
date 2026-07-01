@@ -5,7 +5,6 @@ import sessioncache
 from qanda import personality
 from pydantic import ValidationError
 from database import Tx, api_tx, row_int
-from database.asyncdatabase import Tx as AsyncTx, api_tx as async_api_tx
 from qanda.question import Q_QUESTION_SCORE_VECTORS
 from rediscache import redis_cache
 from collections.abc import Sequence
@@ -30,7 +29,7 @@ class ClubHttpArg:
 
 
 async def _quiz_search_results(
-    tx: AsyncTx,
+    tx: Tx,
     searcher_person_id: int,
 ) -> object:
     params = dict(
@@ -42,7 +41,7 @@ async def _quiz_search_results(
 
 
 async def _uncached_search_results(
-    tx: AsyncTx,
+    tx: Tx,
     searcher_person_id: int,
     no: Tuple[int, int],
     gender_preference: list[int],
@@ -66,7 +65,7 @@ async def _uncached_search_results(
 
 
 async def _cached_search_results(
-    tx: AsyncTx,
+    tx: Tx,
     searcher_person_id: int,
     no: Tuple[int, int],
 ) -> object:
@@ -124,7 +123,7 @@ async def get_search(
         do_modify=club is not None,
     )
 
-    async with async_api_tx('READ COMMITTED') as tx:
+    async with api_tx('READ COMMITTED') as tx:
         await tx.execute('SET LOCAL statement_timeout = 10000') # 10 seconds
 
         row_tx = await tx.execute(Q_SEARCH_PREFERENCE, params)
@@ -193,7 +192,7 @@ async def get_public_search(
 
 
 async def _get_public_search_with_answers(req: t.PublicSearchRequest) -> object:
-    async with async_api_tx('READ COMMITTED') as tx:
+    async with api_tx('READ COMMITTED') as tx:
         questions = {
             row_int(q, 'id'): q
             for q in await (await tx.execute(
@@ -220,7 +219,7 @@ async def _get_public_search_with_answers(req: t.PublicSearchRequest) -> object:
 
 @redis_cache(ttl=60)
 async def _get_public_search() -> Sequence[object]:
-    async with async_api_tx('READ COMMITTED') as tx:
+    async with api_tx('READ COMMITTED') as tx:
         row_tx = await tx.execute(Q_PUBLIC_SEARCH)
         return await row_tx.fetchall()
 
@@ -231,7 +230,7 @@ async def get_feed(s: t.SessionInfo, before: datetime) -> object:
         before=before,
     )
 
-    async with async_api_tx('READ COMMITTED') as tx:
+    async with api_tx('READ COMMITTED') as tx:
         await tx.execute('SET LOCAL jit = off')
         await tx.execute("SET LOCAL work_mem = '32MB'")
 

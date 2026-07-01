@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Optional
+import asyncio
 import json
 import urllib.request
 import os
@@ -18,7 +19,7 @@ class Notification:
     body: str
     data: Optional[object]
 
-def process_notification_batch(notifications: List[Notification]) -> None:
+async def process_notification_batch(notifications: List[Notification]) -> None:
     data = [
         dict(
             to=notification.token,
@@ -44,8 +45,11 @@ def process_notification_batch(notifications: List[Notification]) -> None:
         method='POST',
     )
 
-    with urllib.request.urlopen(req) as response:
-        response_data = response.read()
+    def send() -> bytes:
+        with urllib.request.urlopen(req) as response:
+            return response.read()
+
+    response_data = await asyncio.to_thread(send)
 
     parsed_data = json.loads(response_data.decode('utf-8'))
 
@@ -60,8 +64,6 @@ _batcher = Batcher[Notification](
     max_batch_size=100,
     retry=False,
 )
-
-_batcher.start()
 
 def enqueue_mobile_notification(
     token: str | None,

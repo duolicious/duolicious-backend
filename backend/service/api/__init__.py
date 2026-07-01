@@ -53,24 +53,26 @@ def get_ttl_hash(seconds: int = 10) -> int:
     """Return the same value withing `seconds` time period"""
     return round(time.time() / seconds)
 
-def migrate_unnormalized_emails() -> None:
+async def migrate_unnormalized_emails() -> None:
     """
     It'll probably be necessary to call this function again if/when
     `normalize_email` normalizes more address.
     """
-    with api_tx() as tx:
+    async with api_tx() as tx:
         q = "SELECT 1 FROM person WHERE normalized_email ILIKE '%@googlemail.com' LIMIT 1"
-        if tx.execute(q).fetchone():
+        await tx.execute(q)
+        if await tx.fetchone():
             print('Unnormalized emails found. Normalizing...')
         else:
             print('Emails already normalized. Not performing normalization.')
             return
 
-    with api_tx() as tx:
+    async with api_tx() as tx:
         print('Selecting emails')
         q = "SELECT email FROM person"
-        tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
-        rows = tx.execute(q).fetchall()
+        await tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
+        await tx.execute(q)
+        rows = await tx.fetchall()
         print('Done selecting emails')
 
     print('Computing normalized emails')
@@ -80,15 +82,15 @@ def migrate_unnormalized_emails() -> None:
     ]
     print('Done computing normalized emails')
 
-    with api_tx('read committed') as tx:
+    async with api_tx('read committed') as tx:
         q = """
         UPDATE person SET
         normalized_email = %(normalized_email)s
         WHERE email = %(email)s
         """
         print('Updating normalized emails in `person` table')
-        tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
-        tx.executemany(q, params_seq)
+        await tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
+        await tx.executemany(q, params_seq)
         print('Done updating normalized emails in `person` table')
 
         q = """
@@ -109,12 +111,12 @@ def migrate_unnormalized_emails() -> None:
         )
         """
         print('Updating normalized emails in `banned_person` table')
-        tx.executemany(q, params_seq)
+        await tx.executemany(q, params_seq)
         print('Done updating normalized emails in `banned_person` table')
 
-def maybe_run_init() -> None:
-    with api_tx() as tx:
-        row = tx.require_one("SELECT to_regclass('person')")
+async def maybe_run_init() -> None:
+    async with api_tx() as tx:
+        row = await tx.require_one("SELECT to_regclass('person')")
 
     if row ['to_regclass'] is not None:
         print('Database already initialized')
@@ -123,10 +125,10 @@ def maybe_run_init() -> None:
     with open(_init_sql_file, 'r') as f:
         init_sql_file = f.read()
 
-    with api_tx() as tx:
-        tx.execute(init_sql_file)
+    async with api_tx() as tx:
+        await tx.execute(init_sql_file)
 
-def init_db() -> None:
+async def init_db() -> None:
     with open(_migrations_sql_file, 'r') as f:
         migrations_sql_file = f.read()
 
@@ -139,23 +141,23 @@ def init_db() -> None:
     with open(_banned_club_file, 'r') as f:
         banned_club_file = f.read()
 
-    maybe_run_init()
+    await maybe_run_init()
 
-    with api_tx() as tx:
-        tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
-        tx.execute(migrations_sql_file)
+    async with api_tx() as tx:
+        await tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
+        await tx.execute(migrations_sql_file)
 
-    with api_tx() as tx:
-        tx.execute(email_domains_bad_file)
+    async with api_tx() as tx:
+        await tx.execute(email_domains_bad_file)
 
-    with api_tx() as tx:
-        tx.execute(email_domains_good_file)
+    async with api_tx() as tx:
+        await tx.execute(email_domains_good_file)
 
-    with api_tx() as tx:
-        tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
-        tx.execute(banned_club_file)
+    async with api_tx() as tx:
+        await tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
+        await tx.execute(banned_club_file)
 
-    migrate_unnormalized_emails()
+    await migrate_unnormalized_emails()
 
 @app.post('/request-otp')
 @duo_route

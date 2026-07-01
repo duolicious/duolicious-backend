@@ -1,6 +1,5 @@
 import numpy
-from database import Tx, api_tx
-from database.asyncdatabase import Row as AsyncRow, Tx as AsyncTx, api_tx as async_api_tx
+from database import Row, Tx, api_tx
 import duotypes as t
 from qanda import personality
 from qanda.question import Q_QUESTION_SCORE_VECTORS
@@ -100,10 +99,10 @@ async def post_answer(req: t.PostAnswer, s: t.SessionInfo) -> object | None:
         add_no=1 if req.answer is False else 0,
     )
 
-    async with async_api_tx('READ COMMITTED') as tx:
+    async with api_tx('READ COMMITTED') as tx:
         await tx.execute(Q_ADD_YES_NO_COUNT, params_add_yes_no_count)
 
-    async with async_api_tx() as tx:
+    async with api_tx() as tx:
         await _set_answer(
             tx, s.person_id, req.question_id, req.answer, req.public, delete=False)
     return None
@@ -112,13 +111,13 @@ async def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo) -> object | None:
     if s.person_id is None:
         return '', 500
 
-    async with async_api_tx() as tx:
+    async with api_tx() as tx:
         await _set_answer(
             tx, s.person_id, req.question_id, None, None, delete=True)
     return None
 
 async def _set_answer(
-    tx: AsyncTx,
+    tx: Tx,
     person_id: int,
     question_id: int,
     answer: bool | None,
@@ -129,7 +128,7 @@ async def _set_answer(
         Q_QUESTION_SCORE_VECTORS,
         dict(question_ids=[question_id]),
     )
-    question: AsyncRow | None = await question_tx.fetchone()
+    question: Row | None = await question_tx.fetchone()
 
     if question is None:
         return
@@ -143,7 +142,7 @@ async def _set_answer(
         Q_GET_ANSWER,
         dict(person_id=person_id, question_id=question_id),
     )
-    old: AsyncRow | None = await old_tx.fetchone()
+    old: Row | None = await old_tx.fetchone()
 
     presence = scores['presence_score']
     absence = scores['absence_score']
@@ -184,7 +183,7 @@ async def _set_answer(
 
 
 async def _flush_session_answers(
-    tx: AsyncTx,
+    tx: Tx,
     session_token_hash: str,
     person_id: int,
 ) -> None:
@@ -195,7 +194,7 @@ async def _flush_session_answers(
         Q_GET_SESSION_ANSWERS,
         dict(session_token_hash=session_token_hash),
     )
-    row: AsyncRow | None = await row_tx.fetchone()
+    row: Row | None = await row_tx.fetchone()
 
     answers = (row and row['answers']) or []
 

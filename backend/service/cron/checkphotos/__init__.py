@@ -1,5 +1,5 @@
 # Remove unused imports
-from database.asyncdatabase import api_tx, row_str
+from database import api_tx, row_str
 from service.cron.cronutil import (
     MAX_RANDOM_START_DELAY,
     delete_images_from_object_store,

@@ -1,6 +1,5 @@
 from typing import Iterator
 from database import Tx, row_bool
-from database.asyncdatabase import Tx as AsyncTx
 import psycopg
 import random
 import re
@@ -92,7 +91,7 @@ def _candidates(base: str) -> Iterator[tuple[str, bool]]:
         yield (f'{base}{n}' if base else str(n)), True
 
 async def _mint(
-    tx: AsyncTx,
+    tx: Tx,
     base: str,
     write_q: str,
     write_params: dict[str, object],
@@ -119,7 +118,7 @@ async def _mint(
     raise RuntimeError(f'could not mint url_slug for base {base!r}')
 
 async def reserve_onboardee_url_slug(
-    tx: AsyncTx,
+    tx: Tx,
     email: str,
     name: str,
 ) -> dict[str, object]:
@@ -132,7 +131,7 @@ async def reserve_onboardee_url_slug(
         email=email)
 
 async def assign_url_slug(
-    tx: AsyncTx,
+    tx: Tx,
     person_id: int,
 ) -> dict[str, object]:
     """Async counterpart to `assign_url_slug`."""

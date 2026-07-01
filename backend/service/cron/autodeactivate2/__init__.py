@@ -1,4 +1,4 @@
-from database.asyncdatabase import api_tx, row_str, row_str_list
+from database import api_tx, row_str, row_str_list
 from service.cron.autodeactivate2.sql import *
 from service.cron.autodeactivate2.template import emailtemplate
 from service.cron.cronutil import print_stacktrace, MAX_RANDOM_START_DELAY

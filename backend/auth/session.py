@@ -1,8 +1,7 @@
 from typing import Iterable
 
 from constants import MAX_SIGNED_IN_SESSIONS
-from database import api_tx
-from database.asyncdatabase import Row as AsyncRow, Tx as AsyncTx, api_tx as async_api_tx
+from database import Row, Tx, api_tx
 import sessioncache
 
 
@@ -38,7 +37,7 @@ async def sign_out(session_token_hashes: Iterable[str]) -> None:
     if not hashes:
         return
 
-    async with async_api_tx('READ COMMITTED') as tx:
+    async with api_tx('READ COMMITTED') as tx:
         await tx.execute(Q_SIGN_OUT_SESSIONS, dict(session_token_hashes=hashes))
 
     for session_token_hash in hashes:
@@ -53,7 +52,7 @@ async def enforce_session_limit(
     if person_id is None:
         return
 
-    async with async_api_tx('READ COMMITTED') as tx:
+    async with api_tx('READ COMMITTED') as tx:
         over_limit_tx = await tx.execute(Q_OVER_LIMIT_SESSIONS, dict(
             person_id=person_id,
             current_session_token_hash=current_session_token_hash,
@@ -61,6 +60,6 @@ async def enforce_session_limit(
             # it plus the (MAX - 1) most-recently-active others.
             keep=MAX_SIGNED_IN_SESSIONS - 1,
         ))
-        over_limit: list[AsyncRow] = await over_limit_tx.fetchall()
+        over_limit: list[Row] = await over_limit_tx.fetchall()
 
     await sign_out(row['session_token_hash'] for row in over_limit)

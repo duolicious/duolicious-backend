@@ -1,4 +1,4 @@
-from database.asyncdatabase import api_tx
+from database import api_tx
 from collections.abc import Awaitable, Callable
 from concurrent.futures import ThreadPoolExecutor
 from botocore.exceptions import ClientError

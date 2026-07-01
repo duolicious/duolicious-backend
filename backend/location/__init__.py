@@ -1,5 +1,4 @@
 from database import api_tx
-from database.asyncdatabase import api_tx as async_api_tx
 from async_lru_cache import AsyncLruCache
 import json
 import os
@@ -21,15 +20,15 @@ ORDER BY
 LIMIT 10
 """
 
-def init_db() -> None:
+async def init_db() -> None:
     with open(_locations_json_file) as f:
         locations = json.load(f)
 
-    with api_tx() as tx:
-        if tx.require_one("SELECT COUNT(*) FROM location")['count'] != 0:
+    async with api_tx() as tx:
+        if (await tx.require_one("SELECT COUNT(*) FROM location"))['count'] != 0:
             return
 
-        tx.executemany(
+        await tx.executemany(
             """
             INSERT INTO Location (
                 short_friendly,
@@ -67,7 +66,7 @@ async def get_search_locations(q: Optional[str]) -> object:
         search_string=normalized_whitespace,
     )
 
-    async with async_api_tx('READ COMMITTED') as tx:
+    async with api_tx('READ COMMITTED') as tx:
         row_tx = await tx.execute(Q_SEARCH_LOCATIONS, params)
         rows = await row_tx.fetchall()
         return [row['long_friendly'] for row in rows]

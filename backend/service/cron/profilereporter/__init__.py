@@ -1,4 +1,4 @@
-from database.asyncdatabase import api_tx
+from database import api_tx
 from service.cron.profilereporter.sql import (
     Q_DELETE_UNMODERATED_PERSON,
     Q_SELECT_UNMODERATED_PERSON_ABOUT,
