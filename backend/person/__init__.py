@@ -31,7 +31,6 @@ from starlette.responses import Response
 from starlette.concurrency import run_in_threadpool
 from dataclasses import dataclass
 import psycopg
-from functools import lru_cache
 from antiabuse.antispam.signupemail import (
     check_and_update_bad_domains,
     normalize_email,
@@ -2449,10 +2448,11 @@ async def get_stats(
         row_tx = await tx.execute(q, params)
         return await row_tx.fetchone()
 
-@lru_cache()
-def get_gender_stats(ttl_hash: object = None) -> object:
-    with api_tx('READ COMMITTED') as tx:
-        return tx.execute(Q_GENDER_STATS).fetchone()
+@AsyncLruCache()
+async def get_gender_stats(ttl_hash: object = None) -> object:
+    async with async_api_tx('READ COMMITTED') as tx:
+        row_tx = await tx.execute(Q_GENDER_STATS)
+        return await row_tx.fetchone()
 
 def get_admin_ban_link(token: str) -> object:
     params = dict(token=token)

@@ -789,9 +789,13 @@ async def get_stats(
         ttl_hash=get_ttl_hash(seconds=60),
         club_name=request.query_params.get('club-name'))
 
-@get('/gender-stats')
-def get_gender_stats(request: Request) -> object:
-    return person.get_gender_stats(ttl_hash=get_ttl_hash(seconds=60))
+@app.get('/gender-stats')
+@duo_route
+async def get_gender_stats(
+    request: Request,
+    _default_limited: None = Depends(default_rate_limit('get_gender_stats')),
+) -> object:
+    return await person.get_gender_stats(ttl_hash=get_ttl_hash(seconds=60))
 
 @get('/admin/ban-link/<token>')
 def get_admin_ban_link(request: Request, token: str) -> object:
