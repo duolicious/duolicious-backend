@@ -349,7 +349,7 @@ async def post_request_otp(
 
     return dict(session_token=session_token)
 
-def post_resend_otp(
+async def post_resend_otp(
     s: t.SessionInfo,
     remote_addr: Optional[str],
 ) -> object:
@@ -365,10 +365,15 @@ def post_resend_otp(
         ip_address=remote_addr,
     )
 
-    with api_tx() as tx:
-        if banned := _check_banned(tx, normalized, remote_addr):
-            return banned
-        rows = tx.execute(Q_UPDATE_OTP, params).fetchall()
+    async with async_api_tx() as tx:
+        await tx.execute(Q_IS_BANNED, dict(
+            normalized_email=normalized,
+            ip_address=remote_addr,
+        ))
+        if await tx.fetchone():
+            return 'Banned', 461
+        await tx.execute(Q_UPDATE_OTP, params)
+        rows = await tx.fetchall()
 
     otp = _otp_from_rows(rows)
     if otp is None:

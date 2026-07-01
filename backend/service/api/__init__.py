@@ -173,14 +173,18 @@ async def post_request_otp(
 ) -> object:
     return await person.post_request_otp(req, client_ip(request))
 
-@apost(
-    '/resend-otp',
-    limiter=shared_otp_limit,
-    expected_onboarding_status=None,
-    expected_sign_in_status=False
-)
-def post_resend_otp(request: Request, s: t.SessionInfo) -> object:
-    return person.post_resend_otp(s, client_ip(request))
+@app.post('/resend-otp')
+@duo_route
+async def post_resend_otp(
+    request: Request,
+    _default_limited: None = Depends(default_rate_limit('post_resend_otp')),
+    _shared_limited: None = Depends(shared_otp_limit_dependency),
+    s: t.SessionInfo = Depends(require_session(
+        expected_onboarding_status=None,
+        expected_sign_in_status=False,
+    )),
+) -> object:
+    return await person.post_resend_otp(s, client_ip(request))
 
 @apost(
     '/check-otp',
