@@ -43,7 +43,7 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 from duoaudio import put_audio_in_object_store_async
 from person.aboutdiff import diff_addition_with_context
-from auth.session import sign_out, sign_out_async, enforce_session_limit, enforce_session_limit_async
+from auth.session import sign_out_async, enforce_session_limit_async
 from auth.social import (
     SocialAuthError,
     verify_apple_identity_token,
@@ -407,8 +407,7 @@ async def post_check_otp(
 
     await run_in_threadpool(sessioncache.delete_session, s.session_token_hash)
 
-    await run_in_threadpool(
-        enforce_session_limit, row['person_id'], s.session_token_hash)
+    await enforce_session_limit_async(row['person_id'], s.session_token_hash)
 
     return dict(
         onboarded=row['person_id'] is not None,
