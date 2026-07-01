@@ -648,10 +648,19 @@ async def get_search_clubs(
         search_str=request.query_params.get('q', ''),
     )
 
-@get('/search-public-clubs')
-def get_search_public_clubs(request: Request) -> object:
-    return person.get_search_clubs(
-            s=None, search_str=request.query_params.get('q', ''), allow_empty=True)
+@app.get('/search-public-clubs')
+@duo_route
+async def get_search_public_clubs(
+    request: Request,
+    _default_limited: None = Depends(
+        default_rate_limit('get_search_public_clubs')
+    ),
+) -> object:
+    return await person.get_search_clubs_async(
+        s=None,
+        search_str=request.query_params.get('q', ''),
+        allow_empty=True,
+    )
 
 @get('/club/<clubname:name>', merge_slashes=False)
 def get_club(request: Request, name: str) -> object:
