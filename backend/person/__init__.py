@@ -2314,7 +2314,11 @@ async def post_leave_club(req: t.PostLeaveClub, s: t.SessionInfo) -> None:
     async with async_api_tx() as tx:
         await tx.execute(Q_LEAVE_CLUB, params)
 
-def get_update_notifications(email: str, type: str, frequency: str) -> object:
+async def get_update_notifications(
+    email: str,
+    type: str,
+    frequency: str,
+) -> object:
     params = dict(
         email=email,
         frequency=frequency,
@@ -2329,11 +2333,10 @@ def get_update_notifications(email: str, type: str, frequency: str) -> object:
     else:
         return 'Invalid type', 400
 
-    with api_tx('READ COMMITTED') as tx:
-        query_results = [
-            tx.require_one(q, params)['ok']
-            for q in queries
-        ]
+    async with async_api_tx('READ COMMITTED') as tx:
+        query_results = []
+        for q in queries:
+            query_results.append((await tx.require_one(q, params))['ok'])
 
     if all(query_results):
         return (

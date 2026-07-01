@@ -697,9 +697,15 @@ async def post_leave_club(
     await person.post_leave_club(req, s)
     return None
 
-@get('/update-notifications')
-def get_update_notifications(request: Request) -> object:
-    return person.get_update_notifications(
+@app.get('/update-notifications')
+@duo_route
+async def get_update_notifications(
+    request: Request,
+    _default_limited: None = Depends(
+        default_rate_limit('get_update_notifications')
+    ),
+) -> object:
+    return await person.get_update_notifications(
         email=request.query_params.get('email', ''),
         type=request.query_params.get('type', ''),
         frequency=request.query_params.get('frequency', ''),
