@@ -418,9 +418,13 @@ async def get_search(
 
     return await search.get_search_async(s=s, n=n, o=o, club=club)
 
-@get('/public-search')
-def get_public_search(request: Request) -> object:
-    return search.get_public_search(
+@app.get('/public-search')
+@duo_route
+async def get_public_search(
+    request: Request,
+    _default_limited: None = Depends(default_rate_limit('get_public_search')),
+) -> object:
+    return await search.get_public_search_async(
         n=request.query_params.get('n'),
         o=request.query_params.get('o'),
         answers=request.query_params.get('answers'),

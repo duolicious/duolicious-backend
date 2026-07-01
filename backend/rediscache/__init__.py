@@ -24,12 +24,13 @@ import json
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Callable, ParamSpec
+from typing import Awaitable, Callable, ParamSpec, TypeVar
 
 from duohash import sha512
-from redisclient import make_redis_client
+from redisclient import make_redis_client, make_async_redis_client
 
 P = ParamSpec("P")
+R = TypeVar("R")
 
 _KEY_PREFIX = "cached_result:"
 
@@ -37,6 +38,7 @@ _KEY_PREFIX = "cached_result:"
 # timeouts so an unreachable or slow Redis turns into a fast, swallowed error
 # rather than blocking the caller indefinitely.
 _redis = make_redis_client()
+_async_redis = make_async_redis_client()
 
 
 def _default(o: object) -> str:
@@ -92,6 +94,41 @@ def redis_cache(ttl: int) -> Callable[[Callable[P, object]], Callable[P, object]
 
             try:
                 _redis.set(key, json.dumps(result, default=_default), ex=ttl)
+            except Exception:
+                pass
+
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+def async_redis_cache(ttl: int) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
+    """Cache the wrapped async function's result in Redis for `ttl` seconds."""
+    def decorator(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+        @functools.wraps(func)
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            try:
+                key = _key(func, args, kwargs)
+            except TypeError:
+                return await func(*args, **kwargs)
+
+            try:
+                cached = await _async_redis.get(key)
+            except Exception:
+                cached = None
+
+            if isinstance(cached, (str, bytes, bytearray)):
+                try:
+                    return json.loads(cached)
+                except Exception:
+                    pass
+
+            result = await func(*args, **kwargs)
+
+            try:
+                await _async_redis.set(key, json.dumps(result, default=_default), ex=ttl)
             except Exception:
                 pass
 

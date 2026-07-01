@@ -22,6 +22,7 @@ through `redis.asyncio`.
 import os
 
 import redis
+import redis.asyncio as async_redis
 
 REDIS_HOST: str = os.environ.get("DUO_REDIS_HOST", "redis")
 REDIS_PORT: int = int(os.environ.get("DUO_REDIS_PORT", 6379))
@@ -30,6 +31,17 @@ REDIS_PORT: int = int(os.environ.get("DUO_REDIS_PORT", 6379))
 def make_redis_client() -> redis.Redis:
     """Return a dedicated synchronous Redis client with bounded timeouts."""
     return redis.Redis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        decode_responses=True,
+        socket_connect_timeout=1,
+        socket_timeout=1,
+    )
+
+
+def make_async_redis_client() -> async_redis.Redis:
+    """Return a dedicated async Redis client with bounded timeouts."""
+    return async_redis.Redis(
         host=REDIS_HOST,
         port=REDIS_PORT,
         decode_responses=True,
