@@ -1,10 +1,11 @@
 from pathlib import Path
 from typing import Optional, cast
 from urllib.parse import parse_qsl
-from fastapi import Depends
+from fastapi import Body, Depends
 from starlette.requests import Request
 from starlette.concurrency import run_in_threadpool
 import duotypes as t
+from antiabuse.lodgereport import skip_by_uuid_async
 import location
 import person
 import qanda
@@ -456,31 +457,39 @@ async def get_conversation_prospect(
 ) -> object:
     return await person.get_conversation_prospect_async(s, prospect_uuid)
 
-@apost('/skip/by-uuid/<prospect_uuid>')
-@validate(t.PostSkip)
-def post_skip_by_uuid(
+@app.post('/skip/by-uuid/{prospect_uuid}')
+@duo_route
+async def post_skip_by_uuid(
     request: Request,
-    req: t.PostSkip,
-    s: t.SessionInfo,
     prospect_uuid: str,
+    req: t.PostSkip = Body(default_factory=t.PostSkip),
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('post_skip_by_uuid')),
 ) -> object:
     limit = "1 per 5 seconds; 20 per day"
     scope = "report"
 
     if req.report_reason:
-        limiter.check(
+        await run_in_threadpool(
+            limiter.check,
             request,
             limit,
             scope=scope,
             exempt_when=disable_ip_rate_limit)
-        limiter.check(
+        await run_in_threadpool(
+            limiter.check,
             request,
             limit,
             scope=scope,
             key_func=limiter_account,
             exempt_when=disable_account_rate_limit)
 
-    return person.post_skip_by_uuid(req, s, prospect_uuid)
+    await skip_by_uuid_async(
+        subject_uuid=cast(str, s.person_uuid),
+        object_uuid=prospect_uuid,
+        reason=req.report_reason or '',
+    )
+    return None
 
 @apost('/unskip/by-uuid/<prospect_uuid>')
 def post_unskip_by_uuid(

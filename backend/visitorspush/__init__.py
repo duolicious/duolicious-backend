@@ -19,7 +19,7 @@ async def _publish_async(channel: str, section: str, item: dict) -> None:
             )),
         )
     except Exception:
-        pass
+        print(traceback.format_exc())
 
 
 async def publish_visit_async(

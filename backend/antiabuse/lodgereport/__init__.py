@@ -5,6 +5,7 @@ from database import (
     row_str_list,
     row_value,
 )
+from database.asyncdatabase import api_tx as async_api_tx
 from antiabuse.sql import (
     Q_LAST_MESSAGES,
     Q_MAKE_REPORT,
@@ -293,6 +294,56 @@ def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str) -> None:
 
             if is_shadow_banned:
                 tx.execute(Q_SHADOW_BAN, params=params)
+
+    if reason:
+        lodge_report(
+            subject_uuid=subject_uuid,
+            object_uuid=object_uuid,
+            reason=reason,
+            is_automoded_bot=is_automoded_bot,
+            is_shadow_banned=is_shadow_banned,
+        )
+
+
+async def skip_by_uuid_async(subject_uuid: str, object_uuid: str, reason: str) -> None:
+    params = dict(
+        subject_uuid=subject_uuid,
+        object_uuid=object_uuid,
+        reported=bool(reason),
+        report_reason=reason or '',
+        is_bot_report=is_bot_report(reason),
+    )
+
+    is_shadow_banned = False
+
+    async with async_api_tx() as tx:
+        is_automoded_bot = row_bool(
+            await tx.require_one(Q_INSERT_SKIPPED, params=params),
+            'is_automoded_bot',
+        )
+
+        if reason:
+            row = await tx.require_one(
+                Q_TRUSTWORTHY_REPORTS,
+                params=dict(
+                    object_uuid=object_uuid,
+                    min_account_age_days=TRUSTWORTHY_MIN_ACCOUNT_AGE_DAYS,
+                    min_bio_length=TRUSTWORTHY_MIN_BIO_LENGTH,
+                    min_people_messaged=TRUSTWORTHY_MIN_PEOPLE_MESSAGED,
+                    min_questions_answered=TRUSTWORTHY_MIN_QUESTIONS_ANSWERED,
+                ),
+            )
+
+            is_shadow_banned = _should_shadow_ban(
+                has_gold=row_bool(row, 'has_gold'),
+                trustworthy_report_reasons=row_str_list(
+                    row,
+                    'trustworthy_report_reasons',
+                ),
+            )
+
+            if is_shadow_banned:
+                await tx.execute(Q_SHADOW_BAN, params=params)
 
     if reason:
         lodge_report(

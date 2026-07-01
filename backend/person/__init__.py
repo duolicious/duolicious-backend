@@ -36,9 +36,6 @@ from antiabuse.antispam.signupemail import (
     check_and_update_bad_domains,
     normalize_email,
 )
-from antiabuse.lodgereport import (
-    skip_by_uuid,
-)
 from antiabuse.firehol import firehol
 import blurhash
 import numpy
@@ -1121,18 +1118,6 @@ async def get_conversation_prospect_async(s: t.SessionInfo, prospect_uuid: str) 
             return '', 404
 
         return profile
-
-def post_skip_by_uuid(req: t.PostSkip, s: t.SessionInfo, prospect_uuid: str) -> object:
-    if not s.person_uuid:
-        return 'Authentication required', 401
-
-    skip_by_uuid(
-        subject_uuid=s.person_uuid,
-        object_uuid=prospect_uuid,
-        reason=req.report_reason or '',
-    )
-    return None
-
 
 def post_unskip_by_uuid(s: t.SessionInfo, prospect_uuid: str) -> None:
     params = dict(
