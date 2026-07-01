@@ -792,6 +792,32 @@ def default_rate_limit(
     return dependency
 
 
+def rate_limit(
+    limit_value: LimitValue,
+    scope: ScopeArg = None,
+    key_func: KeyFunc | None = None,
+    exempt_when: ExemptWhen | None = None,
+) -> Callable[[Request], Awaitable[None]]:
+    """A limiter.check(...) dependency for native FastAPI routes."""
+    async def dependency(request: Request) -> None:
+        await run_in_threadpool(
+            limiter.check,
+            request,
+            limit_value,
+            scope,
+            key_func,
+            exempt_when,
+        )
+    return dependency
+
+
+shared_otp_limit_dependency = rate_limit(
+    "3 per minute",
+    scope="otp",
+    exempt_when=_is_private_ip,
+)
+
+
 # ---------------------------------------------------------------------------
 # Route registration
 # ---------------------------------------------------------------------------

@@ -296,7 +296,7 @@ def _str_value(value: object, field_name: str) -> str:
     return value
 
 
-def post_request_otp(
+async def post_request_otp(
     req: t.PostRequestOtp,
     remote_addr: Optional[str],
 ) -> object:
@@ -326,11 +326,15 @@ def post_request_otp(
         answers=answers,
     )
 
-    with api_tx() as tx:
-        if banned := _check_banned(tx, normalized, remote_addr):
-            return banned
-
-        rows = tx.execute(Q_INSERT_DUO_SESSION, params).fetchall()
+    async with async_api_tx() as tx:
+        await tx.execute(Q_IS_BANNED, dict(
+            normalized_email=normalized,
+            ip_address=remote_addr,
+        ))
+        if await tx.fetchone():
+            return 'Banned', 461
+        await tx.execute(Q_INSERT_DUO_SESSION, params)
+        rows = await tx.fetchall()
 
     otp = _otp_from_rows(rows)
     if otp is None:

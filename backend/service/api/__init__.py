@@ -31,6 +31,7 @@ from service.api.decorators import (
     validate,
     limiter,
     shared_otp_limit,
+    shared_otp_limit_dependency,
     disable_ip_rate_limit,
     disable_account_rate_limit,
     limiter_account,
@@ -162,24 +163,15 @@ def init_db() -> None:
 
     migrate_unnormalized_emails()
 
-@post('/request-otp', limiter=shared_otp_limit)
-@validate(t.PostRequestOtp)
-def post_request_otp(request: Request, req: t.PostRequestOtp) -> object:
-    scope = "request_otp"
-
-    limiter.check(
-        request,
-        auth_rate_limit,
-        scope=scope,
-        exempt_when=disable_ip_rate_limit)
-    limiter.check(
-        request,
-        auth_rate_limit,
-        scope=scope,
-        key_func=limiter_account,
-        exempt_when=disable_account_rate_limit)
-
-    return person.post_request_otp(req, client_ip(request))
+@app.post('/request-otp')
+@duo_route
+async def post_request_otp(
+    request: Request,
+    req: t.PostRequestOtp,
+    _default_limited: None = Depends(default_rate_limit('post_request_otp')),
+    _shared_limited: None = Depends(shared_otp_limit_dependency),
+) -> object:
+    return await person.post_request_otp(req, client_ip(request))
 
 @apost(
     '/resend-otp',
