@@ -1292,11 +1292,11 @@ async def delete_or_ban_account_async(
 
     return rows
 
-def post_deactivate(s: t.SessionInfo) -> None:
+async def post_deactivate(s: t.SessionInfo) -> None:
     params = dict(person_id=s.person_id)
 
-    with api_tx() as tx:
-        tx.execute(Q_POST_DEACTIVATE, params)
+    async with async_api_tx() as tx:
+        await tx.execute(Q_POST_DEACTIVATE, params)
 
 def get_profile_info(s: t.SessionInfo) -> object:
     params = dict(person_id=s.person_id)
