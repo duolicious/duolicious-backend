@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Optional
+from fastapi import Depends
 from starlette.requests import Request
 import duotypes as t
 import location
@@ -19,11 +20,14 @@ from service.api.decorators import (
     aput,
     auth_rate_limit,
     client_ip,
+    default_rate_limit,
     delete,
+    duo_route,
     get,
     patch,
     post,
     put,
+    require_session,
     validate,
     limiter,
     shared_otp_limit,
@@ -635,9 +639,18 @@ def post_verify(request: Request, s: t.SessionInfo) -> object:
     person.post_verify(s)
     return None
 
-@aget('/check-verification')
-def get_check_verification(request: Request, s: t.SessionInfo) -> object:
-    return person.get_check_verification(s=s)
+# Reference example of the FastAPI-native, fully-async endpoint style we're
+# migrating toward (contrast the manual `@aget`/`@get` handlers around it).
+# Auth and rate limiting are `Depends(...)`, the DB read is async, and
+# `@duo_route` keeps the same plain-value return convention. The building
+# blocks live in `service.api.decorators`.
+@app.get('/check-verification')
+@duo_route
+async def get_check_verification(
+    _limited: None = Depends(default_rate_limit('get_check_verification')),
+    s: t.SessionInfo = Depends(require_session()),
+) -> object:
+    return await person.get_check_verification(s)
 
 @apost('/dismiss-donation')
 def post_dismiss_donation(request: Request, s: t.SessionInfo) -> object:

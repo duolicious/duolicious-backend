@@ -3,10 +3,11 @@ from dataclasses import is_dataclass, asdict
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from email.utils import format_datetime
-from typing import Protocol, cast
+from typing import ParamSpec, Protocol, cast
 from urllib.parse import parse_qsl
 from uuid import UUID
 from database import api_tx
+from database.asyncdatabase import api_tx as async_api_tx
 from duohash import sha512
 import constants
 import duotypes
@@ -33,7 +34,7 @@ from limits.storage import storage_from_string
 from limits.strategies import FixedWindowRateLimiter
 
 from antiabuse.antispam.signupemail import normalize_email
-from functools import lru_cache
+from functools import lru_cache, wraps
 import sessioncache
 
 Endpoint = Callable
@@ -654,6 +655,141 @@ def require_auth(
 
         return _set_endpoint_name(go1, _endpoint_name(func))
     return go2
+
+
+# ---------------------------------------------------------------------------
+# FastAPI-native dispatch
+#
+# The building blocks for writing endpoints as idiomatic, `async def` FastAPI
+# routes (see `GET /check-verification` in `service.api` for the reference
+# example) instead of the manual `@get`/`@aget` chain above. Endpoints migrate
+# to this style one at a time; the manual dispatch is retired once they all do.
+#
+#   @app.get('/thing')
+#   @duo_route
+#   async def get_thing(
+#       _limited: None = Depends(default_rate_limit('get_thing')),
+#       s: duotypes.SessionInfo = Depends(require_session()),
+#   ) -> object:
+#       async with async_api_tx() as tx:
+#           ...
+#       return result            # plain value, same convention as manual handlers
+# ---------------------------------------------------------------------------
+
+_P = ParamSpec('_P')
+
+
+def duo_route(func: Callable[_P, object]) -> Callable[_P, Awaitable[Response]]:
+    """Let a native handler keep the manual handlers' return convention: it
+    returns a plain value (dict/list -> JSON, str -> text/html, `(body,
+    status)`, None -> empty) and this adapter runs it through the same
+    `_make_response`. Returning a `Response` also makes FastAPI skip its
+    `jsonable_encoder`, so serialization stays byte-for-byte identical to the
+    manual dispatch. `wraps` keeps the signature visible so FastAPI still
+    resolves `Depends(...)`. Handles sync or async handlers."""
+    @wraps(func)
+    async def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> Response:
+        result = func(*args, **kwargs)
+        if inspect.isawaitable(result):
+            result = await cast(Awaitable[object], result)
+        return _make_response(result)
+    return wrapper
+
+
+class AuthError(Exception):
+    """Raised by `require_session` on missing/invalid auth. Rendered to the
+    same plain-text bodies + status codes the manual chain returned (rather
+    than FastAPI's default JSON `{"detail": ...}`)."""
+    def __init__(self, message: str, status_code: int) -> None:
+        self.message = message
+        self.status_code = status_code
+
+
+@app.exception_handler(AuthError)
+async def _handle_auth_error(request: Request, exc: AuthError) -> Response:
+    return _make_response((exc.message, exc.status_code))
+
+
+@app.exception_handler(RateLimitExceeded)
+async def _handle_rate_limit(request: Request, exc: RateLimitExceeded) -> Response:
+    # Only native routes reach here — the manual dispatch catches
+    # RateLimitExceeded itself and renders its own 429.
+    return _make_response(('Too Many Requests', 429))
+
+
+def require_session(
+    expected_onboarding_status: bool | None = True,
+    expected_sign_in_status: bool | None = True,
+) -> Callable[[Request], Awaitable[duotypes.SessionInfo]]:
+    """Native (async) equivalent of the `require_auth` decorator, as a
+    dependency factory. Resolves the bearer token to a `SessionInfo` (async DB
+    lookup, sync sessioncache offloaded to a thread) and enforces the expected
+    onboarding/sign-in status, raising `AuthError` otherwise."""
+    async def dependency(request: Request) -> duotypes.SessionInfo:
+        auth_header = (request.headers.get('Authorization') or '').lower()
+        try:
+            bearer, session_token = auth_header.split()
+            if bearer != 'bearer':
+                raise ValueError
+        except Exception:
+            raise AuthError('Missing or malformed authorization header', 400)
+
+        session_token_hash = sha512(session_token)
+
+        # sessioncache is a fast *sync* Redis get/set; offload it so it doesn't
+        # block the event loop. The session-row fallback uses the async DB.
+        session_info = await run_in_threadpool(
+            sessioncache.get_session, session_token_hash)
+
+        if session_info is None:
+            async with async_api_tx('READ COMMITTED') as tx:
+                await tx.execute(
+                    Q_GET_SESSION,
+                    dict(session_token_hash=session_token_hash))
+                row = await tx.fetchone()
+            if row:
+                session_info = duotypes.SessionInfo(
+                    email=row['email'],
+                    person_id=row['person_id'],
+                    person_uuid=row['person_uuid'],
+                    signed_in=row['signed_in'],
+                    session_token_hash=session_token_hash,
+                    pending_club_name=row['pending_club_name'],
+                )
+                await run_in_threadpool(
+                    sessioncache.put_session,
+                    session_info,
+                    row['session_expiry_epoch'])
+
+        if session_info is None:
+            raise AuthError('Invalid session token', 401)
+
+        is_onboarded = session_info.person_id is not None
+        ok_onboarding = (
+            expected_onboarding_status is None
+            or expected_onboarding_status == is_onboarded)
+        ok_sign_in = (
+            expected_sign_in_status is None
+            or expected_sign_in_status == session_info.signed_in)
+        if not (ok_onboarding and ok_sign_in):
+            raise AuthError('Unauthorized', 401)
+
+        # Set for account-scoped rate limiting (see `limiter_account`), so an
+        # account-keyed limit can compose as another dependency.
+        request.state.normalized_email = normalize_email(session_info.email)
+        return session_info
+
+    return dependency
+
+
+def default_rate_limit(
+    endpoint_name: str,
+) -> Callable[[Request], Awaitable[None]]:
+    """The global per-endpoint default limit, as a dependency. Our limiter is
+    sync (Redis-backed), so run its check off the event loop."""
+    async def dependency(request: Request) -> None:
+        await run_in_threadpool(limiter.check_default, request, endpoint_name)
+    return dependency
 
 
 # ---------------------------------------------------------------------------

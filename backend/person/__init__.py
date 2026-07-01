@@ -1,5 +1,6 @@
 import os
 from database import Tx, api_tx, fetchall_sets
+from database.asyncdatabase import api_tx as async_api_tx
 from collections.abc import Mapping, Sequence
 from typing import Optional, Tuple, Literal, cast
 from urlslug import assign_url_slug, reserve_onboardee_url_slug
@@ -2183,12 +2184,10 @@ def post_verify(s: t.SessionInfo) -> None:
     with api_tx() as tx:
         tx.execute(Q_UPDATE_VERIFICATION_JOB, params)
 
-def get_check_verification(s: t.SessionInfo) -> object:
-    with api_tx() as tx:
-        row = tx.execute(
-            Q_CHECK_VERIFICATION,
-            dict(person_id=s.person_id)
-        ).fetchone()
+async def get_check_verification(s: t.SessionInfo) -> object:
+    async with async_api_tx() as tx:
+        await tx.execute(Q_CHECK_VERIFICATION, dict(person_id=s.person_id))
+        row = await tx.fetchone()
 
     if row:
         return row
