@@ -343,9 +343,13 @@ async def get_next_questions(
         o=request.query_params.get('o', '0'),
     )
 
-@get('/public-next-questions')
-def get_public_next_questions(request: Request) -> object:
-    return question.get_public_next_questions(
+@app.get('/public-next-questions')
+@duo_route
+async def get_public_next_questions(
+    request: Request,
+    _default_limited: None = Depends(default_rate_limit('get_public_next_questions')),
+) -> object:
+    return await question.get_public_next_questions_async(
         n=request.query_params.get('n', '10'),
         o=request.query_params.get('o', '0'),
     )
