@@ -297,13 +297,13 @@ async def post_check_session_token(
 ) -> object:
     return await person.post_check_session_token(s)
 
-@aget(
-    '/search-locations',
-    expected_onboarding_status=None,
-    expected_sign_in_status=None,
-)
-def get_search_locations(request: Request, _: object) -> object:
-    return location.get_search_locations(q=request.query_params.get('q'))
+@app.get('/search-locations')
+@duo_route
+async def get_search_locations(
+    request: Request,
+    _default_limited: None = Depends(default_rate_limit('get_search_locations')),
+) -> object:
+    return await location.get_search_locations(request.query_params.get('q'))
 
 @apatch('/onboardee-info', expected_onboarding_status=False)
 @validate(t.PatchOnboardeeInfo)
