@@ -321,9 +321,14 @@ async def patch_onboardee_info(
 ) -> object:
     return await person.patch_onboardee_info(req, s)
 
-@apost('/finish-onboarding', expected_onboarding_status=False)
-def post_finish_onboarding(request: Request, s: t.SessionInfo) -> object:
-    return person.post_finish_onboarding(s)
+@app.post('/finish-onboarding')
+@duo_route
+async def post_finish_onboarding(
+    request: Request,
+    s: t.SessionInfo = Depends(require_session(expected_onboarding_status=False)),
+    _default_limited: None = Depends(default_rate_limit('post_finish_onboarding')),
+) -> object:
+    return await person.post_finish_onboarding(s)
 
 @aget('/next-questions')
 def get_next_questions(request: Request, s: t.SessionInfo) -> object:

@@ -994,30 +994,38 @@ async def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo) -> o
 
     return None
 
-def post_finish_onboarding(s: t.SessionInfo) -> object:
+async def post_finish_onboarding(s: t.SessionInfo) -> object:
     api_params = dict(
         email=s.email,
         normalized_email=normalize_email(s.email),
         pending_club_name=s.pending_club_name,
     )
 
-    with api_tx() as tx:
-        tx.execute('SET LOCAL statement_timeout = 15000') # 15 seconds
-        row = tx.require_one(Q_FINISH_ONBOARDING, params=api_params)
+    async with async_api_tx() as tx:
+        await tx.execute('SET LOCAL statement_timeout = 15000') # 15 seconds
+        row = await tx.require_one(Q_FINISH_ONBOARDING, params=api_params)
 
         # If this user signed up via Google/Apple, drain the pending
         # provider identity from `duo_session` into `social_identity` now
         # that the new `person` row exists.
-        tx.execute(Q_PROMOTE_PENDING_SOCIAL_IDENTITY, dict(
+        await tx.execute(Q_PROMOTE_PENDING_SOCIAL_IDENTITY, dict(
             session_token_hash=s.session_token_hash,
             person_id=row['person_id'],
         ))
 
-        clubs = _handle_pending_club(tx, row['person_id'], s.pending_club_name)
+        clubs = await _handle_pending_club_async(
+            tx,
+            row['person_id'],
+            s.pending_club_name,
+        )
 
-        _flush_session_answers(tx, s.session_token_hash, row['person_id'])
+        await _flush_session_answers_async(
+            tx,
+            s.session_token_hash,
+            row['person_id'],
+        )
 
-    sessioncache.delete_session(s.session_token_hash)
+    await run_in_threadpool(sessioncache.delete_session, s.session_token_hash)
 
     return dict(**row, **clubs)
 
