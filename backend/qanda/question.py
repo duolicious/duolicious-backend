@@ -262,13 +262,19 @@ async def get_public_next_questions_async(n: str, o: str) -> object:
         row_tx = await tx.execute(Q_GET_PUBLIC_NEXT_QUESTIONS, params)
         return await row_tx.fetchall()
 
-def get_search_filter_questions(s: t.SessionInfo, q: str, n: str, o: str) -> object:
+async def get_search_filter_questions(
+    s: t.SessionInfo,
+    q: str,
+    n: str,
+    o: str,
+) -> object:
     params = dict(
         person_id=s.person_id,
         q=q,
         n=int(n),
-        o=int(o)
+        o=int(o),
     )
 
-    with api_tx('READ COMMITTED') as tx:
-        return tx.execute(Q_GET_SEARCH_FILTER_QUESTIONS, params).fetchall()
+    async with async_api_tx('READ COMMITTED') as tx:
+        row_tx = await tx.execute(Q_GET_SEARCH_FILTER_QUESTIONS, params)
+        return await row_tx.fetchall()

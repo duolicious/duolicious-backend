@@ -608,9 +608,16 @@ async def post_search_filter(
 ) -> object:
     return await person.post_search_filter(req, s)
 
-@aget('/search-filter-questions')
-def get_search_filter_questions(request: Request, s: t.SessionInfo) -> object:
-    return question.get_search_filter_questions(
+@app.get('/search-filter-questions')
+@duo_route
+async def get_search_filter_questions(
+    request: Request,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(
+        default_rate_limit('get_search_filter_questions')
+    ),
+) -> object:
+    return await question.get_search_filter_questions(
         s=s,
         q=request.query_params.get('q', ''),
         n=request.query_params.get('n', '10'),
