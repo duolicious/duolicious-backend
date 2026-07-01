@@ -1,5 +1,6 @@
 from typing import Iterator
 from database import Tx, row_bool
+from database.asyncdatabase import Tx as AsyncTx
 import psycopg
 import random
 import re
@@ -123,12 +124,54 @@ def _mint(
 
     raise RuntimeError(f'could not mint url_slug for base {base!r}')
 
+
+async def _mint_async(
+    tx: AsyncTx,
+    base: str,
+    write_q: str,
+    write_params: dict[str, object],
+    *,
+    email: str,
+    person_id: int | None = None,
+) -> dict[str, object]:
+    """Async counterpart to `_mint` for native FastAPI routes."""
+    for slug, is_random in _candidates(base):
+        row = await tx.require_one(
+            Q_SLUG_TAKEN,
+            dict(slug=slug, email=email, person_id=person_id),
+        )
+        taken = row_bool(row, 'exists')
+        if taken:
+            continue
+        try:
+            async with tx.connection.transaction():
+                await tx.execute(write_q, dict(write_params, slug=slug))
+        except psycopg.errors.UniqueViolation:
+            continue
+        return dict(url_slug=slug, is_random=is_random)
+
+    raise RuntimeError(f'could not mint url_slug for base {base!r}')
+
 def reserve_onboardee_url_slug(tx: Tx, email: str, name: str) -> dict[str, object]:
     """Reserve onboardee.url_slug for `name` and return {'url_slug', 'is_random'}.
     Persisting the reservation is what lets finish-onboarding mint exactly this
     slug and makes concurrent sign-ups treat it as taken. Re-runnable as the
     onboardee edits their name; the latest reservation wins."""
     return _mint(
+        tx,
+        slug_base(name),
+        Q_UPDATE_ONBOARDEE_SLUG,
+        dict(email=email),
+        email=email)
+
+
+async def reserve_onboardee_url_slug_async(
+    tx: AsyncTx,
+    email: str,
+    name: str,
+) -> dict[str, object]:
+    """Async counterpart to `reserve_onboardee_url_slug`."""
+    return await _mint_async(
         tx,
         slug_base(name),
         Q_UPDATE_ONBOARDEE_SLUG,

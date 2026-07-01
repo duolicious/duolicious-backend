@@ -22,6 +22,7 @@ from service.api.decorators import (
     auth_rate_limit,
     client_ip,
     default_rate_limit,
+    default_limits,
     delete,
     duo_route,
     get,
@@ -305,24 +306,20 @@ async def get_search_locations(
 ) -> object:
     return await location.get_search_locations(request.query_params.get('q'))
 
-@apatch('/onboardee-info', expected_onboarding_status=False)
-@validate(t.PatchOnboardeeInfo)
-def patch_onboardee_info(
+@app.patch('/onboardee-info')
+@duo_route
+async def patch_onboardee_info(
     request: Request,
     req: t.PatchOnboardeeInfo,
-    s: t.SessionInfo,
+    s: t.SessionInfo = Depends(require_session(expected_onboarding_status=False)),
+    _default_limited: None = Depends(default_rate_limit('patch_onboardee_info')),
+    _account_limited: None = Depends(rate_limit(
+        default_limits,
+        key_func=limiter_account,
+        exempt_when=disable_account_rate_limit,
+    )),
 ) -> object:
-    return person.patch_onboardee_info(req, s)
-
-@adelete('/onboardee-info', expected_onboarding_status=False)
-@validate(t.DeleteOnboardeeInfo)
-def delete_onboardee_info(
-    request: Request,
-    req: t.DeleteOnboardeeInfo,
-    s: t.SessionInfo,
-) -> object:
-    person.delete_onboardee_info(req, s)
-    return None
+    return await person.patch_onboardee_info(req, s)
 
 @apost('/finish-onboarding', expected_onboarding_status=False)
 def post_finish_onboarding(request: Request, s: t.SessionInfo) -> object:

@@ -464,18 +464,6 @@ class PatchOnboardeeInfo(BaseModel):
         arbitrary_types_allowed = True
 
 
-class DeleteOnboardeeInfo(BaseModel):
-    files: List[int]
-
-    @field_validator("files")
-    @classmethod
-    def validate_files(cls, files: List[int]) -> List[int]:
-        for pos in files:
-            if not (MIN_PHOTO_POSITION <= pos <= MAX_PHOTO_POSITION):
-                raise ValueError("Invalid photo position")
-        return files
-
-
 class DeleteProfileInfo(BaseModel):
     files: Optional[List[int]] = Field(
         default=None,

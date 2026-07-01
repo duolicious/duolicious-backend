@@ -52,6 +52,10 @@ Row = psycopg.rows.DictRow
 
 class Tx(Protocol):
     @property
+    def connection(self) -> psycopg.AsyncConnection[Row]:
+        ...
+
+    @property
     def rowcount(self) -> int:
         ...
 
@@ -89,6 +93,10 @@ class Tx(Protocol):
 class TxCursor:
     def __init__(self, cur: psycopg.AsyncCursor[Row]) -> None:
         self._cur = cur
+
+    @property
+    def connection(self) -> psycopg.AsyncConnection[Row]:
+        return self._cur.connection
 
     @property
     def rowcount(self) -> int:

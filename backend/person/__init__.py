@@ -3,7 +3,11 @@ from database import Tx, api_tx, fetchall_sets
 from database.asyncdatabase import Row as AsyncRow, Tx as AsyncTx, api_tx as async_api_tx
 from collections.abc import Mapping, Sequence
 from typing import Optional, Tuple, Literal, cast
-from urlslug import assign_url_slug, reserve_onboardee_url_slug
+from urlslug import (
+    assign_url_slug,
+    reserve_onboardee_url_slug,
+    reserve_onboardee_url_slug_async,
+)
 import duotypes as t
 import json
 import secrets
@@ -225,6 +229,22 @@ def put_image_in_object_store(
         for future in as_completed(futures):
             future.result()
 
+
+async def put_image_in_object_store_async(
+    uuid: str,
+    base64_file: t.Base64File,
+    crop_size: CropSize,
+    sizes: list[Literal[None, 900, 450]] = [None, 900, 450],
+) -> None:
+    """Async wrapper for `put_image_in_object_store`."""
+    await run_in_threadpool(
+        put_image_in_object_store,
+        uuid,
+        base64_file,
+        crop_size,
+        sizes,
+    )
+
 def _has_gold(person_id: int) -> bool:
     with api_tx() as tx:
         row = tx.require_one(Q_HAS_GOLD, dict(person_id=person_id))
@@ -312,6 +332,19 @@ def _str_value(value: object, field_name: str) -> str:
     if not isinstance(value, str):
         raise ValueError(f'Field {field_name} must be a string')
     return value
+
+
+async def _reserve_onboardee_url_slug_async(
+    email: str,
+    name: str,
+) -> dict[str, object]:
+    async with async_api_tx() as tx:
+        return await reserve_onboardee_url_slug_async(tx, email, name)
+
+
+def _reserve_onboardee_url_slug_sync(email: str, name: str) -> dict[str, object]:
+    with api_tx() as tx:
+        return reserve_onboardee_url_slug(tx, email, name)
 
 
 async def post_request_otp(
@@ -767,14 +800,15 @@ async def post_check_session_token(s: t.SessionInfo) -> object:
             **clubs,
         )
 
-def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo) -> object:
+async def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo) -> object:
     [field_name] = req.__pydantic_fields_set__
     field_value = req.dict()[field_name]
 
     if field_name == 'name':
-        params = dict(
+        name = cast(str, field_value)
+        name_params = dict(
             email=s.email,
-            field_value=field_value
+            field_value=name,
         )
 
         q_set_onboardee_field = """
@@ -788,10 +822,9 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo) -> object:
                 name = EXCLUDED.name
             """
 
-        with api_tx() as tx:
-            tx.execute(q_set_onboardee_field, params)
-
-            return reserve_onboardee_url_slug(tx, s.email, field_value)
+        async with async_api_tx() as tx:
+            await tx.execute(q_set_onboardee_field, name_params)
+            return await reserve_onboardee_url_slug_async(tx, s.email, name)
     elif field_name == 'date_of_birth':
         params = dict(
             email=s.email,
@@ -809,8 +842,8 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo) -> object:
                 date_of_birth = EXCLUDED.date_of_birth
             """
 
-        with api_tx() as tx:
-            tx.execute(q_set_onboardee_field, params)
+        async with async_api_tx() as tx:
+            await tx.execute(q_set_onboardee_field, params)
     elif field_name == 'location':
         params = dict(
             email=s.email,
@@ -829,8 +862,8 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo) -> object:
             ON CONFLICT (email) DO UPDATE SET
                 coordinates = EXCLUDED.coordinates
             """
-        with api_tx() as tx:
-            tx.execute(q_set_onboardee_field, params)
+        async with async_api_tx() as tx:
+            await tx.execute(q_set_onboardee_field, params)
             if tx.rowcount != 1:
                 return 'Unknown location', 400
     elif field_name == 'gender':
@@ -852,8 +885,8 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo) -> object:
                 gender_id = EXCLUDED.gender_id
             """
 
-        with api_tx() as tx:
-            tx.execute(q_set_onboardee_field, params)
+        async with async_api_tx() as tx:
+            await tx.execute(q_set_onboardee_field, params)
     elif field_name == 'other_peoples_genders':
         params = dict(
             email=s.email,
@@ -874,8 +907,8 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo) -> object:
                 gender_id = EXCLUDED.gender_id
             """
 
-        with api_tx() as tx:
-            tx.execute(q_set_onboardee_field, params)
+        async with async_api_tx() as tx:
+            await tx.execute(q_set_onboardee_field, params)
     elif field_name == 'base64_file':
         base64_file = t.Base64File.model_validate(field_value)
 
@@ -943,11 +976,15 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo) -> object:
             SELECT 1
             """
 
-        with api_tx() as tx:
-            tx.execute(q_set_onboardee_field, params)
+        async with async_api_tx() as tx:
+            await tx.execute(q_set_onboardee_field, params)
 
         try:
-            put_image_in_object_store(uuid, base64_file, crop_size)
+            await put_image_in_object_store_async(
+                uuid,
+                base64_file,
+                crop_size,
+            )
         except Exception as e:
             print('Upload failed with exception:', e)
             return '', 500
@@ -956,15 +993,6 @@ def patch_onboardee_info(req: t.PatchOnboardeeInfo, s: t.SessionInfo) -> object:
         return f'Invalid field name {field_name}', 400
 
     return None
-
-def delete_onboardee_info(req: t.DeleteOnboardeeInfo, s: t.SessionInfo) -> None:
-    params = [
-        dict(email=s.email, position=position)
-        for position in req.files
-    ]
-
-    with api_tx() as tx:
-        tx.executemany(Q_DELETE_ONBOARDEE_PHOTO, params)
 
 def post_finish_onboarding(s: t.SessionInfo) -> object:
     api_params = dict(

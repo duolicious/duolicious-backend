@@ -331,25 +331,6 @@ ON
     valid_session.person_id = existing_person.id
 """
 
-Q_DELETE_ONBOARDEE_PHOTO = """
-WITH deleted_uuid AS (
-    DELETE FROM
-        onboardee_photo
-    WHERE
-        email = %(email)s AND
-        position = %(position)s
-    RETURNING
-        uuid
-)
-INSERT INTO undeleted_photo (
-    uuid
-)
-SELECT
-    uuid
-FROM
-    deleted_uuid
-"""
-
 Q_FINISH_ONBOARDING = f"""
 WITH onboardee_location AS (
     SELECT
