@@ -662,9 +662,14 @@ async def get_search_public_clubs(
         allow_empty=True,
     )
 
-@get('/club/<clubname:name>', merge_slashes=False)
-def get_club(request: Request, name: str) -> object:
-    result = person.get_club(
+@app.get('/club/{name:path}')
+@duo_route
+async def get_club(
+    request: Request,
+    name: str,
+    _default_limited: None = Depends(default_rate_limit('get_club')),
+) -> object:
+    result = await person.get_club(
         name=name,
         ttl_hash=get_ttl_hash(seconds=300))
     if result is None:

@@ -39,6 +39,7 @@ from antiabuse.antispam.signupemail import (
 from antiabuse.firehol import firehol
 import blurhash
 import numpy
+from async_lru_cache import AsyncLruCache
 from datetime import datetime, timezone
 from urllib.parse import quote
 from duoaudio import put_audio_in_object_store, put_audio_in_object_store_async
@@ -2406,14 +2407,15 @@ def post_dismiss_donation(s: t.SessionInfo) -> None:
     with api_tx() as tx:
         tx.execute(Q_DISMISS_DONATION, dict(person_id=s.person_id))
 
-@lru_cache(maxsize=2048)
-def get_club(name: str, ttl_hash: object = None) -> object:
+@AsyncLruCache(maxsize=2048)
+async def get_club(name: str, ttl_hash: object = None) -> object:
     club_name = t.parse_club_name(name)
     if club_name is None:
         return None
 
-    with api_tx('READ COMMITTED') as tx:
-        row = tx.execute(Q_CLUB_PAGE_READ, dict(club_name=club_name)).fetchone()
+    async with async_api_tx('READ COMMITTED') as tx:
+        row_tx = await tx.execute(Q_CLUB_PAGE_READ, dict(club_name=club_name))
+        row = await row_tx.fetchone()
 
     if not row:
         return None
