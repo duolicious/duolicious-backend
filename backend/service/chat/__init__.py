@@ -698,7 +698,7 @@ async def process_text(
     async def store_audio_and_notify() -> None:
         if \
                 isinstance(maybe_message, AudioMessage) and \
-                not transcode_and_put(
+                not await transcode_and_put(
                     uuid=maybe_message.audio_uuid,
                     audio_base64=maybe_message.audio_base64,
                 ):
