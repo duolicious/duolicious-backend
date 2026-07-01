@@ -435,14 +435,6 @@ async def get_public_search(
 async def get_health(request: Request) -> object:
     return 'status: ok'
 
-@aget('/me')
-def get_me_by_session(request: Request, s: t.SessionInfo) -> object:
-    return person.get_me(person_id_as_int=s.person_id)
-
-@get('/me/<person_id>')
-def get_me_by_id(request: Request, person_id: str) -> object:
-    return person.get_me(person_id_as_str=person_id)
-
 @aget('/prospect-profile/<prospect_handle>', auth='optional')
 def get_prospect_profile(
     request: Request,

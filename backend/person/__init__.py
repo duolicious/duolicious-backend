@@ -1029,41 +1029,6 @@ async def post_finish_onboarding(s: t.SessionInfo) -> object:
 
     return dict(**row, **clubs)
 
-def get_me(
-    person_id_as_int: int | None = None,
-    person_id_as_str: str | None = None,
-) -> object:
-    if person_id_as_int is None and person_id_as_str is None:
-        raise ValueError('pass an arg, please')
-
-    params = dict(
-        person_id_as_int=person_id_as_int,
-        person_id_as_str=person_id_as_str,
-        prospect_person_id=None,
-        topic=None,
-    )
-
-    with api_tx('READ COMMITTED') as tx:
-        personality = tx.execute(Q_SELECT_PERSONALITY, params).fetchall()
-
-    try:
-        return {
-            'name': personality[0]['person_name'],
-            'person_id': personality[0]['person_id'],
-            'personality': [
-                {
-                    'trait_name': trait['trait_name'],
-                    'trait_min_label': trait['trait_min_label'],
-                    'trait_max_label': trait['trait_max_label'],
-                    'trait_description': trait['trait_description'],
-                    'person_percentage': trait['person_percentage'],
-                }
-                for trait in personality
-            ]
-        }
-    except:
-        return '', 404
-
 def get_prospect_profile(s: Optional[t.SessionInfo], prospect_handle: object) -> object:
     params = dict(
         person_id=s.person_id if s is not None else None,
@@ -2507,8 +2472,6 @@ def get_export_data(token: str) -> object:
 
     person_id = params['person_id']
 
-    inferred_personality_data = get_me(person_id_as_int=person_id)
-
     search_filters = get_search_filters_by_person_id(person_id=person_id)
 
     # Redact sensitive fields
@@ -2526,7 +2489,6 @@ def get_export_data(token: str) -> object:
     # Return the result
     exported_dict = dict(
         raw_data=raw_data,
-        inferred_personality_data=inferred_personality_data,
         search_filters=search_filters,
     )
 
