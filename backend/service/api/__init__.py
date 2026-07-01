@@ -624,14 +624,17 @@ async def get_search_filter_questions(
         o=request.query_params.get('o', '0'),
     )
 
-@apost('/search-filter-answer')
-@validate(t.PostSearchFilterAnswer)
-def post_search_filter_answer(
+@app.post('/search-filter-answer')
+@duo_route
+async def post_search_filter_answer(
     request: Request,
     req: t.PostSearchFilterAnswer,
-    s: t.SessionInfo,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(
+        default_rate_limit('post_search_filter_answer')
+    ),
 ) -> object:
-    return person.post_search_filter_answer(req, s)
+    return await person.post_search_filter_answer(req, s)
 
 @aget('/search-clubs')
 def get_search_clubs(request: Request, s: t.SessionInfo) -> object:

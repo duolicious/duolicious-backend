@@ -2150,7 +2150,10 @@ async def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo) -> objec
 
     return None
 
-def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo) -> object:
+async def post_search_filter_answer(
+    req: t.PostSearchFilterAnswer,
+    s: t.SessionInfo,
+) -> object:
     max_search_filter_answers = 20
     error = f'You can’t set more than {max_search_filter_answers} Q&A filters'
 
@@ -2252,8 +2255,8 @@ def post_search_filter_answer(req: t.PostSearchFilterAnswer, s: t.SessionInfo) -
         ) <= {max_search_filter_answers}
         """
 
-    with api_tx() as tx:
-        answer = tx.require_one(q, params).get('j')
+    async with async_api_tx() as tx:
+        answer = (await tx.require_one(q, params)).get('j')
         if answer is None:
             return dict(error=error), 400
         else:
