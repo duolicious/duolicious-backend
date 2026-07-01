@@ -589,9 +589,14 @@ async def patch_profile_info(
 ) -> object:
     return await person.patch_profile_info(req, s)
 
-@aget('/search-filters')
-def get_search_filers(request: Request, s: t.SessionInfo) -> object:
-    return person.get_search_filters(s)
+@app.get('/search-filters')
+@duo_route
+async def get_search_filers(
+    request: Request,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('get_search_filers')),
+) -> object:
+    return await person.get_search_filters(s)
 
 @apost('/search-filter')
 @validate(t.PostSearchFilter)

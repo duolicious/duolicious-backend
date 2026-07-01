@@ -1874,14 +1874,22 @@ async def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> objec
 
     return None
 
-def get_search_filters(s: t.SessionInfo) -> object:
-    return get_search_filters_by_person_id(person_id=s.person_id)
+async def get_search_filters(s: t.SessionInfo) -> object:
+    return await get_search_filters_by_person_id_async(person_id=s.person_id)
 
 def get_search_filters_by_person_id(person_id: Optional[int]) -> object:
     params = dict(person_id=person_id)
 
     with api_tx('READ COMMITTED') as tx:
         return tx.require_one(Q_GET_SEARCH_FILTERS, params)['j']
+
+async def get_search_filters_by_person_id_async(
+    person_id: Optional[int],
+) -> object:
+    params = dict(person_id=person_id)
+
+    async with async_api_tx('READ COMMITTED') as tx:
+        return (await tx.require_one(Q_GET_SEARCH_FILTERS, params))['j']
 
 def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo) -> object:
     [field_name] = req.__pydantic_fields_set__
