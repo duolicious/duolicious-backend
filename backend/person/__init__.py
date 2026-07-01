@@ -4,7 +4,7 @@ from database.asyncdatabase import Row as AsyncRow, Tx as AsyncTx, api_tx as asy
 from collections.abc import Mapping, Sequence
 from typing import Optional, Tuple, Literal, cast
 from urlslug import (
-    assign_url_slug,
+    assign_url_slug_async,
     reserve_onboardee_url_slug,
     reserve_onboardee_url_slug_async,
 )
@@ -41,7 +41,7 @@ import blurhash
 import numpy
 from datetime import datetime, timezone
 from urllib.parse import quote
-from duoaudio import put_audio_in_object_store
+from duoaudio import put_audio_in_object_store, put_audio_in_object_store_async
 from person.aboutdiff import diff_addition_with_context
 from auth.session import sign_out, sign_out_async, enforce_session_limit, enforce_session_limit_async
 from auth.social import (
@@ -242,9 +242,9 @@ async def put_image_in_object_store_async(
         sizes,
     )
 
-def _has_gold(person_id: int) -> bool:
-    with api_tx() as tx:
-        row = tx.require_one(Q_HAS_GOLD, dict(person_id=person_id))
+async def _has_gold_async(person_id: int) -> bool:
+    async with async_api_tx() as tx:
+        row = await tx.require_one(Q_HAS_GOLD, dict(person_id=person_id))
     return row.get('has_gold', False)
 
 
@@ -1324,7 +1324,10 @@ async def delete_profile_info(req: t.DeleteProfileInfo, s: t.SessionInfo) -> Non
         async with async_api_tx() as tx:
             await tx.executemany(Q_DELETE_PROFILE_INFO_AUDIO, audio_files_params)
 
-def _patch_profile_info_about(person_id: int, new_about: str) -> None:
+async def _patch_profile_info_about_async(
+    person_id: int,
+    new_about: str,
+) -> None:
     select = """
     SELECT about AS old_about FROM person WHERE id = %(person_id)s
     """
@@ -1373,12 +1376,12 @@ def _patch_profile_info_about(person_id: int, new_about: str) -> None:
     SELECT 1
     """
 
-    with api_tx() as tx:
+    async with async_api_tx() as tx:
         select_params = dict(
             person_id=person_id,
         )
 
-        old_about = tx.require_one(select, select_params)['old_about']
+        old_about = (await tx.require_one(select, select_params))['old_about']
 
         update_params = dict(
             person_id=person_id,
@@ -1386,9 +1389,9 @@ def _patch_profile_info_about(person_id: int, new_about: str) -> None:
             added_text=diff_addition_with_context(old=old_about, new=new_about),
         )
 
-        tx.execute(update, update_params)
+        await tx.execute(update, update_params)
 
-def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> object:
+async def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> object:
     if not s.person_id:
         return 'Not authorized', 400
 
@@ -1574,19 +1577,22 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> object:
             person_id = %(person_id)s
         """
     elif field_name == 'name':
-        if not _has_gold(person_id=s.person_id):
+        if not await _has_gold_async(person_id=s.person_id):
             return 'Requires gold', 403
 
-        with api_tx() as tx:
-            tx.execute(
+        async with async_api_tx() as tx:
+            await tx.execute(
                 "UPDATE person SET name = %(field_value)s WHERE id = %(person_id)s",
                 params,
             )
-            slug = assign_url_slug(tx, s.person_id)
+            slug = await assign_url_slug_async(tx, s.person_id)
 
         return slug
     elif field_name == 'about':
-        _patch_profile_info_about(s.person_id, _str_value(field_value, field_name))
+        await _patch_profile_info_about_async(
+            s.person_id,
+            _str_value(field_value, field_name),
+        )
         return None
     elif field_name == 'gender':
         q1 = """
@@ -1758,7 +1764,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> object:
         verification_level.name = %(field_value)s
         """
     elif field_name == 'show_my_location':
-        if not _has_gold(person_id=s.person_id):
+        if not await _has_gold_async(person_id=s.person_id):
             return 'Requires gold', 403
 
         q1 = """
@@ -1768,7 +1774,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> object:
         WHERE id = %(person_id)s
         """
     elif field_name == 'show_my_age':
-        if not _has_gold(person_id=s.person_id):
+        if not await _has_gold_async(person_id=s.person_id):
             return 'Requires gold', 403
 
         q1 = """
@@ -1778,7 +1784,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> object:
         WHERE id = %(person_id)s
         """
     elif field_name == 'show_my_looking_for':
-        if not _has_gold(person_id=s.person_id):
+        if not await _has_gold_async(person_id=s.person_id):
             return 'Requires gold', 403
 
         q1 = """
@@ -1788,7 +1794,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> object:
         WHERE id = %(person_id)s
         """
     elif field_name == 'hide_me_from_strangers':
-        if not _has_gold(person_id=s.person_id):
+        if not await _has_gold_async(person_id=s.person_id):
             return 'Requires gold', 403
 
         q1 = """
@@ -1798,7 +1804,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> object:
         WHERE id = %(person_id)s
         """
     elif field_name == 'browse_invisibly':
-        if not _has_gold(person_id=s.person_id):
+        if not await _has_gold_async(person_id=s.person_id):
             return 'Requires gold', 403
 
         q1 = """
@@ -1815,7 +1821,7 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> object:
         WHERE id = %(person_id)s
         """
     elif field_name == 'theme':
-        if not _has_gold(person_id=s.person_id):
+        if not await _has_gold_async(person_id=s.person_id):
             return 'Requires gold', 403
 
         try:
@@ -1845,20 +1851,20 @@ def patch_profile_info(req: t.PatchProfileInfo, s: t.SessionInfo) -> object:
     else:
         return f'Unhandled field name {field_name}', 500
 
-    with api_tx() as tx:
-        if q1: tx.execute(q1, params)
-        if q2: tx.execute(q2, params)
+    async with async_api_tx() as tx:
+        if q1: await tx.execute(q1, params)
+        if q2: await tx.execute(q2, params)
 
     if uuid and base64_file and crop_size:
         try:
-            put_image_in_object_store(uuid, base64_file, crop_size)
+            await put_image_in_object_store_async(uuid, base64_file, crop_size)
         except:
             print(traceback.format_exc())
             return '', 500
 
     if uuid and base64_audio_file:
         try:
-            put_audio_in_object_store(
+            await put_audio_in_object_store_async(
                 uuid=uuid,
                 audio_file_bytes=base64_audio_file.transcoded,
             )

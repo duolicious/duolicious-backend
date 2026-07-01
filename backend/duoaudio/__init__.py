@@ -10,6 +10,7 @@ from util import human_readable_size_metric
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import boto3
+from starlette.concurrency import run_in_threadpool
 
 R2_AUDIO_BUCKET_NAME = os.environ['DUO_R2_AUDIO_BUCKET_NAME']
 R2_ACCT_ID = os.environ['DUO_R2_ACCT_ID']
@@ -47,6 +48,17 @@ def put_audio_in_object_store(
 
         for future in as_completed(futures):
             future.result()
+
+async def put_audio_in_object_store_async(
+    uuid: str,
+    audio_file_bytes: bytes,
+) -> None:
+    """Async wrapper for `put_audio_in_object_store`."""
+    await run_in_threadpool(
+        put_audio_in_object_store,
+        uuid,
+        audio_file_bytes,
+    )
 
 def transcode_and_trim_audio(
     input_audio: io.BytesIO,

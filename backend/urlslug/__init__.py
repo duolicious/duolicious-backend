@@ -178,15 +178,19 @@ async def reserve_onboardee_url_slug_async(
         dict(email=email),
         email=email)
 
-def assign_url_slug(tx: Tx, person_id: int) -> dict[str, object]:
-    """Assigns person.url_slug from the person's display name, skipping slugs
-    held by another person or reserved by an onboardee. Returns
-    {'url_slug', 'is_random'}."""
-    person = tx.execute(Q_SELECT_PERSON, dict(person_id=person_id)).fetchone()
+async def assign_url_slug_async(
+    tx: AsyncTx,
+    person_id: int,
+) -> dict[str, object]:
+    """Async counterpart to `assign_url_slug`."""
+    person = await (await tx.execute(
+        Q_SELECT_PERSON,
+        dict(person_id=person_id),
+    )).fetchone()
     if person is None:
         raise RuntimeError(f'person {person_id} not found')
 
-    return _mint(
+    return await _mint_async(
         tx,
         slug_base(person['name']),
         Q_UPDATE_PERSON_SLUG,

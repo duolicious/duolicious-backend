@@ -579,14 +579,15 @@ async def delete_profile_info(
     await person.delete_profile_info(req, s)
     return None
 
-@apatch('/profile-info')
-@validate(t.PatchProfileInfo)
-def patch_profile_info(
+@app.patch('/profile-info')
+@duo_route
+async def patch_profile_info(
     request: Request,
     req: t.PatchProfileInfo,
-    s: t.SessionInfo,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('patch_profile_info')),
 ) -> object:
-    return person.patch_profile_info(req, s)
+    return await person.patch_profile_info(req, s)
 
 @aget('/search-filters')
 def get_search_filers(request: Request, s: t.SessionInfo) -> object:
