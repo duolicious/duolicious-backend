@@ -739,14 +739,15 @@ async def post_sign_in_with_apple(
         remote_addr=remote_addr,
     )
 
-def post_check_session_token(s: t.SessionInfo) -> object:
+async def post_check_session_token(s: t.SessionInfo) -> object:
     params = dict(
         person_id=s.person_id,
         pending_club_name=s.pending_club_name,
     )
 
-    with api_tx() as tx:
-        row = tx.execute(Q_CHECK_SESSION_TOKEN, params).fetchone()
+    async with async_api_tx() as tx:
+        row_tx = await tx.execute(Q_CHECK_SESSION_TOKEN, params)
+        row = await row_tx.fetchone()
 
         if not row:
             return 'Invalid token', 401
@@ -756,7 +757,7 @@ def post_check_session_token(s: t.SessionInfo) -> object:
             pending_club_name=s.pending_club_name,
         )
 
-        clubs = tx.require_one(Q_GET_SESSION_CLUBS, club_params)
+        clubs = await tx.require_one(Q_GET_SESSION_CLUBS, club_params)
 
         return dict(
             person_id=s.person_id,

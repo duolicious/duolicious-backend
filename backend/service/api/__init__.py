@@ -288,9 +288,14 @@ async def post_sign_out(
     await person.post_sign_out(s)
     return None
 
-@apost('/check-session-token', expected_onboarding_status=None)
-def post_check_session_token(request: Request, s: t.SessionInfo) -> object:
-    return person.post_check_session_token(s)
+@app.post('/check-session-token')
+@duo_route
+async def post_check_session_token(
+    request: Request,
+    s: t.SessionInfo = Depends(require_session(expected_onboarding_status=None)),
+    _default_limited: None = Depends(default_rate_limit('post_check_session_token')),
+) -> object:
+    return await person.post_check_session_token(s)
 
 @aget(
     '/search-locations',
