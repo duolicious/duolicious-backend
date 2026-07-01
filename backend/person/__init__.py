@@ -2347,7 +2347,10 @@ async def get_update_notifications(
     else:
         return 'Invalid email address or notification frequency', 400
 
-def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo) -> object:
+async def post_verification_selfie(
+    req: t.PostVerificationSelfie,
+    s: t.SessionInfo,
+) -> object:
     base64 = req.base64_file.base64
     image = req.base64_file.image
     top = req.base64_file.top
@@ -2371,15 +2374,16 @@ def post_verification_selfie(req: t.PostVerificationSelfie, s: t.SessionInfo) ->
         expected_previous_status=None,
     )
 
-    with api_tx() as tx:
-        if tx.execute(Q_INSERT_VERIFICATION_PHOTO_HASH, params_ok).fetchall():
-            tx.execute(Q_DELETE_VERIFICATION_JOB, params_ok)
-            tx.execute(Q_INSERT_VERIFICATION_JOB, params_ok)
+    async with async_api_tx() as tx:
+        row_tx = await tx.execute(Q_INSERT_VERIFICATION_PHOTO_HASH, params_ok)
+        if await row_tx.fetchall():
+            await tx.execute(Q_DELETE_VERIFICATION_JOB, params_ok)
+            await tx.execute(Q_INSERT_VERIFICATION_JOB, params_ok)
         else:
-            tx.execute(Q_UPDATE_VERIFICATION_JOB, params_bad)
+            await tx.execute(Q_UPDATE_VERIFICATION_JOB, params_bad)
 
     try:
-        put_image_in_object_store(
+        await put_image_in_object_store_async(
             photo_uuid, req.base64_file, crop_size, sizes=[450])
     except Exception as e:
         print('Upload failed with exception:', e)

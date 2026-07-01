@@ -724,14 +724,17 @@ async def get_feed(
 
     return await search.get_feed(s=s, before=valid_datetime.datetime)
 
-@apost('/verification-selfie')
-@validate(t.PostVerificationSelfie)
-def post_verification_selfie(
+@app.post('/verification-selfie')
+@duo_route
+async def post_verification_selfie(
     request: Request,
     req: t.PostVerificationSelfie,
-    s: t.SessionInfo,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(
+        default_rate_limit('post_verification_selfie')
+    ),
 ) -> object:
-    return person.post_verification_selfie(req, s)
+    return await person.post_verification_selfie(req, s)
 
 @apost('/verify')
 def post_verify(request: Request, s: t.SessionInfo) -> object:
