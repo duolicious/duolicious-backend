@@ -513,13 +513,15 @@ async def get_compare_personalities(
 ) -> object:
     return await person.get_compare_personalities(s, prospect_person_id, topic)
 
-@aget('/compare-answers/<int:prospect_person_id>')
-def get_compare_answers(
+@app.get('/compare-answers/{prospect_person_id:int}')
+@duo_route
+async def get_compare_answers(
     request: Request,
-    s: t.SessionInfo,
     prospect_person_id: int,
+    s: t.SessionInfo = Depends(require_session()),
+    _default_limited: None = Depends(default_rate_limit('get_compare_answers')),
 ) -> object:
-    return person.get_compare_answers(
+    return await person.get_compare_answers(
         s,
         prospect_person_id,
         agreement=request.query_params.get('agreement'),

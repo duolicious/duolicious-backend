@@ -1157,7 +1157,7 @@ async def get_compare_personalities(
         row_tx = await tx.execute(Q_SELECT_PERSONALITY, params)
         return await row_tx.fetchall()
 
-def get_compare_answers(
+async def get_compare_answers(
     s: t.SessionInfo,
     prospect_person_id: int,
     agreement: Optional[str],
@@ -1193,8 +1193,9 @@ def get_compare_answers(
         o=o,
     )
 
-    with api_tx('READ COMMITTED') as tx:
-        return tx.execute(Q_ANSWER_COMPARISON, params).fetchall()
+    async with async_api_tx('READ COMMITTED') as tx:
+        row_tx = await tx.execute(Q_ANSWER_COMPARISON, params)
+        return await row_tx.fetchall()
 
 def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo) -> object:
     params = dict(
