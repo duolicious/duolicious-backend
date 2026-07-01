@@ -1211,44 +1211,6 @@ async def post_inbox_info(req: t.PostInboxInfo, s: t.SessionInfo) -> object:
         row_tx = await tx.execute(Q_INBOX_INFO, params)
         return await row_tx.fetchall()
 
-def delete_or_ban_account(
-    s: Optional[t.SessionInfo],
-    admin_ban_token: Optional[str] = None,
-) -> object:
-    with api_tx() as tx:
-        tx.execute('SET LOCAL statement_timeout = 30_000')  # 30 seconds
-
-        if admin_ban_token:
-            rows = tx.execute(
-                Q_ADMIN_BAN,
-                params=dict(token=admin_ban_token)
-            ).fetchall()
-        elif s:
-            rows = [
-                dict(
-                    person_id=s.person_id,
-                    person_uuid=s.person_uuid
-                )
-            ]
-        else:
-            raise ValueError('At least one parameter must not be None')
-
-        person_ids = [r['person_id'] for r in rows if r['person_id'] is not None]
-        session_token_hashes = [
-            r['session_token_hash']
-            for r in tx.execute(
-                Q_SELECT_SESSION_TOKEN_HASHES_BY_PERSON_ID,
-                params=dict(person_ids=person_ids),
-            ).fetchall()
-        ] if person_ids else []
-
-        tx.executemany(Q_DELETE_ACCOUNT, params_seq=rows)
-
-    for session_token_hash in session_token_hashes:
-        sessioncache.delete_session(session_token_hash)
-
-    return rows
-
 async def delete_or_ban_account_async(
     s: Optional[t.SessionInfo],
     admin_ban_token: Optional[str] = None,
@@ -2486,8 +2448,8 @@ async def get_admin_ban_link(token: str) -> object:
     else:
         return err_invalid_token
 
-def get_admin_ban(token: str) -> object:
-    rows = delete_or_ban_account(s=None, admin_ban_token=token)
+async def get_admin_ban(token: str) -> object:
+    rows = await delete_or_ban_account_async(s=None, admin_ban_token=token)
 
     if rows:
         return f'Banned {rows}'

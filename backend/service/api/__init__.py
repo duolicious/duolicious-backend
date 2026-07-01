@@ -806,9 +806,14 @@ async def get_admin_ban_link(
 ) -> object:
     return await person.get_admin_ban_link(token)
 
-@get('/admin/ban/<token>')
-def get_admin_ban(request: Request, token: str) -> object:
-    return person.get_admin_ban(token)
+@app.get('/admin/ban/{token}')
+@duo_route
+async def get_admin_ban(
+    request: Request,
+    token: str,
+    _default_limited: None = Depends(default_rate_limit('get_admin_ban')),
+) -> object:
+    return await person.get_admin_ban(token)
 
 @get('/admin/delete-photo-link/<token>')
 def get_admin_delete_photo_link(request: Request, token: str) -> object:
