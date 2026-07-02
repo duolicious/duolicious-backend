@@ -1,30 +1,32 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from notify import enqueue_mobile_notification, _batcher
+import asyncio
 import json
-import time
 
-_batcher.set_flush_interval(1e-2)
-time.sleep(1.1) # Wait for the new flush interval to take effect
 
-class TestSendMobileNotification(unittest.TestCase):
+class TestSendMobileNotification(unittest.IsolatedAsyncioTestCase):
 
-    def test_enqueue_mobile_notification_success(self) -> None:
-        # Set up a sacrificial urlopen function to consume any retried
-        # notifications
-        with patch('urllib.request.urlopen') as mock_urlopen:
-            mock_urlopen.return_value.__enter__.return_value.read.return_value = \
-                json.dumps({'data': [{'status': 'ok'}]}).encode('utf-8')
+    async def asyncSetUp(self) -> None:
+        _batcher.set_flush_interval(1e-2)
+        _batcher.start()
+        # Let the consumer spin up and go idle (its flush window elapses), so
+        # the first notification below flushes on its own.
+        await asyncio.sleep(1e-1)
 
-            # Wait for retried notifications to be consumed
-            time.sleep(1e-1)
+    async def asyncTearDown(self) -> None:
+        _batcher.stop()
+        await asyncio.sleep(5e-2)
 
+    async def test_enqueue_mobile_notification_success(self) -> None:
         # Set up the mock response to simulate a successful notification
         with patch('urllib.request.urlopen') as mock_urlopen:
             mock_urlopen.return_value.__enter__.return_value.read.return_value = \
                 json.dumps({'data': [{'status': 'ok'}]}).encode('utf-8')
 
-            # Call the _enqueue_mobile_notification function
+            # Enqueued back-to-back: the first flushes on its own (the consumer
+            # was idle, so its window had already elapsed), then the next two
+            # are batched together in the following window.
             enqueue_mobile_notification(
                 token='my-token',
                 title='My title',
@@ -43,8 +45,8 @@ class TestSendMobileNotification(unittest.TestCase):
                 body='My body 3',
             )
 
-            # Wait for notification be sent
-            time.sleep(1e-1)
+            # Wait for notifications to be sent
+            await asyncio.sleep(2e-1)
 
         expected_data_call_1 = json.dumps(
             [
@@ -90,17 +92,8 @@ class TestSendMobileNotification(unittest.TestCase):
         self.assertEqual(request.headers['Content-type'], 'application/json')
 
 
-    def test_enqueue_mobile_notification_failure(self) -> None:
-        # Set up a sacrificial urlopen function to consume any retried
-        # notifications
-        with patch('urllib.request.urlopen') as mock_urlopen:
-            mock_urlopen.return_value.__enter__.return_value.read.return_value = \
-                json.dumps({'data': [{'status': 'ok'}]}).encode('utf-8')
-
-            # Wait for retried notifications to be consumed
-            time.sleep(1e-1)
-
-        # Set up the mock response to simulate a successful notification
+    async def test_enqueue_mobile_notification_failure(self) -> None:
+        # Set up the mock response to simulate a failed notification
         with patch('urllib.request.urlopen') as mock_urlopen:
             mock_urlopen.return_value.__enter__.return_value.read.return_value = \
                 json.dumps({'data': [{'status': 'error'}]}).encode('utf-8')
@@ -113,7 +106,7 @@ class TestSendMobileNotification(unittest.TestCase):
             )
 
             # Wait for notification be sent
-            time.sleep(1e-1)
+            await asyncio.sleep(2e-1)
 
         # Assert that the URL and data sent are correct
         expected_data = json.dumps([{
