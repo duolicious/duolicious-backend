@@ -88,34 +88,6 @@ SET answers = NULL
 WHERE session_token_hash = %(session_token_hash)s
 """
 
-
-async def post_answer(req: t.PostAnswer, s: t.SessionInfo) -> object | None:
-    if s.person_id is None:
-        return '', 500
-
-    params_add_yes_no_count = dict(
-        question_id=req.question_id,
-        add_yes=1 if req.answer is True else 0,
-        add_no=1 if req.answer is False else 0,
-    )
-
-    async with api_tx('READ COMMITTED') as tx:
-        await tx.execute(Q_ADD_YES_NO_COUNT, params_add_yes_no_count)
-
-    async with api_tx() as tx:
-        await _set_answer(
-            tx, s.person_id, req.question_id, req.answer, req.public, delete=False)
-    return None
-
-async def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo) -> object | None:
-    if s.person_id is None:
-        return '', 500
-
-    async with api_tx() as tx:
-        await _set_answer(
-            tx, s.person_id, req.question_id, None, None, delete=True)
-    return None
-
 async def _set_answer(
     tx: Tx,
     person_id: int,
@@ -180,6 +152,33 @@ async def _set_answer(
         absence_score=numpy.asarray(absence).tolist(),
         count_answers=int(count),
     ))
+
+async def post_answer(req: t.PostAnswer, s: t.SessionInfo) -> object | None:
+    if s.person_id is None:
+        return '', 500
+
+    params_add_yes_no_count = dict(
+        question_id=req.question_id,
+        add_yes=1 if req.answer is True else 0,
+        add_no=1 if req.answer is False else 0,
+    )
+
+    async with api_tx('READ COMMITTED') as tx:
+        await tx.execute(Q_ADD_YES_NO_COUNT, params_add_yes_no_count)
+
+    async with api_tx() as tx:
+        await _set_answer(
+            tx, s.person_id, req.question_id, req.answer, req.public, delete=False)
+    return None
+
+async def delete_answer(req: t.DeleteAnswer, s: t.SessionInfo) -> object | None:
+    if s.person_id is None:
+        return '', 500
+
+    async with api_tx() as tx:
+        await _set_answer(
+            tx, s.person_id, req.question_id, None, None, delete=True)
+    return None
 
 
 async def _flush_session_answers(
