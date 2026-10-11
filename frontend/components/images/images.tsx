@@ -511,7 +511,7 @@ const uploadVideo = async (
   const seconds = (asset.duration ?? 0) / (Platform.OS === 'web' ? 1 : 1000);
 
   if (!VIDEO_CONTENT_TYPES.includes(contentType)) {
-    return notifyErrorToast("That file isn't a video we can use");
+    return notifyErrorToast("That file isn’t a video we can use");
   }
 
   if ((asset.fileSize ?? 0) > MAX_VIDEO_BYTES) {

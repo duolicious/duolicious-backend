@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 VIDEO_FORMATS = 'mov,matroska,mpeg,ogg,avi,asf'
 
-V_NOT_A_VIDEO = "That file isn't a video we can use"
+V_NOT_A_VIDEO = "That file isn’t a video we can use"
 V_TOO_BIG = 'Videos can be at most 4K at 60 frames per second'
 V_RULES = 'That video breaks the rules'
 V_WENT_WRONG = 'Something went wrong processing your video'

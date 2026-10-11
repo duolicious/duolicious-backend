@@ -60,7 +60,7 @@ const startVideoUpload = async (
   }
 
   if (!uploaded) {
-    notifyErrorToast("Your video didn't finish uploading. Please try again");
+    notifyErrorToast("Your video didn’t finish uploading. Please try again");
     return null;
   }
 

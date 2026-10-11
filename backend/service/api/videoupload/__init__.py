@@ -117,7 +117,7 @@ async def post_video_upload_done(
         return None
 
     if await _uploaded_size(uuid) != row_int(job, 'byte_size'):
-        return "Your video didn't finish uploading. Please try again", 400
+        return "Your video didn’t finish uploading. Please try again", 400
 
     try:
         async with api_tx('READ COMMITTED') as tx:

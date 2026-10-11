@@ -135,9 +135,9 @@ echo A file that is not a video fails with a message
 uuid=$(upload_video 2 "$not_a_video")
 wait_for_status "$uuid" failure
 [[ "$(c GET "/video-upload/$uuid" | jq -r .message)" \
-  = "That file isn't a video we can use" ]]
+  = "That file isn’t a video we can use" ]]
 [[ "$(c GET /profile-info | jq -r .video_job.message)" \
-  = "That file isn't a video we can use" ]]
+  = "That file isn’t a video we can use" ]]
 [[ "$(q "select count(*) from photo where person_id = $PERSON_ID")" = 1 ]]
 
 echo A banned video fails

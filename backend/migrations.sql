@@ -29,20 +29,6 @@ CREATE TABLE IF NOT EXISTS ref_payment (
 CREATE INDEX IF NOT EXISTS ref_payment__provider_subscription_id__idx
     ON ref_payment (provider, provider_subscription_id);
 
-DO $$
-BEGIN
-    IF EXISTS (
-        SELECT 1 FROM pg_attribute
-        WHERE attrelid = 'search_preference'::regclass
-        AND attname = 'min_reply_percentage'
-        AND NOT attisdropped
-    ) THEN
-        RETURN;
-    END IF;
-
-    ALTER TABLE search_preference ADD COLUMN min_reply_percentage SMALLINT;
-END $$;
-
 CREATE TABLE IF NOT EXISTS video_job (
     uuid TEXT PRIMARY KEY,
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
