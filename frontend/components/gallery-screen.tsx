@@ -76,6 +76,7 @@ const ExpandingPhoto = ({
   scrollX,
   openedX,
   phase,
+  covered,
   onCovered,
 }: {
   photoUuid: string,
@@ -91,6 +92,7 @@ const ExpandingPhoto = ({
   scrollX: SharedValue<number>,
   openedX: number,
   phase: Phase,
+  covered: boolean,
   onCovered: () => void,
 }) => {
   const { from, geometry, borderRadius } = morph;
@@ -180,7 +182,9 @@ const ExpandingPhoto = ({
   }
 
   return (
-    <Reanimated.View style={[styles.clip, clipStyle]}>
+    <Reanimated.View
+      style={[styles.clip, clipStyle, video && !covered ? styles.hidden : null]}
+    >
       {/*
         The square rendition the preview was already showing: in cache, so it
         paints on the first frame and holds the photo's place while the
@@ -199,7 +203,7 @@ const ExpandingPhoto = ({
           <VideoSurface
             player={player}
             contentFit="contain"
-            onFirstFrameRender={onCovered}
+            onPlaying={onCovered}
           />
         }
       </Reanimated.View>
@@ -457,7 +461,10 @@ const GalleryScreen = ({
   // but don't hang the animation on one that never arrives.
   useEffect(() => {
     if (!morph) return;
-    const timeout = setTimeout(onCovered, 250);
+    const timeout = setTimeout(
+      onCovered,
+      videoUri(photoUuid, album[openedIndex].extraExts) ? 1000 : 250,
+    );
     return () => clearTimeout(timeout);
   }, [morph, onCovered]);
 
@@ -626,6 +633,7 @@ const GalleryScreen = ({
             scrollX={scrollX}
             openedX={openedIndex * width}
             phase={phase}
+            covered={isCovering}
             onCovered={onCovered}
           />
         }
@@ -705,6 +713,9 @@ const styles = StyleSheet.create({
   clip: {
     position: 'absolute',
     overflow: 'hidden',
+  },
+  hidden: {
+    opacity: 0,
   },
   image: {
     position: 'absolute',

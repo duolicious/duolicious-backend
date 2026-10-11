@@ -192,6 +192,7 @@ async def publish_video(job: Job, work: Path, cpu: int) -> None:
             '-maxrate', '2200k',
             '-bufsize', '4400k',
             '-profile:v', 'high',
+            '-g', '60',
             '-c:a', 'aac',
             '-b:a', '96k',
             '-ac', '2',

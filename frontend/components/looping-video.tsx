@@ -147,12 +147,26 @@ const useSharedVideo = (
 const VideoSurface = ({
   player,
   contentFit,
-  onFirstFrameRender,
+  onPlaying,
 }: {
   player: VideoPlayer
   contentFit: VideoContentFit
-  onFirstFrameRender?: () => void
+  onPlaying?: () => void
 }) => {
+  const viewRef = useRef<VideoView>(null);
+
+  useEffect(() => {
+    const element = viewRef.current?.nativeRef.current;
+
+    if (Platform.OS !== 'web' || !onPlaying || !element) {
+      return;
+    }
+
+    element.addEventListener('playing', onPlaying, { once: true });
+
+    return () => element.removeEventListener('playing', onPlaying);
+  }, []);
+
   useEffect(() => {
     const video = [...sharedVideos.values()].find((v) => v.player === player);
 
@@ -162,6 +176,7 @@ const VideoSurface = ({
   }, [player]);
 
   return <VideoView
+    ref={viewRef}
     player={player}
     style={{ position: 'absolute', width: '100%', height: '100%' }}
     contentFit={contentFit}
@@ -170,7 +185,7 @@ const VideoSurface = ({
     useExoShutter={false}
     playsInline={true}
     pointerEvents="none"
-    onFirstFrameRender={onFirstFrameRender}
+    onFirstFrameRender={Platform.OS === 'web' ? undefined : onPlaying}
   />;
 };
 
