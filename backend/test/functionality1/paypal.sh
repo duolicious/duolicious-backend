@@ -296,6 +296,58 @@ deleting_an_account_cancels_at_paypal () {
   [[ "$(q "select count(*) from person where email = 'user3@example.com'")" == "0" ]]
 }
 
+post_sale () {
+  post_webhook PAYMENT.SALE.COMPLETED '{
+    "id": "'"$1"'",
+    "billing_agreement_id": "'"$subscription_id"'",
+    "amount": { "total": "4.99", "currency": "USD" },
+    "create_time": "2026-01-01T00:00:00Z",
+    "state": "completed"
+  }'
+}
+
+ref_payment () {
+  q "select ref || ' ' || plan || ' ' || amount || ' ' || currency || ' ' || paid_at from ref_payment where provider_payment_id = '$1'"
+}
+
+sales_are_attributed_to_refs () {
+  echo 'A completed sale is recorded against the subscriber'"'"'s ref'
+
+  setup
+
+  q "delete from ref_payment"
+  q "insert into person_ref (person_id, ref) select id, 'partner' from person where email = 'user1@example.com'"
+
+  subscribe_and_approve
+
+  [[ "$(post_sale SALE-1 | jq -r '.ignored')" == 'false' ]]
+  [[ "$(ref_payment SALE-1)" == 'partner P-WEEK 4.99 USD 2026-01-01 00:00:00' ]]
+
+  echo 'A redelivered sale is recorded once'
+
+  post_sale SALE-1 > /dev/null
+
+  [[ "$(q "select count(*) from ref_payment")" == "1" ]]
+
+  echo 'Sales after the account is deleted keep the ref'
+
+  c DELETE /account
+
+  post_sale SALE-2 > /dev/null
+
+  [[ "$(ref_payment SALE-2)" == 'partner P-WEEK 4.99 USD 2026-01-01 00:00:00' ]]
+
+  echo 'Sales from members without a ref are not recorded'
+
+  assume_role user2
+
+  subscribe_and_approve
+
+  post_sale SALE-3 > /dev/null
+
+  [[ "$(q "select count(*) from ref_payment")" == "2" ]]
+}
+
 clean_up () {
   q "select setval(pg_get_serial_sequence('person','id'), 1, true)"
 }
@@ -304,5 +356,6 @@ approve_flow_grants_gold
 cancellation_keeps_gold_until_paid_through
 expiry_revokes_gold_and_frees_the_person
 deleting_an_account_cancels_at_paypal
+sales_are_attributed_to_refs
 
 clean_up

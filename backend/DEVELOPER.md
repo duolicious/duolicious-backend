@@ -116,7 +116,7 @@ These env vars get passed to the `boto3` library, so they're compatible with AWS
 These environment variables let web users buy Gold through PayPal:
 
 * `DUO_PAYPAL_CLIENT_ID` and `DUO_PAYPAL_CLIENT_SECRET` - Your PayPal REST app's credentials.
-* `DUO_PAYPAL_WEBHOOK_ID` - The ID of the webhook that posts subscription events to `/paypal/webhook`.
+* `DUO_PAYPAL_WEBHOOK_ID` - The ID of the webhook that posts subscription events and `PAYMENT.SALE.COMPLETED` events to `/paypal/webhook`.
 
 `./create-paypal-plans.sh` creates the weekly ($4.99), monthly ($5.99) and three-monthly ($15.99) plans. The API offers every active plan on the account, so to change pricing create the new plans and deactivate the ones they replace; subscriptions on deactivated plans keep working until they lapse. Run it with the `api` container's `DUO_PAYPAL_CLIENT_ID` and `DUO_PAYPAL_CLIENT_SECRET`, since PayPal only lets the app that created a plan subscribe people to it, and `DUO_PAYPAL_API_URL` set to `https://api-m.sandbox.paypal.com` for the sandbox. The plans go on the app's only PayPal product, which is created if there is none; set `DUO_PAYPAL_PRODUCT_ID` if the app has several. Run it without credentials to see this as a usage message.
 

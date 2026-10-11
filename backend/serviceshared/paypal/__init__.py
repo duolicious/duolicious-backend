@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Annotated, Literal, TypeVar
 from urllib.parse import quote
 
@@ -50,6 +51,18 @@ class PaypalSubscription(BaseModel):
     plan_id: str
     start_time: UtcTime
     billing_info: _BillingInfo = _BillingInfo()
+
+
+class _SaleAmount(BaseModel):
+    total: Decimal
+    currency: str
+
+
+class PaypalSale(BaseModel):
+    id: str
+    billing_agreement_id: str
+    amount: _SaleAmount
+    create_time: UtcTime
 
 
 class PaypalInterval(BaseModel):
