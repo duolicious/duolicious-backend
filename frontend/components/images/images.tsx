@@ -93,6 +93,7 @@ const VIDEO_CONTENT_TYPES = [
   'video/ogg',
   'video/x-msvideo',
   'video/avi',
+  'video/vnd.avi',
   'video/x-ms-wmv',
   'video/x-ms-asf',
 ];

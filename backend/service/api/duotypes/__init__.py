@@ -818,6 +818,7 @@ class PostVideoUpload(BaseModel):
         'video/ogg',
         'video/x-msvideo',
         'video/avi',
+        'video/vnd.avi',
         'video/x-ms-wmv',
         'video/x-ms-asf',
     ]
