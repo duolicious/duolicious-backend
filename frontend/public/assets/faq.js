@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   showStat(
     stats?.num_active_users?.toLocaleString('en'),
     'num-active-users',
-    ['#stat-active-members'],
+    ['#stat-active-members', '#faq-stats-note'],
   );
   showStat(
     stats?.gender_ratio?.toFixed(2),
@@ -66,6 +66,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     stats?.non_binary_percentage?.toFixed(1),
     'non-binary-percentage',
     ['#stat-non-binary', '.non-binary-percentage-sentence'],
+  );
+  showStat(
+    stats?.gay_percentage?.toFixed(1),
+    'gay-percentage',
+    ['.orientation-sentence'],
+  );
+  showStat(
+    stats?.lesbian_percentage?.toFixed(1),
+    'lesbian-percentage',
+    ['.orientation-sentence'],
   );
   showStat(
     stats?.num_sign_ups?.toLocaleString('en'),
@@ -80,7 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   showStat(
     stats?.num_answers?.toLocaleString('en'),
     'num-answers',
-    ['#stat-answers', '#faq-stats-note'],
+    ['#stat-answers'],
   );
 
   showAgeBuckets(stats?.age_buckets);
