@@ -27,6 +27,7 @@ import {
   joinClub,
   leaveClub,
   memberCountNow,
+  moveClubToFront,
   selectSearchClub,
   useIsClubMember,
   useJoinedClubs,
@@ -355,6 +356,7 @@ const ClubCardBody = ({
 
   const onPressSearch = () => {
     selectSearchClub(name);
+    moveClubToFront(name);
     closeClubs();
     navigation.navigate('Home', {
       screen: 'Search',
@@ -426,7 +428,7 @@ const ClubCardBody = ({
             {name}
           </DefaultText>
           <DefaultText style={{ color: appTheme.hintColor }}>
-            Join and search to see them all
+            {isMember ? 'Search' : 'Join and search'} to see them all
           </DefaultText>
           <ButtonWithCenteredText
             containerStyle={{ alignSelf: 'stretch', marginTop: 10 }}
