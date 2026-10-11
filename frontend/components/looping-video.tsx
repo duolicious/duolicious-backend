@@ -16,7 +16,7 @@ import {
   VideoView,
   useVideoPlayer,
 } from 'expo-video';
-import { useEvent } from 'expo';
+import { useEvent, useEventListener } from 'expo';
 import { useIsFocused } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -54,21 +54,47 @@ const useLoopingPlayer = (uri: string | null, muted: boolean) => {
   return player;
 };
 
+const videoPositions = new Map<string, number>();
+
 const VideoSurface = ({
   player,
+  uri,
   playing,
   contentFit,
 }: {
   player: VideoPlayer
+  uri: string
   playing: boolean
   contentFit: VideoContentFit
 }) => {
-  useEffect(() => {
-    if (playing) {
-      player.play();
-    } else {
-      player.pause();
+  const pendingSeek = useRef<number | null>(null);
+
+  useEventListener(player, 'statusChange', ({ status }) => {
+    if (status === 'readyToPlay' && pendingSeek.current !== null) {
+      player.currentTime = pendingSeek.current;
+      pendingSeek.current = null;
     }
+  });
+
+  useEffect(() => {
+    if (!playing) {
+      return;
+    }
+
+    const position = videoPositions.get(uri);
+
+    if (position !== undefined && player.status === 'readyToPlay') {
+      player.currentTime = position;
+    } else if (position !== undefined) {
+      pendingSeek.current = position;
+    }
+
+    player.play();
+
+    return () => {
+      videoPositions.set(uri, player.currentTime);
+      player.pause();
+    };
   }, [player, playing]);
 
   return <VideoView
@@ -96,6 +122,7 @@ const LoopingVideo = ({
 }) => (
   <VideoSurface
     player={useLoopingPlayer(uri, muted)}
+    uri={uri}
     playing={playing}
     contentFit={contentFit}
   />
@@ -258,7 +285,12 @@ const AutoplayVideo = ({
       {...(withControls ? pointerProps : {})}
     >
       {hasPlayed &&
-        <VideoSurface player={player} playing={playing} contentFit="cover" />
+        <VideoSurface
+          player={player}
+          uri={uri}
+          playing={playing}
+          contentFit="cover"
+        />
       }
       {withControls && isFocused &&
         <VideoControls

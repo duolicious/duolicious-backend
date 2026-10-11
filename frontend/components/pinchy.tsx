@@ -107,8 +107,7 @@ const FitWithinScreenImage = ({
   cropUri,
   blurhash,
   isGif,
-  player,
-  playing,
+  video,
   animatedStyle,
   onUpdateImageSize,
   geometry,
@@ -118,8 +117,7 @@ const FitWithinScreenImage = ({
   cropUri: string | null;
   blurhash: string | null;
   isGif: boolean;
-  player: VideoPlayer | null;
-  playing: boolean;
+  video: { player: VideoPlayer, uri: string, playing: boolean } | null;
   animatedStyle: AnimatedStyle<ImageStyle>;
   onUpdateImageSize: (size: { imageWidth: number, imageHeight: number }) => void;
   geometry?: PhotoGeometry;
@@ -236,8 +234,13 @@ const FitWithinScreenImage = ({
           </View>
         }
         <FillImage uri={source.uri} onLoad={onOriginalLoad} />
-        {player &&
-          <VideoSurface player={player} playing={playing} contentFit="contain" />
+        {video &&
+          <VideoSurface
+            player={video.player}
+            uri={video.uri}
+            playing={video.playing}
+            contentFit="contain"
+          />
         }
         {spinner}
       </Animated.View>
@@ -627,8 +630,7 @@ const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, o
             cropUri={hasGifExtraExt(extraExts) ? null : photoUri(uuid, 900)}
             blurhash={blurhash ?? null}
             isGif={hasGifExtraExt(extraExts)}
-            player={isActive && video ? player : null}
-            playing={!paused}
+            video={isActive && video ? { player, uri: video, playing: !paused } : null}
             animatedStyle={animatedStyle}
             onUpdateImageSize={onUpdateImageSize}
             geometry={geometry}
