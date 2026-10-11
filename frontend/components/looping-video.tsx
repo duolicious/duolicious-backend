@@ -185,35 +185,49 @@ const AutoplayVideo = ({
       {hasPlayed &&
         <VideoSurface player={player} playing={playing} contentFit="cover" />
       }
-      {withControls && isFocused && <>
-        <ControlButton
-          icon={playing ? 'pause' : 'play'}
-          label={playing ? 'Pause' : 'Play'}
-          size={32}
-          style={{ left: 10, bottom: 10 }}
-          onPress={() => setUserPaused((paused) => !paused)}
-        />
-        <VideoProgress
+      {withControls && isFocused &&
+        <VideoControls
           player={player}
-          style={{ left: 52, right: 52, bottom: 12 }}
+          playing={playing}
+          onTogglePlaying={() => setUserPaused((paused) => !paused)}
         />
-        <SoundButton size={32} style={{ right: 10, bottom: 10 }} />
-      </>}
+      }
     </View>
   );
 };
 
+const VideoControls = ({
+  player,
+  playing,
+  onTogglePlaying,
+  style,
+}: {
+  player: VideoPlayer
+  playing: boolean
+  onTogglePlaying: () => void
+  style?: StyleProp<ViewStyle>
+}) => (
+  <View style={[StyleSheet.absoluteFill, style]} pointerEvents="box-none">
+    <ControlButton
+      icon={playing ? 'pause' : 'play'}
+      label={playing ? 'Pause' : 'Play'}
+      style={{ left: 10, bottom: 10 }}
+      onPress={onTogglePlaying}
+    />
+    <VideoProgress player={player} />
+    <SoundButton />
+  </View>
+);
+
 const ControlButton = ({
   icon,
   label,
-  size,
   style,
   onPress,
 }: {
   icon: 'pause' | 'play' | 'volume-mute' | 'volume-high'
   label: string
-  size: number
-  style?: StyleProp<ViewStyle>
+  style: StyleProp<ViewStyle>
   onPress: () => void
 }) => (
   <Pressable
@@ -224,39 +238,26 @@ const ControlButton = ({
     }}
     hitSlop={8}
     aria-label={label}
-    style={[styles.circle, { width: size, height: size }, style]}
+    style={[styles.circle, { width: 32, height: 32 }, style]}
   >
-    <Ionicons name={icon} size={size * 0.5} color="white" />
+    <Ionicons name={icon} size={16} color="white" />
   </Pressable>
 );
 
-const SoundButton = ({
-  size,
-  style,
-}: {
-  size: number
-  style?: StyleProp<ViewStyle>
-}) => {
+const SoundButton = () => {
   const muted = useVideoMuted();
 
   return (
     <ControlButton
       icon={muted ? 'volume-mute' : 'volume-high'}
       label={muted ? 'Unmute' : 'Mute'}
-      size={size}
-      style={style}
+      style={{ right: 10, bottom: 10 }}
       onPress={() => notify<boolean>(EV_VIDEO_MUTED, !muted)}
     />
   );
 };
 
-const VideoProgress = ({
-  player,
-  style,
-}: {
-  player: VideoPlayer
-  style: StyleProp<ViewStyle>
-}) => {
+const VideoProgress = ({ player }: { player: VideoPlayer }) => {
   const time = useEvent(player, 'timeUpdate', null);
   const [width, setWidth] = useState(0);
   const [scrub, setScrub] = useState<number | null>(null);
@@ -297,7 +298,7 @@ const VideoProgress = ({
         event.preventDefault();
         event.stopPropagation();
       }}
-      style={[styles.progressTouchArea, style]}
+      style={styles.progressTouchArea}
     >
       <GestureDetector gesture={scrubGesture}>
         <View
@@ -350,6 +351,9 @@ const styles = StyleSheet.create({
   },
   progressTouchArea: {
     position: 'absolute',
+    left: 52,
+    right: 52,
+    bottom: 12,
     height: 28,
   },
   progressTrack: {
@@ -367,8 +371,7 @@ export {
   AutoplayVideo,
   LoopingVideo,
   PlayBadge,
-  SoundButton,
-  VideoProgress,
+  VideoControls,
   VideoSurface,
   useLoopingPlayer,
   useVideoMuted,

@@ -30,9 +30,7 @@ import type { SharedValue } from 'react-native-reanimated';
 import { FillImage } from './fill-image';
 import type { VideoPlayer } from 'expo-video';
 import {
-  PlayBadge,
-  SoundButton,
-  VideoProgress,
+  VideoControls,
   VideoSurface,
   useLoopingPlayer,
   useVideoMuted,
@@ -311,11 +309,6 @@ const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, o
   const [paused, setPaused] = useState(false);
   const player = useLoopingPlayer(isActive ? video : null, useVideoMuted());
 
-  const togglePaused = useCallback(
-    () => setPaused((paused) => !paused),
-    [],
-  );
-
   useEffect(() => {
     setPaused(false);
   }, [isActive]);
@@ -584,13 +577,12 @@ const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, o
       .maxDistance(10)
       .onEnd((e, success) => {
         'worklet';
-        if (!success) return;
+        if (!success || !onTapEdge) return;
         const width = viewportWidthSv.value;
-        const dir = e.x < width / 3 ? -1 : e.x > width * 2 / 3 ? 1 : 0;
-        if (dir !== 0 && onTapEdge) runOnJS(onTapEdge)(dir);
-        else if (video) runOnJS(togglePaused)();
+        if (e.x < width / 3) runOnJS(onTapEdge)(-1);
+        else if (e.x > width * 2 / 3) runOnJS(onTapEdge)(1);
       }),
-    [onTapEdge, video],
+    [onTapEdge],
   );
 
   const composed = useMemo(
@@ -638,14 +630,13 @@ const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, o
           />
         </View>
       </GestureDetector>
-      {video && isActive && paused &&
-        <PlayBadge size={72} style={styles.pausedBadge} />
-      }
       {video && isActive &&
-        <SoundButton size={44} style={styles.soundButton} />
-      }
-      {video && isActive &&
-        <VideoProgress player={player} style={styles.progress} />
+        <VideoControls
+          player={player}
+          playing={!paused}
+          onTogglePlaying={() => setPaused((paused) => !paused)}
+          style={styles.controls}
+        />
       }
     </>
   );
@@ -670,22 +661,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  progress: {
-    left: 16,
-    right: 16,
-    bottom: 8,
-    zIndex: 1000,
-  },
-  soundButton: {
-    right: 14,
-    bottom: 44,
-    zIndex: 1000,
-  },
-  pausedBadge: {
-    top: '50%',
-    left: '50%',
-    marginTop: -36,
-    marginLeft: -36,
+  controls: {
     zIndex: 1000,
   },
 });
