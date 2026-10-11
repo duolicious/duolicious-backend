@@ -645,7 +645,7 @@ const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, o
         <SoundButton size={44} style={styles.soundButton} />
       }
       {video && isActive &&
-        <VideoProgress player={player} />
+        <VideoProgress player={player} style={styles.progress} />
       }
     </>
   );
@@ -669,6 +669,12 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  progress: {
+    left: 16,
+    right: 16,
+    bottom: 8,
+    zIndex: 1000,
   },
   soundButton: {
     right: 14,

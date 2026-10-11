@@ -1379,7 +1379,10 @@ const AddIcon = () => {
 };
 
 const VideoUploadOverlay = ({ upload }: { upload: VideoUpload }) => (
-  <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+  <View
+    pointerEvents="none"
+    style={[StyleSheet.absoluteFill, { backgroundColor: 'black' }]}
+  >
     {upload.localUri &&
       <LoopingVideo
         uri={upload.localUri}

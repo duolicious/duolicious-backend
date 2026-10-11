@@ -135,53 +135,100 @@ const reportVisibleFraction = (id: string, visibleFraction: number) => {
 
 const AutoplayVideo = ({
   uri,
-  withSound = false,
+  withControls = false,
 }: {
   uri: string
-  withSound?: boolean
+  withControls?: boolean
 }) => {
   const id = useId();
   const isScreenFocused = useIsFocused();
   const ref = useRef<View>(null);
   const visibleFraction = useVisibleFraction(ref);
-  const [hasBeenOnScreen, setHasBeenOnScreen] = useState(false);
+  const [hasPlayed, setHasPlayed] = useState(false);
   const videoMuted = useVideoMuted();
   const isFocused = useDerivedEvent<string | null, boolean>(
     EV_FOCUSED_VIDEO,
     (focused) => focused === id,
     [id],
   );
+  const [userPaused, setUserPaused] = useState(false);
+  const player = useLoopingPlayer(
+    hasPlayed ? uri : null,
+    !withControls || videoMuted || !isFocused,
+  );
+
+  const playing = isScreenFocused && (
+    withControls ? isFocused && !userPaused : visibleFraction > 0);
 
   useEffect(() => {
-    if (visibleFraction > 0) {
-      setHasBeenOnScreen(true);
+    if (playing) {
+      setHasPlayed(true);
     }
-  }, [visibleFraction]);
+  }, [playing]);
 
   useEffect(() => {
-    if (withSound) {
+    if (withControls) {
       reportVisibleFraction(id, visibleFraction);
     }
-  }, [withSound, visibleFraction]);
+  }, [withControls, visibleFraction]);
 
   useEffect(() => () => reportVisibleFraction(id, 0), []);
 
+  useEffect(() => {
+    if (!isFocused) {
+      setUserPaused(false);
+    }
+  }, [isFocused]);
+
   return (
     <View ref={ref} style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {hasBeenOnScreen &&
-        <LoopingVideo
-          uri={uri}
-          muted={!withSound || videoMuted || !isFocused}
-          playing={visibleFraction > 0 && isScreenFocused}
-          contentFit="cover"
+      {hasPlayed &&
+        <VideoSurface player={player} playing={playing} contentFit="cover" />
+      }
+      {withControls && isFocused && <>
+        <ControlButton
+          icon={playing ? 'pause' : 'play'}
+          label={playing ? 'Pause' : 'Play'}
+          size={32}
+          style={{ left: 10, bottom: 10 }}
+          onPress={() => setUserPaused((paused) => !paused)}
         />
-      }
-      {withSound &&
+        <VideoProgress
+          player={player}
+          style={{ left: 52, right: 52, bottom: 12 }}
+        />
         <SoundButton size={32} style={{ right: 10, bottom: 10 }} />
-      }
+      </>}
     </View>
   );
 };
+
+const ControlButton = ({
+  icon,
+  label,
+  size,
+  style,
+  onPress,
+}: {
+  icon: 'pause' | 'play' | 'volume-mute' | 'volume-high'
+  label: string
+  size: number
+  style?: StyleProp<ViewStyle>
+  onPress: () => void
+}) => (
+  <Pressable
+    onPress={(event: GestureResponderEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onPress();
+    }}
+    hitSlop={8}
+    aria-label={label}
+    style={[styles.circle, { width: size, height: size }, style]}
+  >
+    <Ionicons name={icon} size={size * 0.5} color="white" />
+  </Pressable>
+);
 
 const SoundButton = ({
   size,
@@ -193,26 +240,23 @@ const SoundButton = ({
   const muted = useVideoMuted();
 
   return (
-    <Pressable
-      onPress={(event: GestureResponderEvent) => {
-        event.preventDefault();
-        event.stopPropagation();
-        notify<boolean>(EV_VIDEO_MUTED, !muted);
-      }}
-      hitSlop={8}
-      aria-label={muted ? 'Unmute' : 'Mute'}
-      style={[styles.circle, { width: size, height: size }, style]}
-    >
-      <Ionicons
-        name={muted ? 'volume-mute' : 'volume-high'}
-        size={size * 0.5}
-        color="white"
-      />
-    </Pressable>
+    <ControlButton
+      icon={muted ? 'volume-mute' : 'volume-high'}
+      label={muted ? 'Unmute' : 'Mute'}
+      size={size}
+      style={style}
+      onPress={() => notify<boolean>(EV_VIDEO_MUTED, !muted)}
+    />
   );
 };
 
-const VideoProgress = ({ player }: { player: VideoPlayer }) => {
+const VideoProgress = ({
+  player,
+  style,
+}: {
+  player: VideoPlayer
+  style: StyleProp<ViewStyle>
+}) => {
   const time = useEvent(player, 'timeUpdate', null);
   const [width, setWidth] = useState(0);
   const [scrub, setScrub] = useState<number | null>(null);
@@ -225,7 +269,10 @@ const VideoProgress = ({ player }: { player: VideoPlayer }) => {
     const seek = (x: number) => {
       const fraction = _.clamp(x / width, 0, 1);
       setScrub(fraction);
-      player.currentTime = fraction * player.duration;
+
+      if (player.duration > 0) {
+        player.currentTime = fraction * player.duration;
+      }
     };
 
     return Gesture.Pan()
@@ -245,23 +292,31 @@ const VideoProgress = ({ player }: { player: VideoPlayer }) => {
     player.duration > 0 ? (time?.currentTime ?? 0) / player.duration : 0);
 
   return (
-    <GestureDetector gesture={scrubGesture}>
-      <View
-        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-        style={styles.progressTouchArea}
-      >
+    <Pressable
+      onPress={(event: GestureResponderEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      style={[styles.progressTouchArea, style]}
+    >
+      <GestureDetector gesture={scrubGesture}>
         <View
-          style={[
-            styles.progressTrack,
-            { height: scrub === null ? 3 : 6 },
-          ]}
+          onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+          style={[StyleSheet.absoluteFill, { justifyContent: 'center' }]}
         >
           <View
-            style={[styles.progressFill, { width: `${progress * 100}%` }]}
-          />
+            style={[
+              styles.progressTrack,
+              { height: scrub === null ? 3 : 6 },
+            ]}
+          >
+            <View
+              style={[styles.progressFill, { width: `${progress * 100}%` }]}
+            />
+          </View>
         </View>
-      </View>
-    </GestureDetector>
+      </GestureDetector>
+    </Pressable>
   );
 };
 
@@ -295,12 +350,7 @@ const styles = StyleSheet.create({
   },
   progressTouchArea: {
     position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 8,
     height: 28,
-    justifyContent: 'center',
-    zIndex: 1000,
   },
   progressTrack: {
     borderRadius: 3,

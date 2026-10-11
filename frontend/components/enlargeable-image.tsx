@@ -48,7 +48,7 @@ const EnlargeablePhoto = memo(({
   innerStyle,
   isPrimary,
   isVerified = false,
-  withSound = false,
+  withControls = false,
 }: {
   photoUuid: string | undefined | null
   photoExtraExts?: string[] | undefined | null
@@ -62,7 +62,7 @@ const EnlargeablePhoto = memo(({
   innerStyle?: StyleProp<ViewStyle>
   isPrimary: boolean
   isVerified?: boolean
-  withSound?: boolean
+  withControls?: boolean
 }) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const ref = useRef<View>(null);
@@ -182,7 +182,7 @@ const EnlargeablePhoto = memo(({
         onLoad={prefetchEnlargedImage}
       />
       {video &&
-        <AutoplayVideo uri={video} withSound={withSound} />
+        <AutoplayVideo uri={video} withControls={withControls} />
       }
       {isVerified &&
         <VerificationBadge
