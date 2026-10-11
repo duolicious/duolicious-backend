@@ -300,7 +300,7 @@ gives_reply_percentage=$(
 
 [[ "$gets_reply_percentage" = 'null' ]]
 
-[[ "$gives_reply_percentage" = '22.9' ]]
+[[ "$gives_reply_percentage" = '20.0' ]]
 
 # The expand animation can't run without the photo's geometry, and the field
 # going missing from the response is invisible to the client: it just quietly

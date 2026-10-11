@@ -128,17 +128,11 @@ _VERIFICATION_SATISFIED = sql_fragment("""
 _REPLY_RATE_PRIOR_REPLIES = 0.5
 _REPLY_RATE_PRIOR_INTROS = 1.5625
 
-
-def reply_rate_percentage(person: str) -> str:
-    return (
-        f'100 * ({person}.count_intros_received_with_reply'
-        f' + {_REPLY_RATE_PRIOR_REPLIES})'
-        f' / ({person}.count_intros_received + {_REPLY_RATE_PRIOR_INTROS})'
-    )
-
-
-_REPLY_RATE_AT_LEAST = (
-    f"{reply_rate_percentage('prospect')} >= %(min_reply_percentage)s")
+_REPLY_RATE_AT_LEAST = sql_fragment(f"""
+    100 * (prospect.count_intros_received_with_reply + {_REPLY_RATE_PRIOR_REPLIES})
+    >=
+    %(min_reply_percentage)s * (prospect.count_intros_received + {_REPLY_RATE_PRIOR_INTROS})
+""")
 
 _VISIBLE_TO_SEARCHER = [
     'prospect.id != %(searcher_person_id)s',
