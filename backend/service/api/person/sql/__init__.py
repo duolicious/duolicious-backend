@@ -2447,6 +2447,7 @@ Q_ACTIVE_STATS = f"""
 WITH active AS (
     SELECT
         gender_id,
+        orientation_id,
         date_part('year', age(date_of_birth))::int AS age
     FROM
         person
@@ -2467,6 +2468,16 @@ SELECT
     NULLIF(count(*), 0)::real *
     100.0
     AS non_binary_percentage,
+
+    count(*) FILTER (WHERE orientation_id = 3)::real /
+    NULLIF(count(*) FILTER (WHERE orientation_id <> 1), 0)::real *
+    100.0
+    AS gay_percentage,
+
+    count(*) FILTER (WHERE orientation_id = 4)::real /
+    NULLIF(count(*) FILTER (WHERE orientation_id <> 1), 0)::real *
+    100.0
+    AS lesbian_percentage,
 
     round(percentile_cont(0.5) WITHIN GROUP (ORDER BY age))::int
     AS median_age,

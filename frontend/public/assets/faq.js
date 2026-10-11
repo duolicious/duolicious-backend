@@ -68,6 +68,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     ['#stat-non-binary', '.non-binary-percentage-sentence'],
   );
   showStat(
+    stats?.gay_percentage?.toFixed(1),
+    'gay-percentage',
+    ['.orientation-sentence'],
+  );
+  showStat(
+    stats?.lesbian_percentage?.toFixed(1),
+    'lesbian-percentage',
+    ['.orientation-sentence'],
+  );
+  showStat(
     stats?.num_sign_ups?.toLocaleString('en'),
     'num-sign-ups',
     ['#stat-sign-ups', '#faq-stats-note'],

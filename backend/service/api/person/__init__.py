@@ -1331,12 +1331,12 @@ async def _club_stats(club_name: str) -> dict[str, Json]:
         return await tx.require_one(
             Q_STATS_BY_CLUB_NAME, dict(club_name=club_name))
 
-@redis_cache(ttl=60)
+@redis_cache(ttl=60 * 60)
 async def _active_stats() -> dict[str, Json]:
     async with api_tx('READ COMMITTED') as tx:
         return await tx.require_one(Q_ACTIVE_STATS)
 
-@redis_cache(ttl=60 * 60)
+@redis_cache(ttl=60)
 async def _sign_up_and_answer_counts() -> dict[str, Json]:
     async with api_tx('READ COMMITTED') as tx:
         return await tx.require_one(Q_SIGN_UP_AND_ANSWER_COUNTS)
