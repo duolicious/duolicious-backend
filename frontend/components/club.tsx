@@ -19,7 +19,7 @@ const Club = ({
   isMutual: boolean,
   style?: ViewStyle,
   textStyle?: TextStyle,
-  onPress?: (e: GestureResponderEvent) => boolean | void,
+  onPress?: (e: GestureResponderEvent) => void,
 }) => {
   const { appTheme } = useAppTheme();
 

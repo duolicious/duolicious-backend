@@ -618,7 +618,7 @@ const BlockButton = ({name, personUuid, backgroundColor}: {
 type AllClubsChild =
   | { kind: 'Title', kids: ReactNode, props: { style?: TextStyle } }
   | { kind: 'Club', kids: ReactNode, props: {
-      onPress?: (e: GestureResponderEvent) => boolean | void,
+      onPress?: (e: GestureResponderEvent) => void,
       key: string,
       name: string,
       isMutual: boolean,

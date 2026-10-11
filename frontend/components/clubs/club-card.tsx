@@ -514,5 +514,4 @@ const styles = StyleSheet.create({
 export {
   ClubCardBody,
   ClubCardTitle,
-  onPressInvite,
 };

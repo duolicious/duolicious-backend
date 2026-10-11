@@ -62,8 +62,6 @@ import { cmToFeetInchesStr } from '../units/units';
 import { photoUri } from '../util/photos';
 import * as _ from "lodash";
 import { aboutQueue, nameQueue } from '../api/queue';
-import { ClubSelector } from './club-selector';
-import { sortClubs, useJoinedClubs } from '../club/club';
 import {
   connectSpotify,
   disconnectSpotify,
@@ -75,9 +73,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { logout } from '../chat/application-layer';
 import { DetailedVerificationBadges } from './verification-badge';
 import { listenUpdatedVerification } from '../verification/verification';
-import { InviteEntrypoint } from './invite';
-import { InvitePicker } from './invite';
-import { clubsRedesign } from '../util/trials';
 import { AudioBio } from './audio-bio';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
 import { WEB_VERSION } from '../env/env';
@@ -86,7 +81,6 @@ import { showPointOfSale } from './modal/point-of-sale-modal';
 import { useAppTheme } from '../app-theme/app-theme';
 import { faRightFromBracket } from '@fortawesome/free-solid-svg-icons/faRightFromBracket'
 import { faDownload } from '@fortawesome/free-solid-svg-icons/faDownload'
-import { faUserGroup } from '@fortawesome/free-solid-svg-icons/faUserGroup'
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { INVITE_URL } from '../env/env';
 import { Pressable } from 'react-native-gesture-handler';
@@ -154,16 +148,6 @@ const ProfileTab = () => {
         name="Profile Option Screen"
         component={OptionScreen}
         options={{ title: 'Settings' }}
-      />
-      <Stack.Screen
-        name="Club Selector"
-        component={ClubSelector}
-        options={{ title: 'Clubs' }}
-      />
-      <Stack.Screen
-        name="Invite Picker"
-        component={InvitePicker}
-        options={{ title: 'Invite friends' }}
       />
     </Stack.Navigator>
   );
@@ -659,17 +643,6 @@ const Options = ({ navigation, data }: {
     setDataExportStatus('ok');
   }, []);
 
-  const goToClubSelector = useCallback(() => {
-    // `Club Selector` reads the current clubs from the `joined-clubs` event,
-    // so there's no reason to pass them as (non-serializable) route params.
-    navigation.navigate("Club Selector");
-  }, [navigation]);
-
-  const joinedClubs = useJoinedClubs();
-  const clubsSetting = joinedClubs?.length
-    ? sortClubs(joinedClubs).join(', ')
-    : undefined;
-
   const isCompletelyVerified = (
     Object.values(data?.photo_verification ?? {}).every(Boolean) &&
     (data?.verified_gender ?? false) &&
@@ -731,26 +704,6 @@ const Options = ({ navigation, data }: {
           />
         )
       }
-
-      {!clubsRedesign(signedInUser?.personId) && <>
-        <Title>Clubs</Title>
-        <ButtonForOption
-          onPress={goToClubSelector}
-          label="Clubs"
-          setting={clubsSetting}
-          noSettingText="None"
-          icon={
-            ({ color = 'black' }) => (
-              <FontAwesomeIcon
-                icon={faUserGroup}
-                size={14}
-                style={{ color }}
-              />
-            )
-          }
-        />
-        <InviteEntrypoint navigation={navigation}/>
-      </>}
 
       {(data.spotify_tester === true || data.spotify_connected === true) && <>
         <Title>Music</Title>

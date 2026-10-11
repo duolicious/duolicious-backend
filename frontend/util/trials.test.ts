@@ -1,30 +1,22 @@
 import { describe, expect, test } from '@jest/globals';
-import { clubsRedesign, sentMessagesInChats } from './trials';
+import { sentMessagesInChats } from './trials';
 
 describe('trial arms', () => {
   test.each([
-    [undefined, false, false],
-    [389200, false, false],
-    [390248, false, false],
-    [390249, false, false],
-    [390250, true, false],
-    [390251, false, false],
-    [390252, true, false],
-    [390253, false, false],
-    [391398, true, false],
-    [391399, false, false],
-    [391400, true, true],
-    [391401, false, true],
-    [391402, true, false],
-    [391403, false, false],
-    [391404, true, true],
-    [391548, true, true],
-    [391549, false, true],
-    [391550, false, false],
-    [391551, false, false],
-    [391552, false, true],
-  ])('person %p', (personId, sentInChats, redesign) => {
+    [undefined, false],
+    [389200, false],
+    [390248, false],
+    [390249, false],
+    [390250, true],
+    [390251, false],
+    [390252, true],
+    [390253, false],
+    [391548, true],
+    [391549, false],
+    [391550, false],
+    [391551, false],
+    [391552, false],
+  ])('person %p', (personId, sentInChats) => {
     expect(sentMessagesInChats(personId)).toBe(sentInChats);
-    expect(clubsRedesign(personId)).toBe(redesign);
   });
 });
