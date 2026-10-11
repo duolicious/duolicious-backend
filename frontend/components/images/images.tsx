@@ -398,6 +398,11 @@ const useVideoUpload = (
   return videoUpload;
 };
 
+const rimInset = (cornerRadius: number, minimum: number) => {
+  'worklet';
+  return Math.max(minimum, cornerRadius * (1 - Math.SQRT1_2));
+};
+
 const isSquareish = (width: number, height: number) => {
   if (width === 0) return true;
   if (height === 0) return true;
@@ -975,6 +980,21 @@ const MoveableImage = ({
     borderRadius: borderRadius.value,
   }));
 
+  const removeButtonStyle = useAnimatedStyle(() => {
+    const inset = rimInset(borderRadius.value, 5) - 15;
+    return { top: inset, left: inset };
+  });
+
+  const verificationBadgeStyle = useAnimatedStyle(() => {
+    const inset = rimInset(borderRadius.value, 18) - 10;
+    return { top: inset, right: inset };
+  });
+
+  const videoBadgeStyle = useAnimatedStyle(() => {
+    const inset = rimInset(borderRadius.value, 5) - 12;
+    return { bottom: inset, right: inset };
+  });
+
   return (
     <GestureDetector gesture={composedGesture}>
       <Animated.View
@@ -1029,50 +1049,54 @@ const MoveableImage = ({
           }
         </Animated.View>
         {uriState && isVideo && !videoUpload &&
-          <View
+          <Animated.View
             pointerEvents="none"
-            style={{
-              position: 'absolute',
-              bottom: 6,
-              right: 6,
-              paddingHorizontal: 4,
-              paddingVertical: 2,
-              borderRadius: 4,
-              backgroundColor: 'rgba(0, 0, 0, 0.45)',
-            }}
+            style={[
+              {
+                position: 'absolute',
+                width: 24,
+                height: 24,
+                borderWidth: 2,
+                borderColor: 'white',
+                borderRadius: 999,
+                backgroundColor: '#1f1f1f',
+                alignItems: 'center',
+                justifyContent: 'center',
+              },
+              videoBadgeStyle,
+            ]}
           >
-            <Ionicons name="videocam" size={14} color="white" />
-          </View>
+            <Ionicons name="videocam" size={12} color="white" />
+          </Animated.View>
         }
         {uriState &&
           <GestureDetector gesture={removeGesture}>
-            <View
-              style={{
-                position: 'absolute',
-                top: -10,
-                left: -10,
-                padding: 2,
-                borderRadius: 999,
-                backgroundColor: 'white',
-              }}
+            <Animated.View
+              style={[
+                {
+                  position: 'absolute',
+                  padding: 2,
+                  borderRadius: 999,
+                  backgroundColor: 'white',
+                },
+                removeButtonStyle,
+              ]}
             >
               <FontAwesomeIcon
                 icon={faCircleXmark}
                 size={26}
                 color="#000"
               />
-            </View>
+            </Animated.View>
           </GestureDetector>
         }
         {isVerifiedState && (
-          <VerificationBadge
-            style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-            }}
-            size={20}
-          />
+          <Animated.View
+            pointerEvents="none"
+            style={[{ position: 'absolute' }, verificationBadgeStyle]}
+          >
+            <VerificationBadge size={20} />
+          </Animated.View>
         )}
       </Animated.View>
     </GestureDetector>
