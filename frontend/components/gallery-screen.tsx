@@ -19,17 +19,20 @@ import { Pinchy } from './pinchy';
 import type { PinchyDismiss, PinchyPage, PinchyZoom } from './pinchy';
 import { dragDismissRadius, dragDistance } from './pinchy-math';
 import { FillImage } from './fill-image';
+import { VideoSurface, useSharedVideo } from './looping-video';
 import {
   hasGifExtraExt,
   lerp,
   photoContainFrame,
   photoExpandFrame,
   photoUri,
+  videoUri,
 } from '../util/photos';
 import type { PhotoExpandFrame, Rect } from '../util/photos';
 import {
   ZERO_BORDER_RADII,
   getExpandedPhoto,
+  markExpandedPhotoClosing,
   setExpandedPhoto,
 } from '../events/expanded-photo';
 import type { AlbumPhoto, ExpandedPhoto, ExpandedPhotoMorph } from '../events/expanded-photo';
@@ -72,6 +75,7 @@ const ExpandingPhoto = ({
   dismiss,
   scrollX,
   openedX,
+  phase,
   onCovered,
 }: {
   photoUuid: string,
@@ -86,9 +90,13 @@ const ExpandingPhoto = ({
   // the pager during a swipe.
   scrollX: SharedValue<number>,
   openedX: number,
+  phase: Phase,
   onCovered: () => void,
 }) => {
   const { from, geometry, borderRadius } = morph;
+
+  const video = videoUri(photoUuid, photoExtraExts);
+  const player = useSharedVideo(video, phase !== 'open', false);
 
   const isGif = hasGifExtraExt(photoExtraExts);
 
@@ -182,11 +190,18 @@ const ExpandingPhoto = ({
         <FillImage
           uri={photoUri(photoUuid, 900)}
           blurhash={photoBlurhash}
-          onLoad={onCovered}
+          onLoad={video ? undefined : onCovered}
         />
       </Reanimated.View>
       <Reanimated.View style={[styles.image, imageStyle]}>
         <FillImage uri={photoUri(photoUuid, 'original')} />
+        {player &&
+          <VideoSurface
+            player={player}
+            contentFit="contain"
+            onFirstFrameRender={onCovered}
+          />
+        }
       </Reanimated.View>
     </Reanimated.View>
   );
@@ -505,6 +520,7 @@ const GalleryScreen = ({
     // `finish` runs even if the timing is interrupted: better to cut the
     // animation short than to leave the navigation permanently prevented.
     if (morphOnClose) {
+      markExpandedPhotoClosing();
       setPhase('closing');
       progress.value = withTiming(
         0,
@@ -609,6 +625,7 @@ const GalleryScreen = ({
             dismiss={dismiss}
             scrollX={scrollX}
             openedX={openedIndex * width}
+            phase={phase}
             onCovered={onCovered}
           />
         }
@@ -638,6 +655,7 @@ const GalleryScreen = ({
                   viewport={container}
                   backgroundColor={i === index ? 'transparent' : 'black'}
                   isActive={i === index}
+                  underMorph={morph !== null && i === openedIndex && onOpenedPhoto}
                 />
               </View>
             ))}

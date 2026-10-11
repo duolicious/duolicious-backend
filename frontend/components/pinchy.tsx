@@ -34,7 +34,7 @@ import {
   VideoSurface,
   unmuteVideos,
   useControlsVisibility,
-  useLoopingPlayer,
+  useSharedVideo,
   useVideoMuted,
 } from './looping-video';
 import { hasGifExtraExt, photoUri, videoUri } from '../util/photos';
@@ -107,7 +107,7 @@ const FitWithinScreenImage = ({
   cropUri,
   blurhash,
   isGif,
-  video,
+  player,
   animatedStyle,
   onUpdateImageSize,
   geometry,
@@ -117,7 +117,7 @@ const FitWithinScreenImage = ({
   cropUri: string | null;
   blurhash: string | null;
   isGif: boolean;
-  video: { player: VideoPlayer, uri: string, playing: boolean } | null;
+  player: VideoPlayer | null;
   animatedStyle: AnimatedStyle<ImageStyle>;
   onUpdateImageSize: (size: { imageWidth: number, imageHeight: number }) => void;
   geometry?: PhotoGeometry;
@@ -234,13 +234,8 @@ const FitWithinScreenImage = ({
           </View>
         }
         <FillImage uri={source.uri} onLoad={onOriginalLoad} />
-        {video &&
-          <VideoSurface
-            player={video.player}
-            uri={video.uri}
-            playing={video.playing}
-            contentFit="contain"
-          />
+        {player &&
+          <VideoSurface player={player} contentFit="contain" />
         }
         {spinner}
       </Animated.View>
@@ -281,7 +276,7 @@ type PinchyPage = {
   justNavigated: SharedValue<boolean>
 };
 
-const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, onDismiss, page, onNavigate, onTapEdge, backgroundColor = 'black', isActive = true}: {
+const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, onDismiss, page, onNavigate, onTapEdge, backgroundColor = 'black', isActive = true, underMorph = false}: {
   uuid: string,
   extraExts: string[],
   blurhash?: string | null,
@@ -304,6 +299,7 @@ const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, o
   onTapEdge?: (dir: number) => void,
   backgroundColor?: string,
   isActive?: boolean,
+  underMorph?: boolean,
 }) => {
   const {
     width: viewportWidth,
@@ -312,7 +308,9 @@ const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, o
 
   const video = videoUri(uuid, extraExts);
   const [paused, setPaused] = useState(false);
-  const player = useLoopingPlayer(isActive ? video : null, useVideoMuted());
+  const player = useSharedVideo(isActive ? video : null, !paused, !useVideoMuted());
+
+  const showsMedia = !(video && underMorph);
 
   const { controlsVisible, holdControls, pointerProps } =
     useControlsVisibility(!paused);
@@ -625,20 +623,22 @@ const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, o
     <View style={StyleSheet.absoluteFill} {...pointerProps}>
       <GestureDetector gesture={composed}>
         <View style={[styles.container, { backgroundColor }]}>
-          <FitWithinScreenImage
-            source={{ uri: photoUri(uuid, 'original', extraExts) }}
-            cropUri={hasGifExtraExt(extraExts) ? null : photoUri(uuid, 900)}
-            blurhash={blurhash ?? null}
-            isGif={hasGifExtraExt(extraExts)}
-            video={isActive && video ? { player, uri: video, playing: !paused } : null}
-            animatedStyle={animatedStyle}
-            onUpdateImageSize={onUpdateImageSize}
-            geometry={geometry}
-            viewport={{ width: viewportWidth, height: viewportHeight }}
-          />
+          <View style={[StyleSheet.absoluteFill, styles.media, !showsMedia && styles.hidden]}>
+            <FitWithinScreenImage
+              source={{ uri: photoUri(uuid, 'original', extraExts) }}
+              cropUri={hasGifExtraExt(extraExts) ? null : photoUri(uuid, 900)}
+              blurhash={blurhash ?? null}
+              isGif={hasGifExtraExt(extraExts)}
+              player={showsMedia ? player : null}
+              animatedStyle={animatedStyle}
+              onUpdateImageSize={onUpdateImageSize}
+              geometry={geometry}
+              viewport={{ width: viewportWidth, height: viewportHeight }}
+            />
+          </View>
         </View>
       </GestureDetector>
-      {video && isActive &&
+      {video && isActive && player &&
         <VideoControls
           player={player}
           playing={!paused}
@@ -673,6 +673,13 @@ const styles = StyleSheet.create({
   },
   controls: {
     zIndex: 1000,
+  },
+  media: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hidden: {
+    opacity: 0,
   },
 });
 

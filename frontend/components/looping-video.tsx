@@ -14,9 +14,9 @@ import {
   VideoContentFit,
   VideoPlayer,
   VideoView,
-  useVideoPlayer,
+  createVideoPlayer,
 } from 'expo-video';
-import { useEvent, useEventListener } from 'expo';
+import { useEvent } from 'expo';
 import { useIsFocused } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -41,61 +41,125 @@ const useVideoMuted = () =>
 
 const unmuteVideos = () => notify<boolean>(EV_VIDEO_MUTED, false);
 
-const useLoopingPlayer = (uri: string | null, muted: boolean) => {
-  const player = useVideoPlayer(uri, (player) => {
-    player.loop = true;
-    player.muted = muted;
-  });
-
-  useEffect(() => {
-    player.muted = muted;
-  }, [player, muted]);
-
-  return player;
+type PlaybackWants = {
+  playing: boolean
+  sound: boolean
 };
 
-const videoPositions = new Map<string, number>();
-
-const VideoSurface = ({
-  player,
-  uri,
-  playing,
-  contentFit,
-}: {
+type SharedVideo = {
   player: VideoPlayer
-  uri: string
-  playing: boolean
-  contentFit: VideoContentFit
-}) => {
-  const pendingSeek = useRef<number | null>(null);
+  wants: Map<string, PlaybackWants>
+  applyQueued: boolean
+};
 
-  useEventListener(player, 'statusChange', ({ status }) => {
-    if (status === 'readyToPlay' && pendingSeek.current !== null) {
-      player.currentTime = pendingSeek.current;
-      pendingSeek.current = null;
-    }
+const RELEASE_DELAY_MS = 1000;
+
+const sharedVideos = new Map<string, SharedVideo>();
+
+const applyWants = ({ player, wants }: SharedVideo) => {
+  player.muted = ![...wants.values()].some((w) => w.sound);
+
+  if ([...wants.values()].some((w) => w.playing)) {
+    player.play();
+  } else {
+    player.pause();
+  }
+};
+
+const queueApplyWants = (video: SharedVideo) => {
+  if (video.applyQueued) {
+    return;
+  }
+
+  video.applyQueued = true;
+  queueMicrotask(() => {
+    video.applyQueued = false;
+    applyWants(video);
   });
+};
 
-  useEffect(() => {
-    if (!playing) {
+const releaseIfUnwanted = (uri: string, video: SharedVideo) => {
+  setTimeout(() => {
+    if (video.wants.size === 0 && sharedVideos.get(uri) === video) {
+      sharedVideos.delete(uri);
+      video.player.release();
+    }
+  }, RELEASE_DELAY_MS);
+};
+
+const sharedVideo = (uri: string): SharedVideo => {
+  const existing = sharedVideos.get(uri);
+
+  if (existing) {
+    return existing;
+  }
+
+  const player = createVideoPlayer(uri);
+  player.loop = true;
+
+  const video: SharedVideo = { player, wants: new Map(), applyQueued: false };
+  sharedVideos.set(uri, video);
+  releaseIfUnwanted(uri, video);
+
+  player.addListener('playingChange', ({ isPlaying }) => {
+    if (isPlaying || Platform.OS !== 'web') {
       return;
     }
 
-    const position = videoPositions.get(uri);
+    setTimeout(() => sharedVideos.get(uri) === video && queueApplyWants(video), 0);
+  });
 
-    if (position !== undefined && player.status === 'readyToPlay') {
-      player.currentTime = position;
-    } else if (position !== undefined) {
-      pendingSeek.current = position;
+  return video;
+};
+
+const useSharedVideo = (
+  uri: string | null,
+  playing: boolean,
+  sound: boolean,
+): VideoPlayer | null => {
+  const id = useId();
+  const video = uri === null ? null : sharedVideo(uri);
+
+  useEffect(() => {
+    if (!video) {
+      return;
     }
 
-    player.play();
+    video.wants.set(id, { playing, sound });
+    queueApplyWants(video);
+  }, [video, playing, sound]);
+
+  useEffect(() => {
+    if (!video || !uri) {
+      return;
+    }
 
     return () => {
-      videoPositions.set(uri, player.currentTime);
-      player.pause();
+      video.wants.delete(id);
+      queueApplyWants(video);
+      releaseIfUnwanted(uri, video);
     };
-  }, [player, playing]);
+  }, [video]);
+
+  return video?.player ?? null;
+};
+
+const VideoSurface = ({
+  player,
+  contentFit,
+  onFirstFrameRender,
+}: {
+  player: VideoPlayer
+  contentFit: VideoContentFit
+  onFirstFrameRender?: () => void
+}) => {
+  useEffect(() => {
+    const video = [...sharedVideos.values()].find((v) => v.player === player);
+
+    if (video) {
+      queueApplyWants(video);
+    }
+  }, [player]);
 
   return <VideoView
     player={player}
@@ -106,6 +170,7 @@ const VideoSurface = ({
     useExoShutter={false}
     playsInline={true}
     pointerEvents="none"
+    onFirstFrameRender={onFirstFrameRender}
   />;
 };
 
@@ -119,14 +184,11 @@ const LoopingVideo = ({
   muted: boolean
   playing: boolean
   contentFit: VideoContentFit
-}) => (
-  <VideoSurface
-    player={useLoopingPlayer(uri, muted)}
-    uri={uri}
-    playing={playing}
-    contentFit={contentFit}
-  />
-);
+}) => {
+  const player = useSharedVideo(uri, playing, !muted);
+
+  return player && <VideoSurface player={player} contentFit={contentFit} />;
+};
 
 const useVisibleFraction = (ref: RefObject<View | null>): number => {
   const [visibleFraction, setVisibleFraction] = useState(0);
@@ -231,9 +293,13 @@ const useControlHover = (onHoverChange: (hovered: boolean) => void) => {
 const AutoplayVideo = ({
   uri,
   withControls = false,
+  surfaceHidden,
+  opening,
 }: {
   uri: string
   withControls?: boolean
+  surfaceHidden: boolean
+  opening: boolean
 }) => {
   const id = useId();
   const isScreenFocused = useIsFocused();
@@ -247,13 +313,14 @@ const AutoplayVideo = ({
     [id],
   );
   const [userPaused, setUserPaused] = useState(false);
-  const player = useLoopingPlayer(
-    hasPlayed ? uri : null,
-    !withControls || videoMuted || !isFocused,
-  );
 
-  const playing = isScreenFocused && (
+  const playing = opening || isScreenFocused && (
     withControls ? isFocused && !userPaused : visibleFraction > 0);
+  const player = useSharedVideo(
+    hasPlayed ? uri : null,
+    playing,
+    withControls && isScreenFocused && isFocused && !videoMuted,
+  );
   const { controlsVisible, holdControls, pointerProps } =
     useControlsVisibility(playing);
 
@@ -284,15 +351,10 @@ const AutoplayVideo = ({
       style={StyleSheet.absoluteFill}
       {...(withControls ? pointerProps : {})}
     >
-      {hasPlayed &&
-        <VideoSurface
-          player={player}
-          uri={uri}
-          playing={playing}
-          contentFit="cover"
-        />
+      {player && !surfaceHidden &&
+        <VideoSurface player={player} contentFit="cover" />
       }
-      {withControls && isFocused &&
+      {withControls && isFocused && player &&
         <VideoControls
           player={player}
           playing={playing}
@@ -548,6 +610,6 @@ export {
   VideoSurface,
   unmuteVideos,
   useControlsVisibility,
-  useLoopingPlayer,
+  useSharedVideo,
   useVideoMuted,
 };
