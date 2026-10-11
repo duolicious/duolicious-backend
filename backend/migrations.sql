@@ -75,3 +75,19 @@ BEGIN
     ALTER TABLE inbox
         ADD COLUMN IF NOT EXISTS hidden BOOLEAN NOT NULL DEFAULT FALSE;
 END $$;
+
+CREATE TABLE IF NOT EXISTS ref_payment (
+    provider gold_subscription_provider NOT NULL,
+    provider_payment_id TEXT NOT NULL,
+    provider_subscription_id TEXT NOT NULL,
+    ref TEXT NOT NULL,
+    plan TEXT NOT NULL,
+    amount NUMERIC NOT NULL,
+    currency TEXT NOT NULL,
+    paid_at TIMESTAMP NOT NULL,
+
+    PRIMARY KEY (provider, provider_payment_id)
+);
+
+CREATE INDEX IF NOT EXISTS ref_payment__provider_subscription_id__idx
+    ON ref_payment (provider, provider_subscription_id);

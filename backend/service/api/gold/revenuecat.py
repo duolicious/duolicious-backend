@@ -1,10 +1,15 @@
+from datetime import datetime, timezone
+
 import service.api.duotypes as t
 from serviceshared.database import api_tx, row_int
 from serviceshared.gold import sync_gold
 from serviceshared.gold.sql import Q_GRANT_GOLD, Q_REVOKE_GOLD
 from service.api.auth.bearer import bearer_token
 from service.api.duohash import sha512
-from service.api.gold.sql import Q_SELECT_REVENUECAT_AUTHORIZED
+from service.api.gold.sql import (
+    Q_INSERT_REF_PAYMENT,
+    Q_SELECT_REVENUECAT_AUTHORIZED,
+)
 from starlette.requests import Request
 
 
@@ -60,6 +65,20 @@ async def post_revenuecat(
                 updated[uuid] = row_int(row, 'person_id')
 
         await sync_gold(tx, updated.values())
+
+        if req.payment is not None:
+            await tx.execute(Q_INSERT_REF_PAYMENT, dict(
+                provider='revenuecat',
+                provider_payment_id=req.payment.transaction_id,
+                provider_subscription_id=req.payment.original_transaction_id,
+                person_uuid=req.payment.app_user_id,
+                plan=req.payment.product_id,
+                amount=req.payment.price_in_purchased_currency,
+                currency=req.payment.currency,
+                paid_at=datetime.fromtimestamp(
+                    req.payment.purchased_at_ms / 1000, timezone.utc
+                ).replace(tzinfo=None),
+            ))
 
     return dict(
         all_uuids=sorted(all_uuids),

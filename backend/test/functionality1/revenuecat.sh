@@ -345,6 +345,65 @@ club_counts_survive_gold_expiry_while_deactivated() {
   check_club_counts_consistent
 }
 
+post_purchase () {
+  SESSION_TOKEN="" c POST /revenuecat \
+    --header "Authorization: Bearer valid-revenuecat-token" \
+    --header "Content-Type: application/json" \
+    -d '{ "event": {
+      "type": "'"$1"'",
+      "app_user_id": "'"$2"'",
+      "environment": "'"${5:-PRODUCTION}"'",
+      "transaction_id": "'"$3"'",
+      "original_transaction_id": "original-'"$2"'",
+      "product_id": "gold_monthly",
+      "purchased_at_ms": 1767225600000,
+      "price_in_purchased_currency": '"${4:-9.99}"',
+      "currency": "EUR"
+    } }' > /dev/null
+}
+
+ref_payment () {
+  q "select ref || ' ' || plan || ' ' || amount || ' ' || currency || ' ' || paid_at from ref_payment where provider_payment_id = '$1'"
+}
+
+payments_are_attributed_to_refs() {
+  say "Reset core tables to a clean state"
+  q "delete from person"
+  q "delete from ref_payment"
+
+  ../util/create-user.sh rcref1 0 0
+  ../util/create-user.sh rcref2 0 0
+  q "insert into person_ref (person_id, ref) select id, 'partner' from person where email = 'rcref1@example.com'"
+
+  ref_uuid=$(get_uuid 'rcref1@example.com')
+  no_ref_uuid=$(get_uuid 'rcref2@example.com')
+
+  say "A free trial grants gold but records no payment"
+  post_purchase INITIAL_PURCHASE "$ref_uuid" txn-1 0
+  [[ "$(has_gold "uuid = '$ref_uuid'::uuid")" == t ]]
+  [[ "$(q "select count(*) from ref_payment")" == 0 ]]
+
+  say "A paid renewal is recorded against the subscriber's ref"
+  post_purchase RENEWAL "$ref_uuid" txn-2
+  [[ "$(ref_payment txn-2)" == 'partner gold_monthly 9.99 EUR 2026-01-01 00:00:00' ]]
+
+  say "A redelivered event is recorded once"
+  post_purchase RENEWAL "$ref_uuid" txn-2
+  [[ "$(q "select count(*) from ref_payment")" == 1 ]]
+
+  say "Sandbox purchases and purchases without a ref are not recorded"
+  post_purchase RENEWAL "$ref_uuid" txn-3 9.99 SANDBOX
+  post_purchase INITIAL_PURCHASE "$no_ref_uuid" txn-4
+  [[ "$(q "select count(*) from ref_payment")" == 1 ]]
+  [[ "$(has_gold "uuid = '$no_ref_uuid'::uuid")" == t ]]
+
+  say "Renewals after the account is deleted keep the ref"
+  assume_role rcref1
+  c DELETE /account
+  post_purchase RENEWAL "$ref_uuid" txn-5
+  [[ "$(ref_payment txn-5)" == 'partner gold_monthly 9.99 EUR 2026-01-01 00:00:00' ]]
+}
+
 clean_up () {
   q "select setval(pg_get_serial_sequence('person','id'), 1, true)"
 }
@@ -353,5 +412,6 @@ has_gold_is_set_by_webhook
 expiration_resets_settings
 premium_features_require_gold
 club_counts_survive_gold_expiry_while_deactivated
+payments_are_attributed_to_refs
 
 clean_up
