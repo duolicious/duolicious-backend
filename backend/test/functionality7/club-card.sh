@@ -51,6 +51,28 @@ everyone_sees_the_best_25_members () {
   [[ "$(q "select club_name from search_preference where person_id = (select id from person where name = 'searcher')")" == "$club_preference" ]]
 }
 
+preferred_genders_come_first () {
+  echo 'Club cards list members of the genders you search for first'
+
+  reset_db
+
+  ../util/create-user.sh searcher 0 0
+  for i in $(seq 1 3); do
+    ../util/create-user.sh "member$i" 0 0
+    assume_role "member$i"
+    jc POST /join-club -d '{ "name": "chess" }'
+  done
+
+  q "update person set gender_id = (select id from gender where name = 'Man') where name in ('member1', 'member3')"
+  q "update person set gender_id = (select id from gender where name = 'Woman') where name = 'member2'"
+  q "update search_preference set gender_ids = array[(select id from gender where name = 'Woman')] where person_id = (select id from person where name = 'searcher')"
+
+  assume_role searcher
+
+  [[ "$(members chess | jq -r '.[0].name')" == "member2" ]]
+  [[ "$(members chess | jq length)" == "3" ]]
+}
+
 club_card_shows_count_and_related_clubs () {
   echo 'A club card has a member count and related clubs, even for new clubs'
 
@@ -120,6 +142,7 @@ joining_or_leaving_returns_suggestions_from_ten_clubs () {
 }
 
 everyone_sees_the_best_25_members
+preferred_genders_come_first
 club_card_shows_count_and_related_clubs
 suggested_clubs_are_popular_clubs_you_have_not_joined
 joining_or_leaving_returns_suggestions_from_ten_clubs
