@@ -19,7 +19,9 @@ import { Pinchy } from './pinchy';
 import type { PinchyDismiss, PinchyPage, PinchyZoom } from './pinchy';
 import { dragDismissRadius, dragDistance } from './pinchy-math';
 import { FillImage } from './fill-image';
-import { VideoSurface, useSharedVideo } from './looping-video';
+import { useVideoMuted } from './looping-video';
+import { useSharedVideo } from './shared-video';
+import { VideoSurface } from './video-surface';
 import {
   hasGifExtraExt,
   lerp,
@@ -98,7 +100,8 @@ const ExpandingPhoto = ({
   const { from, geometry, borderRadius } = morph;
 
   const video = videoUri(photoUuid, photoExtraExts);
-  const player = useSharedVideo(video, phase !== 'open', false);
+  const muted = useVideoMuted();
+  const player = useSharedVideo(video, phase !== 'open', phase !== 'open' && !muted);
 
   const isGif = hasGifExtraExt(photoExtraExts);
 

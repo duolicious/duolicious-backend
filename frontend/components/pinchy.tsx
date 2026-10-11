@@ -31,12 +31,12 @@ import { FillImage } from './fill-image';
 import type { VideoPlayer } from 'expo-video';
 import {
   VideoControls,
-  VideoSurface,
   unmuteVideos,
   useControlsVisibility,
-  useSharedVideo,
   useVideoMuted,
 } from './looping-video';
+import { useSharedVideo } from './shared-video';
+import { VideoSurface } from './video-surface';
 import { hasGifExtraExt, photoUri, videoUri } from '../util/photos';
 import type { PhotoGeometry } from '../util/photos';
 import {
