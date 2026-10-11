@@ -13,6 +13,7 @@ from serviceshared.database import (
     api_tx,
     row_bool,
     row_int,
+    row_int_or_none,
     row_str,
     row_str_or_none,
 )
@@ -131,7 +132,7 @@ async def post_video_upload_done(
 async def get_video_upload(
     uuid: str,
     s: t.SessionInfo,
-) -> dict[str, str | None] | tuple[str, int]:
+) -> dict[str, str | int | None] | tuple[str, int]:
     async with api_tx() as tx:
         job = await (await tx.execute(
             Q_SELECT_VIDEO_JOB, dict(uuid=uuid, person_id=s.person_id))
@@ -144,4 +145,5 @@ async def get_video_upload(
         status=row_str(job, 'status'),
         message=row_str(job, 'message'),
         photo_uuid=row_str_or_none(job, 'photo_uuid'),
+        duration_seconds=row_int_or_none(job, 'duration_seconds'),
     )

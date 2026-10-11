@@ -59,7 +59,7 @@ import { resetUserScopedClientState } from '../navigation/reset-client-state';
 import { api, japi, ApiResponse } from '../api/api';
 import { useSignedInUser, setSignedInUser, getSignedInUser } from '../events/signed-in-user';
 import { cmToFeetInchesStr } from '../units/units';
-import { photoUri, videoUri } from '../util/photos';
+import { photoUri, videoLabel, videoUri } from '../util/photos';
 import * as _ from "lodash";
 import { aboutQueue, nameQueue } from '../api/queue';
 import { ClubSelector } from './club-selector';
@@ -217,10 +217,10 @@ const Images_ = ({data}: {data: ProfileInfo}) => {
             return null;
           }
         },
-        getIsVideo: (position: string) => videoUri(
+        getVideoLabel: (position: string) => videoUri(
           data?.photo?.[position],
           data?.photo_extra_exts?.[position],
-        ) !== null,
+        ) && videoLabel(data?.photo_duration_seconds?.[position]),
       }
     };
   }, [data]);

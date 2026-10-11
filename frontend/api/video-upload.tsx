@@ -10,7 +10,7 @@ type VideoJob = {
 };
 
 type VideoJobResult =
-  | { ok: true, photoUuid: string }
+  | { ok: true, photoUuid: string, durationSeconds: number | null }
   | { ok: false, message: string };
 
 const put = (
@@ -84,6 +84,7 @@ const waitForVideoJob = async (
       status: string
       message: string
       photo_uuid: string | null
+      duration_seconds: number | null
     }>('get', `/video-upload/${uuid}`);
 
     if (status === 401) {
@@ -91,7 +92,11 @@ const waitForVideoJob = async (
     }
 
     if (json?.photo_uuid) {
-      return { ok: true, photoUuid: json.photo_uuid };
+      return {
+        ok: true,
+        photoUuid: json.photo_uuid,
+        durationSeconds: json.duration_seconds,
+      };
     }
 
     if (json?.status === 'failure' || status === 404) {

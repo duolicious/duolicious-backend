@@ -4,6 +4,7 @@ import {
   photoExpandFrame,
   photoUri,
   supportedExtraExt,
+  videoLabel,
   videoUri,
 } from './photos';
 import type { PhotoGeometry, Rect } from './photos';
@@ -84,6 +85,19 @@ describe('videoUri', () => {
     expect(videoUri(uuid, ['gif'])).toBe(null);
     expect(videoUri(uuid, null)).toBe(null);
     expect(videoUri(null, ['mp4'])).toBe(null);
+  });
+});
+
+describe('videoLabel', () => {
+  it('shows the duration as minutes and seconds', () => {
+    expect(videoLabel(8)).toBe('0:08');
+    expect(videoLabel(30)).toBe('0:30');
+    expect(videoLabel(75)).toBe('1:15');
+  });
+
+  it('says "Video" when the duration is unknown', () => {
+    expect(videoLabel(null)).toBe('Video');
+    expect(videoLabel(undefined)).toBe('Video');
   });
 });
 

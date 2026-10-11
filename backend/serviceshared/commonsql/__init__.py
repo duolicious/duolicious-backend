@@ -239,7 +239,8 @@ WITH existing_uuid AS (
         height,
         crop_top,
         crop_left,
-        nsfw_score
+        nsfw_score,
+        duration_seconds
     ) VALUES (
         %(person_id)s,
         %(position)s,
@@ -251,7 +252,8 @@ WITH existing_uuid AS (
         %(height)s,
         %(crop_top)s,
         %(crop_left)s,
-        %(nsfw_score)s
+        %(nsfw_score)s,
+        %(duration_seconds)s
     ) ON CONFLICT (person_id, position) DO UPDATE SET
         uuid = EXCLUDED.uuid,
         blurhash = EXCLUDED.blurhash,
@@ -262,6 +264,7 @@ WITH existing_uuid AS (
         crop_top = EXCLUDED.crop_top,
         crop_left = EXCLUDED.crop_left,
         nsfw_score = EXCLUDED.nsfw_score,
+        duration_seconds = EXCLUDED.duration_seconds,
         verified = FALSE
 ), updated_person AS (
     UPDATE person

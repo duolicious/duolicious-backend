@@ -1299,6 +1299,11 @@ WITH photo_ AS (
     SELECT json_object_agg(position, blurhash) AS j
     FROM photo
     WHERE person_id = %(person_id)s
+), photo_duration_seconds AS (
+    SELECT json_object_agg(position, duration_seconds) AS j
+    FROM photo
+    WHERE person_id = %(person_id)s
+    AND duration_seconds IS NOT NULL
 ), photo_verification AS (
     SELECT json_object_agg(position, verified) AS j
     FROM photo
@@ -1582,7 +1587,8 @@ SELECT
 
     )::jsonb || jsonb_build_object(
         'paypal_subscription', (SELECT j FROM paypal_subscription),
-        'video_job', (SELECT j FROM latest_video_job)
+        'video_job', (SELECT j FROM latest_video_job),
+        'photo_duration_seconds', (SELECT j FROM photo_duration_seconds)
     ) AS j
 """
 

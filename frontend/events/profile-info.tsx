@@ -66,6 +66,7 @@ type ProfileInfo = {
   audio_bio?: string | null;
   audio_bio_max_seconds?: number;
   video_job?: VideoJob | null;
+  photo_duration_seconds?: { [position: string]: number } | null;
   [key: string]: unknown;
 };
 

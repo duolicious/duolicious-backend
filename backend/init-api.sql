@@ -505,6 +505,7 @@ CREATE TABLE IF NOT EXISTS photo (
     height INT,
     crop_top INT,
     crop_left INT,
+    duration_seconds SMALLINT,
     PRIMARY KEY (person_id, position)
 );
 

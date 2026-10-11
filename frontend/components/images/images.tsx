@@ -58,7 +58,7 @@ import {
 } from '../../api/video-upload';
 import { LoopingVideo } from '../looping-video';
 import { notifyErrorToast, notifyIconToast } from '../toast';
-import { photoUri } from '../../util/photos';
+import { photoUri, videoLabel } from '../../util/photos';
 import { storeKv } from '../../kv-storage/kv-storage';
 import * as _ from "lodash";
 import { useAppTheme } from '../../app-theme/app-theme';
@@ -70,7 +70,7 @@ const EV_IMAGES = 'images';
 const EV_IMAGE_CROPPER_OUTPUT = 'image-cropper-output';
 const EV_IMAGE_LOADING = 'image-loading';
 const EV_IMAGE_URI = 'image-uri';
-const EV_IMAGE_IS_VIDEO = 'image-is-video';
+const EV_IMAGE_VIDEO_LABEL = 'image-video-label';
 const EV_SLOTS = 'slots';
 const EV_SLOT_ASSIGNMENT_FINISH = 'slot-assignment-finish';
 const EV_SLOT_ASSIGNMENT_START = 'slot-assignment-start';
@@ -143,8 +143,8 @@ type ImageUri = {
   [k: number]: string | null
 };
 
-type ImageIsVideo = {
-  [k: number]: boolean
+type ImageVideoLabel = {
+  [k: number]: string | null
 };
 
 type VideoUpload = {
@@ -350,25 +350,28 @@ const useIsVerified = (fileNumber: SharedValue<number>) => {
   return { isVerifiedState, isVerifiedRef };
 };
 
-const useIsVideo = (fileNumber: SharedValue<number>, initialIsVideo: boolean) => {
-  const [isVideo, setIsVideo] = useState(initialIsVideo);
+const useVideoLabel = (
+  fileNumber: SharedValue<number>,
+  initialVideoLabel: string | null,
+) => {
+  const [videoLabel, setVideoLabel] = useState(initialVideoLabel);
 
   useEffect(() => {
-    return listen<ImageIsVideo>(
-      EV_IMAGE_IS_VIDEO,
+    return listen<ImageVideoLabel>(
+      EV_IMAGE_VIDEO_LABEL,
       (data) => {
-        const isVideo = data?.[fileNumber.value];
+        const videoLabel = data?.[fileNumber.value];
 
-        if (isVideo === undefined) {
+        if (videoLabel === undefined) {
           return;
         }
 
-        setIsVideo(isVideo);
+        setVideoLabel(videoLabel);
       }
     );
   }, []);
 
-  return isVideo;
+  return videoLabel;
 };
 
 const useVideoUpload = (
@@ -456,11 +459,11 @@ const postAssignments = (photoAssignments: HttpPostAssignments) => {
 const notifyReplacedImage = (
   position: number,
   uri: string,
-  isVideo: boolean,
+  videoLabel: string | null,
 ) => {
   notify<ImageUri>(EV_IMAGE_URI, { [position]: uri });
 
-  notify<ImageIsVideo>(EV_IMAGE_IS_VIDEO, { [position]: isVideo });
+  notify<ImageVideoLabel>(EV_IMAGE_VIDEO_LABEL, { [position]: videoLabel });
 
   notify<VerificationEvent>(
     EV_UPDATED_VERIFICATION,
@@ -487,7 +490,11 @@ const finishVideoJob = async (position: number, uuid: string) => {
   setVideoUpload(position, null);
 
   if (result?.ok) {
-    notifyReplacedImage(position, photoUri(result.photoUuid, 450), true);
+    notifyReplacedImage(
+      position,
+      photoUri(result.photoUuid, 450),
+      videoLabel(result.durationSeconds),
+    );
   } else if (result) {
     await showVideoFailure(uuid, result.message);
   }
@@ -664,7 +671,7 @@ const useImagePickerResult = (
             singleData.size,
           );
 
-          notifyReplacedImage(fileNumber.value, base64, false);
+          notifyReplacedImage(fileNumber.value, base64, null);
         }
 
         setIsImageLoading(fileNumber, false);
@@ -776,8 +783,8 @@ const MoveableImage = ({
     input.photos.getBlurhash(String(initialFileNumber)) :
     null;
 
-  const initialIsVideo =
-    input.photos.getIsVideo?.(String(initialFileNumber)) ?? false;
+  const initialVideoLabel =
+    input.photos.getVideoLabel?.(String(initialFileNumber)) ?? null;
 
   const { appTheme } = useAppTheme();
   const fileNumber = useSharedValue(initialFileNumber);
@@ -786,7 +793,8 @@ const MoveableImage = ({
   const isLoading = useIsImageLoading(fileNumber);
   const { uriState, uriRef } = useUri(fileNumber, initialUri);
   const { isVerifiedState, isVerifiedRef } = useIsVerified(fileNumber);
-  const isVideo = useIsVideo(fileNumber, initialIsVideo);
+  const tileVideoLabel = useVideoLabel(fileNumber, initialVideoLabel);
+  const videoTagWidth = useSharedValue(0);
   const videoUpload = useVideoUpload(fileNumber, initialFileNumber);
   const isAnyVideoUploading = useDerivedEvent<VideoUploads, boolean>(
     EV_VIDEO_UPLOADS,
@@ -990,10 +998,19 @@ const MoveableImage = ({
     return { top: inset, right: inset };
   });
 
-  const videoBadgeStyle = useAnimatedStyle(() => {
-    const inset = rimInset(borderRadius.value, 5) - 12;
-    return { bottom: inset, right: inset };
-  });
+  const tileWidth = absolutePosition?.width ?? 0;
+
+  const videoTagStyle = useAnimatedStyle(() => {
+    const round = Math.min(
+      1,
+      Math.max(0, (borderRadius.value - 5) / Math.max(1, tileWidth / 2 - 5)),
+    );
+
+    return {
+      bottom: 8 + 8 * round,
+      right: 8 + ((tileWidth - videoTagWidth.value) / 2 - 8) * round,
+    };
+  }, [tileWidth]);
 
   return (
     <GestureDetector gesture={composedGesture}>
@@ -1041,6 +1058,39 @@ const MoveableImage = ({
               contentFit="contain"
             />
           }
+          {uriState && tileVideoLabel && !videoUpload &&
+            <Animated.View
+              pointerEvents="none"
+              onLayout={(e) => {
+                videoTagWidth.value = e.nativeEvent.layout.width;
+              }}
+              style={[
+                {
+                  position: 'absolute',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 4,
+                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                },
+                videoTagStyle,
+              ]}
+            >
+              <Ionicons name="videocam" size={11} color="white" />
+              <DefaultText
+                style={{
+                  color: 'white',
+                  fontSize: 11,
+                  fontWeight: '500',
+                  fontVariant: ['tabular-nums'],
+                }}
+              >
+                {tileVideoLabel}
+              </DefaultText>
+            </Animated.View>
+          }
           {videoUpload &&
             <VideoUploadOverlay upload={videoUpload} />
           }
@@ -1048,27 +1098,6 @@ const MoveableImage = ({
             <Loading/>
           }
         </Animated.View>
-        {uriState && isVideo && !videoUpload &&
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              {
-                position: 'absolute',
-                width: 24,
-                height: 24,
-                borderWidth: 2,
-                borderColor: 'white',
-                borderRadius: 999,
-                backgroundColor: '#1f1f1f',
-                alignItems: 'center',
-                justifyContent: 'center',
-              },
-              videoBadgeStyle,
-            ]}
-          >
-            <Ionicons name="videocam" size={12} color="white" />
-          </Animated.View>
-        }
         {uriState &&
           <GestureDetector gesture={removeGesture}>
             <Animated.View

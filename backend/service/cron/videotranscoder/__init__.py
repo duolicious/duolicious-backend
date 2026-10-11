@@ -215,6 +215,7 @@ async def publish_video(job: Job, work: Path, cpu: int) -> None:
     )
 
     video = (work / 'video.mp4').read_bytes()
+    output = await ffprobe(work / 'video.mp4', VIDEO_FORMATS)
 
     if len(video) > 10_000_000:
         raise Exception(f'The transcoded video is {len(video)} bytes')
@@ -248,6 +249,7 @@ async def publish_video(job: Job, work: Path, cpu: int) -> None:
         extra_exts=['mp4'],
         hash=md5,
         nsfw_score=nsfw_score,
+        duration_seconds=max(1, round(output.format.duration or duration)),
         **photo_geometry_params(geometry),
     )
 

@@ -37,3 +37,5 @@ CREATE INDEX IF NOT EXISTS idx__video_job__person_id__created_at
 CREATE INDEX IF NOT EXISTS idx__video_job__created_at__queued
     ON video_job(created_at)
     WHERE status = 'queued';
+
+ALTER TABLE photo ADD COLUMN IF NOT EXISTS duration_seconds SMALLINT;

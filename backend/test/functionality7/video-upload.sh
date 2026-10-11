@@ -64,6 +64,9 @@ wait_for_status "$uuid" success
 
 photo_uuid=$(c GET "/video-upload/$uuid" | jq -r .photo_uuid)
 
+[[ "$(c GET "/video-upload/$uuid" | jq -r .duration_seconds)" = 3 ]]
+[[ "$(c GET /profile-info | jq -r '.photo_duration_seconds["1"]')" = 3 ]]
+
 [[ "$(q "
   select extra_exts || hash || (nsfw_score between 0 and 0.2)::text
   from photo

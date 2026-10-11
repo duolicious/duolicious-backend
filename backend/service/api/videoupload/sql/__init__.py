@@ -44,16 +44,23 @@ INSERT INTO video_job (
 
 Q_SELECT_VIDEO_JOB = """
 SELECT
-    status,
-    message,
-    byte_size,
-    CASE WHEN status = 'success' THEN photo_uuid END AS photo_uuid
+    video_job.status,
+    video_job.message,
+    video_job.byte_size,
+    CASE WHEN video_job.status = 'success' THEN video_job.photo_uuid END AS photo_uuid,
+    photo.duration_seconds
 FROM
     video_job
-WHERE
-    uuid = %(uuid)s
+LEFT JOIN
+    photo
+ON
+    video_job.status = 'success'
 AND
-    person_id = %(person_id)s
+    photo.uuid = video_job.photo_uuid
+WHERE
+    video_job.uuid = %(uuid)s
+AND
+    video_job.person_id = %(person_id)s
 """
 
 Q_QUEUE_VIDEO_JOB = """
