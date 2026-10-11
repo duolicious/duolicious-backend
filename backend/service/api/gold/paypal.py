@@ -14,6 +14,7 @@ from service.api.auth.oauth_redirect import redirect
 from service.api.search.rediscache import redis_cache
 from service.api.gold.sql import (
     Q_HAS_LIVE_SUBSCRIPTION,
+    Q_INSERT_REF_PAYMENT,
     Q_LIVE_PAYPAL_SUBSCRIPTION_IDS,
 )
 from serviceshared.duoenv.api import (
@@ -153,8 +154,23 @@ async def post_webhook(
     if not await paypal.verify_webhook(request.headers, await request.json()):
         return 'Unauthorized', 401
 
-    subscription = await paypal.fetch_subscription(req.resource.id)
+    sale = req.resource if isinstance(req.resource, paypal.PaypalSale) else None
+    subscription = await paypal.fetch_subscription(
+        req.resource.id if sale is None else sale.billing_agreement_id)
     if subscription is None:
         return 'PayPal request failed', 502
+
+    if sale is not None:
+        async with api_tx() as tx:
+            await tx.execute(Q_INSERT_REF_PAYMENT, dict(
+                provider='paypal',
+                provider_payment_id=sale.id,
+                provider_subscription_id=subscription.id,
+                person_uuid=subscription.custom_id,
+                plan=subscription.plan_id,
+                amount=sale.amount.total,
+                currency=sale.amount.currency,
+                paid_at=sale.create_time,
+            ))
 
     return dict(ignored=not await _apply(subscription))

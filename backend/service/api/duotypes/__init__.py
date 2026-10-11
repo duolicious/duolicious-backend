@@ -24,11 +24,12 @@ from pydantic import (
     TypeAdapter,
 )
 from datetime import datetime, date
+from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from PIL import Image
 from pillow_heif import register_heif_opener
 from serviceshared import constants
-from serviceshared.paypal import PaypalSubscription
+from serviceshared.paypal import PaypalSale, PaypalSubscription
 import io
 import base64
 import binascii
@@ -774,7 +775,7 @@ class PostPaypalSubscribe(BaseModel):
 
 
 class PostPaypalWebhook(BaseModel):
-    resource: PaypalSubscription
+    resource: PaypalSubscription | PaypalSale
 
 
 class PostJoinClub(BaseModel):
@@ -853,6 +854,17 @@ class RenewalEvent(RevenuecatBase):
     type: Literal['RENEWAL']
     app_user_id: str
 
+class RevenuecatPayment(RevenuecatBase):
+    type: Literal['INITIAL_PURCHASE', 'RENEWAL']
+    environment: Literal['PRODUCTION']
+    app_user_id: str
+    transaction_id: str
+    original_transaction_id: str
+    product_id: str
+    purchased_at_ms: int
+    price_in_purchased_currency: Decimal = Field(gt=0)
+    currency: str
+
 class ExpirationEvent(RevenuecatBase):
     type: Literal['EXPIRATION']
     app_user_id: str
@@ -872,6 +884,7 @@ class PostRevenuecat(BaseModel):
 
     api_version: str | None = None
     event: RevenuecatEvent | None = None
+    payment: RevenuecatPayment | None = None
     # keep the raw payload for unknown types (or failed parses)
     raw_event: Dict[str, object] | None = None
     raw_event_error: str | None = None
@@ -893,4 +906,8 @@ class PostRevenuecat(BaseModel):
                 values['raw_event'] = ev
                 values['raw_event_error'] = str(e)
                 values['event'] = None
+            try:
+                values['payment'] = RevenuecatPayment.model_validate(ev)
+            except ValidationError:
+                values['payment'] = None
         return values
