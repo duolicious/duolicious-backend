@@ -1,21 +1,20 @@
 """One-shot database bootstrap and migration for the API's `duo_api` database.
 
 Run at deploy time via `service/api/initapi.py` (not during request serving) to
-create the schema on a fresh database, apply migrations, load the domain and
-club seed data, and backfill normalized emails.
+create the schema on a fresh database, apply migrations, and load the domain
+and club seed data.
 """
 
 import logging
 import re
 from pathlib import Path
 
-from serviceshared.antiabuse.antispam.signupemail import normalize_email
 from serviceshared.constants import (
     LAST_ONLINE_DEFAULT_NAME,
     LAST_ONLINE_DEFAULT_SECONDS,
     LAST_ONLINE_NOW_SECONDS,
 )
-from serviceshared.database import api_tx, row_int, row_int_or_none
+from serviceshared.database import api_tx
 
 logger = logging.getLogger(__name__)
 
@@ -53,96 +52,6 @@ def _read_sql(path: Path) -> str:
 
     return sql
 
-
-async def migrate_unnormalized_emails() -> None:
-    """
-    It'll probably be necessary to call this function again if/when
-    `normalize_email` normalizes more address.
-    """
-    async with api_tx() as tx:
-        await tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
-        q = "SELECT 1 FROM person WHERE normalized_email ILIKE '%@googlemail.com' LIMIT 1"
-        await tx.execute(q)
-        if await tx.fetchone():
-            logger.info('Unnormalized emails found. Normalizing...')
-        else:
-            logger.info('Emails already normalized. Not performing normalization.')
-            return
-
-    async with api_tx() as tx:
-        logger.info('Selecting emails')
-        q = "SELECT email FROM person"
-        await tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
-        await tx.execute(q)
-        rows = await tx.fetchall()
-        logger.info('Done selecting emails')
-
-    logger.info('Computing normalized emails')
-    params_seq = [
-        row | dict(normalized_email=normalize_email(row['email']))
-        for row in rows
-    ]
-    logger.info('Done computing normalized emails')
-
-    async with api_tx('read committed') as tx:
-        q = """
-        UPDATE person SET
-        normalized_email = %(normalized_email)s
-        WHERE email = %(email)s
-        """
-        logger.info('Updating normalized emails in `person` table')
-        await tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
-        await tx.executemany(q, params_seq)
-        logger.info('Done updating normalized emails in `person` table')
-
-        q = """
-        UPDATE banned_person bp
-        SET
-            normalized_email = %(normalized_email)s
-        WHERE
-            normalized_email = %(email)s
-        AND NOT EXISTS (
-            SELECT
-                1
-            FROM
-                banned_person
-            WHERE
-                normalized_email = %(normalized_email)s
-            AND
-                ip_address = bp.ip_address
-        )
-        """
-        logger.info('Updating normalized emails in `banned_person` table')
-        await tx.executemany(q, params_seq)
-        logger.info('Done updating normalized emails in `banned_person` table')
-
-async def backfill_looking_for_ids() -> None:
-    async with api_tx('READ COMMITTED') as tx:
-        await tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
-        row = await tx.require_one("""
-        SELECT min(id) AS min_id, max(id) AS max_id
-        FROM person
-        WHERE looking_for_id <> 1
-        AND looking_for_ids = '{1}'
-        """)
-
-    if row_int_or_none(row, 'max_id') is None:
-        logger.info('`looking_for_ids` already backfilled')
-        return
-
-    batch_size = 1000
-    logger.info('Backfilling `looking_for_ids`')
-    for start in range(row_int(row, 'min_id'), row_int(row, 'max_id') + 1, batch_size):
-        async with api_tx('READ COMMITTED') as tx:
-            await tx.execute("""
-            UPDATE person
-            SET looking_for_ids = ARRAY[looking_for_id]
-            WHERE id >= %(start)s
-            AND id < %(end)s
-            AND looking_for_id <> 1
-            AND looking_for_ids = '{1}'
-            """, dict(start=start, end=start + batch_size))
-    logger.info('Done backfilling `looking_for_ids`')
 
 async def maybe_run_init() -> None:
     async with api_tx() as tx:
@@ -184,7 +93,3 @@ async def init_db() -> None:
     async with api_tx('READ COMMITTED') as tx:
         await tx.execute('SET LOCAL statement_timeout = 300000') # 5 minutes
         await tx.execute(banned_club_file)
-
-    await migrate_unnormalized_emails()
-
-    await backfill_looking_for_ids()
