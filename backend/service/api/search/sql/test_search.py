@@ -7,11 +7,12 @@ from serviceshared.kvmatching.encoder import STORED_DIMS
 from service.api.search.sql.search import (
     _HIDE_ME,
     _PROSPECT_DIDNT_SKIP_SEARCHER,
+    _REPLY_RATE_AT_LEAST,
     _SEARCHER_DIDNT_MESSAGE_PROSPECT,
     _SEARCHER_DIDNT_SKIP_PROSPECT,
     _VERIFICATION_SATISFIED,
     build_uncached_search,
-    search_only_clauses,
+    search_only_filters,
 )
 from service.api.searchfilters import (
     _TWO_WAY_ENUM_COLUMNS,
@@ -31,6 +32,7 @@ SEARCH_ONLY = frozenset([
     _SEARCHER_DIDNT_SKIP_PROSPECT,
     _SEARCHER_DIDNT_MESSAGE_PROSPECT,
     _VERIFICATION_SATISFIED,
+    _REPLY_RATE_AT_LEAST,
 ])
 
 def maximal_prefs() -> Row:
@@ -49,6 +51,7 @@ def maximal_prefs() -> Row:
         max_last_online_seconds=1,
         show_messaged=False,
         show_skipped=False,
+        min_reply_percentage=50,
         has_answer_prefs=True,
         required_answer_question_ids=[1, 2],
         searcher_person_id=1,
@@ -90,7 +93,7 @@ class TestMatchesSearchFiltersMirrorsSearch(unittest.TestCase):
 
     def test_search_only_predicates_are_declared(self) -> None:
         self.assertEqual(
-            frozenset(search_only_clauses(maximal_prefs())),
+            frozenset(search_only_filters(maximal_prefs()).clauses),
             SEARCH_ONLY,
         )
 
@@ -98,7 +101,7 @@ class TestMatchesSearchFiltersMirrorsSearch(unittest.TestCase):
         prefs = maximal_prefs()
 
         self.assertFalse(
-            frozenset(search_only_clauses(prefs))
+            frozenset(search_only_filters(prefs).clauses)
             & frozenset(prospect_filters(prefs).clauses),
         )
 

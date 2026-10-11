@@ -61,7 +61,7 @@ ORDER BY
 # search filters, so clients can sort and flag intros from outside them. It is
 # built from `searchfilters.prospect_filters` and `two_way_filters` (the same
 # prospect-level predicates the search applies), so it can't drift from the
-# search, which additionally applies `search_only_clauses` -- the ones that
+# search, which additionally applies `search_only_filters` -- the ones that
 # can't apply to an intro. Non-intro conversations are always TRUE.
 def _q_inbox_snapshot(
     entry_predicate: str,

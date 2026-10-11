@@ -188,3 +188,7 @@ test_set star_sign '["Unanswered", "Virgo"]' true
 
 test_set people_you_messaged '"No"'
 test_set people_you_skipped '"Yes"'
+test_set reply_rate 50
+test_set reply_rate null
+! jc POST /search-filter -d '{ "reply_rate": 0 }' || exit 1
+! jc POST /search-filter -d '{ "reply_rate": 91 }' || exit 1

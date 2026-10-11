@@ -10,6 +10,9 @@ import {
 import Animated from 'react-native-reanimated';
 import { ImageBackground } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootParamList } from '../../navigation/linking';
 import { japi } from '../../api/api';
 import * as Clipboard from 'expo-clipboard';
 import { IMAGES_URL, INVITE_URL } from '../../env/env';
@@ -19,10 +22,13 @@ import { isMobile } from '../../util/util';
 import {
   ClubItem,
   RowPosition,
+  closeClubs,
   clubQuota,
   joinClub,
   leaveClub,
   memberCountNow,
+  moveClubToFront,
+  selectSearchClub,
   useIsClubMember,
   useJoinedClubs,
 } from '../../club/club';
@@ -324,6 +330,7 @@ const ClubCardBody = ({
 }) => {
   const { appTheme } = useAppTheme();
   const [signedInUser] = useSignedInUser();
+  const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const isMember = useIsClubMember(name);
   const response = useClubCard(name, isMember);
   const fetched = isOpened ? response : null;
@@ -333,9 +340,9 @@ const ClubCardBody = ({
   const faces = useMemo(
     () => members.filter((m) => m.photo_uuid).slice(0, 5), [members]);
   const countMembers = card?.count_members ?? 0;
-  const countHidden = isMember || members.length < MAX_MEMBERS
+  const countHidden = members.length < MAX_MEMBERS
     ? 0
-    : countMembers - members.length;
+    : countMembers - Number(isMember) - members.length;
 
   const onPressJoin = () => {
     if (joinClub(name, rowPosition)) {
@@ -345,6 +352,16 @@ const ClubCardBody = ({
       return notifyErrorToast(`You can join up to ${clubQuota()} clubs`);
     }
     showPointOfSale('clubs');
+  };
+
+  const onPressSearch = () => {
+    selectSearchClub(name);
+    moveClubToFront(name);
+    closeClubs();
+    navigation.navigate('Home', {
+      screen: 'Search',
+      params: { screen: 'Search Screen' },
+    });
   };
 
   const header = (
@@ -411,12 +428,18 @@ const ClubCardBody = ({
             {name}
           </DefaultText>
           <DefaultText style={{ color: appTheme.hintColor }}>
-            Join to see them all.
+            {isMember ? 'Search' : 'Join and search'} to see them all
           </DefaultText>
           <ButtonWithCenteredText
             containerStyle={{ alignSelf: 'stretch', marginTop: 10 }}
-            onPress={onPressJoin}
-            extraChildren={<IconLabel icon="add" label="Join" secondary={false} />}
+            onPress={isMember ? onPressSearch : onPressJoin}
+            extraChildren={
+              <IconLabel
+                icon={isMember ? 'search' : 'add'}
+                label={isMember ? 'Search' : 'Join'}
+                secondary={false}
+              />
+            }
           />
         </View>
       }
