@@ -52,8 +52,8 @@ V_RULES = 'That video breaks the rules'
 V_WENT_WRONG = 'Something went wrong processing your video'
 
 SCALE = (
-    "scale='if(lte(iw,ih),trunc(min(720,iw)/2)*2,-2)'"
-    ":'if(lte(iw,ih),-2,trunc(min(720,ih)/2)*2)'"
+    "scale='trunc(iw*sar*min(1,720/min(iw*sar,ih))/2+0.5)*2'"
+    ":'trunc(ih*min(1,720/min(iw*sar,ih))/2+0.5)*2',setsar=1"
 )
 
 TONE_MAP = (
