@@ -222,14 +222,32 @@ LEFT JOIN
     gender
 ON
     gender.id = prospect.gender_id
+LEFT JOIN (
+    SELECT
+        person.gender_id,
+        search_preference.gender_ids,
+        search_preference.two_way_gender
+    FROM
+        person
+    JOIN
+        search_preference
+    ON
+        search_preference.person_id = person.id
+    WHERE
+        person.id = %(searcher_person_id)s
+) AS searcher
+ON
+    TRUE
+LEFT JOIN
+    search_preference AS prospect_preference
+ON
+    prospect_preference.person_id = prospect.id
 WHERE
 {_CLUB_MEMBER_CLAUSES}
 ORDER BY
-    prospect.gender_id NOT IN (
-        SELECT unnest(gender_ids)
-        FROM search_preference
-        WHERE person_id = %(searcher_person_id)s
-    ),
+    prospect.gender_id <> ALL(searcher.gender_ids),
+    searcher.two_way_gender
+        AND searcher.gender_id <> ALL(prospect_preference.gender_ids),
     prospect.kv_vector <#> %(searcher_kv_vector)s
 LIMIT
     25
