@@ -428,7 +428,7 @@ const ClubCardBody = ({
             {name}
           </DefaultText>
           <DefaultText style={{ color: appTheme.hintColor }}>
-            {isMember ? 'Search' : 'Join and search'} to see them all
+            {isMember ? 'Search' : 'Join and search'} to see your matches
           </DefaultText>
           <ButtonWithCenteredText
             containerStyle={{ alignSelf: 'stretch', marginTop: 10 }}
