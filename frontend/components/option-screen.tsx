@@ -30,6 +30,7 @@ import { StatusBarSpacer } from './status-bar-spacer';
 import {
   Slider as Slider_,
   SliderValue,
+  isUnlimitedSliderValue,
   rangeSliderLabel,
   sliderLabel,
 } from './slider';
@@ -210,7 +211,7 @@ const Slider = forwardRef((props: InputProps<OptionGroupSlider>, ref) => {
   const [value, setValue] = useState(
     slider.currentValue ?? slider.defaultValue);
 
-  const isUnlimited = !!slider.unlimitedLabel && value === slider.sliderMax;
+  const isUnlimited = isUnlimitedSliderValue(slider, value);
 
   const toggle = slider.toggle;
   const [toggleValue, setToggleValue] = useState(

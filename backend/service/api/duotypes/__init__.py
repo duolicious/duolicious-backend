@@ -737,6 +737,7 @@ class PostSearchFilter(BaseModel):
 
     people_you_messaged: str | None = None
     people_you_skipped: str | None = None
+    reply_rate: int | None = Field(default=None, ge=1, le=90)
 
     two_way_filters: TwoWayFilters | None = None
 
@@ -748,7 +749,7 @@ class PostSearchFilter(BaseModel):
         [field_name] = self.__pydantic_fields_set__
         field_value = getattr(self, field_name)
 
-        if field_name == 'furthest_distance':
+        if field_name in ['furthest_distance', 'reply_rate']:
             pass
         elif field_value is None:
             raise ValueError(f'Field {field_name} must not be None')

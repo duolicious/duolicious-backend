@@ -38,6 +38,7 @@ import {
 import type { SearchFilterParamList } from '../navigation/linking';
 import { OptionScreen, OptionScreenHeader } from './option-screen';
 import { Toggle } from './toggle';
+import { sliderLabel } from './slider';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DefaultTextInput } from './default-text-input';
 import { SearchQuizCard } from './quiz-card';
@@ -137,10 +138,11 @@ const getCurrentValueAsLabel = (
         distanceLabel(currentValue, signedInUser?.units),
         og.input.slider.toggle?.currentValue ? 'Same country' : undefined,
       ]).join(', ') || undefined;
-    } else if (currentValue === undefined) {
+    } else if (_.isNil(currentValue)) {
       return undefined;
     } else {
-      return `${currentValue}`;
+      const { text, unit } = sliderLabel(og.input.slider, currentValue);
+      return _.compact([text, unit]).join(' ');
     }
   } else if (
     isOptionGroupRangeSlider(og.input) &&

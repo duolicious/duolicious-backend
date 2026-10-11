@@ -1046,6 +1046,11 @@ async def post_search_filter(req: t.PostSearchFilter, s: t.SessionInfo) -> objec
         WHERE yes_no.name = %(field_value)s
         AND person_id = %(person_id)s
         """
+    elif field_name == 'reply_rate':
+        q = """
+        UPDATE search_preference SET min_reply_percentage = %(field_value)s
+        WHERE person_id = %(person_id)s
+        """
     elif field_name == 'two_way_filters':
         two_way_updates = ',\n'.join(
             f"            two_way_{key} = "

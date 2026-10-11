@@ -5,7 +5,10 @@ from serviceshared.constants import (
     MAX_RELATED_CLUBS,
     MIN_CLUB_PAGE_MEMBERS,
 )
-from service.api.search.sql.search import SORT_MATCH_PERCENTAGE
+from service.api.search.sql.search import (
+    SORT_MATCH_PERCENTAGE,
+    reply_rate_percentage,
+)
 from serviceshared.gold.sql import club_quota_sql, has_gold_sql
 from serviceshared.commonsql import (
     PHOTO_GEOMETRY,
@@ -626,10 +629,7 @@ WITH prospect_base AS (
         ) AS gets_reply_percentage,
 
         (
-            SELECT ROUND(
-                prospect.count_intros_received_with_reply::numeric /
-                prospect.count_intros_received * 100,
-                1)
+            SELECT ROUND({reply_rate_percentage('prospect')}, 1)
             WHERE %(person_id)s IS NOT NULL
             AND prospect.sign_up_time <= NOW() - interval '1 day'
             AND prospect.count_intros_received >= 5
@@ -1750,6 +1750,9 @@ WITH answer AS (
 ), people_you_skipped AS (
     SELECT CASE WHEN show_skipped THEN 'Yes' ELSE 'No' END AS j
     FROM sp
+), reply_rate AS (
+    SELECT min_reply_percentage AS j
+    FROM sp
 ), last_online_pref AS (
     SELECT last_online.name AS j
     FROM sp
@@ -1812,6 +1815,7 @@ SELECT
 
         'people_you_messaged',    (SELECT j FROM people_you_messaged),
         'people_you_skipped',     (SELECT j FROM people_you_skipped),
+        'reply_rate',             (SELECT j FROM reply_rate),
 
         'sort_by',               (SELECT j FROM sort_by_pref),
 

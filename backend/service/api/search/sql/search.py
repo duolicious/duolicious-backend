@@ -7,6 +7,7 @@ from serviceshared.database import (
     row_bool,
     row_halfvec,
     row_int,
+    row_int_or_none,
     row_str,
     row_str_or_none,
     row_vector,
@@ -14,6 +15,7 @@ from serviceshared.database import (
 from serviceshared.kvmatching.encoder import searcher_vector
 from service.api.duotypes import SortBy
 from service.api.searchfilters import (
+    ProspectFilters,
     SearchParam,
     and_clauses,
     prospect_filters,
@@ -122,6 +124,21 @@ _VERIFICATION_SATISFIED = sql_fragment("""
         NOT prospect.verification_required
     )
 """)
+
+_REPLY_RATE_PRIOR_REPLIES = 0.5
+_REPLY_RATE_PRIOR_INTROS = 1.5625
+
+
+def reply_rate_percentage(person: str) -> str:
+    return (
+        f'100 * ({person}.count_intros_received_with_reply'
+        f' + {_REPLY_RATE_PRIOR_REPLIES})'
+        f' / ({person}.count_intros_received + {_REPLY_RATE_PRIOR_INTROS})'
+    )
+
+
+_REPLY_RATE_AT_LEAST = (
+    f"{reply_rate_percentage('prospect')} >= %(min_reply_percentage)s")
 
 _VISIBLE_TO_SEARCHER = [
     'prospect.id != %(searcher_person_id)s',
@@ -385,15 +402,21 @@ def _from_clause(club_preference: str | None) -> str:
         person_club.activated"""
 
 
-def search_only_clauses(prefs: Row) -> list[str]:
+def search_only_filters(prefs: Row) -> ProspectFilters:
     clauses = list(_VISIBLE_TO_SEARCHER)
+    params: dict[str, SearchParam] = {}
 
     if not row_bool(prefs, 'show_skipped'):
         clauses.append(_SEARCHER_DIDNT_SKIP_PROSPECT)
     if not row_bool(prefs, 'show_messaged'):
         clauses.append(_SEARCHER_DIDNT_MESSAGE_PROSPECT)
 
-    return clauses
+    min_reply_percentage = row_int_or_none(prefs, 'min_reply_percentage')
+    if min_reply_percentage is not None:
+        params['min_reply_percentage'] = min_reply_percentage
+        clauses.append(_REPLY_RATE_AT_LEAST)
+
+    return ProspectFilters(clauses=clauses, params=params)
 
 
 def build_uncached_search(
@@ -416,6 +439,9 @@ def build_uncached_search(
     sort_expression, sort_params = _sort(sort_by, prefs)
     params.update(sort_params)
 
+    search_only = search_only_filters(prefs)
+    params.update(search_only.params)
+
     reverse = two_way_filters(prefs)
     params.update(reverse.params)
 
@@ -423,7 +449,7 @@ def build_uncached_search(
     params.update(filters.params)
 
     where = and_clauses([
-        *search_only_clauses(prefs),
+        *search_only.clauses,
         *reverse.clauses,
         *filters.clauses,
     ])

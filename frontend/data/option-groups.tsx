@@ -21,6 +21,7 @@ import { faPills } from '@fortawesome/free-solid-svg-icons/faPills'
 import { faSmoking } from '@fortawesome/free-solid-svg-icons/faSmoking'
 import { faVenusMars } from '@fortawesome/free-solid-svg-icons/faVenusMars'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons/faPaperPlane'
+import { faReply } from '@fortawesome/free-solid-svg-icons/faReply'
 import { faArrowDownWideShort } from '@fortawesome/free-solid-svg-icons/faArrowDownWideShort'
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot'
 import { faImage } from '@fortawesome/free-solid-svg-icons/faImage'
@@ -1820,6 +1821,31 @@ const searchInteractionsOptionGroups: OptionGroup<OptionGroupInputs>[] = [
           return true;
         }
       }
+    },
+  },
+  {
+    title: "Reply Rate",
+    Icon: ({ color = 'black' }) => (
+      <FontAwesomeIcon
+        icon={faReply}
+        size={14}
+        style={{ color }}
+      />
+    ),
+    description: "How often should people in search results reply to the intros they receive? Until someone has received a few intros, we assume they reply as often as the average member.",
+    input: {
+      slider: {
+        sliderMin: 0,
+        sliderMax: 90,
+        defaultValue: 0,
+        unitsLabel: 'or more',
+        unlimitedLabel: 'Any reply rate',
+        valueRewriter: (percentage: number) => `${percentage}%`,
+        submit: async (replyRate: number | null) => {
+          setSearchFilter('reply_rate', replyRate);
+          return true;
+        },
+      },
     },
   },
 ];
