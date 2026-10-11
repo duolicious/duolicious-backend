@@ -32,6 +32,7 @@ import type { VideoPlayer } from 'expo-video';
 import {
   VideoControls,
   VideoSurface,
+  useControlsVisibility,
   useLoopingPlayer,
   useVideoMuted,
 } from './looping-video';
@@ -308,6 +309,9 @@ const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, o
   const video = videoUri(uuid, extraExts);
   const [paused, setPaused] = useState(false);
   const player = useLoopingPlayer(isActive ? video : null, useVideoMuted());
+
+  const { controlsVisible, holdControls, pointerProps } =
+    useControlsVisibility(!paused);
 
   useEffect(() => {
     setPaused(false);
@@ -613,7 +617,7 @@ const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, o
   });
 
   return (
-    <>
+    <View style={StyleSheet.absoluteFill} {...pointerProps}>
       <GestureDetector gesture={composed}>
         <View style={[styles.container, { backgroundColor }]}>
           <FitWithinScreenImage
@@ -635,10 +639,12 @@ const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, o
           player={player}
           playing={!paused}
           onTogglePlaying={() => setPaused((paused) => !paused)}
+          visible={controlsVisible}
+          onHoverChange={holdControls}
           style={styles.controls}
         />
       }
-    </>
+    </View>
   );
 };
 

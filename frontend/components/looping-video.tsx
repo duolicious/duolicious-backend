@@ -2,6 +2,8 @@ import { RefObject, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
   GestureResponderEvent,
+  Platform,
+  PointerEvent,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -19,11 +21,16 @@ import { useIsFocused } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
+import Animated from 'react-native-reanimated';
+import { AnimatedPressable, hoverTransition } from './hover';
 import * as _ from 'lodash';
 import { lastEvent, notify, useDerivedEvent } from '../events/events';
 
 const EV_VIDEO_MUTED = 'video-muted';
 const EV_FOCUSED_VIDEO = 'focused-video';
+const CONTROLS_IDLE_MS = 2500;
+const CAN_HOVER =
+  Platform.OS === 'web' && window.matchMedia('(hover: hover)').matches;
 
 const useVideoMuted = () =>
   useDerivedEvent<boolean, boolean>(
@@ -133,6 +140,65 @@ const reportVisibleFraction = (id: string, visibleFraction: number) => {
   }
 };
 
+const useControlsVisibility = (playing: boolean) => {
+  const [isPointerActive, setIsPointerActive] = useState(false);
+  const [isHeld, setIsHeld] = useState(false);
+  const hideTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => () => clearTimeout(hideTimeout.current), []);
+
+  const pointerProps = useMemo(() => {
+    const show = (e: PointerEvent) => {
+      if (e.nativeEvent.pointerType === 'touch') {
+        return;
+      }
+
+      setIsPointerActive(true);
+      clearTimeout(hideTimeout.current);
+      hideTimeout.current = setTimeout(
+        () => setIsPointerActive(false),
+        CONTROLS_IDLE_MS,
+      );
+    };
+
+    return {
+      onPointerEnter: show,
+      onPointerMove: show,
+      onPointerLeave: () => {
+        clearTimeout(hideTimeout.current);
+        setIsPointerActive(false);
+      },
+    };
+  }, []);
+
+  return {
+    controlsVisible: !CAN_HOVER || isPointerActive || isHeld || !playing,
+    holdControls: setIsHeld,
+    pointerProps,
+  };
+};
+
+const useControlHover = (onHoverChange: (hovered: boolean) => void) => {
+  const [hovered, setHovered] = useState(false);
+
+  const hoverProps = {
+    onPointerEnter: (e: PointerEvent) => {
+      if (e.nativeEvent.pointerType === 'touch') {
+        return;
+      }
+
+      setHovered(true);
+      onHoverChange(true);
+    },
+    onPointerLeave: () => {
+      setHovered(false);
+      onHoverChange(false);
+    },
+  };
+
+  return { hovered, hoverProps };
+};
+
 const AutoplayVideo = ({
   uri,
   withControls = false,
@@ -159,6 +225,8 @@ const AutoplayVideo = ({
 
   const playing = isScreenFocused && (
     withControls ? isFocused && !userPaused : visibleFraction > 0);
+  const { controlsVisible, holdControls, pointerProps } =
+    useControlsVisibility(playing);
 
   useEffect(() => {
     if (playing) {
@@ -177,11 +245,16 @@ const AutoplayVideo = ({
   useEffect(() => {
     if (!isFocused) {
       setUserPaused(false);
+      holdControls(false);
     }
   }, [isFocused]);
 
   return (
-    <View ref={ref} style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View
+      ref={ref}
+      style={StyleSheet.absoluteFill}
+      {...(withControls ? pointerProps : {})}
+    >
       {hasPlayed &&
         <VideoSurface player={player} playing={playing} contentFit="cover" />
       }
@@ -190,6 +263,8 @@ const AutoplayVideo = ({
           player={player}
           playing={playing}
           onTogglePlaying={() => setUserPaused((paused) => !paused)}
+          visible={controlsVisible}
+          onHoverChange={holdControls}
         />
       }
     </View>
@@ -200,23 +275,36 @@ const VideoControls = ({
   player,
   playing,
   onTogglePlaying,
+  visible,
+  onHoverChange,
   style,
 }: {
   player: VideoPlayer
   playing: boolean
   onTogglePlaying: () => void
+  visible: boolean
+  onHoverChange: (hovered: boolean) => void
   style?: StyleProp<ViewStyle>
 }) => (
-  <View style={[StyleSheet.absoluteFill, style]} pointerEvents="box-none">
+  <Animated.View
+    pointerEvents={visible ? 'box-none' : 'none'}
+    style={[
+      StyleSheet.absoluteFill,
+      style,
+      { opacity: visible ? 1 : 0 },
+      hoverTransition('opacity'),
+    ]}
+  >
     <ControlButton
       icon={playing ? 'pause' : 'play'}
       label={playing ? 'Pause' : 'Play'}
       style={{ left: 10, bottom: 10 }}
       onPress={onTogglePlaying}
+      onHoverChange={onHoverChange}
     />
-    <VideoProgress player={player} />
-    <SoundButton />
-  </View>
+    <VideoProgress player={player} onHoverChange={onHoverChange} />
+    <SoundButton onHoverChange={onHoverChange} />
+  </Animated.View>
 );
 
 const ControlButton = ({
@@ -224,27 +312,44 @@ const ControlButton = ({
   label,
   style,
   onPress,
+  onHoverChange,
 }: {
   icon: 'pause' | 'play' | 'volume-mute' | 'volume-high'
   label: string
   style: StyleProp<ViewStyle>
   onPress: () => void
-}) => (
-  <Pressable
-    onPress={(event: GestureResponderEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      onPress();
-    }}
-    hitSlop={8}
-    aria-label={label}
-    style={[styles.circle, { width: 32, height: 32 }, style]}
-  >
-    <Ionicons name={icon} size={16} color="white" />
-  </Pressable>
-);
+  onHoverChange: (hovered: boolean) => void
+}) => {
+  const { hovered, hoverProps } = useControlHover(onHoverChange);
 
-const SoundButton = () => {
+  return (
+    <AnimatedPressable
+      onPress={(event: GestureResponderEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onPress();
+      }}
+      {...hoverProps}
+      hitSlop={8}
+      aria-label={label}
+      style={[
+        styles.circle,
+        styles.controlButton,
+        { backgroundColor: hovered ? 'rgba(0, 0, 0, 0.85)' : 'rgba(0, 0, 0, 0.55)' },
+        hoverTransition('backgroundColor'),
+        style,
+      ]}
+    >
+      <Ionicons name={icon} size={16} color="white" />
+    </AnimatedPressable>
+  );
+};
+
+const SoundButton = ({
+  onHoverChange,
+}: {
+  onHoverChange: (hovered: boolean) => void
+}) => {
   const muted = useVideoMuted();
 
   return (
@@ -253,14 +358,22 @@ const SoundButton = () => {
       label={muted ? 'Unmute' : 'Mute'}
       style={{ right: 10, bottom: 10 }}
       onPress={() => notify<boolean>(EV_VIDEO_MUTED, !muted)}
+      onHoverChange={onHoverChange}
     />
   );
 };
 
-const VideoProgress = ({ player }: { player: VideoPlayer }) => {
+const VideoProgress = ({
+  player,
+  onHoverChange,
+}: {
+  player: VideoPlayer
+  onHoverChange: (hovered: boolean) => void
+}) => {
   const time = useEvent(player, 'timeUpdate', null);
   const [width, setWidth] = useState(0);
   const [scrub, setScrub] = useState<number | null>(null);
+  const { hovered, hoverProps } = useControlHover(onHoverChange);
 
   useEffect(() => {
     player.timeUpdateEventInterval = 0.1;
@@ -292,12 +405,15 @@ const VideoProgress = ({ player }: { player: VideoPlayer }) => {
   const progress = scrub ?? (
     player.duration > 0 ? (time?.currentTime ?? 0) / player.duration : 0);
 
+  const active = hovered || scrub !== null;
+
   return (
     <Pressable
       onPress={(event: GestureResponderEvent) => {
         event.preventDefault();
         event.stopPropagation();
       }}
+      {...hoverProps}
       style={styles.progressTouchArea}
     >
       <GestureDetector gesture={scrubGesture}>
@@ -305,16 +421,25 @@ const VideoProgress = ({ player }: { player: VideoPlayer }) => {
           onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
           style={[StyleSheet.absoluteFill, { justifyContent: 'center' }]}
         >
-          <View
+          <Animated.View
             style={[
               styles.progressTrack,
-              { height: scrub === null ? 3 : 6 },
+              { height: active ? 6 : 3 },
+              hoverTransition('height'),
             ]}
           >
             <View
               style={[styles.progressFill, { width: `${progress * 100}%` }]}
             />
-          </View>
+          </Animated.View>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.progressHandle,
+              { left: `${progress * 100}%`, opacity: active ? 1 : 0 },
+              hoverTransition('opacity'),
+            ]}
+          />
         </View>
       </GestureDetector>
     </Pressable>
@@ -349,12 +474,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  controlButton: {
+    width: 32,
+    height: 32,
+    cursor: 'pointer',
+  },
   progressTouchArea: {
     position: 'absolute',
     left: 52,
     right: 52,
     bottom: 12,
     height: 28,
+    cursor: 'pointer',
+  },
+  progressHandle: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    marginLeft: -6,
+    borderRadius: 6,
+    backgroundColor: 'white',
   },
   progressTrack: {
     borderRadius: 3,
@@ -373,6 +512,7 @@ export {
   PlayBadge,
   VideoControls,
   VideoSurface,
+  useControlsVisibility,
   useLoopingPlayer,
   useVideoMuted,
 };
