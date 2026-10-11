@@ -1331,21 +1331,21 @@ async def _club_stats(club_name: str) -> dict[str, Json]:
         return await tx.require_one(
             Q_STATS_BY_CLUB_NAME, dict(club_name=club_name))
 
-@redis_cache(ttl=60 * 60)
-async def _active_stats() -> dict[str, Json]:
-    async with api_tx('READ COMMITTED') as tx:
-        return await tx.require_one(Q_ACTIVE_STATS)
-
 @redis_cache(ttl=60)
-async def _sign_up_and_answer_counts() -> dict[str, Json]:
+async def _minutely_stats() -> dict[str, Json]:
     async with api_tx('READ COMMITTED') as tx:
-        return await tx.require_one(Q_SIGN_UP_AND_ANSWER_COUNTS)
+        return await tx.require_one(Q_MINUTELY_STATS)
+
+@redis_cache(ttl=60 * 60)
+async def _hourly_stats() -> dict[str, Json]:
+    async with api_tx('READ COMMITTED') as tx:
+        return await tx.require_one(Q_HOURLY_STATS)
 
 async def get_stats(club_name: str | None) -> dict[str, Json]:
     if club_name:
         return await _club_stats(club_name)
 
-    return await _active_stats() | await _sign_up_and_answer_counts()
+    return await _minutely_stats() | await _hourly_stats()
 
 async def get_admin_ban_link(token: str) -> object:
     params = dict(token=token)

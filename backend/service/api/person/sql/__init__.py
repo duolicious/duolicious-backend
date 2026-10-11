@@ -2443,7 +2443,7 @@ ON
     inserted_undeleted_photo.uuid = deleted_photo.uuid
 """
 
-Q_ACTIVE_STATS = f"""
+Q_HOURLY_STATS = f"""
 WITH active AS (
     SELECT
         gender_id,
@@ -2458,7 +2458,7 @@ WITH active AS (
             now() - {LAST_ONLINE_DEFAULT_SECONDS} * interval '1 second'
 )
 SELECT
-    count(*) AS num_active_users,
+    (SELECT sum(count_answers) FROM person) AS num_answers,
 
     count(*) FILTER (WHERE gender_id = 1)::real /
     NULLIF(count(*) FILTER (WHERE gender_id = 2), 0)::real
@@ -2507,12 +2507,21 @@ WHERE
     name = %(club_name)s
 """
 
-Q_SIGN_UP_AND_ANSWER_COUNTS = """
+Q_MINUTELY_STATS = f"""
 SELECT
-    max(id) AS num_sign_ups,
-    sum(count_answers) AS num_answers
-FROM
-    person
+    (SELECT max(id) FROM person) AS num_sign_ups,
+
+    (
+        SELECT
+            count(*)
+        FROM
+            person
+        WHERE
+            activated
+        AND
+            last_online_time >
+                now() - {LAST_ONLINE_DEFAULT_SECONDS} * interval '1 second'
+    ) AS num_active_users
 """
 
 Q_PERSON_ID_TO_UUID = """
