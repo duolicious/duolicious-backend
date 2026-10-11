@@ -279,6 +279,7 @@ SELECT
     person.personality AS searcher_personality,
     person.kv_vector AS searcher_kv_vector,
     sort_by.name AS sort_by,
+    sp.min_reply_percentage,
     COALESCE(
         (
             SELECT l2_normalize(SUM(club.embedding))

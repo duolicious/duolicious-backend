@@ -5,7 +5,13 @@ import * as _ from 'lodash';
 import { DefaultText } from './default-text';
 import { DefaultTextInput } from './default-text-input';
 import { CheckChip, CheckChips } from './check-chip';
-import { Slider, SliderValue, rangeSliderLabel, sliderLabel } from './slider';
+import {
+  Slider,
+  SliderValue,
+  isUnlimitedSliderValue,
+  rangeSliderLabel,
+  sliderLabel,
+} from './slider';
 import { Toggle } from './toggle';
 import { VerticalButtonGroup } from './vertical-button-group';
 import { LogoActivityIndicator } from './logo/logo-activity-indicator';
@@ -167,21 +173,25 @@ const PanelRangeSlider = ({ og, input, isBasic }: {
   );
 };
 
-const PanelSlider = ({ og, input }: {
+const PanelSlider = ({ og, input, isBasic }: {
   og: OptionGroup<OptionGroupInputs>
   input: OptionGroupSlider
+  isBasic: boolean
 }) => {
   const { slider } = input;
   const [value, setValue] = useState(slider.currentValue ?? slider.defaultValue);
+  const label = sliderLabel(slider, value);
 
-  const isUnlimited = (v: number) =>
-    !!slider.unlimitedLabel && v === slider.sliderMax;
+  const isUnlimited = (v: number) => isUnlimitedSliderValue(slider, v);
 
   return (
     <>
-      <PanelHeading og={og}>
-        <SliderValue label={sliderLabel(slider, value)} inHeading={true} />
-      </PanelHeading>
+      {isBasic &&
+        <PanelHeading og={og}>
+          <SliderValue label={label} inHeading={true} />
+        </PanelHeading>
+      }
+      {!isBasic && <SliderValue label={label} />}
       <View style={styles.slider}>
         <Slider
           minimumValue={slider.sliderMin}
@@ -227,7 +237,7 @@ const PanelInput = ({ og, isBasic = false }: {
     return <PanelRangeSlider og={og} input={input} isBasic={isBasic} />;
   }
   if (isOptionGroupSlider(input)) {
-    return <PanelSlider og={og} input={input} />;
+    return <PanelSlider og={og} input={input} isBasic={isBasic} />;
   }
   return null;
 };

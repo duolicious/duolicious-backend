@@ -201,6 +201,32 @@ test_last_online_hides_online_status () {
   jc POST /search-filter -d '{ "last_online": "A month ago" }'
 }
 
+test_reply_rate () {
+  setup
+
+  jc POST /search-filter -d '{ "reply_rate": 50 }'
+  assert_search_names ''
+
+  q "update person
+     set count_intros_received = 4, count_intros_received_with_reply = 3
+     where email = 'user1@example.com'"
+  assert_search_names 'user1'
+
+  jc POST /search-filter -d '{ "reply_rate": 75 }'
+  assert_search_names ''
+
+  jc POST /search-filter -d '{ "reply_rate": 25 }'
+  assert_search_names 'user1 user2'
+
+  q "update person
+     set count_intros_received = 10, count_intros_received_with_reply = 1
+     where email = 'user2@example.com'"
+  assert_search_names 'user1'
+
+  jc POST /search-filter -d '{ "reply_rate": null }'
+  assert_search_names 'user1 user2'
+}
+
 test_search_cache () {
   setup
   q "delete from search_cache"
@@ -1112,6 +1138,7 @@ test_basic ethnicity 'Middle Eastern'
 test_basic_age
 test_basic_furthest_distance
 test_last_online_hides_online_status
+test_reply_rate
 test_basic_height
 test_basic has_profile_picture 'No' yes_no
 test_looking_for_overlap

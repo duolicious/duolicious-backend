@@ -785,6 +785,8 @@ CREATE TABLE IF NOT EXISTS search_preference (
 
     sort_by_id SMALLINT NOT NULL DEFAULT 1 REFERENCES sort_by(id) ON DELETE CASCADE,
 
+    min_reply_percentage SMALLINT,
+
     club_name TEXT REFERENCES club(name) ON DELETE SET NULL,
 
     show_messaged BOOLEAN NOT NULL DEFAULT TRUE,

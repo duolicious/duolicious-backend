@@ -24,11 +24,16 @@ type SliderUnits = {
 const formatSliderValue = (value: number, { valueRewriter }: SliderUnits) =>
   valueRewriter ? valueRewriter(value) : value.toLocaleString('en');
 
+type UnlimitableSlider = { defaultValue: number, unlimitedLabel?: string };
+
+const isUnlimitedSliderValue = (slider: UnlimitableSlider, value: number) =>
+  !!slider.unlimitedLabel && value === slider.defaultValue;
+
 const sliderLabel = (
-  slider: SliderUnits & { sliderMax: number, unlimitedLabel?: string },
+  slider: SliderUnits & UnlimitableSlider,
   value: number,
 ): SliderLabel =>
-  slider.unlimitedLabel && value === slider.sliderMax ?
+  slider.unlimitedLabel && isUnlimitedSliderValue(slider, value) ?
     { text: slider.unlimitedLabel, isAny: true } :
     { text: formatSliderValue(value, slider), unit: slider.unitsLabel };
 
@@ -286,6 +291,7 @@ const styles = StyleSheet.create({
 export {
   Slider,
   SliderValue,
+  isUnlimitedSliderValue,
   rangeSliderLabel,
   sliderLabel,
 };

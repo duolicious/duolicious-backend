@@ -2470,6 +2470,7 @@
     ],
     "people_you_messaged": "Yes",
     "people_you_skipped": "No",
+    "reply_rate": null,
     "sort_by": "Match percentage",
     "two_way_filters": {
       "gender": true,

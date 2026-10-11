@@ -1750,6 +1750,9 @@ WITH answer AS (
 ), people_you_skipped AS (
     SELECT CASE WHEN show_skipped THEN 'Yes' ELSE 'No' END AS j
     FROM sp
+), reply_rate AS (
+    SELECT min_reply_percentage AS j
+    FROM sp
 ), last_online_pref AS (
     SELECT last_online.name AS j
     FROM sp
@@ -1812,6 +1815,7 @@ SELECT
 
         'people_you_messaged',    (SELECT j FROM people_you_messaged),
         'people_you_skipped',     (SELECT j FROM people_you_skipped),
+        'reply_rate',             (SELECT j FROM reply_rate),
 
         'sort_by',               (SELECT j FROM sort_by_pref),
 
