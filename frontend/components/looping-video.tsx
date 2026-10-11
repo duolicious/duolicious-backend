@@ -39,6 +39,8 @@ const useVideoMuted = () =>
     [],
   );
 
+const unmuteVideos = () => notify<boolean>(EV_VIDEO_MUTED, false);
+
 const useLoopingPlayer = (uri: string | null, muted: boolean) => {
   const player = useVideoPlayer(uri, (player) => {
     player.loop = true;
@@ -512,6 +514,7 @@ export {
   PlayBadge,
   VideoControls,
   VideoSurface,
+  unmuteVideos,
   useControlsVisibility,
   useLoopingPlayer,
   useVideoMuted,

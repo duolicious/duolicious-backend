@@ -8,7 +8,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootParamList } from '../navigation/linking';
 import { Image as ExpoImage } from 'expo-image';
 import { photoUri, videoUri } from '../util/photos';
-import { AutoplayVideo } from './looping-video';
+import { AutoplayVideo, unmuteVideos } from './looping-video';
 import type { PhotoGeometry } from '../util/photos';
 import {
   ZERO_BORDER_RADII,
@@ -86,6 +86,10 @@ const EnlargeablePhoto = memo(({
 
     if (!photoUuid) {
       return;
+    }
+
+    if (videoUri(photoUuid, photoExtraExts)) {
+      unmuteVideos();
     }
 
     const fullAlbum: AlbumPhoto[] =

@@ -32,6 +32,7 @@ import type { VideoPlayer } from 'expo-video';
 import {
   VideoControls,
   VideoSurface,
+  unmuteVideos,
   useControlsVisibility,
   useLoopingPlayer,
   useVideoMuted,
@@ -581,12 +582,13 @@ const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, o
       .maxDistance(10)
       .onEnd((e, success) => {
         'worklet';
-        if (!success || !onTapEdge) return;
+        if (!success) return;
         const width = viewportWidthSv.value;
-        if (e.x < width / 3) runOnJS(onTapEdge)(-1);
-        else if (e.x > width * 2 / 3) runOnJS(onTapEdge)(1);
+        const dir = e.x < width / 3 ? -1 : e.x > width * 2 / 3 ? 1 : 0;
+        if (dir !== 0 && onTapEdge) runOnJS(onTapEdge)(dir);
+        else if (video) runOnJS(unmuteVideos)();
       }),
-    [onTapEdge],
+    [onTapEdge, video],
   );
 
   const composed = useMemo(
