@@ -214,6 +214,11 @@ ON
 WHERE
 {_CLUB_MEMBER_CLAUSES}
 ORDER BY
+    prospect.gender_id NOT IN (
+        SELECT unnest(gender_ids)
+        FROM search_preference
+        WHERE person_id = %(searcher_person_id)s
+    ),
     prospect.kv_vector <#> %(searcher_kv_vector)s
 LIMIT
     25
