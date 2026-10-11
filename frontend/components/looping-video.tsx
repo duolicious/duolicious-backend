@@ -406,26 +406,6 @@ const VideoProgress = ({
   );
 };
 
-const PlayBadge = ({
-  size,
-  style,
-}: {
-  size: number
-  style?: StyleProp<ViewStyle>
-}) => (
-  <View
-    pointerEvents="none"
-    style={[styles.circle, { width: size, height: size }, style]}
-  >
-    <Ionicons
-      name="play"
-      size={size * 0.55}
-      color="white"
-      style={{ marginLeft: size * 0.08 }}
-    />
-  </View>
-);
-
 const styles = StyleSheet.create({
   circle: {
     position: 'absolute',
@@ -469,7 +449,6 @@ const styles = StyleSheet.create({
 export {
   AutoplayVideo,
   LoopingVideo,
-  PlayBadge,
   VideoControls,
   unmuteVideos,
   useControlsVisibility,

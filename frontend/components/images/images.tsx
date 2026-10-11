@@ -56,7 +56,7 @@ import {
   startVideoUpload,
   waitForVideoJob,
 } from '../../api/video-upload';
-import { LoopingVideo, PlayBadge } from '../looping-video';
+import { LoopingVideo } from '../looping-video';
 import { notifyErrorToast, notifyIconToast } from '../toast';
 import { photoUri } from '../../util/photos';
 import { storeKv } from '../../kv-storage/kv-storage';
@@ -1029,7 +1029,20 @@ const MoveableImage = ({
           }
         </Animated.View>
         {uriState && isVideo && !videoUpload &&
-          <PlayBadge size={24} style={{ bottom: 8, right: 8 }} />
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              bottom: 6,
+              right: 6,
+              paddingHorizontal: 4,
+              paddingVertical: 2,
+              borderRadius: 4,
+              backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            }}
+          >
+            <Ionicons name="videocam" size={14} color="white" />
+          </View>
         }
         {uriState &&
           <GestureDetector gesture={removeGesture}>
