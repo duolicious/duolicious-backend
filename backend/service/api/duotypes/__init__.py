@@ -814,6 +814,12 @@ class PostVideoUpload(BaseModel):
         'video/webm',
         'video/x-matroska',
         'video/3gpp',
+        'video/mpeg',
+        'video/ogg',
+        'video/x-msvideo',
+        'video/avi',
+        'video/x-ms-wmv',
+        'video/x-ms-asf',
     ]
 
 

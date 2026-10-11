@@ -44,7 +44,7 @@ from serviceshared.ffmpeg import (
 
 logger = logging.getLogger(__name__)
 
-VIDEO_FORMATS = 'mov,matroska'
+VIDEO_FORMATS = 'mov,matroska,mpeg,ogg,avi,asf'
 
 V_NOT_A_VIDEO = "That file isn't a video we can use"
 V_TOO_BIG = 'Videos can be at most 4K at 60 frames per second'
@@ -91,7 +91,9 @@ def usable_video_stream(probe: Probe) -> ProbeStream:
         (
             s for s in probe.streams
             if s.codec_type == 'video'
-            and s.codec_name in ('h264', 'hevc', 'vp8', 'vp9', 'av1')
+            and s.codec_name in (
+                'h264', 'hevc', 'vp8', 'vp9', 'av1', 'mpeg1video', 'mpeg2video',
+                'mpeg4', 'theora', 'wmv1', 'wmv2', 'wmv3', 'vc1')
         ),
         None,
     )

@@ -89,6 +89,12 @@ const VIDEO_CONTENT_TYPES = [
   'video/webm',
   'video/x-matroska',
   'video/3gpp',
+  'video/mpeg',
+  'video/ogg',
+  'video/x-msvideo',
+  'video/avi',
+  'video/x-ms-wmv',
+  'video/x-ms-asf',
 ];
 
 type Point2D = {

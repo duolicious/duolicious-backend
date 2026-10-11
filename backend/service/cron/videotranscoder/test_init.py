@@ -45,6 +45,10 @@ class TestUsableVideoStream(unittest.TestCase):
             V_NOT_A_VIDEO)
         self.assert_rejected(probe(video(codec='prores')), V_NOT_A_VIDEO)
 
+    def test_accepts_older_video_formats(self) -> None:
+        for codec in ['mpeg1video', 'mpeg2video', 'mpeg4', 'theora', 'wmv2', 'vc1']:
+            usable_video_stream(probe(video(codec=codec)))
+
     def test_skips_cover_art(self) -> None:
         stream = usable_video_stream(
             probe(video(codec='mjpeg'), video(index=1)))
