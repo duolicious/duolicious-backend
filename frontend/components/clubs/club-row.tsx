@@ -22,6 +22,8 @@ import Animated, {
   LinearTransition,
   ZoomIn,
   ZoomOut,
+  useAnimatedStyle,
+  useSharedValue,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as _ from 'lodash';
@@ -450,8 +452,25 @@ const ClubRow = () => {
 
   const [isAtStart, setIsAtStart] = useState(true);
   const [isAtEnd, setIsAtEnd] = useState(true);
-  const [pinned, setPinned] = useState<'none' | 'in' | 'out'>('none');
-  const [buttonWidth, setButtonWidth] = useState(0);
+  const scrollX = useSharedValue(0);
+  const detached = useSharedValue(0);
+  const buttonWidth = useSharedValue(0);
+
+  const pinnedStyle = useAnimatedStyle(() => ({
+    transform: [{
+      translateX: detached.value > 0
+        ? detached.value - scrollX.value
+        : -buttonWidth.value,
+    }],
+  }));
+
+  const leftContinuationStyle = useAnimatedStyle(() => ({
+    transform: [{
+      translateX: Math.max(
+        0,
+        buttonWidth.value + detached.value - scrollX.value),
+    }],
+  }));
 
   useEffect(() => {
     scrollViewRef.current?.scrollTo({ x: 0, animated: true });
@@ -464,16 +483,12 @@ const ClubRow = () => {
   };
 
   const onScroll = ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const x = nativeEvent.contentOffset.x;
-    const dx = x - edgesRef.current.x;
+    const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
+    const x = _.clamp(
+      contentOffset.x, 0, contentSize.width - layoutMeasurement.width);
 
-    if (x <= 0) {
-      setPinned('none');
-    } else if (dx < 0) {
-      setPinned('in');
-    } else if (dx > 0) {
-      setPinned('out');
-    }
+    detached.value = _.clamp(detached.value, x - buttonWidth.value, x);
+    scrollX.value = x;
 
     updateEdges({ x });
   };
@@ -508,7 +523,7 @@ const ClubRow = () => {
         }}
       >
         <View
-          onLayout={ifShown(setButtonWidth)}
+          onLayout={ifShown((width) => buttonWidth.value = width)}
           style={{ paddingLeft: 10 }}
         >
           <ClubsButton rowRef={rowRef} />
@@ -523,33 +538,33 @@ const ClubRow = () => {
         />
       </ScrollView>
       <Animated.View
-        style={{
-          position: 'absolute',
-          top: 0,
-          bottom: 0,
-          left: 0,
-          justifyContent: 'center',
-          paddingLeft: 10,
-          backgroundColor: appTheme.primaryColor,
-          transform: [{ translateX: pinned === 'in' ? 0 : -buttonWidth }],
-          transitionProperty: 'transform',
-          transitionDuration: pinned === 'none' ? 0 : 200,
-        }}
+        style={[
+          {
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            justifyContent: 'center',
+            paddingLeft: 10,
+            backgroundColor: appTheme.primaryColor,
+          },
+          pinnedStyle,
+        ]}
       >
         <ClubsButton rowRef={rowRef} />
       </Animated.View>
       {!isMobile() && !isAtStart &&
         <Animated.View
-          style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: 0,
-            width: 40,
-            transform: [{ translateX: pinned === 'in' ? buttonWidth : 0 }],
-            transitionProperty: 'transform',
-            transitionDuration: pinned === 'none' ? 0 : 200,
-          }}
+          style={[
+            {
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: 0,
+              width: 40,
+            },
+            leftContinuationStyle,
+          ]}
         >
           <Continuation side="left" onPress={scrollBy(-SCROLL_JUMP_SIZE)} />
         </Animated.View>
