@@ -719,7 +719,7 @@ const AllClubs = ({
               clubName: d.kind === 'Club' ? d.props.name : undefined,
             })
           }
-          style={d.kind === 'Title' ? styles.wFull : null}
+          style={d.kind === 'Title' ? styles.wFull : styles.maxWFull}
           layout={LinearTransition.easing(Easing.bezier(0.25, 1, 0.5, 1))}
           exiting={FadeOut}
         >
@@ -1860,6 +1860,9 @@ const styles = StyleSheet.create({
   },
   wFull: {
     width: '100%',
+  },
+  maxWFull: {
+    maxWidth: '100%',
   },
   audioPlayerMiddleText: {
     fontWeight: 700,

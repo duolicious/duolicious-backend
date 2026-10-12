@@ -306,6 +306,7 @@ const ClubCardTitle = ({
           fontSize: 28,
           lineHeight: 34,
           flexShrink: 1,
+          wordBreak: 'break-word',
         }}
       >
         {name}
@@ -422,7 +423,14 @@ const ClubCardBody = ({
       }
       {countHidden > 0 &&
         <View style={styles.joinPrompt}>
-          <DefaultText style={{ fontWeight: '700', fontSize: 16, textAlign: 'center' }}>
+          <DefaultText
+            style={{
+              fontWeight: '700',
+              fontSize: 16,
+              textAlign: 'center',
+              wordBreak: 'break-word',
+            }}
+          >
             {countHidden.toLocaleString()}
             {countHidden === 1 ? ' more person is in ' : ' more people are in '}
             {name}
