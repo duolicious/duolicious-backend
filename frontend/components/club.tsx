@@ -26,6 +26,7 @@ const Club = ({
   return (
     <Basic
       onPress={onPress}
+      numberOfLines={1}
       style={{
         borderBottomWidth: 3,
         ...(isMutual && {

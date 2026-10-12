@@ -57,12 +57,14 @@ const Basic = ({children, ...rest}: {
   icon?: BasicIcon,
   style?: StyleProp<ViewStyle>,
   textStyle?: StyleProp<TextStyle>,
+  numberOfLines?: number,
   onPress?: (e: GestureResponderEvent) => void,
 }) => {
   const {
     icon,
     style = {},
     textStyle = {},
+    numberOfLines,
     onPress,
   } = rest;
 
@@ -125,7 +127,9 @@ const Basic = ({children, ...rest}: {
           }}
         />
         {icon && <Icon icon={icon} textStyle={textStyle} />}
-        <DefaultText style={textStyle}>{children}</DefaultText>
+        <DefaultText numberOfLines={numberOfLines} style={textStyle}>
+          {children}
+        </DefaultText>
       </Pressable>
     </Animated.View>
   );
