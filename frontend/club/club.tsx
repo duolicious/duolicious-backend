@@ -32,6 +32,7 @@ type OpenClubCard = {
   name: string,
   anchor: Anchor,
   rowPosition?: RowPosition,
+  previous?: OpenClubCard,
 };
 
 const sortClubs = (names: string[]) => [...names].sort((a, b) => {
@@ -189,17 +190,17 @@ const openClubs = (anchor: Anchor) => {
 const useClubsSheet = () => useDerivedEvent<Anchor | null | undefined, Anchor | null>(
   'clubs-sheet', (s) => s ?? null, []);
 
-const openClubCard = ({
-  name,
-  anchor,
-  rowPosition,
-}: Omit<OpenClubCard, 'anchor'> & { anchor: Anchor | GestureResponderEvent }) => {
+const openClubCard = (
+  card: Omit<OpenClubCard, 'anchor'> & { anchor: Anchor | GestureResponderEvent },
+) => {
+  const { anchor } = card;
+
   if ('nativeEvent' in anchor) {
     return anchor.currentTarget.measureInWindow((x, y, width, height) =>
-      openClubCard({ name, anchor: { x, y, width, height }, rowPosition }));
+      openClubCard({ ...card, anchor: { x, y, width, height } }));
   }
 
-  notify<OpenClubCard | null>('club-card', { name, anchor, rowPosition });
+  notify<OpenClubCard | null>('club-card', { ...card, anchor });
 };
 
 const pressClub = (name: string) => (e: GestureResponderEvent) =>

@@ -34,6 +34,7 @@ import {
 } from '../../club/club';
 import { Avatar, useProfileLink } from '../avatar';
 import { Close } from '../button/close';
+import { HoverCircle, useHover } from '../hover';
 import { usePressableAnimation } from '../../animation/animation';
 import { Club } from '../club';
 import { DefaultText } from '../default-text';
@@ -285,13 +286,16 @@ const MemberRow = memo(({ member }: { member: ClubMember }) => {
 const ClubCardTitle = ({
   name,
   isScrolled,
+  onBack,
   onClose,
 }: {
   name: string,
   isScrolled: boolean,
+  onBack?: () => void,
   onClose?: () => void,
 }) => {
   const { appTheme } = useAppTheme();
+  const { hovered, hoverProps } = useHover();
 
   return (
     <View
@@ -300,12 +304,21 @@ const ClubCardTitle = ({
         { borderBottomColor: isScrolled ? appTheme.inputColor : 'transparent' },
       ]}
     >
+      {onBack &&
+        <Pressable aria-label="Back" onPress={onBack} {...hoverProps}>
+          <HoverCircle visible={hovered} />
+          <Ionicons
+            name="arrow-back"
+            style={{ fontSize: 24, color: appTheme.secondaryColor }}
+          />
+        </Pressable>
+      }
       <DefaultText
         style={{
           fontFamily: 'TruenoBold',
           fontSize: 28,
           lineHeight: 34,
-          flexShrink: 1,
+          flex: 1,
           wordBreak: 'break-word',
         }}
       >
@@ -472,7 +485,6 @@ const styles = StyleSheet.create({
   title: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: 10,
     minHeight: 44,
     paddingHorizontal: 20,

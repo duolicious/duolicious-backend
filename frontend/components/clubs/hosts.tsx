@@ -151,6 +151,8 @@ const ClubCardHost = () => {
 
   const onOpened = () => setIsOpened(true);
   const onClosed = () => setIsOpened(false);
+  const previous = shown.previous;
+  const onBack = previous && (() => openClubCard(previous));
 
   const body =
     <ClubCardBody
@@ -158,7 +160,8 @@ const ClubCardHost = () => {
       name={shown.name}
       isOpened={isOpened}
       rowPosition={shown.rowPosition ?? 'front'}
-      onPressClub={(name) => openClubCard({ name, anchor: shown.anchor })}
+      onPressClub={(name) =>
+        openClubCard({ name, anchor: shown.anchor, previous: shown })}
       onScroll={onScroll}
     />;
 
@@ -168,7 +171,13 @@ const ClubCardHost = () => {
         visible={card !== null}
         onRequestClose={closeClubCard}
         heightFraction={0.8}
-        header={<ClubCardTitle name={shown.name} isScrolled={isScrolled} />}
+        header={
+          <ClubCardTitle
+            name={shown.name}
+            isScrolled={isScrolled}
+            onBack={onBack}
+          />
+        }
         onOpened={onOpened}
         onClosed={onClosed}
       >
@@ -200,6 +209,7 @@ const ClubCardHost = () => {
       <ClubCardTitle
         name={shown.name}
         isScrolled={isScrolled}
+        onBack={onBack}
         onClose={closeClubCard}
       />
       {body}
