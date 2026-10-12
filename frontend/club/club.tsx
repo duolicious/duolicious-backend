@@ -4,7 +4,6 @@ import { api, japi } from '../api/api';
 import { notify, lastEvent, useDerivedEvent } from '../events/events';
 import { searchQueue } from '../api/queue';
 import { getSignedInUser } from '../events/signed-in-user';
-import { clubsRedesign } from '../util/trials';
 
 const clubQuota = (hasGold?: boolean) => {
   if (hasGold ?? getSignedInUser()?.hasGold) {
@@ -135,7 +134,7 @@ const joinClub = (
     'joined-clubs',
     rowPosition === 'front' ? [name, ...otherClubs] : [...otherClubs, name]);
 
-  if (otherClubs.length === 0 && clubsRedesign(getSignedInUser()?.personId)) {
+  if (otherClubs.length === 0) {
     selectSearchClub(name);
   }
 
@@ -203,13 +202,8 @@ const openClubCard = ({
   notify<OpenClubCard | null>('club-card', { name, anchor, rowPosition });
 };
 
-const pressClub = (name: string) => (e: GestureResponderEvent) => {
-  if (clubsRedesign(getSignedInUser()?.personId)) {
-    return openClubCard({ name, anchor: e });
-  }
-
-  return isClubMember(name) ? leaveClub(name) : joinClub(name);
-};
+const pressClub = (name: string) => (e: GestureResponderEvent) =>
+  openClubCard({ name, anchor: e });
 
 const useOpenClubCard = () => useDerivedEvent<OpenClubCard | null | undefined, OpenClubCard | null>(
   'club-card', (c) => c ?? null, []);
