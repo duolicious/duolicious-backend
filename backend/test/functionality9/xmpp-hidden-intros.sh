@@ -18,15 +18,9 @@ q "delete from inbox"
 q "delete from messaged"
 q "delete from intro_hash"
 
-next_person_id=$(q "select last_value + 1 from person_id_seq")
-
 ../util/create-user.sh sender 0 0
 ../util/create-user.sh polite 0 0
-q "select setval('person_id_seq', 391600, false)"
-../util/create-user.sh treated 0 0
-q "select setval('person_id_seq', 391601, false)"
-../util/create-user.sh control 0 0
-q "select setval('person_id_seq', ${next_person_id}, false)"
+../util/create-user.sh recipient 0 0
 
 q "update person set sign_up_time = now() - interval '7 days'"
 
@@ -36,16 +30,11 @@ q "update person
 
 assume_role sender ; sendertoken=$SESSION_TOKEN
 assume_role polite ; politetoken=$SESSION_TOKEN
-assume_role treated ; treatedtoken=$SESSION_TOKEN
-assume_role control ; controltoken=$SESSION_TOKEN
+assume_role recipient ; recipienttoken=$SESSION_TOKEN
 
 senderuuid=$(get_uuid 'sender@example.com')
 politeuuid=$(get_uuid 'polite@example.com')
-treateduuid=$(get_uuid 'treated@example.com')
-controluuid=$(get_uuid 'control@example.com')
-
-[[ "$(get_id 'treated@example.com')" == 391600 ]]
-[[ "$(get_id 'control@example.com')" == 391601 ]]
+recipientuuid=$(get_uuid 'recipient@example.com')
 
 chat_auth_as () {
   local connectionId=$1
@@ -159,67 +148,54 @@ snapshot_fields () {
 
 chat_auth_as sender "$senderuuid" "$sendertoken"
 chat_auth_as polite "$politeuuid" "$politetoken"
-chat_auth_as treated "$treateduuid" "$treatedtoken"
-chat_auth_as control "$controluuid" "$controltoken"
+chat_auth_as recipient "$recipientuuid" "$recipienttoken"
 
-register_push_token_as treated 'treated-token'
-register_push_token_as control 'control-token'
+register_push_token_as recipient 'recipient-token'
 
 clear_pushes
-curl -sX GET "http://localhost:3001/pop?id=treated" > /dev/null
-curl -sX GET "http://localhost:3001/pop?id=control" > /dev/null
+curl -sX GET "http://localhost:3001/pop?id=recipient" > /dev/null
 
 
 
-echo "The treated arm's rude intro arrives hidden, already read, with no push"
+echo "A rude intro arrives hidden, already read, with no push"
 
-send_message_as sender "$senderuuid" "$treateduuid" "ur tiddies look nice"
+send_message_as sender "$senderuuid" "$recipientuuid" "ur tiddies look nice"
 
-received=$(curl -sX GET "http://localhost:3001/pop?id=treated")
+received=$(curl -sX GET "http://localhost:3001/pop?id=recipient")
 [[ "$(entry_fields "$received")" == "intros|true|true" ]]
-[[ "$(snapshot_fields treated "$senderuuid")" == "intros|true|true" ]]
-[[ "$(count_pushes_to 'treated-token')" -eq 0 ]]
-
-
-
-echo "The control arm's rude intro arrives as usual"
-
-send_message_as sender "$senderuuid" "$controluuid" "pls touch my pp"
-
-received=$(curl -sX GET "http://localhost:3001/pop?id=control")
-[[ "$(entry_fields "$received")" == "intros|false|false" ]]
-[[ "$(count_pushes_to 'control-token')" -eq 1 ]]
+[[ "$(snapshot_fields recipient "$senderuuid")" == "intros|true|true" ]]
+[[ "$(count_pushes_to 'recipient-token')" -eq 0 ]]
 
 
 
 echo "A polite follow-up to a hidden intro stays hidden and silent"
 
-send_message_as sender "$senderuuid" "$treateduuid" "sorry, hope your week is going well"
+send_message_as sender "$senderuuid" "$recipientuuid" "sorry, hope your week is going well"
 
-received=$(curl -sX GET "http://localhost:3001/pop?id=treated")
+received=$(curl -sX GET "http://localhost:3001/pop?id=recipient")
 [[ "$(entry_fields "$received")" == "intros|true|true" ]]
-[[ "$(count_pushes_to 'treated-token')" -eq 0 ]]
+[[ "$(count_pushes_to 'recipient-token')" -eq 0 ]]
 [[ "$(q "select unread_count from inbox
-         where luser = '${treateduuid}'
+         where luser = '${recipientuuid}'
          and remote_bare_jid = '${senderuuid}@duolicious.app'")" -eq 0 ]]
 
 
 
-echo "A polite intro to the treated arm isn't hidden"
+echo "A polite intro isn't hidden"
 
-send_message_as polite "$politeuuid" "$treateduuid" "Your answer about road trips made me laugh"
+send_message_as polite "$politeuuid" "$recipientuuid" "Your answer about road trips made me laugh"
 
-received=$(curl -sX GET "http://localhost:3001/pop?id=treated")
+received=$(curl -sX GET "http://localhost:3001/pop?id=recipient")
 [[ "$(entry_fields "$received")" == "intros|false|false" ]]
-[[ "$(count_pushes_to 'treated-token')" -eq 1 ]]
+[[ "$(count_pushes_to 'recipient-token')" -eq 1 ]]
 
 
 
 echo "Replying to a hidden intro turns it into an ordinary chat"
 
-send_message_as treated "$treateduuid" "$senderuuid" "please be nicer"
-send_message_as sender "$senderuuid" "$treateduuid" "ok fair"
+send_message_as recipient "$recipientuuid" "$senderuuid" "please be nicer"
+send_message_as sender "$senderuuid" "$recipientuuid" "ok fair"
 
-received=$(curl -sX GET "http://localhost:3001/pop?id=treated")
+received=$(curl -sX GET "http://localhost:3001/pop?id=recipient")
 [[ "$(entry_fields "$received")" == "chats|false|false" ]]
-[[ "$(count_pushes_to 'treated-token')" -eq 2 ]]
+[[ "$(count_pushes_to 'recipient-token')" -eq 2 ]]
