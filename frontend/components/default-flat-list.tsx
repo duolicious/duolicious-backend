@@ -11,6 +11,7 @@ import {
   StyleSheet,
   View,
   ViewStyle,
+  ViewToken,
 } from 'react-native';
 import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import {
@@ -203,11 +204,15 @@ type DefaultFlatListProps<ItemT> =
     | "ListFooterComponent"
     | "data"
     | "keyExtractor"
+    | "onEndReached"
+    | "onEndReachedThreshold"
     | "onRefresh"
+    | "onViewableItemsChanged"
     | "refreshing"
     | "renderItem"
   > & {
     renderItem: ListRenderItem<ItemT>,
+    onEndReachedThreshold?: number,
     keyExtractor?: (item: ItemT, index: number) => string,
     emptyText?: string,
     errorText?: string,
@@ -570,10 +575,33 @@ const UntypedDefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>, ref:
     columnWrapperStyle,
     renderItem,
     keyExtractor: itemKeyExtractor = keyExtractor,
+    onEndReachedThreshold = 3,
     ...listProps
   } = props;
 
   const data = useMemo(() => _.chunk(items, numColumns), [items, numColumns]);
+
+  const fetchNextPageIfNearEnd = useRef((_: ViewToken<ItemT[]>[]) => {});
+
+  useEffect(() => {
+    fetchNextPageIfNearEnd.current = (viewableItems) => {
+      const lastViewableIndex = viewableItems.at(-1)?.index;
+      const rowsPerScreen = viewableItems.length;
+
+      if (
+        lastViewableIndex != null &&
+        data.length - 1 - lastViewableIndex <
+          onEndReachedThreshold * rowsPerScreen
+      ) {
+        fetchNextPage();
+      }
+    };
+  }, [data.length, fetchNextPage, onEndReachedThreshold]);
+
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: ViewToken<ItemT[]>[] }) =>
+      fetchNextPageIfNearEnd.current(viewableItems),
+    []);
 
   const renderRow = useCallback(
     ({ item: row, index, separators }: ListRenderItemInfo<ItemT[]>) =>
@@ -611,8 +639,7 @@ const UntypedDefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>, ref:
       }}
       refreshing={false}
       onRefresh={props.disableRefresh ? undefined : onRefresh}
-      onEndReachedThreshold={props.onEndReachedThreshold ?? 3}
-      onEndReached={fetchNextPage}
+      onViewableItemsChanged={onViewableItemsChanged}
       {...listProps}
       {...slots}
       {...hiddenOnScrollHeader}

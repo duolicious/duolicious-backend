@@ -349,6 +349,7 @@ const SearchScreen_ = ({navigation}: SearchScreenProps) => {
           "See more matches by adjusting your search filters or clubs"
         }
         fetchPage={fetchSearchPage}
+        onEndReachedThreshold={5}
         dataKey={JSON.stringify([selectedClub, isPublic])}
         hideListHeaderComponentWhenEmpty={!hasClubRow}
         hideListHeaderComponentWhenLoading={!hasClubRow}
