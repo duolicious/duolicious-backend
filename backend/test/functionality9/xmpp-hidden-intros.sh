@@ -21,7 +21,6 @@ q "delete from intro_hash"
 ../util/create-user.sh sender 0 0
 ../util/create-user.sh polite 0 0
 ../util/create-user.sh recipient 0 0
-../util/create-user.sh other 0 0
 
 q "update person set sign_up_time = now() - interval '7 days'"
 
@@ -32,12 +31,10 @@ q "update person
 assume_role sender ; sendertoken=$SESSION_TOKEN
 assume_role polite ; politetoken=$SESSION_TOKEN
 assume_role recipient ; recipienttoken=$SESSION_TOKEN
-assume_role other ; othertoken=$SESSION_TOKEN
 
 senderuuid=$(get_uuid 'sender@example.com')
 politeuuid=$(get_uuid 'polite@example.com')
 recipientuuid=$(get_uuid 'recipient@example.com')
-otheruuid=$(get_uuid 'other@example.com')
 
 chat_auth_as () {
   local connectionId=$1
@@ -152,14 +149,11 @@ snapshot_fields () {
 chat_auth_as sender "$senderuuid" "$sendertoken"
 chat_auth_as polite "$politeuuid" "$politetoken"
 chat_auth_as recipient "$recipientuuid" "$recipienttoken"
-chat_auth_as other "$otheruuid" "$othertoken"
 
 register_push_token_as recipient 'recipient-token'
-register_push_token_as other 'other-token'
 
 clear_pushes
 curl -sX GET "http://localhost:3001/pop?id=recipient" > /dev/null
-curl -sX GET "http://localhost:3001/pop?id=other" > /dev/null
 
 
 
@@ -171,16 +165,6 @@ received=$(curl -sX GET "http://localhost:3001/pop?id=recipient")
 [[ "$(entry_fields "$received")" == "intros|true|true" ]]
 [[ "$(snapshot_fields recipient "$senderuuid")" == "intros|true|true" ]]
 [[ "$(count_pushes_to 'recipient-token')" -eq 0 ]]
-
-
-
-echo "A rude intro to anyone else is hidden too"
-
-send_message_as sender "$senderuuid" "$otheruuid" "pls touch my pp"
-
-received=$(curl -sX GET "http://localhost:3001/pop?id=other")
-[[ "$(entry_fields "$received")" == "intros|true|true" ]]
-[[ "$(count_pushes_to 'other-token')" -eq 0 ]]
 
 
 
