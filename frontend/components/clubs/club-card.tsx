@@ -75,14 +75,15 @@ type ClubCard = {
 
 type FetchedClubCard = ClubCard & { wasMember: boolean };
 
-const fetchedClubCards = new Map<string, FetchedClubCard>();
+type ClubCardCache = Map<string, FetchedClubCard>;
 
 const useClubCard = (
   name: string,
   isMember: boolean,
+  cache: ClubCardCache,
 ): ClubCard | 'error' | null => {
   const [card, setCard] = useState<FetchedClubCard | 'error' | null>(
-    () => fetchedClubCards.get(name) ?? null);
+    () => cache.get(name) ?? null);
 
   const isMemberRef = useRef(isMember);
   isMemberRef.current = isMember;
@@ -100,7 +101,7 @@ const useClubCard = (
         : null;
 
       if (fetched) {
-        fetchedClubCards.set(name, fetched);
+        cache.set(name, fetched);
       }
 
       if (isCurrent) {
@@ -109,7 +110,7 @@ const useClubCard = (
     })();
 
     return () => { isCurrent = false; };
-  }, [name]);
+  }, [name, cache]);
 
   return card === null || card === 'error' ? card : {
     ...card,
@@ -293,6 +294,30 @@ const MemberRow = memo(({ member }: { member: ClubMember }) => {
   );
 });
 
+const Back = ({ onPress }: { onPress: () => void }) => {
+  const { appTheme } = useAppTheme();
+  const { hovered, hoverProps } = useHover();
+
+  return (
+    <Pressable
+      aria-label="Back"
+      onPress={onPress}
+      style={{ marginTop: 5 }}
+      {...hoverProps}
+    >
+      <HoverCircle visible={hovered} />
+      <Ionicons
+        name="arrow-back"
+        style={{
+          fontSize: 24,
+          lineHeight: 24,
+          color: appTheme.secondaryColor,
+        }}
+      />
+    </Pressable>
+  );
+};
+
 const ClubCardTitle = ({
   name,
   isScrolled,
@@ -305,7 +330,6 @@ const ClubCardTitle = ({
   onClose?: () => void,
 }) => {
   const { appTheme } = useAppTheme();
-  const { hovered, hoverProps } = useHover();
 
   return (
     <View
@@ -314,24 +338,7 @@ const ClubCardTitle = ({
         { borderBottomColor: isScrolled ? appTheme.inputColor : 'transparent' },
       ]}
     >
-      {onBack &&
-        <Pressable
-          aria-label="Back"
-          onPress={onBack}
-          style={{ marginTop: 5 }}
-          {...hoverProps}
-        >
-          <HoverCircle visible={hovered} />
-          <Ionicons
-            name="arrow-back"
-            style={{
-              fontSize: 24,
-              lineHeight: 24,
-              color: appTheme.secondaryColor,
-            }}
-          />
-        </Pressable>
-      }
+      {onBack && <Back onPress={onBack} />}
       <DefaultText
         style={{
           fontFamily: 'TruenoBold',
@@ -359,18 +366,20 @@ const ClubCardBody = ({
   rowPosition,
   onPressClub,
   onScroll,
+  cache,
 }: {
   name: string,
   isOpened: boolean,
   rowPosition: RowPosition,
   onPressClub: (name: string) => void,
   onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => void,
+  cache: ClubCardCache,
 }) => {
   const { appTheme } = useAppTheme();
   const [signedInUser] = useSignedInUser();
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const isMember = useIsClubMember(name);
-  const response = useClubCard(name, isMember);
+  const response = useClubCard(name, isMember, cache);
   const fetched = isOpened ? response : null;
   const card = fetched === 'error' ? null : fetched;
 
@@ -558,5 +567,6 @@ const styles = StyleSheet.create({
 
 export {
   ClubCardBody,
+  ClubCardCache,
   ClubCardTitle,
 };

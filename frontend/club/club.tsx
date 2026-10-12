@@ -209,6 +209,10 @@ const pressClub = (name: string) => (e: GestureResponderEvent) =>
 const useOpenClubCard = () => useDerivedEvent<OpenClubCard | null | undefined, OpenClubCard | null>(
   'club-card', (c) => c ?? null, []);
 
+const reopenClubCard = (card: OpenClubCard) => {
+  notify<OpenClubCard | null>('club-card', card);
+};
+
 const closeClubCard = () => {
   notify<OpenClubCard | null>('club-card', null);
 };
@@ -233,7 +237,9 @@ export {
   moveClubToFront,
   openClubCard,
   openClubs,
+  OpenClubCard,
   pressClub,
+  reopenClubCard,
   selectSearchClub,
   setClubs,
   sortClubs,

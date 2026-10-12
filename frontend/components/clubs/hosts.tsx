@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -10,16 +10,18 @@ import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { isMobile } from '../../util/util';
 import {
+  OpenClubCard,
   closeClubCard,
   closeClubs,
   openClubCard,
+  reopenClubCard,
   useClubsSheet,
   useOpenClubCard,
 } from '../../club/club';
 import Animated, { FadeIn, FadeOut, runOnJS } from 'react-native-reanimated';
 import { ModalBottomSheet } from '../modal/modal-bottom-sheet';
 import { ClubsPanel } from './clubs-panel';
-import { ClubCardBody, ClubCardTitle } from './club-card';
+import { ClubCardBody, ClubCardCache, ClubCardTitle } from './club-card';
 import { useIsScrolled } from './use-is-scrolled';
 import { placePopover } from './place-popover';
 
@@ -36,6 +38,9 @@ const useLatest = <T,>(value: T | null): T | null => {
 
   return ref.current;
 };
+
+const firstClubCard = (card: OpenClubCard): OpenClubCard =>
+  card.previous ? firstClubCard(card.previous) : card;
 
 const Popover = ({
   visible,
@@ -142,6 +147,8 @@ const ClubCardHost = () => {
   const { width, height } = useWindowDimensions();
   const card = useOpenClubCard();
   const shown = useLatest(card);
+  const first = shown && firstClubCard(shown);
+  const cache = useMemo((): ClubCardCache => new Map(), [first]);
   const { isScrolled, onScroll } = useIsScrolled(shown?.name);
   const [isOpened, setIsOpened] = useState(false);
 
@@ -152,7 +159,7 @@ const ClubCardHost = () => {
   const onOpened = () => setIsOpened(true);
   const onClosed = () => setIsOpened(false);
   const previous = shown.previous;
-  const onBack = previous && (() => openClubCard(previous));
+  const onBack = previous && (() => reopenClubCard(previous));
 
   const body =
     <ClubCardBody
@@ -163,6 +170,7 @@ const ClubCardHost = () => {
       onPressClub={(name) =>
         openClubCard({ name, anchor: shown.anchor, previous: shown })}
       onScroll={onScroll}
+      cache={cache}
     />;
 
   if (isMobile()) {
