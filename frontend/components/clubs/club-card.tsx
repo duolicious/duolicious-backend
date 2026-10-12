@@ -73,12 +73,16 @@ type ClubCard = {
   members: ClubMember[],
 };
 
+type FetchedClubCard = ClubCard & { wasMember: boolean };
+
+const fetchedClubCards = new Map<string, FetchedClubCard>();
+
 const useClubCard = (
   name: string,
   isMember: boolean,
 ): ClubCard | 'error' | null => {
-  const [card, setCard] =
-    useState<ClubCard & { wasMember: boolean } | 'error' | null>(null);
+  const [card, setCard] = useState<FetchedClubCard | 'error' | null>(
+    () => fetchedClubCards.get(name) ?? null);
 
   const isMemberRef = useRef(isMember);
   isMemberRef.current = isMember;
@@ -91,10 +95,16 @@ const useClubCard = (
       const response = await japi<ClubCard>(
         'get', `/club-card?name=${encodeURIComponent(name)}`);
 
+      const fetched = response.ok && response.json
+        ? { ...response.json, wasMember }
+        : null;
+
+      if (fetched) {
+        fetchedClubCards.set(name, fetched);
+      }
+
       if (isCurrent) {
-        setCard(response.ok && response.json
-          ? { ...response.json, wasMember }
-          : 'error');
+        setCard(fetched ?? 'error');
       }
     })();
 
@@ -305,11 +315,20 @@ const ClubCardTitle = ({
       ]}
     >
       {onBack &&
-        <Pressable aria-label="Back" onPress={onBack} {...hoverProps}>
+        <Pressable
+          aria-label="Back"
+          onPress={onBack}
+          style={{ marginTop: 5 }}
+          {...hoverProps}
+        >
           <HoverCircle visible={hovered} />
           <Ionicons
             name="arrow-back"
-            style={{ fontSize: 24, color: appTheme.secondaryColor }}
+            style={{
+              fontSize: 24,
+              lineHeight: 24,
+              color: appTheme.secondaryColor,
+            }}
           />
         </Pressable>
       }
@@ -324,7 +343,12 @@ const ClubCardTitle = ({
       >
         {name}
       </DefaultText>
-      {onClose && <Close onPress={onClose} style={{ position: 'relative' }} />}
+      {onClose &&
+        <Close
+          onPress={onClose}
+          style={{ position: 'relative', marginTop: 5 }}
+        />
+      }
     </View>
   );
 };
@@ -484,9 +508,10 @@ const ClubCardBody = ({
 const styles = StyleSheet.create({
   title: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 10,
     minHeight: 44,
+    paddingTop: 2,
     paddingHorizontal: 20,
     paddingBottom: 6,
     borderBottomWidth: 1,
