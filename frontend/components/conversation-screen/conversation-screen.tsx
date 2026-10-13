@@ -261,8 +261,9 @@ const Menu = ({
           </DefaultText>
           <DefaultText style={subLabelStyle}>
             {isSkipped ?
-              'Moves the conversation out of your archive' :
-              'Ends the conversation and moves it to your archive'
+              'Unblocks them and moves the conversation out of your archive' :
+              'Blocks them from seeing your profile or messaging you, and ' +
+              'moves the conversation to your archive'
             }
           </DefaultText>
         </View>
@@ -283,8 +284,8 @@ const Menu = ({
               Report
             </DefaultText>
             <DefaultText style={subLabelStyle}>
-              Ends the conversation, moves it to your archive, and notifies
-              moderators
+              Blocks them, moves the conversation to your archive, and
+              notifies moderators
             </DefaultText>
           </View>
         </Pressable>
