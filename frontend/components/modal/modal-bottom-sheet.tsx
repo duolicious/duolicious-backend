@@ -31,6 +31,7 @@ const TOP_GAP = 50;
 const ModalBottomSheet = ({
   visible,
   onRequestClose,
+  onBackPress = onRequestClose,
   header,
   footer,
   children,
@@ -41,6 +42,7 @@ const ModalBottomSheet = ({
 }: {
   visible: boolean
   onRequestClose: () => void
+  onBackPress?: () => void
   // Rendered inside the drag zone, under the grab handle
   header?: ReactNode
   footer?: ReactNode
@@ -98,19 +100,19 @@ const ModalBottomSheet = ({
   }, [visible, isMounted]);
 
   useEffect(() => {
-    const onBackPress = () => {
+    const onHardwareBackPress = () => {
       if (isMounted) {
-        onRequestClose();
+        onBackPress();
         return true;
       }
       return false;
     };
 
     const subscription =
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      BackHandler.addEventListener('hardwareBackPress', onHardwareBackPress);
 
     return () => subscription.remove();
-  }, [isMounted, onRequestClose]);
+  }, [isMounted, onBackPress]);
 
   const pan = useMemo(
     () => Gesture.Pan()

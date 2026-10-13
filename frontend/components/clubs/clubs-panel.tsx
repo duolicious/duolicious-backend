@@ -19,7 +19,7 @@ import {
   closeClubs,
   fetchClubItems,
   moveClubToFront,
-  openClubCard,
+  pressClub,
   selectSearchClub,
   sortClubs,
   useJoinedClubs,
@@ -59,7 +59,7 @@ const MineFilter = memo(({
     isSelected={isSelected}
     onPress={(e) => {
       if (isManaging || isSelected) {
-        return openClubCard({ name, anchor: e });
+        return pressClub(name)(e);
       }
 
       selectSearchClub(name);
@@ -88,7 +88,7 @@ const OtherClub = memo(({
     <Club
       name={name}
       isMutual={false}
-      onPress={(e) => openClubCard({ name, anchor: e })}
+      onPress={pressClub(name)}
     />
   </Animated.View>
 );
