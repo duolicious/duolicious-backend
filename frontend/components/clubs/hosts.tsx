@@ -11,10 +11,10 @@ import { useAppTheme } from '../../app-theme/app-theme';
 import { isMobile } from '../../util/util';
 import {
   OpenClubCard,
+  backClubCard,
   closeClubCard,
   closeClubs,
   openClubCard,
-  reopenClubCard,
   useClubsSheet,
   useOpenClubCard,
 } from '../../club/club';
@@ -41,6 +41,8 @@ const useLatest = <T,>(value: T | null): T | null => {
 
 const firstClubCard = (card: OpenClubCard): OpenClubCard =>
   card.previous ? firstClubCard(card.previous) : card;
+
+const scrollOffsets = new WeakMap<OpenClubCard, number>();
 
 const Popover = ({
   visible,
@@ -149,7 +151,7 @@ const ClubCardHost = () => {
   const shown = useLatest(card);
   const first = shown && firstClubCard(shown);
   const cache = useMemo((): ClubCardCache => new Map(), [first]);
-  const { isScrolled, onScroll } = useIsScrolled(shown?.name);
+  const { isScrolled, onScroll } = useIsScrolled(shown);
   const [isOpened, setIsOpened] = useState(false);
 
   if (shown === null) {
@@ -158,8 +160,7 @@ const ClubCardHost = () => {
 
   const onOpened = () => setIsOpened(true);
   const onClosed = () => setIsOpened(false);
-  const previous = shown.previous;
-  const onBack = previous && (() => reopenClubCard(previous));
+  const onBack = shown.previous && backClubCard;
 
   const body =
     <ClubCardBody
@@ -169,7 +170,11 @@ const ClubCardHost = () => {
       rowPosition={shown.rowPosition ?? 'front'}
       onPressClub={(name) =>
         openClubCard({ name, anchor: shown.anchor, previous: shown })}
-      onScroll={onScroll}
+      onScroll={(e) => {
+        scrollOffsets.set(shown, e.nativeEvent.contentOffset.y);
+        onScroll(e);
+      }}
+      initialScrollY={scrollOffsets.get(shown) ?? 0}
       cache={cache}
     />;
 
@@ -178,6 +183,7 @@ const ClubCardHost = () => {
       <ModalBottomSheet
         visible={card !== null}
         onRequestClose={closeClubCard}
+        onBackPress={backClubCard}
         heightFraction={0.8}
         header={
           <ClubCardTitle

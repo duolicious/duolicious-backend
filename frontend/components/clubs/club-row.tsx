@@ -32,8 +32,8 @@ import { useAppTheme } from '../../app-theme/app-theme';
 import { isMobile } from '../../util/util';
 import {
   closeClubs,
-  openClubCard,
   openClubs,
+  pressClub,
   selectSearchClub,
   useClubMoves,
   useClubsSheet,
@@ -244,7 +244,7 @@ const CellContent = memo(({
       name={kind === 'club' ? name : null}
       isSelected={isSelected}
       onPress={(e) => kind === 'club' && isSelected
-        ? openClubCard({ name, anchor: e })
+        ? pressClub(name)(e)
         : selectSearchClub(kind === 'club' ? name : null)
       }
     />
@@ -338,11 +338,7 @@ const SuggestionCell = memo(({
         <Club
           name={name}
           isMutual={false}
-          onPress={(e) => openClubCard({
-            name,
-            anchor: e,
-            rowPosition: 'end',
-          })}
+          onPress={pressClub(name, 'end')}
         />
       </View>
     </Animated.View>

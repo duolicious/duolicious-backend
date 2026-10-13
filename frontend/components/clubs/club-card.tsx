@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { ImageBackground } from 'expo-image';
@@ -34,7 +35,7 @@ import {
 } from '../../club/club';
 import { Avatar, useProfileLink } from '../avatar';
 import { Close } from '../button/close';
-import { HoverCircle, useHover } from '../hover';
+import { IconButton } from '../button/icon-button';
 import { usePressableAnimation } from '../../animation/animation';
 import { Club } from '../club';
 import { DefaultText } from '../default-text';
@@ -46,6 +47,8 @@ import { showPointOfSale } from '../modal/point-of-sale-modal';
 import { notifyErrorToast, notifyLinkCopiedToast } from '../toast';
 
 const MAX_MEMBERS = 25;
+
+const TITLE_LINE_HEIGHT = 34;
 
 const onPressInvite = (clubName: string) => async () => {
   await Clipboard.setStringAsync(
@@ -105,7 +108,7 @@ const useClubCard = (
       }
 
       if (isCurrent) {
-        setCard(fetched ?? 'error');
+        setCard((current) => fetched ?? current ?? 'error');
       }
     })();
 
@@ -294,30 +297,6 @@ const MemberRow = memo(({ member }: { member: ClubMember }) => {
   );
 });
 
-const Back = ({ onPress }: { onPress: () => void }) => {
-  const { appTheme } = useAppTheme();
-  const { hovered, hoverProps } = useHover();
-
-  return (
-    <Pressable
-      aria-label="Back"
-      onPress={onPress}
-      style={{ marginTop: 5 }}
-      {...hoverProps}
-    >
-      <HoverCircle visible={hovered} />
-      <Ionicons
-        name="arrow-back"
-        style={{
-          fontSize: 24,
-          lineHeight: 24,
-          color: appTheme.secondaryColor,
-        }}
-      />
-    </Pressable>
-  );
-};
-
 const ClubCardTitle = ({
   name,
   isScrolled,
@@ -330,6 +309,8 @@ const ClubCardTitle = ({
   onClose?: () => void,
 }) => {
   const { appTheme } = useAppTheme();
+  const { fontScale } = useWindowDimensions();
+  const iconMarginTop = (TITLE_LINE_HEIGHT * fontScale - 24) / 2;
 
   return (
     <View
@@ -338,12 +319,27 @@ const ClubCardTitle = ({
         { borderBottomColor: isScrolled ? appTheme.inputColor : 'transparent' },
       ]}
     >
-      {onBack && <Back onPress={onBack} />}
+      {onBack &&
+        <IconButton
+          label="Back"
+          onPress={onBack}
+          style={{ marginTop: iconMarginTop }}
+        >
+          <Ionicons
+            name="arrow-back"
+            style={{
+              fontSize: 24,
+              lineHeight: 24,
+              color: appTheme.secondaryColor,
+            }}
+          />
+        </IconButton>
+      }
       <DefaultText
         style={{
           fontFamily: 'TruenoBold',
           fontSize: 28,
-          lineHeight: 34,
+          lineHeight: TITLE_LINE_HEIGHT,
           flex: 1,
           wordBreak: 'break-word',
         }}
@@ -353,7 +349,7 @@ const ClubCardTitle = ({
       {onClose &&
         <Close
           onPress={onClose}
-          style={{ position: 'relative', marginTop: 5 }}
+          style={{ position: 'relative', marginTop: iconMarginTop }}
         />
       }
     </View>
@@ -366,6 +362,7 @@ const ClubCardBody = ({
   rowPosition,
   onPressClub,
   onScroll,
+  initialScrollY,
   cache,
 }: {
   name: string,
@@ -373,6 +370,7 @@ const ClubCardBody = ({
   rowPosition: RowPosition,
   onPressClub: (name: string) => void,
   onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => void,
+  initialScrollY: number,
   cache: ClubCardCache,
 }) => {
   const { appTheme } = useAppTheme();
@@ -380,6 +378,8 @@ const ClubCardBody = ({
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const isMember = useIsClubMember(name);
   const response = useClubCard(name, isMember, cache);
+  const scrollRef = useRef<ScrollView>(null);
+  const isScrollRestored = useRef(false);
   const fetched = isOpened ? response : null;
   const card = fetched === 'error' ? null : fetched;
 
@@ -502,8 +502,16 @@ const ClubCardBody = ({
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingHorizontal: 20 }}
+      onContentSizeChange={() => {
+        if (isScrollRestored.current) {
+          return;
+        }
+        isScrollRestored.current = true;
+        scrollRef.current?.scrollTo({ y: initialScrollY, animated: false });
+      }}
       onScroll={onScroll}
       scrollEventThrottle={16}
     >

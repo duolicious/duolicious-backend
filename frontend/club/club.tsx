@@ -190,27 +190,23 @@ const openClubs = (anchor: Anchor) => {
 const useClubsSheet = () => useDerivedEvent<Anchor | null | undefined, Anchor | null>(
   'clubs-sheet', (s) => s ?? null, []);
 
-const openClubCard = (
-  card: Omit<OpenClubCard, 'anchor'> & { anchor: Anchor | GestureResponderEvent },
-) => {
-  const { anchor } = card;
-
-  if ('nativeEvent' in anchor) {
-    return anchor.currentTarget.measureInWindow((x, y, width, height) =>
-      openClubCard({ ...card, anchor: { x, y, width, height } }));
-  }
-
-  notify<OpenClubCard | null>('club-card', { ...card, anchor });
+const openClubCard = (card: OpenClubCard) => {
+  notify<OpenClubCard | null>('club-card', card);
 };
 
-const pressClub = (name: string) => (e: GestureResponderEvent) =>
-  openClubCard({ name, anchor: e });
+const pressClub = (
+  name: string,
+  rowPosition?: RowPosition,
+) => (e: GestureResponderEvent) =>
+  e.currentTarget.measureInWindow((x, y, width, height) =>
+    openClubCard({ name, anchor: { x, y, width, height }, rowPosition }));
 
 const useOpenClubCard = () => useDerivedEvent<OpenClubCard | null | undefined, OpenClubCard | null>(
   'club-card', (c) => c ?? null, []);
 
-const reopenClubCard = (card: OpenClubCard) => {
-  notify<OpenClubCard | null>('club-card', card);
+const backClubCard = () => {
+  notify<OpenClubCard | null>(
+    'club-card', lastEvent<OpenClubCard | null>('club-card')?.previous ?? null);
 };
 
 const closeClubCard = () => {
@@ -229,6 +225,7 @@ export {
   leaveClub,
   Anchor,
   RowPosition,
+  backClubCard,
   closeClubCard,
   closeClubs,
   fetchClubItems,
@@ -239,7 +236,6 @@ export {
   openClubs,
   OpenClubCard,
   pressClub,
-  reopenClubCard,
   selectSearchClub,
   setClubs,
   sortClubs,
