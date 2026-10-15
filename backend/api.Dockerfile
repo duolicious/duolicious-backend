@@ -20,7 +20,6 @@ COPY \
 RUN : \
   && apt update \
   && apt install -y ffmpeg \
-  && pip install --no-cache-dir -r /app/requirements.txt \
-  && python -m spacy download en_core_web_sm
+  && pip install --no-cache-dir -r /app/requirements.txt
 
 CMD /app/api.main.sh

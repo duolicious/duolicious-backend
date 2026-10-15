@@ -5,7 +5,7 @@ import numpy.typing as npt
 import onnxruntime as ort
 from pathlib import Path
 from io import BytesIO
-from serviceshared.duoenv.cron import OMP_NUM_THREADS
+from serviceshared.duoenv.shared import OMP_NUM_THREADS
 
 _MODEL_PATH_BASE = Path(__file__).parent.parent / 'antiporn'
 

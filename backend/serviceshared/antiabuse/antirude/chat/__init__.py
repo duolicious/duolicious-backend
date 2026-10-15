@@ -1,23 +1,41 @@
-from serviceshared.antiabuse.normalize import normalize_string
-from serviceshared.antiabuse.normalize.normalizationlists import chat
+from pathlib import Path
 import re
 
+import numpy as np
+import onnxruntime as ort
+from tokenizers import Tokenizer
 
-_needle = '(' + '|'.join(f'{re.escape(s)}' for s in chat) + ')'
+from serviceshared.antiabuse.normalize import normalize_chat_message
+from serviceshared.duoenv.shared import OMP_NUM_THREADS
 
+_DIR = Path(__file__).parent
 
-_rude_pattern = (
-    r'((?<=[^a-z0-9])|^)' +
-    f'{_needle}' +
-    r'((?=[^a-z0-9])|$)')
+_ALWAYS_RUDE = re.compile(
+    r"\b(1488|chinks?|cunny|faggots?|heil hitler|kikes?|lolis?|lolicon|"
+    r"niggas?|niggers?|shota|shotacon|sieg heil|thot|tranny|trannies|troons?|"
+    r"you(?: wi|['’])ll never be a woman|ywnbaw)\b",
+    re.IGNORECASE)
 
+_TOKENIZER = Tokenizer.from_file(str(_DIR / 'tokenizer.json'))
 
-_rude_matcher = re.compile(_rude_pattern, re.IGNORECASE)
+_SESSION_OPTIONS = ort.SessionOptions()
+_SESSION_OPTIONS.intra_op_num_threads = OMP_NUM_THREADS
+_SESSION_OPTIONS.inter_op_num_threads = 1
+_SESSION_OPTIONS.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+_SESSION_OPTIONS.add_session_config_entry(
+    'session.intra_op.allow_spinning', '0')
+
+_SESSION = ort.InferenceSession(str(_DIR / 'model.onnx'), _SESSION_OPTIONS)
 
 
 def is_rude(s: str) -> bool:
-    return \
-            bool(_rude_matcher.search(
-                normalize_string(s, chat, do_remove_modifiers=False))) or \
-            bool(_rude_matcher.search(
-                normalize_string(s, chat, do_remove_modifiers=True)))
+    text = normalize_chat_message(s)
+
+    if _ALWAYS_RUDE.search(text):
+        return True
+
+    encoding = _TOKENIZER.encode(text)
+
+    return any(
+        _SESSION.run(None, {'input_ids': np.array([window.ids])})[0][0] > 0
+        for window in [encoding, *encoding.overflowing])
