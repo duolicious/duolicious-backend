@@ -23,7 +23,7 @@ interface NativeProps extends ViewProps {
   onSelectionChange?: DirectEventHandler<SelectionChangeEvent>;
 }
 
-export default codegenNativeComponent<NativeProps>('SelectableText', {
+export default codegenNativeComponent<NativeProps>('DuoSelectableText', {
   interfaceOnly: true,
   excludedPlatforms: ['iOS'],
 }) as HostComponent<NativeProps>;

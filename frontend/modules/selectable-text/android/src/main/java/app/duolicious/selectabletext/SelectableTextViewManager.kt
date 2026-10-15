@@ -10,19 +10,19 @@ import com.facebook.react.uimanager.PixelUtil
 import com.facebook.react.uimanager.ReactStylesDiffMap
 import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
-import com.facebook.react.viewmanagers.SelectableTextManagerDelegate
-import com.facebook.react.viewmanagers.SelectableTextManagerInterface
+import com.facebook.react.viewmanagers.DuoSelectableTextManagerDelegate
+import com.facebook.react.viewmanagers.DuoSelectableTextManagerInterface
 import com.facebook.yoga.YogaMeasureMode
 import com.facebook.yoga.YogaMeasureOutput
 
 class SelectableTextViewManager :
   SimpleViewManager<SelectableTextView>(),
-  SelectableTextManagerInterface<SelectableTextView> {
-  private val delegate = SelectableTextManagerDelegate(this)
+  DuoSelectableTextManagerInterface<SelectableTextView> {
+  private val delegate = DuoSelectableTextManagerDelegate(this)
 
   override fun getDelegate() = delegate
 
-  override fun getName() = "SelectableText"
+  override fun getName() = "DuoSelectableText"
 
   override fun createViewInstance(context: ThemedReactContext) = SelectableTextView(context)
 

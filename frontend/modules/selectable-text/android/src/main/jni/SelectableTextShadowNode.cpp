@@ -7,7 +7,7 @@
 
 namespace facebook::react {
 
-extern const char SelectableTextComponentName[] = "SelectableText";
+extern const char SelectableTextComponentName[] = "DuoSelectableText";
 
 void SelectableTextShadowNode::setContextContainer(
     std::shared_ptr<const ContextContainer> contextContainer) {

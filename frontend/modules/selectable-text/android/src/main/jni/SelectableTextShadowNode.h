@@ -12,8 +12,8 @@ extern const char SelectableTextComponentName[];
 class SelectableTextShadowNode final
     : public ConcreteViewShadowNode<
           SelectableTextComponentName,
-          SelectableTextProps,
-          SelectableTextEventEmitter> {
+          DuoSelectableTextProps,
+          DuoSelectableTextEventEmitter> {
  public:
   using ConcreteViewShadowNode::ConcreteViewShadowNode;
 
