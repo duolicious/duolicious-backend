@@ -1075,6 +1075,7 @@ const ProspectProfile = ({
   return (
     <ScrollView
       style={{ backgroundColor }}
+      scrollsChildToFocus={false}
       onLayout={(e) =>
         setRoundPrimaryPhoto(e.nativeEvent.layout.width > COLUMN_MAX_WIDTH)}
     >
