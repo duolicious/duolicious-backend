@@ -144,7 +144,7 @@ const Avatar = ({
           {verificationRequired &&
             <View
               style={{
-                ...StyleSheet.absoluteFillObject,
+                ...StyleSheet.absoluteFill,
                 zIndex: 999,
                 backgroundColor: `${appTheme.primaryColor}B3`,
               }}
@@ -194,7 +194,7 @@ const Avatar = ({
           {verificationRequired &&
             <View
               style={{
-                ...StyleSheet.absoluteFillObject,
+                ...StyleSheet.absoluteFill,
                 zIndex: 999,
                 backgroundColor: `${appTheme.primaryColor}B3`,
               }}
@@ -227,7 +227,7 @@ const Avatar = ({
       {verificationRequired &&
         <View
           style={{
-            ...StyleSheet.absoluteFillObject,
+            ...StyleSheet.absoluteFill,
             justifyContent: 'center',
             alignItems: 'center',
             gap: 5,

@@ -1,8 +1,8 @@
 diff --git a/node_modules/expo-linear-gradient/build/NativeLinearGradient.web.js b/node_modules/expo-linear-gradient/build/NativeLinearGradient.web.js
-index cc4c9d5..64aa408 100644
+index e9c7402..0c9b3d9 100644
 --- a/node_modules/expo-linear-gradient/build/NativeLinearGradient.web.js
 +++ b/node_modules/expo-linear-gradient/build/NativeLinearGradient.web.js
-@@ -20,7 +20,7 @@ export default function NativeLinearGradient({ colors, locations, startPoint, en
+@@ -21,7 +21,7 @@ export default function NativeLinearGradient({ colors, locations, startPoint, en
              const { width, height } = event.nativeEvent.layout;
              setLayout((oldLayout) => {
                  // don't set new layout state unless the layout has actually changed

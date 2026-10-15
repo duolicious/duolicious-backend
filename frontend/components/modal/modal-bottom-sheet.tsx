@@ -169,11 +169,11 @@ const ModalBottomSheet = ({
       pointerEvents={visible ? 'auto' : 'none'}
     >
       <Animated.View
-        style={[StyleSheet.absoluteFillObject, backdropStyle]}
+        style={[StyleSheet.absoluteFill, backdropStyle]}
       >
         <Pressable
           onPress={onRequestClose}
-          style={[StyleSheet.absoluteFillObject, backgroundColors.dark]}
+          style={[StyleSheet.absoluteFill, backgroundColors.dark]}
         />
       </Animated.View>
       <View
@@ -218,7 +218,7 @@ const ModalBottomSheet = ({
 
 const styles = StyleSheet.create({
   wrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     position: viewportPosition(),
     zIndex: SHEET_Z_INDEX,
   },
