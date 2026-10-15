@@ -3,7 +3,7 @@ boto3==1.35.99
 python-dateutil==2.9.0.post0
 confusable-homoglyphs
 fastapi
-google-auth
+google-auth[requests]
 httpx
 limits[async-redis]
 nltk
