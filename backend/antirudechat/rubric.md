@@ -68,23 +68,51 @@ or remark is echoing the profile: judge it as written.
    exactly like the plain words: "s3x", "c*ck", "d1ck", "seggs", "corn" for
    porn, "ra pe", "a$$", "goo n", "slide on it", "match my freak", "rail you",
    "back shots", "breedable", "ruin you" (sexual), "netflix and chill" (as a
-   proposition).
+   proposition). Short questions count when their sexual meaning is plain:
+   "how big is it?", "do they jiggle?", "do you send?", "what's your cup
+   size?", "body count?". So does treating the recipient as a seller of
+   sexual content or offering to pay for it: "what's your menu?", "do you
+   sell?", "do you do customs?", "are you on onlyfans/fansly/throne?",
+   "cashapp?", sugar daddy offers, "findom", "pay pig". A bare "do you do
+   commissions?" counts as asking for paid content; asking about non-sexual
+   work the recipient plainly does ("your art is so clean, do you take
+   commissions?") is `ok`.
 2. **Slur**: racial, ethnic, homophobic, transphobic or misogynistic slurs,
-   including casual or "reclaimed" use and deliberate misspellings ("nigga",
-   "n1gger", "chink", "tranny", "troon", "fag", "foid"); Nazi slogans
-   or numbers (1488, "heil hitler"); dehumanising statements about a group.
+   including casual or "reclaimed" use, deliberate misspellings and the
+   imageboard coinages many members use ("nigga", "n1gger", "groid", "chink",
+   "jeet", "kike", "tranny", "tranner", "trannoid", "trannie", "troon",
+   "fag", "newfag", "foid", "femoid", "roastie", "trap" when it describes a
+   person); Nazi and antisemitic codes ("1488", "heil hitler", "(((them)))",
+   "day of the rope"); dehumanising statements about a group.
    Ableist words ("retarded", "tard", "sperg", "autist") are `rude` only
    when aimed at the recipient as an insult; casual or self-directed use ("I
    might be retarded but...") is `ok`.
 3. **Insult**: name-calling or degrading remarks aimed at the recipient ("you
    whore", "dumb slut", "hi bitch", "are you retarded"), body shaming, mocking
    the recipient's gender identity ("you'll never be a woman"), accusing the
-   recipient of being a pedophile.
+   recipient of being a pedophile. Insults are often creative ("you look like
+   you lost a fight with a blender", "subhuman", "failed abortion"), and those
+   count too. Transphobic insults include questioning whether the recipient
+   is a "real" woman or man, demanding to see their hands, voice or Adam's
+   apple to "clock" them, "post hands", "failed male", "man in a dress",
+   "AGP", "dilate", calling them mentally ill or mutilated for being trans,
+   and "41%" or "join the 41%" (a jab about trans suicide rates, which is also
+   self-harm encouragement). Profiles show the share of intros a member
+   replies to, so "41%" about a reply rate is `ok`. Imageboard insults aimed
+   at the recipient count too: "cope", "seethe", "ngmi", "npc", "midwit",
+   "soyboy", "cuck", "hon", "clocky", "used goods", "hit the wall".
 4. **Violence**: threats or violent fantasies about the recipient ("I'll stab
    you", "let me cut you up", "you just need to be beaten"), even as a joke.
-5. **Self-harm**: telling the recipient to kill or hurt themselves ("kys",
-   "slit your wrists"), or sincere statements that the sender will kill or
-   harm themselves.
+5. **Self-harm**: telling the recipient to kill or hurt themselves, however
+   it's phrased ("kys", "k y s", "kill urself", "off yourself", "end your
+   life", "unalive yourself", "commit die", "commit sudoku", "rope", "neck
+   yourself", "go jump off a bridge", "jump in front of a train", "walk into
+   traffic", "drink bleach", "sewerslide", "an hero", "do us all a favour",
+   "nobody would miss you", "the world would be better without you", "cut
+   deeper"), or wishing them dead ("hope you die", "hope you get hit by a
+   bus"), even as a joke, or sincere statements that the sender will kill or
+   harm themselves. Telling someone not to hurt themselves ("don't kys,
+   you're too cute") is `ok`.
 6. **Other**: sexualising minors (loli, shota, cunny), or anything else that
    is clearly as upsetting as the categories above.
 
@@ -115,6 +143,9 @@ or remark is echoing the profile: judge it as written.
   "therapist", "Scunthorpe", "cocktail", "analysis", "dominate the game".
 - Messages in other languages follow the same rules: "caralho" or "puta madre"
   as casual swearing are `ok`; "puta" aimed at the recipient is `rude`.
+- Ordinary questions that share words with the coded ones: "do you send
+  memes?", "what's on the menu at your café?", "are you on steam?", "how big
+  is your cat?".
 - Links: judge a GIF or video link by the words in its URL. If the words don't
   say what it shows, use `ok` unless they suggest sexual content.
 
@@ -175,6 +206,7 @@ For each message, write a paraphrase that:
 
 Leave a message out instead when:
 
-- the message sexualises minors, or
+- the message sexualises minors, describes a way to kill or harm oneself, or
+  threatens sexual violence, or
 - you can't write a paraphrase that satisfies the rules above, for example
   when the whole point of the message is one person's identity.

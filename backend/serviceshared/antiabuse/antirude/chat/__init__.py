@@ -12,7 +12,8 @@ _DIR = Path(__file__).parent
 
 _ALWAYS_RUDE = re.compile(
     r"\b(1488|chinks?|cunny|faggots?|heil hitler|kikes?|lolis?|lolicon|"
-    r"niggas?|niggers?|shota|shotacon|sieg heil|thot|tranny|trannies|troons?|"
+    r"niggas?|niggers?|shota|shotacon|sieg heil|thot|"
+    r"trann(?:ys?|ies?|oids?|ers?)|troons?|"
     r"you(?: wi|['’])ll never be a woman|ywnbaw)\b",
     re.IGNORECASE)
 

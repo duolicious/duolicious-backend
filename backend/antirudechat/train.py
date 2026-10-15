@@ -148,8 +148,10 @@ def main() -> None:
     np.random.seed(0)
     torch.manual_seed(0)
 
-    with open(DIR / 'train.jsonl') as f:
-        labelled = [json.loads(line) for line in f]
+    labelled = [
+        json.loads(line)
+        for name in ['train.jsonl', 'synthetic.jsonl']
+        for line in (DIR / name).read_text().splitlines()]
     texts = [normalize_chat_message(e['text']) for e in labelled]
     targets = [float(e['rude']) for e in labelled]
 
