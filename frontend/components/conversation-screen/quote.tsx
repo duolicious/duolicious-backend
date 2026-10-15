@@ -272,6 +272,16 @@ const setQuote = (quote: Quote | null) => {
   return notify(eventKey, quote);
 };
 
+const setQuoteFromSelection = (
+  text: string,
+  attribution: string,
+  { start, end }: { start: number, end: number },
+) => setQuote(
+  start === end
+    ? null
+    : { text: text.slice(Math.min(start, end), Math.max(start, end)), attribution },
+);
+
 
 // ──────────────────────────────────────────────────────────────────────────
 // Exports – gathered here per request
@@ -289,6 +299,7 @@ export {
   quoteToMessageMarkdown,
   quoteToPreviewMarkdown,
   setQuote,
+  setQuoteFromSelection,
   stripLeadingQuoteBlock,
   TextBlock,
   TextToken,

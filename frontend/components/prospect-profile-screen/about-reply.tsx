@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Platform,
-  TextInput,
   View,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import { DefaultText, defaultFontFamily, defaultFontSize } from '../default-text';
+import { DefaultText } from '../default-text';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { setQuote } from '../conversation-screen/quote';
 import { AboutReplyHint } from '../hints/about-reply-hint';
+import { NativeAboutText } from './native-about-text';
 
 const WebAboutText = ({
   name,
@@ -72,55 +72,6 @@ const WebAboutText = ({
         {about}
       </DefaultText>
     </View>
-  );
-};
-
-const NativeAboutText = ({
-  name,
-  about,
-  color,
-}: {
-  name: string,
-  about: string,
-  color: string,
-}) => {
-  const noEditProps = Platform.OS === 'android'
-    ? {
-        editable: true,
-        showSoftInputOnFocus: false,
-        caretHidden: true,
-        onChangeText: () => {},
-      }
-    : {
-        editable: false,
-      };
-
-  return (
-    <TextInput
-      value={about}
-      multiline={true}
-      scrollEnabled={false}
-      onSelectionChange={(e) => {
-        const { start, end } = e.nativeEvent.selection;
-        const a = Math.min(start, end);
-        const b = Math.max(start, end);
-        if (a === b) {
-          setQuote(null);
-        } else {
-          setQuote({ text: about.slice(a, b), attribution: name });
-        }
-      }}
-      style={{
-        color,
-        fontFamily: defaultFontFamily,
-        fontSize: defaultFontSize,
-        padding: 0,
-        margin: 0,
-        textAlignVertical: 'top',
-        includeFontPadding: false,
-      }}
-      {...noEditProps}
-    />
   );
 };
 
