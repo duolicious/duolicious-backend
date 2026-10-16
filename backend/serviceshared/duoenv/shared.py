@@ -7,6 +7,8 @@ from serviceshared.duoenv.read import (
     str_with,
 )
 
+OMP_NUM_THREADS = required_int('OMP_NUM_THREADS')
+
 DB_HOST = required_str('DUO_DB_HOST')
 DB_PORT = required_str('DUO_DB_PORT')
 DB_USER = required_str('DUO_DB_USER')
