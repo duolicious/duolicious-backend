@@ -311,15 +311,15 @@ const GalleryScreen = ({
 
   useEffect(() => {
     if (morph) return;
-    chromeIn.value = withTiming(1, TIMING);
+    chromeIn.set(withTiming(1, TIMING));
   }, []);
 
   const prevIn = useSharedValue(openedIndex > 0 ? 1 : 0);
   const nextIn = useSharedValue(openedIndex < album.length - 1 ? 1 : 0);
 
   useEffect(() => {
-    prevIn.value = withTiming(index > 0 ? 1 : 0, TIMING);
-    nextIn.value = withTiming(index < album.length - 1 ? 1 : 0, TIMING);
+    prevIn.set(withTiming(index > 0 ? 1 : 0, TIMING));
+    nextIn.set(withTiming(index < album.length - 1 ? 1 : 0, TIMING));
   }, [index, album.length]);
 
   const prevChevronOpacity = useDerivedValue(() =>
@@ -377,7 +377,7 @@ const GalleryScreen = ({
   // slot and so never flickers.
   const scrollX = useSharedValue(0);
   useEffect(() => {
-    scrollX.value = index * width;
+    scrollX.set(index * width);
   }, [width]); // re-home only on a resize; navigation animates scrollX itself
 
   const justNavigated = useSharedValue(false);
@@ -407,29 +407,29 @@ const GalleryScreen = ({
   const goTo = useCallback((next: number) => {
     const target = Math.max(0, Math.min(album.length - 1, next));
     if (target === index) {
-      scrollX.value = withTiming(index * width, PAGE_TIMING);
+      scrollX.set(withTiming(index * width, PAGE_TIMING));
       return;
     }
-    dismissX.value = 0;
-    dismissY.value = 0;
+    dismissX.set(0);
+    dismissY.set(0);
     if (zoomScale.value > 1 + 1e-5) {
-      zoomScale.value = withTiming(1, PAGE_TIMING);
-      zoomTranslateX.value = withTiming(0, PAGE_TIMING);
-      zoomTranslateY.value = withTiming(0, PAGE_TIMING);
-      scrollX.value = withTiming(
+      zoomScale.set(withTiming(1, PAGE_TIMING));
+      zoomTranslateX.set(withTiming(0, PAGE_TIMING));
+      zoomTranslateY.set(withTiming(0, PAGE_TIMING));
+      scrollX.set(withTiming(
         target * width,
         PAGE_TIMING,
         (finished) => {
           if (finished) runOnJS(commitIndex)(target);
         },
-      );
+      ));
       return;
     }
-    zoomScale.value = 1;
-    zoomTranslateX.value = 0;
-    zoomTranslateY.value = 0;
+    zoomScale.set(1);
+    zoomTranslateX.set(0);
+    zoomTranslateY.set(0);
     setIndex(target);
-    scrollX.value = withTiming(target * width, PAGE_TIMING);
+    scrollX.set(withTiming(target * width, PAGE_TIMING));
   }, [album.length, index, width, commitIndex]);
 
   // Until this screen has drawn the photo over the preview, the preview is
@@ -456,13 +456,13 @@ const GalleryScreen = ({
 
     setExpandedPhoto({ ...expandedPhoto, covered: true });
 
-    progress.value = withTiming(
+    progress.set(withTiming(
       1,
       TIMING,
       (finished) => {
         if (finished) runOnJS(setPhase)('open');
       },
-    );
+    ));
   }, [expandedPhoto, isCovering, container]);
 
   // However this screen goes away, the preview it hid must come back.
@@ -499,18 +499,17 @@ const GalleryScreen = ({
 
     closeBackButtonClaim();
 
-    backdropAtClose.value =
-      dragBackdropOpacity(dismissX.value, dismissY.value);
+    backdropAtClose.set(dragBackdropOpacity(dismissX.value, dismissY.value));
 
     // `finish` runs even if the timing is interrupted: better to cut the
     // animation short than to leave the navigation permanently prevented.
     if (morphOnClose) {
       setPhase('closing');
-      progress.value = withTiming(
+      progress.set(withTiming(
         0,
         TIMING,
         () => { runOnJS(finish)(); },
-      );
+      ));
       return;
     }
 
@@ -519,11 +518,11 @@ const GalleryScreen = ({
     // Let any hidden preview show again now, at the start of the fade, so the
     // profile is already there as the viewer dissolves.
     setExpandedPhoto(null);
-    fadeOut.value = withTiming(
+    fadeOut.set(withTiming(
       0,
       TIMING,
       () => { runOnJS(finish)(); },
-    );
+    ));
   }, [morphOnClose]);
 
   const finishAndPop = useCallback((pop: () => void) => {
@@ -558,8 +557,8 @@ const GalleryScreen = ({
     // over the same time. Without a morph the gallery just fades from where
     // the photo was flicked - leave the offset be.
     if (morphOnClose) {
-      dismissX.value = withTiming(0, TIMING);
-      dismissY.value = withTiming(0, TIMING);
+      dismissX.set(withTiming(0, TIMING));
+      dismissY.set(withTiming(0, TIMING));
     }
     onPressBack();
   }, [onPressBack, morphOnClose, dismissX, dismissY]);

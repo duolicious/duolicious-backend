@@ -12,7 +12,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Fragment,
-  MutableRefObject,
   ReactNode,
   memo,
   useCallback,
@@ -147,8 +146,6 @@ const buildAlbum = (
 
 const primaryPhotoBigScreenRadii = { bottomLeft: 12, bottomRight: 12 };
 
-type ProspectNavigation = NativeStackNavigationProp<ProspectParamList>;
-type ProspectNavigationRef = MutableRefObject<ProspectNavigation | undefined>;
 
 type ProspectScreenNavigation = CompositeNavigationProp<
   NativeStackNavigationProp<ProspectParamList>,
@@ -162,16 +159,6 @@ type ProspectScreenProps = CompositeScreenProps<
 const Stack = createNativeStackNavigator();
 
 const ProspectProfileScreen = () => {
-  const navigationRef = useRef<ProspectNavigation | undefined>(undefined);
-
-  const ProspectProfileScreen_ = useMemo(() => {
-    return Content(navigationRef);
-  }, [navigationRef]);
-
-  const InDepthScreen_ = useMemo(() => {
-    return InDepthScreen(navigationRef);
-  }, [navigationRef]);
-
   return (
     <Stack.Navigator
       screenOptions={{
@@ -180,8 +167,8 @@ const ProspectProfileScreen = () => {
         animation: 'slide_from_right',
       }}
     >
-      <Stack.Screen name="Prospect Profile" component={ProspectProfileScreen_} />
-      <Stack.Screen name="In-Depth" component={InDepthScreen_} />
+      <Stack.Screen name="Prospect Profile" component={Content} />
+      <Stack.Screen name="In-Depth" component={InDepthScreen} />
     </Stack.Navigator>
   );
 };
@@ -297,11 +284,11 @@ const FloatingProfileInteractionButton = ({
   const { hovered, hoverProps } = useHover();
 
   const fadeOut = useCallback(() => {
-    opacity.value = 0.4;
+    opacity.set(0.4);
   }, []);
 
   const fadeIn = useCallback(() => {
-    opacity.value = withTiming(1, { duration: 50 });
+    opacity.set(withTiming(1, { duration: 50 }));
   }, []);
 
   return (
@@ -495,44 +482,31 @@ const AnonymousSignInCta = ({navigation, name}: {
   );
 };
 
+const seeQAndAButtonChevron =
+  <View
+    style={{
+      position: 'absolute',
+      top: 0,
+      right: 15,
+      height: '100%',
+      justifyContent: 'center',
+    }}
+  >
+    <Ionicons style={{ fontSize: 20, color: 'white' }} name="chevron-forward"/>
+  </View>;
+
 const SeeQAndAButton = ({personUuid, name}: {
   personUuid: string | null | undefined,
   name: string | undefined,
 }) => {
-  const containerStyle = useRef({
-    marginTop: 40,
-    marginLeft: 10,
-    marginRight: 10,
-  }).current;
-  const textStyle = useRef({
-    marginLeft: 35,
-    marginRight: 35,
-  }).current;
-  const iconContainerStyle = useRef<StyleProp<ViewStyle>>({
-    position: 'absolute',
-    top: 0,
-    right: 15,
-    height: '100%',
-    justifyContent: 'center',
-  }).current;
-  const iconStyle = useRef<StyleProp<TextStyle>>({
-    fontSize: 20,
-    color: 'white',
-  }).current;
-  const extraChildren = useRef(
-    <View style={iconContainerStyle}>
-      <Ionicons style={iconStyle} name="chevron-forward"/>
-    </View>
-  ).current;
-
   const onPress = useNavigationToInDepth(personUuid);
 
   return (
     <ButtonWithCenteredText
-      containerStyle={containerStyle}
-      textStyle={textStyle}
+      containerStyle={styles.seeQAndAButtonContainer}
+      textStyle={styles.seeQAndAButtonText}
       onPress={onPress}
-      extraChildren={extraChildren}
+      extraChildren={seeQAndAButtonChevron}
       loading={name === undefined}
       borderColor="rgba(255, 255, 255, 0.2)"
       borderWidth={1}
@@ -873,13 +847,6 @@ const hasAnyBasics = (data: UserData | null | undefined): boolean => {
   );
 };
 
-const Content = (navigationRef: ProspectNavigationRef) =>  {
-  return (props: ProspectScreenProps) => <CurriedContent
-    navigationRef={navigationRef}
-    {...props}
-  />;
-};
-
 const useProfileBackgroundColor = (data: UserData | undefined): string => {
   const { appThemeName, appTheme } = useAppTheme();
 
@@ -1150,11 +1117,7 @@ const ProspectProfilePanel = memo(({ handle, data, style }: {
   );
 });
 
-const CurriedContent = ({navigationRef, navigation, route}: ProspectScreenProps & {
-  navigationRef: ProspectNavigationRef,
-}) => {
-  navigationRef.current = navigation;
-
+const Content = ({navigation, route}: ProspectScreenProps) => {
   const insets = useSafeAreaInsets();
 
   // The route param is a "handle": either a uuid (legacy/shared links) or a
@@ -1187,7 +1150,7 @@ const CurriedContent = ({navigationRef, navigation, route}: ProspectScreenProps 
       ? {
         layout: 'column',
         transition: Platform.OS === 'web' ? 'instant' : 'fade',
-        onPress: () => navigationRef.current?.goBack(),
+        onPress: () => navigation.goBack(),
       }
       : null
   );
@@ -1201,13 +1164,14 @@ const CurriedContent = ({navigationRef, navigation, route}: ProspectScreenProps 
   const [hideBottomButtonsHint, setHideBottomButtonsHint] = useState(
     () => !!getProspectHint(handle)?.hideBottomButtons,
   );
+  const [hintHandle, setHintHandle] = useState(handle);
+  if (hintHandle !== handle) {
+    setHintHandle(handle);
+    setHideBottomButtonsHint(!!getProspectHint(handle)?.hideBottomButtons);
+  }
   useEffect(() => {
-    const h = getProspectHint(handle);
-    if (h?.hideBottomButtons) {
-      setHideBottomButtonsHint(true);
+    if (getProspectHint(handle)?.hideBottomButtons) {
       setProspectHint(handle, { hideBottomButtons: false });
-    } else {
-      setHideBottomButtonsHint(false);
     }
   }, [handle]);
 
@@ -1855,6 +1819,15 @@ const Body = ({
 };
 
 const styles = StyleSheet.create({
+  seeQAndAButtonContainer: {
+    marginTop: 40,
+    marginLeft: 10,
+    marginRight: 10,
+  },
+  seeQAndAButtonText: {
+    marginLeft: 35,
+    marginRight: 35,
+  },
   overlay: {
     ...StyleSheet.absoluteFill,
     zIndex: 999,
@@ -1882,4 +1855,4 @@ export {
   resetProspectProfileCache,
   useProspectProfile,
 };
-export type { FetchedUserData, ProspectNavigationRef };
+export type { FetchedUserData };

@@ -84,7 +84,7 @@ const AudioPlayer = (props: AudioPlayerProps) => {
 
   // Deferred load: scrolling past dozens of messages shouldn't fetch them all.
   const player = useAudioPlayer(null);
-  const hasLoaded = useRef(false);
+  const loadedUuid = useRef<string | null>(null);
 
   const isMounted = useRef(true);
 
@@ -169,9 +169,9 @@ const AudioPlayer = (props: AudioPlayerProps) => {
         return;
       }
 
-      if (!hasLoaded.current) {
+      if (loadedUuid.current !== props.uuid) {
         player.replace({ uri: `${AUDIO_URL}/${props.uuid}.aac` });
-        hasLoaded.current = true;
+        loadedUuid.current = props.uuid;
       }
 
       player.play();
@@ -205,11 +205,12 @@ const AudioPlayer = (props: AudioPlayerProps) => {
     };
   }, []);
 
-  useEffect(() => {
-    hasLoaded.current = false;
+  const [shownUuid, setShownUuid] = useState(props.uuid);
+  if (shownUuid !== props.uuid) {
+    setShownUuid(props.uuid);
     setIsPlaying(false);
     setSecondsElapsed(0);
-  }, [props.uuid]);
+  }
 
   const middleText = (() => {
     if (props.presentation === 'conversation') {

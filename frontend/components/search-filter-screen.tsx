@@ -10,6 +10,7 @@ import {
   FC,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 import { DefaultText } from './default-text';
@@ -588,7 +589,7 @@ const useQAndAFilters = () => {
 
   const clearSearchText = useCallback(() => setSearchText(""), []);
 
-  const _fetchQuestionSearch = useCallback(_.debounce(async (q: string) => {
+  const _fetchQuestionSearch = useMemo(() => _.debounce(async (q: string) => {
     const results = await fetchQuestionSearch(q);
 
     setSearchResults(results);

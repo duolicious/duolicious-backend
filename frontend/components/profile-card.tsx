@@ -275,6 +275,7 @@ const ProfileCard = ({
   const onMessageFrom = useCallback(
     () => {
       setProspectMessagedPersonState(true);
+      // eslint-disable-next-line react-hooks/immutability
       item.prospect_messaged_person = true;
     },
     [setProspectMessagedPersonState, item]
@@ -283,6 +284,7 @@ const ProfileCard = ({
   const onMessageTo = useCallback(
     () => {
       setPersonMessagedProspectState(true);
+      // eslint-disable-next-line react-hooks/immutability
       item.person_messaged_prospect = true;
     },
     [setPersonMessagedProspectState, item]

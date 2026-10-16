@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Animated,
   BackHandler,
@@ -29,14 +29,16 @@ const DefaultModal = ({
   const { width, height } = useWindowDimensions();
   // Track whether the modal should be mounted in the tree
   const [isMounted, setIsMounted] = useState(visible);
+  if (visible && !isMounted) {
+    setIsMounted(true);
+  }
 
   // Opacity value for the fade animation
-  const opacity = useRef(new Animated.Value(0)).current;
+  const [opacity] = useState(() => new Animated.Value(0));
 
   // Whenever `visible` changes, run the fade in/out animation
   useEffect(() => {
     if (visible) {
-      setIsMounted(true);
       Animated.timing(opacity, {
         toValue: 1,
         duration: 250,

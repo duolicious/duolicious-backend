@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import debounce from 'lodash/debounce';
 import { getDraftMessage, setDraftMessage } from '../../../kv-storage/draft-messages';
 import { sessionPersonUuid } from '../../../kv-storage/session-token';
@@ -23,10 +23,7 @@ const useDraftMessage = (
 
   // Load draft when the identifiers become available / change.
   useEffect(() => {
-    if (!senderPersonUuid || !recipientPersonUuid) {
-      setDraft(null);
-      return;
-    }
+    if (!senderPersonUuid || !recipientPersonUuid) return;
 
     let isCancelled = false;
     (async () => {
@@ -42,8 +39,8 @@ const useDraftMessage = (
   }, [senderPersonUuid, recipientPersonUuid]);
 
   // Debounced persist using lodash – rebuilt when the conversation identifiers change.
-  const saveDraft = useCallback(
-    debounce(
+  const saveDraft = useMemo(
+    () => debounce(
       (value: string) => {
         if (senderPersonUuid && recipientPersonUuid) {
           setDraftMessage(
@@ -65,7 +62,7 @@ const useDraftMessage = (
     return () => saveDraft?.flush();
   }, [saveDraft]);
 
-  return [draft, saveDraft];
+  return [senderPersonUuid && recipientPersonUuid ? draft : null, saveDraft];
 };
 
 export { useDraftMessage };

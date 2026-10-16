@@ -59,13 +59,10 @@ const ModalBottomSheet = ({
   const sheetHeight = Math.round(heightFraction * (windowHeight - top));
 
   const [isMounted, setIsMounted] = useState(visible);
+  if (visible && !isMounted) {
+    setIsMounted(true);
+  }
   const translateY = useSharedValue(sheetHeight);
-
-  useEffect(() => {
-    if (visible) {
-      setIsMounted(true);
-    }
-  }, [visible]);
 
   useEffect(() => {
     if (!isMounted) {
@@ -73,8 +70,8 @@ const ModalBottomSheet = ({
     }
 
     if (visible) {
-      translateY.value = sheetHeight;
-      translateY.value = withTiming(
+      translateY.set(sheetHeight);
+      translateY.set(withTiming(
         0,
         { duration: SLIDE_DURATION },
         (finished) => {
@@ -82,9 +79,9 @@ const ModalBottomSheet = ({
             runOnJS(onOpened)();
           }
         },
-      );
+      ));
     } else {
-      translateY.value = withTiming(
+      translateY.set(withTiming(
         sheetHeight,
         { duration: SLIDE_DURATION },
         (finished) => {
@@ -95,7 +92,7 @@ const ModalBottomSheet = ({
             runOnJS(onClosed)();
           }
         },
-      );
+      ));
     }
   }, [visible, isMounted]);
 
@@ -119,7 +116,7 @@ const ModalBottomSheet = ({
       .activeOffsetY(10)
       .onUpdate((e) => {
         'worklet';
-        translateY.value = Math.max(0, e.translationY);
+        translateY.set(Math.max(0, e.translationY));
       })
       .onEnd((e) => {
         'worklet';
@@ -129,7 +126,7 @@ const ModalBottomSheet = ({
         ) {
           runOnJS(onRequestClose)();
         } else {
-          translateY.value = withTiming(0, { duration: SLIDE_DURATION });
+          translateY.set(withTiming(0, { duration: SLIDE_DURATION }));
         }
       }),
     [translateY, sheetHeight, onRequestClose],

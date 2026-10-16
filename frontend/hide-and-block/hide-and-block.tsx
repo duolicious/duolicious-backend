@@ -1,7 +1,6 @@
 import {
   useEffect,
   useState,
-  useRef,
 } from 'react';
 import { japi } from '../api/api';
 import { listen, notify, lastEvent } from '../events/events';
@@ -44,11 +43,11 @@ const useSkipped = (
   personUuid: string | null | undefined,
   onPostSkip?: () => void
 ) => {
-  const personUuidRef = useRef<string | null | undefined>(personUuid);
+  const [statePersonUuid, setStatePersonUuid] = useState(personUuid);
   const [state, setState] = useState<SkippedState>(lastState(personUuid));
 
-  if (personUuidRef.current !== personUuid) {
-    personUuidRef.current = personUuid;
+  if (statePersonUuid !== personUuid) {
+    setStatePersonUuid(personUuid);
     setState((oldState) => {
       const newState = lastState(personUuid)
 

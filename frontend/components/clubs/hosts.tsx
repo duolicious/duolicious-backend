@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -30,13 +30,13 @@ const EDGE = 8;
 const FADE_DURATION = 150;
 
 const useLatest = <T,>(value: T | null): T | null => {
-  const ref = useRef(value);
+  const [latest, setLatest] = useState(value);
 
-  if (value !== null) {
-    ref.current = value;
+  if (value !== null && value !== latest) {
+    setLatest(value);
   }
 
-  return ref.current;
+  return value ?? latest;
 };
 
 const firstClubCard = (card: OpenClubCard): OpenClubCard =>

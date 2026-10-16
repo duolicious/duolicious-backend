@@ -17,7 +17,7 @@ const usePressableAnimation = (isPressed = false) => {
   const progress = useSharedValue(restingValue);
 
   useEffect(() => {
-    progress.value = withTiming(restingValue, { duration: HOVER_DURATION_MS });
+    progress.set(withTiming(restingValue, { duration: HOVER_DURATION_MS }));
   }, [restingValue]);
 
   const colors = [
@@ -31,11 +31,11 @@ const usePressableAnimation = (isPressed = false) => {
   }), colors);
 
   const onPressIn = useCallback(() => {
-    progress.value = 1;
+    progress.set(1);
   }, []);
 
   const onPressOut = useCallback(() => {
-    progress.value = withTiming(restingValue, { duration: HOVER_DURATION_MS });
+    progress.set(withTiming(restingValue, { duration: HOVER_DURATION_MS }));
   }, [restingValue]);
 
   return { backgroundStyle, onPressIn, onPressOut, hoverProps };

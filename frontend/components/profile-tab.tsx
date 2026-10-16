@@ -23,7 +23,12 @@ import {
   NativeStackScreenProps,
   createNativeStackNavigator,
 } from '@react-navigation/native-stack';
-import { CompositeScreenProps } from '@react-navigation/native';
+import {
+  CompositeScreenProps,
+  NavigationProp,
+  ParamListBase,
+  useNavigation,
+} from '@react-navigation/native';
 import type { ProfileParamList, RootParamList } from '../navigation/linking';
 import { navigationContainerRef } from '../App';
 import { ButtonForOption, ButtonForOptionProps } from './button/option';
@@ -346,13 +351,13 @@ const DisplayNameAndAboutPerson = ({data}: {data: ProfileInfo}) => {
     return false;
   };
 
-  const debouncedOnChangeNameText = useCallback(
-    _.debounce(enqueueName, 1000),
+  const debouncedOnChangeNameText = useMemo(
+    () => _.debounce(enqueueName, 1000),
     []
   );
 
-  const debouncedOnChangeAboutText = useCallback(
-    _.debounce(enqueueAbout, 1000),
+  const debouncedOnChangeAboutText = useMemo(
+    () => _.debounce(enqueueAbout, 1000),
     []
   );
 
@@ -515,6 +520,16 @@ const MusicSection = ({data}: {data: ProfileInfo}) => {
 const optionGroupToDataKey = (og: OptionGroup<OptionGroupInputs>) =>
   og.title.toLowerCase().replaceAll(' ', '_');
 
+const OptionButton = (props: ButtonForOptionProps) => {
+  const navigation = useNavigation<NavigationProp<ParamListBase>>();
+
+  return <ButtonForOption
+    navigation={navigation}
+    navigationScreen="Profile Option Screen"
+    {...props}
+  />;
+};
+
 const Options = ({ navigation, data }: {
   navigation: ProfileTabScreenProps['navigation'],
   data: ProfileInfo,
@@ -601,14 +616,6 @@ const Options = ({ navigation, data }: {
     });
   }, []);
 
-  const Button_ = useCallback((props: ButtonForOptionProps) => {
-    return <ButtonForOption
-      navigation={navigation}
-      navigationScreen="Profile Option Screen"
-      {...props}
-    />;
-  }, [navigation]);
-
   const signOut = useCallback(async () => {
     setIsLoadingSignOut(true);
     await logout();
@@ -661,7 +668,7 @@ const Options = ({ navigation, data }: {
         style={{ marginBottom: 10 }}
       />
       {!isCompletelyVerified && <>
-          <Button_
+          <OptionButton
             setting=""
             optionGroups={verificationOptionGroups}
             showSkipButton={false}
@@ -693,7 +700,7 @@ const Options = ({ navigation, data }: {
       <Title>Basics</Title>
       {
         _basicsOptionGroups.map((og, i) =>
-          <Button_
+          <OptionButton
             key={i}
             setting={
               og.title === 'Height' ?
@@ -713,7 +720,7 @@ const Options = ({ navigation, data }: {
       <Title>Themes</Title>
       {
         _themePickerOptionGroups.map((og, i) =>
-          <Button_
+          <OptionButton
             key={i}
             setting={
               og.title === 'Profile Theme'
@@ -762,7 +769,7 @@ const Options = ({ navigation, data }: {
       <Title style={{ marginTop: 70 }}>Notification Settings</Title>
       {
         _notificationSettingsOptionGroups.map((og, i) =>
-          <Button_
+          <OptionButton
             key={i}
             setting={asSettingLabel(getCurrentValue(og.input))}
             optionGroups={_notificationSettingsOptionGroups.slice(i)}
@@ -772,7 +779,7 @@ const Options = ({ navigation, data }: {
       <Title>Privacy Settings</Title>
       {
         _visiblePrivacySettingsOptionGroups.map((og, i) =>
-          <Button_
+          <OptionButton
             key={i}
             setting={asSettingLabel(getCurrentValue(og.input))}
             // Pass the FULL privacy list (not the filtered visible one) so the
@@ -789,7 +796,7 @@ const Options = ({ navigation, data }: {
       <Title>General Settings</Title>
       {
         _generalSettingsOptionGroups.map((og, i) =>
-          <Button_
+          <OptionButton
             key={i}
             setting={asSettingLabel(getCurrentValue(og.input))}
             optionGroups={_generalSettingsOptionGroups.slice(i)}
@@ -815,13 +822,13 @@ const Options = ({ navigation, data }: {
       />
 
       <Title style={{ marginTop: 70 }}>Deactivate My Account</Title>
-      <Button_ optionGroups={deactivationOptionGroups} setting="" showSkipButton={false}/>
+      <OptionButton optionGroups={deactivationOptionGroups} setting="" showSkipButton={false}/>
 
       {data.paypal_subscription &&
         <>
           <Title>Gold Subscription</Title>
           {data.paypal_subscription.can_cancel
-            ? <Button_ optionGroups={cancelGoldOptionGroups} setting="" showSkipButton={false}/>
+            ? <OptionButton optionGroups={cancelGoldOptionGroups} setting="" showSkipButton={false}/>
             : <>
                 <DefaultText style={{ color: '#999' }}>
                   Your Gold subscription is cancelled. Gold ends on {}
@@ -838,7 +845,7 @@ const Options = ({ navigation, data }: {
       }
 
       <Title>Delete My Account</Title>
-      <Button_ optionGroups={deletionOptionGroups} setting=""/>
+      <OptionButton optionGroups={deletionOptionGroups} setting=""/>
 
       <Title style={{ marginTop: 70 }}>Export My Data</Title>
       <ButtonForOption
