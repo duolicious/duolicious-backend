@@ -83,9 +83,9 @@ const Popover = ({
           runOnJS(onClosed)();
         }
       })}
-      style={StyleSheet.absoluteFillObject}
+      style={StyleSheet.absoluteFill}
     >
-      <Pressable onPress={onRequestClose} style={StyleSheet.absoluteFillObject} />
+      <Pressable onPress={onRequestClose} style={StyleSheet.absoluteFill} />
       <View
         style={{
           position: 'absolute',

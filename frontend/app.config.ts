@@ -22,10 +22,6 @@ const config: ExpoConfig = {
   assetBundlePatterns: [
     "**/*"
   ],
-  androidNavigationBar: {
-    barStyle: "dark-content",
-    backgroundColor: '#ffffff'
-  },
   extra: {
     eas: {
       projectId: "a756e088-c07a-4034-b9c5-51f50139ac21"
@@ -131,6 +127,12 @@ const config: ExpoConfig = {
       "expo-audio",
       {
         enableBackgroundPlayback: false,
+      }
+    ],
+    [
+      "expo-navigation-bar",
+      {
+        style: "dark",
       }
     ],
   ],

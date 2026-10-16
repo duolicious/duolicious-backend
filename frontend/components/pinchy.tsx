@@ -8,9 +8,9 @@ import {
 import {
   ActivityIndicator,
   Image,
-  ImageStyle,
   StyleSheet,
   View,
+  ViewStyle,
 } from 'react-native';
 import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import {
@@ -107,7 +107,7 @@ const FitWithinScreenImage = ({
   cropUri: string | null;
   blurhash: string | null;
   isGif: boolean;
-  animatedStyle: AnimatedStyle<ImageStyle>;
+  animatedStyle: AnimatedStyle<ViewStyle>;
   onUpdateImageSize: (size: { imageWidth: number, imageHeight: number }) => void;
   geometry?: PhotoGeometry;
   viewport: { width: number, height: number };
@@ -569,7 +569,7 @@ const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, o
     [pinch, pan, doubleTap, edgeTap],
   );
 
-  const animatedStyle = useAnimatedStyle<ImageStyle>(() => {
+  const animatedStyle = useAnimatedStyle<ViewStyle>(() => {
     const dismissX = dismiss ? dismiss.x.value : 0;
     const dismissY = dismiss ? dismiss.y.value : 0;
 
@@ -607,7 +607,7 @@ const Pinchy = ({uuid, extraExts, blurhash, geometry, viewport, zoom, dismiss, o
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   spinnerOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
   },

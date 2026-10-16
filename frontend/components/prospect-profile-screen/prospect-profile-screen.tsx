@@ -1075,6 +1075,7 @@ const ProspectProfile = ({
   return (
     <ScrollView
       style={{ backgroundColor }}
+      scrollsChildToFocus={false}
       onLayout={(e) =>
         setRoundPrimaryPhoto(e.nativeEvent.layout.width > COLUMN_MAX_WIDTH)}
     >
@@ -1855,7 +1856,7 @@ const Body = ({
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 999,
   },
   wFull: {
