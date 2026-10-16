@@ -10,6 +10,7 @@ import { faWifi } from '@fortawesome/free-solid-svg-icons/faWifi';
 import { listen } from '../events/events';
 import { EV_NETWORK_IS_ONLINE } from '../network/network';
 import { DefaultText } from './default-text';
+import { useLatest } from '../util/use-latest';
 
 const HIDDEN_POSITION = -500;
 const SLIDE_DURATION = 300;
@@ -31,14 +32,9 @@ const ConnectionStatusBanner = () => {
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(HIDDEN_POSITION);
   const [banner, setBanner] = useState<Banner | null>(null);
-  const [lastBanner, setLastBanner] = useState<Banner>('offline');
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  if (banner !== null && banner !== lastBanner) {
-    setLastBanner(banner);
-  }
-
-  const displayedBanner = banner ?? lastBanner;
+  const displayedBanner = useLatest(banner) ?? 'offline';
 
   useEffect(() => listen<boolean>(EV_NETWORK_IS_ONLINE, (isOnline) => {
     if (isOnline === undefined) {
@@ -61,10 +57,10 @@ const ConnectionStatusBanner = () => {
   }, true), []);
 
   useEffect(() => {
-    translateY.value = withTiming(
+    translateY.set(withTiming(
       banner === null ? HIDDEN_POSITION : 0,
       { duration: SLIDE_DURATION },
-    );
+    ));
   }, [banner]);
 
   const animatedStyle = useAnimatedStyle(() => ({
