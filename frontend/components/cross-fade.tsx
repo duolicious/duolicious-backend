@@ -62,10 +62,10 @@ const CrossFade = ({
   useEffect(() => {
     const remaining = Math.max(0, minBackMs - (Date.now() - mountedAt));
 
-    progress.value = withDelay(
+    progress.set(withDelay(
       remaining,
       withTiming(showFront ? 1 : 0, { duration })
-    );
+    ));
   }, [showFront]);
 
   return (
@@ -100,7 +100,7 @@ const FadeTransition = ({
       return;
     }
 
-    progress.value = withTiming(1, { duration });
+    progress.set(withTiming(1, { duration }));
 
     const timeout = setTimeout(onDone, duration);
 

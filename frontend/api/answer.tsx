@@ -32,9 +32,11 @@ const viewerAnswerKey = (questionId: number) =>
 // Which questions have store entries, so sign-out can clear them all
 const storedQuestionIds = new Set<number>();
 
+const orUnanswered = (answer: ViewerAnswer | undefined): ViewerAnswer =>
+  answer ?? unansweredViewerAnswer;
+
 const getViewerAnswer = (questionId: number): ViewerAnswer =>
-  lastEvent<ViewerAnswer>(viewerAnswerKey(questionId))
-    ?? unansweredViewerAnswer;
+  orUnanswered(lastEvent<ViewerAnswer>(viewerAnswerKey(questionId)));
 
 // Updates what the viewer sees without writing to the server, e.g. for
 // settings (like publicness) that don't mean anything until there's an answer
@@ -64,7 +66,7 @@ const resetViewerAnswers = () => {
 const useViewerAnswer = (questionId: number): ViewerAnswer =>
   useDerivedEvent<ViewerAnswer, ViewerAnswer>(
     viewerAnswerKey(questionId),
-    (e) => e ?? unansweredViewerAnswer,
+    orUnanswered,
     [],
   );
 

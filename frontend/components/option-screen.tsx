@@ -336,6 +336,7 @@ const GivenName = forwardRef((props: InputProps<OptionGroupGivenName>, ref) => {
   }, [name]);
 
   const onChangeInputValue = useCallback((value: string) => {
+    if (value === name) return;
     setName(value);
     // Clear stale feedback immediately; the debounced check re-derives both the
     // validity error and the slug preview from the next server response.
@@ -346,7 +347,7 @@ const GivenName = forwardRef((props: InputProps<OptionGroupGivenName>, ref) => {
     // the user gets immediate feedback through the debounce and network delay
     // (an empty name is never checked, so it shows nothing).
     setIsChecking(!!value.trim());
-  }, []);
+  }, [name]);
 
   const submit = useCallback(async () => {
     setIsInvalid(false);
@@ -945,6 +946,16 @@ const RangeSlider = forwardRef((props: InputProps<OptionGroupRangeSlider>, ref) 
   );
 });
 
+const BoldList = ({ items }: { items: string[] }) =>
+  items.map((item, index) => (
+    <Fragment key={item}>
+      {index > 0 && (index === items.length - 1 ? ' and ' : ', ')}
+      <DefaultText disableTheme style={{ fontWeight: '700' }}>
+        {item}
+      </DefaultText>
+    </Fragment>
+  ));
+
 const VerificationText = ({
   verified,
   unverified
@@ -962,17 +973,7 @@ const VerificationText = ({
             textAlign: 'center',
           }}
         >
-          We were able to verify your {}
-          {verified.map((item, index) => (
-            <Fragment key={index}>
-              {index > 0 && index < verified.length - 1 && ', '}
-              {index === verified.length - 1 && ' and '}
-              <DefaultText disableTheme key={index} style={{ fontWeight: '700' }}>
-                {item}
-              </DefaultText>
-            </Fragment>
-          ))}
-          .
+          We were able to verify your <BoldList items={verified} />.
         </DefaultText>
       }
       {unverified.length > 0 &&
@@ -983,17 +984,7 @@ const VerificationText = ({
             textAlign: 'center',
           }}
         >
-          You can verify your {}
-          {unverified.map((item, index) => (
-            <Fragment key={index}>
-              {index > 0 && index < verified.length - 1 && ', '}
-              {index === verified.length - 1 && ' and '}
-              <DefaultText disableTheme style={{ fontWeight: '700' }}>
-                {item}
-              </DefaultText>
-            </Fragment>
-          ))}
-          {} later.
+          You can verify your <BoldList items={unverified} /> later.
         </DefaultText>
       }
     </View>

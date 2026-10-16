@@ -485,8 +485,8 @@ const ClubRow = () => {
     const x = _.clamp(
       contentOffset.x, 0, contentSize.width - layoutMeasurement.width);
 
-    detached.value = _.clamp(detached.value, x - buttonWidth.value, x);
-    scrollX.value = x;
+    detached.set(_.clamp(detached.value, x - buttonWidth.value, x));
+    scrollX.set(x);
 
     updateEdges({ x });
   };
@@ -521,7 +521,7 @@ const ClubRow = () => {
         }}
       >
         <View
-          onLayout={(e) => ifShown(e, (width) => buttonWidth.value = width)}
+          onLayout={(e) => ifShown(e, (width) => buttonWidth.set(width))}
           style={{ paddingLeft: 10 }}
         >
           <ClubsButton rowRef={rowRef} />

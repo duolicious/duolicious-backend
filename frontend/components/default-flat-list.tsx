@@ -608,9 +608,13 @@ const UntypedDefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>, ref:
     () => [styles.flatList, props.contentContainerStyle],
     [props.contentContainerStyle]);
 
+  const listRef = useMemo(
+    () => mergeRefs(flatList, props.innerRef),
+    [flatList, props.innerRef]);
+
   return (
     <FlatList
-      ref={mergeRefs(flatList, props.innerRef)}
+      ref={listRef}
       refreshing={false}
       onRefresh={props.disableRefresh ? undefined : onRefresh}
       onEndReachedThreshold={props.onEndReachedThreshold ?? 3}
@@ -647,9 +651,13 @@ const UntypedDefaultFlashList = <ItemT,>(props: DefaultFlashListProps<ItemT>, re
     ...(props.contentContainerStyle as object | undefined),
   }), [props.contentContainerStyle]);
 
+  const listRef = useMemo(
+    () => mergeRefs(flatList, props.innerRef),
+    [flatList, props.innerRef]);
+
   return (
     <FlashList
-      ref={mergeRefs(flatList, props.innerRef)}
+      ref={listRef}
       refreshing={false}
       onRefresh={props.disableRefresh ? undefined : onRefresh}
       onEndReachedThreshold={props.onEndReachedThreshold ?? 3}
