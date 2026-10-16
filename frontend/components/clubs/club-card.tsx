@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { ImageBackground } from 'expo-image';
@@ -34,6 +35,7 @@ import {
 } from '../../club/club';
 import { Avatar, useProfileLink } from '../avatar';
 import { Close } from '../button/close';
+import { IconButton } from '../button/icon-button';
 import { usePressableAnimation } from '../../animation/animation';
 import { Club } from '../club';
 import { DefaultText } from '../default-text';
@@ -45,6 +47,8 @@ import { showPointOfSale } from '../modal/point-of-sale-modal';
 import { notifyErrorToast, notifyLinkCopiedToast } from '../toast';
 
 const MAX_MEMBERS = 25;
+
+const TITLE_LINE_HEIGHT = 34;
 
 const onPressInvite = (clubName: string) => async () => {
   await Clipboard.setStringAsync(
@@ -72,12 +76,17 @@ type ClubCard = {
   members: ClubMember[],
 };
 
+type FetchedClubCard = ClubCard & { wasMember: boolean };
+
+type ClubCardCache = Map<string, FetchedClubCard>;
+
 const useClubCard = (
   name: string,
   isMember: boolean,
+  cache: ClubCardCache,
 ): ClubCard | 'error' | null => {
-  const [card, setCard] =
-    useState<ClubCard & { wasMember: boolean } | 'error' | null>(null);
+  const [card, setCard] = useState<FetchedClubCard | 'error' | null>(
+    () => cache.get(name) ?? null);
 
   const isMemberRef = useRef(isMember);
   isMemberRef.current = isMember;
@@ -90,15 +99,21 @@ const useClubCard = (
       const response = await japi<ClubCard>(
         'get', `/club-card?name=${encodeURIComponent(name)}`);
 
+      const fetched = response.ok && response.json
+        ? { ...response.json, wasMember }
+        : null;
+
+      if (fetched) {
+        cache.set(name, fetched);
+      }
+
       if (isCurrent) {
-        setCard(response.ok && response.json
-          ? { ...response.json, wasMember }
-          : 'error');
+        setCard((current) => fetched ?? current ?? 'error');
       }
     })();
 
     return () => { isCurrent = false; };
-  }, [name]);
+  }, [name, cache]);
 
   return card === null || card === 'error' ? card : {
     ...card,
@@ -285,13 +300,17 @@ const MemberRow = memo(({ member }: { member: ClubMember }) => {
 const ClubCardTitle = ({
   name,
   isScrolled,
+  onBack,
   onClose,
 }: {
   name: string,
   isScrolled: boolean,
+  onBack?: () => void,
   onClose?: () => void,
 }) => {
   const { appTheme } = useAppTheme();
+  const { fontScale } = useWindowDimensions();
+  const iconMarginTop = (TITLE_LINE_HEIGHT * fontScale - 24) / 2;
 
   return (
     <View
@@ -300,17 +319,39 @@ const ClubCardTitle = ({
         { borderBottomColor: isScrolled ? appTheme.inputColor : 'transparent' },
       ]}
     >
+      {onBack &&
+        <IconButton
+          label="Back"
+          onPress={onBack}
+          style={{ marginTop: iconMarginTop }}
+        >
+          <Ionicons
+            name="arrow-back"
+            style={{
+              fontSize: 24,
+              lineHeight: 24,
+              color: appTheme.secondaryColor,
+            }}
+          />
+        </IconButton>
+      }
       <DefaultText
         style={{
           fontFamily: 'TruenoBold',
           fontSize: 28,
-          lineHeight: 34,
-          flexShrink: 1,
+          lineHeight: TITLE_LINE_HEIGHT,
+          flex: 1,
+          wordBreak: 'break-word',
         }}
       >
         {name}
       </DefaultText>
-      {onClose && <Close onPress={onClose} style={{ position: 'relative' }} />}
+      {onClose &&
+        <Close
+          onPress={onClose}
+          style={{ position: 'relative', marginTop: iconMarginTop }}
+        />
+      }
     </View>
   );
 };
@@ -321,18 +362,24 @@ const ClubCardBody = ({
   rowPosition,
   onPressClub,
   onScroll,
+  initialScrollY,
+  cache,
 }: {
   name: string,
   isOpened: boolean,
   rowPosition: RowPosition,
   onPressClub: (name: string) => void,
   onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => void,
+  initialScrollY: number,
+  cache: ClubCardCache,
 }) => {
   const { appTheme } = useAppTheme();
   const [signedInUser] = useSignedInUser();
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const isMember = useIsClubMember(name);
-  const response = useClubCard(name, isMember);
+  const response = useClubCard(name, isMember, cache);
+  const scrollRef = useRef<ScrollView>(null);
+  const isScrollRestored = useRef(false);
   const fetched = isOpened ? response : null;
   const card = fetched === 'error' ? null : fetched;
 
@@ -422,13 +469,20 @@ const ClubCardBody = ({
       }
       {countHidden > 0 &&
         <View style={styles.joinPrompt}>
-          <DefaultText style={{ fontWeight: '700', fontSize: 16, textAlign: 'center' }}>
+          <DefaultText
+            style={{
+              fontWeight: '700',
+              fontSize: 16,
+              textAlign: 'center',
+              wordBreak: 'break-word',
+            }}
+          >
             {countHidden.toLocaleString()}
             {countHidden === 1 ? ' more person is in ' : ' more people are in '}
             {name}
           </DefaultText>
           <DefaultText style={{ color: appTheme.hintColor }}>
-            {isMember ? 'Search' : 'Join and search'} to see them all
+            {isMember ? 'Search' : 'Join and search'} to see your matches
           </DefaultText>
           <ButtonWithCenteredText
             containerStyle={{ alignSelf: 'stretch', marginTop: 10 }}
@@ -448,8 +502,16 @@ const ClubCardBody = ({
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingHorizontal: 20 }}
+      onContentSizeChange={() => {
+        if (isScrollRestored.current) {
+          return;
+        }
+        isScrollRestored.current = true;
+        scrollRef.current?.scrollTo({ y: initialScrollY, animated: false });
+      }}
       onScroll={onScroll}
       scrollEventThrottle={16}
     >
@@ -463,10 +525,10 @@ const ClubCardBody = ({
 const styles = StyleSheet.create({
   title: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     gap: 10,
     minHeight: 44,
+    paddingTop: 2,
     paddingHorizontal: 20,
     paddingBottom: 6,
     borderBottomWidth: 1,
@@ -513,6 +575,6 @@ const styles = StyleSheet.create({
 
 export {
   ClubCardBody,
+  ClubCardCache,
   ClubCardTitle,
-  onPressInvite,
 };

@@ -124,7 +124,7 @@ from service.api.ratelimit import (
     client_ip,
 )
 import json
-from service.api.trials import hide_rude_intros, sent_messages_in_chats
+from service.api.trials import sent_messages_in_chats
 from serviceshared.antiabuse.antirude.chat import is_rude
 from service.api.chat.verification import (
     verification_required,
@@ -619,13 +619,11 @@ async def process_text(
     sent_at_microseconds = now_microseconds()
     sent_at_stamp = format_timestamp(sent_at_microseconds)
 
-    hidden = (
-        is_intro and
-        hide_rude_intros(to_id) and (
-            await fetch_is_hidden(
-                viewer_username=to_username,
-                prospect_username=from_username) or
-            await asyncio.to_thread(is_rude, maybe_message.body)))
+    hidden = is_intro and (
+        await fetch_is_hidden(
+            viewer_username=to_username,
+            prospect_username=from_username) or
+        await asyncio.to_thread(is_rude, maybe_message.body))
 
     async def store_audio_and_notify() -> None:
         if \

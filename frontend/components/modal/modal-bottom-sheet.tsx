@@ -31,6 +31,7 @@ const TOP_GAP = 50;
 const ModalBottomSheet = ({
   visible,
   onRequestClose,
+  onBackPress = onRequestClose,
   header,
   footer,
   children,
@@ -41,6 +42,7 @@ const ModalBottomSheet = ({
 }: {
   visible: boolean
   onRequestClose: () => void
+  onBackPress?: () => void
   // Rendered inside the drag zone, under the grab handle
   header?: ReactNode
   footer?: ReactNode
@@ -98,19 +100,19 @@ const ModalBottomSheet = ({
   }, [visible, isMounted]);
 
   useEffect(() => {
-    const onBackPress = () => {
+    const onHardwareBackPress = () => {
       if (isMounted) {
-        onRequestClose();
+        onBackPress();
         return true;
       }
       return false;
     };
 
     const subscription =
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      BackHandler.addEventListener('hardwareBackPress', onHardwareBackPress);
 
     return () => subscription.remove();
-  }, [isMounted, onRequestClose]);
+  }, [isMounted, onBackPress]);
 
   const pan = useMemo(
     () => Gesture.Pan()
@@ -167,11 +169,11 @@ const ModalBottomSheet = ({
       pointerEvents={visible ? 'auto' : 'none'}
     >
       <Animated.View
-        style={[StyleSheet.absoluteFillObject, backdropStyle]}
+        style={[StyleSheet.absoluteFill, backdropStyle]}
       >
         <Pressable
           onPress={onRequestClose}
-          style={[StyleSheet.absoluteFillObject, backgroundColors.dark]}
+          style={[StyleSheet.absoluteFill, backgroundColors.dark]}
         />
       </Animated.View>
       <View
@@ -216,7 +218,7 @@ const ModalBottomSheet = ({
 
 const styles = StyleSheet.create({
   wrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     position: viewportPosition(),
     zIndex: SHEET_Z_INDEX,
   },

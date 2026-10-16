@@ -371,7 +371,10 @@ WITH update_reactor AS (
         reaction_body = %(reaction_body)s,
         box = 'chats',
         timestamp = %(timestamp)s,
-        unread_count = 0
+        unread_count = 0,
+        -- Reacting counts as replying, so the conversation is no longer an
+        -- intro and mustn't stay hidden.
+        hidden = FALSE
     WHERE
         luser = %(reactor_username)s
     AND

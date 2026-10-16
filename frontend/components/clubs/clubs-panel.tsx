@@ -19,7 +19,7 @@ import {
   closeClubs,
   fetchClubItems,
   moveClubToFront,
-  openClubCard,
+  pressClub,
   selectSearchClub,
   sortClubs,
   useJoinedClubs,
@@ -59,7 +59,7 @@ const MineFilter = memo(({
     isSelected={isSelected}
     onPress={(e) => {
       if (isManaging || isSelected) {
-        return openClubCard({ name, anchor: e });
+        return pressClub(name)(e);
       }
 
       selectSearchClub(name);
@@ -80,6 +80,7 @@ const OtherClub = memo(({
   isLeaving: boolean,
 }) =>
   <Animated.View
+    style={{ maxWidth: '100%' }}
     layout={isAnimated ? moveTransition : undefined}
     entering={isAnimated ? popIn : undefined}
     exiting={isAnimated && isLeaving ? popOut : undefined}
@@ -87,7 +88,7 @@ const OtherClub = memo(({
     <Club
       name={name}
       isMutual={false}
-      onPress={(e) => openClubCard({ name, anchor: e })}
+      onPress={pressClub(name)}
     />
   </Animated.View>
 );
@@ -298,6 +299,7 @@ const ClubsPanel = () => {
                   {mine.map((c) =>
                     <Animated.View
                       key={c}
+                      style={{ maxWidth: '100%' }}
                       entering={FadeIn.duration(TRAY_RESIZE_MS)}
                     >
                       <MineFilter

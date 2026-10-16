@@ -1703,7 +1703,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   viewerFacepilePressable: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

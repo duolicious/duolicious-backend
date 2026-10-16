@@ -19,13 +19,14 @@ const Club = ({
   isMutual: boolean,
   style?: ViewStyle,
   textStyle?: TextStyle,
-  onPress?: (e: GestureResponderEvent) => boolean | void,
+  onPress?: (e: GestureResponderEvent) => void,
 }) => {
   const { appTheme } = useAppTheme();
 
   return (
     <Basic
       onPress={onPress}
+      numberOfLines={1}
       style={{
         borderBottomWidth: 3,
         ...(isMutual && {

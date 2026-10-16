@@ -738,7 +738,7 @@ const WelcomeScreen_ = ({navigation, route}: NativeStackScreenProps<WelcomeParam
           response.status === 409 && serverMessage ? serverMessage :
           response.status === 401 ? 'Sign-in token couldn’t be verified' :
           response.status === 429 ? 'You’re doing that too much' :
-          response.status === 460 ? 'Network blocked. Are you using a VPN?' :
+          response.status === 460 ? 'Turn off your VPN and try again' :
           response.status === 461 ? 'Your account is banned' :
           'We couldn’t connect to Duolicious'
         );
@@ -967,7 +967,7 @@ const EmailScreen_ = ({navigation, route}: NativeStackScreenProps<WelcomeParamLi
       setLoginStatus(
         response.status === 400 ? 'We don’t support that email provider' :
         response.status === 429 ? 'You’re doing that too much' :
-        response.status === 460 ? 'Network blocked. Are you using a VPN?' :
+        response.status === 460 ? 'Turn off your VPN and try again' :
         response.status === 461 ? 'Your account is banned' :
         'We couldn’t connect to Duolicious'
       );

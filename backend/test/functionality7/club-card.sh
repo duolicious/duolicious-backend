@@ -73,6 +73,32 @@ preferred_genders_come_first () {
   [[ "$(members chess | jq length)" == "3" ]]
 }
 
+people_who_want_your_gender_come_next () {
+  echo 'With two-way gender on, members who search for your gender come next'
+
+  reset_db
+
+  ../util/create-user.sh searcher 0 0
+  for i in $(seq 1 3); do
+    ../util/create-user.sh "member$i" 0 0
+    assume_role "member$i"
+    jc POST /join-club -d '{ "name": "chess" }'
+  done
+
+  q "update person set gender_id = (select id from gender where name = 'Man') where name = 'searcher'"
+  q "update person set gender_id = (select id from gender where name = 'Woman') where name like 'member%'"
+  q "update search_preference set gender_ids = array[(select id from gender where name = 'Woman')]"
+  q "update search_preference set gender_ids = array[(select id from gender where name = 'Man')] where person_id = (select id from person where name = 'member2')"
+
+  assume_role searcher
+
+  q "update search_preference set two_way_gender = true where person_id = (select id from person where name = 'searcher')"
+  [[ "$(members chess | jq -r '.[0].name')" == "member2" ]]
+
+  q "update search_preference set two_way_gender = false where person_id = (select id from person where name = 'searcher')"
+  [[ "$(members chess | jq length)" == "3" ]]
+}
+
 club_card_shows_count_and_related_clubs () {
   echo 'A club card has a member count and related clubs, even for new clubs'
 
@@ -143,6 +169,7 @@ joining_or_leaving_returns_suggestions_from_ten_clubs () {
 
 everyone_sees_the_best_25_members
 preferred_genders_come_first
+people_who_want_your_gender_come_next
 club_card_shows_count_and_related_clubs
 suggested_clubs_are_popular_clubs_you_have_not_joined
 joining_or_leaving_returns_suggestions_from_ten_clubs

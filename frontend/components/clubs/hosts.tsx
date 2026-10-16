@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -10,6 +10,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { isMobile } from '../../util/util';
 import {
+  OpenClubCard,
+  backClubCard,
   closeClubCard,
   closeClubs,
   openClubCard,
@@ -19,7 +21,7 @@ import {
 import Animated, { FadeIn, FadeOut, runOnJS } from 'react-native-reanimated';
 import { ModalBottomSheet } from '../modal/modal-bottom-sheet';
 import { ClubsPanel } from './clubs-panel';
-import { ClubCardBody, ClubCardTitle } from './club-card';
+import { ClubCardBody, ClubCardCache, ClubCardTitle } from './club-card';
 import { useIsScrolled } from './use-is-scrolled';
 import { placePopover } from './place-popover';
 
@@ -36,6 +38,11 @@ const useLatest = <T,>(value: T | null): T | null => {
 
   return ref.current;
 };
+
+const firstClubCard = (card: OpenClubCard): OpenClubCard =>
+  card.previous ? firstClubCard(card.previous) : card;
+
+const scrollOffsets = new WeakMap<OpenClubCard, number>();
 
 const Popover = ({
   visible,
@@ -76,9 +83,9 @@ const Popover = ({
           runOnJS(onClosed)();
         }
       })}
-      style={StyleSheet.absoluteFillObject}
+      style={StyleSheet.absoluteFill}
     >
-      <Pressable onPress={onRequestClose} style={StyleSheet.absoluteFillObject} />
+      <Pressable onPress={onRequestClose} style={StyleSheet.absoluteFill} />
       <View
         style={{
           position: 'absolute',
@@ -142,7 +149,9 @@ const ClubCardHost = () => {
   const { width, height } = useWindowDimensions();
   const card = useOpenClubCard();
   const shown = useLatest(card);
-  const { isScrolled, onScroll } = useIsScrolled(shown?.name);
+  const first = shown && firstClubCard(shown);
+  const cache = useMemo((): ClubCardCache => new Map(), [first]);
+  const { isScrolled, onScroll } = useIsScrolled(shown);
   const [isOpened, setIsOpened] = useState(false);
 
   if (shown === null) {
@@ -151,6 +160,7 @@ const ClubCardHost = () => {
 
   const onOpened = () => setIsOpened(true);
   const onClosed = () => setIsOpened(false);
+  const onBack = shown.previous && backClubCard;
 
   const body =
     <ClubCardBody
@@ -158,8 +168,14 @@ const ClubCardHost = () => {
       name={shown.name}
       isOpened={isOpened}
       rowPosition={shown.rowPosition ?? 'front'}
-      onPressClub={(name) => openClubCard({ name, anchor: shown.anchor })}
-      onScroll={onScroll}
+      onPressClub={(name) =>
+        openClubCard({ name, anchor: shown.anchor, previous: shown })}
+      onScroll={(e) => {
+        scrollOffsets.set(shown, e.nativeEvent.contentOffset.y);
+        onScroll(e);
+      }}
+      initialScrollY={scrollOffsets.get(shown) ?? 0}
+      cache={cache}
     />;
 
   if (isMobile()) {
@@ -167,8 +183,15 @@ const ClubCardHost = () => {
       <ModalBottomSheet
         visible={card !== null}
         onRequestClose={closeClubCard}
+        onBackPress={backClubCard}
         heightFraction={0.8}
-        header={<ClubCardTitle name={shown.name} isScrolled={isScrolled} />}
+        header={
+          <ClubCardTitle
+            name={shown.name}
+            isScrolled={isScrolled}
+            onBack={onBack}
+          />
+        }
         onOpened={onOpened}
         onClosed={onClosed}
       >
@@ -200,6 +223,7 @@ const ClubCardHost = () => {
       <ClubCardTitle
         name={shown.name}
         isScrolled={isScrolled}
+        onBack={onBack}
         onClose={closeClubCard}
       />
       {body}

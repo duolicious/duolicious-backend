@@ -10,7 +10,9 @@ import {
 } from 'react-native-reanimated';
 import { Canvas, Group, Rect as SkiaRect } from '@shopify/react-native-skia';
 import {
+  LOGO_16_FADE_MS,
   LOGO_16_RECT_COORDINATES,
+  LOGO_16_STAGGER_MS,
   Logo14Props,
   Logo16Props,
   resolveLogoSize,
@@ -87,8 +89,8 @@ const Logo16 = ({
 
   const timeline = useMemo(() => {
     const COUNT = LOGO_16_RECT_COORDINATES.length;
-    const STAGGER = 40;
-    const FADE = 400;
+    const STAGGER = LOGO_16_STAGGER_MS;
+    const FADE = LOGO_16_FADE_MS;
     const IN_WINDOW = (COUNT - 1) * STAGGER + FADE;
     const T1 = IN_WINDOW;
     const T2 = T1 + fadeOutDelay;

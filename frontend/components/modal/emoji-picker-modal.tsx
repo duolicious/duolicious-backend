@@ -114,7 +114,7 @@ const EmojiPickerModal: React.FC = () => {
       >
         <Pressable
           onPressIn={close}
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
         />
         <Animated.View
           entering={FadeIn.duration(100)}

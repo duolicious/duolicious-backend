@@ -1459,7 +1459,7 @@ const VideoUploadOverlay = ({ upload }: { upload: VideoUpload }) => (
     }
     <View
       style={{
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         justifyContent: 'center',
         alignItems: 'center',
         gap: 8,

@@ -618,7 +618,7 @@ const BlockButton = ({name, personUuid, backgroundColor}: {
 type AllClubsChild =
   | { kind: 'Title', kids: ReactNode, props: { style?: TextStyle } }
   | { kind: 'Club', kids: ReactNode, props: {
-      onPress?: (e: GestureResponderEvent) => boolean | void,
+      onPress?: (e: GestureResponderEvent) => void,
       key: string,
       name: string,
       isMutual: boolean,
@@ -719,7 +719,7 @@ const AllClubs = ({
               clubName: d.kind === 'Club' ? d.props.name : undefined,
             })
           }
-          style={d.kind === 'Title' ? styles.wFull : null}
+          style={d.kind === 'Title' ? styles.wFull : styles.maxWFull}
           layout={LinearTransition.easing(Easing.bezier(0.25, 1, 0.5, 1))}
           exiting={FadeOut}
         >
@@ -1075,6 +1075,7 @@ const ProspectProfile = ({
   return (
     <ScrollView
       style={{ backgroundColor }}
+      scrollsChildToFocus={false}
       onLayout={(e) =>
         setRoundPrimaryPhoto(e.nativeEvent.layout.width > COLUMN_MAX_WIDTH)}
     >
@@ -1855,11 +1856,14 @@ const Body = ({
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 999,
   },
   wFull: {
     width: '100%',
+  },
+  maxWFull: {
+    maxWidth: '100%',
   },
   audioPlayerMiddleText: {
     fontWeight: 700,
