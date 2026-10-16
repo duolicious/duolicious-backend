@@ -534,23 +534,6 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
   // to their profile by username rather than uuid.
   const [urlSlug, setUrlSlug] = useState<string | null>(null);
 
-  // Re-seed from the (possibly newly populated) hint on every handle
-  // change. `useState` initializers only run on first mount, so when the
-  // screen instance is reused with a different handle we'd otherwise show
-  // the previous prospect's name and photo until the API resolves.
-  const [seededHandle, setSeededHandle] = useState(handle);
-  if (seededHandle !== handle) {
-    const hint = getProspectHint(handle) ?? {};
-    setSeededHandle(handle);
-    setPersonUuid(hintedPersonUuid(handle));
-    setName(hint.name);
-    setPhotoUuid(hint.photoUuid);
-    setPhotoBlurhash(hint.photoBlurhash);
-    setIsAvailableUser(hint.isAvailableUser ?? true);
-    setIsSkipped(undefined);
-    setUrlSlug(null);
-  }
-
   // If the user navigates to the conversation screen via a deep link, but the
   // conversation screen was already open on a conversation with a different
   // person, then the screen should be cleared.
@@ -586,7 +569,21 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
   const profile = useProspectProfile(
     showProfilePanel ? handle : undefined, { preferCache: true });
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
+    // Re-seed from the (possibly newly populated) hint on every handle
+    // change. `useState` initializers only run on first mount, so when the
+    // screen instance is reused with a different handle we'd otherwise show
+    // the previous prospect's name and photo until the API resolves.
+    const hint = getProspectHint(handle) ?? {};
+    setPersonUuid(hintedPersonUuid(handle));
+    setName(hint.name);
+    setPhotoUuid(hint.photoUuid);
+    setPhotoBlurhash(hint.photoBlurhash);
+    setIsAvailableUser(hint.isAvailableUser ?? true);
+    setIsSkipped(undefined);
+    setUrlSlug(null);
+
     let cancelled = false;
     (async () => {
       const response = await api<ConversationProspectResponse>('get', `/conversation-prospect/${handle}`);
@@ -603,6 +600,7 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     })();
     return () => { cancelled = true; };
   }, [handle]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Surface the other person's name in the browser tab. App.tsx's
   // `documentTitle.formatter` reads `options.title` from the focused screen

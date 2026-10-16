@@ -439,10 +439,8 @@ const useList = <ItemT, ListType>(ref: Ref<{ refresh: () => Promise<void> }>, pr
     onLayoutProp?.(params);
   }, [fetchNextPage, onLayoutProp]);
 
-  const book = useMemo(
-    () => getBookOrDefault(books, dataKey),
-    [books, dataKey]);
-  const items = useMemo(() => bookToItems(book), [book]);
+  const book = getBookOrDefault(books, dataKey);
+  const items = useMemo(() => bookToItems(book), [books, dataKey]);
 
   const isComplete = isBookComplete(book);
   const isEmpty = isBookEmpty(book);
