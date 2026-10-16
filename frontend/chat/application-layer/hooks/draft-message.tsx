@@ -62,7 +62,11 @@ const useDraftMessage = (
     return () => saveDraft?.flush();
   }, [saveDraft]);
 
-  return [senderPersonUuid && recipientPersonUuid ? draft : null, saveDraft];
+  if (!(senderPersonUuid && recipientPersonUuid) && draft !== null) {
+    setDraft(null);
+  }
+
+  return [draft, saveDraft];
 };
 
 export { useDraftMessage };

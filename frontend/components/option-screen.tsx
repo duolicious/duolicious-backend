@@ -1707,20 +1707,18 @@ const OptionScreen = ({navigation, route}: NativeStackScreenProps<ParamListBase>
     checkIsBottom(nativeEvent);
   }, [checkIsBottom]);
 
+  const onContentSizeChange = useCallback((width: number, height: number) =>
+    setContentHeight(height), []);
+
+  const onLayout = useCallback(({ nativeEvent }: LayoutChangeEvent) =>
+    setContainerHeight(nativeEvent.layout.height), []);
+
   // Compare the heights to determine if there is more content offscreen when
   // either one changes.
-  const onContentSizeChange = useCallback((width: number, height: number) => {
-    setContentHeight(height);
-    if (height !== contentHeight && containerHeight > 0 && height > 0) {
-      setIsBottom(containerHeight >= height);
-    }
-  }, [containerHeight, contentHeight]);
-
-  const onLayout = useCallback(({ nativeEvent }: LayoutChangeEvent) => {
-    const height = nativeEvent.layout.height;
-    setContainerHeight(height);
-    if (height !== containerHeight && height > 0 && contentHeight > 0) {
-      setIsBottom(height >= contentHeight);
+  useEffect(() => {
+    if (containerHeight > 0 && contentHeight > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsBottom(containerHeight >= contentHeight);
     }
   }, [containerHeight, contentHeight]);
 
