@@ -135,7 +135,9 @@ or remark is echoing the profile: judge it as written.
    bus"), even as a joke, or sincere statements that the sender will kill or
    harm themselves. Encouraging an eating disorder counts too ("wanna be my
    ana buddy?", "send meanspo", "we can starve together"). Telling someone
-   not to hurt themselves ("don't kys, you're too cute") is `ok`.
+   not to hurt themselves ("don't kys, you're too cute") is `ok`, but a
+   "don't" that still pushes them toward it ("why don't you just kill
+   yourself", "don't kys yet, send me your money first") is `rude`.
 6. **Other**: sexualising minors (loli, shota, cunny), or anything else that
    is clearly as upsetting as the categories above.
 

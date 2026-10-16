@@ -11,8 +11,8 @@ from serviceshared.duoenv.shared import OMP_NUM_THREADS
 _DIR = Path(__file__).parent
 
 _ALWAYS_RUDE = re.compile(
-    r"\b(1488|cunny|heil hitler|kikes?|lolicon|niggers?|shotacon|sieg heil|"
-    r"trannoids?|you(?: wi|['’])ll never be a woman|ywnbaw)\b",
+    r"\b(1488|cunny|heil hitler|kikes?|lolicon|shotacon|sieg heil|trannoids?|"
+    r"you(?: wi|['’])ll never be a (?:real )?woman|ywnbar?w)\b|(?<!s)nigger",
     re.IGNORECASE)
 
 _TOKENIZER = Tokenizer.from_file(str(_DIR / 'tokenizer.json'))

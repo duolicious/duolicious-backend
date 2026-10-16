@@ -18,7 +18,7 @@ class TestIsRude(unittest.TestCase):
 
         self.assertEqual(
             (round(precision, 3), round(recall, 3)),
-            (0.898, 0.868))
+            (0.899, 0.872))
 
 
 if __name__ == '__main__':

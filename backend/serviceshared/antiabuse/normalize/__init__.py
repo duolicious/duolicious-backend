@@ -403,4 +403,8 @@ def normalize_chat_message(s: str) -> str:
         lambda word: _without_mixed_scripts(word[0]),
         normalized)
 
-    return _repeated_characters_pattern.sub(r'\1\1', normalized).strip()
+    normalized = _repeated_characters_pattern.sub(r'\1\1', normalized)
+
+    return ''.join(
+        f' {c} ' if unicodedata.category(c) == 'So' else c
+        for c in normalized).strip()
