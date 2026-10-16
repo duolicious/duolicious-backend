@@ -55,7 +55,6 @@ import {
   OptionGroupLocationSelector,
   OptionGroupNone,
   OptionGroupOtp,
-  OptionGroupPhotos,
   OptionGroupRangeSlider,
   OptionGroupSlider,
   OptionGroupTextLong,
@@ -70,7 +69,6 @@ import {
   isOptionGroupLocationSelector,
   isOptionGroupNone,
   isOptionGroupOtp,
-  isOptionGroupPhotos,
   isOptionGroupRangeSlider,
   isOptionGroupSlider,
   isOptionGroupTextLong,
@@ -81,12 +79,6 @@ import {
 } from '../data/option-groups';
 import { getProfileInfo } from '../events/profile-info';
 import { descriptionStyle, noneFontSize } from './option-styles';
-import {
-  MoveableImage,
-  Slot,
-  useIsImageLoading,
-  useUri,
-} from './images/images';
 import { DefaultLongTextInput } from './default-long-text-input';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CheckChip as CheckChip_, CheckChips as CheckChips_ } from './check-chip';
@@ -569,128 +561,6 @@ const LocationSelector = forwardRef((props: InputProps<OptionGroupLocationSelect
         </ButtonWithCenteredText>
       }
     </>
-  );
-});
-
-const Photos = forwardRef((props: InputProps<OptionGroupPhotos>, ref) => {
-  const errFileSize = (
-    'Something went wrong. Make sure your images are smaller than 10MB and ' +
-    '5000x5000 pixels.'
-  );
-  const errNumber = (
-    'We need at least one photo'
-  );
-  const errRateLimit = (
-    'You’re doing that too much'
-  );
-  const errGeneric = (
-    'Something went wrong'
-  );
-
-  const showProtip = props.input.photos.showProtip ?? true;
-  const validateAtLeastOne = props.input.photos.validateAtLeastOne ?? false;
-  const firstFileNumber = props.input.photos.firstFileNumber ?? 1;
-
-  const [isInvalid, setIsInvalid] = useState(false);
-  const [lastInvalidReason, setLastInvalidReason] = useState(errFileSize);
-  const isLoading = useIsImageLoading(firstFileNumber);
-  const uri = useUri(firstFileNumber, null);
-  const [validatedUri, setValidatedUri] = useState(uri);
-  if (validatedUri !== uri) {
-    setValidatedUri(uri);
-    setIsInvalid(false);
-  }
-
-  const isNumberInvalid = validateAtLeastOne && uri === null;
-
-  const submit = useCallback(async () => {
-    if (props.isLoading) {
-      return;
-    }
-
-    setIsInvalid(false);
-    if (isNumberInvalid) {
-      setLastInvalidReason(errNumber);
-      setIsInvalid(true);
-      return;
-    }
-
-    if (!props.input.photos.submitAll) {
-      props.onSubmitSuccess();
-      return;
-    }
-
-    props.setIsLoading(true);
-
-    const { ok, status } = await props.input.photos.submitAll();
-
-    setIsInvalid(!ok);
-    if (status === 429) {
-      setLastInvalidReason(errRateLimit);
-    } else if (!ok) {
-      setLastInvalidReason(errGeneric);
-    }
-
-    ok && props.onSubmitSuccess();
-
-    props.setIsLoading(false);
-  }, [props.isLoading, isNumberInvalid]);
-
-  useImperativeHandle(ref, () => ({ submit }), [submit]);
-
-  useEffect(() => {
-    props.setIsLoading(isLoading);
-  }, [isLoading]);
-
-  return (
-    <View
-      style={{
-        paddingLeft: 20,
-        paddingRight: 20,
-        width: '100%',
-        alignSelf: 'center',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <View
-        style={{
-          width: '50%',
-          aspectRatio: 1,
-          alignSelf: 'center',
-        }}
-      >
-        <Slot />
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: 0,
-            right: 0,
-          }}
-        >
-          <MoveableImage
-            input={props.input}
-            initialFileNumber={firstFileNumber}
-            showProtip={showProtip}
-            moveable={false}
-          />
-        </View>
-      </View>
-      <DefaultText
-        style={{
-          textAlign: 'center',
-          color: props.theme !== 'light' ? 'white' : 'red',
-          marginTop: 5,
-          opacity: isInvalid ? 1 : 0,
-          overflow: 'visible',
-          height: 40,
-        }}
-      >
-        {lastInvalidReason}
-      </DefaultText>
-    </View>
   );
 });
 
@@ -1459,8 +1329,6 @@ const InputElement = forwardRef((props: InputProps<OptionGroupInputs>, ref: Forw
     return <DatePicker {...{ref, ...props, input: props.input}}/>;
   } else if (isOptionGroupLocationSelector(props.input)) {
     return <LocationSelector {...{ref, ...props, input: props.input}}/>;
-  } else if (isOptionGroupPhotos(props.input)) {
-    return <Photos {...{ref, ...props, input: props.input}}/>;
   } else if (isOptionGroupTextLong(props.input)) {
     return <TextLong {...{ref, ...props, input: props.input}}/>;
   } else if (isOptionGroupTextShort(props.input)) {

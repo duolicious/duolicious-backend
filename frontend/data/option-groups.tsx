@@ -1,5 +1,5 @@
 import * as _ from "lodash";
-import { api, japi, ApiResponse } from '../api/api';
+import { api, japi } from '../api/api';
 import { applyAuthenticatedResponse, AuthResult } from '../api/auth';
 import { navigationContainerRef } from '../App';
 import {
@@ -136,13 +136,9 @@ type OptionGroupDate = {
 type OptionGroupPhotos = {
   photos: {
     submit: (position: number, cropperOutput: NonNullImageCropperOutput) => Promise<boolean>
-    submitAll?: () => Promise<ApiResponse>
     delete: (filename: string) => Promise<boolean>
     getUri?: (position: string, resolution: string) => string | null
     getBlurhash?: (position: string) => string | null
-    showProtip?: boolean,
-    validateAtLeastOne?: boolean,
-    firstFileNumber?: number,
   }
 };
 
@@ -243,7 +239,6 @@ type OptionGroupInputs
   | OptionGroupRangeSlider
   | OptionGroupGivenName
   | OptionGroupDate
-  | OptionGroupPhotos
   | OptionGroupTextLong
   | OptionGroupTextShort
   | OptionGroupOtp
@@ -296,10 +291,6 @@ const isOptionGroupGivenName = (x: OptionGroupInputs): x is OptionGroupGivenName
 
 const isOptionGroupDate = (x: OptionGroupInputs): x is OptionGroupDate => {
   return hasExactKeys(x, ['date']);
-}
-
-const isOptionGroupPhotos = (x: OptionGroupInputs): x is OptionGroupPhotos => {
-  return hasExactKeys(x, ['photos']);
 }
 
 const isOptionGroupTextLong = (x: OptionGroupInputs): x is OptionGroupTextLong => {
@@ -2312,7 +2303,6 @@ export {
   isOptionGroupLocationSelector,
   isOptionGroupNone,
   isOptionGroupOtp,
-  isOptionGroupPhotos,
   isOptionGroupRangeSlider,
   isOptionGroupSlider,
   isOptionGroupTextLong,
