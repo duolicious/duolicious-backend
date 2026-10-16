@@ -53,17 +53,23 @@ The classifier is a four-layer BERT
 (`google/bert_uncased_L-4_H-256_A-4`), small enough to score an intro in a few
 milliseconds on one CPU thread. It learns by distillation:
 
-1. A large "teacher" model (`cardiffnlp/twitter-roberta-large-2022-154m`) is
-   fine-tuned on `train.jsonl` and `synthetic.jsonl`. It is more accurate
-   than the small model but far too slow to serve.
-2. The teacher scores every intro sent in the last six months in the database
+1. Three large "teacher" models
+   (`cardiffnlp/twitter-roberta-large-2022-154m`, each from a different random
+   seed) are fine-tuned on `train.jsonl` and `synthetic.jsonl`. They are more
+   accurate than the small model but far too slow to serve.
+2. The teachers score every intro sent in the last six months in the database
    copy, plus the intros the old filter blocked, which are kept in
-   `rude_message`. Intros from the senders the benchmark was paraphrased from
-   are left out, which is what the `md5('rude-' || person_id)` condition in
-   `train.py` does.
-3. The small model learns from the same labelled messages and the teacher's
+   `rude_message`, and their scores are averaged. Intros from the senders the
+   benchmark was paraphrased from are left out, which is what the
+   `md5('rude-' || person_id)` condition in `train.py` does.
+3. The small model learns from the same labelled messages and the averaged
    scores, then is exported to `model.onnx` and `tokenizer.json` beside the
    serving code.
+
+With a single teacher, the small model's precision on random intros varied by
+up to six points between training runs on the same data. Averaging three
+teachers steadies it and raises recall slightly, at the cost of about an hour
+more training.
 
 Training and serving read text through the same
 `serviceshared.antiabuse.normalize.normalize_chat_message`. It drops quoted

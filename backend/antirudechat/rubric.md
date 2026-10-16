@@ -14,7 +14,11 @@ hiding ordinary messages that merely contain casual swearing or that respond to
 something the recipient wrote in their own profile.
 
 Judge each message on its own, as the recipient would see it. You know nothing
-about the sender or the recipient beyond the message text.
+about the sender or the recipient beyond the message text. The question is
+always how the recipient would most likely take it: a message they would
+likely find offensive is `rude`, and one they would plainly take as friendly
+is `ok`. Many members come from imageboards like 4chan, where slang that
+sounds harsh elsewhere is often friendly banter.
 
 ## Labels
 
@@ -81,9 +85,9 @@ or remark is echoing the profile: judge it as written.
    including casual or "reclaimed" use, deliberate misspellings and the
    imageboard coinages many members use ("nigga", "n1gger", "groid", "chink",
    "jeet", "kike", "tranny", "tranner", "trannoid", "trannie", "troon",
-   "fag", "newfag", "foid", "femoid", "roastie", "trap" when it describes a
-   person); Nazi and antisemitic codes ("1488", "heil hitler", "(((them)))",
-   "day of the rope"); dehumanising statements about a group.
+   "fag", "foid", "femoid", "roastie", "trap" when it describes a person);
+   Nazi and antisemitic codes ("1488", "heil hitler", "(((them)))", "day of
+   the rope"); dehumanising statements about a group.
    Ableist words ("retarded", "tard", "sperg", "autist") are `rude` only
    when aimed at the recipient as an insult; casual or self-directed use ("I
    might be retarded but...") is `ok`.
@@ -122,7 +126,10 @@ or remark is echoing the profile: judge it as written.
   that isn't an insult aimed at the recipient: "holy shit you're pretty", "what
   the fuck, you live near me", "this game is ass", "boring ass movie", "damn",
   "hell yeah", "fuck yeah", "badass", "I'm a little bitch about horror games"
-  (self-deprecating), "life's a bitch".
+  (self-deprecating), "life's a bitch". Imageboard words built on "-fag"
+  ("newfag", "oldfag", "britfag") are casual swearing when they're friendly or
+  self-deprecating ("sorry anon, I'm a newfag kek"), and insults when they put
+  the recipient down ("fuck off, newfag").
 - Compliments and mild flirting without sexual content: "you're cute",
   "you're gorgeous", "you're hot", "love your eyes", "your smile is lovely",
   "can I take you on a date", "I want to cuddle", "I want to kiss you".

@@ -118,6 +118,27 @@ def probabilities(
     return result
 
 
+def teacher_probabilities(
+    seed: int,
+    texts: list[str],
+    targets: list[float],
+    intros: list[str],
+) -> list[float]:
+    random.seed(seed)
+    torch.manual_seed(seed)
+    teacher, tokenizer = fit(
+        'cardiffnlp/twitter-roberta-large-2022-154m',
+        texts,
+        targets,
+        epochs=4,
+        learning_rate=1.5e-5,
+        batch_size=16)
+    result = probabilities(teacher, tokenizer, intros)
+    del teacher
+    torch.cuda.empty_cache()
+    return result
+
+
 class Score(torch.nn.Module):
     def __init__(self, model: PreTrainedModel) -> None:
         super().__init__()
@@ -155,14 +176,6 @@ def main() -> None:
     texts = [normalize_chat_message(e['text']) for e in labelled]
     targets = [float(e['rude']) for e in labelled]
 
-    teacher, teacher_tokenizer = fit(
-        'cardiffnlp/twitter-roberta-large-2022-154m',
-        texts,
-        targets,
-        epochs=4,
-        learning_rate=1.5e-5,
-        batch_size=16)
-
     dsn = os.environ.get(
         'DUO_DB_DSN',
         'host=localhost port=5432 dbname=duo_api user=postgres password=password')
@@ -171,9 +184,10 @@ def main() -> None:
             normalize_chat_message(body)
             for body, in conn.execute(Q_INTROS).fetchall()]
 
-    intro_targets = probabilities(teacher, teacher_tokenizer, intros)
-    del teacher
-    torch.cuda.empty_cache()
+    intro_targets = np.mean([
+        teacher_probabilities(seed, texts, targets, intros)
+        for seed in range(3)
+    ], axis=0).tolist()
 
     student, student_tokenizer = fit(
         'google/bert_uncased_L-4_H-256_A-4',
