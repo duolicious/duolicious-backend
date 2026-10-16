@@ -167,14 +167,16 @@ WHERE
     id = %(searcher_person_id)s
 """
 
-_CLUB_MEMBER_CLAUSES = and_clauses([
+_CLUB_MEMBER_CLAUSES = [
     'person_club.club_name = %(club_name)s',
     'person_club.activated',
     *_VISIBLE_TO_SEARCHER,
     _SEARCHER_DIDNT_SKIP_PROSPECT,
-])
+]
 
-Q_CLUB_MEMBERS = f"""
+
+def _q_club_members(clauses: list[str], order_by: str) -> str:
+    return f"""
 SELECT
     prospect.uuid AS person_uuid,
     prospect.url_slug,
@@ -225,6 +227,7 @@ ON
 LEFT JOIN (
     SELECT
         person.gender_id,
+        person.coordinates,
         search_preference.gender_ids,
         search_preference.two_way_gender
     FROM
@@ -243,15 +246,31 @@ LEFT JOIN
 ON
     prospect_preference.person_id = prospect.id
 WHERE
-{_CLUB_MEMBER_CLAUSES}
+{and_clauses(clauses)}
 ORDER BY
+{order_by}
+LIMIT
+    25
+"""
+
+
+Q_CLUB_MEMBERS = _q_club_members(_CLUB_MEMBER_CLAUSES, """
     prospect.gender_id <> ALL(searcher.gender_ids),
     searcher.two_way_gender
         AND searcher.gender_id <> ALL(prospect_preference.gender_ids),
     prospect.kv_vector <#> %(searcher_kv_vector)s
-LIMIT
-    25
-"""
+""")
+
+Q_CLUB_MEMBERS_BY_DISTANCE = _q_club_members(
+    [
+        *_CLUB_MEMBER_CLAUSES,
+        "prospect.last_online_time > NOW() - INTERVAL '30 days'",
+    ],
+    """
+    prospect.gender_id <> ALL(searcher.gender_ids),
+    searcher.gender_id <> ALL(prospect_preference.gender_ids),
+    prospect.coordinates <-> searcher.coordinates
+""")
 
 _SORT_BYS: tuple[SortBy, ...] = get_args(SortBy)
 SORT_MATCH_PERCENTAGE, SORT_CLUBS, SORT_KV, SORT_DISTANCE = _SORT_BYS
