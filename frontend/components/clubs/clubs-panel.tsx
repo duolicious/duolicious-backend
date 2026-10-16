@@ -3,7 +3,6 @@ import {
   LayoutChangeEvent,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextStyle,
   View,
@@ -28,6 +27,7 @@ import {
 } from '../../club/club';
 import { Club, ClubFilter } from '../club';
 import { DefaultText } from '../default-text';
+import { SheetScrollView } from '../modal/modal-bottom-sheet';
 import { DefaultTextInput } from '../default-text-input';
 import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
 import { useIsScrolled } from './use-is-scrolled';
@@ -225,7 +225,7 @@ const ClubsPanel = () => {
         </DefaultText>
         {!isSearchAtBottom && searchBox}
       </View>
-      {isReady && <ScrollView
+      {isReady && <SheetScrollView
         keyboardShouldPersistTaps="handled"
         onScroll={onScroll}
         scrollEventThrottle={16}
@@ -364,7 +364,7 @@ const ClubsPanel = () => {
               <LogoActivityIndicator size="large" color={appTheme.brandColor} />
             </View>
         }
-      </ScrollView>}
+      </SheetScrollView>}
       {isSearchAtBottom &&
         <View
           style={{

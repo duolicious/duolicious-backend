@@ -1,13 +1,29 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import {
+  ReactNode,
+  Ref,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   BackHandler,
+  Platform,
   Pressable,
+  ScrollView,
+  ScrollViewProps,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import {
+  ComposedGesture,
+  Gesture,
+  GestureDetector,
+} from 'react-native-gesture-handler';
 import Animated, {
+  SharedValue,
   interpolate,
   runOnJS,
   useAnimatedStyle,
@@ -27,6 +43,41 @@ const DISMISS_VELOCITY = 800;
 // Gap kept below the status bar so the sheet's top never crowds the screen
 // edge, where a downward swipe would reach the system pull-down instead
 const TOP_GAP = 50;
+
+const isContentDraggable = Platform.OS !== 'web';
+
+const SheetScroll = createContext<{
+  gesture: ComposedGesture
+  scrollY: SharedValue<number>
+} | null>(null);
+
+const SheetScrollView = ({
+  onScroll,
+  ...props
+}: ScrollViewProps & { ref?: Ref<ScrollView> }) => {
+  const sheet = useContext(SheetScroll);
+  const scrollY = sheet?.scrollY;
+
+  useEffect(() => {
+    scrollY?.set(0);
+  }, [scrollY]);
+
+  if (!sheet) {
+    return <ScrollView onScroll={onScroll} {...props} />;
+  }
+
+  return (
+    <GestureDetector gesture={sheet.gesture}>
+      <ScrollView
+        {...props}
+        onScroll={(e) => {
+          sheet.scrollY.set(e.nativeEvent.contentOffset.y);
+          onScroll?.(e);
+        }}
+      />
+    </GestureDetector>
+  );
+};
 
 const ModalBottomSheet = ({
   visible,
@@ -63,6 +114,7 @@ const ModalBottomSheet = ({
     setIsMounted(true);
   }
   const translateY = useSharedValue(sheetHeight);
+  const scrollY = useSharedValue(0);
 
   useEffect(() => {
     if (!isMounted) {
@@ -111,8 +163,8 @@ const ModalBottomSheet = ({
     return () => subscription.remove();
   }, [isMounted, onBackPress]);
 
-  const pan = useMemo(
-    () => Gesture.Pan()
+  const gestures = useMemo(() => {
+    const drag = () => Gesture.Pan()
       .activeOffsetY(10)
       .onUpdate((e) => {
         'worklet';
@@ -128,9 +180,29 @@ const ModalBottomSheet = ({
         } else {
           translateY.set(withTiming(0, { duration: SLIDE_DURATION }));
         }
-      }),
-    [translateY, sheetHeight, onRequestClose],
-  );
+      });
+
+    const scroll = Gesture.Native();
+    const scrollTop = drag()
+      .failOffsetY(-5)
+      .onTouchesDown((_, manager) => {
+        'worklet';
+        if (scrollY.get() > 0) {
+          manager.fail();
+        }
+      });
+
+    return {
+      header: drag(),
+      content: drag()
+        .enabled(isContentDraggable)
+        .requireExternalGestureToFail(scrollTop, scroll),
+      scroll: {
+        gesture: Gesture.Exclusive(scrollTop, scroll),
+        scrollY,
+      },
+    };
+  }, [translateY, scrollY, sheetHeight, onRequestClose]);
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: interpolate(translateY.value, [0, sheetHeight], [1, 0]),
@@ -188,7 +260,7 @@ const ModalBottomSheet = ({
             sheetStyle,
           ]}
         >
-          <GestureDetector gesture={pan}>
+          <GestureDetector gesture={gestures.header}>
             <View>
               <View
                 style={{
@@ -203,9 +275,13 @@ const ModalBottomSheet = ({
               {header}
             </View>
           </GestureDetector>
-          <View style={styles.content}>
-            {children}
-          </View>
+          <GestureDetector gesture={gestures.content}>
+            <View style={styles.content}>
+              <SheetScroll value={isContentDraggable ? gestures.scroll : null}>
+                {children}
+              </SheetScroll>
+            </View>
+          </GestureDetector>
           {footer}
         </Animated.View>
       </View>
@@ -230,4 +306,5 @@ const styles = StyleSheet.create({
 
 export {
   ModalBottomSheet,
+  SheetScrollView,
 };
