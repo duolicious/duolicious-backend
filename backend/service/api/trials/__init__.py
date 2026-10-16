@@ -3,4 +3,4 @@ def sent_messages_in_chats(person_id: int) -> bool:
 
 
 def club_card_by_distance(person_id: int) -> bool:
-    return person_id >= 395000 and person_id % 2 == 0
+    return person_id >= 393450 and person_id % 2 == 0

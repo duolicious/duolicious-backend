@@ -111,9 +111,9 @@ the_trial_lists_recently_online_members_by_distance () {
   done
 
   local next_person_id=$(q "select last_value + 1 from person_id_seq")
-  q "select setval('person_id_seq', 395000, false)"
+  q "select setval('person_id_seq', 393450, false)"
   ../util/create-user.sh treated 0 0
-  q "select setval('person_id_seq', 395001, false)"
+  q "select setval('person_id_seq', 393451, false)"
   ../util/create-user.sh control 0 0
   q "select setval('person_id_seq', ${next_person_id}, false)"
 

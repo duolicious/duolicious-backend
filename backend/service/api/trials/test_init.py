@@ -32,12 +32,12 @@ class TestClubCardByDistance(unittest.TestCase):
         for person_id, expected in [
             (4, False),
             (391550, False),
-            (394998, False),
-            (394999, False),
-            (395000, True),
-            (395001, False),
-            (395002, True),
-            (395003, False),
+            (393448, False),
+            (393449, False),
+            (393450, True),
+            (393451, False),
+            (393452, True),
+            (393453, False),
         ]:
             with self.subTest(person_id=person_id):
                 self.assertEqual(club_card_by_distance(person_id), expected)

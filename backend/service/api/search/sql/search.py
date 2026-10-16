@@ -268,7 +268,8 @@ Q_CLUB_MEMBERS_BY_DISTANCE = _q_club_members(
     ],
     """
     prospect.gender_id <> ALL(searcher.gender_ids),
-    searcher.gender_id <> ALL(prospect_preference.gender_ids),
+    searcher.two_way_gender
+        AND searcher.gender_id <> ALL(prospect_preference.gender_ids),
     prospect.coordinates <-> searcher.coordinates
 """)
 
