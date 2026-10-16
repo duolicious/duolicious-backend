@@ -188,11 +188,9 @@ const AutoplayVideo = ({
   const { controlsVisible, holdControls, pointerProps } =
     useControlsVisibility(playing);
 
-  useEffect(() => {
-    if (playing) {
-      setHasPlayed(true);
-    }
-  }, [playing]);
+  if (playing && !hasPlayed) {
+    setHasPlayed(true);
+  }
 
   useEffect(() => {
     if (withControls) {
@@ -204,6 +202,7 @@ const AutoplayVideo = ({
 
   useEffect(() => {
     if (!isFocused) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUserPaused(false);
       holdControls(false);
     }
@@ -335,16 +334,13 @@ const VideoProgress = ({
   const [scrub, setScrub] = useState<number | null>(null);
   const { hovered, hoverProps } = useControlHover(onHoverChange);
 
-  useEffect(() => {
-    player.timeUpdateEventInterval = 0.1;
-  }, [player]);
-
   const scrubGesture = useMemo(() => {
     const seek = (x: number) => {
       const fraction = _.clamp(x / width, 0, 1);
       setScrub(fraction);
 
       if (player.duration > 0) {
+        // eslint-disable-next-line react-hooks/immutability
         player.currentTime = fraction * player.duration;
       }
     };

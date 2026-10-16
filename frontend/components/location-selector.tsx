@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -70,7 +70,7 @@ const ManualEntry = ({ value, onChange, onPressAutomatic, color }: {
   const [items, setItems] = useState<string[] | null | undefined>(null);
   const [displayResults, setDisplayResults] = useState(false);
 
-  const getSuggestions = useCallback(_.debounce(async (q: string) => {
+  const getSuggestions = useMemo(() => _.debounce(async (q: string) => {
     let json;
     try {
       const response = await japi<string[]>(

@@ -5,6 +5,7 @@ import {
   EV_SHARED_VIDEOS,
   SharedVideo,
   VideoClaim,
+  hostVideo,
   placeElement,
   queueApplyWants,
   sharedVideoFor,
@@ -73,10 +74,11 @@ const HostedVideo = ({ video }: { video: SharedVideo }) => {
   const viewRef = useRef<VideoView>(null);
 
   useEffect(() => {
-    video.host = hostRef.current;
-    video.element = viewRef.current?.nativeRef.current ?? null;
-    placeElement(video);
-    queueApplyWants(video);
+    hostVideo(
+      video,
+      hostRef.current,
+      viewRef.current?.nativeRef.current ?? null,
+    );
   }, []);
 
   return (

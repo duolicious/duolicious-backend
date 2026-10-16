@@ -170,6 +170,7 @@ const useSuggestedClubs = () => {
 
   const [shown, setShown] = useState(suggested);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setShown(suggested), [suggested]);
 
   const leaving = useMemo(() => {

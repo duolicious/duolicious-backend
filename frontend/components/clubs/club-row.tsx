@@ -79,12 +79,14 @@ const TRAY_END_PADDING = 5;
 
 const MAX_CELLS = 1000;
 
-const ifShown = (onWidth: (width: number) => void) =>
-  ({ nativeEvent }: LayoutChangeEvent) => {
-    if (nativeEvent.layout.width > 0) {
-      onWidth(nativeEvent.layout.width);
-    }
-  };
+const ifShown = (
+  { nativeEvent }: LayoutChangeEvent,
+  onWidth: (width: number) => void,
+) => {
+  if (nativeEvent.layout.width > 0) {
+    onWidth(nativeEvent.layout.width);
+  }
+};
 
 const Continuation = ({
   side,
@@ -399,7 +401,7 @@ const RibbonChips = memo(({
           }
           <LayoutAnimationConfig skipEntering={true}>
             <View
-              onLayout={ifShown(setTrayWidth)}
+              onLayout={(e) => ifShown(e, setTrayWidth)}
               style={{ flexDirection: 'row' }}
             >
               {cells.map(({ kind, name }, i) =>
@@ -483,13 +485,13 @@ const ClubRow = () => {
     const x = _.clamp(
       contentOffset.x, 0, contentSize.width - layoutMeasurement.width);
 
-    detached.value = _.clamp(detached.value, x - buttonWidth.value, x);
-    scrollX.value = x;
+    detached.set(_.clamp(detached.value, x - buttonWidth.value, x));
+    scrollX.set(x);
 
     updateEdges({ x });
   };
 
-  const scrollBy = (dx: number) => () => scrollViewRef.current?.scrollTo({
+  const scrollBy = (dx: number) => scrollViewRef.current?.scrollTo({
     x: edgesRef.current.x + dx,
     animated: true,
   });
@@ -509,7 +511,7 @@ const ClubRow = () => {
         showsHorizontalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        onLayout={ifShown((viewport) => updateEdges({ viewport }))}
+        onLayout={(e) => ifShown(e, (viewport) => updateEdges({ viewport }))}
         onContentSizeChange={(width) => width > 0 && updateEdges({ content: width })}
         contentContainerStyle={{
           minHeight: 50,
@@ -519,7 +521,7 @@ const ClubRow = () => {
         }}
       >
         <View
-          onLayout={ifShown((width) => buttonWidth.value = width)}
+          onLayout={(e) => ifShown(e, (width) => buttonWidth.set(width))}
           style={{ paddingLeft: 10 }}
         >
           <ClubsButton rowRef={rowRef} />
@@ -562,11 +564,11 @@ const ClubRow = () => {
             leftContinuationStyle,
           ]}
         >
-          <Continuation side="left" onPress={scrollBy(-SCROLL_JUMP_SIZE)} />
+          <Continuation side="left" onPress={() => scrollBy(-SCROLL_JUMP_SIZE)} />
         </Animated.View>
       }
       {!isMobile() && !isAtEnd &&
-        <Continuation side="right" onPress={scrollBy(SCROLL_JUMP_SIZE)} />
+        <Continuation side="right" onPress={() => scrollBy(SCROLL_JUMP_SIZE)} />
       }
     </View>
   );

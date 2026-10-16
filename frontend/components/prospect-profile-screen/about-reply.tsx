@@ -151,14 +151,12 @@ const AboutText = ({
   // It also has the effect of deselecting the highlighted text. That way, the
   // quote is only set when the user has some visual indication of it being set,
   // either on the conversation screen, or the profile.
-  const [remountKey, setRemountKey] = useState(0);
   const isFocused = useIsFocused();
-
-  useEffect(() => {
-    if (isFocused) {
-      setRemountKey((k) => k + 1);
-    }
-  }, [isFocused]);
+  const [focus, setFocus] = useState({ isFocused, remountKey: 0 });
+  if (focus.isFocused !== isFocused) {
+    setFocus({ isFocused, remountKey: focus.remountKey + (isFocused ? 1 : 0) });
+  }
+  const { remountKey } = focus;
 
   useEffect(() => {
     return () => setQuote(null);

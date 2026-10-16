@@ -1,4 +1,4 @@
-import { ComponentProps, memo, useEffect, useMemo, useRef, useState } from 'react';
+import { ComponentProps, memo, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -88,12 +88,11 @@ const useClubCard = (
   const [card, setCard] = useState<FetchedClubCard | 'error' | null>(
     () => cache.get(name) ?? null);
 
-  const isMemberRef = useRef(isMember);
-  isMemberRef.current = isMember;
+  const currentIsMember = useEffectEvent(() => isMember);
 
   useEffect(() => {
     let isCurrent = true;
-    const wasMember = isMemberRef.current;
+    const wasMember = currentIsMember();
 
     (async () => {
       const response = await japi<ClubCard>(

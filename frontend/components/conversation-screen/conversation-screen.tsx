@@ -21,6 +21,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -533,6 +534,15 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
   // to their profile by username rather than uuid.
   const [urlSlug, setUrlSlug] = useState<string | null>(null);
 
+  // If the user navigates to the conversation screen via a deep link, but the
+  // conversation screen was already open on a conversation with a different
+  // person, then the screen should be cleared.
+  const [messagesPersonUuid, setMessagesPersonUuid] = useState(personUuid);
+  if (messagesPersonUuid !== personUuid) {
+    setMessagesPersonUuid(personUuid);
+    setMessageIds(null);
+  }
+
   const markUnavailable = useCallback(() => {
     setIsAvailableUser(false);
     setProspectHint(handle, { isAvailableUser: false });
@@ -559,6 +569,7 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
   const profile = useProspectProfile(
     showProfilePanel ? handle : undefined, { preferCache: true });
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     // Re-seed from the (possibly newly populated) hint on every handle
     // change. `useState` initializers only run on first mount, so when the
@@ -589,6 +600,7 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     })();
     return () => { cancelled = true; };
   }, [handle]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Surface the other person's name in the browser tab. App.tsx's
   // `documentTitle.formatter` reads `options.title` from the focused screen
@@ -623,8 +635,8 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     saveDraft('');
   }, [personUuid, messageIds, saveDraft]);
 
-  const sendTypingMessage = useCallback(
-    _.debounce(
+  const sendTypingMessage = useMemo(
+    () => _.debounce(
       () => personUuid && sendMessageAndNotify(personUuid, { type: 'typing' }),
       1000,
       {
@@ -724,9 +736,9 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     }
   }, [maybeLoadNextPage]);
 
-  const markLastMessageRead = useCallback(async () => {
-    const lastMessageId = _.last(messageIds);
+  const lastMessageId = _.last(messageIds);
 
+  const markLastMessageRead = useCallback(async () => {
     if (!lastMessageId) {
       return;
     }
@@ -751,33 +763,31 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     if (personUuid) {
       await markDisplayed(personUuid, lastMessage.message.id, null);
     }
-  }, [_.last(messageIds), personUuid]);
+  }, [lastMessageId, personUuid]);
 
   useSkipped(personUuid, () => navigation.popToTop());
 
   // Fetch the first page of messages when the conversation is first opened
   // while online
-  const fetchFirstPage = useCallback(async (personUuid: string) => {
-    const fetchedMessageIds = await fetchConversationAndNotify(personUuid);
-
-    if (fetchedMessageIds === 'timeout') {
-      return;
-    }
-
-    setMessageIds((messageIds) => {
-      const lastIdOfPage = _.last(fetchedMessageIds);
-
-      if (
-        messageIds === null ||
-        lastIdOfPage && !messageIds.includes(lastIdOfPage)
-      ) {
-        return fetchedMessageIds;
-      } else {
-        return messageIds;
+  const fetchFirstPage = useCallback((personUuid: string) =>
+    fetchConversationAndNotify(personUuid).then((fetchedMessageIds) => {
+      if (fetchedMessageIds === 'timeout') {
+        return;
       }
-    });
 
-  }, []);
+      setMessageIds((messageIds) => {
+        const lastIdOfPage = _.last(fetchedMessageIds);
+
+        if (
+          messageIds === null ||
+          lastIdOfPage && !messageIds.includes(lastIdOfPage)
+        ) {
+          return fetchedMessageIds;
+        } else {
+          return messageIds;
+        }
+      });
+    }), []);
 
   useEffect(() => {
     const onChangeAppState = (state: AppStateStatus) => {
@@ -796,13 +806,6 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
       true,
     );
   }, []);
-
-  useEffect(() => {
-    // If the user navigates to the conversation screen via a deep link, but the
-    // conversation screen was already open on a conversation with a different
-    // person, then the screen should be cleared.
-    setMessageIds(null);
-  }, [personUuid]);
 
   useEffect(() => {
     if (isActive && isOnline && personUuid) {

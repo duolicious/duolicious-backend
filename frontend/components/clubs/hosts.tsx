@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -24,20 +24,11 @@ import { ClubsPanel } from './clubs-panel';
 import { ClubCardBody, ClubCardCache, ClubCardTitle } from './club-card';
 import { useIsScrolled } from './use-is-scrolled';
 import { placePopover } from './place-popover';
+import { useLatest } from '../../util/use-latest';
 
 const POPOVER_WIDTH = 360;
 const EDGE = 8;
 const FADE_DURATION = 150;
-
-const useLatest = <T,>(value: T | null): T | null => {
-  const ref = useRef(value);
-
-  if (value !== null) {
-    ref.current = value;
-  }
-
-  return ref.current;
-};
 
 const firstClubCard = (card: OpenClubCard): OpenClubCard =>
   card.previous ? firstClubCard(card.previous) : card;

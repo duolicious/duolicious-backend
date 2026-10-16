@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useState } from 'react';
 import {
   Pressable,
   Animated,
@@ -25,7 +25,7 @@ const Tab = ({ navigation, state, route, descriptors, index, numUnread }: {
   const { appThemeName, appTheme } = useAppTheme();
   const isWebLoggedOut = useIsWebLoggedOut();
 
-  const animated = useRef(new Animated.Value(1)).current;
+  const [animated] = useState(() => new Animated.Value(1));
 
   const backgroundColor = animated.interpolate({
     inputRange: [0, 1],

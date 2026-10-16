@@ -88,6 +88,7 @@ const sharedVideo = (uri: string): SharedVideo => {
 
   const player = createVideoPlayer(uri);
   player.loop = true;
+  player.timeUpdateEventInterval = 0.1;
 
   const video: SharedVideo = {
     id: nextSharedVideoId++,
@@ -104,6 +105,17 @@ const sharedVideo = (uri: string): SharedVideo => {
   releaseIfUnwanted(uri, video);
 
   return video;
+};
+
+const hostVideo = (
+  video: SharedVideo,
+  host: HTMLElement | null,
+  element: HTMLVideoElement | null,
+) => {
+  video.host = host;
+  video.element = element;
+  placeElement(video);
+  queueApplyWants(video);
 };
 
 const sharedVideoFor = (player: VideoPlayer) =>
@@ -145,6 +157,7 @@ export {
   EV_SHARED_VIDEOS,
   SharedVideo,
   VideoClaim,
+  hostVideo,
   placeElement,
   queueApplyWants,
   sharedVideoFor,

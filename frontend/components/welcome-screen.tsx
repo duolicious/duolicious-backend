@@ -13,7 +13,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons/faArrowLeft';
 import { descriptionStyle } from './option-styles';
 import {
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -114,19 +113,15 @@ const ActiveMembers = ({
   color: string,
   minText?: string,
 }) => {
-  const opacity = useRef(new Animated.Value(1)).current;
+  const [opacity] = useState(() => new Animated.Value(1));
 
   const [displayText, setDisplayText] = useState(
     activeMembersText(numActiveMembers, minActiveMembers, minText));
 
-  const [nextDisplayText, setNextDisplayText] = useState(displayText);
+  const nextDisplayText =
+    activeMembersText(numActiveMembers, minActiveMembers, minText);
 
   const isFirstRender = useRef(true);
-
-  useEffect(() => {
-    setNextDisplayText(
-      activeMembersText(numActiveMembers, minActiveMembers, minText));
-  }, [numActiveMembers, minActiveMembers]);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -783,6 +778,7 @@ const WelcomeScreen_ = ({navigation, route}: NativeStackScreenProps<WelcomeParam
   useEffect(() => {
     const pending = consumePendingWebSignIn();
     if (!pending) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     signInWith(pending.provider, async () => pending.result, pending.context);
   }, []);
 
@@ -974,27 +970,6 @@ const EmailScreen_ = ({navigation, route}: NativeStackScreenProps<WelcomeParamLi
     }
   };
 
-  const SuffixButton = useCallback(({suffix}: {suffix: string}) => (
-    <ButtonWithCenteredText
-      onPress={() => !isLoading && submit(suffix)}
-      borderWidth={0}
-      secondary={true}
-      containerStyle={{
-        marginTop: 0,
-        marginBottom: 0,
-        height: undefined,
-      }}
-      backgroundColor="rgb(228, 204, 255)"
-      textStyle={{
-        padding: 10,
-        fontSize: 12,
-        color: '#70f',
-      }}
-    >
-      {suffix}
-    </ButtonWithCenteredText>
-  ), [isLoading, submit]);
-
   // Layout deliberately mirrors `OptionScreen` — back button + bold
   // title + description on top, focused input in the middle, single
   // `Continue` button at the bottom — so this page looks like the OTP
@@ -1098,11 +1073,33 @@ const EmailScreen_ = ({navigation, route}: NativeStackScreenProps<WelcomeParamLi
                 gap: 10,
               }}
             >
-              <SuffixButton suffix="@gmail.com" />
-              <SuffixButton suffix="@proton.me" />
-              <SuffixButton suffix="@yahoo.com" />
-              <SuffixButton suffix="@hotmail.com" />
-              <SuffixButton suffix="@outlook.com" />
+              {[
+                '@gmail.com',
+                '@proton.me',
+                '@yahoo.com',
+                '@hotmail.com',
+                '@outlook.com',
+              ].map((suffix) =>
+                <ButtonWithCenteredText
+                  key={suffix}
+                  onPress={() => !isLoading && submit(suffix)}
+                  borderWidth={0}
+                  secondary={true}
+                  containerStyle={{
+                    marginTop: 0,
+                    marginBottom: 0,
+                    height: undefined,
+                  }}
+                  backgroundColor="rgb(228, 204, 255)"
+                  textStyle={{
+                    padding: 10,
+                    fontSize: 12,
+                    color: '#70f',
+                  }}
+                >
+                  {suffix}
+                </ButtonWithCenteredText>
+              )}
             </View>
           }
         </View>

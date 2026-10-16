@@ -214,20 +214,13 @@ const GifPickerModal: React.FC = () => {
     [],
   );
 
-  // Use lodash debounce to delay search requests
-  const debouncedFetchGifs = useCallback(
-    _.debounce((query: string) => {
-      fetchGifs(query);
-    }, 500),
-    [fetchGifs]
-  );
-
   useEffect(() => {
     if (!isShowing) {
       return;
     }
-    debouncedFetchGifs(searchQuery);
-  }, [isShowing, searchQuery, debouncedFetchGifs]);
+    const timeout = setTimeout(() => fetchGifs(searchQuery), 500);
+    return () => clearTimeout(timeout);
+  }, [isShowing, searchQuery, fetchGifs]);
 
   useEffect(() => {
     return listen('show-gif-picker', () => {
