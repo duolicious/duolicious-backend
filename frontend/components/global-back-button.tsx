@@ -47,6 +47,7 @@ const GlobalBackButton = () => {
     ? Math.max(0, (width - COLUMN_MAX_WIDTH) / 2)
     : 0;
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useLayoutEffect(() => {
     const previous = shown;
 
@@ -78,6 +79,7 @@ const GlobalBackButton = () => {
     opacity.value = withTiming(1, TIMING);
     translateX.value = withTiming(targetX, TIMING);
   }, [placement, targetX]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,

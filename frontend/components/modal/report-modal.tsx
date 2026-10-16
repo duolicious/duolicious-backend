@@ -27,6 +27,30 @@ type ReportModalInitialData = {
   context: string
 };
 
+const ErrorMessage = ({
+  isTooFewChars,
+  isSomethingWrong,
+}: {
+  isTooFewChars: boolean,
+  isSomethingWrong: boolean,
+}) => {
+  if (isTooFewChars) {
+    return (
+      <DefaultText style={{color: "#e91010"}}>
+        Must be at least 5 characters
+      </DefaultText>
+    );
+  } else if (isSomethingWrong) {
+    return (
+      <DefaultText style={{color: "#e91010"}}>
+        Something went wrong
+      </DefaultText>
+    );
+  } else {
+    return <View/>;
+  }
+};
+
 const ReportModal = () => {
   const { appThemeName, appTheme } = useAppTheme();
   const [name, setName] = useState("");
@@ -92,24 +116,6 @@ const ReportModal = () => {
   useEffect(() => {
     return listen('open-report-modal', openReportModal);
   }, [listen, openReportModal]);
-
-  const ErrorMessage = useCallback(() => {
-    if (isTooFewChars) {
-      return (
-        <DefaultText style={{color: "#e91010"}}>
-          Must be at least 5 characters
-        </DefaultText>
-      );
-    } else if (isSomethingWrong) {
-      return (
-        <DefaultText style={{color: "#e91010"}}>
-          Something went wrong
-        </DefaultText>
-      );
-    } else {
-      return <View/>;
-    }
-  }, [isTooFewChars, isSomethingWrong]);
 
   return (
     <DefaultModal visible={isVisible} transparent={false} onRequestClose={close}>
@@ -183,7 +189,10 @@ const ReportModal = () => {
                 marginTop: 5,
               }}
             >
-              <ErrorMessage/>
+              <ErrorMessage
+                isTooFewChars={isTooFewChars}
+                isSomethingWrong={isSomethingWrong}
+              />
               <DefaultText style={{color: 'grey', textAlign: 'right'}}>
                 {numChars} of {maxChars}
               </DefaultText>

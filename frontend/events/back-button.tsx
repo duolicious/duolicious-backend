@@ -70,9 +70,7 @@ const useBackButtonState = (): BackButtonState => {
 const useBackButtonClaim = (
   placement: BackButtonPlacement | null,
 ): (() => void) => {
-  const keyRef = useRef<number | null>(null);
-  if (keyRef.current === null) keyRef.current = nextKey++;
-  const key = keyRef.current;
+  const [key] = useState(() => nextKey++);
 
   const focused = useIsFocused();
 

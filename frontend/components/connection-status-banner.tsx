@@ -31,14 +31,14 @@ const ConnectionStatusBanner = () => {
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(HIDDEN_POSITION);
   const [banner, setBanner] = useState<Banner | null>(null);
-  const lastBannerRef = useRef<Banner>('offline');
+  const [lastBanner, setLastBanner] = useState<Banner>('offline');
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  if (banner !== null) {
-    lastBannerRef.current = banner;
+  if (banner !== null && banner !== lastBanner) {
+    setLastBanner(banner);
   }
 
-  const displayedBanner = banner ?? lastBannerRef.current;
+  const displayedBanner = banner ?? lastBanner;
 
   useEffect(() => listen<boolean>(EV_NETWORK_IS_ONLINE, (isOnline) => {
     if (isOnline === undefined) {

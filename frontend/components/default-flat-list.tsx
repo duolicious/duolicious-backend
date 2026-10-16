@@ -439,10 +439,10 @@ const useList = <ItemT, ListType>(ref: Ref<{ refresh: () => Promise<void> }>, pr
     onLayoutProp?.(params);
   }, [fetchNextPage, onLayoutProp]);
 
-  const book = getBookOrDefault(books, dataKey);
-  const items = useMemo(
-    () => bookToItems(getBookOrDefault(books, dataKey)),
+  const book = useMemo(
+    () => getBookOrDefault(books, dataKey),
     [books, dataKey]);
+  const items = useMemo(() => bookToItems(book), [book]);
 
   const isComplete = isBookComplete(book);
   const isEmpty = isBookEmpty(book);
@@ -516,10 +516,10 @@ const useWebHiddenOnScrollHeader = <ItemT,>(
     const scrollY = _.clamp(
       contentOffset.y, 0, contentSize.height - layoutMeasurement.height);
 
-    headerOffset.value = _.clamp(
+    headerOffset.set(_.clamp(
       headerOffset.value + scrollY - lastScrollY.current,
       0,
-      headerHeight.value);
+      headerHeight.value));
     lastScrollY.current = scrollY;
 
     onScrollProp?.(e);
@@ -532,7 +532,7 @@ const useWebHiddenOnScrollHeader = <ItemT,>(
   const hiddenOnScrollHeader = useMemo(() => (
     <Animated.View
       style={headerStyle}
-      onLayout={(e) => headerHeight.value = e.nativeEvent.layout.height}
+      onLayout={(e) => headerHeight.set(e.nativeEvent.layout.height)}
     >
       {ListHeaderComponent}
     </Animated.View>
@@ -548,6 +548,18 @@ const useWebHiddenOnScrollHeader = <ItemT,>(
     ListHeaderComponent: hiddenOnScrollHeader,
     ListHeaderComponentStyle: { pointerEvents: 'box-none' as const },
   };
+};
+
+const mergeRefs = <T,>(
+  ...refs: (RefCallback<T> | MutableRefObject<T | null> | undefined)[]
+) => (node: T | null) => {
+  refs.forEach((ref) => {
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
+    }
+  });
 };
 
 const UntypedDefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>, ref: ForwardedRef<{ refresh: () => Promise<void> }>) => {
@@ -598,17 +610,7 @@ const UntypedDefaultFlatList = <ItemT,>(props: DefaultFlatListProps<ItemT>, ref:
 
   return (
     <FlatList
-      ref={(node) => {
-        flatList.current = node;
-
-        if (props.innerRef === undefined) {
-          ;
-        } else if (typeof props.innerRef === 'function') {
-          props.innerRef(node);
-        } else {
-          props.innerRef.current = node;
-        }
-      }}
+      ref={mergeRefs(flatList, props.innerRef)}
       refreshing={false}
       onRefresh={props.disableRefresh ? undefined : onRefresh}
       onEndReachedThreshold={props.onEndReachedThreshold ?? 3}
@@ -647,17 +649,7 @@ const UntypedDefaultFlashList = <ItemT,>(props: DefaultFlashListProps<ItemT>, re
 
   return (
     <FlashList
-      ref={(node) => {
-        flatList.current = node;
-
-        if (props.innerRef === undefined) {
-          ;
-        } else if (typeof props.innerRef === 'function') {
-          props.innerRef(node);
-        } else {
-          props.innerRef.current = node;
-        }
-      }}
+      ref={mergeRefs(flatList, props.innerRef)}
       refreshing={false}
       onRefresh={props.disableRefresh ? undefined : onRefresh}
       onEndReachedThreshold={props.onEndReachedThreshold ?? 3}

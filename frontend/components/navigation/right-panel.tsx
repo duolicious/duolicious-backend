@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useState } from 'react';
 import { View } from 'react-native';
 import { DefaultText } from '../default-text';
 import { getRandomElement } from '../../util/util';
@@ -76,7 +76,7 @@ const DuoliciousRightPanelContent = () => {
 };
 
 const SponsoredRightPanelContent = () => {
-  const partner = useRef(getRandomElement(PARTNERS)).current;
+  const [partner] = useState(() => getRandomElement(PARTNERS));
 
   if (!partner) {
     return null;
@@ -136,7 +136,7 @@ const SponsoredRightPanelContent = () => {
 };
 
 const RightPanelContent = () => {
-  const rand = useRef(Math.random()).current;
+  const [rand] = useState(() => Math.random());
 
   if (rand < 0.2) {
     return <DuoliciousRightPanelContent/>;
