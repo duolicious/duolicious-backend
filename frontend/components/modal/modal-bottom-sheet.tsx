@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -44,7 +45,7 @@ const DISMISS_VELOCITY = 800;
 // edge, where a downward swipe would reach the system pull-down instead
 const TOP_GAP = 50;
 
-const isContentDraggable = Platform.OS !== 'web';
+const isWeb = Platform.OS === 'web';
 
 const SheetScroll = createContext<{
   gesture: ComposedGesture
@@ -164,22 +165,29 @@ const ModalBottomSheet = ({
   }, [isMounted, onBackPress]);
 
   const gestures = useMemo(() => {
+    const move = (translationY: number) => {
+      'worklet';
+      translateY.set(Math.max(0, translationY));
+    };
+
+    const release = (translationY: number, velocityY: number) => {
+      'worklet';
+      if (translationY > sheetHeight / 3 || velocityY > DISMISS_VELOCITY) {
+        runOnJS(onRequestClose)();
+      } else {
+        translateY.set(withTiming(0, { duration: SLIDE_DURATION }));
+      }
+    };
+
     const drag = () => Gesture.Pan()
       .activeOffsetY(10)
       .onUpdate((e) => {
         'worklet';
-        translateY.set(Math.max(0, e.translationY));
+        move(e.translationY);
       })
       .onEnd((e) => {
         'worklet';
-        if (
-          e.translationY > sheetHeight / 3 ||
-          e.velocityY > DISMISS_VELOCITY
-        ) {
-          runOnJS(onRequestClose)();
-        } else {
-          translateY.set(withTiming(0, { duration: SLIDE_DURATION }));
-        }
+        release(e.translationY, e.velocityY);
       });
 
     const scroll = Gesture.Native();
@@ -193,9 +201,11 @@ const ModalBottomSheet = ({
       });
 
     return {
+      move,
+      release,
       header: drag(),
       content: drag()
-        .enabled(isContentDraggable)
+        .enabled(!isWeb)
         .requireExternalGestureToFail(scrollTop, scroll),
       scroll: {
         gesture: Gesture.Exclusive(scrollTop, scroll),
@@ -203,6 +213,96 @@ const ModalBottomSheet = ({
       },
     };
   }, [translateY, scrollY, sheetHeight, onRequestClose]);
+
+  const contentRef = useRef<View>(null);
+
+  useEffect(() => {
+    const node = contentRef.current;
+    if (!isWeb || !(node instanceof HTMLElement)) {
+      return;
+    }
+
+    let touch: {
+      startX: number
+      startY: number
+      lastY: number
+      lastTime: number
+      velocity: number
+      isDragging: boolean
+    } | null = null;
+
+    const isInScrolledList = (target: EventTarget | null) => {
+      for (
+        let el = target instanceof Element ? target : null;
+        el && el !== node;
+        el = el.parentElement
+      ) {
+        if (el.scrollTop > 0) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      const { clientX, clientY } = e.touches[0];
+      touch = e.touches.length === 1 && !isInScrolledList(e.target)
+        ? {
+            startX: clientX,
+            startY: clientY,
+            lastY: clientY,
+            lastTime: e.timeStamp,
+            velocity: 0,
+            isDragging: false,
+          }
+        : null;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!touch) {
+        return;
+      }
+
+      const { clientX, clientY } = e.touches[0];
+      const dx = clientX - touch.startX;
+      const dy = clientY - touch.startY;
+
+      if (!touch.isDragging && dy <= Math.abs(dx)) {
+        touch = null;
+        return;
+      }
+
+      e.preventDefault();
+      touch.isDragging = true;
+      touch.velocity = 1000 * (clientY - touch.lastY) /
+        Math.max(1, e.timeStamp - touch.lastTime);
+      touch.lastY = clientY;
+      touch.lastTime = e.timeStamp;
+      gestures.move(dy);
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (touch?.isDragging) {
+        gestures.release(
+          touch.lastY - touch.startY,
+          e.timeStamp - touch.lastTime < 100 ? touch.velocity : 0,
+        );
+      }
+      touch = null;
+    };
+
+    node.addEventListener('touchstart', onTouchStart);
+    node.addEventListener('touchmove', onTouchMove, { passive: false });
+    node.addEventListener('touchend', onTouchEnd);
+    node.addEventListener('touchcancel', onTouchEnd);
+
+    return () => {
+      node.removeEventListener('touchstart', onTouchStart);
+      node.removeEventListener('touchmove', onTouchMove);
+      node.removeEventListener('touchend', onTouchEnd);
+      node.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [isMounted, gestures]);
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: interpolate(translateY.value, [0, sheetHeight], [1, 0]),
@@ -276,8 +376,8 @@ const ModalBottomSheet = ({
             </View>
           </GestureDetector>
           <GestureDetector gesture={gestures.content}>
-            <View style={styles.content}>
-              <SheetScroll value={isContentDraggable ? gestures.scroll : null}>
+            <View ref={contentRef} style={styles.content}>
+              <SheetScroll value={isWeb ? null : gestures.scroll}>
                 {children}
               </SheetScroll>
             </View>
