@@ -36,5 +36,5 @@ def is_rude(s: str) -> bool:
     encoding = _TOKENIZER.encode(text)
 
     return any(
-        _SESSION.run(None, {'input_ids': np.array([window.ids])})[0][0] > 0
+        _SESSION.run(None, {'input_ids': np.array([window.ids])})[0][0] > 2
         for window in [encoding, *encoding.overflowing])
