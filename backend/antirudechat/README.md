@@ -33,14 +33,21 @@ and intros the old filter flags. Targeted searches then added intros of kinds
 those groups held few of: telling the recipient to harm themselves ("jump off
 a bridge", "commit sudoku"), transphobic slurs and insults, rude words hidden
 by spacing, leetspeak or symbols ("k y s", "g00n"), short coded requests ("do
-you send?", "how big is it?", "are you on onlyfans?") and imageboard slang
-("foid", "tranner", "cope and seethe"). Many of the intros they found use the
-same words harmlessly, and those are labelled ok. Senders were split so that
-nobody's messages are in both the benchmark and `train.jsonl`. Claude labelled
-every intro against `rubric.md` as rude, ok or unsure, left the unsure ones
-out, and paraphrased the rest under the rubric's paraphrasing rules. A second
-pass labelled the benchmark's paraphrases without seeing the originals, and
-only the paraphrases whose label matched the original's were kept.
+you send?", "how big is it?", "are you on onlyfans?"), imageboard slang
+("foid", "tranner", "cope and seethe"), the slurs in `banned-club.sql`, members
+describing themselves with slurs ("im a fag lol"), remarks that land badly from
+a stranger ("you're jewish", "are you a man?"), praise of mass shooters and
+eating-disorder codes ("ana buddy"). Many of the intros they found use the same
+words harmlessly, and those are labelled ok. Senders were split so that
+nobody's messages are in both the benchmark and `train.jsonl`.
+
+Claude labelled every intro against `rubric.md` as rude, ok or unsure, left the
+unsure ones out, and paraphrased the rest under the rubric's paraphrasing
+rules. The rubric judges each intro by how its recipient would most likely take
+it, so in-group slang and self-descriptions are ok while the same words aimed
+at the recipient are rude. A second pass labelled the benchmark's paraphrases
+without seeing the originals, and only the paraphrases whose label matched the
+original's were kept.
 
 To fix a mistake the classifier makes, add paraphrased, labelled examples of it
 to `train.jsonl` (never the real message), or invented ones to

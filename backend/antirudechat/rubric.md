@@ -8,17 +8,18 @@ message from a stranger whom the recipient has never replied to. Intros the
 classifier calls rude are silently moved into a "Hidden intros" folder, which
 the recipient can still open. Most recipients of rude intros are young women.
 
-The goal is to hide intros that most recipients would find sexually explicit,
-hateful, insulting, threatening or upsetting **coming from a stranger**, without
-hiding ordinary messages that merely contain casual swearing or that respond to
-something the recipient wrote in their own profile.
+The goal is to hide intros the recipient is likely to be offended by, so that
+getting intros stays a good experience. It isn't to enforce ideals about
+proper speech. Many members come from imageboards like 4chan, where in-jokes
+and slang that would offend outsiders often signal belonging, and those are
+fine when the recipient would most likely take them as friendly ("heyyy
+fellow foid", "sorry anon, I'm a newfag kek").
 
 Judge each message on its own, as the recipient would see it. You know nothing
 about the sender or the recipient beyond the message text. The question is
 always how the recipient would most likely take it: a message they would
-likely find offensive is `rude`, and one they would plainly take as friendly
-is `ok`. Many members come from imageboards like 4chan, where slang that
-sounds harsh elsewhere is often friendly banter.
+likely be offended by is `rude`, and one they would most likely take as
+friendly, joking or harmless is `ok`.
 
 ## Labels
 
@@ -50,10 +51,10 @@ Likewise, words the sender quotes or repeats from the recipient's profile
 message rude by themselves. A neutral comment or question about something the
 recipient wrote is `ok` even when the topic is sexual ("is it hard to find
 people who share your kink?"). But the sender's own sexual propositions,
-sexual remarks about the recipient, slurs, insults and threats are `rude`
-whatever the profile says. One exception: when a quote shows the recipient
-explicitly asking for exactly this kind of message (the quote says "msg me to
-goon" and the reply offers to goon together), use `unsure`.
+sexual remarks about the recipient, and hostile slurs, insults and threats
+are `rude` whatever the profile says. One exception: when a quote shows the
+recipient explicitly asking for exactly this kind of message (the quote says
+"msg me to goon" and the reply offers to goon together), use `unsure`.
 
 Without a quote, "you said" or "your bio", don't guess that a sexual question
 or remark is echoing the profile: judge it as written.
@@ -81,16 +82,21 @@ or remark is echoing the profile: judge it as written.
    commissions?" counts as asking for paid content; asking about non-sexual
    work the recipient plainly does ("your art is so clean, do you take
    commissions?") is `ok`.
-2. **Slur**: racial, ethnic, homophobic, transphobic or misogynistic slurs,
-   including casual or "reclaimed" use, deliberate misspellings and the
-   imageboard coinages many members use ("nigga", "n1gger", "groid", "chink",
-   "jeet", "kike", "tranny", "tranner", "trannoid", "trannie", "troon",
-   "fag", "foid", "femoid", "roastie", "trap" when it describes a person);
-   Nazi and antisemitic codes ("1488", "heil hitler", "(((them)))", "day of
-   the rope"); dehumanising statements about a group.
-   Ableist words ("retarded", "tard", "sperg", "autist") are `rude` only
-   when aimed at the recipient as an insult; casual or self-directed use ("I
-   might be retarded but...") is `ok`.
+2. **Slur**: racial, ethnic, homophobic, transphobic or misogynistic slurs
+   used against the recipient or a group they may belong to, in a way they
+   would likely take as hostile or degrading, including deliberate
+   misspellings and imageboard coinages ("nigger", "n1gger", "groid",
+   "chink", "jeet", "kike", "tranny", "troon", "fag", "foid", "roastie",
+   "trap" for a person); Nazi and antisemitic codes ("1488", "heil hitler",
+   "(((them)))", "day of the rope"); dehumanising statements about a group.
+   The same words used as an in-joke, a self-description or friendly banter
+   that the recipient would most likely take well are `ok` ("heyyy fellow
+   foid", "we're both autistic lol", "only if u are a cute foid 🥹"). Praise
+   of Nazis, Hitler or genocide stays `rude` even as a self-description
+   ("aryanpilled", "hitlercel").
+   Ableist words ("retarded", "tard", "sperg", "autist") follow the same
+   rule: `rude` when aimed at the recipient as an insult, `ok` when casual
+   or self-directed ("I might be retarded but...").
 3. **Insult**: name-calling or degrading remarks aimed at the recipient ("you
    whore", "dumb slut", "hi bitch", "are you retarded"), body shaming, mocking
    the recipient's gender identity ("you'll never be a woman"), accusing the
@@ -102,11 +108,23 @@ or remark is echoing the profile: judge it as written.
    "AGP", "dilate", calling them mentally ill or mutilated for being trans,
    and "41%" or "join the 41%" (a jab about trans suicide rates, which is also
    self-harm encouragement). Profiles show the share of intros a member
-   replies to, so "41%" about a reply rate is `ok`. Imageboard insults aimed
-   at the recipient count too: "cope", "seethe", "ngmi", "npc", "midwit",
-   "soyboy", "cuck", "hon", "clocky", "used goods", "hit the wall".
+   replies to, so "41%" about a reply rate is `ok`. Imageboard insults count
+   when they put the recipient down ("cope and seethe", "ngmi", "midwit",
+   "soyboy", "cuck", "hon", "clocky", "used goods", "hit the wall"), but not
+   as friendly banter. Some remarks that are harmless between friends are
+   offensive as a stranger's first message: pointing out or questioning the
+   recipient's ethnicity, religion, race, body or gender ("you're jewish",
+   "are you black?", "you look like a man", "where are you really from?", "ni
+   hao" out of nowhere), fetishising it ("I've never been with an asian girl",
+   "yellow fever") or backhanded compliments ("pretty for a black girl"). A
+   question about identity that the sender plainly offers as common ground
+   ("are you jewish too? I'd love to meet someone from my community") is `ok`,
+   and so is asking about faith as compatibility ("are you religious?", "are
+   you catholic?", "is faith important to you?").
 4. **Violence**: threats or violent fantasies about the recipient ("I'll stab
-   you", "let me cut you up", "you just need to be beaten"), even as a joke.
+   you", "let me cut you up", "you just need to be beaten"), even as a joke,
+   and praise of mass shooters or massacres ("supreme gentleman", "going ER",
+   "saint tarrant").
 5. **Self-harm**: telling the recipient to kill or hurt themselves, however
    it's phrased ("kys", "k y s", "kill urself", "off yourself", "end your
    life", "unalive yourself", "commit die", "commit sudoku", "rope", "neck
@@ -115,8 +133,9 @@ or remark is echoing the profile: judge it as written.
    "nobody would miss you", "the world would be better without you", "cut
    deeper"), or wishing them dead ("hope you die", "hope you get hit by a
    bus"), even as a joke, or sincere statements that the sender will kill or
-   harm themselves. Telling someone not to hurt themselves ("don't kys,
-   you're too cute") is `ok`.
+   harm themselves. Encouraging an eating disorder counts too ("wanna be my
+   ana buddy?", "send meanspo", "we can starve together"). Telling someone
+   not to hurt themselves ("don't kys, you're too cute") is `ok`.
 6. **Other**: sexualising minors (loli, shota, cunny), or anything else that
    is clearly as upsetting as the categories above.
 
@@ -126,10 +145,10 @@ or remark is echoing the profile: judge it as written.
   that isn't an insult aimed at the recipient: "holy shit you're pretty", "what
   the fuck, you live near me", "this game is ass", "boring ass movie", "damn",
   "hell yeah", "fuck yeah", "badass", "I'm a little bitch about horror games"
-  (self-deprecating), "life's a bitch". Imageboard words built on "-fag"
-  ("newfag", "oldfag", "britfag") are casual swearing when they're friendly or
-  self-deprecating ("sorry anon, I'm a newfag kek"), and insults when they put
-  the recipient down ("fuck off, newfag").
+  (self-deprecating), "life's a bitch". In-group and imageboard slang
+  ("newfag", "foid", "autist", "kek") is casual swearing when it's friendly,
+  joking or self-deprecating ("sorry anon, I'm a newfag kek"), and an insult
+  when it puts the recipient down ("fuck off, newfag").
 - Compliments and mild flirting without sexual content: "you're cute",
   "you're gorgeous", "you're hot", "love your eyes", "your smile is lovely",
   "can I take you on a date", "I want to cuddle", "I want to kiss you".
@@ -200,7 +219,9 @@ For each message, write a paraphrase that:
    different made-up display name in the attribution. Greentext without an
    attribution stays greentext.
 5. **Removes anything that could identify a person**: replace names with
-   different common names; usernames and handles (Discord, Instagram, X,
+   different common names, including a word or phrase used as someone's name
+   ("hey Bumblebee", a pun on their name) even when it's an ordinary word or a
+   character's name; usernames and handles (Discord, Instagram, X,
    Telegram, Snapchat and so on) with invented ones; phone numbers with
    fictional ones (`+1 555-01xx`) and email addresses with ones at
    `example.com`; towns, schools, workplaces and other specific
