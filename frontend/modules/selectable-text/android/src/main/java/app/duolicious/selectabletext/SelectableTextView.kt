@@ -1,6 +1,7 @@
 package app.duolicious.selectabletext
 
 import android.content.Context
+import android.graphics.Paint
 import android.widget.TextView
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
@@ -9,6 +10,8 @@ import com.facebook.react.uimanager.events.Event
 
 class SelectableTextView(context: Context) : TextView(context) {
   init {
+    paintFlags = paintFlags or Paint.SUBPIXEL_TEXT_FLAG or Paint.LINEAR_TEXT_FLAG
+    includeFontPadding = false
     setTextIsSelectable(true)
   }
 
