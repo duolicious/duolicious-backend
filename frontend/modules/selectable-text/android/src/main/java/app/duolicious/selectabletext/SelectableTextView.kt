@@ -20,7 +20,7 @@ class SelectableTextView(context: Context) : TextView(context) {
 
   override fun onSelectionChanged(selStart: Int, selEnd: Int) {
     super.onSelectionChanged(selStart, selEnd)
-    if (!isAttachedToWindow || !isFocused) return
+    if (!isAttachedToWindow) return
     UIManagerHelper.getEventDispatcherForReactTag(context as ReactContext, id)
       ?.dispatchEvent(
         SelectionChangeEvent(UIManagerHelper.getSurfaceId(this), id, selStart, selEnd),

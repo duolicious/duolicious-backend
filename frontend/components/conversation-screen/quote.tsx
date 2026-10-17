@@ -272,10 +272,12 @@ const setQuote = (quote: Quote | null) => {
   return notify(eventKey, quote);
 };
 
+type TextSelection = { start: number, end: number };
+
 const setQuoteFromSelection = (
   text: string,
   attribution: string,
-  { start, end }: { start: number, end: number },
+  { start, end }: TextSelection,
 ) => setQuote(
   start === end
     ? null
@@ -302,6 +304,7 @@ export {
   setQuoteFromSelection,
   stripLeadingQuoteBlock,
   TextBlock,
+  TextSelection,
   TextToken,
   tokenizeInline,
   useQuote,

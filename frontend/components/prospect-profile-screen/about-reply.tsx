@@ -6,7 +6,7 @@ import {
 import { useIsFocused } from '@react-navigation/native';
 import { DefaultText } from '../default-text';
 import { useAppTheme } from '../../app-theme/app-theme';
-import { setQuote } from '../conversation-screen/quote';
+import { setQuote, setQuoteFromSelection } from '../conversation-screen/quote';
 import { AboutReplyHint } from '../hints/about-reply-hint';
 import { NativeAboutText } from './native-about-text';
 
@@ -88,26 +88,23 @@ const AboutText = ({
 }) => {
   const { appTheme } = useAppTheme();
 
-  const props = {
-    name,
-    about,
-    color: color ?? appTheme.secondaryColor,
-  };
+  const textColor = color ?? appTheme.secondaryColor;
 
-  // The main purpose of the remount key is to work around behavior on Android.
-  // On Android it becomes impossible to select text on a profile after
-  // navigating back to it from a conversation without remounting the text
-  // input.
-  //
-  // It also has the effect of deselecting the highlighted text. That way, the
-  // quote is only set when the user has some visual indication of it being set,
-  // either on the conversation screen, or the profile.
+  // Regaining focus remounts the text, deselecting it, and clears the quote it
+  // fed the reply button. That way, the quote is only set when the user has
+  // some visual indication of it being set, either on the conversation screen,
+  // or the profile.
   const isFocused = useIsFocused();
   const [focus, setFocus] = useState({ isFocused, remountKey: 0 });
   if (focus.isFocused !== isFocused) {
     setFocus({ isFocused, remountKey: focus.remountKey + (isFocused ? 1 : 0) });
   }
   const { remountKey } = focus;
+
+  useEffect(() => {
+    if (!canReply || remountKey === 0) return;
+    setQuote(null);
+  }, [remountKey]);
 
   useEffect(() => {
     return () => setQuote(null);
@@ -117,10 +114,17 @@ const AboutText = ({
     <View style={{ position: 'relative', zIndex: 1000, marginBottom: 20 }}>
       {
         Platform.OS === 'web'
-          ? <WebAboutText key={remountKey} {...props} />
-          : <NativeAboutText key={remountKey} {...props} />
+          ? <WebAboutText key={remountKey} name={name} about={about} color={textColor} />
+          : <NativeAboutText
+              key={remountKey}
+              about={about}
+              color={textColor}
+              onSelectionChange={isFocused
+                ? (selection) => setQuoteFromSelection(about, name, selection)
+                : undefined}
+            />
       }
-      {canReply && <AboutReplyHint color={props.color} />}
+      {canReply && <AboutReplyHint color={textColor} />}
     </View>
   );
 };

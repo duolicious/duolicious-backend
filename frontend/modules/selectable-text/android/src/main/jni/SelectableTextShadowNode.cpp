@@ -31,10 +31,8 @@ Size SelectableTextShadowNode::measureContent(
               jfloat,
               jfloat)>("measure");
 
-  const auto& props = getConcreteProps();
-  auto propsRNM = ReadableNativeMap::newObjectCxxArgs(
-      folly::dynamic::object("text", props.text)(
-          "fontFamily", props.fontFamily)("fontSize", props.fontSize));
+  auto propsRNM =
+      ReadableNativeMap::newObjectCxxArgs(getConcreteProps().rawProps);
   auto propsRM = jni::make_local(
       reinterpret_cast<ReadableMap::javaobject>(propsRNM.get()));
 

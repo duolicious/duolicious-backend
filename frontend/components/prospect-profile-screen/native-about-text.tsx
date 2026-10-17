@@ -1,23 +1,23 @@
 import { TextInput } from 'react-native';
 import { defaultFontFamily, defaultFontSize } from '../default-text';
-import { setQuoteFromSelection } from '../conversation-screen/quote';
+import type { TextSelection } from '../conversation-screen/quote';
 
 const NativeAboutText = ({
-  name,
   about,
   color,
+  onSelectionChange,
 }: {
-  name: string,
   about: string,
   color: string,
+  onSelectionChange?: (selection: TextSelection) => void,
 }) => (
   <TextInput
     value={about}
     multiline={true}
     scrollEnabled={false}
     editable={false}
-    onSelectionChange={(e) =>
-      setQuoteFromSelection(about, name, e.nativeEvent.selection)}
+    onSelectionChange={onSelectionChange &&
+      ((e) => onSelectionChange(e.nativeEvent.selection))}
     style={{
       color,
       fontFamily: defaultFontFamily,
