@@ -29,6 +29,8 @@ BEGIN
     ALTER TABLE person DROP COLUMN IF EXISTS looking_for_id;
 END $$;
 
+DROP FUNCTION IF EXISTS age_gap_acceptability_odds(double precision, double precision);
+
 CREATE TABLE IF NOT EXISTS video_job (
     uuid TEXT PRIMARY KEY,
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
