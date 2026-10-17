@@ -251,7 +251,7 @@ const ModalBottomSheet = ({
       Array.from(touches).find((t) => t.identifier === touch?.id);
 
     const onTouchStart = (e: TouchEvent) => {
-      if (findTouch(e.touches)) {
+      if (touch?.isDragging && findTouch(e.touches)) {
         return;
       }
 
