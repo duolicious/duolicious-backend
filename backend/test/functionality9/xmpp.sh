@@ -422,24 +422,13 @@ sleep 1
 
 echo user2 can still see user1\'s message after user1 deletes their account
 
-read -r -d '' inbox_query <<EOF || true
-{
-  "iq": {
-    "@type": "set",
-    "@id": "id3",
-    "inbox": {
-      "@xmlns": "erlang-solutions.com:xmpp:inbox:0",
-      "@queryid": "id3"
-    }
-  }
-}
-EOF
-
-curl -X POST http://localhost:3001/send -H "Content-Type: application/json" -d "$inbox_query"
+curl -X POST http://localhost:3001/send -H "Content-Type: application/json" \
+  -d '{ "duo_query_inbox": null }'
 
 sleep 0.5
 
-curl -sX GET http://localhost:3001/pop | grep -qF '"body": "hello once more"'
+curl -sX GET http://localhost:3001/pop \
+  | assert_any '.duo_inbox.conversations[]? | .last_message == "hello once more"'
 
 
 
