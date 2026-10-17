@@ -190,9 +190,11 @@ const ModalBottomSheet = ({
         release(e.translationY, e.velocityY);
       });
 
-    const scroll = Gesture.Native();
+    const content = drag().enabled(!isWeb);
+    const scroll = Gesture.Native().blocksExternalGesture(content);
     const scrollTop = drag()
       .failOffsetY(-5)
+      .blocksExternalGesture(content)
       .onTouchesDown((_, manager) => {
         'worklet';
         if (scrollY.get() > 0) {
@@ -204,9 +206,7 @@ const ModalBottomSheet = ({
       move,
       release,
       header: drag(),
-      content: drag()
-        .enabled(!isWeb)
-        .requireExternalGestureToFail(scrollTop, scroll),
+      content,
       scroll: {
         gesture: Gesture.Exclusive(scrollTop, scroll),
         scrollY,
