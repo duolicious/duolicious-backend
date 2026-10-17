@@ -223,6 +223,7 @@ const ModalBottomSheet = ({
     }
 
     let touch: {
+      id: number
       startX: number
       startY: number
       lastY: number
@@ -244,10 +245,18 @@ const ModalBottomSheet = ({
       return false;
     };
 
+    const findTouch = (touches: TouchList) =>
+      Array.from(touches).find((t) => t.identifier === touch?.id);
+
     const onTouchStart = (e: TouchEvent) => {
-      const { clientX, clientY } = e.touches[0];
+      if (findTouch(e.touches)) {
+        return;
+      }
+
+      const { identifier, clientX, clientY } = e.touches[0];
       touch = e.touches.length === 1 && !isInScrolledList(e.target)
         ? {
+            id: identifier,
             startX: clientX,
             startY: clientY,
             lastY: clientY,
@@ -259,11 +268,12 @@ const ModalBottomSheet = ({
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (!touch) {
+      const moved = findTouch(e.touches);
+      if (!touch || !moved) {
         return;
       }
 
-      const { clientX, clientY } = e.touches[0];
+      const { clientX, clientY } = moved;
       const dx = clientX - touch.startX;
       const dy = clientY - touch.startY;
 
@@ -282,6 +292,10 @@ const ModalBottomSheet = ({
     };
 
     const onTouchEnd = (e: TouchEvent) => {
+      if (!findTouch(e.changedTouches)) {
+        return;
+      }
+
       if (touch?.isDragging) {
         gestures.release(
           touch.lastY - touch.startY,
