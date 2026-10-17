@@ -484,6 +484,10 @@ async def get_update_notifications(request: Request) -> object:
         frequency=request.query_params.get('frequency', ''),
     )
 
+@app.post('/unsubscribe')
+async def post_unsubscribe(token: str) -> object:
+    return await person.post_unsubscribe(token)
+
 @app.get('/feed-v2')
 async def get_feed_v2(
     request: Request,
