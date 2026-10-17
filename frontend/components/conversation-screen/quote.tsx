@@ -269,7 +269,7 @@ const useQuote = (): Quote | null => {
 };
 
 const setQuote = (quote: Quote | null) => {
-  return notify(eventKey, quote);
+  return notify(eventKey, _quotablePortion(quote) ? quote : null);
 };
 
 type TextSelection = { start: number, end: number };
