@@ -234,6 +234,7 @@ const ModalBottomSheet = ({
       velocity: number
       isDragging: boolean
     } | null = null;
+    let lastEvent: TouchEvent | null = null;
 
     const isInScrolledList = (target: EventTarget | null) => {
       for (
@@ -286,6 +287,11 @@ const ModalBottomSheet = ({
     };
 
     const onTouchMove = (e: TouchEvent) => {
+      if (e === lastEvent) {
+        return;
+      }
+      lastEvent = e;
+
       const moved = findTouch(e.touches);
       if (!touch || !moved) {
         return;
@@ -310,6 +316,11 @@ const ModalBottomSheet = ({
     };
 
     const onTouchEnd = (e: TouchEvent) => {
+      if (e === lastEvent) {
+        return;
+      }
+      lastEvent = e;
+
       if (!findTouch(e.changedTouches)) {
         return;
       }
@@ -324,9 +335,15 @@ const ModalBottomSheet = ({
     };
 
     node.addEventListener('touchstart', onTouchStart);
+    node.addEventListener('touchmove', onTouchMove, { passive: false });
+    node.addEventListener('touchend', onTouchEnd);
+    node.addEventListener('touchcancel', onTouchEnd);
 
     return () => {
       node.removeEventListener('touchstart', onTouchStart);
+      node.removeEventListener('touchmove', onTouchMove);
+      node.removeEventListener('touchend', onTouchEnd);
+      node.removeEventListener('touchcancel', onTouchEnd);
       untrack();
     };
   }, [isMounted]);
