@@ -12,8 +12,6 @@ from service.api.chatprotocol.message import (
 from service.api.chatprotocol import outbound
 from service.api.chatprotocol.inbound import (
     InboxSnapshotQuery,
-    IqBind,
-    IqSession,
     MamQuery,
     MarkDisplayed,
     MarkVisitorsChecked,
@@ -21,7 +19,6 @@ from service.api.chatprotocol.inbound import (
     RegisterPushToken,
     RegisterWebPushSubscription,
     SaslAuth,
-    StreamOpenReq,
     SubscribeOnline,
     UnsubscribeOnline,
     VisitorsQuery,
@@ -30,7 +27,6 @@ from service.api.chatprotocol.inbound import (
 from service.api.chatprotocol.outbound import (
     AuthFailure,
     AuthSuccess,
-    BindResult,
     InboxConversation,
     InboxEntry,
     InboxSnapshot,
@@ -51,10 +47,7 @@ from service.api.chatprotocol.outbound import (
     ReadReceipt,
     RegistrationSuccessful,
     ServerError,
-    SessionResult,
     StreamClose,
-    StreamFeatures,
-    StreamOpenResponse,
     SubscribeBad,
     SubscribeOk,
     UnsubscribeBad,
@@ -157,13 +150,8 @@ OUTBOUND_SAMPLES = [
     MamFin(viewer_username=U1, query_id='7'),
     InboxSnapshot(payload=_INBOX_PAYLOAD),
     InboxEntry(payload=_INBOX_CONVERSATION),
-    StreamOpenResponse(version='1.0', id='oid', from_=LSERVER),
-    StreamFeatures(authenticated=False),
-    StreamFeatures(authenticated=True),
     AuthSuccess(),
     AuthFailure(),
-    BindResult(iq_id='b1', jid=f'{U1}@{LSERVER}'),
-    SessionResult(iq_id='s1'),
     StreamClose(),
 ]
 
@@ -360,19 +348,6 @@ class TestInboundParsing(unittest.TestCase):
     def test_inbox_snapshot_query(self) -> None:
         self.assertEqual(
             parse_incoming('{"duo_query_inbox": null}'), InboxSnapshotQuery())
-
-    def test_iq_bind(self) -> None:
-        js = (
-            '{"iq": {"@xmlns": "jabber:client", "@type": "set", "@id": "b1", '
-            '"bind": {"@xmlns": "urn:ietf:params:xml:ns:xmpp-bind"}}}')
-        self.assertEqual(parse_incoming(js), IqBind(iq_id='b1'))
-
-    def test_open(self) -> None:
-        js = (
-            '{"open": {"@xmlns": "urn:ietf:params:xml:ns:xmpp-framing", '
-            f'"@version": "1.0", "@to": "{LSERVER}"}}}}')
-        self.assertEqual(
-            parse_incoming(js), StreamOpenReq(version='1.0', to=LSERVER))
 
 
 if __name__ == '__main__':
