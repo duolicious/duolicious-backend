@@ -226,6 +226,7 @@ const ModalBottomSheet = ({
 
     let touch: {
       id: number
+      target: EventTarget
       startX: number
       startY: number
       lastY: number
@@ -250,23 +251,38 @@ const ModalBottomSheet = ({
     const findTouch = (touches: TouchList) =>
       Array.from(touches).find((t) => t.identifier === touch?.id);
 
+    const untrack = () => {
+      touch?.target.removeEventListener('touchmove', onTouchMove);
+      touch?.target.removeEventListener('touchend', onTouchEnd);
+      touch?.target.removeEventListener('touchcancel', onTouchEnd);
+      touch = null;
+    };
+
     const onTouchStart = (e: TouchEvent) => {
       if (touch?.isDragging && findTouch(e.touches)) {
         return;
       }
 
-      const { identifier, clientX, clientY } = e.touches[0];
-      touch = e.touches.length === 1 && !isInScrolledList(e.target)
-        ? {
-            id: identifier,
-            startX: clientX,
-            startY: clientY,
-            lastY: clientY,
-            lastTime: e.timeStamp,
-            velocity: 0,
-            isDragging: false,
-          }
-        : null;
+      untrack();
+
+      const { identifier, target, clientX, clientY } = e.touches[0];
+      if (e.touches.length !== 1 || isInScrolledList(target)) {
+        return;
+      }
+
+      touch = {
+        id: identifier,
+        target,
+        startX: clientX,
+        startY: clientY,
+        lastY: clientY,
+        lastTime: e.timeStamp,
+        velocity: 0,
+        isDragging: false,
+      };
+      target.addEventListener('touchmove', onTouchMove, { passive: false });
+      target.addEventListener('touchend', onTouchEnd);
+      target.addEventListener('touchcancel', onTouchEnd);
     };
 
     const onTouchMove = (e: TouchEvent) => {
@@ -280,7 +296,7 @@ const ModalBottomSheet = ({
       const dy = clientY - touch.startY;
 
       if (!touch.isDragging && dy <= Math.abs(dx)) {
-        touch = null;
+        untrack();
         return;
       }
 
@@ -304,19 +320,14 @@ const ModalBottomSheet = ({
           e.timeStamp - touch.lastTime < 100 ? touch.velocity : 0,
         );
       }
-      touch = null;
+      untrack();
     };
 
     node.addEventListener('touchstart', onTouchStart);
-    node.addEventListener('touchmove', onTouchMove, { passive: false });
-    node.addEventListener('touchend', onTouchEnd);
-    node.addEventListener('touchcancel', onTouchEnd);
 
     return () => {
       node.removeEventListener('touchstart', onTouchStart);
-      node.removeEventListener('touchmove', onTouchMove);
-      node.removeEventListener('touchend', onTouchEnd);
-      node.removeEventListener('touchcancel', onTouchEnd);
+      untrack();
     };
   }, [isMounted]);
 
