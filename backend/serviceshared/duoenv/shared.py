@@ -21,6 +21,8 @@ SMTP_PORT = required_int('DUO_SMTP_PORT')
 SMTP_USER = required_str('DUO_SMTP_USER')
 SMTP_PASS = required_str('DUO_SMTP_PASS')
 
+UNSUBSCRIBE_SECRET = required_str('DUO_UNSUBSCRIBE_SECRET')
+
 REPORT_EMAIL = required_str('DUO_REPORT_EMAIL')
 
 R2_ACCT_ID = required_str('DUO_R2_ACCT_ID')

@@ -58,6 +58,7 @@ from service.api.person.template import otp_template
 import logging
 import re
 from serviceshared.smtp import aws_smtp
+from serviceshared.unsubscribe import person_uuid_from_token
 from starlette.responses import Response
 from starlette.concurrency import run_in_threadpool
 from dataclasses import dataclass
@@ -1214,6 +1215,16 @@ async def get_update_notifications(
             f"<b>{email}</b>")
     else:
         return 'Invalid email address or notification frequency', 400
+
+async def post_unsubscribe(token: str) -> object:
+    person_uuid = person_uuid_from_token(token)
+    if person_uuid is None:
+        return 'Invalid token', 400
+
+    async with api_tx('READ COMMITTED') as tx:
+        await tx.execute(Q_UNSUBSCRIBE, dict(person_uuid=person_uuid))
+
+    return None
 
 async def post_verification_selfie(
     req: t.PostVerificationSelfie,

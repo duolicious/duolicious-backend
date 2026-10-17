@@ -37,6 +37,7 @@ export DUO_R2_ACCESS_KEY_SECRET=s3-mock-secret-access-key-secret
 export DUO_BOTO_ENDPOINT_URL=http://localhost:9090
 export DUO_SMTP_HOST=localhost
 export DUO_SMTP_PORT=1025
+export DUO_UNSUBSCRIBE_SECRET=dev-unsubscribe-secret
 ./api.main.sh
 ```
 
@@ -91,6 +92,8 @@ These environment variables let the `api` container know where your SMTP server 
 
 The `api` container uses the SMTP server to sent one-time passwords to users who want to sign up or log in.
 
+* `DUO_UNSUBSCRIBE_SECRET` - A long random string. The `api` container uses it to check the one-click unsubscribe links in notification emails, so it must match the `cron` container's.
+
 These environment variables let the `api` container know where your PostgreSQL database is:
 
 * `DUO_DB_HOST` - Your PostgreSQL database's hostname.
@@ -136,6 +139,8 @@ These environment variables let the `cron` container know where your SMTP server
 * `DUO_SMTP_PASS` - Your SMTP server's password.
 
 The `cron` container uses the SMTP server to sent message notifications, as well as notifications that a user's account has been deactivated due to inactivity.
+
+* `DUO_UNSUBSCRIBE_SECRET` - A long random string. The `cron` container uses it to sign the one-click unsubscribe links in notification emails, so it must match the `api` container's.
 
 These environment variables let the `cron` container know where your PostgreSQL database is:
 

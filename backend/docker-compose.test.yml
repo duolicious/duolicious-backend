@@ -57,6 +57,7 @@ services:
       DUO_SMTP_PORT: 1025
       DUO_SMTP_USER: unused-in-dev-env
       DUO_SMTP_PASS: unused-in-dev-env
+      DUO_UNSUBSCRIBE_SECRET: dev-unsubscribe-secret
 
       DUO_REPORT_EMAIL: duolicious@example.com 20 a@example.com 0
 
@@ -143,6 +144,7 @@ services:
       DUO_SMTP_PORT: 1025
       DUO_SMTP_USER: unused-in-dev-env
       DUO_SMTP_PASS: unused-in-dev-env
+      DUO_UNSUBSCRIBE_SECRET: dev-unsubscribe-secret
 
       DUO_REPORT_EMAIL: duolicious@example.com 20 a@example.com 0
 
