@@ -545,7 +545,8 @@ test_looking_for () {
     == '["Friends","Marriage"]' ]]
 
   jc PATCH /profile-info -d '{ "looking_for": ["Something casual", "Friends"] }'
-  [[ "$(get_field looking_for)" == 'Friends, Something casual' ]]
+  [[ "$(c GET /profile-info | jq -c '.["looking for"]')" \
+    == '["Friends","Something casual"]' ]]
 
   jc PATCH /profile-info -d '{ "looking_for": [] }'
   [[ "$(c GET /profile-info | jq -c '.["looking for"]')" == '[]' ]]
