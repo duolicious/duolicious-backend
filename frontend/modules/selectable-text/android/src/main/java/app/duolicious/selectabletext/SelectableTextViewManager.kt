@@ -14,6 +14,7 @@ import com.facebook.react.viewmanagers.DuoSelectableTextManagerDelegate
 import com.facebook.react.viewmanagers.DuoSelectableTextManagerInterface
 import com.facebook.yoga.YogaMeasureMode
 import com.facebook.yoga.YogaMeasureOutput
+import kotlin.math.ceil
 
 class SelectableTextViewManager :
   SimpleViewManager<SelectableTextView>(),
@@ -41,7 +42,7 @@ class SelectableTextViewManager :
   }
 
   override fun setFontSize(view: SelectableTextView, value: Float) {
-    view.setTextSize(TypedValue.COMPLEX_UNIT_SP, value)
+    view.setTextSize(TypedValue.COMPLEX_UNIT_PX, ceil(PixelUtil.toPixelFromSP(value)))
   }
 
   override fun measure(
