@@ -21,7 +21,6 @@ from service.api.search.sql import (
     Q_PUBLIC_SIMILAR_PROFILES_WITH_ANSWERS,
     Q_QUIZ_SEARCH,
     Q_DELETE_SEARCH_CACHE,
-    Q_FEED,
     Q_SAME_COUNTRY_ONLY,
     build_uncached_search,
     feed_v2_query,
@@ -295,22 +294,6 @@ async def _get_public_search(
             max_age=max_age,
         ))
         return await tx.fetchall()
-
-
-async def get_feed(s: t.SessionInfo, before: datetime) -> object:
-    params = dict(
-        searcher_person_id=s.person_id,
-        before=before,
-    )
-
-    async with api_tx('READ COMMITTED') as tx:
-        await tx.execute('SET LOCAL jit = off')
-        await tx.execute("SET LOCAL work_mem = '32MB'")
-
-        await tx.execute(Q_FEED, params)
-        rows = await tx.fetchall()
-
-    return [row['j'] for row in rows]
 
 
 async def get_feed_v2(s: t.SessionInfo, before: datetime) -> object:

@@ -484,17 +484,6 @@ async def get_update_notifications(request: Request) -> object:
         frequency=request.query_params.get('frequency', ''),
     )
 
-@app.get('/feed')
-async def get_feed(
-    request: Request,
-    s: t.SessionInfo = Depends(session()),
-) -> object:
-    valid_datetime = t.ValidDatetime.model_validate(
-        {'datetime': request.query_params.get('before')}
-    )
-
-    return await search.get_feed(s=s, before=valid_datetime.datetime)
-
 @app.get('/feed-v2')
 async def get_feed_v2(
     request: Request,

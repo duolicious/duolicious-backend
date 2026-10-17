@@ -28,3 +28,6 @@ BEGIN
     DROP FUNCTION IF EXISTS sync_looking_for();
     ALTER TABLE person DROP COLUMN IF EXISTS looking_for_id;
 END $$;
+
+
+DROP FUNCTION IF EXISTS age_gap_acceptability_odds(double precision, double precision);
