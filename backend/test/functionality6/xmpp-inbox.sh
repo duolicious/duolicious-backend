@@ -88,7 +88,7 @@ get_inbox () {
   curl -sX GET http://localhost:3001/pop \
     | jq -sS -c '
       [.[] | .duo_inbox | select(. != null)][0].conversations
-      | map({name, last_message, last_message_read})
+      | map({name, last_message, last_message_read, location})
       | sort_by(.name)
     '
 
@@ -145,10 +145,11 @@ inbox_1=$(get_inbox "$user1uuid" "$user1token")
 inbox_2=$(get_inbox "$user2uuid" "$user2token")
 inbox_3=$(get_inbox "$user3uuid" "$user3token")
 
-[[ "$(conversation_with user2 <<< "$inbox_1")" == '{"last_message":"from user 2 to user 1","last_message_read":false,"name":"user2"}' ]]
-[[ "$(conversation_with user3 <<< "$inbox_1")" == '{"last_message":"from user 3 to user 1","last_message_read":false,"name":"user3"}' ]]
-[[ "$(conversation_with user3 <<< "$inbox_2")" == '{"last_message":"from user 3 to user 2","last_message_read":false,"name":"user3"}' ]]
-[[ "$(conversation_with user2 <<< "$inbox_3")" == '{"last_message":"from user 3 to user 2","last_message_read":true,"name":"user2"}' ]]
+[[ "$(jq length <<< "$inbox_1")" == 2 ]]
+[[ "$(conversation_with user2 <<< "$inbox_1")" == '{"last_message":"from user 2 to user 1","last_message_read":false,"location":"intros","name":"user2"}' ]]
+[[ "$(conversation_with user3 <<< "$inbox_1")" == '{"last_message":"from user 3 to user 1","last_message_read":false,"location":"intros","name":"user3"}' ]]
+[[ "$(conversation_with user3 <<< "$inbox_2")" == '{"last_message":"from user 3 to user 2","last_message_read":false,"location":"chats","name":"user3"}' ]]
+[[ "$(conversation_with user2 <<< "$inbox_3")" == '{"last_message":"from user 3 to user 2","last_message_read":true,"location":"chats","name":"user2"}' ]]
 
 echo "The direction column is forward-filled when users message each other"
 
@@ -173,5 +174,5 @@ mark_displayed "$user1uuid" "$user1token" "$user2uuid"
 
 inbox_1=$(get_inbox "$user1uuid" "$user1token")
 
-[[ "$(conversation_with user2 <<< "$inbox_1")" == '{"last_message":"from user 2 to user 1","last_message_read":true,"name":"user2"}' ]]
-[[ "$(conversation_with user3 <<< "$inbox_1")" == '{"last_message":"from user 3 to user 1","last_message_read":false,"name":"user3"}' ]]
+[[ "$(conversation_with user2 <<< "$inbox_1")" == '{"last_message":"from user 2 to user 1","last_message_read":true,"location":"intros","name":"user2"}' ]]
+[[ "$(conversation_with user3 <<< "$inbox_1")" == '{"last_message":"from user 3 to user 1","last_message_read":false,"location":"intros","name":"user3"}' ]]
