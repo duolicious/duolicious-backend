@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useEffectEvent,
   useMemo,
   useRef,
   useState,
@@ -215,6 +216,7 @@ const ModalBottomSheet = ({
   }, [translateY, scrollY, sheetHeight, onRequestClose]);
 
   const contentRef = useRef<View>(null);
+  const currentGestures = useEffectEvent(() => gestures);
 
   useEffect(() => {
     const node = contentRef.current;
@@ -288,7 +290,7 @@ const ModalBottomSheet = ({
         Math.max(1, e.timeStamp - touch.lastTime);
       touch.lastY = clientY;
       touch.lastTime = e.timeStamp;
-      gestures.move(dy);
+      currentGestures().move(dy);
     };
 
     const onTouchEnd = (e: TouchEvent) => {
@@ -297,7 +299,7 @@ const ModalBottomSheet = ({
       }
 
       if (touch?.isDragging) {
-        gestures.release(
+        currentGestures().release(
           touch.lastY - touch.startY,
           e.timeStamp - touch.lastTime < 100 ? touch.velocity : 0,
         );
@@ -316,7 +318,7 @@ const ModalBottomSheet = ({
       node.removeEventListener('touchend', onTouchEnd);
       node.removeEventListener('touchcancel', onTouchEnd);
     };
-  }, [isMounted, gestures]);
+  }, [isMounted]);
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: interpolate(translateY.value, [0, sheetHeight], [1, 0]),
