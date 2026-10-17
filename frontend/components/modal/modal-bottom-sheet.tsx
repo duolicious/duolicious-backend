@@ -213,7 +213,7 @@ const ModalBottomSheet = ({
         scrollY,
       },
     };
-  }, [translateY, scrollY, sheetHeight, onRequestClose]);
+  }, [translateY, scrollY, sheetHeight, onRequestClose, isMounted]);
 
   const contentRef = useRef<View>(null);
   const currentGestures = useEffectEvent(() => gestures);
@@ -253,9 +253,9 @@ const ModalBottomSheet = ({
       Array.from(touches).find((t) => t.identifier === touch?.id);
 
     const untrack = () => {
-      touch?.target.removeEventListener('touchmove', onTouchMove);
-      touch?.target.removeEventListener('touchend', onTouchEnd);
-      touch?.target.removeEventListener('touchcancel', onTouchEnd);
+      touch?.target.removeEventListener('touchmove', onTouchMove, true);
+      touch?.target.removeEventListener('touchend', onTouchEnd, true);
+      touch?.target.removeEventListener('touchcancel', onTouchEnd, true);
       touch = null;
     };
 
@@ -281,9 +281,13 @@ const ModalBottomSheet = ({
         velocity: 0,
         isDragging: false,
       };
-      target.addEventListener('touchmove', onTouchMove, { passive: false });
-      target.addEventListener('touchend', onTouchEnd);
-      target.addEventListener('touchcancel', onTouchEnd);
+      target.addEventListener(
+        'touchmove',
+        onTouchMove,
+        { capture: true, passive: false },
+      );
+      target.addEventListener('touchend', onTouchEnd, true);
+      target.addEventListener('touchcancel', onTouchEnd, true);
     };
 
     const onTouchMove = (e: TouchEvent) => {
