@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { DefaultText } from './default-text';
+import { SheetScrollView } from './modal/modal-bottom-sheet';
 import { useAppTheme } from '../app-theme/app-theme';
 import {
   EmojiEntry,
@@ -171,6 +172,7 @@ const EmojiGrid = ({
           keyExtractor={(item) => item.key}
           getItemType={(item) => item.type}
           keyboardShouldPersistTaps="handled"
+          renderScrollComponent={SheetScrollView}
         />
       }
     </View>

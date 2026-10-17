@@ -43,6 +43,7 @@ import { Skeleton } from '../skeleton';
 import { VerificationBadge } from '../verification-badge';
 import { ButtonWithCenteredText } from '../button/centered-text';
 import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
+import { SheetScrollView } from '../modal/modal-bottom-sheet';
 import { showPointOfSale } from '../modal/point-of-sale-modal';
 import { notifyErrorToast, notifyLinkCopiedToast } from '../toast';
 
@@ -500,7 +501,7 @@ const ClubCardBody = ({
   );
 
   return (
-    <ScrollView
+    <SheetScrollView
       ref={scrollRef}
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingHorizontal: 20 }}
@@ -517,7 +518,7 @@ const ClubCardBody = ({
       {header}
       {members.map((m) => <MemberRow key={m.person_uuid} member={m} />)}
       {footer}
-    </ScrollView>
+    </SheetScrollView>
   );
 };
 
