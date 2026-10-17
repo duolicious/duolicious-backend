@@ -11,7 +11,6 @@ from service.api.chatprotocol.message import (
 )
 from service.api.chatprotocol import outbound
 from service.api.chatprotocol.inbound import (
-    InboxQuery,
     InboxSnapshotQuery,
     IqBind,
     IqSession,
@@ -34,8 +33,6 @@ from service.api.chatprotocol.outbound import (
     BindResult,
     InboxConversation,
     InboxEntry,
-    InboxFin,
-    InboxResult,
     InboxSnapshot,
     InboxSnapshotPayload,
     IncomingChat,
@@ -158,15 +155,6 @@ OUTBOUND_SAMPLES = [
         msg_to_username=U2, stanza_id='id1', body='hi',
         reaction='\U0001f44d', reaction_from='self'),
     MamFin(viewer_username=U1, query_id='7'),
-    InboxResult(
-        owner_username=U1, msg_id='123', inner_from_username=U1,
-        inner_to_username=U2, body='hi', stamp='2020-01-01T00:00:00.000000Z',
-        unread_count=0, box='chats', query_id='q1', muted_until=0),
-    InboxResult(
-        owner_username=U1, msg_id='123', inner_from_username=U2,
-        inner_to_username=U1, body='hi', stamp='2020-01-01T00:00:00.000000Z',
-        unread_count=2, box='inbox', query_id='q1', muted_until=0),
-    InboxFin(query_id='q1'),
     InboxSnapshot(payload=_INBOX_PAYLOAD),
     InboxEntry(payload=_INBOX_CONVERSATION),
     StreamOpenResponse(version='1.0', id='oid', from_=LSERVER),
@@ -372,13 +360,6 @@ class TestInboundParsing(unittest.TestCase):
     def test_inbox_snapshot_query(self) -> None:
         self.assertEqual(
             parse_incoming('{"duo_query_inbox": null}'), InboxSnapshotQuery())
-
-    def test_inbox_query(self) -> None:
-        js = (
-            '{"iq": {"@type": "set", "@id": "5", "inbox": '
-            '{"@xmlns": "erlang-solutions.com:xmpp:inbox:0", "@queryid": "5", '
-            '"x": {"@xmlns": "jabber:x:data", "@type": "form"}}}}')
-        self.assertEqual(parse_incoming(js), InboxQuery(query_id='5'))
 
     def test_iq_bind(self) -> None:
         js = (

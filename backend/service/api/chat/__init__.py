@@ -20,7 +20,6 @@ from service.api.chat.notifications import (
 from service.api.chat.spam import is_spam_message
 from service.api.chat.messagestorage.inbox import (
     fetch_is_hidden,
-    get_inbox,
     get_inbox_entry,
     get_inbox_snapshot,
     mark_displayed,
@@ -72,7 +71,6 @@ from service.api.chatprotocol.message import (
     TypingMessage,
 )
 from service.api.chatprotocol import (
-    InboxQuery,
     InboxSnapshotQuery,
     MamQuery,
     MarkDisplayed,
@@ -474,11 +472,6 @@ async def process_text(
         return await redis_publish_many(
                 connection_uuid,
                 await get_conversation(parsed, from_username))
-
-    if isinstance(parsed, InboxQuery):
-        return await redis_publish_many(
-                connection_uuid,
-                await get_inbox(parsed.query_id, from_username))
 
     if isinstance(parsed, InboxSnapshotQuery):
         return await redis_publish_many(

@@ -89,17 +89,7 @@ class MamQuery:
 
 
 @dataclass(frozen=True)
-class InboxQuery:
-    query_id: str
-
-
-@dataclass(frozen=True)
 class InboxSnapshotQuery:
-    """
-    The modern inbox query (`duo_query_inbox`). Unlike the legacy `InboxQuery`,
-    the response carries complete conversations (person info included), so
-    clients don't have to join the inbox against a separate endpoint.
-    """
     pass
 
 
@@ -128,7 +118,6 @@ Inbound = (
     | RegisterPushToken
     | RegisterWebPushSubscription
     | MamQuery
-    | InboxQuery
     | InboxSnapshotQuery
     | MarkDisplayed
     | VisitorsQuery
@@ -304,25 +293,6 @@ def _try_mam(el: Element) -> MamQuery | None:
     )
 
 
-def _try_inbox(el: Element) -> InboxQuery | None:
-    inbox: Element | None
-    if el.tag == 'inbox':
-        inbox = el
-    elif el.tag == 'iq':
-        inbox = el.find('inbox')
-    else:
-        inbox = None
-
-    if inbox is None:
-        return None
-
-    query_id = inbox.get('queryid')
-    if not query_id:
-        return None
-
-    return InboxQuery(query_id=query_id)
-
-
 def _try_mark_displayed(el: Element) -> MarkDisplayed | None:
     if el.tag != 'message':
         return None
@@ -373,10 +343,6 @@ def _interpret(el: Element) -> Inbound | None:
     mam = _try_mam(el)
     if mam is not None:
         return mam
-
-    inbox = _try_inbox(el)
-    if inbox is not None:
-        return inbox
 
     mark_displayed = _try_mark_displayed(el)
     if mark_displayed is not None:
