@@ -13,6 +13,22 @@
 -- from this file: init-api.sql already carries the change for fresh databases.
 
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_attribute
+        WHERE attrelid = 'person'::regclass
+        AND attname = 'looking_for_id'
+        AND NOT attisdropped
+    ) THEN
+        RETURN;
+    END IF;
+
+    DROP TRIGGER IF EXISTS trigger_sync_looking_for ON person;
+    DROP FUNCTION IF EXISTS sync_looking_for();
+    ALTER TABLE person DROP COLUMN IF EXISTS looking_for_id;
+END $$;
+
 CREATE TABLE IF NOT EXISTS video_job (
     uuid TEXT PRIMARY KEY,
     person_id INT NOT NULL REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
