@@ -117,38 +117,7 @@ const ModalBottomSheet = ({
   }
   const translateY = useSharedValue(sheetHeight);
   const scrollY = useSharedValue(0);
-
-  useEffect(() => {
-    if (!isMounted) {
-      return;
-    }
-
-    if (visible) {
-      translateY.set(sheetHeight);
-      translateY.set(withTiming(
-        0,
-        { duration: SLIDE_DURATION },
-        (finished) => {
-          if (finished && onOpened) {
-            runOnJS(onOpened)();
-          }
-        },
-      ));
-    } else {
-      translateY.set(withTiming(
-        sheetHeight,
-        { duration: SLIDE_DURATION },
-        (finished) => {
-          if (finished) {
-            runOnJS(setIsMounted)(false);
-          }
-          if (finished && onClosed) {
-            runOnJS(onClosed)();
-          }
-        },
-      ));
-    }
-  }, [visible, isMounted]);
+  const isVisible = useSharedValue(visible);
 
   useEffect(() => {
     const onHardwareBackPress = () => {
@@ -166,17 +135,36 @@ const ModalBottomSheet = ({
   }, [isMounted, onBackPress]);
 
   const gestures = useMemo(() => {
+    const open = () => {
+      'worklet';
+      translateY.set(withTiming(
+        0,
+        { duration: SLIDE_DURATION },
+        (finished) => {
+          if (finished && onOpened) {
+            runOnJS(onOpened)();
+          }
+        },
+      ));
+    };
+
     const move = (translationY: number) => {
       'worklet';
-      translateY.set(Math.max(0, translationY));
+      if (isVisible.get()) {
+        translateY.set(Math.max(0, translationY));
+      }
     };
 
     const release = (translationY: number, velocityY: number) => {
       'worklet';
+      if (!isVisible.get()) {
+        return;
+      }
+
       if (translationY > sheetHeight / 3 || velocityY > DISMISS_VELOCITY) {
         runOnJS(onRequestClose)();
       } else {
-        translateY.set(withTiming(0, { duration: SLIDE_DURATION }));
+        open();
       }
     };
 
@@ -204,6 +192,7 @@ const ModalBottomSheet = ({
       });
 
     return {
+      open,
       move,
       release,
       header: drag(),
@@ -213,7 +202,41 @@ const ModalBottomSheet = ({
         scrollY,
       },
     };
-  }, [translateY, scrollY, sheetHeight, onRequestClose, isMounted]);
+  }, [
+    translateY,
+    scrollY,
+    isVisible,
+    sheetHeight,
+    onRequestClose,
+    onOpened,
+    isMounted,
+  ]);
+
+  useEffect(() => {
+    if (!isMounted) {
+      return;
+    }
+
+    isVisible.set(visible);
+
+    if (visible) {
+      translateY.set(sheetHeight);
+      gestures.open();
+    } else {
+      translateY.set(withTiming(
+        sheetHeight,
+        { duration: SLIDE_DURATION },
+        (finished) => {
+          if (finished) {
+            runOnJS(setIsMounted)(false);
+          }
+          if (finished && onClosed) {
+            runOnJS(onClosed)();
+          }
+        },
+      ));
+    }
+  }, [visible, isMounted]);
 
   const contentRef = useRef<View>(null);
   const currentGestures = useEffectEvent(() => gestures);

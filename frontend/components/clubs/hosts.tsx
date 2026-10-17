@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -144,12 +144,12 @@ const ClubCardHost = () => {
   const cache = useMemo((): ClubCardCache => new Map(), [first]);
   const { isScrolled, onScroll } = useIsScrolled(shown);
   const [isOpened, setIsOpened] = useState(false);
+  const onOpened = useCallback(() => setIsOpened(true), []);
 
   if (shown === null) {
     return null;
   }
 
-  const onOpened = () => setIsOpened(true);
   const onClosed = () => setIsOpened(false);
   const onBack = shown.previous && backClubCard;
 
