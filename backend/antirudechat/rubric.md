@@ -1,8 +1,8 @@
 # Labelling rubric
 
-Every message in `train.jsonl` and in
-`serviceshared/antiabuse/antirude/chat/corpus.jsonl` is labelled by this
-rubric. Duolicious members are mostly young adults with nerdy interests
+Every message in `train.jsonl` and in the benchmarks in
+`serviceshared/antiabuse/antirude/chat` is labelled by this rubric.
+Duolicious members are mostly young adults with nerdy interests
 (games, anime, internet culture). Every message is an **intro**: a
 message from a stranger whom the recipient has never replied to. Intros the
 classifier calls rude are silently moved into a "Hidden intros" folder, which
@@ -236,7 +236,8 @@ For each message, write a paraphrase that:
 
 Leave a message out instead when:
 
-- the message sexualises minors, describes a way to kill or harm oneself, or
-  threatens sexual violence, or
+- the message sexualises minors, describes a way to kill or harm oneself,
+  encourages or wishes self-harm or suicide on anyone, or threatens sexual
+  violence or uses it as an insult, or
 - you can't write a paraphrase that satisfies the rules above, for example
   when the whole point of the message is one person's identity.

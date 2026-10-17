@@ -193,7 +193,7 @@ def main() -> None:
         'google/bert_uncased_L-4_H-256_A-4',
         texts + intros,
         targets + intro_targets,
-        epochs=2,
+        epochs=4,
         learning_rate=1e-4,
         batch_size=64)
 
