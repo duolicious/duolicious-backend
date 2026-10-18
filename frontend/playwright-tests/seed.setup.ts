@@ -34,7 +34,6 @@ setup('seed the backend', async () => {
 
   await api('GET', `/prospect-profile/${viewerSession.uuid}`, dakotaSession);
   await api('GET', `/prospect-profile/${blakeSession.uuid}`, viewerSession);
-  await api('GET', `/prospect-profile/${emerySession.uuid}`, viewerSession);
   await markVisitorsChecked(viewerSession);
 
   const seed: Seed = {

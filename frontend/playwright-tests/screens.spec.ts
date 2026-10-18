@@ -70,11 +70,6 @@ for (const theme of ['light', 'dark']) {
 
     await visit(page, `/chat/${seed.uuids.emery}`, 'Definitely sourdough', `${theme}-conversation`);
 
-    await visit(page, '/visitors', 'Dakota', `${theme}-visitors`);
-    await tap(page, 'You Visited');
-    await shown(page, 'Blake');
-    await snap(page, `${theme}-you-visited`);
-
     await visit(page, `/${blake}`, 'Engineer', `${theme}-prospect-profile`);
     await page.locator('a[href^="/gallery/"]').filter({ visible: true }).first().click();
     await expect(page).toHaveURL(/\/gallery\//);
@@ -83,6 +78,11 @@ for (const theme of ['light', 'dark']) {
     await visit(page, `/in-depth/${blake}`, 'Q&A Answers', `${theme}-in-depth`);
     await tap(page, 'Personality');
     await snap(page, `${theme}-in-depth-personality`);
+
+    await visit(page, '/visitors', 'Dakota', `${theme}-visitors`);
+    await tap(page, 'You Visited');
+    await shown(page, 'Blake');
+    await snap(page, `${theme}-you-visited`);
 
     await visit(page, '/profile', 'Verification', `${theme}-profile`);
   });
