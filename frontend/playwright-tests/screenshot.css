@@ -1,4 +1,3 @@
-div:has(> div[style*="background-color: rgb(165, 255, 206)"]),
 div:has(> div > div[style*="border-radius: 99px; touch-action: none"]) {
   display: none !important;
 }

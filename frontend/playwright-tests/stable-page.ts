@@ -21,7 +21,11 @@ const prepare = async (
   await page.addInitScript((storage) => {
     const callCounts = new Map<string, number>();
     Math.random = () => {
-      const site = (new Error().stack ?? '').split('\n').slice(2, 4).join();
+      const site = (new Error().stack ?? '')
+        .split('\n')
+        .slice(2, 4)
+        .map((frame) => frame.replace(/\S*:\d+:\d+\)?/g, '').trim())
+        .join();
       const count = (callCounts.get(site) ?? 0) + 1;
       callCounts.set(site, count);
 
