@@ -46,7 +46,7 @@ const prepare = async (
 
 const snap = async (page: Page, name: string) => {
   await page.mouse.move(0, 0);
-  await page.clock.fastForward(5000);
+  await page.clock.runFor(5000);
 
   await page.evaluate(() => {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
