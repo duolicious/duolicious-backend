@@ -251,14 +251,15 @@ const PlanCard = ({
 const FeatureCarousel = ({
   active,
   setActive,
+  width,
   compact,
 }: {
   active: number
   setActive: (active: number) => void
+  width: number
   compact: boolean
 }) => {
   const ref = useRef<ScrollView>(null);
-  const [width, setWidth] = useState(0);
 
   useLayoutEffect(() => {
     ref.current?.scrollTo({ x: active * width, animated: false });
@@ -274,11 +275,10 @@ const FeatureCarousel = ({
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         scrollEventThrottle={16}
-        onLayout={(e) => e.nativeEvent.layout.width && setWidth(e.nativeEvent.layout.width)}
         onScroll={(e) => setActive(Math.round(e.nativeEvent.contentOffset.x / width))}
         style={{ flexGrow: 0 }}
       >
-        {width > 0 && FEATURES.map(({ key, headline, subtitle, Illustration }, i) =>
+        {FEATURES.map(({ key, headline, subtitle, Illustration }, i) =>
           <Pressable
             key={key}
             onPress={() => goTo((i + 1) % FEATURES.length)}
@@ -367,9 +367,11 @@ const FeatureCarousel = ({
 
 const OfferingCard = ({
   feature,
+  width,
   compact,
 }: {
   feature: PointOfSaleFeature
+  width: number
   compact: boolean
 }) => {
   const [offering, setOffering] = useState<Offering | null>();
@@ -435,7 +437,12 @@ const OfferingCard = ({
   return (
     <>
       <ScrollView>
-        <FeatureCarousel active={active} setActive={setActive} compact={compact} />
+        <FeatureCarousel
+          active={active}
+          setActive={setActive}
+          width={width}
+          compact={compact}
+        />
         <View
           style={{
             marginTop: compact ? 34 : 36,
@@ -542,6 +549,7 @@ const PointOfSaleModal = () => {
     ? height - insets.bottom
     : Math.min(height - cardMargin(insets.top) - cardMargin(insets.bottom), 844);
   const compact = availableHeight < 760;
+  const cardWidth = isFullScreen ? width : 390;
 
   return (
     <DefaultModal
@@ -564,9 +572,8 @@ const PointOfSaleModal = () => {
       >
         <View
           style={{
-            width: '100%',
+            width: cardWidth,
             height: '100%',
-            maxWidth: isFullScreen ? undefined : 390,
             maxHeight: isFullScreen ? undefined : 844,
             borderRadius: isFullScreen ? 0 : 16,
             overflow: 'hidden',
@@ -612,7 +619,11 @@ const PointOfSaleModal = () => {
               <X stroke="white" strokeWidth={3} width={24} height={24} />
             </Pressable>
           </View>
-          <OfferingCard feature={feature} compact={compact} />
+          <OfferingCard
+            feature={feature}
+            width={cardWidth - cardInsets.left - cardInsets.right}
+            compact={compact}
+          />
         </View>
       </View>
     </DefaultModal>
