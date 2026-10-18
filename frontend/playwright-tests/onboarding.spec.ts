@@ -11,14 +11,18 @@ const tap = (page: Page, text: string) => visibleText(page, text).click();
 const leave = (page: Page, title: string) =>
   expect(page.getByText(title, { exact: true })).toBeHidden();
 
-const signUp = async (
-  page: Page,
-  step: (name: string) => Promise<void> = async () => {},
-) => {
+const requestCode = async (page: Page) => {
   await tap(page, 'Use email');
   await leave(page, 'Use email');
   await page.getByPlaceholder('you@example.com').fill(`${Date.now()}@example.com`);
   await tap(page, 'Continue');
+};
+
+const signUp = async (
+  page: Page,
+  step: (name: string) => Promise<void> = async () => {},
+) => {
+  await requestCode(page);
 
   const otp = page.locator('input[inputmode="numeric"]').first();
   await expect(otp).toBeVisible();
@@ -90,4 +94,37 @@ test('new users can accept club invites', async ({ page }) => {
 
   await expect(visibleText(page, 'Everyone')).toBeVisible();
   await expect(visibleText(page, clubName)).toBeVisible();
+});
+
+test('mistyped one-time passwords can be corrected', async ({ page }) => {
+  const sentCodes: string[] = [];
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && request.url().endsWith('/check-otp')) {
+      sentCodes.push(request.postDataJSON().otp);
+    }
+  });
+
+  await prepare(page, SIGN_UP_TIME);
+  await page.goto('/');
+  await tap(page, 'Join or sign in');
+  await requestCode(page);
+
+  const boxes = page.locator('input[inputmode="numeric"]');
+  const typedCode = () => boxes.evaluateAll(
+    (inputs: HTMLInputElement[]) => inputs.map((input) => input.value).join(''));
+
+  await expect(boxes.first()).toBeFocused();
+  await page.keyboard.type('12345');
+  await boxes.first().click();
+  await page.keyboard.type('0');
+  await expect.poll(typedCode).toBe('02345');
+
+  await page.keyboard.type('6');
+  await expect(page.getByText('Incorrect code. Try Again.')).toHaveCSS('opacity', '1');
+  await expect.poll(typedCode).toBe('');
+  await expect(boxes.first()).toBeFocused();
+
+  await page.keyboard.type('000000');
+  await leave(page, 'Password');
+  expect(sentCodes).toEqual(['023456', '000000']);
 });

@@ -426,6 +426,7 @@ const Otp = forwardRef((props: InputProps<OptionGroupOtp>, ref) => {
   const [isLoadingResend, setIsLoadingResend] = useState(false);
   const [isInvalid, setIsInvalid] = useState(false);
   const [counter, setCounter] = useState(counterInit);
+  const [numRejections, setNumRejections] = useState(0);
   const inputValueRef = useRef<string>('');
   const isSubmittingRef = useRef(false);
 
@@ -443,6 +444,10 @@ const Otp = forwardRef((props: InputProps<OptionGroupOtp>, ref) => {
     try {
       const result = await props.input.otp.submit(inputValueRef?.current);
       setIsInvalid(result === 'rejected');
+      if (result === 'rejected') {
+        inputValueRef.current = '';
+        setNumRejections((n) => n + 1);
+      }
       if (result === 'needs-onboarding') props.onSubmitSuccess();
     } finally {
       props.setIsLoading(false);
@@ -470,7 +475,7 @@ const Otp = forwardRef((props: InputProps<OptionGroupOtp>, ref) => {
 
   return (
     <>
-      <OtpInput codeLength={6} submit={submit}
+      <OtpInput key={numRejections} codeLength={6} submit={submit}
         onChangeOtp={onChangeInputValue}/>
       <DefaultText
         style={{
