@@ -49,7 +49,8 @@ const snap = async (page: Page, name: string) => {
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       const text = node.textContent ?? '';
       const steady = text
-        .replace(/\b\d{1,2}:\d{2}\s?([ap]m)\b/gi, '12:00 $1')
+        .replace(/\b\d{1,2}:\d{2}\s?[ap]m\b/gi, '12:00 pm')
+        .replace(/\bYesterday\b/g, 'Today')
         .replace(/\b\d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g, '1 Jan');
       if (steady !== text) {
         node.textContent = steady;
