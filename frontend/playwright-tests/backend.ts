@@ -172,6 +172,7 @@ const createPerson = async (person: Person): Promise<Session> => {
 
   await api('PATCH', '/profile-info', session, { about: person.about });
   await api('PATCH', '/profile-info', session, { occupation: person.occupation });
+  await api('PATCH', '/profile-info', session, { show_my_online_status: 'No' });
 
   for (const [i, answer] of person.answers.entries()) {
     await api('POST', '/answer', session, { question_id: i + 1, answer, public: true });
