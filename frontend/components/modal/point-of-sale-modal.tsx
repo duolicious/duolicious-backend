@@ -47,6 +47,7 @@ const hidePointOfSale = () => {
 
 const usePointOfSale = () => {
   const [feature, setFeature] = useState<PointOfSaleFeature>('read-receipts');
+  const [openings, setOpenings] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -61,12 +62,13 @@ const usePointOfSale = () => {
 
         if (x !== null) {
           setFeature(x);
+          setOpenings((n) => n + 1);
         }
       }
     );
   }, []);
 
-  return { feature, isVisible };
+  return { feature, openings, isVisible };
 };
 
 const PurchaseButton = ({
@@ -532,7 +534,7 @@ const OfferingCard = ({
 };
 
 const PointOfSaleModal = () => {
-  const { feature, isVisible } = usePointOfSale();
+  const { feature, openings, isVisible } = usePointOfSale();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const isFullScreen = width < 600;
@@ -612,7 +614,7 @@ const PointOfSaleModal = () => {
               <X stroke="white" strokeWidth={3} width={24} height={24} />
             </Pressable>
           </View>
-          <OfferingCard feature={feature} compact={compact} />
+          <OfferingCard key={openings} feature={feature} compact={compact} />
         </View>
       </View>
     </DefaultModal>
