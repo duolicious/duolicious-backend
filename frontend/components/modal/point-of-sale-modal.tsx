@@ -272,12 +272,14 @@ const FeatureCarousel = ({
   return (
     <>
       <ScrollView
+        key={width}
         ref={ref}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         scrollEventThrottle={16}
-        onScroll={(e) => setActive(Math.round(e.nativeEvent.contentOffset.x / width))}
+        onScroll={({ nativeEvent: { contentOffset, layoutMeasurement } }) =>
+          layoutMeasurement.width && setActive(Math.round(contentOffset.x / layoutMeasurement.width))}
         style={{ flexGrow: 0 }}
       >
         {FEATURES.map(({ key, headline, subtitle, Illustration }, i) =>
