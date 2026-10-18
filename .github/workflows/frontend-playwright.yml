@@ -19,6 +19,20 @@ defaults:
 
 jobs:
   test:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: desktop screens
+            artifact: desktop
+            projects: --project desktop
+          - name: phone screens
+            artifact: phone
+            projects: --project phone
+          - name: onboarding
+            artifact: onboarding
+            projects: --project onboarding-desktop --project onboarding-phone
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
@@ -37,11 +51,11 @@ jobs:
         npm ci
         npx patch-package
     - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
+      run: npx playwright install --with-deps chromium
     - name: Wait for backend
       run: curl --silent --fail --retry 300 --retry-delay 1 --retry-all-errors --output /dev/null http://localhost:5000/health
     - name: Run Playwright tests
-      run: npx playwright test
+      run: npx playwright test ${{ matrix.projects }}
     - name: Show backend logs
       if: failure()
       working-directory: backend
@@ -53,7 +67,7 @@ jobs:
     - uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: playwright-report
+        name: playwright-report-${{ matrix.artifact }}
         path: |
           frontend/playwright-report/
           frontend/test-results/

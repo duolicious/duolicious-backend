@@ -116,7 +116,7 @@ mkdir -p test/input
 for f in enable-mocking disable-ip-rate-limit disable-account-rate-limit; do echo 1 > test/input/$f; done
 docker compose -f docker-compose.test.yml up -d --build api status s3mock smtp redis
 ```
-The `seed` project fills the database with a fixed cast of members (it needs `psql` on your `PATH`), and `screens.spec.ts` and `onboarding.spec.ts` compare each screen against the PNGs in `playwright-tests/*-snapshots/`, on desktop and phone layouts. Screenshots render differently between machines, so the committed PNGs come from CI: when a screen changes on purpose, download the `playwright-report` artifact from the failed run and copy each `test-results/**/<name>-actual.png` over the matching snapshot. New screens write their first PNG into `playwright-tests/*-snapshots/` in the same artifact.
+The `seed` project fills the database with a fixed cast of members (it needs `psql` on your `PATH`), and `screens.spec.ts` and `onboarding.spec.ts` compare each screen against the PNGs in `playwright-tests/*-snapshots/`, on desktop and phone layouts. Screenshots render differently between machines, so the committed PNGs come from CI: when a screen changes on purpose, download the failed job's `playwright-report-…` artifact and copy each `test-results/**/<name>-actual.png` over the matching snapshot. New screens write their first PNG into `playwright-tests/*-snapshots/` in the same artifact.
 
 Run tests and capture traces:
 ```bash
