@@ -24,6 +24,7 @@ type Person = {
   email: string,
   name: string,
   gender: string,
+  seeking: string[],
   about: string,
   occupation: string,
   colours: [number, number, number][],
@@ -34,6 +35,7 @@ const viewer: Person = {
   email: 'avery@example.com',
   name: 'Avery',
   gender: 'Woman',
+  seeking: ['Man', 'Non-binary'],
   about: 'Weekend hiker, weekday baker. Ask me about sourdough.',
   occupation: 'Pastry chef',
   colours: [[230, 120, 90], [250, 200, 120]],
@@ -44,6 +46,7 @@ const blake: Person = {
   email: 'blake@example.com',
   name: 'Blake',
   gender: 'Man',
+  seeking: ['Man', 'Woman', 'Non-binary'],
   about: 'Amateur astronomer and full-time cat parent.',
   occupation: 'Engineer',
   colours: [[70, 110, 200], [120, 170, 240]],
@@ -54,6 +57,7 @@ const cameron: Person = {
   email: 'cameron@example.com',
   name: 'Cameron',
   gender: 'Non-binary',
+  seeking: ['Man', 'Woman', 'Non-binary'],
   about: 'Board games, bad puns and good coffee.',
   occupation: 'Librarian',
   colours: [[90, 170, 110]],
@@ -64,6 +68,7 @@ const dakota: Person = {
   email: 'dakota@example.com',
   name: 'Dakota',
   gender: 'Man',
+  seeking: ['Man', 'Woman', 'Non-binary'],
   about: 'Learning the cello, slowly.',
   occupation: 'Nurse',
   colours: [[170, 90, 180]],
@@ -74,6 +79,7 @@ const emery: Person = {
   email: 'emery@example.com',
   name: 'Emery',
   gender: 'Agender',
+  seeking: ['Man', 'Woman', 'Non-binary'],
   about: 'Collector of houseplants and vinyl.',
   occupation: 'Designer',
   colours: [[200, 160, 60]],
@@ -151,7 +157,7 @@ const createPerson = async (person: Person): Promise<Session> => {
   });
   await api('PATCH', '/onboardee-info', onboardee, { location: 'New York, New York, United States' });
   await api('PATCH', '/onboardee-info', onboardee, { gender: person.gender });
-  await api('PATCH', '/onboardee-info', onboardee, { other_peoples_genders: ['Man', 'Woman', 'Non-binary'] });
+  await api('PATCH', '/onboardee-info', onboardee, { other_peoples_genders: person.seeking });
 
   const { person_uuid } = await api<{ person_uuid: string }>(
     'POST', '/finish-onboarding', onboardee);

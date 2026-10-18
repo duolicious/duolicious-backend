@@ -55,19 +55,19 @@ export default defineConfig({
       name: 'phone',
       testMatch: /screens\.spec\.ts/,
       use: { ...devices['Pixel 7'] },
-      dependencies: ['desktop'],
+      dependencies: ['seed'],
     },
     {
       name: 'onboarding-desktop',
       testMatch: /onboarding\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
-      dependencies: ['phone'],
+      dependencies: ['seed'],
     },
     {
       name: 'onboarding-phone',
       testMatch: /onboarding\.spec\.ts/,
       use: { ...devices['Pixel 7'] },
-      dependencies: ['phone'],
+      dependencies: ['seed'],
     },
 
     // {

@@ -10,6 +10,14 @@ const prepare = async (
     (route) => route.abort(),
   );
 
+  await page.route((url) => url.pathname === '/stats', async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      json: { ...await response.json(), num_active_users: 1234 },
+    });
+  });
+
   await page.addInitScript((storage) => {
     const callCounts = new Map<string, number>();
     Math.random = () => {
