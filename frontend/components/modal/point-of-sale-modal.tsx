@@ -278,8 +278,7 @@ const FeatureCarousel = ({
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         scrollEventThrottle={16}
-        onScroll={({ nativeEvent: { contentOffset, layoutMeasurement } }) =>
-          layoutMeasurement.width && setActive(Math.round(contentOffset.x / layoutMeasurement.width))}
+        onScroll={(e) => setActive(Math.round(e.nativeEvent.contentOffset.x / width))}
         style={{ flexGrow: 0 }}
       >
         {FEATURES.map(({ key, headline, subtitle, Illustration }, i) =>
