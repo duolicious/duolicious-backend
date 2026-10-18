@@ -110,6 +110,10 @@ First‑time setup:
 ```bash
 npx playwright install --with-deps
 ```
+The tests drive the app against the real backend. Start the backend's test stack first (from `backend/`):
+```bash
+docker compose -f docker-compose.test.yml up -d --build api status s3mock smtp redis
+```
 Run tests and capture traces:
 ```bash
 npx playwright test --trace on
@@ -122,11 +126,6 @@ Record a new test:
 ```bash
 npx playwright codegen http://localhost:8081
 ```
-Update screenshots for a specific spec (example):
-```bash
-npx playwright test --update-snapshots playwright-tests/onboarding.spec.ts
-```
-
 GitHub Actions will run Jest, Playwright, type checks, and ESLint on pull requests. Aim for green checks locally before opening a PR.
 
 ---

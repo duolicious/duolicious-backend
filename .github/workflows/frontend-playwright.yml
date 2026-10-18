@@ -5,10 +5,12 @@ on:
       - main
     paths:
       - frontend/**
+      - backend/**
       - .github/workflows/frontend-playwright.yml
   pull_request:
     paths:
       - frontend/**
+      - backend/**
       - .github/workflows/frontend-playwright.yml
 
 defaults:
@@ -21,6 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - name: Start backend
+      working-directory: backend
+      run: docker compose -f docker-compose.test.yml up -d --build api status s3mock smtp redis > /tmp/compose.log 2>&1 &
     - uses: actions/setup-node@v4
       with:
         node-version: lts/*
@@ -30,8 +35,16 @@ jobs:
         npx patch-package
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
+    - name: Wait for backend
+      run: curl --silent --fail --retry 300 --retry-delay 1 --retry-all-errors --output /dev/null http://localhost:5000/health
     - name: Run Playwright tests
       run: npx playwright test
+    - name: Show backend logs
+      if: failure()
+      working-directory: backend
+      run: |
+        cat /tmp/compose.log
+        docker compose -f docker-compose.test.yml logs api
     # upload-artifact's `path` is resolved from the workspace root, not the
     # job's working-directory, so it must include the subdirectory prefix.
     - uses: actions/upload-artifact@v4

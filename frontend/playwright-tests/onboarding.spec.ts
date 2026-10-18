@@ -1,68 +1,54 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
-test('has correct onboarding flow', async ({ page }) => {
-  await page.route('**', async (route, request) => {
-    const url = new URL(request.url());
+test('new users can sign up', async ({ page }) => {
+  const tap = (text: string) =>
+    page.getByText(text, { exact: true }).filter({ visible: true }).last().click();
 
-    if (url.port === "8080") {
-      await route.fulfill({
-        json: {
-          "api_version": 5,
-          "supported_client_versions": [ 10, 11 ],
-          "statuses": [ "ok", "down for maintenance" ],
-          "status_index": 0,
-        }
-      });
-    } else {
-      await route.continue();
-    }
-  });
+  const leave = (title: string) =>
+    expect(page.getByText(title, { exact: true })).toBeHidden();
 
-  await page.routeFromHAR(
-    './playwright-hars/onboarding/onboarding.har',
-    { update: false }
-  );
+  await page.goto('/');
 
-  await page.goto('http://localhost:8081');
+  await tap('Join or sign in');
+  await tap('Use email');
+  await leave('Use email');
+  await page.getByPlaceholder('you@example.com').fill(`${Date.now()}@example.com`);
+  await tap('Continue');
 
-  await page.getByPlaceholder('Enter your email to begin').click();
-  await page.getByPlaceholder('Enter your email to begin').fill('user1@example.com');
-  await page.locator('div').filter({ hasText: /^Sign Up or Sign In$/ }).nth(1).click();
-
-  await page.locator('div:nth-child(2) > .css-view-175oi2r > input').first().fill('0');
-  await page.locator('input:nth-child(2)').fill('0');
-  await page.locator('input:nth-child(3)').fill('0');
-  await page.locator('input:nth-child(4)').fill('0');
-  await page.locator('input:nth-child(5)').fill('0');
-  await page.locator('input:nth-child(6)').fill('0');
-  await page.locator('div').filter({ hasText: /^Continue$/ }).nth(2).click();
+  await page.locator('input[inputmode="numeric"]').first().fill('000000');
+  await leave('Password');
 
   await page.getByPlaceholder('First name').fill('Test');
-  await page.getByText('Continue').nth(1).click();
+  await tap('Continue');
+  await leave('Step 1 of 5: Display Name');
 
-  await page.getByText('Woman', { exact: true }).click();
-  await page.getByText('Continue').nth(2).click();
+  await tap('Woman');
+  await tap('Continue');
+  await leave('Step 2 of 5: Your Gender');
 
-  await page.getByText('Man', { exact: true }).nth(1).click();
-  await page.getByText('Other').nth(1).click();
-  await page.getByText('Continue').nth(3).click();
+  await tap('Man');
+  await tap('Continue');
+  await leave('Step 3 of 5: Your Partner’s Gender');
 
-  await page.getByText('Day').click();
-  await page.getByText('1', { exact: true }).click();
-  await page.locator('img').nth(1).click();
-  await page.getByText('Jan').click();
-  await page.locator('img').nth(2).click();
-  await page.getByText('2004').click();
-  await page.getByText('Continue').nth(4).click();
+  await tap('Day');
+  await tap('1');
+  await tap('Month');
+  await tap('Jan');
+  await tap('Year');
+  await tap('2000');
+  await tap('Continue');
+  await tap('Yes, I’m 26');
+  await leave('Step 4 of 5: Birth Date');
 
-  await page.getByPlaceholder('Type a location...').click();
+  await tap('Manually enter my location');
   await page.getByPlaceholder('Type a location...').fill('Paris');
-  await page.getByText('Paris, Île-de-France, France').click();
+  await tap('Paris, Île-de-France, France');
+  await tap('Continue');
+  await leave('Step 5 of 5: Location');
 
-  await page.getByText('Continue').nth(5).click();
+  await tap('Complete Sign Up');
+  await leave('You’re Looking Like A Snack\u00A0😋');
 
-  await page.getByText('Continue').nth(6).click();
-
-  await page.locator('button', { hasText: /Profile$/ }).last().click();
-  await page.getByText('Sign Out').nth(1).click();
+  await tap('Profile');
+  await expect(page.getByText('Test', { exact: true })).toBeVisible();
 });
