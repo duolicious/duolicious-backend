@@ -12,7 +12,6 @@ import {
 import {
   BackHandler,
   Platform,
-  Pressable,
   ScrollView,
   ScrollViewProps,
   StyleSheet,
@@ -23,6 +22,7 @@ import {
   ComposedGesture,
   Gesture,
   GestureDetector,
+  Pressable,
 } from 'react-native-gesture-handler';
 import Animated, {
   SharedValue,
