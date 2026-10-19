@@ -135,6 +135,14 @@ const config: ExpoConfig = {
         style: "dark",
       }
     ],
+    [
+      "expo-build-properties",
+      {
+        ios: {
+          enableSceneSupport: true,
+        },
+      }
+    ],
   ],
 };
 
