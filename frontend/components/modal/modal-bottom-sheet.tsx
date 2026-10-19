@@ -22,8 +22,8 @@ import {
   ComposedGesture,
   Gesture,
   GestureDetector,
-  Pressable,
 } from 'react-native-gesture-handler';
+import { Pressable } from '../pressable';
 import Animated, {
   SharedValue,
   interpolate,

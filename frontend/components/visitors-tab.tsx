@@ -1,13 +1,12 @@
 import {
   Platform,
-  Pressable,
   StyleSheet,
   View,
   ViewStyle,
-  GestureResponderEvent,
 } from 'react-native';
+import { Pressable } from './pressable';
 import { LogoActivityIndicator } from './logo/logo-activity-indicator';
-import { memo, useCallback, useState, useRef, MouseEvent } from 'react';
+import { memo, useCallback, useState, useRef } from 'react';
 import { DefaultText } from './default-text';
 import { TopNavBar } from './top-nav-bar';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
@@ -99,9 +98,7 @@ const useNavigationToProfile = (
     }
   }, [personUuid, section]);
 
-  const onPress = useCallback((e: GestureResponderEvent) => {
-    e.preventDefault();
-
+  const onPress = useCallback(() => {
     if (verificationRequired) {
       return navigation.navigate('Profile');
     } else if (personUuid) {
@@ -118,15 +115,11 @@ const useNavigationToProfile = (
 
   }, [personUuid, handle, photoBlurhash, verificationRequired, onVisit]);
 
-  const href = verificationRequired ? undefined : `/${handle}`;
+  const link = verificationRequired
+    ? undefined
+    : { href: `/${handle}`, onOpenInNewTab: onVisit };
 
-  const onAuxClick = useCallback((e: MouseEvent) => {
-    if (href && e.button === 1) {
-      onVisit();
-    }
-  }, [href, onVisit]);
-
-  return { onPress, onAuxClick, href };
+  return { onPress, link };
 };
 
 const VisitorsItem = ({ itemKey }: { itemKey: string }) => {
@@ -166,10 +159,7 @@ const VisitorsItemContent = ({
   );
   const { viewRef, props } = useTooltip('You were invisible');
 
-  const onPressReport = useCallback((event: GestureResponderEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-
+  const onPressReport = useCallback(() => {
     const data: ReportModalInitialData = {
       name: dataItem.name,
       personUuid: dataItem.person_uuid,

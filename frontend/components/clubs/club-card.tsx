@@ -2,12 +2,12 @@ import { ComponentProps, memo, useEffect, useEffectEvent, useMemo, useRef, useSt
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Pressable,
   ScrollView,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import Animated from 'react-native-reanimated';
 import { ImageBackground } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';

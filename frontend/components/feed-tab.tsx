@@ -14,8 +14,8 @@ import { DuoliciousTopNavBar } from './top-nav-bar';
 import { useScrollbar } from './navigation/scroll-bar-hooks';
 import { Avatar } from './avatar';
 import { getShortElapsedTime, isMobile, assertNever, capLuminance, formatCount } from '../util/util';
-import { isOpenInNewTabPress, makeLinkProps } from '../util/navigation';
-import { GestureResponderEvent, LayoutChangeEvent, Pressable, ViewStyle } from 'react-native';
+import { LayoutChangeEvent, ViewStyle } from 'react-native';
+import { Pressable } from './pressable';
 import { EnlargeablePhoto } from './enlargeable-image';
 import { commonStyles } from '../styles';
 import { VerificationBadge } from './verification-badge';
@@ -332,13 +332,7 @@ const useNavigationToProfile = (
 ) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
 
-  return useCallback((e: GestureResponderEvent) => {
-    if (isOpenInNewTabPress(e)) {
-      return;
-    }
-
-    e.preventDefault();
-
+  return useCallback(() => {
     setProspectHint(handle, { photoBlurhash });
     navigation.navigate(
       'Prospect Profile Screen',
@@ -379,9 +373,7 @@ const AgeGenderLocation = ({
   // Profile links prefer the username (url_slug), falling back to the uuid.
   const handle = urlSlug || personUuid;
 
-  const onPressReport = useCallback((event: GestureResponderEvent) => {
-    event.stopPropagation();
-
+  const onPressReport = useCallback(() => {
     const data: ReportModalInitialData = {
       name,
       personUuid,
@@ -394,8 +386,6 @@ const AgeGenderLocation = ({
     handle,
     photoBlurhash,
   );
-
-  const link = makeLinkProps(`/${handle}`);
 
   return (
     <View
@@ -431,7 +421,7 @@ const AgeGenderLocation = ({
           <Pressable
             style={{ flexShrink: 1 }}
             onPress={onPress}
-            {...link}
+            link={{ href: `/${handle}` }}
             {...nameHoverProps}
           >
             <DefaultText
@@ -617,22 +607,10 @@ const FacepileAvatar = ({
     member.photo_blurhash,
   );
 
-  const onPress = useCallback((e: GestureResponderEvent) => {
-    if (isOpenInNewTabPress(e)) {
-      return;
-    }
-
-    if (navigatesOnPress) {
-      navigateToProfile(e);
-    } else {
-      // Stop the web link navigating; the first press only spreads the pile
-      e.preventDefault();
-      onRequestSpread();
-    }
-  }, [navigatesOnPress, navigateToProfile, onRequestSpread]);
+  const onPress = navigatesOnPress ? navigateToProfile : onRequestSpread;
 
   return (
-    <Pressable onPress={onPress} {...makeLinkProps(`/${handle}`)}>
+    <Pressable onPress={onPress} link={{ href: `/${handle}` }}>
       <ImageBackground
         source={{
           uri: `${IMAGES_URL}/450-${member.photo_uuid}.jpg`,
@@ -677,18 +655,7 @@ const ViewerFacepileAvatar = ({
     viewer.photo_blurhash,
   );
 
-  const onPress = useCallback((e: GestureResponderEvent) => {
-    if (isOpenInNewTabPress(e)) {
-      return;
-    }
-
-    if (navigatesOnPress) {
-      navigateToProfile(e);
-    } else {
-      e.preventDefault();
-      onRequestSpread();
-    }
-  }, [navigatesOnPress, navigateToProfile, onRequestSpread]);
+  const onPress = navigatesOnPress ? navigateToProfile : onRequestSpread;
 
   const opacity = useSharedValue(visible ? 1 : 0);
 
@@ -720,7 +687,7 @@ const ViewerFacepileAvatar = ({
       <Pressable
         onPress={onPress}
         style={styles.viewerFacepilePressable}
-        {...makeLinkProps(`/${handle}`)}
+        link={{ href: `/${handle}` }}
       >
         {viewer.photo_uuid
           ? <ImageBackground

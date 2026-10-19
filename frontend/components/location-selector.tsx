@@ -2,10 +2,10 @@ import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
-  Pressable,
   ScrollView,
   View,
 } from 'react-native';
+import { Pressable } from './pressable';
 import * as Location from 'expo-location';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons/faLocationDot';

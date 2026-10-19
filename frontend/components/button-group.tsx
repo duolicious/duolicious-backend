@@ -1,11 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import {
-  Pressable,
   StyleSheet,
   LayoutChangeEvent,
   ViewStyle,
   TextStyle,
 } from 'react-native';
+import { Pressable } from './pressable';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,

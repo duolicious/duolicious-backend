@@ -11,10 +11,10 @@ import {
   LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Pressable,
   ScrollView,
   View,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import Animated, {
   cubicBezier,
   Easing,

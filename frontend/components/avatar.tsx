@@ -2,16 +2,14 @@ import {
   useCallback,
 } from 'react';
 import {
-  GestureResponderEvent,
-  Pressable,
   StyleSheet,
   View,
 } from 'react-native';
+import { Pressable } from './pressable';
 import { DefaultText } from './default-text';
 import {
   IMAGES_URL,
 } from '../env/env';
-import { isOpenInNewTabPress, makeLinkProps } from '../util/navigation'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { X } from "react-native-feather";
 import { ImageBackground } from "expo-image";
@@ -44,13 +42,7 @@ const useProfileLink = (
   // for not-yet-backfilled users and shared links.
   const handle = urlSlug || personUuid;
 
-  const onPress = useCallback((e: GestureResponderEvent) => {
-    if (isOpenInNewTabPress(e)) {
-      return;
-    }
-
-    e.preventDefault();
-
+  const onPress = useCallback(() => {
     if (verificationRequired) {
       return navigation.navigate('Profile');
     } else if (personUuid) {
@@ -67,7 +59,7 @@ const useProfileLink = (
 
   return verificationRequired
     ? { onPress }
-    : { onPress, ...makeLinkProps(`/${handle}`) };
+    : { onPress, link: { href: `/${handle}` } };
 };
 
 const Avatar = ({

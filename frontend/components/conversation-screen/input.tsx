@@ -31,8 +31,8 @@ import {
   ComposedGesture,
   Gesture,
   GestureDetector,
-  Pressable,
 } from 'react-native-gesture-handler';
+import { Pressable } from '../pressable';
 import { LayoutChangeEvent } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Ionicons from '@expo/vector-icons/Ionicons';

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
+import { Pressable } from './pressable';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Reanimated, {
   runOnJS,

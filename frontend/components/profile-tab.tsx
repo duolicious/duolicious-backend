@@ -88,7 +88,7 @@ import { faRightFromBracket } from '@fortawesome/free-solid-svg-icons/faRightFro
 import { faDownload } from '@fortawesome/free-solid-svg-icons/faDownload'
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { INVITE_URL } from '../env/env';
-import { Pressable } from 'react-native-gesture-handler';
+import { Pressable } from './pressable';
 import { copyProfileLink } from '../util/util';
 
 

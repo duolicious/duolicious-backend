@@ -1,5 +1,6 @@
 import { ReactNode, useCallback, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable } from './pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as _ from 'lodash';
 import { DefaultText } from './default-text';

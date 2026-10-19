@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import {
   Platform,
-  Pressable,
   View,
   ViewStyle,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import Animated, {
   Easing,
   FadeIn,

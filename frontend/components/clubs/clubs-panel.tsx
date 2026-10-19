@@ -2,11 +2,11 @@ import { memo, useDeferredValue, useEffect, useState } from 'react';
 import {
   LayoutChangeEvent,
   Platform,
-  Pressable,
   StyleSheet,
   TextStyle,
   View,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import Animated, {
   FadeIn,
   LayoutAnimationConfig,

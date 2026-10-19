@@ -1,6 +1,7 @@
 import { possessive, secToMinSec, safeBestTextOn } from '../util/util';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, View, Pressable, StyleSheet, ViewStyle } from 'react-native';
+import { Platform, View, StyleSheet, ViewStyle } from 'react-native';
+import { Pressable } from './pressable';
 import {
   AudioStatus,
   setAudioModeAsync,

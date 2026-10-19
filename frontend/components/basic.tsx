@@ -1,11 +1,11 @@
 import {
-  Pressable,
   StyleProp,
   StyleSheet,
   TextStyle,
   View,
   ViewStyle,
 } from 'react-native';
+import { Pressable } from './pressable';
 import { ComponentProps, ReactNode, useRef, useState } from 'react';
 import Animated from 'react-native-reanimated';
 import { DefaultText } from './default-text';
@@ -102,11 +102,11 @@ const Basic = ({children, ...rest}: {
       ]}
     >
       <Pressable
+        ref={ref}
         disabled={!onPress}
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
         {...hoverProps}
-        ref={ref}
         onPress={() => ref.current && onPress?.(ref.current)}
         style={{
           paddingHorizontal: 12,

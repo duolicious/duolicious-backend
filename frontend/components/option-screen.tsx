@@ -5,11 +5,11 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
-  Pressable,
   ScrollView,
   View,
   ViewStyle,
 } from 'react-native';
+import { Pressable } from './pressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ForwardedRef,

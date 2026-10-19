@@ -2,9 +2,9 @@ import React from 'react';
 import {
   Keyboard,
   Platform,
-  Pressable,
   View,
 } from 'react-native';
+import { Pressable } from './pressable';
 
 const KeyboardDismissingView = (
   {children, ...rest}: React.ComponentProps<typeof View> & {

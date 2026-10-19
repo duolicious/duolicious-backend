@@ -1,9 +1,9 @@
 import {
-  Pressable,
   ScrollView,
   View,
   StyleSheet,
 } from 'react-native';
+import { Pressable } from './pressable';
 import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {

@@ -1,14 +1,13 @@
 import {
-  GestureResponderEvent,
   ImageBackground as RNImageBackground,
   ImageResizeMode,
   ImageSourcePropType,
   Platform,
-  Pressable,
   StyleProp,
   View,
   ViewStyle,
 } from 'react-native';
+import { Pressable } from './pressable';
 import {
   memo,
   useCallback,
@@ -29,7 +28,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { HomeParamList, RootParamList } from '../navigation/linking';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { listen } from '../events/events';
-import { isOpenInNewTabPress, makeLinkProps } from '../util/navigation'
 import { X } from "react-native-feather";
 import { PageItem } from './search-tab';
 import {
@@ -247,13 +245,7 @@ const ProfileCard = ({
     NativeStackNavigationProp<RootParamList>
   >>();
 
-  const itemOnPress = useCallback((e: GestureResponderEvent) => {
-    if (isOpenInNewTabPress(e)) {
-      return;
-    }
-
-    e.preventDefault();
-
+  const itemOnPress = useCallback(() => {
     if (!navigation) {
       return;
     }
@@ -300,14 +292,15 @@ const ProfileCard = ({
     [personUuid, onMessageTo]
   );
 
-  const link = navigation && !verificationRequired && personUuid ? makeLinkProps(`/${handle}`)
-                                                                 : {};
+  const link = navigation && !verificationRequired && personUuid
+    ? { href: `/${handle}` }
+    : undefined;
 
   return (
     <Pressable
       onPress={itemOnPress}
       style={{ flex: 1 / numColumns, aspectRatio: 1, overflow: 'hidden', borderRadius: 5 }}
-      {...link}
+      link={link}
     >
       <View
         style={{
