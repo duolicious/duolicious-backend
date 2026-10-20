@@ -290,14 +290,14 @@ async def skip_by_uuid(
     reason: str,
     is_automatic: bool,
 ) -> None:
+    is_underage = not is_automatic and is_underage_report(reason)
+
     params = dict(
         subject_uuid=subject_uuid,
         object_uuid=object_uuid,
         reported=bool(reason),
         report_reason=reason or '',
-        requires_verification=(
-            is_bot_report(reason) or is_underage_report(reason)
-        ),
+        requires_verification=is_bot_report(reason) or is_underage,
     )
 
     is_shadow_banned = False
@@ -338,5 +338,5 @@ async def skip_by_uuid(
             reason=reason,
             is_automoded=is_automoded,
             is_shadow_banned=is_shadow_banned,
-            is_underage=not is_automatic and is_underage_report(reason),
+            is_underage=is_underage,
         )
