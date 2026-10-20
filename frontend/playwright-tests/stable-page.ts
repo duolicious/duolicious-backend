@@ -1,11 +1,5 @@
 import { expect, Page } from '@playwright/test';
 
-const middayTimezone = (time: number): string => {
-  const date = new Date(time);
-  const offset = Math.round(12 - date.getUTCHours() - date.getUTCMinutes() / 60);
-  return `Etc/GMT${offset > 0 ? '-' : '+'}${Math.abs(offset)}`;
-};
-
 const prepare = async (
   page: Page,
   time: number,
@@ -46,11 +40,6 @@ const prepare = async (
       localStorage.setItem(key, value);
     }
   }, storage);
-
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send('Emulation.setTimezoneOverride', {
-    timezoneId: middayTimezone(time),
-  });
 
   await page.clock.install({ time });
 };
