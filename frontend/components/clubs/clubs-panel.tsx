@@ -57,9 +57,9 @@ const MineFilter = memo(({
   <ClubFilter
     name={name}
     isSelected={isSelected}
-    onPress={(e) => {
+    onPress={(view) => {
       if (isManaging || isSelected) {
-        return pressClub(name)(e);
+        return pressClub(name)(view);
       }
 
       selectSearchClub(name);

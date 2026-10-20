@@ -5,7 +5,6 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Pressable } from 'react-native-gesture-handler';
 import Reanimated, {
   runOnJS,
   useAnimatedStyle,
@@ -19,9 +18,7 @@ import { getBackButtonState, useBackButtonState } from '../events/back-button';
 import type { BackButtonPlacement } from '../events/back-button';
 import { TIMING } from '../util/animation';
 import { COLUMN_MAX_WIDTH } from '../constants/constants';
-import { hoverTransition, useHover } from './hover';
-
-const AnimatedPressable = Reanimated.createAnimatedComponent(Pressable);
+import { AnimatedPressable, hoverTransition, useHover } from './hover';
 
 const onPress = () => {
   const state = getBackButtonState();

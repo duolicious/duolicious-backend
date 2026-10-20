@@ -1,5 +1,4 @@
 import {
-  GestureResponderEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -592,7 +591,7 @@ const BlockButton = ({name, personUuid, backgroundColor}: {
 type AllClubsChild =
   | { kind: 'Title', kids: ReactNode, props: { style?: TextStyle } }
   | { kind: 'Club', kids: ReactNode, props: {
-      onPress?: (e: GestureResponderEvent) => void,
+      onPress?: (view: View) => void,
       key: string,
       name: string,
       isMutual: boolean,
