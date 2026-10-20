@@ -1,6 +1,7 @@
 from serviceshared.database import (
     api_tx,
     row_bool,
+    row_int,
     row_str,
     row_str_list,
     row_value,
@@ -155,15 +156,27 @@ def _sample_email_addresses(email_entries: Sequence[EmailEntry]) -> str:
     return sampled_email
 
 
-def _automod_subject_suffix(
+def report_subject(
+    reason: str,
+    report_obj: Sequence[Mapping[str, object]],
     is_automoded_bot: bool,
     is_shadow_banned: bool,
 ) -> str:
+    subject_person_id = row_int(report_obj[0], 'id')
+    object_person_id = row_int(report_obj[1], 'id')
+    times_reported = row_int(report_obj[1], 'times_reported')
+
+    subject = f"Report: ({times_reported}) {subject_person_id} - {object_person_id}"
+
     if is_shadow_banned:
-        return ' [automoded - shadow banned]'
-    if is_automoded_bot:
-        return ' [automoded]'
-    return ''
+        subject += ' [automoded - shadow banned]'
+    elif is_automoded_bot:
+        subject += ' [automoded]'
+
+    if is_underage_report(reason):
+        subject += ' [underage]'
+
+    return subject
 
 
 def _send_report_email(
@@ -173,17 +186,16 @@ def _send_report_email(
     is_automoded_bot: bool,
     is_shadow_banned: bool,
 ) -> None:
-    subject_person_id = row_value(report_obj[0], 'id')
-    object_person_id  = row_value(report_obj[1], 'id')
-
     report_email = _sample_email_addresses(REPORT_EMAILS)
-
-    subject = f"Report: {subject_person_id} - {object_person_id}"
-    subject += _automod_subject_suffix(is_automoded_bot, is_shadow_banned)
 
     try:
         aws_smtp.send(
-            subject=subject,
+            subject=report_subject(
+                reason=reason,
+                report_obj=report_obj,
+                is_automoded_bot=is_automoded_bot,
+                is_shadow_banned=is_shadow_banned,
+            ),
             body=report_template(
                 report_obj=report_obj,
                 reason=reason,
@@ -228,20 +240,27 @@ async def lodge_report(
     ).start()
 
 
+def _reason_matches(detection_pattern: str, reason: str) -> bool:
+    clean_reason = ' '.join(re.sub('[^0-9a-zA-Z]+', ' ', reason).split())
+
+    return bool(re.search(rf'\b({detection_pattern})\b', clean_reason, re.I))
+
+
 def is_bot_report(reason: str) -> bool:
-    detection_pattern = re.compile(
-        r'\b('
+    return _reason_matches(
         r'fake|(cat\s*fish(ing)?)|scam|scammer|spam|spammer|bot|clanker|'
-        r'not real|impersonating|impersonation'
-        r')\b',
-        re.I
+        r'not real|impersonating|impersonation',
+        reason,
     )
 
-    cleaning_pattern = re.compile('[^0-9a-zA-Z]+')
 
-    clean_reason = ' '.join(cleaning_pattern.sub(' ', reason).split())
-
-    return bool(re.search(detection_pattern, clean_reason))
+def is_underage_report(reason: str) -> bool:
+    return _reason_matches(
+        r'minor|under ?aged?|under (18|eighteen)|'
+        r'not (18|eighteen|an adult)|too young|child|kid|teen|teenager|'
+        r'high ?school|1[0-7] ?(yo|y o|years? old)',
+        reason,
+    )
 
 
 def _should_shadow_ban(
