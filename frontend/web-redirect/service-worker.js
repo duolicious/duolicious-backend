@@ -1,3 +1,4 @@
+/* eslint-env serviceworker */
 self.addEventListener('install', () => {
   self.skipWaiting();
 });
