@@ -262,7 +262,7 @@ def is_underage_report(reason: str) -> bool:
         r'(is|s|are|re|am|m|im|aged?) (actually |only |just |really )?1[0-7]'
         r'(?! (min|minutes?|hours?|days?|weeks?|months?|years?|times|km|'
         r'miles?|cm|feet|ft|inches|kg|lbs?|pounds))|'
-        r'1[0-7] ?(yo|y o|years? old)',
+        r'1[0-7] ?(yo|y o|(years?|yrs?) old)',
         reason,
     )
 
