@@ -1,6 +1,7 @@
 import { ReactNode, useCallback, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Pressable } from './pressable';
+import { IconButton } from './button/icon-button';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as _ from 'lodash';
 import { DefaultText } from './default-text';
@@ -449,12 +450,16 @@ const SearchFilterPanel = () => {
       }
       {!isBasics &&
         <View style={styles.drilledHeading}>
-          <Pressable aria-label="Back" onPress={back} style={styles.back}>
+          <IconButton label="Back" onPress={back} padding={10}>
             <Ionicons
-              style={{ fontSize: 24, color: appTheme.secondaryColor }}
+              style={{
+                fontSize: 24,
+                lineHeight: 24,
+                color: appTheme.secondaryColor,
+              }}
               name="arrow-back"
             />
-          </Pressable>
+          </IconButton>
           <DefaultText style={styles.drilledTitle}>{title}</DefaultText>
         </View>
       }
@@ -579,12 +584,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingLeft: 4,
     paddingRight: 16,
-  },
-  back: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   drilledTitle: {
     flex: 1,

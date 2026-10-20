@@ -4,6 +4,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Pressable } from './pressable';
+import { IconButton } from './button/icon-button';
 import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -710,29 +711,26 @@ const QandQFilterScreen = ({navigation}: NativeStackScreenProps<SearchFilterPara
           alignItems: 'stretch',
         }}
       >
-        <Pressable
+        <IconButton
+          label="Back"
           onPress={() => navigation.goBack()}
+          padding={10}
           style={{
             zIndex: 999,
             position: 'absolute',
-            bottom: 0,
-            left: 0,
-            height: '100%',
-            aspectRatio: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginLeft: 10,
+            top: -5,
+            left: 10,
           }}
         >
           <Ionicons
             style={{
               fontSize: 20,
+              lineHeight: 20,
               color: appTheme.secondaryColor,
-              marginBottom: 10,
             }}
             name="arrow-back"
           />
-        </Pressable>
+        </IconButton>
         <DefaultTextInput
           placeholder="Search questions..."
           style={{

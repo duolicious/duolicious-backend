@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Pressable } from './pressable';
+import { IconButton } from './button/icon-button';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons/faArrowLeft';
@@ -1001,17 +1002,18 @@ const EmailScreen_ = ({navigation, route}: NativeStackScreenProps<WelcomeParamLi
             paddingBottom: 20,
           }}
         >
-          <Pressable
+          <IconButton
+            label="Back"
             onPress={() => navigation.goBack()}
+            padding={15}
             style={{ position: 'absolute', top: 0, left: 0, zIndex: 99 }}
           >
             <FontAwesomeIcon
-              style={{ margin: 15 }}
               icon={faArrowLeft}
               size={24}
               color="white"
             />
-          </Pressable>
+          </IconButton>
           <DefaultText
             disableTheme
             style={{
