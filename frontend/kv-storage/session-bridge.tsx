@@ -103,19 +103,14 @@ const runBridge = (): Promise<BridgedSession | null> =>
     document.body.appendChild(iframe);
   });
 
-const setHandoffCookie = (value: string, maxAgeSeconds: number) => {
-  document.cookie =
-    `${HANDOFF_COOKIE}=${value}; Domain=duolicious.app; Path=/; ` +
-    `Max-Age=${maxAgeSeconds}; Secure; SameSite=Lax`;
-};
-
 const takeHandedOverSession = (): BridgedSession | null => {
   const cookies = document.cookie
     .split('; ')
     .filter((c) => c.startsWith(`${HANDOFF_COOKIE}=`));
   if (cookies.length === 0) return null;
 
-  setHandoffCookie('', 0);
+  document.cookie =
+    `${HANDOFF_COOKIE}=; Domain=duolicious.app; Path=/; Max-Age=0; Secure`;
   if (cookies.length > 1) return null;
   if (!document.referrer.startsWith(`${BRIDGE_ORIGIN}/`)) return null;
   try {

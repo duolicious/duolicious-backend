@@ -1,5 +1,2 @@
-/*
-  X-Frame-Options: DENY
 /assets/session-bridge
-  ! X-Frame-Options
   Content-Security-Policy: frame-ancestors https://duolicious.app
