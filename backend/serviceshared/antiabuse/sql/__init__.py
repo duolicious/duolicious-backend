@@ -214,7 +214,7 @@ WITH subject_person_id AS (
         person
     WHERE
         uuid = uuid_or_null(%(object_uuid)s::TEXT)
-), bot_report AS (
+), verification_report AS (
     SELECT
         (
             reporter.sign_up_time < now() - interval '1 month'
@@ -228,7 +228,7 @@ WITH subject_person_id AS (
     WHERE
         reporter.uuid = uuid_or_null(%(subject_uuid)s::TEXT)
     AND
-        %(is_bot_report)s
+        %(requires_verification)s
 ), q1 AS (
     INSERT INTO skipped (
         subject_person_id,
@@ -255,9 +255,9 @@ WITH subject_person_id AS (
     SET
         verification_required = TRUE
     FROM
-        bot_report
+        verification_report
     WHERE
-        bot_report.is_trustworthy
+        verification_report.is_trustworthy
     AND
         person.uuid = uuid_or_null(%(object_uuid)s::TEXT)
     RETURNING
@@ -265,7 +265,7 @@ WITH subject_person_id AS (
 )
 SELECT EXISTS (
     SELECT * FROM q3
-) AS is_automoded_bot
+) AS is_automoded
 """
 
 Q_TRUSTWORTHY_REPORTS = f"""
