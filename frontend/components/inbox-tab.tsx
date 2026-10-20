@@ -338,7 +338,7 @@ const InboxTitle = ({ showConnecting }: { showConnecting: boolean }) => {
           color={appTheme.brandColor}
           style={{
             position: 'absolute',
-            right: -40,
+            left: -40,
             top: 3,
           }}
         />
