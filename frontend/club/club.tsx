@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { GestureResponderEvent } from 'react-native';
+import { View } from 'react-native';
 import { api, japi } from '../api/api';
 import { notify, lastEvent, useDerivedEvent } from '../events/events';
 import { searchQueue } from '../api/queue';
@@ -198,8 +198,8 @@ const openClubCard = (card: OpenClubCard) => {
 const pressClub = (
   name: string,
   rowPosition?: RowPosition,
-) => (e: GestureResponderEvent) =>
-  e.currentTarget.measureInWindow((x, y, width, height) =>
+) => (view: View) =>
+  view.measureInWindow((x, y, width, height) =>
     openClubCard({ name, anchor: { x, y, width, height }, rowPosition }));
 
 const useOpenClubCard = () => useDerivedEvent<OpenClubCard | null | undefined, OpenClubCard | null>(

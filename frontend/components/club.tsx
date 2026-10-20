@@ -1,6 +1,6 @@
 import {
-  GestureResponderEvent,
   TextStyle,
+  View,
   ViewStyle,
 } from 'react-native';
 import { Basic, Basics } from './basic';
@@ -19,7 +19,7 @@ const Club = ({
   isMutual: boolean,
   style?: ViewStyle,
   textStyle?: TextStyle,
-  onPress?: (e: GestureResponderEvent) => void,
+  onPress?: (view: View) => void,
 }) => {
   const { appTheme } = useAppTheme();
 
@@ -53,7 +53,7 @@ const ClubFilter = ({
 }: {
   name: string | null,
   isSelected: boolean,
-  onPress: (e: GestureResponderEvent) => void,
+  onPress: (view: View) => void,
 }) => {
   const { appTheme } = useAppTheme();
 
