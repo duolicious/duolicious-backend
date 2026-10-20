@@ -39,3 +39,5 @@ sleep 3
 diff -u --color \
   <(_get_emails) \
   ../../test/fixtures/cron-emails-profilereporter
+
+! get_emails | grep -F 'Report:' | grep -F '[underage]'

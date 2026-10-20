@@ -157,10 +157,10 @@ def _sample_email_addresses(email_entries: Sequence[EmailEntry]) -> str:
 
 
 def report_subject(
-    reason: str,
     report_obj: Sequence[Mapping[str, object]],
     is_automoded: bool,
     is_shadow_banned: bool,
+    is_underage: bool,
 ) -> str:
     subject_person_id = row_int(report_obj[0], 'id')
     object_person_id = row_int(report_obj[1], 'id')
@@ -173,7 +173,7 @@ def report_subject(
     elif is_automoded:
         subject += ' [automoded]'
 
-    if is_underage_report(reason):
+    if is_underage:
         subject += ' [underage]'
 
     return subject
@@ -185,16 +185,17 @@ def _send_report_email(
     last_messages: list[dict[str, object]],
     is_automoded: bool,
     is_shadow_banned: bool,
+    is_underage: bool,
 ) -> None:
     report_email = _sample_email_addresses(REPORT_EMAILS)
 
     try:
         aws_smtp.send(
             subject=report_subject(
-                reason=reason,
                 report_obj=report_obj,
                 is_automoded=is_automoded,
                 is_shadow_banned=is_shadow_banned,
+                is_underage=is_underage,
             ),
             body=report_template(
                 report_obj=report_obj,
@@ -214,6 +215,7 @@ async def lodge_report(
     reason: str,
     is_automoded: bool,
     is_shadow_banned: bool,
+    is_underage: bool,
 ) -> None:
     params = dict(
         subject_uuid=subject_uuid,
@@ -236,6 +238,7 @@ async def lodge_report(
             last_messages=last_messages,
             is_automoded=is_automoded,
             is_shadow_banned=is_shadow_banned,
+            is_underage=is_underage,
         )
     ).start()
 
@@ -281,7 +284,12 @@ def _should_shadow_ban(
     return bot_report_count >= SHADOW_BAN_REPORT_THRESHOLD
 
 
-async def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str) -> None:
+async def skip_by_uuid(
+    subject_uuid: str,
+    object_uuid: str,
+    reason: str,
+    is_automatic: bool,
+) -> None:
     params = dict(
         subject_uuid=subject_uuid,
         object_uuid=object_uuid,
@@ -330,4 +338,5 @@ async def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str) -> None
             reason=reason,
             is_automoded=is_automoded,
             is_shadow_banned=is_shadow_banned,
+            is_underage=not is_automatic and is_underage_report(reason),
         )
