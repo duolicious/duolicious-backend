@@ -7,11 +7,15 @@ const IconButton = ({
   onPress,
   label,
   style,
+  padding = 0,
+  hoverColor,
   children,
 }: {
   onPress: () => void,
   label?: string,
   style?: ViewStyle,
+  padding?: number,
+  hoverColor?: string,
   children: ReactNode,
 }) => {
   const { hovered, hoverProps } = useHover();
@@ -20,10 +24,14 @@ const IconButton = ({
     <Pressable
       aria-label={label}
       onPress={onPress}
-      style={style}
+      style={[{ padding }, style]}
       {...hoverProps}
     >
-      <HoverCircle visible={hovered} />
+      <HoverCircle
+        visible={hovered}
+        inset={padding - 8}
+        color={hoverColor}
+      />
       {children}
     </Pressable>
   );

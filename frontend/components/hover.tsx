@@ -104,10 +104,11 @@ const grabCursor = (grabbing: boolean): ViewStyle => {
   return { cursor: grabbing ? 'grabbing' : 'grab' };
 };
 
-const HoverCircle = ({ visible, inset = -8, insetX = inset }: {
+const HoverCircle = ({ visible, inset = -8, insetX = inset, color }: {
   visible: boolean
   inset?: number
   insetX?: number
+  color?: string
 }) => {
   const { appTheme } = useAppTheme();
 
@@ -122,7 +123,7 @@ const HoverCircle = ({ visible, inset = -8, insetX = inset }: {
           right: insetX,
           bottom: inset,
           borderRadius: 999,
-          backgroundColor: appTheme.hoverOverlayColor,
+          backgroundColor: color ?? appTheme.hoverOverlayColor,
           opacity: visible ? 1 : 0,
           transform: [{ scale: visible ? 1 : 0.8 }],
         },
