@@ -8,12 +8,14 @@ const IconButton = ({
   label,
   style,
   padding = 0,
+  hoverColor,
   children,
 }: {
   onPress: () => void,
   label?: string,
   style?: ViewStyle,
   padding?: number,
+  hoverColor?: string,
   children: ReactNode,
 }) => {
   const { hovered, hoverProps } = useHover();
@@ -25,7 +27,11 @@ const IconButton = ({
       style={[{ padding }, style]}
       {...hoverProps}
     >
-      <HoverCircle visible={hovered} inset={padding - 8} />
+      <HoverCircle
+        visible={hovered}
+        inset={padding - 8}
+        color={hoverColor}
+      />
       {children}
     </Pressable>
   );

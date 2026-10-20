@@ -7,7 +7,6 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { Pressable } from './pressable';
 import { IconButton } from './button/icon-button';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -805,15 +804,17 @@ const WelcomeScreen_ = ({navigation, route}: NativeStackScreenProps<WelcomeParam
         }}
       >
         {inModal &&
-          <Pressable
+          <IconButton
+            label="Close"
             onPress={() => showSignUp(false)}
-            style={{ position: 'absolute', top: 0, right: 0, zIndex: 99 }}
+            padding={10}
+            style={{ position: 'absolute', top: 1, right: 0, zIndex: 99 }}
           >
             <Ionicons
-              style={{ margin: 10, fontSize: 30, color: 'white' }}
+              style={{ fontSize: 30, lineHeight: 30, color: 'white' }}
               name="close"
             />
-          </Pressable>
+          </IconButton>
         }
         <LogoHeader />
         {!inModal &&

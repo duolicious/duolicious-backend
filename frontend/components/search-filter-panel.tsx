@@ -349,16 +349,21 @@ const QAndAFilters = () => {
           style={styles.searchInput}
         />
         {searchText !== '' &&
-          <Pressable
-            aria-label="Clear search"
+          <IconButton
+            label="Clear search"
             onPress={clearSearchText}
+            padding={8}
             style={styles.clearSearch}
           >
             <Ionicons
-              style={{ fontSize: 20, color: appTheme.secondaryColor }}
+              style={{
+                fontSize: 20,
+                lineHeight: 20,
+                color: appTheme.secondaryColor,
+              }}
               name="close"
             />
-          </Pressable>
+          </IconButton>
         }
       </View>
       {isLoading &&
@@ -663,11 +668,7 @@ const styles = StyleSheet.create({
   clearSearch: {
     position: 'absolute',
     right: 4,
-    top: 4,
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+    top: 5,
   },
   qAndALoading: {
     marginTop: 40,

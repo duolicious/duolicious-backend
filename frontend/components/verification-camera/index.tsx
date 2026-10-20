@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Pressable } from '../pressable';
+import { IconButton } from '../button/icon-button';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { DefaultText } from '../default-text';
 import { SomethingWentWrongToast } from '../toast';
@@ -135,20 +136,22 @@ const VerificationCamera = () => {
           </DefaultText>
         )}
         <View style={styles.controlsContainer}>
-          <Pressable
+          <IconButton
+            label="Close"
             style={styles.closeButton}
             onPress={onPressClose}
+            padding={10}
+            hoverColor="rgba(255, 255, 255, 0.1)"
           >
             <Ionicons
               style={{
-                marginTop: 10,
-                marginLeft: 10,
                 fontSize: 30,
+                lineHeight: 30,
                 color: 'white',
               }}
               name="close"
             />
-          </Pressable>
+          </IconButton>
 
           {permission?.granted &&
             <View style={styles.buttonContainer}>
@@ -226,7 +229,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: 0,
+    top: 1,
     left: 0,
     zIndex: 2,
   },

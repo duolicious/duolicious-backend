@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
 } from 'react-native';
-import { Pressable } from './pressable';
 import { IconButton } from './button/icon-button';
 import { LogoActivityIndicator } from './logo/logo-activity-indicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -745,29 +744,26 @@ const QandQFilterScreen = ({navigation}: NativeStackScreenProps<SearchFilterPara
           autoFocus={true}
         />
         {searchText !== "" &&
-          <Pressable
+          <IconButton
+            label="Clear search"
             onPress={clearSearchText}
+            padding={10}
             style={{
               zIndex: 999,
               position: 'absolute',
-              bottom: 0,
-              right: 0,
-              height: '100%',
-              aspectRatio: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginRight: 10,
+              top: -4,
+              right: 10,
             }}
           >
             <Ionicons
               style={{
                 fontSize: 20,
+                lineHeight: 20,
                 color: appTheme.secondaryColor,
-                marginBottom: 10,
               }}
               name="close"
             />
-          </Pressable>
+          </IconButton>
         }
       </TopNavBar>
       {(isLoading || !data) &&

@@ -1377,20 +1377,21 @@ const OptionScreenHeader = ({
         }}
       >
         {showCloseButton &&
-          <Pressable
+          <IconButton
+            label="Close"
             onPress={() => navigation.popToTop()}
-            style={{position: 'absolute', top: 0, left: 0, zIndex: 99}}
+            padding={10}
+            style={{position: 'absolute', top: 1, left: 0, zIndex: 99}}
           >
             <Ionicons
               style={{
-                marginTop: 10,
-                marginLeft: 10,
                 fontSize: 30,
+                lineHeight: 30,
                 color: appTheme.secondaryColor,
               }}
               name="close"
             />
-          </Pressable>
+          </IconButton>
         }
         {showBackButton &&
           <IconButton

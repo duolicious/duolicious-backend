@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { Pressable } from '../pressable';
+import { IconButton } from '../button/icon-button';
 import Animated, {
   FadeIn,
   LayoutAnimationConfig,
@@ -187,24 +188,25 @@ const ClubsPanel = () => {
         }}
       />
       {query !== '' &&
-        <Pressable
-          aria-label="Clear search"
+        <IconButton
+          label="Clear search"
           onPress={() => setQuery('')}
+          padding={8}
           style={{
             position: 'absolute',
             right: 4,
-            top: 4,
-            width: 36,
-            height: 36,
-            alignItems: 'center',
-            justifyContent: 'center',
+            top: 5,
           }}
         >
           <Ionicons
             name="close"
-            style={{ fontSize: 20, color: appTheme.secondaryColor }}
+            style={{
+              fontSize: 20,
+              lineHeight: 20,
+              color: appTheme.secondaryColor,
+            }}
           />
-        </Pressable>
+        </IconButton>
       }
     </View>
   );
