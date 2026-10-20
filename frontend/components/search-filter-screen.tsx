@@ -718,7 +718,7 @@ const QandQFilterScreen = ({navigation}: NativeStackScreenProps<SearchFilterPara
           style={{
             zIndex: 999,
             position: 'absolute',
-            top: -5,
+            top: -4,
             left: 10,
           }}
         >
