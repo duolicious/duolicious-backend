@@ -1,9 +1,19 @@
-import { test, expect, Page } from '@playwright/test';
+import { test as base, expect, Page } from '@playwright/test';
 import { readFileSync } from 'fs';
 import { SEED_FILE, Seed, signIn, viewer } from './backend';
 import { prepare, snap } from './stable-page';
 
 const readSeed = (): Seed => JSON.parse(readFileSync(SEED_FILE, 'utf8'));
+
+const SIGNED_IN_CLOCK_OFFSET_MS = 2 * 60 * 60 * 1000;
+
+const test = base.extend({
+  timezoneId: async ({}, provide) => {
+    const midway = new Date(readSeed().time + SIGNED_IN_CLOCK_OFFSET_MS / 2);
+    const offset = Math.round(12 - midway.getUTCHours() - midway.getUTCMinutes() / 60);
+    await provide(`Etc/GMT${offset > 0 ? '-' : '+'}${Math.abs(offset)}`);
+  },
+});
 
 const shown = (page: Page, text: string) =>
   expect(page.getByText(text).filter({ visible: true }).first()).toBeVisible();
@@ -39,7 +49,7 @@ for (const theme of ['light', 'dark']) {
     const seen = JSON.stringify([session.uuid]);
     const blake = seed.uuids.blake;
 
-    await prepare(page, seed.time + 2 * 60 * 60 * 1000, {
+    await prepare(page, seed.time + SIGNED_IN_CLOCK_OFFSET_MS, {
       session_token: session.token,
       person_uuid: session.uuid,
       app_theme_name: theme,
