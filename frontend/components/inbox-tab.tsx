@@ -347,7 +347,13 @@ const InboxTitle = () => {
   );
 };
 
-const InboxNavBarButtons = ({ style }: { style: ViewStyle }) => {
+const InboxNavBarButtons = ({
+  style,
+  filterHintShift = 0,
+}: {
+  style: ViewStyle,
+  filterHintShift?: number,
+}) => {
   const {
     sectionIndex,
     showArchive,
@@ -421,7 +427,10 @@ const InboxNavBarButtons = ({ style }: { style: ViewStyle }) => {
             loading={isRefreshingInbox}
           />
           {!isFilterHintDismissed &&
-            <InboxFilterHint onDismiss={dismissFilterHint} />
+            <InboxFilterHint
+              onDismiss={dismissFilterHint}
+              shift={filterHintShift}
+            />
           }
         </Animated.View>
       }
@@ -463,7 +472,7 @@ const InboxPanel = memo(({ openPersonUuid }: { openPersonUuid?: string }) => {
           {showHidden && <HiddenIntrosBackButton position={null} />}
           <InboxTitle />
         </View>
-        <InboxNavBarButtons style={styles.panelButtons} />
+        <InboxNavBarButtons style={styles.panelButtons} filterHintShift={116} />
       </View>
       <InboxList openPersonUuid={openPersonUuid} />
     </>
@@ -524,6 +533,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingLeft: 20,
     paddingRight: 10,
+    zIndex: 1,
   },
   panelTitle: {
     height: '100%',
