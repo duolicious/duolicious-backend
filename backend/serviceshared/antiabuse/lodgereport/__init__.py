@@ -159,7 +159,7 @@ def _sample_email_addresses(email_entries: Sequence[EmailEntry]) -> str:
 def report_subject(
     reason: str,
     report_obj: Sequence[Mapping[str, object]],
-    is_automoded_bot: bool,
+    is_automoded: bool,
     is_shadow_banned: bool,
 ) -> str:
     subject_person_id = row_int(report_obj[0], 'id')
@@ -170,7 +170,7 @@ def report_subject(
 
     if is_shadow_banned:
         subject += ' [automoded - shadow banned]'
-    elif is_automoded_bot:
+    elif is_automoded:
         subject += ' [automoded]'
 
     if is_underage_report(reason):
@@ -183,7 +183,7 @@ def _send_report_email(
     reason: str,
     report_obj: Sequence[Mapping[str, object]],
     last_messages: list[dict[str, object]],
-    is_automoded_bot: bool,
+    is_automoded: bool,
     is_shadow_banned: bool,
 ) -> None:
     report_email = _sample_email_addresses(REPORT_EMAILS)
@@ -193,7 +193,7 @@ def _send_report_email(
             subject=report_subject(
                 reason=reason,
                 report_obj=report_obj,
-                is_automoded_bot=is_automoded_bot,
+                is_automoded=is_automoded,
                 is_shadow_banned=is_shadow_banned,
             ),
             body=report_template(
@@ -212,7 +212,7 @@ async def lodge_report(
     subject_uuid: str,
     object_uuid: str,
     reason: str,
-    is_automoded_bot: bool,
+    is_automoded: bool,
     is_shadow_banned: bool,
 ) -> None:
     params = dict(
@@ -234,7 +234,7 @@ async def lodge_report(
             report_obj=report_obj,
             reason=reason,
             last_messages=last_messages,
-            is_automoded_bot=is_automoded_bot,
+            is_automoded=is_automoded,
             is_shadow_banned=is_shadow_banned,
         )
     ).start()
@@ -256,8 +256,9 @@ def is_bot_report(reason: str) -> bool:
 
 def is_underage_report(reason: str) -> bool:
     return _reason_matches(
-        r'minor|under ?aged?|under (18|eighteen)|'
-        r'not (18|eighteen|an adult)|too young|child|kid|teen|teenager|'
+        r'minor|under ?aged?|under (the age of )?(18|eighteen)|'
+        r'(not|isn ?t|aren ?t|ain ?t) (18|eighteen|an adult)|'
+        r'too young|child|kid|teen|teenager|'
         r'high ?school|1[0-7] ?(yo|y o|years? old)',
         reason,
     )
@@ -283,15 +284,17 @@ async def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str) -> None
         object_uuid=object_uuid,
         reported=bool(reason),
         report_reason=reason or '',
-        is_bot_report=is_bot_report(reason),
+        requires_verification=(
+            is_bot_report(reason) or is_underage_report(reason)
+        ),
     )
 
     is_shadow_banned = False
 
     async with api_tx() as tx:
-        is_automoded_bot = row_bool(
+        is_automoded = row_bool(
             await tx.require_one(Q_INSERT_SKIPPED, params=params),
-            'is_automoded_bot',
+            'is_automoded',
         )
 
         if reason:
@@ -322,6 +325,6 @@ async def skip_by_uuid(subject_uuid: str, object_uuid: str, reason: str) -> None
             subject_uuid=subject_uuid,
             object_uuid=object_uuid,
             reason=reason,
-            is_automoded_bot=is_automoded_bot,
+            is_automoded=is_automoded,
             is_shadow_banned=is_shadow_banned,
         )
