@@ -73,14 +73,21 @@ milliseconds on one CPU thread. It learns by distillation:
    (`cardiffnlp/twitter-roberta-large-2022-154m`, each from a different random
    seed) are fine-tuned on `train.jsonl` and `synthetic.jsonl`. They are more
    accurate than the small model but far too slow to serve.
-2. The teachers score every intro sent in the last six months in the database
-   copy, plus the intros the old filter blocked, which are kept in
-   `rude_message`, and their scores are averaged. Intros from the senders the
+2. The teachers score every intro in the database copy, plus the intros the
+   old filter blocked, which are kept in `rude_message`, and their scores are
+   averaged. Intros from the senders the
    benchmarks were paraphrased from are left out, which is what the
    `md5('rude-' || person_id)` condition in `train.py` does.
 3. The small model learns from the same labelled messages and the averaged
    scores, then is exported to `model.onnx` and `tokenizer.json` beside the
    serving code.
+
+Scoring every intro rather than the last six months' (2.2 million rather
+than 440,000) raised the small model's recall on real intros by about six
+points at the same rate of normal intros hidden. Training it for 8 epochs
+rather than 4 added about two more in the one run measured. A wider small model
+(`google/bert_uncased_L-4_H-512_A-8`) added a point or two on top, but took
+three times as long to score an intro.
 
 With a single teacher, the small model's precision on random intros varied by
 up to six points between training runs on the same data. Averaging three
