@@ -269,6 +269,11 @@ const hydrate = (data) => {
   setMeta('meta[property="og:description"]', 'content', oneLine);
   setMeta('meta[property="og:url"]', 'content',
     `https://duolicious.app/club/${encodeURIComponent(data.name)}`);
+  const canonical = document.createElement('link');
+  canonical.rel = 'canonical';
+  canonical.href =
+    `https://duolicious.app/club/${encodeURIComponent(data.name)}`;
+  document.head.appendChild(canonical);
   setMeta('meta[name="twitter:title"]', 'content', pageTitle);
   setMeta('meta[name="twitter:description"]', 'content', oneLine);
 

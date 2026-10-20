@@ -15,7 +15,7 @@
     // maintained key list. The fixed targetOrigin means the message is only ever
     // delivered to a duolicious.app parent, no matter who embeds this page;
     // the deploy pipeline additionally restricts framing to that origin via
-    // a Content-Security-Policy header (see frontend-publish.yml).
+    // a Content-Security-Policy header (see _headers).
     var storage = {};
     try {
       for (var i = 0; i < localStorage.length; i++) {
