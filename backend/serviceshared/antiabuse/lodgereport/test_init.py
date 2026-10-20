@@ -72,18 +72,18 @@ class TestIsOffensive(unittest.TestCase):
         ]
 
         self.assertEqual(
-            report_subject("rude", report_obj, False, False),
+            report_subject(report_obj, False, False, False),
             "Report: (5) 12 - 34",
         )
         self.assertEqual(
-            report_subject("bot", report_obj, True, False),
+            report_subject(report_obj, True, False, False),
             "Report: (5) 12 - 34 [automoded]",
         )
         self.assertEqual(
-            report_subject("minor bot", report_obj, True, True),
+            report_subject(report_obj, True, True, True),
             "Report: (5) 12 - 34 [automoded - shadow banned] [underage]",
         )
         self.assertEqual(
-            report_subject("not 18", report_obj, False, False),
+            report_subject(report_obj, False, False, True),
             "Report: (5) 12 - 34 [underage]",
         )
