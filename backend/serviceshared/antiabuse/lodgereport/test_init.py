@@ -38,6 +38,11 @@ class TestIsOffensive(unittest.TestCase):
         self.assertTrue(is_underage_report("a 15-year-old"))
         self.assertTrue(is_underage_report("16yr old"))
         self.assertTrue(is_underage_report("14 yrs old"))
+        self.assertTrue(is_underage_report("15 years old"))
+        self.assertTrue(is_underage_report("She claims to be 15 on her bio"))
+        self.assertTrue(is_underage_report(
+            "profile bio says they are 15 (26-11)"))
+        self.assertTrue(is_underage_report("bio says they're 16"))
         self.assertTrue(is_underage_report("still in high school"))
         self.assertTrue(is_underage_report("literally a kid"))
         self.assertTrue(is_underage_report("she is actually 16"))
