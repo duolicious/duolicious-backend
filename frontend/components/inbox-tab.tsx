@@ -233,6 +233,7 @@ const InboxList = ({ openPersonUuid, scrollbar }: {
 
   const listRef = useRef<FlatList<InboxListItem> | null>(null);
   const unhiddenOffset = useRef(0);
+  const pendingOffset = useRef<number | null>(null);
 
   const setListRef = useCallback((node: FlatList<InboxListItem> | null) => {
     listRef.current = node;
@@ -249,9 +250,21 @@ const InboxList = ({ openPersonUuid, scrollbar }: {
     [showHidden, scrollbar],
   );
 
+  const onContentSizeChange = useCallback((width: number, height: number) => {
+    if (pendingOffset.current !== null) {
+      listRef.current?.scrollToOffset({
+        offset: pendingOffset.current,
+        animated: false,
+      });
+      pendingOffset.current = null;
+    }
+    scrollbar?.onContentSizeChange(width, height);
+  }, [scrollbar]);
+
   useLayoutEffect(() => {
+    pendingOffset.current = showHidden ? 0 : unhiddenOffset.current;
     listRef.current?.scrollToOffset({
-      offset: showHidden ? 0 : unhiddenOffset.current,
+      offset: pendingOffset.current,
       animated: false,
     });
   }, [showHidden]);
@@ -329,7 +342,7 @@ const InboxList = ({ openPersonUuid, scrollbar }: {
         </>}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        onContentSizeChange={scrollbar?.onContentSizeChange}
+        onContentSizeChange={onContentSizeChange}
         onScroll={onScroll}
         showsVerticalScrollIndicator={scrollbar?.showsVerticalScrollIndicator}
         contentContainerStyle={styles.flatList}
