@@ -6,8 +6,8 @@ import {
   StyleSheet,
   View,
   ScrollView,
-  Pressable,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import Reanimated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { FlashList } from '@shopify/flash-list';
 import { LogoActivityIndicator } from '../logo/logo-activity-indicator';

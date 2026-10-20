@@ -1,11 +1,11 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Platform,
-  Pressable,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { isMobile } from '../../util/util';

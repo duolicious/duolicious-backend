@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
-import { Pressable, ViewStyle } from 'react-native';
+import { ViewStyle } from 'react-native';
+import { Pressable } from '../pressable';
 import { HoverCircle, useHover } from '../hover';
 
 const IconButton = ({

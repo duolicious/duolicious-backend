@@ -2,9 +2,9 @@ import { memo, useCallback, useMemo } from 'react';
 import {
   FlatList,
   Platform,
-  Pressable,
   View,
 } from 'react-native';
+import { Pressable } from './pressable';
 import { FlashList } from '@shopify/flash-list';
 import { DefaultText } from './default-text';
 import { SheetScrollView } from './modal/modal-bottom-sheet';

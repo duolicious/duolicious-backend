@@ -1,9 +1,9 @@
 import {
   DimensionValue,
   LayoutAnimation,
-  Pressable,
   View,
 } from 'react-native';
+import { Pressable } from './pressable';
 import {
   useCallback,
   useState,

@@ -1,6 +1,5 @@
 import {
   Platform,
-  Pressable,
   ScrollView,
   StyleProp,
   StyleSheet,
@@ -8,6 +7,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Fragment,

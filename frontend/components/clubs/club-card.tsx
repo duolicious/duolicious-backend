@@ -2,12 +2,12 @@ import { ComponentProps, memo, useEffect, useEffectEvent, useMemo, useRef, useSt
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Pressable,
   ScrollView,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import Animated from 'react-native-reanimated';
 import { ImageBackground } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -33,7 +33,8 @@ import {
   useIsClubMember,
   useJoinedClubs,
 } from '../../club/club';
-import { Avatar, useProfileLink } from '../avatar';
+import { Avatar } from '../avatar';
+import { useProfileLink } from '../../navigation/use-profile-link';
 import { Close } from '../button/close';
 import { IconButton } from '../button/icon-button';
 import { usePressableAnimation } from '../../animation/animation';

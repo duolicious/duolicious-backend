@@ -3,11 +3,11 @@ import {
   Keyboard,
   Linking,
   Platform,
-  Pressable,
   Text,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { Pressable } from './pressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons/faArrowLeft';

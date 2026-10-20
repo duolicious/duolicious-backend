@@ -4,10 +4,10 @@ import {
   Platform,
   StatusBar,
   StyleSheet,
-  TouchableOpacity,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { DefaultText } from '../default-text';
 import { SomethingWentWrongToast } from '../toast';
@@ -135,7 +135,7 @@ const VerificationCamera = () => {
           </DefaultText>
         )}
         <View style={styles.controlsContainer}>
-          <TouchableOpacity
+          <Pressable
             style={styles.closeButton}
             onPress={onPressClose}
           >
@@ -148,13 +148,13 @@ const VerificationCamera = () => {
               }}
               name="close"
             />
-          </TouchableOpacity>
+          </Pressable>
 
           {permission?.granted &&
             <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.shutterOuter} onPress={handleTakePhoto}>
+              <Pressable style={styles.shutterOuter} onPress={handleTakePhoto}>
                 <View style={styles.shutterInner} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
           }
         </View>

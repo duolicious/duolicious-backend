@@ -5,7 +5,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { Pressable } from 'react-native-gesture-handler';
+import { Pressable } from './pressable';
 import { ReactNode, useMemo, useRef, useState } from 'react';
 import Animated, { CSSTransitionProperties } from 'react-native-reanimated';
 import { AppTheme, useAppTheme } from '../app-theme/app-theme';
