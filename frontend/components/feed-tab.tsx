@@ -19,9 +19,7 @@ import { Pressable } from './pressable';
 import { EnlargeablePhoto } from './enlargeable-image';
 import { commonStyles } from '../styles';
 import { VerificationBadge } from './verification-badge';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootParamList } from '../navigation/linking';
+import { useFocusEffect } from '@react-navigation/native';
 import { japi } from '../api/api';
 import {
   ViewerAnswer,
@@ -51,7 +49,6 @@ import Reanimated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { setProspectHint } from '../navigation/prospect-cache';
 import { ReportModalInitialData } from './modal/report-modal';
 import { ReportFlag } from './report-flag';
 import { AudioPlayer } from './audio-player';
@@ -59,6 +56,7 @@ import { useSkipped } from '../hide-and-block/hide-and-block';
 import { TopNavBarButton } from './top-nav-bar-button';
 import { quizCardQuoteText } from './conversation-screen/quote';
 import { useNavigationToConversation } from '../navigation/use-navigation-to-conversation';
+import { useProfileLink } from '../navigation/use-profile-link';
 import { ReplyButton } from './reply-button';
 import { OnlineIndicator } from './online-indicator';
 import { useAppTheme } from '../app-theme/app-theme';
@@ -326,24 +324,6 @@ const fetchPage = async (pageNumber: number): Promise<DataItem[] | null> => {
   return [...pageMetadata.lastPage];
 };
 
-const useNavigationToProfile = (
-  handle: string,
-  photoBlurhash: string | null
-) => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
-
-  return useCallback(() => {
-    setProspectHint(handle, { photoBlurhash });
-    navigation.navigate(
-      'Prospect Profile Screen',
-      {
-        screen: 'Prospect Profile',
-        params: { personUuid: handle },
-      }
-    );
-  }, [handle, photoBlurhash]);
-};
-
 const AgeGenderLocation = ({
   personUuid,
   urlSlug,
@@ -370,9 +350,6 @@ const AgeGenderLocation = ({
   const { appTheme } = useAppTheme();
   const { hovered: isNameHovered, hoverProps: nameHoverProps } = useHover();
 
-  // Profile links prefer the username (url_slug), falling back to the uuid.
-  const handle = urlSlug || personUuid;
-
   const onPressReport = useCallback(() => {
     const data: ReportModalInitialData = {
       name,
@@ -382,10 +359,7 @@ const AgeGenderLocation = ({
     notify('open-report-modal', data);
   }, [notify, name, personUuid]);
 
-  const onPress = useNavigationToProfile(
-    handle,
-    photoBlurhash,
-  );
+  const profileLink = useProfileLink(personUuid, urlSlug, photoBlurhash, null);
 
   return (
     <View
@@ -420,8 +394,7 @@ const AgeGenderLocation = ({
           }
           <Pressable
             style={{ flexShrink: 1 }}
-            onPress={onPress}
-            link={{ href: `/${handle}` }}
+            {...profileLink}
             {...nameHoverProps}
           >
             <DefaultText
@@ -508,9 +481,11 @@ const ActionTime = ({
 const FeedItemJoined = ({ fields }: { fields: JoinedFields }) => {
   const { appTheme } = useAppTheme();
 
-  const onPress = useNavigationToProfile(
+  const { onPress } = useProfileLink(
     fields.person_uuid,
+    fields.url_slug,
     fields.photo_blurhash,
+    null,
   );
 
   const { backgroundStyle, onPressIn, onPressOut } = usePressableAnimation();
@@ -598,19 +573,19 @@ const FacepileAvatar = ({
   navigatesOnPress: boolean
   onRequestSpread: () => void
 }) => {
-  const handle = member.url_slug || member.person_uuid;
-
   const { appTheme } = useAppTheme();
 
-  const navigateToProfile = useNavigationToProfile(
-    handle,
+  const { onPress: navigateToProfile, link } = useProfileLink(
+    member.person_uuid,
+    member.url_slug,
     member.photo_blurhash,
+    null,
   );
 
   const onPress = navigatesOnPress ? navigateToProfile : onRequestSpread;
 
   return (
-    <Pressable onPress={onPress} link={{ href: `/${handle}` }}>
+    <Pressable onPress={onPress} link={link}>
       <ImageBackground
         source={{
           uri: `${IMAGES_URL}/450-${member.photo_uuid}.jpg`,
@@ -648,11 +623,11 @@ const ViewerFacepileAvatar = ({
 }) => {
   const { appTheme } = useAppTheme();
 
-  const handle = viewer.url_slug || viewer.person_uuid;
-
-  const navigateToProfile = useNavigationToProfile(
-    handle,
+  const { onPress: navigateToProfile, link } = useProfileLink(
+    viewer.person_uuid,
+    viewer.url_slug,
     viewer.photo_blurhash,
+    null,
   );
 
   const onPress = navigatesOnPress ? navigateToProfile : onRequestSpread;
@@ -687,7 +662,7 @@ const ViewerFacepileAvatar = ({
       <Pressable
         onPress={onPress}
         style={styles.viewerFacepilePressable}
-        link={{ href: `/${handle}` }}
+        link={link}
       >
         {viewer.photo_uuid
           ? <ImageBackground
@@ -909,9 +884,11 @@ const ClubFacepile = ({
 const FeedItemJoinedClub = ({ fields }: { fields: JoinedClubFields }) => {
   const { appTheme } = useAppTheme();
 
-  const onPress = useNavigationToProfile(
+  const { onPress } = useProfileLink(
     fields.person_uuid,
+    fields.url_slug,
     fields.photo_blurhash,
+    null,
   );
 
   const { backgroundStyle, onPressIn, onPressOut } = usePressableAnimation();
@@ -1125,9 +1102,11 @@ const FeedItemAnsweredQuestion = ({
 }) => {
   const { appTheme } = useAppTheme();
 
-  const onPress = useNavigationToProfile(
+  const { onPress } = useProfileLink(
     fields.person_uuid,
+    fields.url_slug,
     fields.photo_blurhash,
+    null,
   );
 
   const { backgroundStyle, onPressIn, onPressOut } = usePressableAnimation();
@@ -1282,9 +1261,11 @@ const FeedItemAddedPhoto = ({
 }) => {
   const { appTheme } = useAppTheme();
 
-  const onPress = useNavigationToProfile(
+  const { onPress } = useProfileLink(
     fields.person_uuid,
+    fields.url_slug,
     fields.photo_blurhash,
+    null,
   );
 
   const { backgroundStyle, onPressIn, onPressOut } = usePressableAnimation();
@@ -1347,9 +1328,11 @@ const FeedItemAddedVoiceBio = ({
 }) => {
   const { appTheme } = useAppTheme();
 
-  const onPress = useNavigationToProfile(
+  const { onPress } = useProfileLink(
     fields.person_uuid,
+    fields.url_slug,
     fields.photo_blurhash,
+    null,
   );
 
   const { backgroundStyle, onPressIn, onPressOut } = usePressableAnimation();
@@ -1408,9 +1391,11 @@ const FeedItemUpdatedBio = ({
 }) => {
   const { appThemeName, appTheme } = useAppTheme();
 
-  const onPress = useNavigationToProfile(
+  const { onPress } = useProfileLink(
     fields.person_uuid,
+    fields.url_slug,
     fields.photo_blurhash,
+    null,
   );
 
   const onPressReply = useNavigationToConversation(

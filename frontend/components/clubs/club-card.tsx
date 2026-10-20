@@ -33,7 +33,8 @@ import {
   useIsClubMember,
   useJoinedClubs,
 } from '../../club/club';
-import { Avatar, useProfileLink } from '../avatar';
+import { Avatar } from '../avatar';
+import { useProfileLink } from '../../navigation/use-profile-link';
 import { Close } from '../button/close';
 import { IconButton } from '../button/icon-button';
 import { usePressableAnimation } from '../../animation/animation';

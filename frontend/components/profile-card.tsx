@@ -19,13 +19,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { DefaultText } from './default-text';
 import { noSelect } from '../styles';
 import { photoUri } from '../util/photos';
-import {
-  CompositeNavigationProp,
-  NavigationProp,
-  useNavigation,
-} from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { HomeParamList, RootParamList } from '../navigation/linking';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { listen } from '../events/events';
 import { X } from "react-native-feather";
@@ -42,7 +35,7 @@ import { useSkipped } from '../hide-and-block/hide-and-block';
 import { OnlineIndicator } from './online-indicator';
 import * as _ from 'lodash';
 import { useAppTheme } from '../app-theme/app-theme';
-import { setProspectHint } from '../navigation/prospect-cache';
+import { useProfileLink } from '../navigation/use-profile-link';
 
 // This component wouldn't need to exist if expo-image (and expo itself (and the
 // JS eco system generally)) wasn't buggy trash. This fixes an issue on
@@ -224,9 +217,6 @@ const ProfileCard = ({
 
   const { appTheme } = useAppTheme();
 
-  // Profile links prefer the username (url_slug), falling back to the uuid.
-  const handle = urlSlug || personUuid;
-
   const { isSkipped, wasPostSkipFiredInThisSession } = useSkipped(personUuid);
 
   const { status: onlineStatus } = useOnline(personUuid);
@@ -240,29 +230,8 @@ const ProfileCard = ({
     setProspectMessagedPersonState,
   ] = useState(prospectMessagedPerson);
 
-  const navigation = useNavigation<CompositeNavigationProp<
-    NavigationProp<HomeParamList>,
-    NativeStackNavigationProp<RootParamList>
-  >>();
-
-  const itemOnPress = useCallback(() => {
-    if (!navigation) {
-      return;
-    }
-
-    if (verificationRequired) {
-      return navigation.navigate('Profile');
-    } else if (personUuid) {
-      setProspectHint(handle, { photoBlurhash });
-      return navigation.push(
-        'Prospect Profile Screen',
-        {
-          screen: 'Prospect Profile',
-          params: { personUuid: handle },
-        }
-      );
-    }
-  }, [navigation, personUuid, handle, verificationRequired, photoBlurhash]);
+  const profileLink = useProfileLink(
+    personUuid, urlSlug, photoBlurhash, verificationRequired);
 
   const onMessageFrom = useCallback(
     () => {
@@ -292,15 +261,10 @@ const ProfileCard = ({
     [personUuid, onMessageTo]
   );
 
-  const link = navigation && !verificationRequired && personUuid
-    ? { href: `/${handle}` }
-    : undefined;
-
   return (
     <Pressable
-      onPress={itemOnPress}
       style={{ flex: 1 / numColumns, aspectRatio: 1, overflow: 'hidden', borderRadius: 5 }}
-      link={link}
+      {...profileLink}
     >
       <View
         style={{

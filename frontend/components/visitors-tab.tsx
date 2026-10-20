@@ -13,10 +13,7 @@ import { useScrollbar } from './navigation/scroll-bar-hooks';
 import { Avatar } from './avatar';
 import { commonStyles } from '../styles';
 import { VerificationBadge } from './verification-badge';
-import { CompositeNavigationProp, useNavigation, useFocusEffect } from '@react-navigation/native';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { HomeParamList, RootParamList } from '../navigation/linking';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSkipped } from '../hide-and-block/hide-and-block';
 import { useAppTheme } from '../app-theme/app-theme';
 import { usePressableAnimation } from '../animation/animation';
@@ -35,7 +32,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faGhost } from '@fortawesome/free-solid-svg-icons/faGhost';
 import { useTooltip } from './tooltip';
 import { happenedInLast7Days } from '../util/util';
-import { setProspectHint } from '../navigation/prospect-cache';
+import { useProfileLink } from '../navigation/use-profile-link';
 import {
   DataItem,
   SectionKey,
@@ -73,55 +70,6 @@ const sectionFromIndex = (sectionIndex: number): SectionKey =>
 const sectionFromKey = (itemKey: string): SectionKey =>
   itemKey.startsWith('you_visited-') ? 'you_visited' : 'visited_you';
 
-const useNavigationToProfile = (
-  personUuid: string,
-  urlSlug: string | null,
-  photoBlurhash: string | null,
-  verificationRequired: boolean,
-  section: SectionKey,
-) => {
-  const navigation = useNavigation<CompositeNavigationProp<
-    BottomTabNavigationProp<HomeParamList>,
-    NativeStackNavigationProp<RootParamList>
-  >>();
-
-  // Profile links prefer the username (url_slug), falling back to the uuid.
-  const handle = urlSlug || personUuid;
-
-  const onVisit = useCallback(() => {
-    markVisitorChecked(personUuid);
-
-    // Opening a profile straight from the "You Visited" list shouldn't yank it
-    // to the top when you navigate back; suppress that one reorder.
-    if (section === 'you_visited') {
-      suppressYouVisitedReorder(personUuid);
-    }
-  }, [personUuid, section]);
-
-  const onPress = useCallback(() => {
-    if (verificationRequired) {
-      return navigation.navigate('Profile');
-    } else if (personUuid) {
-      onVisit();
-      setProspectHint(handle, { photoBlurhash });
-      return navigation.navigate(
-        'Prospect Profile Screen',
-        {
-          screen: 'Prospect Profile',
-          params: { personUuid: handle },
-        }
-      );
-    }
-
-  }, [personUuid, handle, photoBlurhash, verificationRequired, onVisit]);
-
-  const link = verificationRequired
-    ? undefined
-    : { href: `/${handle}`, onOpenInNewTab: onVisit };
-
-  return { onPress, link };
-};
-
 const VisitorsItem = ({ itemKey }: { itemKey: string }) => {
   const dataItem = useVisitorDataItem(itemKey);
 
@@ -150,12 +98,21 @@ const VisitorsItemContent = ({
     onPressOut,
     hoverProps,
   } = usePressableAnimation();
-  const navigationProps = useNavigationToProfile(
+  const onVisit = useCallback(() => {
+    markVisitorChecked(dataItem.person_uuid);
+
+    // Opening a profile straight from the "You Visited" list shouldn't yank it
+    // to the top when you navigate back; suppress that one reorder.
+    if (section === 'you_visited') {
+      suppressYouVisitedReorder(dataItem.person_uuid);
+    }
+  }, [dataItem.person_uuid, section]);
+  const profileLink = useProfileLink(
     dataItem.person_uuid,
     dataItem.url_slug,
     dataItem.photo_blurhash,
-    dataItem.verification_required_to_view !== null,
-    section,
+    dataItem.verification_required_to_view,
+    onVisit,
   );
   const { viewRef, props } = useTooltip('You were invisible');
 
@@ -177,7 +134,7 @@ const VisitorsItemContent = ({
       style={styles.pressableStyle}
       onPressIn={onPressIn}
       onPressOut={onPressOut}
-      {...navigationProps}
+      {...profileLink}
       {...hoverProps}
     >
       <Animated.View style={[styles.cardBorders, appTheme.card, backgroundStyle]}>
