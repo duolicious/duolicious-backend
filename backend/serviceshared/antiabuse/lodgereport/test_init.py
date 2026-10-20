@@ -35,12 +35,25 @@ class TestIsOffensive(unittest.TestCase):
         self.assertTrue(is_underage_report("17 years old"))
         self.assertTrue(is_underage_report("still in high school"))
         self.assertTrue(is_underage_report("literally a kid"))
+        self.assertTrue(is_underage_report("she is actually 16"))
+        self.assertTrue(is_underage_report("he's 15"))
+        self.assertTrue(is_underage_report("they're only 17"))
+        self.assertTrue(is_underage_report("she is 16 in her bio"))
+        self.assertTrue(is_underage_report("I think she's not even 18"))
+        self.assertTrue(is_underage_report("talks about dating minors"))
+        self.assertTrue(is_underage_report("teenagers on here"))
 
     def test_is_not_underage_report(self) -> None:
         self.assertFalse(is_underage_report("they were mean to me"))
         self.assertFalse(is_underage_report("are you kidding me"))
         self.assertFalse(is_underage_report("18 years old and rude"))
         self.assertFalse(is_underage_report("117 years old"))
+        self.assertFalse(is_underage_report(
+            "they said offensive things about minorities"))
+        self.assertFalse(is_underage_report("she is 18"))
+        self.assertFalse(is_underage_report("he's 170cm, not 190cm"))
+        self.assertFalse(is_underage_report("she is 15 minutes away"))
+        self.assertFalse(is_underage_report("this is 10 times worse"))
 
     def test_report_subject(self) -> None:
         report_obj = [

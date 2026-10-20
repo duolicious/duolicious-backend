@@ -256,10 +256,13 @@ def is_bot_report(reason: str) -> bool:
 
 def is_underage_report(reason: str) -> bool:
     return _reason_matches(
-        r'minor|under ?aged?|under (the age of )?(18|eighteen)|'
-        r'(not|isn ?t|aren ?t|ain ?t) (18|eighteen|an adult)|'
-        r'too young|child|kid|teen|teenager|'
-        r'high ?school|1[0-7] ?(yo|y o|years? old)',
+        r'minors?|under ?aged?|under (the age of )?(18|eighteen)|'
+        r'(not|isn ?t|aren ?t|ain ?t) (even )?(18|eighteen|an adult)|'
+        r'too young|child|kid|teens?|teenagers?|high ?school|'
+        r'(is|s|are|re|am|m|im|aged?) (actually |only |just |really )?1[0-7]'
+        r'(?! (min|minutes?|hours?|days?|weeks?|months?|years?|times|km|'
+        r'miles?|cm|feet|ft|inches|kg|lbs?|pounds))|'
+        r'1[0-7] ?(yo|y o|years? old)',
         reason,
     )
 
