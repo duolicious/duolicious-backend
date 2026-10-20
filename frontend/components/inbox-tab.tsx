@@ -309,7 +309,7 @@ const InboxList = ({ openPersonUuid, scrollbar }: {
   );
 };
 
-const InboxTitle = () => {
+const InboxTitle = ({ showConnecting }: { showConnecting: boolean }) => {
   const { appTheme } = useAppTheme();
   const { showArchive, showHidden } = useInboxSettings();
   const [isOnline, setIsOnline] = useState(false);
@@ -332,13 +332,13 @@ const InboxTitle = () => {
       >
         {showHidden ? 'Hidden intros' : 'Inbox' + (showArchive ? ' (Archive)' : '')}
       </DefaultText>
-      {!isOnline &&
+      {showConnecting && !isOnline &&
         <ActivityIndicator
           size="small"
           color={appTheme.brandColor}
           style={{
             position: 'absolute',
-            right: -40,
+            left: -40,
             top: 3,
           }}
         />
@@ -454,7 +454,7 @@ const InboxTab = () => {
     <View style={styles.safeAreaView}>
       <TopNavBar>
         {showHidden && <HiddenIntrosBackButton position="left" />}
-        <InboxTitle />
+        <InboxTitle showConnecting={true} />
         <InboxNavBarButtons style={styles.navBarButtons} />
       </TopNavBar>
       <InboxList scrollbar={scrollbar} />
@@ -470,7 +470,7 @@ const InboxPanel = memo(({ openPersonUuid }: { openPersonUuid?: string }) => {
       <View style={styles.panelHeader}>
         <View style={styles.panelTitle}>
           {showHidden && <HiddenIntrosBackButton position={null} />}
-          <InboxTitle />
+          <InboxTitle showConnecting={false} />
         </View>
         <InboxNavBarButtons style={styles.panelButtons} filterHintShift={116} />
       </View>
