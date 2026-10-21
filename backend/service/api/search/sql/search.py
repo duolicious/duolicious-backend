@@ -167,7 +167,28 @@ WHERE
     id = %(searcher_person_id)s
 """
 
-Q_CLUB_MEMBERS = f"""
+CLUB_CARD_MEMBERS = 25
+
+_CLUB_MEMBER_CLAUSES = [
+    'person_club.club_name = %(club_name)s',
+    'person_club.activated',
+    *_VISIBLE_TO_SEARCHER,
+    _SEARCHER_DIDNT_SKIP_PROSPECT,
+]
+
+_CLUB_MEMBER_GENDER_RANKS = [
+    'prospect.gender_id <> ALL(searcher.gender_ids)',
+    'searcher.two_way_gender'
+    ' AND searcher.gender_id <> ALL(prospect_preference.gender_ids)',
+]
+
+_CLUB_MEMBER_ACTIVE = "prospect.last_online_time > NOW() - INTERVAL '30 days'"
+
+_CLUB_MEMBER_DISTANCE = 'prospect.coordinates <-> searcher.coordinates'
+
+
+def _q_club_members(clauses: list[str], order_by: list[str]) -> str:
+    return f"""
 SELECT
     prospect.uuid AS person_uuid,
     prospect.url_slug,
@@ -237,21 +258,36 @@ LEFT JOIN
 ON
     prospect_preference.person_id = prospect.id
 WHERE
-{and_clauses([
-    'person_club.club_name = %(club_name)s',
-    'person_club.activated',
-    *_VISIBLE_TO_SEARCHER,
-    _SEARCHER_DIDNT_SKIP_PROSPECT,
-    "prospect.last_online_time > NOW() - INTERVAL '30 days'",
-])}
+{and_clauses(clauses)}
 ORDER BY
-    prospect.gender_id <> ALL(searcher.gender_ids),
-    searcher.two_way_gender
-        AND searcher.gender_id <> ALL(prospect_preference.gender_ids),
-    prospect.coordinates <-> searcher.coordinates
+    {', '.join(order_by)}
 LIMIT
-    25
+    {CLUB_CARD_MEMBERS}
 """
+
+
+Q_CLUB_MEMBERS = _q_club_members(
+    [*_CLUB_MEMBER_CLAUSES, _CLUB_MEMBER_ACTIVE],
+    [*_CLUB_MEMBER_GENDER_RANKS, _CLUB_MEMBER_DISTANCE],
+)
+
+Q_CLUB_MEMBERS_BY_ACTIVITY = _q_club_members(
+    _CLUB_MEMBER_CLAUSES,
+    [
+        *_CLUB_MEMBER_GENDER_RANKS,
+        f'NOT ({_CLUB_MEMBER_ACTIVE})',
+        _CLUB_MEMBER_DISTANCE,
+    ],
+)
+
+Q_CLUB_MEMBERS_BY_ACTIVITY_FIRST_RANK = _q_club_members(
+    [
+        *_CLUB_MEMBER_CLAUSES,
+        _CLUB_MEMBER_ACTIVE,
+        *(f'({rank}) IS FALSE' for rank in _CLUB_MEMBER_GENDER_RANKS),
+    ],
+    [_CLUB_MEMBER_DISTANCE],
+)
 
 _SORT_BYS: tuple[SortBy, ...] = get_args(SortBy)
 SORT_MATCH_PERCENTAGE, SORT_CLUBS, SORT_KV, SORT_DISTANCE = _SORT_BYS
