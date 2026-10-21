@@ -8,11 +8,6 @@ _locations_json_file = os.path.join(
         os.path.dirname(__file__), '..', '..', '..',
         'locations', 'locations.json')
 
-# Trigram distance against the whole `long_friendly` string lets a long
-# subdivision/country tail outweigh the city name, so exact city matches could
-# rank below near-misses or fall out of the top 10 entirely. Candidates are
-# drawn from both a city-prefix match and the trigram match, then ranked with
-# exact city matches first and prefix matches next.
 Q_SEARCH_LOCATIONS = """
 WITH city_prefix_match AS (
     SELECT
@@ -21,7 +16,7 @@ WITH city_prefix_match AS (
     FROM
         location
     WHERE
-        lower(city) LIKE %(prefix_pattern)s
+        starts_with(lower(city), lower(%(search_string)s))
     ORDER BY
         lower(city)
     LIMIT 50
@@ -46,7 +41,7 @@ FROM (
 ) AS candidate
 ORDER BY
     lower(city) = lower(%(search_string)s) DESC,
-    lower(long_friendly) LIKE %(prefix_pattern)s DESC,
+    starts_with(lower(long_friendly), lower(%(search_string)s)) DESC,
     lower(city) <-> %(search_string)s,
     lower(long_friendly) <-> %(search_string)s
 LIMIT 10
@@ -99,16 +94,9 @@ async def get_search_locations(q: str | None) -> object:
     if len(normalized_whitespace) < 1:
         return []
 
-    escaped = (
-        normalized_whitespace.lower()
-        .replace('\\', '\\\\')
-        .replace('%', '\\%')
-        .replace('_', '\\_'))
-
     params = dict(
         first_character=normalized_whitespace[0],
         search_string=normalized_whitespace,
-        prefix_pattern=escaped + '%',
     )
 
     async with api_tx('READ COMMITTED') as tx:
