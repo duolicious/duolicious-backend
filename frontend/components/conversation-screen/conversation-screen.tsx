@@ -841,22 +841,8 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
   }, [personUuid, isFocused]);
 
   // Skipping blocks messaging in both directions, so the composer is replaced
-  // with a prompt to undo the skip rather than letting sends fail with the
-  // generic "unavailable" notice.
-  const [isUnskipping, setIsUnskipping] = useState(false);
-
-  const onPressUnskip = useCallback(async () => {
-    if (!personUuid) {
-      return;
-    }
-
-    setIsUnskipping(true);
-    if (await postSkipped(personUuid, false)) {
-      setIsSkipped(false);
-    }
-    setIsUnskipping(false);
-  }, [personUuid]);
-
+  // with a notice rather than letting sends fail with the generic
+  // "unavailable" notice.
   const noticeStyle: TextStyle = {
     maxWidth: 600,
     width: '100%',
@@ -1074,15 +1060,10 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
           />
         }
         {isAvailableUser && isSkipped &&
-          <Pressable
-            onPress={isUnskipping ? undefined : onPressUnskip}
-            style={{ maxWidth: 600, width: '100%', alignSelf: 'center' }}
-          >
-            <DefaultText style={noticeStyle}>
-              You skipped {name ?? 'this person'}. Press to unskip and message
-              them again.
-            </DefaultText>
-          </Pressable>
+          <DefaultText style={noticeStyle}>
+            You’ve skipped {name ?? 'this person'}. Unskip them to message them
+            again.
+          </DefaultText>
         }
         {!isAvailableUser &&
           <DefaultText style={noticeStyle}>
