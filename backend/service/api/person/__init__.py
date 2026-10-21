@@ -3,7 +3,6 @@ from serviceshared.database import (
     Tx,
     api_tx,
     row_bool,
-    row_halfvec,
     row_int,
     row_vector,
 )
@@ -40,11 +39,8 @@ from service.api.person.sql import *
 from service.api.search.sql import Q_SET_SEARCH_PREFERENCE_CLUB
 from service.api.search.sql.search import (
     Q_CLUB_MEMBERS,
-    Q_CLUB_MEMBERS_BY_DISTANCE,
     Q_SEARCHER,
-    kv_query_vector,
 )
-from service.api.trials import club_card_by_distance
 from service.api.search import similar_profiles
 from service.api.searchfilters import TWO_WAY_FILTER_KEYS
 from serviceshared.commonsql import *
@@ -1308,14 +1304,8 @@ async def get_club_card(s: t.SessionInfo, q: t.ClubCardQuery) -> Row:
         searcher = await tx.require_one(
             Q_SEARCHER, dict(searcher_person_id=s.person_id))
 
-        members_query = (
-            Q_CLUB_MEMBERS_BY_DISTANCE
-            if s.person_id is not None and club_card_by_distance(s.person_id)
-            else Q_CLUB_MEMBERS
-        )
-        await tx.execute(members_query, dict(
+        await tx.execute(Q_CLUB_MEMBERS, dict(
             searcher_person_id=s.person_id,
-            searcher_kv_vector=kv_query_vector(row_halfvec(searcher, 'kv_vector')),
             searcher_personality=row_vector(searcher, 'personality'),
             searcher_verification_level_id=row_int(
                 searcher, 'verification_level_id'),
