@@ -26,8 +26,8 @@ class TestIsRude(unittest.TestCase):
                 for name in ['random_intros.jsonl', 'corpus.jsonl']
             },
             {
-                'random_intros.jsonl': (0.916, 0.596),
-                'corpus.jsonl': (0.968, 0.739),
+                'random_intros.jsonl': (0.929, 0.718),
+                'corpus.jsonl': (0.967, 0.845),
             })
 
 

@@ -7,7 +7,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { Pressable } from './pressable';
+import { IconButton } from './button/icon-button';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons/faArrowLeft';
@@ -804,15 +804,17 @@ const WelcomeScreen_ = ({navigation, route}: NativeStackScreenProps<WelcomeParam
         }}
       >
         {inModal &&
-          <Pressable
+          <IconButton
+            label="Close"
             onPress={() => showSignUp(false)}
-            style={{ position: 'absolute', top: 0, right: 0, zIndex: 99 }}
+            padding={10}
+            style={{ position: 'absolute', top: 1, right: 0, zIndex: 99 }}
           >
             <Ionicons
-              style={{ margin: 10, fontSize: 30, color: 'white' }}
+              style={{ fontSize: 30, lineHeight: 30, color: 'white' }}
               name="close"
             />
-          </Pressable>
+          </IconButton>
         }
         <LogoHeader />
         {!inModal &&
@@ -1001,17 +1003,18 @@ const EmailScreen_ = ({navigation, route}: NativeStackScreenProps<WelcomeParamLi
             paddingBottom: 20,
           }}
         >
-          <Pressable
+          <IconButton
+            label="Back"
             onPress={() => navigation.goBack()}
+            padding={15}
             style={{ position: 'absolute', top: 0, left: 0, zIndex: 99 }}
           >
             <FontAwesomeIcon
-              style={{ margin: 15 }}
               icon={faArrowLeft}
               size={24}
               color="white"
             />
-          </Pressable>
+          </IconButton>
           <DefaultText
             disableTheme
             style={{

@@ -14,7 +14,7 @@ import { useLatest } from '../util/use-latest';
 
 const HIDDEN_POSITION = -500;
 const SLIDE_DURATION = 300;
-const BACK_ONLINE_HOLD_MS = 3000;
+const BACK_ONLINE_HOLD_MS = 1000;
 
 type Banner = 'offline' | 'back-online';
 

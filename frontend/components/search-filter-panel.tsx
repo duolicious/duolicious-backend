@@ -1,6 +1,7 @@
 import { ReactNode, useCallback, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Pressable } from './pressable';
+import { IconButton } from './button/icon-button';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as _ from 'lodash';
 import { DefaultText } from './default-text';
@@ -348,16 +349,21 @@ const QAndAFilters = () => {
           style={styles.searchInput}
         />
         {searchText !== '' &&
-          <Pressable
-            aria-label="Clear search"
+          <IconButton
+            label="Clear search"
             onPress={clearSearchText}
+            padding={8}
             style={styles.clearSearch}
           >
             <Ionicons
-              style={{ fontSize: 20, color: appTheme.secondaryColor }}
+              style={{
+                fontSize: 20,
+                lineHeight: 20,
+                color: appTheme.secondaryColor,
+              }}
               name="close"
             />
-          </Pressable>
+          </IconButton>
         }
       </View>
       {isLoading &&
@@ -449,12 +455,16 @@ const SearchFilterPanel = () => {
       }
       {!isBasics &&
         <View style={styles.drilledHeading}>
-          <Pressable aria-label="Back" onPress={back} style={styles.back}>
+          <IconButton label="Back" onPress={back} padding={10}>
             <Ionicons
-              style={{ fontSize: 24, color: appTheme.secondaryColor }}
+              style={{
+                fontSize: 24,
+                lineHeight: 24,
+                color: appTheme.secondaryColor,
+              }}
               name="arrow-back"
             />
-          </Pressable>
+          </IconButton>
           <DefaultText style={styles.drilledTitle}>{title}</DefaultText>
         </View>
       }
@@ -580,12 +590,6 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
     paddingRight: 16,
   },
-  back: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   drilledTitle: {
     flex: 1,
     fontSize: 18,
@@ -664,11 +668,7 @@ const styles = StyleSheet.create({
   clearSearch: {
     position: 'absolute',
     right: 4,
-    top: 4,
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+    top: 5,
   },
   qAndALoading: {
     marginTop: 40,

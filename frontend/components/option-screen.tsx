@@ -10,6 +10,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Pressable } from './pressable';
+import { IconButton } from './button/icon-button';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ForwardedRef,
@@ -1376,36 +1377,35 @@ const OptionScreenHeader = ({
         }}
       >
         {showCloseButton &&
-          <Pressable
+          <IconButton
+            label="Close"
             onPress={() => navigation.popToTop()}
-            style={{position: 'absolute', top: 0, left: 0, zIndex: 99}}
+            padding={10}
+            style={{position: 'absolute', top: 1, left: 0, zIndex: 99}}
           >
             <Ionicons
               style={{
-                marginTop: 10,
-                marginLeft: 10,
                 fontSize: 30,
+                lineHeight: 30,
                 color: appTheme.secondaryColor,
               }}
               name="close"
             />
-          </Pressable>
+          </IconButton>
         }
         {showBackButton &&
-          <Pressable
+          <IconButton
+            label="Back"
             onPress={() => navigation.goBack()}
+            padding={15}
             style={{position: 'absolute', top: 0, left: 0, zIndex: 99}}
           >
             <FontAwesomeIcon
-              style={{
-                margin: 15,
-                color: 'white',
-              }}
               icon={faArrowLeft}
               size={24}
               color="white"
             />
-          </Pressable>
+          </IconButton>
         }
         <DefaultText
           disableTheme

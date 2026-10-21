@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { Pressable } from '../pressable';
+import { IconButton } from '../button/icon-button';
 import Animated, {
   SharedValue,
   interpolateColor,
@@ -611,17 +612,9 @@ const PointOfSaleModal = () => {
             >
               Get Gold
             </DefaultText>
-            <Pressable
-              onPress={hidePointOfSale}
-              style={{
-                width: 44,
-                height: 44,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+            <IconButton label="Close" onPress={hidePointOfSale} padding={10}>
               <X stroke="white" strokeWidth={3} width={24} height={24} />
-            </Pressable>
+            </IconButton>
           </View>
           <OfferingCard
             key={openings}
