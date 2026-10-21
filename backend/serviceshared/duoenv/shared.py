@@ -2,6 +2,7 @@ from serviceshared.duoenv.read import (
     float_with,
     int_with,
     required_int,
+    required_nonblank_str,
     required_str,
     str_or_none,
     str_with,
@@ -20,6 +21,8 @@ SMTP_HOST = required_str('DUO_SMTP_HOST')
 SMTP_PORT = required_int('DUO_SMTP_PORT')
 SMTP_USER = required_str('DUO_SMTP_USER')
 SMTP_PASS = required_str('DUO_SMTP_PASS')
+
+UNSUBSCRIBE_SECRET = required_nonblank_str('DUO_UNSUBSCRIBE_SECRET')
 
 REPORT_EMAIL = required_str('DUO_REPORT_EMAIL')
 

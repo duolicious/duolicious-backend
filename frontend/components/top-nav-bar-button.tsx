@@ -1,9 +1,9 @@
 import {
   ActivityIndicator,
-  Pressable,
   View,
   ViewStyle,
 } from 'react-native';
+import { Pressable } from './pressable';
 import {
   ComponentProps,
   useCallback,

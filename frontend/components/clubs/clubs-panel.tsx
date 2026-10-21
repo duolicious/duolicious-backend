@@ -2,12 +2,12 @@ import { memo, useDeferredValue, useEffect, useState } from 'react';
 import {
   LayoutChangeEvent,
   Platform,
-  Pressable,
-  ScrollView,
   StyleSheet,
   TextStyle,
   View,
 } from 'react-native';
+import { Pressable } from '../pressable';
+import { IconButton } from '../button/icon-button';
 import Animated, {
   FadeIn,
   LayoutAnimationConfig,
@@ -28,6 +28,7 @@ import {
 } from '../../club/club';
 import { Club, ClubFilter } from '../club';
 import { DefaultText } from '../default-text';
+import { SheetScrollView } from '../modal/modal-bottom-sheet';
 import { DefaultTextInput } from '../default-text-input';
 import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
 import { useIsScrolled } from './use-is-scrolled';
@@ -57,9 +58,9 @@ const MineFilter = memo(({
   <ClubFilter
     name={name}
     isSelected={isSelected}
-    onPress={(e) => {
+    onPress={(view) => {
       if (isManaging || isSelected) {
-        return pressClub(name)(e);
+        return pressClub(name)(view);
       }
 
       selectSearchClub(name);
@@ -187,24 +188,25 @@ const ClubsPanel = () => {
         }}
       />
       {query !== '' &&
-        <Pressable
-          aria-label="Clear search"
+        <IconButton
+          label="Clear search"
           onPress={() => setQuery('')}
+          padding={8}
           style={{
             position: 'absolute',
             right: 4,
-            top: 4,
-            width: 36,
-            height: 36,
-            alignItems: 'center',
-            justifyContent: 'center',
+            top: 5,
           }}
         >
           <Ionicons
             name="close"
-            style={{ fontSize: 20, color: appTheme.secondaryColor }}
+            style={{
+              fontSize: 20,
+              lineHeight: 20,
+              color: appTheme.secondaryColor,
+            }}
           />
-        </Pressable>
+        </IconButton>
       }
     </View>
   );
@@ -225,7 +227,7 @@ const ClubsPanel = () => {
         </DefaultText>
         {!isSearchAtBottom && searchBox}
       </View>
-      {isReady && <ScrollView
+      {isReady && <SheetScrollView
         keyboardShouldPersistTaps="handled"
         onScroll={onScroll}
         scrollEventThrottle={16}
@@ -364,7 +366,7 @@ const ClubsPanel = () => {
               <LogoActivityIndicator size="large" color={appTheme.brandColor} />
             </View>
         }
-      </ScrollView>}
+      </SheetScrollView>}
       {isSearchAtBottom &&
         <View
           style={{

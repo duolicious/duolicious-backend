@@ -8,6 +8,7 @@ from service.cron.cronutil import (
     log_stacktrace,
 )
 from serviceshared.smtp import make_aws_smtp
+from serviceshared.unsubscribe import unsubscribe_url
 from typing import Generic, Protocol, TypeVar
 from serviceshared.unseennotificationcount import increment_unseen_notification_count
 from serviceshared.util import Json
@@ -54,7 +55,12 @@ async def send_email_notification(kind: NotificationKind[N], row: N) -> None:
 
     aws_smtp = make_aws_smtp()
     def send() -> None:
-        aws_smtp.send(subject=subject, body=body, to_addr=to_addr)
+        aws_smtp.send(
+            subject=subject,
+            body=body,
+            to_addr=to_addr,
+            unsubscribe_url=unsubscribe_url(row.person_uuid),
+        )
 
     await asyncio.to_thread(send)
 

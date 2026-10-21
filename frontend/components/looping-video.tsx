@@ -1,10 +1,8 @@
 import { RefObject, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
-  GestureResponderEvent,
   Platform,
   PointerEvent,
-  Pressable,
   StyleProp,
   StyleSheet,
   View,
@@ -18,6 +16,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
 import Animated from 'react-native-reanimated';
 import { AnimatedPressable, hoverTransition } from './hover';
+import { Pressable } from './pressable';
 import * as _ from 'lodash';
 import { lastEvent, notify, useDerivedEvent } from '../events/events';
 import { useSharedVideo } from './shared-video';
@@ -283,11 +282,7 @@ const ControlButton = ({
 
   return (
     <AnimatedPressable
-      onPress={(event: GestureResponderEvent) => {
-        event.preventDefault();
-        event.stopPropagation();
-        onPress();
-      }}
+      onPress={onPress}
       {...hoverProps}
       hitSlop={8}
       aria-label={label}
@@ -365,10 +360,7 @@ const VideoProgress = ({
 
   return (
     <Pressable
-      onPress={(event: GestureResponderEvent) => {
-        event.preventDefault();
-        event.stopPropagation();
-      }}
+      onPress={_.noop}
       {...hoverProps}
       style={styles.progressTouchArea}
     >

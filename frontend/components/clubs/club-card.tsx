@@ -2,12 +2,12 @@ import { ComponentProps, memo, useEffect, useEffectEvent, useMemo, useRef, useSt
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Pressable,
   ScrollView,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import Animated from 'react-native-reanimated';
 import { ImageBackground } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -33,7 +33,8 @@ import {
   useIsClubMember,
   useJoinedClubs,
 } from '../../club/club';
-import { Avatar, useProfileLink } from '../avatar';
+import { Avatar } from '../avatar';
+import { useProfileLink } from '../../navigation/use-profile-link';
 import { Close } from '../button/close';
 import { IconButton } from '../button/icon-button';
 import { usePressableAnimation } from '../../animation/animation';
@@ -43,6 +44,7 @@ import { Skeleton } from '../skeleton';
 import { VerificationBadge } from '../verification-badge';
 import { ButtonWithCenteredText } from '../button/centered-text';
 import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
+import { SheetScrollView } from '../modal/modal-bottom-sheet';
 import { showPointOfSale } from '../modal/point-of-sale-modal';
 import { notifyErrorToast, notifyLinkCopiedToast } from '../toast';
 
@@ -348,7 +350,7 @@ const ClubCardTitle = ({
       {onClose &&
         <Close
           onPress={onClose}
-          style={{ position: 'relative', marginTop: iconMarginTop }}
+          style={{ marginTop: iconMarginTop }}
         />
       }
     </View>
@@ -500,7 +502,7 @@ const ClubCardBody = ({
   );
 
   return (
-    <ScrollView
+    <SheetScrollView
       ref={scrollRef}
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingHorizontal: 20 }}
@@ -517,7 +519,7 @@ const ClubCardBody = ({
       {header}
       {members.map((m) => <MemberRow key={m.person_uuid} member={m} />)}
       {footer}
-    </ScrollView>
+    </SheetScrollView>
   );
 };
 

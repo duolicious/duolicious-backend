@@ -1,7 +1,5 @@
 import {
-  GestureResponderEvent,
   Platform,
-  Pressable,
   ScrollView,
   StyleProp,
   StyleSheet,
@@ -9,6 +7,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Fragment,
@@ -592,7 +591,7 @@ const BlockButton = ({name, personUuid, backgroundColor}: {
 type AllClubsChild =
   | { kind: 'Title', kids: ReactNode, props: { style?: TextStyle } }
   | { kind: 'Club', kids: ReactNode, props: {
-      onPress?: (e: GestureResponderEvent) => void,
+      onPress?: (view: View) => void,
       key: string,
       name: string,
       isMutual: boolean,

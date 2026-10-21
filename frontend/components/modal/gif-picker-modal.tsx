@@ -6,8 +6,8 @@ import {
   StyleSheet,
   View,
   ScrollView,
-  Pressable,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import Reanimated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { FlashList } from '@shopify/flash-list';
 import { LogoActivityIndicator } from '../logo/logo-activity-indicator';
@@ -20,7 +20,7 @@ import { AutoResizingGif } from '../auto-resizing-gif';
 import { KLIPY_API_KEY } from '../../env/env';
 import { isMobile } from '../../util/util';
 import { useAppTheme } from '../../app-theme/app-theme';
-import { ModalBottomSheet } from './modal-bottom-sheet';
+import { ModalBottomSheet, SheetScrollView } from './modal-bottom-sheet';
 
 type GifPickedEvent = string;
 
@@ -288,6 +288,7 @@ const GifPickerModal: React.FC = () => {
       contentContainerStyle={styles.flashListContent}
       ListFooterComponent={loadingMoreIndicator}
       showsVerticalScrollIndicator={false}
+      renderScrollComponent={SheetScrollView}
     />
   );
 

@@ -31,7 +31,6 @@ WITH recent AS (
     WHERE direction = 'O'
     AND audio_uuid IS NULL
     AND length(body) BETWEEN 1 AND 600
-    AND id >= (extract(epoch FROM now() - interval '6 months') * 1e6)::bigint << 8
     AND get_byte(decode(md5('rude-' || person_id), 'hex'), 0) >= 77
 )
 SELECT body
@@ -193,7 +192,7 @@ def main() -> None:
         'google/bert_uncased_L-4_H-256_A-4',
         texts + intros,
         targets + intro_targets,
-        epochs=2,
+        epochs=8,
         learning_rate=1e-4,
         batch_size=64)
 

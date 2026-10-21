@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import {
-  Pressable,
   Animated,
   View,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { DefaultText } from '../default-text';
 import { useInboxStats } from '../../chat/application-layer/hooks/inbox-stats';

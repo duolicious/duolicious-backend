@@ -1,17 +1,12 @@
 import {
-  useCallback,
-} from 'react';
-import {
-  GestureResponderEvent,
-  Pressable,
   StyleSheet,
   View,
 } from 'react-native';
+import { Pressable } from './pressable';
 import { DefaultText } from './default-text';
 import {
   IMAGES_URL,
 } from '../env/env';
-import { isOpenInNewTabPress, makeLinkProps } from '../util/navigation'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { X } from "react-native-feather";
 import { ImageBackground } from "expo-image";
@@ -19,56 +14,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
 import { OnlineIndicator } from './online-indicator';
 import { useAppTheme } from '../app-theme/app-theme';
-import {
-  CompositeNavigationProp,
-  StackActions,
-  useNavigation,
-} from '@react-navigation/native';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { HomeParamList, RootParamList } from '../navigation/linking';
-import { setProspectHint } from '../navigation/prospect-cache';
-
-const useProfileLink = (
-  personUuid: string,
-  urlSlug: string | null,
-  photoBlurhash: string | null,
-  verificationRequired: 'basics' | 'photos' | null,
-) => {
-  const navigation = useNavigation<CompositeNavigationProp<
-    BottomTabNavigationProp<HomeParamList>,
-    NativeStackNavigationProp<RootParamList>
-  >>();
-
-  // The profile URL prefers the username (url_slug); the uuid is the fallback
-  // for not-yet-backfilled users and shared links.
-  const handle = urlSlug || personUuid;
-
-  const onPress = useCallback((e: GestureResponderEvent) => {
-    if (isOpenInNewTabPress(e)) {
-      return;
-    }
-
-    e.preventDefault();
-
-    if (verificationRequired) {
-      return navigation.navigate('Profile');
-    } else if (personUuid) {
-      setProspectHint(handle, { photoBlurhash });
-      return navigation.dispatch(StackActions.push(
-        'Prospect Profile Screen',
-        {
-          screen: 'Prospect Profile',
-          params: { personUuid: handle },
-        }
-      ));
-    }
-  }, [navigation, personUuid, handle, photoBlurhash, verificationRequired]);
-
-  return verificationRequired
-    ? { onPress }
-    : { onPress, ...makeLinkProps(`/${handle}`) };
-};
+import { useProfileLink } from '../navigation/use-profile-link';
 
 const Avatar = ({
   percentage,
@@ -270,5 +216,4 @@ const styles = StyleSheet.create({
 
 export {
   Avatar,
-  useProfileLink,
 };

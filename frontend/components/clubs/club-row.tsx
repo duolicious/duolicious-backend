@@ -11,10 +11,10 @@ import {
   LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Pressable,
   ScrollView,
   View,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import Animated, {
   cubicBezier,
   Easing,
@@ -245,8 +245,8 @@ const CellContent = memo(({
     <ClubFilter
       name={kind === 'club' ? name : null}
       isSelected={isSelected}
-      onPress={(e) => kind === 'club' && isSelected
-        ? pressClub(name)(e)
+      onPress={(view) => kind === 'club' && isSelected
+        ? pressClub(name)(view)
         : selectSearchClub(kind === 'club' ? name : null)
       }
     />

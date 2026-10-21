@@ -1,11 +1,11 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Platform,
-  Pressable,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { isMobile } from '../../util/util';
@@ -144,12 +144,12 @@ const ClubCardHost = () => {
   const cache = useMemo((): ClubCardCache => new Map(), [first]);
   const { isScrolled, onScroll } = useIsScrolled(shown);
   const [isOpened, setIsOpened] = useState(false);
+  const onOpened = useCallback(() => setIsOpened(true), []);
 
   if (shown === null) {
     return null;
   }
 
-  const onOpened = () => setIsOpened(true);
   const onClosed = () => setIsOpened(false);
   const onBack = shown.previous && backClubCard;
 

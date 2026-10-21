@@ -1,13 +1,12 @@
 import {
-  GestureResponderEvent,
-  Pressable,
   StyleProp,
   StyleSheet,
   TextStyle,
   View,
   ViewStyle,
 } from 'react-native';
-import { ComponentProps, ReactNode, useState } from 'react';
+import { Pressable } from './pressable';
+import { ComponentProps, ReactNode, useRef, useState } from 'react';
 import Animated from 'react-native-reanimated';
 import { DefaultText } from './default-text';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -58,7 +57,7 @@ const Basic = ({children, ...rest}: {
   style?: StyleProp<ViewStyle>,
   textStyle?: StyleProp<TextStyle>,
   numberOfLines?: number,
-  onPress?: (e: GestureResponderEvent) => void,
+  onPress?: (view: View) => void,
 }) => {
   const {
     icon,
@@ -78,6 +77,7 @@ const Basic = ({children, ...rest}: {
 
   const { hovered, hoverProps } = useHover();
   const [pressed, setPressed] = useState(false);
+  const ref = useRef<View>(null);
   const isRaised = !!onPress && hovered && !pressed;
   const flatStyle = StyleSheet.flatten(style);
   const borderOverride = flatStyle?.borderColor;
@@ -102,11 +102,12 @@ const Basic = ({children, ...rest}: {
       ]}
     >
       <Pressable
+        ref={ref}
         disabled={!onPress}
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
         {...hoverProps}
-        onPress={onPress}
+        onPress={() => ref.current && onPress?.(ref.current)}
         style={{
           paddingHorizontal: 12,
           paddingVertical: 6,

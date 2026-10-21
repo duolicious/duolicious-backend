@@ -1,11 +1,11 @@
 import React from 'react';
 import {
   Animated,
-  Pressable,
   TextStyle,
   View,
   ViewStyle,
 } from 'react-native';
+import { Pressable, PressableProps } from './pressable';
 import {
   useCallback,
   useState,
@@ -46,7 +46,7 @@ const DonutChart = ({percentage, children, style, onPress, textStyle}: {
   }, []);
 
   return (
-    React.createElement(
+    React.createElement<PressableProps>(
       onPress ? Pressable : View,
       {
         style: {

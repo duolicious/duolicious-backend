@@ -152,6 +152,33 @@ test_happy_path_chats () {
     ../../test/fixtures/cron-emails-happy-path-chats
 }
 
+test_one_click_unsubscribe () {
+  test_happy_path_chats
+
+  local headers=$(
+    curl -s 'http://localhost:8025/api/v1/messages' | jq '.[0].Content.Headers')
+  [[ "$(jq -r '.["List-Unsubscribe-Post"][0]' <<< "$headers")" = \
+    'List-Unsubscribe=One-Click' ]]
+
+  local url=$(jq -r '.["List-Unsubscribe"][0]' <<< "$headers" | tr -d '<>')
+  local path=${url#https://api.duolicious.app}
+  [[ "$path" = /unsubscribe?token=* ]]
+
+  local never="5,5,5"
+  local notifications="
+    select concat_ws(',', chats_notification, intros_notification, visitors_notification)
+    from person
+    where uuid::text = '$user1id'"
+
+  [[ "$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+    "http://localhost:5000${path}x" -d 'List-Unsubscribe=One-Click')" = 400 ]]
+  [[ "$(q "$notifications")" != "$never" ]]
+
+  c POST "$path" -d 'List-Unsubscribe=One-Click'
+  [[ "$(q "$notifications")" = "$never" ]]
+  [[ "$(q "select count(*) from person where chats_notification = 5")" = 1 ]]
+}
+
 test_happy_path_chat_not_deferred_by_intro () {
   setup
 
@@ -979,6 +1006,7 @@ test_visitors_emailed_when_no_phone () {
 
 test_happy_path_intros
 test_happy_path_chats
+test_one_click_unsubscribe
 test_happy_path_chat_not_deferred_by_intro
 
 test_chat_notification_also_covers_a_capped_intro

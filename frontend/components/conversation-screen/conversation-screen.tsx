@@ -2,17 +2,16 @@ import {
   ActivityIndicator,
   AppState,
   AppStateStatus,
-  GestureResponderEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   TextStyle,
   View,
   ViewStyle,
 } from 'react-native';
+import { Pressable } from '../pressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Dispatch,
@@ -49,7 +48,6 @@ import { TopNavBarButton } from '../top-nav-bar-button';
 import { RotateCcw, Flag, X } from "react-native-feather";
 import { postSkipped } from '../../hide-and-block/hide-and-block';
 import { delay, isUuid, possessive } from '../../util/util';
-import { isOpenInNewTabPress, makeLinkProps } from '../../util/navigation';
 import { ReportModalInitialData } from '../modal/report-modal';
 import { listen, notify } from '../../events/events';
 import { ImageBackground } from 'expo-image';
@@ -344,13 +342,7 @@ const ConversationScreenNavBar = ({
   // Profile links prefer the username (url_slug), falling back to the handle.
   const profileHandle = urlSlug || handle;
 
-  const onPressName = useCallback((e: GestureResponderEvent) => {
-    if (isOpenInNewTabPress(e)) {
-      return;
-    }
-
-    e.preventDefault();
-
+  const onPressName = useCallback(() => {
     if (isAvailableUser) {
       // The user is already in this conversation, so the prospect's bottom
       // "send intro" buttons would be redundant.
@@ -383,7 +375,7 @@ const ConversationScreenNavBar = ({
       />
       <Pressable
         onPress={onPressName}
-        {...(isAvailableUser ? makeLinkProps(`/${profileHandle}`) : {})}
+        link={isAvailableUser ? { href: `/${profileHandle}` } : undefined}
         {...nameHoverProps}
         style={{
           justifyContent: 'center',

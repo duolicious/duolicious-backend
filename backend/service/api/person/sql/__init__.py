@@ -2339,6 +2339,21 @@ FROM
     updated_rows
 """
 
+Q_UNSUBSCRIBE = """
+UPDATE
+    person
+SET
+    chats_notification = immediacy.id,
+    intros_notification = immediacy.id,
+    visitors_notification = immediacy.id
+FROM
+    immediacy
+WHERE
+    person.uuid = %(person_uuid)s
+AND
+    immediacy.name = 'Never'
+"""
+
 Q_CHECK_ADMIN_BAN_TOKEN = """
 SELECT 1 FROM banned_person_admin_token WHERE token = %(token)s
 """

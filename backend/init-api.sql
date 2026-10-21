@@ -911,6 +911,7 @@ CREATE INDEX IF NOT EXISTS idx__duo_session__person_id
 
 CREATE INDEX IF NOT EXISTS idx__location__coordinates ON location USING GIST(coordinates);
 CREATE INDEX IF NOT EXISTS idx__location__lower_long_friendly ON location USING GIST(lower(long_friendly) gist_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx__location__lower_city ON location(lower(city) text_pattern_ops);
 
 CREATE INDEX IF NOT EXISTS idx__question__question ON question USING GIST(question gist_trgm_ops);
 

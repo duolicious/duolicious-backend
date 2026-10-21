@@ -1,13 +1,31 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import {
+  ReactNode,
+  Ref,
+  createContext,
+  useContext,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   BackHandler,
-  Pressable,
+  Platform,
+  ScrollView,
+  ScrollViewProps,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import {
+  ComposedGesture,
+  Gesture,
+  GestureDetector,
+} from 'react-native-gesture-handler';
+import { Pressable } from '../pressable';
 import Animated, {
+  SharedValue,
   interpolate,
   runOnJS,
   useAnimatedStyle,
@@ -27,6 +45,41 @@ const DISMISS_VELOCITY = 800;
 // Gap kept below the status bar so the sheet's top never crowds the screen
 // edge, where a downward swipe would reach the system pull-down instead
 const TOP_GAP = 50;
+
+const isWeb = Platform.OS === 'web';
+
+const SheetScroll = createContext<{
+  gesture: ComposedGesture
+  scrollY: SharedValue<number>
+} | null>(null);
+
+const SheetScrollView = ({
+  onScroll,
+  ...props
+}: ScrollViewProps & { ref?: Ref<ScrollView> }) => {
+  const sheet = useContext(SheetScroll);
+  const scrollY = sheet?.scrollY;
+
+  useEffect(() => {
+    scrollY?.set(0);
+  }, [scrollY]);
+
+  if (!sheet) {
+    return <ScrollView onScroll={onScroll} {...props} />;
+  }
+
+  return (
+    <GestureDetector gesture={sheet.gesture}>
+      <ScrollView
+        {...props}
+        onScroll={(e) => {
+          sheet.scrollY.set(e.nativeEvent.contentOffset.y);
+          onScroll?.(e);
+        }}
+      />
+    </GestureDetector>
+  );
+};
 
 const ModalBottomSheet = ({
   visible,
@@ -63,38 +116,8 @@ const ModalBottomSheet = ({
     setIsMounted(true);
   }
   const translateY = useSharedValue(sheetHeight);
-
-  useEffect(() => {
-    if (!isMounted) {
-      return;
-    }
-
-    if (visible) {
-      translateY.set(sheetHeight);
-      translateY.set(withTiming(
-        0,
-        { duration: SLIDE_DURATION },
-        (finished) => {
-          if (finished && onOpened) {
-            runOnJS(onOpened)();
-          }
-        },
-      ));
-    } else {
-      translateY.set(withTiming(
-        sheetHeight,
-        { duration: SLIDE_DURATION },
-        (finished) => {
-          if (finished) {
-            runOnJS(setIsMounted)(false);
-          }
-          if (finished && onClosed) {
-            runOnJS(onClosed)();
-          }
-        },
-      ));
-    }
-  }, [visible, isMounted]);
+  const scrollY = useSharedValue(0);
+  const isVisible = useSharedValue(visible);
 
   useEffect(() => {
     const onHardwareBackPress = () => {
@@ -111,26 +134,246 @@ const ModalBottomSheet = ({
     return () => subscription.remove();
   }, [isMounted, onBackPress]);
 
-  const pan = useMemo(
-    () => Gesture.Pan()
+  const gestures = useMemo(() => {
+    const open = () => {
+      'worklet';
+      translateY.set(withTiming(
+        0,
+        { duration: SLIDE_DURATION },
+        (finished) => {
+          if (finished && onOpened) {
+            runOnJS(onOpened)();
+          }
+        },
+      ));
+    };
+
+    const move = (translationY: number) => {
+      'worklet';
+      if (isVisible.get()) {
+        translateY.set(Math.max(0, translationY));
+      }
+    };
+
+    const release = (translationY: number, velocityY: number) => {
+      'worklet';
+      if (!isVisible.get()) {
+        return;
+      }
+
+      if (translationY > sheetHeight / 3 || velocityY > DISMISS_VELOCITY) {
+        runOnJS(onRequestClose)();
+      } else {
+        open();
+      }
+    };
+
+    const drag = () => Gesture.Pan()
       .activeOffsetY(10)
       .onUpdate((e) => {
         'worklet';
-        translateY.set(Math.max(0, e.translationY));
+        move(e.translationY);
       })
       .onEnd((e) => {
         'worklet';
-        if (
-          e.translationY > sheetHeight / 3 ||
-          e.velocityY > DISMISS_VELOCITY
-        ) {
-          runOnJS(onRequestClose)();
-        } else {
-          translateY.set(withTiming(0, { duration: SLIDE_DURATION }));
+        release(e.translationY, e.velocityY);
+      });
+
+    const content = drag().enabled(!isWeb);
+    const scroll = Gesture.Native().blocksExternalGesture(content);
+    const scrollTop = drag()
+      .failOffsetY(-5)
+      .blocksExternalGesture(content)
+      .onTouchesDown((_, manager) => {
+        'worklet';
+        if (scrollY.get() > 0) {
+          manager.fail();
         }
-      }),
-    [translateY, sheetHeight, onRequestClose],
-  );
+      });
+
+    return {
+      open,
+      move,
+      release,
+      header: drag(),
+      content,
+      scroll: {
+        gesture: Gesture.Exclusive(scrollTop, scroll),
+        scrollY,
+      },
+    };
+  }, [
+    translateY,
+    scrollY,
+    isVisible,
+    sheetHeight,
+    onRequestClose,
+    onOpened,
+    isMounted,
+  ]);
+
+  useEffect(() => {
+    if (!isMounted) {
+      return;
+    }
+
+    isVisible.set(visible);
+
+    if (visible) {
+      translateY.set(sheetHeight);
+      gestures.open();
+    } else {
+      translateY.set(withTiming(
+        sheetHeight,
+        { duration: SLIDE_DURATION },
+        (finished) => {
+          if (finished) {
+            runOnJS(setIsMounted)(false);
+          }
+          if (finished && onClosed) {
+            runOnJS(onClosed)();
+          }
+        },
+      ));
+    }
+  }, [visible, isMounted]);
+
+  const contentRef = useRef<View>(null);
+  const currentGestures = useEffectEvent(() => gestures);
+
+  useEffect(() => {
+    const node = contentRef.current;
+    if (!isWeb || !(node instanceof HTMLElement)) {
+      return;
+    }
+
+    let touch: {
+      id: number
+      target: EventTarget
+      startX: number
+      startY: number
+      lastY: number
+      lastTime: number
+      velocity: number
+      isDragging: boolean
+    } | null = null;
+    let lastEvent: TouchEvent | null = null;
+
+    const isInScrolledList = (target: EventTarget | null) => {
+      for (
+        let el = target instanceof Element ? target : null;
+        el && el !== node;
+        el = el.parentElement
+      ) {
+        if (el.scrollTop > 0) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const findTouch = (touches: TouchList) =>
+      Array.from(touches).find((t) => t.identifier === touch?.id);
+
+    const untrack = () => {
+      touch?.target.removeEventListener('touchmove', onTouchMove, true);
+      touch?.target.removeEventListener('touchend', onTouchEnd, true);
+      touch?.target.removeEventListener('touchcancel', onTouchEnd, true);
+      touch = null;
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (touch?.isDragging && findTouch(e.touches)) {
+        return;
+      }
+
+      untrack();
+
+      const { identifier, target, clientX, clientY } = e.touches[0];
+      if (e.touches.length !== 1 || isInScrolledList(target)) {
+        return;
+      }
+
+      touch = {
+        id: identifier,
+        target,
+        startX: clientX,
+        startY: clientY,
+        lastY: clientY,
+        lastTime: e.timeStamp,
+        velocity: 0,
+        isDragging: false,
+      };
+      target.addEventListener(
+        'touchmove',
+        onTouchMove,
+        { capture: true, passive: false },
+      );
+      target.addEventListener('touchend', onTouchEnd, true);
+      target.addEventListener('touchcancel', onTouchEnd, true);
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e === lastEvent) {
+        return;
+      }
+      lastEvent = e;
+
+      const moved = findTouch(e.touches);
+      if (!touch || !moved) {
+        return;
+      }
+
+      const { clientX, clientY } = moved;
+      const dx = clientX - touch.startX;
+      const dy = clientY - touch.startY;
+
+      if (!touch.isDragging && dy <= Math.abs(dx)) {
+        untrack();
+        return;
+      }
+
+      e.preventDefault();
+      touch.isDragging = true;
+      touch.velocity = 1000 * (clientY - touch.lastY) /
+        Math.max(1, e.timeStamp - touch.lastTime);
+      touch.lastY = clientY;
+      touch.lastTime = e.timeStamp;
+      currentGestures().move(dy);
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e === lastEvent) {
+        return;
+      }
+      lastEvent = e;
+
+      if (!findTouch(e.changedTouches)) {
+        return;
+      }
+
+      if (touch?.isDragging) {
+        currentGestures().release(
+          touch.lastY - touch.startY,
+          e.timeStamp - touch.lastTime < 100 ? touch.velocity : 0,
+        );
+      }
+      untrack();
+    };
+
+    node.addEventListener('touchstart', onTouchStart);
+    node.addEventListener('touchmove', onTouchMove, { passive: false });
+    node.addEventListener('touchend', onTouchEnd);
+    node.addEventListener('touchcancel', onTouchEnd);
+
+    return () => {
+      node.removeEventListener('touchstart', onTouchStart);
+      node.removeEventListener('touchmove', onTouchMove);
+      node.removeEventListener('touchend', onTouchEnd);
+      node.removeEventListener('touchcancel', onTouchEnd);
+      untrack();
+    };
+  }, [isMounted]);
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: interpolate(translateY.value, [0, sheetHeight], [1, 0]),
@@ -188,7 +431,7 @@ const ModalBottomSheet = ({
             sheetStyle,
           ]}
         >
-          <GestureDetector gesture={pan}>
+          <GestureDetector gesture={gestures.header}>
             <View>
               <View
                 style={{
@@ -203,9 +446,13 @@ const ModalBottomSheet = ({
               {header}
             </View>
           </GestureDetector>
-          <View style={styles.content}>
-            {children}
-          </View>
+          <GestureDetector gesture={gestures.content}>
+            <View ref={contentRef} style={styles.content}>
+              <SheetScroll value={isWeb ? null : gestures.scroll}>
+                {children}
+              </SheetScroll>
+            </View>
+          </GestureDetector>
           {footer}
         </Animated.View>
       </View>
@@ -230,4 +477,5 @@ const styles = StyleSheet.create({
 
 export {
   ModalBottomSheet,
+  SheetScrollView,
 };

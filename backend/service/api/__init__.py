@@ -302,6 +302,7 @@ async def post_skip_by_uuid(
         subject_uuid=string(s.person_uuid, 'person_uuid'),
         object_uuid=prospect_uuid,
         reason=req.report_reason or '',
+        is_automatic=False,
     )
     return None
 
@@ -484,6 +485,10 @@ async def get_update_notifications(request: Request) -> object:
         type=request.query_params.get('type', ''),
         frequency=request.query_params.get('frequency', ''),
     )
+
+@app.post('/unsubscribe')
+async def post_unsubscribe(token: str) -> object:
+    return await person.post_unsubscribe(token)
 
 @app.get('/feed-v2')
 async def get_feed_v2(

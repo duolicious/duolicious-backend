@@ -14,8 +14,9 @@ credentials.json
 # macOS
 .DS_Store
 
-android
-ios
+/android
+/ios
+modules/*/android/build
 
 # iOS builds
 build-*.ipa
@@ -30,4 +31,4 @@ build-*.aab
 /test-results/
 /playwright-report/
 /blob-report/
-/playwright/.cache/
+/playwright/
