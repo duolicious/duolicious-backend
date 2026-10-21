@@ -840,6 +840,35 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     );
   }, [personUuid, isFocused]);
 
+  // Skipping blocks messaging in both directions, so the composer is replaced
+  // with a prompt to undo the skip rather than letting sends fail with the
+  // generic "unavailable" notice.
+  const [isUnskipping, setIsUnskipping] = useState(false);
+
+  const onPressUnskip = useCallback(async () => {
+    if (!personUuid) {
+      return;
+    }
+
+    setIsUnskipping(true);
+    if (await postSkipped(personUuid, false)) {
+      setIsSkipped(false);
+    }
+    setIsUnskipping(false);
+  }, [personUuid]);
+
+  const noticeStyle: TextStyle = {
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
+    textAlign: 'center',
+    padding: 5,
+    paddingTop: 10,
+    paddingBottom: 10,
+    backgroundColor: appTheme.interactiveBorderColor,
+    fontFamily: 'Trueno',
+  };
+
   if (Platform.OS === 'web') {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
@@ -1034,7 +1063,7 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
             </View>
           </ScrollView>
         }
-        {isAvailableUser && draft !== null &&
+        {isAvailableUser && !isSkipped && draft !== null &&
           <Input
             initialValue={draft}
             onPressSend={onPressSend}
@@ -1044,20 +1073,19 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
             onFocus={onFocus}
           />
         }
-        {!isAvailableUser &&
-          <DefaultText
-            style={{
-              maxWidth: 600,
-              width: '100%',
-              alignSelf: 'center',
-              textAlign: 'center',
-              padding: 5,
-              paddingTop: 10,
-              paddingBottom: 10,
-              backgroundColor: appTheme.interactiveBorderColor,
-              fontFamily: 'Trueno',
-            }}
+        {isAvailableUser && isSkipped &&
+          <Pressable
+            onPress={isUnskipping ? undefined : onPressUnskip}
+            style={{ maxWidth: 600, width: '100%', alignSelf: 'center' }}
           >
+            <DefaultText style={noticeStyle}>
+              You skipped {name ?? 'this person'}. Press to unskip and message
+              them again.
+            </DefaultText>
+          </Pressable>
+        }
+        {!isAvailableUser &&
+          <DefaultText style={noticeStyle}>
             This person isn’t available right now. This often means their account
             is inactive or was deleted.
           </DefaultText>
