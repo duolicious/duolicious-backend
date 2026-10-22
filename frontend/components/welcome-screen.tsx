@@ -482,6 +482,7 @@ const InviteScreen = ({navigation, route}: NativeStackScreenProps<RootParamList,
                 >
                   Community Guidelines
                 </DefaultText>
+                , and to us using the sensitive details you share
               </DefaultText>
             </View>
           </View>
@@ -560,6 +561,7 @@ const TermsBlurb = () => (
     >
       Community Guidelines
     </DefaultText>
+    , and to us using the sensitive details you share
   </DefaultText>
 );
 
