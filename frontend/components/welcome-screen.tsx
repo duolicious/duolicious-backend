@@ -453,7 +453,8 @@ const InviteScreen = ({navigation, route}: NativeStackScreenProps<RootParamList,
                   color: '#777',
                   textAlign: 'center',
                   alignSelf: 'center',
-                  lineHeight: 28,
+                  fontSize: 12,
+                  lineHeight: 20,
                 }}
               >
                 By joining you agree to our {}
@@ -482,7 +483,7 @@ const InviteScreen = ({navigation, route}: NativeStackScreenProps<RootParamList,
                 >
                   Community Guidelines
                 </DefaultText>
-                , and to us using the sensitive details you share
+                . You also agree to us using the sensitive details you share.
               </DefaultText>
             </View>
           </View>
@@ -534,7 +535,8 @@ const TermsBlurb = () => (
       color: 'white',
       textAlign: 'center',
       alignSelf: 'center',
-      lineHeight: 28,
+      fontSize: 12,
+      lineHeight: 20,
     }}
   >
     By signing up you agree to our {}
@@ -561,7 +563,7 @@ const TermsBlurb = () => (
     >
       Community Guidelines
     </DefaultText>
-    , and to us using the sensitive details you share
+    . You also agree to us using the sensitive details you share.
   </DefaultText>
 );
 
