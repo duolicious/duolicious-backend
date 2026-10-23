@@ -1700,7 +1700,7 @@ const Body = ({
               marginBottom: 10,
             }}
           >
-            Verification is based on selfies analyzed by our AI. Verified
+            Verification is based on selfies checked by AI. Verified
             photos are most accurate.
           </DefaultText>
         </>}
