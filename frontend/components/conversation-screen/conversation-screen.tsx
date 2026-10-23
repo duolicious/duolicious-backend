@@ -68,6 +68,7 @@ import { useDraftMessage } from '../../chat/application-layer/hooks/draft-messag
 import { QuoteCard } from './quote';
 import { GifPickedEvent } from '../../components/modal/gif-picker-modal';
 import { ButtonWithCenteredText } from '../button/centered-text';
+import { SomethingWentWrongToast } from '../toast';
 import { OnlineIndicator } from '../online-indicator';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { useHover } from '../hover';
@@ -140,9 +141,12 @@ const Menu = ({
 
   const onPressSkip = useCallback(async () => {
     setIsUpdating(true);
-    if (await postSkipped(personUuid, !isSkipped)) {
-      setIsUpdating(false);
+    const ok = await postSkipped(personUuid, !isSkipped);
+    setIsUpdating(false);
+    if (ok) {
       closeFn();
+    } else {
+      notify<React.FC>('toast', SomethingWentWrongToast);
     }
   }, [isSkipped, closeFn, personUuid]);
 
@@ -457,10 +461,12 @@ const ConversationScreenNavBar = ({
 const SkippedNotice = ({
   name,
   wasReported,
+  isUndoing,
   onPressUndo,
 }: {
   name: string | undefined,
   wasReported: boolean,
+  isUndoing: boolean,
   onPressUndo: () => void,
 }) => {
   const { appTheme } = useAppTheme();
@@ -498,6 +504,7 @@ const SkippedNotice = ({
         <ButtonWithCenteredText
           secondary={true}
           onPress={onPressUndo}
+          loading={isUndoing}
           containerStyle={styles.skippedNoticeButton}
         >
           Undo skip
@@ -817,14 +824,14 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     setJustSkipped(null);
   }
 
-  const { isSkipped } = useSkipped(personUuid, onPostSkip);
+  const { isSkipped, isPosting } = useSkipped(personUuid, onPostSkip);
 
   const skippedNotice = isSkipped ? justSkipped : null;
   const showSkippedNotice = skippedNotice !== null;
 
-  const unskip = useCallback(() => {
-    if (personUuid) {
-      postSkipped(personUuid, false);
+  const unskip = useCallback(async () => {
+    if (personUuid && !await postSkipped(personUuid, false)) {
+      notify<React.FC>('toast', SomethingWentWrongToast);
     }
   }, [personUuid]);
 
@@ -984,6 +991,7 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
           <SkippedNotice
             name={name}
             wasReported={skippedNotice.wasReported}
+            isUndoing={isPosting}
             onPressUndo={unskip}
           />
         }
@@ -1145,6 +1153,7 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
             <ButtonWithCenteredText
               secondary={true}
               onPress={unskip}
+              loading={isPosting}
               fontSize={15}
               containerStyle={styles.skippedBarButton}
             >
