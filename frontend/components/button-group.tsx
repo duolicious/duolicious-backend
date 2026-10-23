@@ -21,7 +21,7 @@ import { DefaultText } from './default-text';
 import { delay } from '../util/util';
 
 
-const DURATION = 250;
+const DURATION = 150;
 
 type ButtonGroupProps = {
   buttons: string[];
