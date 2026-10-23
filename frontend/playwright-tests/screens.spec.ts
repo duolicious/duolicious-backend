@@ -131,7 +131,7 @@ for (const theme of ['light', 'dark']) {
       await page.route('**/skip/by-uuid/**', (route) => route.fulfill({ body: '' }));
       await tap(page, '\uf2d4');
       await tap(page, 'Report');
-      await page.locator('textarea').filter({ visible: true }).fill('Kept messaging after I said no thanks.');
+      await page.getByPlaceholder('Write here...').filter({ visible: true }).fill('Kept messaging after I said no thanks.');
       await tap(page, 'Submit');
       await shown(page, 'You reported Emery');
       await snap(page, `${theme}-reported`);
