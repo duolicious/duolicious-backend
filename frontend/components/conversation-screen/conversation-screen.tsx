@@ -14,9 +14,7 @@ import {
 import { Pressable } from '../pressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  Dispatch,
   Fragment,
-  SetStateAction,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -46,7 +44,11 @@ import {
 import { api } from '../../api/api';
 import { TopNavBarButton } from '../top-nav-bar-button';
 import { RotateCcw, Flag, X } from "react-native-feather";
-import { postSkipped } from '../../hide-and-block/hide-and-block';
+import {
+  postSkipped,
+  setSkipped,
+  useSkipped,
+} from '../../hide-and-block/hide-and-block';
 import { delay, isUuid, possessive } from '../../util/util';
 import { ReportModalInitialData } from '../modal/report-modal';
 import { listen, notify } from '../../events/events';
@@ -65,7 +67,7 @@ import type { RootParamList } from '../../navigation/linking';
 import { useDraftMessage } from '../../chat/application-layer/hooks/draft-message';
 import { QuoteCard } from './quote';
 import { GifPickedEvent } from '../../components/modal/gif-picker-modal';
-import { useSkipped } from '../../hide-and-block/hide-and-block';
+import { ButtonWithCenteredText } from '../button/centered-text';
 import { OnlineIndicator } from '../online-indicator';
 import { useAppTheme } from '../../app-theme/app-theme';
 import { useHover } from '../hover';
@@ -122,43 +124,27 @@ const firstMamId = (messageIds: string[] | null): string => {
 };
 
 const Menu = ({
-  navigation,
   name,
   personUuid,
-  isSkipped,
-  setIsSkipped,
   closeFn,
 }: {
-  navigation: NativeStackNavigationProp<RootParamList>,
   name: string | undefined,
   personUuid: string,
-  isSkipped: boolean | undefined,
-  setIsSkipped: Dispatch<SetStateAction<boolean | undefined>>,
   closeFn: () => void,
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const { appTheme } = useAppTheme();
+  const { isSkipped, isLoading: isSkipLoading } = useSkipped(personUuid);
 
-  const isLoading = (
-    isSkipped === undefined ||
-    name === undefined);
+  const isLoading = isSkipLoading || name === undefined;
 
   const onPressSkip = useCallback(async () => {
-    if (isSkipped === undefined) {
-      return;
-    }
-
     setIsUpdating(true);
-    const nextHiddenState = !isSkipped;
-    if (await postSkipped(personUuid, nextHiddenState)) {
-      setIsSkipped(nextHiddenState);
+    if (await postSkipped(personUuid, !isSkipped)) {
       setIsUpdating(false);
       closeFn();
-      if (nextHiddenState) {
-        navigation.popToTop();
-      }
     }
-  }, [navigation, isSkipped, setIsSkipped, closeFn, personUuid]);
+  }, [isSkipped, closeFn, personUuid]);
 
   const onPressReport = useCallback(async () => {
     if (name === undefined) {
@@ -320,8 +306,7 @@ const ConversationScreenNavBar = ({
   photoBlurhash,
   name,
   isOnline,
-  isSkipped,
-  setIsSkipped,
+  showProspect,
 }: {
   navigation: NativeStackNavigationProp<RootParamList>,
   handle: string,
@@ -332,8 +317,7 @@ const ConversationScreenNavBar = ({
   photoBlurhash: string | null | undefined,
   name: string | undefined,
   isOnline: boolean,
-  isSkipped: boolean | undefined,
-  setIsSkipped: Dispatch<SetStateAction<boolean | undefined>>,
+  showProspect: boolean,
 }) => {
   const { appTheme } = useAppTheme();
   const [showMenu, setShowMenu] = useState(false);
@@ -373,101 +357,153 @@ const ConversationScreenNavBar = ({
         position="left"
         secondary={true}
       />
-      <Pressable
-        onPress={onPressName}
-        link={isAvailableUser ? { href: `/${profileHandle}` } : undefined}
-        {...nameHoverProps}
-        style={{
-          justifyContent: 'center',
-          alignItems: 'center',
-          maxWidth: 220,
-          overflow: 'visible',
-          flexDirection: 'row',
-          gap: 10,
-        }}
-      >
-        <View
+      {showProspect && <>
+        <Pressable
+          onPress={onPressName}
+          link={isAvailableUser ? { href: `/${profileHandle}` } : undefined}
+          {...nameHoverProps}
           style={{
-            width: 30,
-            height: 30,
+            justifyContent: 'center',
+            alignItems: 'center',
+            maxWidth: 220,
+            overflow: 'visible',
+            flexDirection: 'row',
+            gap: 10,
           }}
         >
-          <ImageBackground
-            source={photoUuid && {
-              uri: `${IMAGES_URL}/450-${photoUuid}.jpg`,
-              height: 30,
-              width: 30,
-            }}
-            placeholder={photoBlurhash && { blurhash: photoBlurhash }}
-            transition={150}
+          <View
             style={{
               width: 30,
               height: 30,
-              borderRadius: 9999,
-              backgroundColor: photoUuid ? 'white' : appTheme.avatarBackgroundColor,
-              justifyContent: 'center',
-              alignItems: 'center',
-              overflow: 'hidden',
             }}
           >
-            {!photoUuid &&
-              <Ionicons
-                style={{
-                  fontSize: 14,
-                  color: appTheme.avatarColor,
-                }}
-                name={'person'}
-              />
-            }
-          </ImageBackground>
-          <OnlineIndicator
-            personUuid={personUuid}
-            size={16}
-            borderWidth={2}
+            <ImageBackground
+              source={photoUuid && {
+                uri: `${IMAGES_URL}/450-${photoUuid}.jpg`,
+                height: 30,
+                width: 30,
+              }}
+              placeholder={photoBlurhash && { blurhash: photoBlurhash }}
+              transition={150}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 9999,
+                backgroundColor: photoUuid ? 'white' : appTheme.avatarBackgroundColor,
+                justifyContent: 'center',
+                alignItems: 'center',
+                overflow: 'hidden',
+              }}
+            >
+              {!photoUuid &&
+                <Ionicons
+                  style={{
+                    fontSize: 14,
+                    color: appTheme.avatarColor,
+                  }}
+                  name={'person'}
+                />
+              }
+            </ImageBackground>
+            <OnlineIndicator
+              personUuid={personUuid}
+              size={16}
+              borderWidth={2}
+              style={{
+                position: 'absolute',
+                bottom: -4,
+                right: -4,
+              }}
+            />
+          </View>
+          <DefaultText
             style={{
-              position: 'absolute',
-              bottom: -4,
-              right: -4,
+              fontWeight: '700',
+              fontSize: 20,
+              textDecorationLine: isNameHovered && isAvailableUser ? 'underline' : 'none',
+            }}
+            numberOfLines={1}
+          >
+            {name ?? '...'}
+          </DefaultText>
+          <ActivityIndicator
+            size="small"
+            color={appTheme.brandColor}
+            style={{
+              opacity: isOnline ? 0 : 1,
             }}
           />
-        </View>
-        <DefaultText
-          style={{
-            fontWeight: '700',
-            fontSize: 20,
-            textDecorationLine: isNameHovered && isAvailableUser ? 'underline' : 'none',
-          }}
-          numberOfLines={1}
-        >
-          {name ?? '...'}
-        </DefaultText>
-        <ActivityIndicator
-          size="small"
-          color={appTheme.brandColor}
-          style={{
-            opacity: isOnline ? 0 : 1,
-          }}
-        />
-      </Pressable>
-      {isAvailableUser && personUuid &&
-        <TopNavBarButton
-          onPress={toggleMenu}
-          iconName="ellipsis-vertical"
-          position="right"
-          secondary={true}
-        />
-      }
-      {showMenu && personUuid &&
-        <Menu
-          navigation={navigation}
-          name={name}
-          personUuid={personUuid}
-          isSkipped={isSkipped}
-          setIsSkipped={setIsSkipped}
-          closeFn={() => setShowMenu(false)}
-        />
-      }
+        </Pressable>
+        {isAvailableUser && personUuid &&
+          <TopNavBarButton
+            onPress={toggleMenu}
+            iconName="ellipsis-vertical"
+            position="right"
+            secondary={true}
+          />
+        }
+        {showMenu && personUuid &&
+          <Menu
+            name={name}
+            personUuid={personUuid}
+            closeFn={() => setShowMenu(false)}
+          />
+        }
+      </>}
     </TopNavBar>
+  );
+};
+
+const SkippedNotice = ({
+  name,
+  wasReported,
+  onPressUndo,
+}: {
+  name: string | undefined,
+  wasReported: boolean,
+  onPressUndo: () => void,
+}) => {
+  const { appTheme } = useAppTheme();
+  const displayName = name ?? 'They';
+
+  return (
+    <View style={styles.skippedNotice}>
+      {wasReported ?
+        <Flag
+          stroke={appTheme.brandColor}
+          strokeWidth={2.5}
+          height={44}
+          width={44}
+        /> :
+        <X
+          stroke={appTheme.brandColor}
+          strokeWidth={3}
+          height={48}
+          width={48}
+        />
+      }
+      <DefaultText style={styles.skippedNoticeTitle}>
+        {wasReported ? 'You reported' : 'You skipped'} {name ?? 'them'}
+      </DefaultText>
+      <DefaultText style={styles.skippedNoticeBody}>
+        {wasReported ?
+          'Thanks for telling us. Our moderators will look into it. ' +
+          `${displayName} can’t see your profile or message you, and your ` +
+          'conversation with them is now in your archive.' :
+          `${displayName} can’t see your profile or message you. Your ` +
+          'conversation with them is now in your archive.'
+        }
+      </DefaultText>
+      {!wasReported &&
+        <ButtonWithCenteredText
+          secondary={true}
+          onPress={onPressUndo}
+          containerStyle={styles.skippedNoticeButton}
+        >
+          Undo skip
+        </ButtonWithCenteredText>
+      }
+    </View>
   );
 };
 
@@ -521,7 +557,6 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     initialHint.photoBlurhash);
   const [isAvailableUser, setIsAvailableUser] = useState<boolean>(
     initialHint.isAvailableUser ?? true);
-  const [isSkipped, setIsSkipped] = useState<boolean | undefined>();
   // The prospect's url_slug, resolved from /conversation-prospect; used to link
   // to their profile by username rather than uuid.
   const [urlSlug, setUrlSlug] = useState<string | null>(null);
@@ -552,7 +587,12 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     setPhotoUuid(hint.photoUuid);
     setPhotoBlurhash(hint.photoBlurhash);
     setIsAvailableUser(hint.isAvailableUser);
-    setIsSkipped(j.is_skipped ?? false);
+    if (j.person_uuid) {
+      setSkipped(
+        j.person_uuid,
+        { isSkipped: j.is_skipped ?? false, networkState: 'settled' },
+      );
+    }
     setUrlSlug(j.url_slug ?? null);
     setPersonUuid(j.person_uuid ?? hintedPersonUuid(handle));
     setProspectHint(handle, hint);
@@ -573,8 +613,11 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     setPhotoUuid(hint.photoUuid);
     setPhotoBlurhash(hint.photoBlurhash);
     setIsAvailableUser(hint.isAvailableUser ?? true);
-    setIsSkipped(undefined);
     setUrlSlug(null);
+    const knownUuid = hintedPersonUuid(handle);
+    if (knownUuid) {
+      setSkipped(knownUuid, { networkState: 'fetching' });
+    }
 
     let cancelled = false;
     (async () => {
@@ -757,7 +800,33 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     }
   }, [lastMessageId, personUuid]);
 
-  useSkipped(personUuid, () => navigation.popToTop());
+  const [justSkipped, setJustSkipped] = useState<{
+    personUuid: string | undefined,
+    wasReported: boolean,
+  } | null>(null);
+
+  const onPostSkip = useCallback((wasReported: boolean) => {
+    if (showInboxPanel) {
+      setJustSkipped({ personUuid, wasReported });
+    } else {
+      navigation.popToTop();
+    }
+  }, [showInboxPanel, personUuid, navigation]);
+
+  if (justSkipped && justSkipped.personUuid !== personUuid) {
+    setJustSkipped(null);
+  }
+
+  const { isSkipped } = useSkipped(personUuid, onPostSkip);
+
+  const skippedNotice = isSkipped ? justSkipped : null;
+  const showSkippedNotice = skippedNotice !== null;
+
+  const unskip = useCallback(() => {
+    if (personUuid) {
+      postSkipped(personUuid, false);
+    }
+  }, [personUuid]);
 
   // Fetch the first page of messages when the conversation is first opened
   // while online
@@ -840,9 +909,6 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     );
   }, [personUuid, isFocused]);
 
-  // Skipping blocks messaging in both directions, so the composer is replaced
-  // with a notice rather than letting sends fail with the generic
-  // "unavailable" notice.
   const noticeStyle: TextStyle = {
     maxWidth: 600,
     width: '100%',
@@ -887,7 +953,7 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
           <InboxPanel openPersonUuid={personUuid} />
         </SidePanelCard>
       }
-      right={showProfilePanel && !profile.notFound &&
+      right={showProfilePanel && !profile.notFound && !showSkippedNotice &&
         <ProspectProfilePanel
           handle={handle}
           data={profile.data}
@@ -912,15 +978,21 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
           photoBlurhash={photoBlurhash}
           name={name}
           isOnline={isOnline}
-          isSkipped={isSkipped}
-          setIsSkipped={setIsSkipped}
+          showProspect={!showSkippedNotice}
         />
-        {messageIds === null &&
+        {skippedNotice &&
+          <SkippedNotice
+            name={name}
+            wasReported={skippedNotice.wasReported}
+            onPressUndo={unskip}
+          />
+        }
+        {!showSkippedNotice && messageIds === null &&
           <View style={{flexGrow: 1, justifyContent: 'center', alignItems: 'center'}}>
             <LogoActivityIndicator size="large" color={appTheme.brandColor} />
           </View>
         }
-        {messageIds !== null && personUuid &&
+        {!showSkippedNotice && messageIds !== null && personUuid &&
           <ScrollView
             ref={listRef}
             onScroll={onScroll}
@@ -1059,11 +1131,26 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
             onFocus={onFocus}
           />
         }
-        {isAvailableUser && isSkipped &&
-          <DefaultText style={noticeStyle}>
-            You’ve skipped {name ?? 'this person'}. Unskip them to message them
-            again.
-          </DefaultText>
+        {!showSkippedNotice && isAvailableUser && isSkipped &&
+          <View
+            style={[
+              styles.skippedBar,
+              { backgroundColor: appTheme.interactiveBorderColor },
+            ]}
+          >
+            <DefaultText style={styles.skippedBarText}>
+              You skipped {name ?? 'this person'}, so you can’t message each
+              other.
+            </DefaultText>
+            <ButtonWithCenteredText
+              secondary={true}
+              onPress={unskip}
+              fontSize={15}
+              containerStyle={styles.skippedBarButton}
+            >
+              Undo skip
+            </ButtonWithCenteredText>
+          </View>
         }
         {!isAvailableUser &&
           <DefaultText style={noticeStyle}>
@@ -1094,6 +1181,51 @@ const styles = StyleSheet.create({
   },
   sidePanel: {
     flex: 1,
+  },
+  skippedNotice: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingBottom: 100,
+  },
+  skippedNoticeTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  skippedNoticeBody: {
+    maxWidth: 360,
+    fontSize: 15,
+    lineHeight: 21,
+    color: '#777',
+    textAlign: 'center',
+  },
+  skippedNoticeButton: {
+    width: 220,
+  },
+  skippedBar: {
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
+    alignItems: 'center',
+    gap: 10,
+    paddingTop: 12,
+    paddingBottom: 14,
+    paddingHorizontal: 20,
+  },
+  skippedBarText: {
+    fontFamily: 'Trueno',
+    fontSize: 15,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  skippedBarButton: {
+    width: 160,
+    height: 40,
+    marginTop: 0,
+    marginBottom: 0,
   },
 });
 
