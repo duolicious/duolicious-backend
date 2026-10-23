@@ -338,6 +338,7 @@ const VisitorsTab = () => {
             }
             renderItem={RenderItem}
             keyExtractor={keyExtractor}
+            windowSize={11}
             onContentSizeChange={onContentSizeChange}
             onScroll={onScroll}
             showsVerticalScrollIndicator={showsVerticalScrollIndicator}
