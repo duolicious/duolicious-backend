@@ -44,11 +44,7 @@ import {
 import { api } from '../../api/api';
 import { TopNavBarButton } from '../top-nav-bar-button';
 import { RotateCcw, Flag, X } from "react-native-feather";
-import {
-  postSkipped,
-  setSkipped,
-  useSkipped,
-} from '../../hide-and-block/hide-and-block';
+import { postSkipped, setSkipped, useSkipped } from '../../hide-and-block/hide-and-block';
 import { delay, isUuid, possessive } from '../../util/util';
 import { ReportModalInitialData } from '../modal/report-modal';
 import { listen, notify } from '../../events/events';
@@ -141,13 +137,12 @@ const Menu = ({
 
   const onPressSkip = useCallback(async () => {
     setIsUpdating(true);
-    const ok = await postSkipped(personUuid, !isSkipped);
-    setIsUpdating(false);
-    if (ok) {
+    if (await postSkipped(personUuid, !isSkipped)) {
       closeFn();
     } else {
       notify<React.FC>('toast', SomethingWentWrongToast);
     }
+    setIsUpdating(false);
   }, [isSkipped, closeFn, personUuid]);
 
   const onPressReport = useCallback(async () => {
@@ -310,7 +305,6 @@ const ConversationScreenNavBar = ({
   photoBlurhash,
   name,
   isOnline,
-  showProspect,
 }: {
   navigation: NativeStackNavigationProp<RootParamList>,
   handle: string,
@@ -321,7 +315,6 @@ const ConversationScreenNavBar = ({
   photoBlurhash: string | null | undefined,
   name: string | undefined,
   isOnline: boolean,
-  showProspect: boolean,
 }) => {
   const { appTheme } = useAppTheme();
   const [showMenu, setShowMenu] = useState(false);
@@ -361,156 +354,98 @@ const ConversationScreenNavBar = ({
         position="left"
         secondary={true}
       />
-      {showProspect && <>
-        <Pressable
-          onPress={onPressName}
-          link={isAvailableUser ? { href: `/${profileHandle}` } : undefined}
-          {...nameHoverProps}
+      <Pressable
+        onPress={onPressName}
+        link={isAvailableUser ? { href: `/${profileHandle}` } : undefined}
+        {...nameHoverProps}
+        style={{
+          justifyContent: 'center',
+          alignItems: 'center',
+          maxWidth: 220,
+          overflow: 'visible',
+          flexDirection: 'row',
+          gap: 10,
+        }}
+      >
+        <View
           style={{
-            justifyContent: 'center',
-            alignItems: 'center',
-            maxWidth: 220,
-            overflow: 'visible',
-            flexDirection: 'row',
-            gap: 10,
+            width: 30,
+            height: 30,
           }}
         >
-          <View
+          <ImageBackground
+            source={photoUuid && {
+              uri: `${IMAGES_URL}/450-${photoUuid}.jpg`,
+              height: 30,
+              width: 30,
+            }}
+            placeholder={photoBlurhash && { blurhash: photoBlurhash }}
+            transition={150}
             style={{
               width: 30,
               height: 30,
+              borderRadius: 9999,
+              backgroundColor: photoUuid ? 'white' : appTheme.avatarBackgroundColor,
+              justifyContent: 'center',
+              alignItems: 'center',
+              overflow: 'hidden',
             }}
           >
-            <ImageBackground
-              source={photoUuid && {
-                uri: `${IMAGES_URL}/450-${photoUuid}.jpg`,
-                height: 30,
-                width: 30,
-              }}
-              placeholder={photoBlurhash && { blurhash: photoBlurhash }}
-              transition={150}
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 9999,
-                backgroundColor: photoUuid ? 'white' : appTheme.avatarBackgroundColor,
-                justifyContent: 'center',
-                alignItems: 'center',
-                overflow: 'hidden',
-              }}
-            >
-              {!photoUuid &&
-                <Ionicons
-                  style={{
-                    fontSize: 14,
-                    color: appTheme.avatarColor,
-                  }}
-                  name={'person'}
-                />
-              }
-            </ImageBackground>
-            <OnlineIndicator
-              personUuid={personUuid}
-              size={16}
-              borderWidth={2}
-              style={{
-                position: 'absolute',
-                bottom: -4,
-                right: -4,
-              }}
-            />
-          </View>
-          <DefaultText
-            style={{
-              fontWeight: '700',
-              fontSize: 20,
-              textDecorationLine: isNameHovered && isAvailableUser ? 'underline' : 'none',
-            }}
-            numberOfLines={1}
-          >
-            {name ?? '...'}
-          </DefaultText>
-          <ActivityIndicator
-            size="small"
-            color={appTheme.brandColor}
-            style={{
-              opacity: isOnline ? 0 : 1,
-            }}
-          />
-        </Pressable>
-        {isAvailableUser && personUuid &&
-          <TopNavBarButton
-            onPress={toggleMenu}
-            iconName="ellipsis-vertical"
-            position="right"
-            secondary={true}
-          />
-        }
-        {showMenu && personUuid &&
-          <Menu
-            name={name}
+            {!photoUuid &&
+              <Ionicons
+                style={{
+                  fontSize: 14,
+                  color: appTheme.avatarColor,
+                }}
+                name={'person'}
+              />
+            }
+          </ImageBackground>
+          <OnlineIndicator
             personUuid={personUuid}
-            closeFn={() => setShowMenu(false)}
+            size={16}
+            borderWidth={2}
+            style={{
+              position: 'absolute',
+              bottom: -4,
+              right: -4,
+            }}
           />
-        }
-      </>}
-    </TopNavBar>
-  );
-};
-
-const SkippedNotice = ({
-  name,
-  wasReported,
-  isUndoing,
-  onPressUndo,
-}: {
-  name: string | undefined,
-  wasReported: boolean,
-  isUndoing: boolean,
-  onPressUndo: () => void,
-}) => {
-  const { appTheme } = useAppTheme();
-  const displayName = name ?? 'They';
-
-  return (
-    <View style={styles.skippedNotice}>
-      {wasReported ?
-        <Flag
-          stroke={appTheme.brandColor}
-          strokeWidth={2.5}
-          height={44}
-          width={44}
-        /> :
-        <X
-          stroke={appTheme.brandColor}
-          strokeWidth={3}
-          height={48}
-          width={48}
+        </View>
+        <DefaultText
+          style={{
+            fontWeight: '700',
+            fontSize: 20,
+            textDecorationLine: isNameHovered && isAvailableUser ? 'underline' : 'none',
+          }}
+          numberOfLines={1}
+        >
+          {name ?? '...'}
+        </DefaultText>
+        <ActivityIndicator
+          size="small"
+          color={appTheme.brandColor}
+          style={{
+            opacity: isOnline ? 0 : 1,
+          }}
+        />
+      </Pressable>
+      {isAvailableUser && personUuid &&
+        <TopNavBarButton
+          onPress={toggleMenu}
+          iconName="ellipsis-vertical"
+          position="right"
+          secondary={true}
         />
       }
-      <DefaultText style={styles.skippedNoticeTitle}>
-        {wasReported ? 'You reported' : 'You skipped'} {name ?? 'them'}
-      </DefaultText>
-      <DefaultText style={styles.skippedNoticeBody}>
-        {wasReported ?
-          'Thanks for telling us. Our moderators will look into it. ' +
-          `${displayName} can’t see your profile or message you, and your ` +
-          'conversation with them is now in your archive.' :
-          `${displayName} can’t see your profile or message you. Your ` +
-          'conversation with them is now in your archive.'
-        }
-      </DefaultText>
-      {!wasReported &&
-        <ButtonWithCenteredText
-          secondary={true}
-          onPress={onPressUndo}
-          loading={isUndoing}
-          containerStyle={styles.skippedNoticeButton}
-        >
-          Undo skip
-        </ButtonWithCenteredText>
+      {showMenu && personUuid &&
+        <Menu
+          name={name}
+          personUuid={personUuid}
+          closeFn={() => setShowMenu(false)}
+        />
       }
-    </View>
+    </TopNavBar>
   );
 };
 
@@ -567,6 +502,8 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
   // The prospect's url_slug, resolved from /conversation-prospect; used to link
   // to their profile by username rather than uuid.
   const [urlSlug, setUrlSlug] = useState<string | null>(null);
+  const [justSkipped, setJustSkipped] =
+    useState<'skipped' | 'reported' | null>(null);
 
   // If the user navigates to the conversation screen via a deep link, but the
   // conversation screen was already open on a conversation with a different
@@ -595,10 +532,7 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     setPhotoBlurhash(hint.photoBlurhash);
     setIsAvailableUser(hint.isAvailableUser);
     if (j.person_uuid) {
-      setSkipped(
-        j.person_uuid,
-        { isSkipped: j.is_skipped ?? false, networkState: 'settled' },
-      );
+      setSkipped(j.person_uuid, { isSkipped: !!j.is_skipped, networkState: 'settled' });
     }
     setUrlSlug(j.url_slug ?? null);
     setPersonUuid(j.person_uuid ?? hintedPersonUuid(handle));
@@ -616,15 +550,12 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     // the previous prospect's name and photo until the API resolves.
     const hint = getProspectHint(handle) ?? {};
     setPersonUuid(hintedPersonUuid(handle));
+    setJustSkipped(null);
     setName(hint.name);
     setPhotoUuid(hint.photoUuid);
     setPhotoBlurhash(hint.photoBlurhash);
     setIsAvailableUser(hint.isAvailableUser ?? true);
     setUrlSlug(null);
-    const knownUuid = hintedPersonUuid(handle);
-    if (knownUuid) {
-      setSkipped(knownUuid, { networkState: 'fetching' });
-    }
 
     let cancelled = false;
     (async () => {
@@ -807,33 +738,34 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
     }
   }, [lastMessageId, personUuid]);
 
-  const [justSkipped, setJustSkipped] = useState<{
-    personUuid: string | undefined,
-    wasReported: boolean,
-  } | null>(null);
-
   const onPostSkip = useCallback((wasReported: boolean) => {
     if (showInboxPanel) {
-      setJustSkipped({ personUuid, wasReported });
+      setJustSkipped(wasReported ? 'reported' : 'skipped');
     } else {
       navigation.popToTop();
     }
-  }, [showInboxPanel, personUuid, navigation]);
-
-  if (justSkipped && justSkipped.personUuid !== personUuid) {
-    setJustSkipped(null);
-  }
+  }, [showInboxPanel, navigation]);
 
   const { isSkipped, isPosting } = useSkipped(personUuid, onPostSkip);
 
-  const skippedNotice = isSkipped ? justSkipped : null;
-  const showSkippedNotice = skippedNotice !== null;
+  const skippedNotice = isSkipped && justSkipped;
+  const SkippedIcon = skippedNotice === 'reported' ? Flag : X;
 
-  const unskip = useCallback(async () => {
-    if (personUuid && !await postSkipped(personUuid, false)) {
-      notify<React.FC>('toast', SomethingWentWrongToast);
-    }
-  }, [personUuid]);
+  const undoSkipButton = (
+    <ButtonWithCenteredText
+      secondary={true}
+      borderColor={appTheme.secondaryColor}
+      loading={isPosting}
+      containerStyle={styles.undoSkipButton}
+      onPress={async () => {
+        if (personUuid && !await postSkipped(personUuid, false)) {
+          notify<React.FC>('toast', SomethingWentWrongToast);
+        }
+      }}
+    >
+      Undo skip
+    </ButtonWithCenteredText>
+  );
 
   // Fetch the first page of messages when the conversation is first opened
   // while online
@@ -960,7 +892,7 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
           <InboxPanel openPersonUuid={personUuid} />
         </SidePanelCard>
       }
-      right={showProfilePanel && !profile.notFound && !showSkippedNotice &&
+      right={showProfilePanel && !profile.notFound && !skippedNotice &&
         <ProspectProfilePanel
           handle={handle}
           data={profile.data}
@@ -985,22 +917,13 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
           photoBlurhash={photoBlurhash}
           name={name}
           isOnline={isOnline}
-          showProspect={!showSkippedNotice}
         />
-        {skippedNotice &&
-          <SkippedNotice
-            name={name}
-            wasReported={skippedNotice.wasReported}
-            isUndoing={isPosting}
-            onPressUndo={unskip}
-          />
-        }
-        {!showSkippedNotice && messageIds === null &&
+        {messageIds === null &&
           <View style={{flexGrow: 1, justifyContent: 'center', alignItems: 'center'}}>
             <LogoActivityIndicator size="large" color={appTheme.brandColor} />
           </View>
         }
-        {!showSkippedNotice && messageIds !== null && personUuid &&
+        {messageIds !== null && personUuid &&
           <ScrollView
             ref={listRef}
             onScroll={onScroll}
@@ -1139,7 +1062,7 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
             onFocus={onFocus}
           />
         }
-        {!showSkippedNotice && isAvailableUser && isSkipped &&
+        {isAvailableUser && isSkipped &&
           <View
             style={[
               styles.skippedBar,
@@ -1150,15 +1073,43 @@ const ConversationScreen = ({navigation, route}: NativeStackScreenProps<RootPara
               You skipped {name ?? 'this person'}, so you can’t message each
               other.
             </DefaultText>
-            <ButtonWithCenteredText
-              secondary={true}
-              onPress={unskip}
-              loading={isPosting}
-              fontSize={15}
-              containerStyle={styles.skippedBarButton}
-            >
-              Undo skip
-            </ButtonWithCenteredText>
+            {undoSkipButton}
+          </View>
+        }
+        {skippedNotice &&
+          <View
+            style={[
+              styles.skippedNoticeOverlay,
+              styles.besidePanels,
+              { backgroundColor: appTheme.primaryColor },
+            ]}
+          >
+            <TopNavBar containerStyle={styles.navBar}>
+              <TopNavBarButton
+                onPress={() => navigation.goBack()}
+                iconName="arrow-back"
+                position="left"
+                secondary={true}
+              />
+            </TopNavBar>
+            <View style={styles.skippedNotice}>
+              <SkippedIcon
+                stroke={appTheme.brandColor}
+                strokeWidth={3}
+                height={48}
+                width={48}
+              />
+              <DefaultText style={styles.skippedNoticeTitle}>
+                You {skippedNotice} {name ?? 'them'}
+              </DefaultText>
+              <DefaultText style={{ textAlign: 'center', color: appTheme.hintColor }}>
+                {skippedNotice === 'reported' &&
+                  'Thanks for telling us. Our moderators will look into it. '}
+                {name ?? 'They'} can’t see your profile or message you. Your
+                conversation with them is now in your archive.
+              </DefaultText>
+              {skippedNotice === 'skipped' && undoSkipButton}
+            </View>
           </View>
         }
         {!isAvailableUser &&
@@ -1191,50 +1142,38 @@ const styles = StyleSheet.create({
   sidePanel: {
     flex: 1,
   },
+  skippedNoticeOverlay: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 1000,
+  },
   skippedNotice: {
     flex: 1,
+    maxWidth: 400,
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 14,
-    paddingHorizontal: 20,
     paddingBottom: 100,
   },
   skippedNoticeTitle: {
     fontSize: 20,
     fontWeight: '700',
-    textAlign: 'center',
-  },
-  skippedNoticeBody: {
-    maxWidth: 360,
-    fontSize: 15,
-    lineHeight: 21,
-    color: '#777',
-    textAlign: 'center',
-  },
-  skippedNoticeButton: {
-    width: 220,
   },
   skippedBar: {
     maxWidth: 600,
     width: '100%',
     alignSelf: 'center',
     alignItems: 'center',
-    gap: 10,
-    paddingTop: 12,
-    paddingBottom: 14,
+    paddingTop: 10,
     paddingHorizontal: 20,
   },
   skippedBarText: {
     fontFamily: 'Trueno',
-    fontSize: 15,
-    lineHeight: 20,
     textAlign: 'center',
   },
-  skippedBarButton: {
+  undoSkipButton: {
     width: 160,
     height: 40,
-    marginTop: 0,
-    marginBottom: 0,
   },
 });
 
