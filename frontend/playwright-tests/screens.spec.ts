@@ -95,5 +95,8 @@ for (const theme of ['light', 'dark']) {
     await snap(page, `${theme}-you-visited`);
 
     await visit(page, '/profile', 'Verification', `${theme}-profile`);
+    await tap(page, 'Get Verified');
+    await shown(page, 'By continuing, you agree');
+    await snap(page, `${theme}-get-verified`);
   });
 }
